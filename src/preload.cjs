@@ -1,0 +1,2 @@
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('desktop', { getNotifications: () => ipcRenderer.invoke('notifications:get'), saveNotifications: value => ipcRenderer.invoke('notifications:save', value), testNotification: () => ipcRenderer.invoke('notifications:test'), saveLocalBackup: value => ipcRenderer.invoke('backup:save', value), getLocalBackup: () => ipcRenderer.invoke('backup:get') });

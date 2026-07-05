@@ -1,0 +1,20 @@
+# Build outputs & packaged binaries
+build/
+build-*/
+dist/
+*.exe
+*.blockmap
+*.asar
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+
+# Local runtime data / user backups
+*.local-backup.json
+scratch/

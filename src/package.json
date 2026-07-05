@@ -1,0 +1,8 @@
+{
+  "name": "irl-lvp-up",
+  "version": "1.0.0",
+  "description": "Ton RPG de vie local",
+  "main": "electron-main.cjs",
+  "author": "Adrien",
+  "license": "MIT"
+}

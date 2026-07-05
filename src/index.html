@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111827" />
+    <title>IRL LVP UP</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="desktop.css" />
+    <link rel="stylesheet" href="athlete.css" />
+    <link rel="stylesheet" href="roadmap.css" />
+    <link rel="stylesheet" href="growth.css" />
+    <link rel="stylesheet" href="calendar.css" />
+    <link rel="stylesheet" href="polish.css" />
+    <link rel="stylesheet" href="strength.css" />
+    <link rel="stylesheet" href="calendar-page.css" />
+    <link rel="stylesheet" href="audit.css" />
+    <link rel="stylesheet" href="pages.css" />
+    <link rel="stylesheet" href="trail.css" />
+    <link rel="stylesheet" href="ultra.css" />
+    <link rel="stylesheet" href="companion.css" />
+    <link rel="stylesheet" href="planning-plus.css" />
+    <link rel="stylesheet" href="ultra-plus.css" />
+    <link rel="stylesheet" href="coach-plus.css" />
+    <link rel="stylesheet" href="general-plus.css" />
+    <link rel="stylesheet" href="mission-control.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <img class="brand-logo" src="assets/irl-lvp-up-logo.png" alt="Logo IRL LVP UP" />
+        <div>
+          <p class="eyebrow">TON JEU DANS LA VRAIE VIE</p>
+          <h1>IRL <span>LVP UP</span></h1>
+          <p id="dailyMessage" class="subtitle"></p>
+        </div>
+        <button id="resetButton" class="icon-button" title="Réinitialiser les données" aria-label="Réinitialiser les données">↻</button>
+      </header>
+      <nav class="app-nav" aria-label="Navigation principale"><button data-page="dashboard" class="active">Aujourd’hui</button><button id="openCalendarPage">Calendrier</button><button id="openUltraPage">Ultra-trail</button><button data-page="athlete">Athlète</button><button data-page="focus">Focus & vie</button></nav>
+
+      <section id="today" class="player-card" aria-label="Profil du joueur">
+        <div class="avatar">⚡</div>
+        <div class="level-block">
+          <div class="label-row"><span id="levelLabel">NIVEAU 1</span><span id="xpLabel">0 / 100 XP</span></div>
+          <div class="xp-track"><div id="xpBar" class="xp-fill"></div></div>
+          <p><strong id="playerTitle">Débutant audacieux</strong> · Chaque petite action compte.</p>
+        </div>
+        <div class="streak"><span>🔥</span><b id="streakCount">0</b><small>jours</small></div>
+      </section>
+      <section class="mission-control" aria-label="Mission Control local"><div class="mission-heading"><div><p class="eyebrow">MISSION CONTROL</p><h2 id="missionTitle">Ton système du jour</h2><p id="missionCopy"></p></div><div class="mission-score"><b id="missionScore">0/6</b><small>étapes bouclées</small></div></div><div id="missionMode" class="mission-mode"><span>Mode</span><b id="missionModeTitle">Construire</b><small id="missionModeCopy"></small></div><div id="missionSteps" class="mission-steps"></div><div class="mission-footer"><div><p class="eyebrow">RYTHME RÉCENT</p><div id="missionWeek" class="mission-week"></div></div><button id="missionPlanWeek" class="secondary-button">Planifier ma semaine</button></div></section>
+
+      <section class="stats-grid" aria-label="Statistiques">
+        <article class="stat stat-health"><span>♥</span><div><b id="healthValue">0</b><small>Vitalité</small></div></article>
+        <article class="stat stat-focus"><span>◉</span><div><b id="focusValue">0</b><small>Focus</small></div></article>
+        <article class="stat stat-life"><span>✦</span><div><b id="lifeValue">0</b><small>Équilibre</small></div></article>
+      </section>
+      <section class="command-grid">
+        <article class="panel life-panel"><div class="panel-heading"><div><p class="eyebrow">CAP DE VIE</p><h2>Mes 3 priorités</h2></div><span>🌱</span></div><div class="life-goals"><input id="lifeGoalOne" maxlength="70" placeholder="Ex. devenir plus endurant" /><input id="lifeGoalTwo" maxlength="70" placeholder="Ex. 3 séances par semaine" /><input id="lifeGoalThree" maxlength="70" placeholder="Ex. lire 15 min par jour" /></div><button id="saveLifeGoals" class="secondary-button">Sauvegarder mon cap</button><div class="daily-life-step"><label>Le petit pas qui compte aujourd’hui<input id="dailyLifeStepInput" maxlength="120" placeholder="Ex. préparer mes affaires de sport" /></label><div><button id="saveDailyLifeStep" class="secondary-button">Choisir ce pas</button><button id="completeDailyLifeStep" class="primary-button">Valider ✓</button></div><small id="dailyLifeStepStatus"></small></div></article>
+        <article class="panel focus-rhythm"><div class="panel-heading"><div><p class="eyebrow">RYTHME DU JOUR</p><h2>Concentration</h2></div><span>🧭</span></div><div class="focus-presets"><button data-focus="25" class="secondary-button">25 min</button><button data-focus="50" class="secondary-button">50 min</button><button data-focus="90" class="secondary-button">90 min</button></div><p id="focusInsight" class="week-insight">Choisis un bloc, ferme les distractions, puis reviens ici victorieux.</p></article>
+      </section>
+      <section class="panel day-compass-panel"><div class="panel-heading"><div><p class="eyebrow">BOUSSOLE LOCALE</p><h2 id="compassTitle">Ton prochain geste</h2></div><span>✦</span></div><p id="compassText" class="coach-summary"></p><div id="compassSignals" class="compass-signals"></div><div class="compass-actions"><button id="compassPrimary" class="primary-button">Préparer la journée</button><button id="compassSecondary" class="secondary-button">Voir mon cap</button></div></section>
+      <section class="panel agenda-panel"><div class="panel-heading"><div><p class="eyebrow">AGENDA IRL</p><h2>Ta semaine en blocs</h2></div><span>🗓️</span></div><div id="weekCalendar" class="week-calendar"></div><form id="agendaForm" class="agenda-form"><input id="agendaTitle" required maxlength="70" placeholder="Nom du bloc (sport, travail profond, rendez-vous…)" /><input id="agendaDate" type="date" required /><input id="agendaTime" type="time" required /><select id="agendaKind"><option value="focus">Focus</option><option value="sport">Sport</option><option value="life">Vie perso</option></select><button class="primary-button">Ajouter au calendrier</button><button type="button" id="exportIcs" class="secondary-button">Exporter .ics</button></form><small>Le fichier .ics s’importe dans Google Calendar et Calendrier Apple ; aucune donnée n’est transmise automatiquement.</small></section>
+
+      <section class="quest-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">AUJOURD'HUI</p><h2>Quêtes du jour</h2></div>
+          <button id="addQuestButton" class="primary-button">+ Nouvelle quête</button>
+        </div>
+        <div id="questList" class="quest-list"></div>
+      </section>
+
+      <section class="two-columns">
+        <article class="panel focus-panel">
+          <div class="panel-heading"><div><p class="eyebrow">MODE CONCENTRATION</p><h2>Le donjon du focus</h2></div><span class="timer-icon">⌛</span></div>
+          <p id="timerDescription">25 minutes sans distraction. Une victoire propre.</p>
+          <div id="timer" class="timer">25:00</div>
+          <div class="timer-actions">
+            <button id="timerButton" class="primary-button">Lancer la session</button>
+            <button id="timerReset" class="secondary-button">Réinitialiser</button><button id="focusFullscreen" type="button" class="secondary-button">Plein écran</button>
+          </div>
+          <p class="reward">Récompense : <b>+25 XP</b> et +1 Focus</p>
+          <div class="focus-task"><input id="focusTaskInput" maxlength="80" placeholder="Tâche unique de ce bloc" /><button id="saveFocusTask" class="secondary-button">Préparer</button><p id="focusTaskDisplay"></p><small id="focusStats" class="local-note"></small><div class="focus-parking"><label>Parking à pensées<textarea id="focusParkingInput" maxlength="180" placeholder="Une distraction ? Pose-la ici et reviens à ta tâche."></textarea></label><button id="saveFocusParking" type="button" class="secondary-button">Parquer et continuer</button><div id="focusParkingList" class="focus-parking-list"></div><small id="focusParkingStatus" class="local-note"></small></div></div>
+        </article>
+
+        <article class="panel challenge-panel">
+          <div class="panel-heading"><div><p class="eyebrow">DÉFI BONUS</p><h2 id="challengeTitle">Sortir prendre l'air</h2></div><span>🎯</span></div>
+          <p id="challengeText">10 minutes de marche sans téléphone.</p>
+          <button id="completeChallenge" class="secondary-button">Valider · +20 XP</button>
+        </article>
+      </section>
+
+      <section class="panel morning-panel"><div class="panel-heading"><div><p class="eyebrow">RITUEL DU MATIN</p><h2>Poser le cap</h2></div><span>☀️</span></div><p>Une mesure honnête de ton énergie, une intention, puis un geste assez petit pour démarrer.</p><p id="morningBridge" class="ritual-memory"></p><div class="morning-fields"><label>Énergie actuelle<select id="morningEnergy"><option value="1">1 · très basse</option><option value="2">2 · basse</option><option value="3">3 · correcte</option><option value="4">4 · bonne</option><option value="5">5 · pleine</option></select></label><label>Intention du jour<input id="morningIntention" maxlength="120" placeholder="Ex. avancer sans me disperser" /></label><label>Premier pas concret<input id="morningFirstStep" maxlength="120" placeholder="Ex. ouvrir le dossier pendant 5 min" /></label></div><div class="reflection-actions"><button id="saveMorningRitual" class="secondary-button">Poser mon cap</button><small id="morningStatus" class="local-note"></small></div></section>
+
+      <section class="panel reflection-panel"><div class="panel-heading"><div><p class="eyebrow">RITUEL DU SOIR</p><h2>Fermer la journée proprement</h2></div><span>🌙</span></div><p>Quelques mots pour remarquer ce qui a marché, déposer le reste et rendre demain plus simple.</p><p id="reflectionMemory" class="ritual-memory"></p><div class="reflection-fields"><label>Petite victoire<textarea id="reflectionWin" maxlength="240" placeholder="Ce que je garde de cette journée…"></textarea></label><label>Ce que j’ajuste<textarea id="reflectionLesson" maxlength="240" placeholder="Sans jugement : ce qui a coincé ou ce que j’ai appris…"></textarea></label><label>Premier pas de demain<textarea id="reflectionTomorrow" maxlength="240" placeholder="Une action suffisamment petite pour démarrer…"></textarea></label></div><div class="reflection-actions"><button id="saveReflection" class="secondary-button">Enregistrer localement</button><small id="reflectionStatus" class="local-note"></small></div></section>
+
+      <section id="athlete" class="athlete-header">
+        <div><p class="eyebrow">MODE ATHLÈTE</p><h2>Construis un corps capable</h2><p>Entraîne-toi, mesure, ajuste. La régularité bat les journées parfaites.</p></div>
+        <button id="addWorkoutButton" class="primary-button">+ Enregistrer une séance</button>
+      </section>
+      <section class="panel athlete-companion"><div class="panel-heading"><div><p class="eyebrow">COMPAGNON D’ENTRAÎNEMENT</p><h2 id="todayCoachTitle">Ta décision du jour</h2></div><span>🧭</span></div><p id="todayCoachText" class="coach-summary"></p><div id="todayCoachSignals" class="compass-signals"></div><div class="compass-actions"><button id="todayCoachAction" class="primary-button">Voir la recommandation</button><button id="todayCoachSecondary" class="secondary-button">Planifier un créneau</button></div><small>Suggestion calculée uniquement à partir de tes données enregistrées sur cet appareil. Ce n’est pas un avis médical.</small></section>
+      <section class="panel trail-panel"><div class="panel-heading"><div><p class="eyebrow">OBJECTIF ULTRA-TRAIL</p><h2>Base d’endurance</h2></div><span>⛰️</span></div><div class="trail-form"><label>Dénivelé positif (m)<input id="elevationInput" type="number" min="0" placeholder="Ex. 450" /></label><label>Sortie longue (min)<input id="longRunInput" type="number" min="0" placeholder="Ex. 90" /></label><button id="saveTrail" class="secondary-button">Enregistrer</button></div><p id="trailInsight" class="week-insight"></p></section>
+      <section class="panel trail-plan"><div class="panel-heading"><div><p class="eyebrow">CYCLE ULTRA-TRAIL</p><h2>Prochaines 4 semaines</h2></div><span>🗺️</span></div><div class="trail-weeks"><div><b>S1 · Base</b><small>2 courses faciles + force jambes/tronc.</small></div><div><b>S2 · Construire</b><small>Ajoute un peu de durée ou de D+, jamais les deux fort.</small></div><div><b>S3 · Spécifique</b><small>Sortie longue progressive, marche en montée acceptée.</small></div><div><b>S4 · Alléger</b><small>Réduis le volume, garde mobilité et fraîcheur.</small></div></div><p class="week-insight">Si douleur persistante, fatigue inhabituelle ou baisse nette de forme : allège et demande l’avis d’un professionnel.</p></section>
+
+      <section class="training-grid">
+        <article class="panel goal-panel">
+          <div class="panel-heading"><div><p class="eyebrow">CAP SUR L’OBJECTIF</p><h2>Objectifs hebdomadaires</h2></div><span>🏹</span></div>
+          <div class="goal-form">
+            <label>Séances / semaine<input id="sessionsGoal" type="number" min="1" max="14" value="4" /></label>
+            <label>Course / semaine (km)<input id="distanceGoal" type="number" min="0" max="500" step="0.5" value="10" /></label>
+            <label>Poids cible (kg)<input id="targetWeight" type="number" min="30" max="300" step="0.1" placeholder="Ex. 75" /></label>
+            <button id="saveGoals" class="secondary-button">Sauvegarder</button>
+          </div>
+          <div class="progress-stack">
+            <div><div class="label-row"><span id="sessionsProgressText">0 / 4 séances</span><span id="sessionsPercent">0%</span></div><div class="xp-track"><div id="sessionsProgress" class="xp-fill blue"></div></div></div>
+            <div><div class="label-row"><span id="distanceProgressText">0 / 10 km</span><span id="distancePercent">0%</span></div><div class="xp-track"><div id="distanceProgress" class="xp-fill orange"></div></div></div>
+          </div>
+        </article>
+        <article class="panel week-panel">
+          <div class="panel-heading"><div><p class="eyebrow">CETTE SEMAINE</p><h2>Ton volume</h2></div><span>📈</span></div>
+          <div class="training-numbers"><div><b id="weekSessions">0</b><small>séances</small></div><div><b id="weekMinutes">0</b><small>minutes</small></div><div><b id="weekDistance">0</b><small>km courus</small></div></div>
+          <div class="training-load"><b id="weekLoad">—</b><span>charge d’effort estimée</span><small id="weekLoadAdvice"></small></div><p id="weekInsight" class="week-insight">Ajoute ta première séance pour lancer la semaine.</p>
+        </article>
+      </section>
+
+      <section class="training-grid lower-grid"><article class="panel profile-panel"><div class="panel-heading"><div><p class="eyebrow">PROFIL ATHLÈTE</p><h2>Ton terrain de jeu</h2></div><span>🧰</span></div><div class="profile-form"><label>Objectif<select id="profileGoal"><option value="recomposition">Corps capable</option><option value="trail">Trail / endurance</option><option value="force">Force générale</option></select></label><label>Niveau<select id="profileLevel"><option value="debutant">Débutant</option><option value="intermediaire">Intermédiaire</option><option value="avance">Avancé</option></select></label><label class="check-label"><input id="equipmentKettlebell" type="checkbox" /> Kettlebell</label><label class="check-label"><input id="equipmentVest" type="checkbox" /> Gilet lesté</label><label class="check-label"><input id="equipmentBench" type="checkbox" /> Banc / marche</label><button id="saveProfile" class="secondary-button">Mettre à jour</button></div><p id="profileAdvice" class="week-insight"></p></article><article class="panel warmup-panel"><div class="panel-heading"><div><p class="eyebrow">RITUEL D’ENTRAÎNEMENT</p><h2>Avant et après</h2></div><span>🧘</span></div><div class="warmup-guide"><div><b>Avant · 5 min</b><span>Marche facile, rotations hanches/épaules, puis une série très légère du premier exercice.</span></div><div><b>Après · 3 min</b><span>Respiration calme, marche lente et note rapide de tes sensations.</span></div></div></article></section>
+
+      <section class="training-grid lower-grid">
+        <article class="panel workout-panel">
+          <div class="panel-heading"><div><p class="eyebrow">JOURNAL D’ENTRAÎNEMENT</p><h2>Dernières séances</h2></div><span id="workoutCount">0</span></div>
+          <div id="workoutList" class="workout-list"></div>
+        </article>
+        <article class="panel weight-panel">
+          <div class="panel-heading"><div><p class="eyebrow">SUIVI CORPOREL</p><h2>Poids</h2></div><span>⚖️</span></div>
+          <div class="weight-entry"><input id="weightInput" type="number" min="30" max="300" step="0.1" placeholder="Poids en kg" /><button id="addWeightButton" class="primary-button">Ajouter</button></div>
+          <div class="weight-summary"><div><b id="currentWeight">—</b><small>actuel</small></div><div><b id="weightChange">—</b><small>évolution</small></div><div><b id="weightTargetDisplay">—</b><small>cible</small></div></div>
+          <div id="weightChart" class="weight-chart" aria-label="Courbe du poids"></div>
+          <div id="weightHistory" class="weight-history"></div>
+        </article>
+      </section>
+      <section class="training-grid lower-grid">
+        <article class="panel history-panel"><div class="panel-heading"><div><p class="eyebrow">HISTORIQUE LOCAL</p><h2>Retrouver une séance</h2></div><span>🗂️</span></div><label class="history-filter">Discipline<select id="historyType"><option value="all">Toutes les disciplines</option><option value="strength">Musculation</option><option value="conditioning">Renfo / circuit</option><option value="run">Course</option><option value="cycling">Vélo</option><option value="mobility">Mobilité</option><option value="sport">Sport / autre</option></select></label><div id="historyList" class="history-list"></div></article>
+        <article class="panel progression-panel"><div class="panel-heading"><div><p class="eyebrow">PROGRESSION FORCE</p><h2>Le prochain petit pas</h2></div><span>📶</span></div><label class="history-filter">Exercice<select id="progressExercise"></select></label><div id="progressionDetail" class="progression-detail"></div><button id="prepareProgression" class="secondary-button" hidden>Préparer cet exercice</button></article>
+      </section>
+      <section class="panel exercise-library"><div class="panel-heading"><div><p class="eyebrow">BIBLIOTHÈQUE D’EXERCICES</p><h2>Force générale & trail</h2></div><span>🏋️</span></div><p>Chaque mouvement propose un format de départ, une illustration et des repères de sécurité. Commence léger et arrête-toi en cas de douleur inhabituelle.</p><div class="exercise-controls"><input id="exerciseSearch" type="search" maxlength="60" placeholder="Rechercher un exercice" /><select id="exerciseFamily"><option value="all">Toute la bibliothèque</option><option value="trail">Trail · jambes & stabilité</option><option value="general">Musculation générale</option><option value="core">Tronc & gainage</option><option value="conditioning">Conditioning</option></select><small id="exerciseCount"></small></div><div id="exerciseCards" class="exercise-cards"></div></section>
+      <section class="training-grid lower-grid">
+        <article class="panel nutrition-panel"><div class="panel-heading"><div><p class="eyebrow">CARBURANT</p><h2>Nutrition sans obsession</h2></div><span>🥗</span></div><div class="nutrition-form"><label>Protéines (g)<input id="proteinInput" type="number" min="0" placeholder="Ex. 140" /></label><label>Eau (verres)<input id="waterInput" type="number" min="0" max="30" placeholder="8" /></label><label class="check-label"><input id="fruitCheck" type="checkbox" /> Fruits/légumes</label><button id="saveNutrition" class="secondary-button">Valider aujourd’hui</button></div><p id="nutritionStatus" class="week-insight"></p><p id="nutritionWeekStatus" class="nutrition-week-status"></p><div id="mealIdeas" class="meal-ideas"></div><small>Mange lentement, commence par une portion servie, et garde des aliments rassasiants (protéines, légumes, féculents complets) à portée de main. Pas de règle punitive.</small></article>
+        <article class="panel planning-panel"><div class="panel-heading"><div><p class="eyebrow">CALENDRIER</p><h2>Planifier la suite</h2></div><span>📅</span></div><div class="nutrition-form"><label>Date<input id="planDate" type="date" /></label><label>Heure<input id="planTime" type="time" value="18:00" /></label><label>Séance<select id="planType"><option>Musculation</option><option>Course</option><option>Renforcement</option><option>Mobilité / repos</option></select></label><button id="addPlan" class="secondary-button">Planifier</button></div><div class="weekly-planner"><div><p class="eyebrow">SEMAINE RÉALISTE</p><b>Mes jours disponibles</b></div><div id="availabilityDays" class="availability-days"><label><input type="checkbox" value="1" /> Lun</label><label><input type="checkbox" value="2" /> Mar</label><label><input type="checkbox" value="3" /> Mer</label><label><input type="checkbox" value="4" /> Jeu</label><label><input type="checkbox" value="5" /> Ven</label><label><input type="checkbox" value="6" /> Sam</label><label><input type="checkbox" value="0" /> Dim</label></div><button id="generateWeekPlan" class="primary-button">Proposer ma semaine</button><small id="weekPlanStatus">Choisis tes jours : les séances dures seront séparées quand ton agenda le permet.</small></div><div id="plannedList" class="planned-list"></div><small>Un créneau peut démarrer une séance, être raccourci, remplacé par mobilité ou reporté, puis sera marqué réalisé après l’enregistrement.</small></article>
+      </section>
+      <section class="training-grid lower-grid">
+        <article class="panel photo-panel"><div class="panel-heading"><div><p class="eyebrow">PROGRESSION VISUELLE</p><h2>Photos privées</h2></div><span>📸</span></div><input id="progressPhoto" type="file" accept="image/*" /><small>Les photos sont compressées et stockées uniquement sur cet appareil.</small><div id="photoGallery" class="photo-gallery"></div></article>
+        <article class="panel analysis-panel"><div class="panel-heading"><div><p class="eyebrow">ANALYSE</p><h2>Force & endurance</h2></div><span>📊</span></div><div id="performanceAnalysis" class="coach-summary"></div></article>
+      </section>
+
+      <section class="panel weekly-review-panel"><div class="panel-heading"><div><p class="eyebrow">REVUE HEBDOMADAIRE</p><h2>Garder le cap sans s’épuiser</h2></div><span>🧭</span></div><p id="weeklyReviewSummary" class="coach-summary"></p><p id="weeklyReviewNext" class="week-insight"></p></section>
+      <section class="panel personal-trends"><div class="panel-heading"><div><p class="eyebrow">TENDANCES PERSONNELLES</p><h2>Ce que tes données racontent</h2></div><span>📍</span></div><p>Des repères locaux pour t’aider à choisir, pas pour te juger.</p><div id="trendCards" class="trend-cards"></div></section>
+
+      <section class="training-grid lower-grid">
+        <article class="panel program-panel"><div class="panel-heading"><div><p class="eyebrow">PROGRAMMES</p><h2>Ta prochaine séance</h2></div><span>🗺️</span></div><div id="programCards" class="program-cards"></div><div id="activeProgram" class="active-program"></div><div id="suggestedWorkouts" class="suggested-workouts"></div></article>
+        <article class="panel recovery-panel"><div class="panel-heading"><div><p class="eyebrow">RÉCUPÉRATION</p><h2>Check-in du jour</h2></div><span>🌙</span></div><div class="recovery-fields"><label>Sommeil (h)<input id="sleepInput" type="number" min="0" max="16" step="0.5" placeholder="7.5" /></label><label>Fatigue / 5<select id="fatigueInput"><option value="1">1 · Frais</option><option value="2">2</option><option value="3" selected>3 · Moyen</option><option value="4">4</option><option value="5">5 · Épuisé</option></select></label><label>Courbatures / 5<select id="sorenessInput"><option value="1">1 · Aucune</option><option value="2">2</option><option value="3" selected>3 · Modérées</option><option value="4">4</option><option value="5">5 · Fortes</option></select></label></div><button id="saveRecovery" class="secondary-button">Enregistrer le check-in</button><p id="recoveryAdvice" class="week-insight"></p></article>
+      </section>
+
+      <section class="training-grid lower-grid">
+        <article class="panel measurements-panel"><div class="panel-heading"><div><p class="eyebrow">MESURES & PROGRÈS</p><h2>Mensurations</h2></div><span>📏</span></div><div class="measurement-form"><label>Taille (cm)<input id="waistInput" type="number" step="0.1" placeholder="Tour de taille" /></label><label>Poitrine (cm)<input id="chestInput" type="number" step="0.1" placeholder="Tour de poitrine" /></label><label>Bras (cm)<input id="armInput" type="number" step="0.1" placeholder="Tour de bras" /></label><button id="saveMeasurements" class="secondary-button">Ajouter</button></div><div id="measurementsHistory" class="weight-history"></div></article>
+        <article class="panel coach-panel"><div class="panel-heading"><div><p class="eyebrow">MODE COACH</p><h2>Bilan de la semaine</h2></div><span>🧠</span></div><p id="coachSummary" class="coach-summary"></p><div class="export-actions"><button id="exportJson" class="secondary-button">Exporter JSON</button><button id="exportCsv" class="secondary-button">Exporter CSV</button><button id="backupData" class="secondary-button">Sauvegarde</button><label class="secondary-button restore-label">Restaurer<input id="restoreData" type="file" accept="application/json" /></label></div><small>Application indépendante : aucune connexion à Strava, Garmin ou autre service.</small><small id="localBackupStatus">Copie locale automatique : en attente.</small></article>
+      </section>
+
+      <section class="panel achievements">
+        <div class="panel-heading"><div><p class="eyebrow">TROPHÉES</p><h2>Collection</h2></div><span id="achievementProgress">0 / 3</span></div>
+        <div id="achievementList" class="achievement-list"></div>
+      </section>
+
+      <section class="panel reminder-panel">
+        <div class="panel-heading"><div><p class="eyebrow">ALLIÉ DE FOND</p><h2>Rappels de quêtes</h2></div><span>🔔</span></div>
+        <p>Reçois un rappel Windows aux moments où tu veux reprendre l’aventure.</p>
+        <div class="reminder-controls">
+          <label class="toggle"><input id="notificationEnabled" type="checkbox" /><span></span> Activer les rappels</label>
+          <label>1er rappel <input id="reminderOne" type="time" value="09:00" /></label>
+          <label>2e rappel <input id="reminderTwo" type="time" value="18:00" /></label>
+          <button id="saveReminders" class="primary-button">Enregistrer</button><button id="testReminder" class="secondary-button">Tester</button>
+        </div><small id="desktopNote">Disponible dans la version Windows de l’application.</small>
+      </section>
+    </main>
+    <section id="calendarPage" class="calendar-page" hidden aria-label="Calendrier IRL LVP UP">
+      <header><div><p class="eyebrow">AGENDA IRL LVP UP</p><h1 id="monthLabel">Calendrier</h1></div><button id="closeCalendarPage" class="secondary-button">← Retour au dashboard</button></header>
+      <div class="calendar-toolbar"><button id="previousMonth" class="secondary-button">←</button><button id="todayMonth" class="secondary-button">Aujourd’hui</button><button id="nextMonth" class="secondary-button">→</button><button id="exportIcsPage" class="secondary-button">Exporter .ics</button></div>
+      <div class="calendar-legend"><span class="focus">Focus</span><span class="sport">Sport</span><span class="life">Vie perso</span></div><div id="monthCalendar" class="month-calendar"></div>
+      <form id="calendarAgendaForm" class="agenda-form calendar-form"><input id="calendarAgendaTitle" required maxlength="70" placeholder="Nom du bloc" /><input id="calendarAgendaDate" type="date" required /><input id="calendarAgendaTime" type="time" required /><select id="calendarAgendaKind"><option value="focus">Focus</option><option value="sport">Sport</option><option value="life">Vie perso</option></select><select id="calendarRepeat"><option value="0">Une fois</option><option value="4">Chaque semaine · 4 fois</option><option value="8">Chaque semaine · 8 fois</option></select><button class="primary-button">Ajouter au calendrier</button></form>
+    </section>
+    <section id="ultraPage" class="ultra-page" hidden aria-label="Plan ultra-trail">
+      <header><div><p class="eyebrow">OBJECTIF LONG TERME</p><h1>Base Ultra-Trail</h1><p>Construire un corps endurant, résistant et disponible — une semaine après l’autre.</p></div><button id="closeUltraPage" class="secondary-button">← Retour Athlète</button></header>
+      <section class="ultra-hero"><div><span>Cette semaine</span><b id="ultraWeeklyStats">—</b><small id="ultraWeeklyDetail"></small></div><div><span>Priorité</span><b id="ultraPriority">Régularité</b><small>Volume facile avant intensité.</small></div><div><span>Règle d’or</span><b>Une variable</b><small>Durée ou dénivelé, pas les deux fortement.</small></div></section>
+      <section class="ultra-block ultra-settings"><p class="eyebrow">PERSONNALISER LE CYCLE</p><h2>Un socle à ta mesure</h2><p>Pars de ce que tu fais réellement aujourd’hui. Le cycle propose une progression douce, jamais une promesse de performance.</p><div class="ultra-settings-form"><label>Volume de départ (km/semaine)<input id="ultraBaseDistance" type="number" min="0" step="0.5" /></label><label>D+ de départ (m/semaine)<input id="ultraBaseElevation" type="number" min="0" step="50" /></label><label>Sortie longue de départ (min)<input id="ultraBaseLongRun" type="number" min="0" step="5" /></label><button id="saveUltraPlan" type="button" class="primary-button">Calculer mon cycle</button></div><small id="ultraPlanStatus"></small></section>
+      <section class="ultra-block"><p class="eyebrow">CYCLE DE 4 SEMAINES</p><h2>Un socle, puis de la spécificité</h2><div id="ultraCycle" class="ultra-cycle"></div></section>
+      <section class="ultra-columns"><article class="ultra-block"><p class="eyebrow">SÉANCES CLÉS</p><h2>Le minimum qui compte</h2><div class="session-guide"><div><b>🏃 Endurance facile</b><p>Rythme où tu peux parler en phrases. C’est le socle cardio et la récupération active.</p></div><div><b>⛰️ Côtes / marche en montée</b><p>Effort contrôlé : marche énergique ou côtes courtes. Renforce jambes, mollets et économie de course.</p></div><div><b>🗺️ Sortie longue</b><p>Progression graduelle, ravitaillement testé, allure facile. La finir frais vaut plus que la finir vidé.</p></div><div><b>🔔 Force trail</b><p>Step-ups, fentes, mollets, gainage, kettlebell. Technique et régularité avant charge.</p></div></div></article><article class="ultra-block"><p class="eyebrow">CHECKLIST</p><h2>Avant / après</h2><ul class="ultra-check"><li>Avant : chaussures, eau, météo, itinéraire.</li><li>Pendant : effort facile, marche assumée en montée.</li><li>Après : note sensations, eau, repas, sommeil.</li><li>Douleur qui modifie la foulée ou persiste : stop, allège, demande conseil.</li></ul><p id="ultraCoach" class="week-insight"></p></article></section>
+    </section>
+
+    <dialog id="onboardingDialog" class="onboarding-dialog"><div class="dialog-heading"><div><p class="eyebrow">BIENVENUE</p><h2>Construisons ton point de départ</h2></div></div><p>Trois choix suffisent. Ils restent sur cet appareil et peuvent être modifiés plus tard.</p><div class="onboarding-fields"><label>Priorité<select id="onboardingGoal"><option value="recomposition">Corps capable</option><option value="trail">Trail / endurance</option><option value="force">Force générale</option></select></label><label>Niveau<select id="onboardingLevel"><option value="debutant">Débutant</option><option value="intermediaire">Intermédiaire</option><option value="avance">Avancé</option></select></label><label>Séances réalistes / semaine<input id="onboardingSessions" type="number" min="1" max="7" value="3" /></label><label class="check-label"><input id="onboardingKettlebell" type="checkbox" /> Kettlebell</label><label class="check-label"><input id="onboardingVest" type="checkbox" /> Gilet lesté</label><label class="check-label"><input id="onboardingBench" type="checkbox" /> Banc / marche</label></div><button id="finishOnboarding" type="button" class="primary-button">Démarrer mon aventure</button></dialog>
+    <dialog id="questDialog">
+      <form id="questForm" method="dialog">
+        <div class="dialog-heading"><h2>Créer une quête</h2><button type="button" id="closeDialog" class="icon-button">×</button></div>
+        <label>Nom de la quête<input id="questName" required maxlength="70" placeholder="Ex. 20 pompes" /></label>
+        <label>Catégorie<select id="questCategory"><option value="health">Sport & santé</option><option value="focus">Concentration</option><option value="life">Vie & équilibre</option></select></label>
+        <label>XP gagnée<select id="questXp"><option value="10">10 XP · facile</option><option value="20" selected>20 XP · normale</option><option value="35">35 XP · épique</option></select></label>
+        <button class="primary-button" type="submit">Ajouter à mes quêtes</button>
+      </form>
+    </dialog>
+    <dialog id="workoutDialog">
+      <form id="workoutForm" method="dialog">
+        <div class="dialog-heading"><h2>Nouvelle séance</h2><button type="button" id="closeWorkoutDialog" class="icon-button">×</button></div>
+        <label>Discipline<select id="workoutType"><option value="run">🏃 Course à pied</option><option value="strength">🏋️ Musculation</option><option value="conditioning">⚡ Renforcement / circuit</option><option value="cycling">🚴 Vélo</option><option value="mobility">🧘 Mobilité / récupération</option><option value="sport">🏆 Sport collectif / autre</option></select></label>
+        <div class="form-grid"><label>Durée (minutes)<input id="workoutDuration" required type="number" min="1" max="600" placeholder="45" /></label><label>Distance (km)<input id="workoutDistance" type="number" min="0" max="500" step="0.1" placeholder="Course/vélo" /></label></div>
+        <div class="form-grid"><label>Intensité<select id="workoutEffort"><option value="1">Facile · RPE 1–3</option><option value="2" selected>Modérée · RPE 4–6</option><option value="3">Dure · RPE 7–8</option><option value="4">Maximale · RPE 9–10</option></select></label><label>Date<input id="workoutDate" type="date" required /></label></div>
+        <label>Détails (exercices, km, sensations)<textarea id="workoutNotes" maxlength="240" placeholder="Ex. squat 4×8 à 80 kg, développé 3×10…"></textarea></label>
+        <div class="strength-details"><p>Construis ta séance, exercice par exercice. Indique aussi le repos : il est enregistré dans l’historique local.</p><div class="form-grid"><label>Exercice<input id="exerciseName" placeholder="Ex. Squat" /></label><label>Charge (kg)<input id="exerciseLoad" type="number" min="0" step="0.5" placeholder="80" /></label><label>Séries<input id="exerciseSets" type="number" min="0" placeholder="4" /></label><label>Répétitions / durée<input id="exerciseReps" type="number" min="0" placeholder="8" /></label><label>Unité<select id="exerciseUnit"><option value="reps">Répétitions</option><option value="sec">Secondes</option><option value="pas">Pas</option></select></label><label>Repos (secondes)<input id="exerciseRest" type="number" min="0" max="600" step="5" value="75" /></label></div><button type="button" id="addExerciseSet" class="secondary-button">+ Ajouter cet exercice</button><div id="sessionExerciseList" class="session-exercise-list"></div></div>
+        <button class="primary-button" type="submit">Valider la séance · gagner de l’XP</button>
+      </form>
+    </dialog>
+    <dialog id="guidedWorkoutDialog" class="guided-workout-dialog"><div class="dialog-heading"><div><p class="eyebrow">SÉANCE GUIDÉE</p><h2 id="guidedWorkoutTitle">Séance</h2></div><button type="button" id="closeGuidedWorkout" class="icon-button">×</button></div><div class="guided-progress"><span id="guidedWorkoutStep">1 / 1</span><div class="xp-track"><div id="guidedWorkoutProgress" class="xp-fill"></div></div></div><p id="guidedRecoveryNote" class="guided-recovery-note"></p><div id="guidedExerciseVisual" class="guided-exercise-visual"></div><div class="guided-exercise-copy"><h3 id="guidedExerciseName">Exercice</h3><p id="guidedExerciseFormat"></p><p id="guidedExerciseCue"></p><p id="guidedProgressionHint" class="guided-progression-hint"></p></div><div id="guidedSetLog" class="guided-set-log"></div><div class="guided-rest"><span>Repos</span><b id="guidedRestTime">—</b><button id="guidedRestButton" class="secondary-button">Lancer le repos</button></div><div class="guided-actions"><button id="guidedPrevious" class="secondary-button">← Précédent</button><button id="guidedNext" class="primary-button">Terminé → exercice suivant</button></div><button id="guidedRecord" class="secondary-button guided-record">Passer à l’enregistrement</button></dialog>
+    <dialog id="focusReviewDialog"><div class="dialog-heading"><div><p class="eyebrow">BLOC TERMINÉ</p><h2>Garder l’élan</h2></div><button type="button" id="closeFocusReview" class="icon-button">×</button></div><p>Une phrase suffit : qu’as-tu avancé, et quel est le prochain geste ?</p><div class="focus-review-fields"><label>Ce qui a avancé<textarea id="focusReviewOutcome" maxlength="180" placeholder="Ex. le plan de la présentation est prêt…"></textarea></label><label>Prochaine action<textarea id="focusReviewNext" maxlength="180" placeholder="Ex. relire la partie 1 demain matin"></textarea></label></div><button id="saveFocusReview" type="button" class="primary-button">Enregistrer localement</button></dialog>
+    <dialog id="exerciseDetailDialog"><div class="dialog-heading"><h2 id="exerciseDetailTitle">Exercice</h2><button type="button" id="closeExerciseDetail" class="icon-button">×</button></div><div class="exercise-detail-visual" id="exerciseDetailPose"></div><p id="exerciseDetailCue"></p><div id="exerciseDetailNotes" class="exercise-detail-notes"></div><button id="addDetailedExercise" class="primary-button">Préremplir dans ma séance</button></dialog>
+    <dialog id="historyDialog"><div class="dialog-heading"><h2 id="historyDialogTitle">Séance</h2><button type="button" id="closeHistoryDialog" class="icon-button">×</button></div><div id="historyDialogBody" class="history-dialog-body"></div></dialog>
+    <script src="app.js"></script>
+  </body>
+</html>
