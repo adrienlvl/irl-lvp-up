@@ -13,6 +13,9 @@ ipcMain.handle('notifications:save', (_e, v) => v);
 ipcMain.handle('notifications:test', () => true);
 ipcMain.handle('backup:save', () => true);
 ipcMain.handle('backup:get', () => null);
+ipcMain.handle('photos:save', (_e, p) => ({ id: (p && p.id) || 1, file: `${(p && p.id) || 1}.png` }));
+ipcMain.handle('photos:read', () => null);
+ipcMain.handle('photos:delete', () => true);
 
 const errors = [];
 app.disableHardwareAcceleration();
@@ -43,6 +46,7 @@ app.whenReady().then(async () => {
       return {
         logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function',
         normalize: typeof normalizeState === 'function',
+        photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''
@@ -51,6 +55,7 @@ app.whenReady().then(async () => {
     console.log('CHECKS ' + JSON.stringify(checks));
     if (!checks.logicLoaded) errors.push('lib/logic.js non chargé (localDate/pct/computeStreak absents)');
     if (!checks.normalize) errors.push('normalizeState absente');
+    if (!checks.photosApi) errors.push('API photos absente (loadGalleryPhotos/migratePhotosToDisk/desktop.savePhoto)');
     if (checks.quests < 1) errors.push('#questList vide → render() ne s\'est pas exécuté');
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
   } catch (e) {
