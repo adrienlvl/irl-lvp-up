@@ -10,10 +10,10 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 **Objectif : pouvoir rebuild le `.exe` et ne plus perdre de données.**
 
-- [ ] **0.1** Reconstituer une chaîne de build : `package.json` complet (deps `electron`, `electron-builder`), scripts `npm start` / `npm run dist`, config electron-builder, icône. → régénérer un `.exe` identique fonctionnellement.
-- [ ] **0.2** `save()` robuste : `try/catch` sur `localStorage.setItem`, message clair si quota atteint, repli sur backup disque.
+- [x] **0.1** Reconstituer une chaîne de build : `package.json` complet (deps `electron`, `electron-builder`), scripts `npm start` / `npm run dist`, config electron-builder, icône. → régénérer un `.exe` identique fonctionnellement. ✅ _boucle #02 — electron 33.4.11, `npm start` vérifié._
+- [x] **0.2** `save()` robuste : `try/catch` sur `localStorage.setItem`, message clair si quota atteint, repli sur backup disque. ✅ _boucle #02._
 - [ ] **0.3** Sortir les **photos** du blob d'état (stockage séparé : fichiers via Electron ou IndexedDB) → allège chaque écriture.
-- [ ] **0.4** Durcissement Electron : **icône de tray visible**, **verrou d'instance unique** (`requestSingleInstanceLock`), **CSP** dans `index.html`.
+- [x] **0.4** Durcissement Electron : **icône de tray visible**, **verrou d'instance unique** (`requestSingleInstanceLock`), **CSP** dans `index.html`. ✅ _boucle #02._
 - [ ] **0.5** Filet de tests (Node, sans dépendance lourde) sur la logique pure : niveau/XP, streak, `weekStart`, `exercisePrescription`, `normalizeState`.
 - [ ] **0.6** Gestionnaire d'erreurs global (`window.onerror`) qui log localement au lieu de casser l'UI.
 
@@ -39,7 +39,9 @@ _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source
 
 **Objectif : voir son planning de révision BTS CG dans le calendrier de IRL LVP UP.**
 
-Trois architectures possibles (à choisir — voir la question en fin de session) :
+> **Décision actée (2026-07-05) : Option C — Fusion.** On intègre un module de révision BTS CG directement dans IRL LVP UP, avec état partagé et XP « étude ». Options A/B conservées ci-dessous pour mémoire.
+
+Trois architectures possibles :
 
 - **Option A — Pont par fichier partagé (recommandé).** Le Grand Livre Compta exporte son planning (cartes `due`, sessions de révision) dans un fichier JSON à un emplacement connu ; IRL LVP UP le lit via Electron (`fs` + IPC) et génère des événements `kind: study, source: study-glc`, **rafraîchissables** sans écraser les blocs manuels. Nécessite un petit ajout d'export côté Grand Livre.
 - **Option B — Pont `.ics`.** Le Grand Livre génère un `.ics` de révision ; IRL l'importe. Simple, découplé, mais manuel et non « live ».

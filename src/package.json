@@ -1,8 +1,42 @@
 {
   "name": "irl-lvp-up",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Ton RPG de vie local",
   "main": "electron-main.cjs",
   "author": "Adrien",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.adrien.irllvpup",
+    "productName": "IRL LVP UP",
+    "directories": {
+      "output": "../build-dist"
+    },
+    "files": [
+      "index.html",
+      "app.js",
+      "electron-main.cjs",
+      "preload.cjs",
+      "*.css",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
+  }
 }
