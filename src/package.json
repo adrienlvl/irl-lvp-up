@@ -8,7 +8,10 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "test": "node --test test/logic.test.js",
+    "test:smoke": "electron test/renderer-smoke.cjs",
+    "verify": "npm test && npm run test:smoke"
   },
   "devDependencies": {
     "electron": "^33.3.1",
@@ -23,6 +26,7 @@
     "files": [
       "index.html",
       "app.js",
+      "lib/**/*",
       "electron-main.cjs",
       "preload.cjs",
       "*.css",
