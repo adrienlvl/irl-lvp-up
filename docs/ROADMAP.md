@@ -37,24 +37,36 @@ _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source
 
 ## Vague 2 — Connexion Le Grand Livre Compta _(P1, la demande centrale)_
 
-**Objectif : voir son planning de révision BTS CG dans le calendrier de IRL LVP UP.**
+**Objectif : IRL LVP UP devient le hub qui te dit quoi faire — planning de révision BTS CG sur la durée, rappels du jour, notifications. On ne révise PAS dans IRL (les flashcards restent dans Le Grand Livre).**
 
-> **Décision actée (2026-07-05) : Option C — Fusion.** On intègre un module de révision BTS CG directement dans IRL LVP UP, avec état partagé et XP « étude ». Options A/B conservées ci-dessous pour mémoire.
+> **Décision révisée (2026-07-05, soir) : pas de fusion des flashcards.** Adrien ne veut pas réviser depuis IRL LVP UP. Ce qu'il veut : (1) un **planning de révision sur la durée** visible dans le calendrier, (2) des **rappels de ce qu'il y a à faire dans la journée**, (3) des **notifications Windows**, (4) une app **complète** et **sécurisée** (voir Vague S). L'ancienne option « Fusion » est abandonnée ; on est sur un hybride A/B léger + planificateur interne.
 
-Trois architectures possibles :
+Tâches :
+- [ ] **2.1** **Planificateur de révision interne** : générer un plan de révision BTS CG sur la durée (matières/chapitres, échéance examen, fréquence par semaine, répartition espacée) → événements `kind: study` dans le calendrier unifié. Fonctionne même sans données du Grand Livre.
+- [ ] **2.2** **Import optionnel du planning Grand Livre** : bouton « Exporter mon planning » ajouté à `le-grand-livre-compta.html` (JSON : cartes dues par date) + import côté IRL (sélecteur de fichier, idempotent via `refId`) pour affiner le plan avec les vraies échéances de répétition espacée.
+- [ ] **2.3** **« Ma journée » au premier plan** : le dashboard liste tout ce qu'il y a à faire aujourd'hui (blocs agenda, séance prévue, créneaux de révision, quêtes) en une seule vue.
+- [ ] **2.4** **Notifications enrichies** (via le système de rappels Electron existant) : résumé du matin (« Aujourd'hui : 1 séance, 2 blocs focus, révision compta 30 min »), rappel avant chaque événement du jour (X min avant, réglable), rappel du soir si des choses restent non faites.
+- [ ] **2.5** XP « étude » : valider un créneau de révision rapporte de l'XP (l'app reste un RPG).
 
-- **Option A — Pont par fichier partagé (recommandé).** Le Grand Livre Compta exporte son planning (cartes `due`, sessions de révision) dans un fichier JSON à un emplacement connu ; IRL LVP UP le lit via Electron (`fs` + IPC) et génère des événements `kind: study, source: study-glc`, **rafraîchissables** sans écraser les blocs manuels. Nécessite un petit ajout d'export côté Grand Livre.
-- **Option B — Pont `.ics`.** Le Grand Livre génère un `.ics` de révision ; IRL l'importe. Simple, découplé, mais manuel et non « live ».
-- **Option C — Fusion.** Intégrer le module de révision (ou un résumé) directement dans l'app hub, state partagé. Plus puissant, plus de travail, couple les deux apps.
+_Livrable : tu ouvres l'app (ou pas : les notifs tombent toutes seules) et tu sais exactement quoi faire aujourd'hui, sport ET révision._
 
-Tâches (indépendantes de l'option) :
-- [ ] **2.1** Définir le format d'échange (JSON planning : `{generatedAt, sessions:[{date, count, topics?, minutes?}], dueByDate:{...}}`).
-- [ ] **2.2** Côté Grand Livre : bouton/export du planning (selon option).
-- [ ] **2.3** Côté IRL : import + génération d'événements `study` idempotente (clé `refId` = date/session).
-- [ ] **2.4** Vue « Révision du jour » sur le dashboard : nb de cartes dues aujourd'hui + accès rapide.
-- [ ] **2.5** Rappels Windows optionnels sur les créneaux de révision.
+---
 
-_Livrable : le planning BTS CG apparaît et se met à jour dans le calendrier IRL._
+## Vague S — Cybersécurité _(P1, transverse et continue)_
+
+**Objectif : app sûre par défaut aujourd'hui (100 % locale), et prête à être connectée à internet sans s'exposer.**
+
+Déjà en place (Vague 0) : `contextIsolation: true`, `nodeIntegration: false`, CSP (`script-src 'self'`), instance unique, préload minimal.
+
+- [ ] **S.1** **Sandbox renderer** : `sandbox: true` sur la fenêtre + vérifier que le préload reste compatible.
+- [ ] **S.2** **Verrouillage de navigation** : bloquer `will-navigate` vers tout ce qui n'est pas le fichier local + `setWindowOpenHandler` → deny (aucune fenêtre/URL externe ne peut s'ouvrir, même via un lien piégé dans une note).
+- [ ] **S.3** **Validation des entrées IPC côté main** : tailles/chemins/types vérifiés dans chaque handler (`backup:save`, futurs `photos:*`, imports) ; jamais de chemin fourni par le renderer utilisé tel quel (anti path-traversal).
+- [ ] **S.4** **Échappement HTML systématique** : audit des `innerHTML` restants, tout passage de saisie utilisateur par `escapeHtml` (élimine le risque XSS local → RCE).
+- [ ] **S.5** **Imports défensifs** : les fichiers JSON importés (restauration, planning Grand Livre) sont validés champ par champ (schéma strict, tailles bornées) avant d'entrer dans le state.
+- [ ] **S.6** **Hygiène dépendances** : `npm audit` à chaque boucle de build, versions Electron suivies (les CVE Electron/Chromium sont fréquentes), lockfile commité.
+- [ ] **S.7** **Si connexion internet un jour** (préparé, pas activé) : allowlist stricte de domaines HTTPS, aucun code distant exécuté (pas de script tiers), secrets via `safeStorage` (chiffrement OS, jamais en clair dans le state), mises à jour signées uniquement, et CSP resserrée par domaine.
+
+_Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future sera explicite, minimale et vérifiée._
 
 ---
 
@@ -72,7 +84,7 @@ _Livrable : le planning BTS CG apparaît et se met à jour dans le calendrier IR
 Idées issues de l'audit (à prioriser ensemble) :
 - [ ] **4.1** Graphiques enrichis (charge d'entraînement, sommeil, focus/semaine).
 - [ ] **4.2** Export PDF hebdo (bilan sport + étude).
-- [ ] **4.3** Objectifs BTS CG intégrés au système d'XP (réviser = gagner de l'XP « étude »).
+- [x] ~~**4.3** Objectifs BTS CG intégrés au système d'XP~~ → déplacé en **2.5**.
 - [ ] **4.4** Vue unifiée « Ma semaine » : sport + focus + révision côte à côte.
 - [ ] **4.5** Thème clair/sombre, personnalisation.
 - [ ] **4.6** Sauvegarde chiffrée / synchro multi-appareils (optionnel, casse le « 100 % local » — à discuter).
@@ -88,4 +100,4 @@ Idées issues de l'audit (à prioriser ensemble) :
 
 ## Ordre d'exécution proposé
 
-`0.1 → 0.2 → 0.4 → 0.3 → 0.5/0.6` puis `1.x` puis `2.x` (selon l'option choisie) puis `3.x`, en tenant `4.x` comme réservoir priorisable.
+`0.x` (fondations) → `1.x` (calendrier unifié) → `2.x` (planning révision + rappels + notifications) → `S.x` (durcissement sécurité) → `3.x` (qualité), en tenant `4.x` comme réservoir priorisable. Les items `S.3`/`S.5` s'appliquent au fil de l'eau dès qu'un handler IPC ou un import est créé.
