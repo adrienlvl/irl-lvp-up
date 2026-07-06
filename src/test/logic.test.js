@@ -206,6 +206,44 @@ test('mergePlannedEvents : entrées non-tableau tolérées', () => {
   assert.deepEqual(L.mergePlannedEvents(ev, null), ev);
 });
 
+test('mondayOf : ramène au lundi 00:00', () => {
+  assert.equal(L.mondayOf(new Date('2026-07-08T15:00:00')).getDay(), 1); // mercredi → lundi
+  assert.equal(L.mondayOf(new Date('2026-07-06T00:00:00')).getDay(), 1); // lundi → lundi
+  assert.equal(L.mondayOf(new Date('2026-07-12T23:00:00')).getDay(), 1); // dimanche → lundi
+  assert.equal(L.mondayOf(new Date('2026-07-08T15:00:00')).getHours(), 0);
+});
+
+test('weeklyAggregate : somme par semaine, alignée sur 8 lundis', () => {
+  const now = new Date('2026-07-08T12:00:00'); // mercredi, semaine du lundi 2026-07-06
+  const workouts = [
+    { date: '2026-07-06', duration: 60, effort: 3 }, // cette semaine : 180
+    { date: '2026-07-07', duration: 30, effort: 2 }, // cette semaine : +60 = 240
+    { date: '2026-06-30', duration: 45, effort: 2 }  // semaine précédente : 90
+  ];
+  const res = L.weeklyAggregate(workouts, { weeks: 8, now, value: w => w.duration * w.effort });
+  assert.equal(res.length, 8);
+  assert.equal(res.at(-1).total, 240); // dernière semaine
+  assert.equal(res.at(-2).total, 90);  // semaine d'avant
+  assert.equal(res[0].total, 0);       // il y a 8 semaines : rien
+});
+
+test('weeklyAggregate : modes avg et count', () => {
+  const now = new Date('2026-07-08T12:00:00');
+  const recovery = [{ date: '2026-07-06', sleep: 8 }, { date: '2026-07-07', sleep: 6 }];
+  const avg = L.weeklyAggregate(recovery, { weeks: 4, now, mode: 'avg', value: r => r.sleep });
+  assert.equal(avg.at(-1).total, 7); // (8+6)/2
+  const study = [{ date: '2026-07-06' }, { date: '2026-07-08' }];
+  const count = L.weeklyAggregate(study, { weeks: 4, now, mode: 'count' });
+  assert.equal(count.at(-1).total, 2);
+});
+
+test('weeklyAggregate : données vides / hors fenêtre → 0', () => {
+  const now = new Date('2026-07-08T12:00:00');
+  assert.equal(L.weeklyAggregate([], { weeks: 4, now }).every(p => p.total === 0), true);
+  const old = L.weeklyAggregate([{ date: '2020-01-01', v: 5 }], { weeks: 4, now, value: r => r.v });
+  assert.equal(old.every(p => p.total === 0), true);
+});
+
 test('glcPlanningToEvents : conversion valide, refId stable, durée bornée', () => {
   const data = { version: 1, source: 'legl.compta.v2', days: [{ date: '2026-07-08', due: 12 }, { date: '2026-07-10', due: 100 }] };
   const events = L.glcPlanningToEvents(data, { time: '18:00', fromDate: '2026-07-06', baseId: 500 });

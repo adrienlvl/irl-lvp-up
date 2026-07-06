@@ -172,6 +172,38 @@ function prescriptionFor(x, source) {
 }
 function formatFor(x, source) { x = x || {}; const p = prescriptionFor(x, source); return `${x.sets || '?'}×${x.reps || '?'} ${p.unit}`; }
 
+// Lundi 00:00 d'une date quelconque (semaine ISO, lundi = début).
+function mondayOf(date) { const x = new Date(date); const day = x.getDay() || 7; x.setDate(x.getDate() - day + 1); x.setHours(0, 0, 0, 0); return x; }
+
+// Agrège des enregistrements datés par semaine, sur les N dernières semaines.
+// options : {weeks=8, now, dateField='date', value=r=>1, mode='sum'|'avg'|'count'}
+// Renvoie [{weekKey, total}] (plus ancien → plus récent), aligné sur les lundis.
+function weeklyAggregate(records, options) {
+  const o = options || {};
+  const weeks = Math.max(1, Math.min(52, Number(o.weeks) || 8));
+  const now = o.now instanceof Date ? o.now : new Date();
+  const value = typeof o.value === 'function' ? o.value : () => 1;
+  const mode = o.mode || 'sum';
+  const dateField = o.dateField || 'date';
+  const currentMonday = mondayOf(now);
+  const buckets = [];
+  for (let i = weeks - 1; i >= 0; i--) { const ws = new Date(currentMonday); ws.setDate(ws.getDate() - i * 7); buckets.push({ key: dateKey(ws), values: [] }); }
+  const firstKey = buckets[0].key;
+  (Array.isArray(records) ? records : []).forEach(r => {
+    if (!r || typeof r[dateField] !== 'string' || r[dateField] < firstKey) return;
+    const monday = dateKey(mondayOf(new Date(`${r[dateField]}T12:00:00`)));
+    const bucket = buckets.find(b => b.key === monday);
+    if (bucket) bucket.values.push(Number(value(r)) || 0);
+  });
+  return buckets.map(b => {
+    let total = 0;
+    if (mode === 'count') total = b.values.length;
+    else if (mode === 'avg') total = b.values.length ? b.values.reduce((a, x) => a + x, 0) / b.values.length : 0;
+    else total = b.values.reduce((a, x) => a + x, 0);
+    return { weekKey: b.key, total: Math.round(total * 10) / 10 };
+  });
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, glcPlanningToEvents, prescriptionFor, formatFor };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate };
 }

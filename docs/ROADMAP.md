@@ -87,8 +87,8 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
 
 ## Vague 4 — Fonctionnalités produit _(P2/P3, selon tes priorités)_
 
-Idées issues de l'audit (à prioriser ensemble) :
-- [ ] **4.1** Graphiques enrichis (charge d'entraînement, sommeil, focus/semaine).
+Priorités choisies par Adrien (2026-07-06) : **les 4** — graphiques, Ma semaine, PDF hebdo, thème clair.
+- [x] **4.1** Graphiques enrichis : 4 histogrammes sur 8 semaines (charge d'entraînement, focus/semaine, sommeil moyen, révisions validées) — `weeklyAggregate()` pur + testé, SVG maison, dans la page Athlète. ✅ _boucle #15._
 - [ ] **4.2** Export PDF hebdo (bilan sport + étude).
 - [x] ~~**4.3** Objectifs BTS CG intégrés au système d'XP~~ → déplacé en **2.5**.
 - [ ] **4.4** Vue unifiée « Ma semaine » : sport + focus + révision côte à côte.
