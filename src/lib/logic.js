@@ -205,6 +205,41 @@ function racePhase(weeksLeft) {
   return { key: 'foundation', label: 'Fondation long terme', focus: 'Installe l’habitude et la base aérobie sans te presser. Force générale (tractions, KB, gainage) + course facile. Le temps joue pour toi.', longMul: 0.4 };
 }
 
+// Échelle de distances standards pour bâtir des paliers intermédiaires.
+const RACE_LADDER = [
+  { km: 10, label: '10 km' },
+  { km: 21, label: 'Semi-marathon' },
+  { km: 42, label: 'Marathon' },
+  { km: 50, label: 'Ultra 50 km' },
+  { km: 80, label: 'Ultra 80 km' },
+  { km: 100, label: 'Ultra 100 km' }
+];
+
+// Objectifs intermédiaires (paliers) vers l'objectif principal : distances
+// croissantes réparties sur le temps disponible, pour valider la progression.
+function intermediateGoals(goal, now) {
+  if (!goal || !goal.date) return [];
+  const today = now instanceof Date ? dateKey(now) : (typeof now === 'string' ? now : localDate());
+  const weeksLeft = weeksBetween(today, goal.date);
+  if (weeksLeft == null || weeksLeft < 20) return []; // trop proche pour des paliers utiles
+  const D = Number(goal.distanceKm) || 0;
+  const rungs = RACE_LADDER.filter(r => r.km < D * 0.75);
+  if (!rungs.length) return [];
+  const count = Math.max(1, Math.min(3, rungs.length, Math.floor(weeksLeft / 16)));
+  const start = 0.30, end = 0.82;
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const idx = Math.min(rungs.length - 1, Math.max(0, Math.round((i + 0.5) / count * rungs.length)));
+    const rung = rungs[idx];
+    const frac = count === 1 ? 0.5 : start + (end - start) * (i / (count - 1));
+    const wk = Math.round(weeksLeft * frac);
+    const d = new Date(`${today}T12:00:00`); d.setDate(d.getDate() + wk * 7);
+    out.push({ label: rung.label, distanceKm: rung.km, date: dateKey(d), weeksFromNow: wk, monthsFromNow: Math.round(wk / 4.345 * 10) / 10 });
+  }
+  // dédoublonner si deux paliers tombent sur la même distance
+  return out.filter((m, i) => i === 0 || m.distanceKm !== out[i - 1].distanceKm);
+}
+
 // Statut complet de l'objectif : semaines/mois restants, phase, cible de sortie longue.
 function raceGoalStatus(goal, now) {
   if (!goal || !goal.date) return null;
@@ -292,5 +327,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals };
 }

@@ -9,3 +9,13 @@
 .race-goal-phase span{display:block;color:var(--muted);font-size:.7rem}
 .race-goal-phase b{display:block;font-size:1.1rem;color:var(--accent);margin-top:4px}
 @media(max-width:700px){.race-goal-form{grid-template-columns:1fr 1fr}.race-goal-phase{grid-template-columns:1fr}}
+
+/* Paliers intermédiaires (Vague 5.3) */
+.race-milestones{display:grid;gap:8px;margin-top:14px}
+.race-milestones .eyebrow{margin:2px 0}
+.race-milestone{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px 12px;padding:10px 13px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px}
+.race-milestone b{font-size:.9rem}
+.race-milestone span{color:var(--muted);font-size:.76rem}
+.race-milestone small{grid-column:2;grid-row:1/3;align-self:center;color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.race-milestone.final{border-left-color:#fbbf24;background:linear-gradient(120deg,rgba(251,191,36,.10),var(--surface-2))}
+.race-milestone.final small{color:#fbbf24}

@@ -280,6 +280,25 @@ test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
   assert.equal(s.km, 170);
 });
 
+test('intermediateGoals : ultra 170km/2ans → paliers croissants échelonnés', () => {
+  const now = new Date('2026-07-06T12:00:00');
+  const ms = L.intermediateGoals({ type: 'ultra160', distanceKm: 170, date: '2028-07-01' }, now);
+  assert.ok(ms.length >= 2 && ms.length <= 3, 'entre 2 et 3 paliers');
+  // distances strictement croissantes et < objectif
+  for (let i = 1; i < ms.length; i++) assert.ok(ms[i].distanceKm > ms[i - 1].distanceKm, 'croissant');
+  assert.ok(ms.every(m => m.distanceKm < 170), 'tous < objectif');
+  // dates croissantes et dans le futur, avant la course
+  for (let i = 1; i < ms.length; i++) assert.ok(ms[i].date > ms[i - 1].date, 'dates croissantes');
+  assert.ok(ms[0].date > '2026-07-06' && ms[ms.length - 1].date < '2028-07-01');
+});
+
+test('intermediateGoals : objectif proche ou petit → pas de paliers', () => {
+  const now = new Date('2026-07-06T12:00:00');
+  assert.deepEqual(L.intermediateGoals({ distanceKm: 42, date: '2026-09-01' }, now), []); // < 20 sem
+  assert.deepEqual(L.intermediateGoals({ distanceKm: 10, date: '2027-07-01' }, now), []); // rien sous 7.5 km
+  assert.deepEqual(L.intermediateGoals(null, now), []);
+});
+
 test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue plus longue', () => {
   const now = new Date('2026-07-06T12:00:00');
   const specific = L.raceGoalStatus({ type: 'marathon', distanceKm: 42, date: '2026-08-20' }, now); // ~6-7 sem
