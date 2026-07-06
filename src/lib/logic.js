@@ -256,6 +256,24 @@ function raceGoalStatus(goal, now) {
   };
 }
 
+// ---- Compléments & ravitaillement (nutrition sportive, repères généraux) ----
+// Cible protéique quotidienne (g/kg selon l'objectif). Repère, pas une prescription.
+function proteinTarget(weightKg, goal) {
+  const kg = Number(weightKg) || 75;
+  const perKg = goal === 'force' ? 1.9 : goal === 'trail' ? 1.6 : 1.8;
+  return { perKg, gramsPerDay: Math.round(kg * perKg / 5) * 5 };
+}
+
+// Plan d'hydratation/sodium par heure d'effort selon la température (°C).
+// Fourchettes larges volontaires : à ajuster à la transpiration et à la tolérance.
+function hydrationPlan(tempC) {
+  const t = Number(tempC);
+  if (t >= 30) return { level: 'Très chaud', fluidMlPerH: [600, 800], sodiumMgPerH: [800, 1000], note: 'Chaleur forte : bois avant d’avoir soif, monte le sodium, cherche l’ombre et rafraîchis-toi (nuque, avant-bras). Pars déjà bien hydraté.' };
+  if (t >= 25) return { level: 'Chaud', fluidMlPerH: [500, 700], sodiumMgPerH: [600, 800], note: 'Il fait chaud : anticipe l’hydratation dès le départ et sale davantage ta boisson.' };
+  if (t >= 15) return { level: 'Tempéré', fluidMlPerH: [400, 600], sodiumMgPerH: [400, 600], note: 'Conditions confortables : hydrate-toi régulièrement par petites gorgées.' };
+  return { level: 'Frais', fluidMlPerH: [350, 500], sodiumMgPerH: [300, 500], note: 'Frais : on boit moins spontanément — garde quand même un apport régulier.' };
+}
+
 // Bilan chiffré d'une semaine (lundi YYYY-MM-DD) : sport, focus, sommeil, révision.
 // Pur et testable. Utilisé par l'export PDF hebdo (Vague 4.2).
 function weeklySummary(state, mondayKey) {
@@ -327,5 +345,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan };
 }

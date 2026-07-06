@@ -55,6 +55,7 @@ app.whenReady().then(async () => {
         printReport: !!document.getElementById('printReport') && typeof weeklySummary === 'function' && typeof renderPrintReport === 'function' && !!document.getElementById('printWeekReport'),
         theme: !!document.getElementById('themeToggle') && (getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim().length > 0),
         raceGoal: !!document.getElementById('raceGoalType') && typeof raceGoalStatus === 'function' && typeof renderRaceGoal === 'function',
+        supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
@@ -72,6 +73,7 @@ app.whenReady().then(async () => {
     if (!checks.printReport) errors.push('Bilan PDF absent (printReport/weeklySummary/renderPrintReport/printWeekReport)');
     if (!checks.theme) errors.push('Thème absent (themeToggle / variable --surface-2)');
     if (!checks.raceGoal) errors.push('Objectif de course absent (raceGoalType/raceGoalStatus/renderRaceGoal)');
+    if (!checks.supplements) errors.push('Compléments absents (suppHeat/hydrationPlan/suppProteinTarget)');
     if (checks.exCount < 37) errors.push('Bibliothèque incomplète : ' + checks.exCount + ' exercices (attendu ≥ 37)');
     if (checks.quests < 1) errors.push('#questList vide → render() ne s\'est pas exécuté');
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');

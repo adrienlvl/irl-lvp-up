@@ -307,6 +307,25 @@ test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue 
   assert.equal(L.raceGoalStatus(null, now), null);
 });
 
+test('proteinTarget : g/kg selon objectif', () => {
+  assert.equal(L.proteinTarget(80, 'force').gramsPerDay, 150); // 80*1.9=152 -> arrondi 5
+  assert.equal(L.proteinTarget(80, 'trail').gramsPerDay, 130); // 80*1.6=128 -> 130
+  assert.equal(L.proteinTarget(80, 'recomposition').perKg, 1.8);
+  assert.ok(L.proteinTarget(undefined, 'force').gramsPerDay > 0); // défaut poids
+});
+
+test('hydrationPlan : plus chaud → plus de sodium et de liquide', () => {
+  const frais = L.hydrationPlan(5), tempere = L.hydrationPlan(18), chaud = L.hydrationPlan(27), tres = L.hydrationPlan(33);
+  assert.equal(frais.level, 'Frais');
+  assert.equal(tempere.level, 'Tempéré');
+  assert.equal(chaud.level, 'Chaud');
+  assert.equal(tres.level, 'Très chaud');
+  assert.ok(tres.sodiumMgPerH[1] > chaud.sodiumMgPerH[1]);
+  assert.ok(chaud.sodiumMgPerH[1] > tempere.sodiumMgPerH[1]);
+  assert.ok(tres.fluidMlPerH[1] > frais.fluidMlPerH[1]);
+  assert.ok(tres.note.length > 0);
+});
+
 test('weeklySummary : semaine vide → zéros', () => {
   const r = L.weeklySummary({}, '2026-07-06');
   assert.equal(r.sessions, 0);
