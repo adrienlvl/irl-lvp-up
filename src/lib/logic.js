@@ -256,6 +256,37 @@ function raceGoalStatus(goal, now) {
   };
 }
 
+// Montée en volume de course sécurisée : progression hebdomadaire du kilométrage
+// de startKm vers targetKm sur `weeks` semaines, avec un gain hebdo plafonné
+// (défaut 12 %) et une semaine de décharge périodique. Renvoie la série + un
+// bilan honnête (cible atteignable dans les délais ? sinon durée réaliste).
+function volumeRamp(startKm, targetKm, weeks, opts) {
+  opts = opts || {};
+  const maxGain = opts.maxWeeklyGain != null ? opts.maxWeeklyGain : 0.12;
+  const cutEvery = opts.cutbackEvery != null ? opts.cutbackEvery : 4;
+  const cutFactor = opts.cutbackFactor != null ? opts.cutbackFactor : 0.7;
+  const start = Math.max(1, Number(startKm) || 10);
+  const target = Math.max(start, Number(targetKm) || start);
+  const n = Math.max(1, Math.min(52, Math.round(Number(weeks)) || 8));
+  const isCut = w => cutEvery > 0 && w % cutEvery === 0 && w !== n;
+  let buildCount = 0; for (let w = 1; w <= n; w++) if (!isCut(w)) buildCount++;
+  const steps = Math.max(1, buildCount - 1);
+  const neededRate = Math.pow(target / start, 1 / steps) - 1;
+  const rate = Math.min(maxGain, Math.max(0, neededRate));
+  const series = []; let peak = start, first = true;
+  for (let w = 1; w <= n; w++) {
+    if (isCut(w)) { series.push({ week: w, km: Math.round(peak * cutFactor), cutback: true }); continue; }
+    if (!first) peak = Math.min(target, peak * (1 + rate));
+    first = false;
+    series.push({ week: w, km: Math.round(peak), cutback: false });
+  }
+  const reachableKm = Math.round(peak);
+  const reachesTarget = reachableKm >= Math.round(target * 0.98);
+  const safeBuildWeeks = target > start ? Math.ceil(Math.log(target / start) / Math.log(1 + maxGain)) : 0;
+  const safeTotalWeeks = safeBuildWeeks + Math.floor(safeBuildWeeks / Math.max(1, cutEvery - 1));
+  return { series, ratePct: Math.round(rate * 1000) / 10, reachableKm, reachesTarget, thisWeekKm: series[0].km, targetKm: target, safeTotalWeeks };
+}
+
 // Répartit une semaine d'entraînement hybride sur les jours choisis (0=dim..6=sam).
 // Assigne un type à CHAQUE jour coché : Sortie longue, Musculation, Fractionné,
 // Course, Mobilité / repos. Espace les jours durs, garde les jambes fraîches
@@ -388,5 +419,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp };
 }

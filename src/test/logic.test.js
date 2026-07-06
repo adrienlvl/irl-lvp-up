@@ -307,6 +307,30 @@ test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue 
   assert.equal(L.raceGoalStatus(null, now), null);
 });
 
+test('volumeRamp : cas d’Adrien (15→50 km en 8 sem) = trop rapide, honnête', () => {
+  const r = L.volumeRamp(15, 50, 8);
+  assert.equal(r.series.length, 8);
+  assert.equal(r.series[0].km, 15); // départ = volume actuel
+  assert.equal(r.ratePct, 12); // plafonné à 12 %/sem
+  assert.ok(!r.reachesTarget, '50 km en 8 sem non atteignable en sécurité');
+  assert.ok(r.reachableKm >= 25 && r.reachableKm <= 35, 'atteint ~30 km à la date');
+  assert.ok(r.safeTotalWeeks > 8, 'plus de temps nécessaire pour 50 km');
+  assert.ok(r.series.some(s => s.cutback), 'contient au moins une semaine de décharge');
+});
+
+test('volumeRamp : cible réaliste atteinte, jamais au-dessus de la cible', () => {
+  const r = L.volumeRamp(30, 40, 10);
+  assert.ok(r.reachesTarget);
+  assert.ok(r.series.every(s => s.km <= 40 + 1), 'ne dépasse pas la cible');
+  assert.equal(r.thisWeekKm, r.series[0].km);
+});
+
+test('volumeRamp : semaine de décharge = baisse ponctuelle', () => {
+  const r = L.volumeRamp(20, 60, 8);
+  const w4 = r.series.find(s => s.week === 4);
+  assert.ok(w4.cutback && w4.km < r.series.find(s => s.week === 3).km, 'décharge en S4');
+});
+
 test('buildWeekPlan : un type par jour coché, jusqu’à 7 jours', () => {
   const all = L.buildWeekPlan([1, 2, 3, 4, 5, 6, 0], { phase: 'base' });
   assert.equal(all.length, 7);
