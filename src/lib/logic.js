@@ -175,6 +175,52 @@ function weekItems(state, mondayKey) {
   return days;
 }
 
+// ---- Objectif de course & périodisation (Vague 5.3, coaching) ----
+// Presets d'objectifs ; l'utilisateur peut aussi entrer une distance libre.
+const RACE_PRESETS = {
+  semi:     { label: 'Semi-marathon', km: 21 },
+  marathon: { label: 'Marathon', km: 42 },
+  ultra50:  { label: 'Ultra 50 km', km: 50 },
+  ultra80:  { label: 'Ultra 80 km', km: 80 },
+  ultra100: { label: 'Ultra 100 km', km: 100 },
+  ultra160: { label: 'Ultra 150–200 km', km: 170 },
+  custom:   { label: 'Distance libre', km: 0 }
+};
+
+// Nombre de semaines entières entre deux dates YYYY-MM-DD (négatif si to est passé).
+function weeksBetween(from, to) {
+  const a = new Date(`${from}T12:00:00`), b = new Date(`${to}T12:00:00`);
+  if (isNaN(a) || isNaN(b)) return null;
+  return Math.round((b - a) / (7 * 864e5));
+}
+
+// Phase de préparation en fonction des semaines restantes avant la course.
+function racePhase(weeksLeft) {
+  if (weeksLeft == null) return { key: 'none', label: '—', focus: '', longMul: 0 };
+  if (weeksLeft < 0) return { key: 'done', label: 'Course passée', focus: 'Récupère, savoure, puis fixe un nouveau cap.', longMul: 0 };
+  if (weeksLeft <= 2) return { key: 'taper', label: 'Affûtage', focus: 'Réduis le volume (~40–50 %), garde un peu d’allure, dors et mange bien : arrive frais.', longMul: 0.4 };
+  if (weeksLeft <= 8) return { key: 'specific', label: 'Spécifique', focus: 'Sorties longues progressives, dénivelé, allure course et nutrition testées. Une variable à la fois.', longMul: 1 };
+  if (weeksLeft <= 20) return { key: 'build', label: 'Développement', focus: 'Monte volume et D+ prudemment, un peu d’intensité contrôlée. Une semaine plus légère toutes les 3–4.', longMul: 0.75 };
+  if (weeksLeft <= 52) return { key: 'base', label: 'Base', focus: 'Volume facile et régulier, force trail 2×/sem, endurance fondamentale. La base décide de tout.', longMul: 0.5 };
+  return { key: 'foundation', label: 'Fondation long terme', focus: 'Installe l’habitude et la base aérobie sans te presser. Force générale (tractions, KB, gainage) + course facile. Le temps joue pour toi.', longMul: 0.4 };
+}
+
+// Statut complet de l'objectif : semaines/mois restants, phase, cible de sortie longue.
+function raceGoalStatus(goal, now) {
+  if (!goal || !goal.date) return null;
+  const today = now instanceof Date ? dateKey(now) : (typeof now === 'string' ? now : localDate());
+  const weeksLeft = weeksBetween(today, goal.date);
+  const phase = racePhase(weeksLeft);
+  const km = Number(goal.distanceKm) || 0;
+  const peakLong = Math.min(300, Math.max(60, Math.round(km * 3)));
+  const longRunMin = Math.round(peakLong * phase.longMul / 5) * 5;
+  return {
+    weeksLeft,
+    monthsLeft: weeksLeft == null ? null : Math.round(weeksLeft / 4.345 * 10) / 10,
+    phase, km, longRunMin
+  };
+}
+
 // Bilan chiffré d'une semaine (lundi YYYY-MM-DD) : sport, focus, sommeil, révision.
 // Pur et testable. Utilisé par l'export PDF hebdo (Vague 4.2).
 function weeklySummary(state, mondayKey) {
@@ -246,5 +292,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus };
 }

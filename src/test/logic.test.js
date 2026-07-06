@@ -253,6 +253,41 @@ test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions',
   assert.equal(r.studyDone, 1);
 });
 
+test('weeksBetween : compte les semaines, négatif si passé', () => {
+  assert.equal(L.weeksBetween('2026-07-06', '2026-07-20'), 2);
+  assert.equal(L.weeksBetween('2026-07-06', '2028-07-06'), 104); // ~2 ans
+  assert.ok(L.weeksBetween('2026-07-06', '2026-06-01') < 0);
+  assert.equal(L.weeksBetween('bad', '2026-07-20'), null);
+});
+
+test('racePhase : phases selon les semaines restantes', () => {
+  assert.equal(L.racePhase(120).key, 'foundation'); // >52 sem : objectif 2 ans
+  assert.equal(L.racePhase(40).key, 'base');
+  assert.equal(L.racePhase(16).key, 'build');
+  assert.equal(L.racePhase(6).key, 'specific');
+  assert.equal(L.racePhase(1).key, 'taper');
+  assert.equal(L.racePhase(-3).key, 'done');
+  assert.equal(L.racePhase(null).key, 'none');
+});
+
+test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
+  const now = new Date('2026-07-06T12:00:00');
+  const s = L.raceGoalStatus({ type: 'ultra160', distanceKm: 170, date: '2028-07-01' }, now);
+  assert.equal(s.phase.key, 'foundation');
+  assert.ok(s.weeksLeft > 90);
+  assert.ok(s.monthsLeft > 20);
+  assert.ok(s.longRunMin > 0);
+  assert.equal(s.km, 170);
+});
+
+test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue plus longue', () => {
+  const now = new Date('2026-07-06T12:00:00');
+  const specific = L.raceGoalStatus({ type: 'marathon', distanceKm: 42, date: '2026-08-20' }, now); // ~6-7 sem
+  assert.equal(specific.phase.key, 'specific');
+  assert.ok(specific.longRunMin >= 90); // proche course → longue proche du pic (42*3=126)
+  assert.equal(L.raceGoalStatus(null, now), null);
+});
+
 test('weeklySummary : semaine vide → zéros', () => {
   const r = L.weeklySummary({}, '2026-07-06');
   assert.equal(r.sessions, 0);
