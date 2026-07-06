@@ -8,7 +8,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 // Stubs des canaux IPC attendus par preload/app.js (sinon rejets non gérés parasites).
-ipcMain.handle('notifications:get', () => ({ enabled: false, times: ['09:00', '18:00'], lastSent: {} }));
+ipcMain.handle('notifications:get', () => ({ enabled: false, times: ['09:00', '18:00'], lastSent: {}, leadMinutes: 15, eveningTime: '21:00', eveningEnabled: true }));
 ipcMain.handle('notifications:save', (_e, v) => v);
 ipcMain.handle('notifications:test', () => true);
 ipcMain.handle('backup:save', () => true);

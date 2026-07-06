@@ -176,8 +176,11 @@
         <p>Reçois un rappel Windows aux moments où tu veux reprendre l’aventure.</p>
         <div class="reminder-controls">
           <label class="toggle"><input id="notificationEnabled" type="checkbox" /><span></span> Activer les rappels</label>
-          <label>1er rappel <input id="reminderOne" type="time" value="09:00" /></label>
+          <label>1er rappel (résumé du jour) <input id="reminderOne" type="time" value="09:00" /></label>
           <label>2e rappel <input id="reminderTwo" type="time" value="18:00" /></label>
+          <label>Avant chaque bloc (min) <input id="reminderLead" type="number" min="5" max="60" step="5" value="15" /></label>
+          <label class="toggle"><input id="eveningEnabled" type="checkbox" checked /><span></span> Rappel du soir</label>
+          <label>Heure du soir <input id="reminderEvening" type="time" value="21:00" /></label>
           <button id="saveReminders" class="primary-button">Enregistrer</button><button id="testReminder" class="secondary-button">Tester</button>
         </div><small id="desktopNote">Disponible dans la version Windows de l’application.</small>
       </section>
