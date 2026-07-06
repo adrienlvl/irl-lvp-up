@@ -82,11 +82,11 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
 
 - [x] **5.0a** Matériel corrigé : `{handles, vest, kettlebell, pullup}` (fini le « banc »). Onboarding + profil + defaults + migration. ✅ _boucle #19._
 - [x] **5.0b** Illustrations refaites : pictogrammes **SVG** par schéma de mouvement (`lib/exercise-icons.js`) — fini les photos coupées/mal alignées. 10 patterns, couleur du thème, jamais tronqués. ✅ _boucle #19._
-- [ ] **5.1** **Exercices barre de traction** : tractions pronation/supination, négatives, rowing australien, suspension (dead hang), relevés de genoux suspendu (+ poignées : pompes déficit). Fiches complètes (cue, exécution, objectif, à éviter, progression).
-- [ ] **5.2** **Programmes enrichis & structurés** : plus de séances, structure claire (échauffement spécifique → mouvements principaux → accessoires → finisher), adaptés au matériel réel.
+- [x] **5.1** **Exercices barre de traction + poignées** : Tractions, Tractions supination, Tractions négatives, Rowing australien, Suspension barre (dead hang), Relevés de genoux suspendu, Pompes déficit — 7 fiches complètes (cue, exécution, objectif, à éviter). Mappées aux icônes. **Bibliothèque : 30 → 37 exercices.** ✅ _boucle #20._
+- [~] **5.2** **Programmes hybrides trail + force** : 3 programmes redessinés — « Hybride trail + force » (tirage/poussée · jambes/chaîne postérieure · puissance/tronc), « Force & tractions » (haut du corps), « Spécial trail & course » — avec `why` coaching (placement vs course, RPE). ✅ _structure de base boucle #20._ Reste : sections échauffement/finisher explicites dans l'UI.
 - [ ] **5.3** **Périodisation** : phases (base → développement → intensification → décharge), progression pilotée (RPE/réps en réserve), semaine de deload.
-- [ ] **5.4** **Guidage renforcé** : cues plus riches, erreurs fréquentes, respiration, tempo ; le compagnon d'entraînement propose un vrai plan du jour argumenté.
-- [ ] **5.5** Retirer/adapter les mouvements nécessitant du matériel absent (step-up sur box, pompes inclinées sur banc → alternatives).
+- [ ] **5.4** **Guidage renforcé** : le compagnon d'entraînement propose un vrai plan du jour argumenté + échauffement spécifique.
+- [x] **5.5** Mouvements sans banc/box : Step-up et Step-down reformulés sur **escalier**, pompes inclinées sur **plan de travail/rambarde**. ✅ _boucle #20._
 
 ---
 
