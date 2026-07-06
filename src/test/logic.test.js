@@ -151,6 +151,42 @@ test('todayItems : state vide → []', () => {
   assert.deepEqual(L.todayItems(null, '2026-07-06'), []);
 });
 
+test('glcPlanningToEvents : conversion valide, refId stable, durée bornée', () => {
+  const data = { version: 1, source: 'legl.compta.v2', days: [{ date: '2026-07-08', due: 12 }, { date: '2026-07-10', due: 100 }] };
+  const events = L.glcPlanningToEvents(data, { time: '18:00', fromDate: '2026-07-06', baseId: 500 });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].title, 'Révision compta · 12 cartes');
+  assert.equal(events[0].refId, 'glc-2026-07-08');
+  assert.equal(events[0].kind, 'study');
+  assert.equal(events[0].source, 'study-glc');
+  assert.equal(events[0].durationMin, 24); // 12×2 min
+  assert.equal(events[1].durationMin, 90); // borné à 90
+});
+
+test('glcPlanningToEvents : rejets défensifs (S.5)', () => {
+  assert.deepEqual(L.glcPlanningToEvents(null), []);
+  assert.deepEqual(L.glcPlanningToEvents({ version: 2, days: [] }), []);
+  assert.deepEqual(L.glcPlanningToEvents({ version: 1, days: 'nope' }), []);
+  const dirty = L.glcPlanningToEvents({ version: 1, days: [
+    { date: 'pas-une-date', due: 5 },
+    { date: '2026-07-08', due: 0 },
+    { date: '2026-07-08', due: 9999 },
+    { date: '2026-07-05', due: 3 },
+    { date: '2026-07-09', due: 4 }
+  ] }, { fromDate: '2026-07-06', baseId: 1 });
+  assert.equal(dirty.length, 1, 'seule la ligne valide et future passe');
+  assert.equal(dirty[0].date, '2026-07-09');
+});
+
+test('glcPlanningToEvents : heure invalide → 17:30, réimport idempotent via merge', () => {
+  const data = { version: 1, days: [{ date: '2026-07-08', due: 5 }] };
+  const first = L.glcPlanningToEvents(data, { time: '99:99', baseId: 10 });
+  assert.equal(first[0].time, '17:30');
+  const merged = L.mergePlannedEvents(L.mergePlannedEvents([], first), L.glcPlanningToEvents(data, { baseId: 20 }));
+  assert.equal(merged.length, 1, 'pas de doublon au réimport');
+  assert.equal(merged[0].id, 10, 'id du premier import préservé');
+});
+
 test('mergePlannedEvents : idempotent, préserve completed et id, garde le reste', () => {
   const manual = { id: 1, title: 'Muscu', date: '2026-07-07', time: '18:00', kind: 'sport' };
   const plan1 = L.planStudySessions({ weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 100 });

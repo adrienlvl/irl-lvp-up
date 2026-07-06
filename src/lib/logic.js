@@ -129,6 +129,35 @@ function todayItems(state, date) {
   return items.sort((x, y) => String(x.time).localeCompare(String(y.time)));
 }
 
+// Convertit un export de planning du Grand Livre Compta en événements `study`.
+// Format attendu : {version:1, source:'legl.compta.v2', days:[{date:'YYYY-MM-DD', due:N}]}
+// Validation défensive (S.5) : schéma strict, date regex, due borné 1..500,
+// max 120 jours, uniquement aujourd'hui/futur (fromDate). Renvoie [] si invalide.
+// refId = glc-<date> → réimport idempotent via mergePlannedEvents.
+function glcPlanningToEvents(data, options) {
+  const { time = '17:30', fromDate, baseId } = options || {};
+  if (!data || typeof data !== 'object' || Number(data.version) !== 1 || !Array.isArray(data.days)) return [];
+  const from = typeof fromDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null;
+  const safeTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '17:30';
+  const idBase = Number(baseId) || Date.now();
+  const events = [];
+  for (const day of data.days.slice(0, 120)) {
+    if (!day || typeof day !== 'object') continue;
+    if (typeof day.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day.date)) continue;
+    const due = Math.round(Number(day.due));
+    if (!Number.isFinite(due) || due < 1 || due > 500) continue;
+    if (from && day.date < from) continue;
+    events.push({
+      id: idBase + events.length,
+      title: `Révision compta · ${due} carte${due > 1 ? 's' : ''}`,
+      date: day.date, time: safeTime,
+      durationMin: Math.min(90, Math.max(15, due * 2)),
+      kind: 'study', source: 'study-glc', refId: `glc-${day.date}`, completed: false
+    });
+  }
+  return events;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, glcPlanningToEvents };
 }
