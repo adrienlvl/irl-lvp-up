@@ -158,6 +158,20 @@ function glcPlanningToEvents(data, options) {
   return events;
 }
 
+// Calcul pur de la prescription d'un exercice (unité, repos, durée estimée).
+// `source` = fiche de la bibliothèque (ou undefined) ; injectée pour rester testable
+// sans dépendre du global `exercises`. app.js fournit le lookup.
+function prescriptionFor(x, source) {
+  x = x || {};
+  const unit = x.unit || source?.unit || 'reps';
+  const rest = Number(x.rest ?? source?.rest ?? (source?.family === 'conditioning' ? 30 : source?.family === 'core' ? 45 : 75));
+  const sets = Number(x.sets) || 0, reps = Number(x.reps) || 0;
+  const workSeconds = unit === 'sec' ? sets * reps : unit === 'pas' ? sets * reps : sets * reps * (source?.family === 'conditioning' ? 2.5 : 4);
+  const minutes = Math.max(1, Math.round((workSeconds + Math.max(0, sets - 1) * rest) / 60));
+  return { unit, rest, minutes };
+}
+function formatFor(x, source) { x = x || {}; const p = prescriptionFor(x, source); return `${x.sets || '?'}×${x.reps || '?'} ${p.unit}`; }
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, glcPlanningToEvents };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, glcPlanningToEvents, prescriptionFor, formatFor };
 }

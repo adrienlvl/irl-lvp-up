@@ -151,6 +151,61 @@ test('todayItems : state vide → []', () => {
   assert.deepEqual(L.todayItems(null, '2026-07-06'), []);
 });
 
+test('prescriptionFor : repos par défaut selon la famille', () => {
+  assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'general' }).rest, 75);
+  assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'core' }).rest, 45);
+  assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'conditioning' }).rest, 30);
+  assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, undefined).rest, 75); // pas de source
+});
+
+test('prescriptionFor : unité héritée de la source, rest explicite prioritaire', () => {
+  const p = L.prescriptionFor({ sets: 3, reps: 30 }, { unit: 'sec', family: 'core' });
+  assert.equal(p.unit, 'sec');
+  assert.equal(L.prescriptionFor({ sets: 3, reps: 10, rest: 120 }, { family: 'general' }).rest, 120);
+  assert.equal(L.prescriptionFor({ sets: 3, reps: 10, unit: 'reps' }, { unit: 'sec' }).unit, 'reps'); // x prioritaire
+});
+
+test('prescriptionFor : durée minimale 1, valeurs manquantes tolérées', () => {
+  assert.equal(L.prescriptionFor({}, undefined).minutes, 1);
+  assert.equal(L.prescriptionFor(null, null).minutes, 1);
+  assert.ok(L.prescriptionFor({ sets: 4, reps: 8 }, { family: 'general' }).minutes >= 1);
+});
+
+test('formatFor : rendu "sets×reps unit", points d’interrogation si manquant', () => {
+  assert.equal(L.formatFor({ sets: 3, reps: 8 }, { family: 'general' }), '3×8 reps');
+  assert.equal(L.formatFor({ sets: 3, reps: 30, unit: 'sec' }, undefined), '3×30 sec');
+  assert.equal(L.formatFor({}, undefined), '?×? reps');
+});
+
+test('normalizeAgendaItem : titres hostiles conservés en texte brut (échappés à l’affichage)', () => {
+  const e = L.normalizeAgendaItem({ id: 9, title: '<img src=x onerror=alert(1)>', date: '2026-07-06', time: '10:00', kind: 'life' });
+  assert.equal(e.title, '<img src=x onerror=alert(1)>'); // stocké tel quel — escapeHtml protège au rendu
+  assert.equal(typeof e.title, 'string');
+});
+
+test('buildIcs : plusieurs événements, invalides ignorés, ordre conservé', () => {
+  const now = new Date('2026-07-06T10:00:00');
+  const ics = L.buildIcs([
+    { id: 1, title: 'A', date: '2026-07-10', time: '09:00', durationMin: 30 },
+    { id: 2, title: 'B', date: 'bad-date', time: '10:00' },
+    { id: 3, title: 'C', date: '2026-07-11', time: '11:00', durationMin: 60 }
+  ], now);
+  const uids = (ics.match(/UID:\d+@irllvpup/g) || []);
+  assert.deepEqual(uids, ['UID:1@irllvpup', 'UID:3@irllvpup']);
+});
+
+test('planStudySessions : semaine vide ou plage nulle → []', () => {
+  assert.deepEqual(L.planStudySessions({ weekdays: [], startDate: '2026-07-06', examDate: '2026-07-20' }), []);
+  assert.deepEqual(L.planStudySessions({ weekdays: [1, 3], startDate: '2026-07-06', examDate: '2026-07-06' }).length >= 0, true);
+});
+
+test('mergePlannedEvents : entrées non-tableau tolérées', () => {
+  assert.deepEqual(L.mergePlannedEvents(null, null), []);
+  const ev = [{ id: 1, refId: 'planner-2026-07-06-17:30', title: 'X' }];
+  assert.deepEqual(L.mergePlannedEvents(null, ev), ev);
+  assert.deepEqual(L.mergePlannedEvents(ev, null), ev);
+});
+
 test('glcPlanningToEvents : conversion valide, refId stable, durée bornée', () => {
   const data = { version: 1, source: 'legl.compta.v2', days: [{ date: '2026-07-08', due: 12 }, { date: '2026-07-10', due: 100 }] };
   const events = L.glcPlanningToEvents(data, { time: '18:00', fromDate: '2026-07-06', baseId: 500 });

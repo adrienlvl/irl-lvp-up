@@ -12,8 +12,8 @@ const challenges = [['Sortir prendre l’air', '10 minutes de marche sans télé
 const workoutTypes = { run: ['🏃','Course à pied'], strength: ['🏋️','Musculation'], conditioning: ['⚡','Renfo / circuit'], cycling: ['🚴','Vélo'], mobility: ['🧘','Mobilité'], sport: ['🏆','Sport / autre'] };
 /* exercises -> lib/exercises-data.js (Vague 3.1) */
 const sourceExercise=x=>exercises.find(e=>e.name===x.name);
-const exercisePrescription=x=>{const source=sourceExercise(x),unit=x.unit||source?.unit||'reps',rest=Number(x.rest??source?.rest??(source?.family==='conditioning'?30:source?.family==='core'?45:75)),sets=Number(x.sets)||0,reps=Number(x.reps)||0,workSeconds=unit==='sec'?sets*reps:unit==='pas'?sets*reps:sets*reps*(source?.family==='conditioning'?2.5:4),minutes=Math.max(1,Math.round((workSeconds+Math.max(0,sets-1)*rest)/60));return {unit,rest,minutes};};
-const exerciseFormat=x=>{const p=exercisePrescription(x);return `${x.sets||'?'}×${x.reps||'?'} ${p.unit}`;};
+const exercisePrescription=x=>prescriptionFor(x,sourceExercise(x));
+const exerciseFormat=x=>formatFor(x,sourceExercise(x));
 const completeExercise=x=>{const p=exercisePrescription(x);return {...x,unit:p.unit,rest:p.rest};};
 const exerciseVisual=(x,extraClass='')=>{const source=sourceExercise(x);return source?`<span class="exercise-art ${extraClass} sheet-${source.sheet} art-${source.art}" aria-hidden="true"></span>`:'';};
 let sessionExercises=[], selectedExercise=null, guidedWorkout=null, guidedIndex=0, guidedRestSeconds=0, guidedRestInterval=null, pendingPlanId=null,pendingFocusReview=null;
