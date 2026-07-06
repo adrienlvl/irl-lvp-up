@@ -22,7 +22,8 @@ _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, 
 ### Nutrition — fait (boucle #32)
 - [x] **Scan GitHub de jeux de données** + audit sécurité/licence : repos communautaires écartés (soit du code + API en ligne, soit CSV sans licence/source = risqué à embarquer). Choix sûr : **petit jeu d'aliments curé (valeurs domaine public type USDA)** embarqué hors-ligne. Voir `docs/AUDIT-DONNEES-GITHUB.md`.
 - [x] **Timing des compléments AVANT / PENDANT / APRÈS** contextuel (`supplementTiming`) : Musculation / Course courte / Sortie longue / Forte chaleur → whey (après, pas avant la course), électrolytes (pendant, + avant/après selon chaleur), glucides.
-- [x] **Recherche d'aliments** (`lib/foods-data.js`, 54 aliments, `searchFoods`) : macros/100 g dans l'onglet Nutrition, base pour les repas.
+- [x] **Recherche d'aliments** (`lib/foods-data.js`, `searchFoods`) : macros/100 g dans l'onglet Nutrition, base pour les repas.
+- [x] **Vrai extrait CIQUAL 2020 (ANSES)** intégré : **2265 aliments** officiels (Licence Ouverte), catégorisés (P/F/L/R/D/G/S/B/M/A), recherche classée (aliments simples avant plats composés). XLS officiel parsé via SheetJS **hors ligne dans le scratchpad** (aucun code tiers embarqué). ✅ _boucle #33._
 
 ### Idées Nutrition à explorer (futur, demandé par Adrien)
 - 📸 **Scanner le frigo** (photo → détection des aliments) → liste de courses.
