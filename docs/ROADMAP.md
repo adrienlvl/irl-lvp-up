@@ -8,7 +8,7 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, D1+D2._
 - [x] **A1** Sections fantômes rattachées à leur page (agenda→dashboard ; trail/plan/revue→athlète). Fuites = 0. ✅ _boucle #27._
 - [x] **A2** Sections repliables (16 panneaux), état mémorisé (`localStorage['irl-collapsed']`). ✅ _boucle #27._
-- [ ] **C1** Fusionner Mission Control + Ma journée + Boussole en un bloc « Aujourd'hui ».
+- [x] **C1** Dashboard désencombré (approche prudente) : « Ma journée » remontée en tête (juste sous le profil) ; Mission Control + Boussole **repliés par défaut** au 1er lancement (dépliables). ✅ _boucle #28._
 - [ ] **C2** Retirer le formulaire d'agenda du dashboard.
 - [ ] **B2** Sortir la bibliothèque d'exercices dans son propre onglet.
 - [ ] **B1** Page Athlète en sous-onglets (Séance / Progrès / Nutrition).
