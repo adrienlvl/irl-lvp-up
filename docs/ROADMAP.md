@@ -11,8 +11,8 @@ _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, 
 - [x] **C1** Dashboard désencombré (approche prudente) : « Ma journée » remontée en tête (juste sous le profil) ; Mission Control + Boussole **repliés par défaut** au 1er lancement (dépliables). ✅ _boucle #28._
 - [x] **C2** Formulaire d'agenda retiré du dashboard (doublon de l'onglet Calendrier) ; export `.ics` refactoré en `exportAgendaIcs()` (plus de dépendance au bouton supprimé) ; vue semaine conservée. ✅ _boucle #29._
 - [x] **B2** Bibliothèque d'exercices sortie dans son **propre onglet « Exercices »** (nav `data-page="library"`) — retirée de la page Athlète (qui perd ~5000 px). Recherche/filtre fonctionnels. ✅ _boucle #29._
-- [ ] **B1** Page Athlète en sous-onglets (Séance / Progrès / Nutrition).
-- [ ] **B3** Bloc « Mes progrès » (poids/mensurations/photos/tendances/graphiques) replié.
+- [x] **B1** Page Athlète en **sous-onglets** (Séance · Mes progrès · Nutrition & Planning) : de 13 sections en un scroll → 3 onglets (7 / 6 / 2), état mémorisé (`irl-athlete-tab`). Répartition par assignation automatique (aucun découpage HTML risqué). ✅ _boucle #30._
+- [x] **B3** Le sous-onglet **« Mes progrès »** regroupe tous les suivis (poids, mensurations, photos, historique, progression, tendances, graphiques, revue hebdo). ✅ _boucle #30._
 - [ ] **D1** Agenda unifié (semaine + mois + agenda en un onglet).
 - [ ] **D2** Navigation regroupée (moins d'onglets ; Ultra-trail sous Entraînement).
 
