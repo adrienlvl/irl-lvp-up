@@ -13,8 +13,16 @@ _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, 
 - [x] **B2** Bibliothèque d'exercices sortie dans son **propre onglet « Exercices »** (nav `data-page="library"`) — retirée de la page Athlète (qui perd ~5000 px). Recherche/filtre fonctionnels. ✅ _boucle #29._
 - [x] **B1** Page Athlète en **sous-onglets** (Séance · Mes progrès · Nutrition & Planning) : de 13 sections en un scroll → 3 onglets (7 / 6 / 2), état mémorisé (`irl-athlete-tab`). Répartition par assignation automatique (aucun découpage HTML risqué). ✅ _boucle #30._
 - [x] **B3** Le sous-onglet **« Mes progrès »** regroupe tous les suivis (poids, mensurations, photos, historique, progression, tendances, graphiques, revue hebdo). ✅ _boucle #30._
-- [ ] **D1** Agenda unifié (semaine + mois + agenda en un onglet).
-- [ ] **D2** Navigation regroupée (moins d'onglets ; Ultra-trail sous Entraînement).
+- [x] **D1** Agenda unifié : un seul onglet **« Agenda »** (ex Ma semaine) avec bascule **Vue semaine ↔ Vue mois** (fini les 2 entrées de nav distinctes). ✅ _boucle #31._
+- [x] **D2** Navigation regroupée : **7 → 6 onglets** (Aujourd'hui · Agenda · Athlète · Exercices · **Nutrition** · Focus & vie). Ultra-trail rangé dans Athlète (bouton contextuel dans le panneau trail). ✅ _boucle #31._
+- [x] **Bonus — Nutrition promue en onglet top-level** (choix d'Adrien) : sortie du sous-onglet Athlète vers son propre onglet, pour accueillir de futures fonctions (scan du frigo → liste de courses → repas à partir du contenu du frigo, etc.). Le planificateur de semaine revient dans Athlète/Séance (sa vraie place). ✅ _boucle #31._
+
+> ✅ **Vague 6 (UX) terminée** (boucles #27–#31, 2026-07-06). Installeur **1.1.7**.
+
+### Idées Nutrition à explorer (futur, demandé par Adrien)
+- 📸 **Scanner le frigo** (photo → détection des aliments) → liste de courses.
+- 🍽️ **Suggestions de repas** à partir de ce qui est dans le frigo (anti-gaspi + budget).
+- 🛒 Liste de courses intelligente, suivi macros/protéines relié à l'objectif.
 
 
 ---
