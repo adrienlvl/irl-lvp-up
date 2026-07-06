@@ -76,6 +76,20 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
 
 ---
 
+## Vague 5 — Coaching haut niveau & contenu sport _(P1, demande d'Adrien)_
+
+**Objectif : se comporter comme le coach d'un athlète de haut niveau. Plus de séances, mieux guidées, adaptées au matériel réel d'Adrien (poignées de pompes, gilet lesté, kettlebell, barre de traction — PAS de banc/box).**
+
+- [x] **5.0a** Matériel corrigé : `{handles, vest, kettlebell, pullup}` (fini le « banc »). Onboarding + profil + defaults + migration. ✅ _boucle #19._
+- [x] **5.0b** Illustrations refaites : pictogrammes **SVG** par schéma de mouvement (`lib/exercise-icons.js`) — fini les photos coupées/mal alignées. 10 patterns, couleur du thème, jamais tronqués. ✅ _boucle #19._
+- [ ] **5.1** **Exercices barre de traction** : tractions pronation/supination, négatives, rowing australien, suspension (dead hang), relevés de genoux suspendu (+ poignées : pompes déficit). Fiches complètes (cue, exécution, objectif, à éviter, progression).
+- [ ] **5.2** **Programmes enrichis & structurés** : plus de séances, structure claire (échauffement spécifique → mouvements principaux → accessoires → finisher), adaptés au matériel réel.
+- [ ] **5.3** **Périodisation** : phases (base → développement → intensification → décharge), progression pilotée (RPE/réps en réserve), semaine de deload.
+- [ ] **5.4** **Guidage renforcé** : cues plus riches, erreurs fréquentes, respiration, tempo ; le compagnon d'entraînement propose un vrai plan du jour argumenté.
+- [ ] **5.5** Retirer/adapter les mouvements nécessitant du matériel absent (step-up sur box, pompes inclinées sur banc → alternatives).
+
+---
+
 ## Vague 3 — Qualité & maintenabilité _(P2)_
 
 - [~] **3.1** Découper `app.js` : logique pure dans `lib/logic.js` ✅, données statiques (30 exercices + 3 programmes) dans `lib/exercises-data.js` ✅ (_boucle #13_, app.js 100 Ko → 93 Ko). Reste (optionnel) : séparer les gros blocs de rendu par domaine.
