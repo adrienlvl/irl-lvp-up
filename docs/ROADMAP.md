@@ -91,7 +91,7 @@ Priorités choisies par Adrien (2026-07-06) : **les 4** — graphiques, Ma semai
 - [x] **4.1** Graphiques enrichis : 4 histogrammes sur 8 semaines (charge d'entraînement, focus/semaine, sommeil moyen, révisions validées) — `weeklyAggregate()` pur + testé, SVG maison, dans la page Athlète. ✅ _boucle #15._
 - [ ] **4.2** Export PDF hebdo (bilan sport + étude).
 - [x] ~~**4.3** Objectifs BTS CG intégrés au système d'XP~~ → déplacé en **2.5**.
-- [ ] **4.4** Vue unifiée « Ma semaine » : sport + focus + révision côte à côte.
+- [x] **4.4** Vue « Ma semaine » : page lundi→dimanche, 4 types côte à côte (sport/focus/vie/révision, couleurs distinctes), compteurs d'équilibre, navigation semaine, aujourd'hui surligné. `weekItems()` pur + testé. Vérifiée par capture Electron. ✅ _boucle #16._
 - [ ] **4.5** Thème clair/sombre, personnalisation.
 - [ ] **4.6** Sauvegarde chiffrée / synchro multi-appareils (optionnel, casse le « 100 % local » — à discuter).
 

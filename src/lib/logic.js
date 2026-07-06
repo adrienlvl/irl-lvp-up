@@ -158,6 +158,23 @@ function glcPlanningToEvents(data, options) {
   return events;
 }
 
+// Vue « Ma semaine » : 7 jours à partir d'un lundi (clé YYYY-MM-DD), chacun avec
+// ses items (via todayItems) et un résumé par type. Pur et testable.
+function weekItems(state, mondayKey) {
+  const start = new Date(`${mondayKey}T12:00:00`);
+  if (isNaN(start)) return [];
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    const key = dateKey(d);
+    const items = todayItems(state, key);
+    const counts = { sport: 0, focus: 0, life: 0, study: 0 };
+    items.forEach(it => { if (counts[it.kind] !== undefined) counts[it.kind]++; });
+    days.push({ dateKey: key, weekday: d.getDay(), items, counts, done: items.filter(i => i.completed).length, total: items.length });
+  }
+  return days;
+}
+
 // Calcul pur de la prescription d'un exercice (unité, repos, durée estimée).
 // `source` = fiche de la bibliothèque (ou undefined) ; injectée pour rester testable
 // sans dépendre du global `exercises`. app.js fournit le lookup.
@@ -205,5 +222,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate };
 }

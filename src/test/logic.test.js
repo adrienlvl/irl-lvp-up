@@ -206,6 +206,35 @@ test('mergePlannedEvents : entrées non-tableau tolérées', () => {
   assert.deepEqual(L.mergePlannedEvents(ev, null), ev);
 });
 
+test('weekItems : 7 jours du lundi, items placés au bon jour', () => {
+  const state = {
+    agenda: [
+      { id: 1, title: 'Muscu', date: '2026-07-06', time: '18:00', kind: 'sport' },       // lundi
+      { id: 2, title: 'Révision', date: '2026-07-08', time: '17:30', kind: 'study' },     // mercredi
+      { id: 3, title: 'Focus', date: '2026-07-08', time: '09:00', kind: 'focus', completed: true },
+      { id: 4, title: 'Hors semaine', date: '2026-07-20', time: '10:00', kind: 'life' }
+    ], plans: []
+  };
+  const days = L.weekItems(state, '2026-07-06');
+  assert.equal(days.length, 7);
+  assert.equal(days[0].dateKey, '2026-07-06');
+  assert.equal(days[0].weekday, 1); // lundi
+  assert.equal(days[6].dateKey, '2026-07-12'); // dimanche
+  assert.equal(days[0].counts.sport, 1);
+  assert.equal(days[2].counts.study, 1);
+  assert.equal(days[2].counts.focus, 1);
+  assert.equal(days[2].done, 1); // le focus est complété
+  assert.equal(days[2].items[0].time, '09:00'); // tri chronologique dans le jour
+  assert.ok(days.every(d => !d.items.some(i => i.title === 'Hors semaine')));
+});
+
+test('weekItems : lundi invalide → [], state vide → 7 jours vides', () => {
+  assert.deepEqual(L.weekItems({}, 'pas-une-date'), []);
+  const empty = L.weekItems({}, '2026-07-06');
+  assert.equal(empty.length, 7);
+  assert.equal(empty.every(d => d.total === 0), true);
+});
+
 test('mondayOf : ramène au lundi 00:00', () => {
   assert.equal(L.mondayOf(new Date('2026-07-08T15:00:00')).getDay(), 1); // mercredi → lundi
   assert.equal(L.mondayOf(new Date('2026-07-06T00:00:00')).getDay(), 1); // lundi → lundi
