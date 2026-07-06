@@ -48,9 +48,9 @@ _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source
 Tâches :
 - [x] **2.1** **Planificateur de révision interne** : formulaire dans la page Calendrier (matière, jours de la semaine, heure, durée, date d'examen) → `planStudySessions()` + `mergePlannedEvents()` (lib/logic.js, testées) génèrent les créneaux `study` jusqu'à l'examen. **Idempotent** : régénérer ne crée pas de doublon et préserve les créneaux déjà validés. ✅ _boucle #06._
 - [ ] **2.2** **Import optionnel du planning Grand Livre** : bouton « Exporter mon planning » ajouté à `le-grand-livre-compta.html` (JSON : cartes dues par date) + import côté IRL (sélecteur de fichier, idempotent via `refId`) pour affiner le plan avec les vraies échéances de répétition espacée.
-- [ ] **2.3** **« Ma journée » au premier plan** : le dashboard liste tout ce qu'il y a à faire aujourd'hui (blocs agenda, séance prévue, créneaux de révision, quêtes) en une seule vue.
-- [ ] **2.4** **Notifications enrichies** (via le système de rappels Electron existant) : résumé du matin (« Aujourd'hui : 1 séance, 2 blocs focus, révision compta 30 min »), rappel avant chaque événement du jour (X min avant, réglable), rappel du soir si des choses restent non faites.
-- [ ] **2.5** XP « étude » : valider un créneau de révision rapporte de l'XP (l'app reste un RPG).
+- [x] **2.3** **« Ma journée » au premier plan** : section sur le dashboard listant chronologiquement séances (démarrables), créneaux de révision (validables), blocs agenda + compteur de quêtes — `todayItems()` testée, plans orphelins inclus. ✅ _boucle #07._
+- [~] **2.4** **Notifications enrichies** : ✅ résumé du matin (« Aujourd'hui : 1 séance, 2 créneaux de révision, 3 quêtes ») au 1er rappel, lu défensivement depuis la copie locale. Reste : rappel X min avant chaque événement + rappel du soir si des choses restent non faites.
+- [x] **2.5** XP « étude » : valider un créneau de révision = **+15 XP** (+1 Focus). ✅ _boucle #07._
 
 _Livrable : tu ouvres l'app (ou pas : les notifs tombent toutes seules) et tu sais exactement quoi faire aujourd'hui, sport ET révision._
 

@@ -119,6 +119,38 @@ test('planStudySessions : config invalide → []', () => {
   assert.deepEqual(L.planStudySessions(null), []);
 });
 
+test('todayItems : filtre par date, trie par heure, classe les types', () => {
+  const state = {
+    agenda: [
+      { id: 1, title: 'Révision compta', date: '2026-07-06', time: '17:30', kind: 'study' },
+      { id: 2, title: 'Séance · Musculation', date: '2026-07-06', time: '08:00', kind: 'sport', planId: 90 },
+      { id: 3, title: 'Courses', date: '2026-07-06', time: '12:00', kind: 'life', completed: true },
+      { id: 4, title: 'Autre jour', date: '2026-07-07', time: '09:00', kind: 'life' }
+    ],
+    plans: [{ id: 90, date: '2026-07-06', time: '08:00', type: 'Musculation' }]
+  };
+  const items = L.todayItems(state, '2026-07-06');
+  assert.equal(items.length, 3);
+  assert.deepEqual(items.map(i => i.id), [2, 3, 1], 'tri chronologique');
+  assert.equal(items[0].type, 'plan');
+  assert.equal(items[1].type, 'agenda');
+  assert.equal(items[1].completed, true);
+  assert.equal(items[2].type, 'study');
+});
+
+test('todayItems : inclut les plans orphelins (sans entrée agenda)', () => {
+  const state = { agenda: [], plans: [{ id: 7, date: '2026-07-06', time: '18:00', type: 'Course' }] };
+  const items = L.todayItems(state, '2026-07-06');
+  assert.equal(items.length, 1);
+  assert.equal(items[0].type, 'plan');
+  assert.equal(items[0].title, 'Séance · Course');
+});
+
+test('todayItems : state vide → []', () => {
+  assert.deepEqual(L.todayItems({}, '2026-07-06'), []);
+  assert.deepEqual(L.todayItems(null, '2026-07-06'), []);
+});
+
 test('mergePlannedEvents : idempotent, préserve completed et id, garde le reste', () => {
   const manual = { id: 1, title: 'Muscu', date: '2026-07-07', time: '18:00', kind: 'sport' };
   const plan1 = L.planStudySessions({ weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 100 });

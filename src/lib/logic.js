@@ -109,6 +109,26 @@ function mergePlannedEvents(agenda, events) {
   return list.filter(a => !(a && a.refId && refs.has(a.refId))).concat(merged);
 }
 
+// Liste chronologique de tout ce qu'il y a à faire un jour donné (vue « Ma journée »).
+// Chaque item : {id, time, title, kind, completed, planId?, type: 'plan'|'study'|'agenda'}
+//  - 'plan'  = séance d'entraînement planifiée (démarrable)
+//  - 'study' = créneau de révision (validable, rapporte de l'XP)
+//  - 'agenda'= bloc classique (validable)
+// Les plans « orphelins » (sans entrée agenda, données d'avant le fix 1.3) sont inclus.
+function todayItems(state, date) {
+  const s = state || {};
+  const plans = Array.isArray(s.plans) ? s.plans.filter(p => p && p.date === date) : [];
+  const agenda = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.date === date);
+  const items = agenda.map(a => ({
+    id: a.id, time: a.time || '', title: String(a.title || 'Bloc'), kind: a.kind || 'life',
+    completed: Boolean(a.completed), planId: a.planId || null,
+    type: a.planId ? 'plan' : (a.kind === 'study' ? 'study' : 'agenda')
+  }));
+  const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
+  plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', completed: false, planId: p.id, type: 'plan' }));
+  return items.sort((x, y) => String(x.time).localeCompare(String(y.time)));
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems };
 }
