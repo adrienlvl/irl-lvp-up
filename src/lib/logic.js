@@ -351,6 +351,38 @@ function proteinTarget(weightKg, goal) {
   return { perKg, gramsPerDay: Math.round(kg * perKg / 5) * 5 };
 }
 
+// Timing des compléments AVANT / PENDANT / APRÈS selon le type de séance.
+// Contenu = repères de nutrition sportive courants (pas un avis médical).
+function supplementTiming(kind) {
+  const K = {
+    muscu: {
+      title: 'Musculation',
+      avant: ['Repas normal 1,5–2 h avant. Pas besoin de whey avant.', 'Bois de l’eau, arrive hydraté.'],
+      pendant: ['Eau. Électrolytes inutiles pour une séance courte en intérieur.'],
+      apres: ['1 dose de whey (~25–30 g) dans les 2 h + une source de glucides (fruit, riz, pain).']
+    },
+    'course-courte': {
+      title: 'Course facile (< 1 h)',
+      avant: ['Pas de whey juste avant (digestion). Si tu pars à jeun depuis longtemps : une banane ou une petite collation glucidique.', 'Hydrate-toi.'],
+      pendant: ['De l’eau suffit sous ~1 h en conditions tempérées. Électrolytes optionnels.'],
+      apres: ['Réhydrate. Whey utile seulement si le prochain repas est loin ou si tu enchaînes de la muscu.']
+    },
+    'sortie-longue': {
+      title: 'Sortie longue (> 1 h 30)',
+      avant: ['Repas riche en glucides 2–3 h avant. PAS de shake de whey juste avant (troubles digestifs).', 'Hydrate + un peu de sodium si le départ est chaud.'],
+      pendant: ['Électrolytes : 400–600 ml/h et 300–600 mg de sodium/h.', 'Glucides 30–60 g/h sur les très longues (gel, fruits secs, boisson).', 'Teste tout à l’entraînement, jamais le jour J.'],
+      apres: ['Réhydrate avec du sodium.', 'Whey (~25–30 g) + glucides dans les 2 h pour la récupération.']
+    },
+    chaleur: {
+      title: 'Course par forte chaleur',
+      avant: ['Pré-hydrate : ~500 ml + du sodium 1–2 h avant. Pars déjà bien hydraté et au frais.'],
+      pendant: ['Bois avant d’avoir soif : 600–800 ml/h, sodium 800–1000 mg/h.', 'Rafraîchis-toi (nuque, avant-bras), ralentis l’allure.'],
+      apres: ['Réhydrate généreusement avec du sodium (pèse-toi avant/après pour estimer les pertes).', 'Whey + glucides pour la récupération.']
+    }
+  };
+  return K[kind] || K.muscu;
+}
+
 // Plan d'hydratation/sodium par heure d'effort selon la température (°C).
 // Fourchettes larges volontaires : à ajuster à la transpiration et à la tolérance.
 function hydrationPlan(tempC) {
@@ -432,5 +464,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming };
 }

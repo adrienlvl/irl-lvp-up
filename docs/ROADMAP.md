@@ -19,6 +19,11 @@ _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, 
 
 > ✅ **Vague 6 (UX) terminée** (boucles #27–#31, 2026-07-06). Installeur **1.1.7**.
 
+### Nutrition — fait (boucle #32)
+- [x] **Scan GitHub de jeux de données** + audit sécurité/licence : repos communautaires écartés (soit du code + API en ligne, soit CSV sans licence/source = risqué à embarquer). Choix sûr : **petit jeu d'aliments curé (valeurs domaine public type USDA)** embarqué hors-ligne. Voir `docs/AUDIT-DONNEES-GITHUB.md`.
+- [x] **Timing des compléments AVANT / PENDANT / APRÈS** contextuel (`supplementTiming`) : Musculation / Course courte / Sortie longue / Forte chaleur → whey (après, pas avant la course), électrolytes (pendant, + avant/après selon chaleur), glucides.
+- [x] **Recherche d'aliments** (`lib/foods-data.js`, 54 aliments, `searchFoods`) : macros/100 g dans l'onglet Nutrition, base pour les repas.
+
 ### Idées Nutrition à explorer (futur, demandé par Adrien)
 - 📸 **Scanner le frigo** (photo → détection des aliments) → liste de courses.
 - 🍽️ **Suggestions de repas** à partir de ce qui est dans le frigo (anti-gaspi + budget).

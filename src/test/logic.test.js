@@ -392,6 +392,18 @@ test('proteinTarget : g/kg selon objectif', () => {
   assert.ok(L.proteinTarget(undefined, 'force').gramsPerDay > 0); // défaut poids
 });
 
+test('supplementTiming : avant/pendant/après par type de séance', () => {
+  const muscu = L.supplementTiming('muscu');
+  assert.equal(muscu.title, 'Musculation');
+  assert.ok(muscu.apres.some(x => /whey/i.test(x)), 'whey en après pour la muscu');
+  const longue = L.supplementTiming('sortie-longue');
+  assert.ok(longue.pendant.some(x => /sodium|électrolyte/i.test(x)), 'électrolytes pendant la longue');
+  assert.ok(longue.avant.some(x => /pas de shake|glucides/i.test(x.toLowerCase()) || /glucides/i.test(x)), 'glucides avant, pas de whey');
+  const chaud = L.supplementTiming('chaleur');
+  assert.ok(chaud.avant.some(x => /pré-hydrate|hydrate/i.test(x)));
+  assert.deepEqual(L.supplementTiming('inconnu').title, 'Musculation'); // défaut
+});
+
 test('hydrationPlan : plus chaud → plus de sodium et de liquide', () => {
   const frais = L.hydrationPlan(5), tempere = L.hydrationPlan(18), chaud = L.hydrationPlan(27), tres = L.hydrationPlan(33);
   assert.equal(frais.level, 'Frais');

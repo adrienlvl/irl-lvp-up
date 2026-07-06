@@ -31,3 +31,20 @@
 .supp-numbers b{display:block;font-size:1.15rem;color:var(--accent);font-variant-numeric:tabular-nums}
 .supp-numbers small{color:var(--muted);font-size:.68rem}
 @media(max-width:700px){.supp-grid{grid-template-columns:1fr}}
+
+/* Timing compléments + recherche d'aliments (Nutrition) */
+.supp-timing{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.supp-timing-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.supp-timing-head b{font-size:.9rem}
+.supp-timing-head select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px}
+.supp-timing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.supp-phase{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px}
+.supp-phase b{display:block;color:var(--accent);font-size:.72rem;letter-spacing:.08em;margin-bottom:6px}
+.supp-phase ul{margin:0;padding-left:16px;display:grid;gap:5px;color:var(--muted);font-size:.76rem;line-height:1.4}
+.food-search-panel{margin-top:16px}
+.food-search-panel input[type=search]{width:100%;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;margin:12px 0}
+.food-results{display:grid;gap:6px}
+.food-row{display:grid;grid-template-columns:1.6fr repeat(4,.7fr);align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:.78rem}
+.food-row b{font-weight:650}
+.food-row span{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+@media(max-width:700px){.supp-timing-grid{grid-template-columns:1fr}.food-row{grid-template-columns:1.4fr repeat(4,1fr);font-size:.72rem}}
