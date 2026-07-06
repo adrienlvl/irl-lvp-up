@@ -25,8 +25,11 @@ _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, 
 - [x] **Recherche d'aliments** (`lib/foods-data.js`, `searchFoods`) : macros/100 g dans l'onglet Nutrition, base pour les repas.
 - [x] **Vrai extrait CIQUAL 2020 (ANSES)** intégré : **2265 aliments** officiels (Licence Ouverte), catégorisés (P/F/L/R/D/G/S/B/M/A), recherche classée (aliments simples avant plats composés). XLS officiel parsé via SheetJS **hors ligne dans le scratchpad** (aucun code tiers embarqué). ✅ _boucle #33._
 
+- [x] **Générateur de repas « frigo + envie »** (vraie demande d'Adrien : pas des repas équilibrés génériques mais selon ce qu'il a et son envie du jour) : inventaire **« Mon frigo »** (ajout depuis la recherche CIQUAL), **envie du jour** (Équilibré/Léger/Protéiné/Réconfort + ancre texte « envie de… »), génération de repas depuis le frigo avec portions + kcal + protéines + ce qui manque. `generateMeals` pur + testé. ✅ _boucle #34._
+
 ### Idées Nutrition à explorer (futur, demandé par Adrien)
-- 📸 **Scanner le frigo** (photo → détection des aliments) → liste de courses.
+- 📸 **Scanner le frigo** (photo → détection des aliments) → remplit « Mon frigo » automatiquement (nécessite reconnaissance d'image = IA/réseau → Vague Sécurité).
+- Préférer automatiquement les versions **cuites** pour les féculents/protéines, liste de courses depuis les manques.
 - 🍽️ **Suggestions de repas** à partir de ce qui est dans le frigo (anti-gaspi + budget).
 - 🛒 Liste de courses intelligente, suivi macros/protéines relié à l'objectif.
 

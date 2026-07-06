@@ -48,3 +48,28 @@
 .food-row b{font-weight:650}
 .food-row span{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 @media(max-width:700px){.supp-timing-grid{grid-template-columns:1fr}.food-row{grid-template-columns:1.4fr repeat(4,1fr);font-size:.72rem}}
+
+/* Cuisine du jour : frigo + envie + repas (Nutrition) */
+.food-row{grid-template-columns:1.5fr repeat(4,.6fr) auto}
+.food-add{background:var(--accent);color:var(--accent-ink);border:0;border-radius:7px;width:26px;height:26px;font-size:1rem;line-height:1;cursor:pointer;font-weight:800}
+.food-add:hover{filter:brightness(1.08)}
+.kitchen-panel{margin-top:16px}
+.kitchen-block{margin:14px 0}
+.kitchen-block>b{display:block;font-size:.82rem;margin-bottom:8px}
+.pantry-list{display:flex;flex-wrap:wrap;gap:7px}
+.pantry-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:6px 6px 6px 12px;font-size:.76rem}
+.pantry-chip button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1;padding:0 2px}
+.pantry-chip button:hover{color:var(--pink)}
+.envie-styles{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.envie-styles button{border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font:inherit;font-size:.78rem;font-weight:650;padding:8px 13px;border-radius:99px;cursor:pointer}
+.envie-styles button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#envieText{width:100%;max-width:320px;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}
+.kitchen-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.meal-suggestions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.meal-card{background:var(--surface-2);border:1px solid var(--line);border-radius:13px;padding:13px}
+.meal-items{display:grid;gap:7px}
+.meal-item b{font-size:.82rem}
+.meal-item span{display:block;color:var(--muted);font-size:.72rem}
+.meal-total{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);color:var(--accent);font-weight:700;font-size:.82rem}
+.meal-missing{margin-top:7px;color:var(--muted);font-size:.74rem}
+@media(max-width:700px){.meal-suggestions{grid-template-columns:1fr}}

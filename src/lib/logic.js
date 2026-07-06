@@ -351,6 +351,57 @@ function proteinTarget(weightKg, goal) {
   return { perKg, gramsPerDay: Math.round(kg * perKg / 5) * 5 };
 }
 
+// Générateur de repas à partir du frigo (pantry) et de l'envie du jour.
+// pantry = aliments possédés [{n,cat,kcal,p,c,f}]. opts : { style, anchor, seed, count }.
+// style ∈ 'equilibre'|'leger'|'proteine'|'reconfort'. anchor = texte (« poulet ») qui
+// ancre un aliment du frigo. Renvoie des repas {items[{name,grams,kcal,p}], totalKcal,
+// totalP, missing[]}. Utilise UNIQUEMENT ce qui est dans le frigo ; signale ce qui manque.
+const MEAL_PORTIONS = { P: 130, F: 180, L: 170, R: 120, D: 150, G: 15 };
+const MEAL_STYLES = {
+  equilibre: { F: 180, L: 170, extra: ['D'], pMul: 1 },
+  leger: { F: 120, L: 220, extra: ['R'], pMul: 1 },
+  proteine: { F: 150, L: 150, extra: ['D'], pMul: 1.4 },
+  reconfort: { F: 220, L: 130, extra: ['G'], pMul: 1 }
+};
+function mealMacro(food, grams) {
+  const at = k => (food && food[k] != null ? food[k] : 0) * grams / 100;
+  return { name: food.n, grams, kcal: Math.round((food.kcal || 0) * grams / 100), p: Math.round(at('p')) };
+}
+function generateMeals(pantry, opts) {
+  opts = opts || {};
+  const st = MEAL_STYLES[opts.style] || MEAL_STYLES.equilibre;
+  const seed = Number(opts.seed) || 0;
+  const count = Math.max(1, Math.min(4, Number(opts.count) || 3));
+  const list = Array.isArray(pantry) ? pantry.filter(x => x && x.cat) : [];
+  const byCat = {}; list.forEach(x => { (byCat[x.cat] = byCat[x.cat] || []).push(x); });
+  const norm = s => String(s || '').toLowerCase().replace(/œ/g, 'oe').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const anchor = opts.anchor ? list.find(x => norm(x.n).includes(norm(opts.anchor))) : null;
+  const pick = (cat, i) => { const a = byCat[cat]; if (!a || !a.length) return null; return a[i % a.length]; };
+  const meals = [];
+  for (let m = 0; m < count; m++) {
+    const i = seed + m, items = [], missing = [];
+    // protéine (ancre prioritaire si sa catégorie est P, sinon on l'ajoute en plus)
+    let p = pick('P', i);
+    if (anchor && anchor.cat === 'P') p = anchor;
+    if (p) items.push(mealMacro(p, Math.round(MEAL_PORTIONS.P * st.pMul))); else missing.push('une protéine');
+    // féculent
+    const f = (anchor && anchor.cat === 'F') ? anchor : pick('F', i);
+    if (f) items.push(mealMacro(f, st.F)); else missing.push('un féculent');
+    // légume
+    const l = (anchor && anchor.cat === 'L') ? anchor : pick('L', i);
+    if (l) items.push(mealMacro(l, st.L)); else missing.push('un légume');
+    // extra selon le style (laitier / fruit / gras)
+    (st.extra || []).forEach(cat => { const e = pick(cat, i); if (e) items.push(mealMacro(e, MEAL_PORTIONS[cat] || 100)); });
+    // ancre d'une autre catégorie non déjà incluse
+    if (anchor && !items.some(it => it.name === anchor.n)) items.push(mealMacro(anchor, MEAL_PORTIONS[anchor.cat] || 120));
+    if (!items.length) continue;
+    const totalKcal = items.reduce((a, it) => a + it.kcal, 0);
+    const totalP = items.reduce((a, it) => a + it.p, 0);
+    meals.push({ items, totalKcal, totalP, missing });
+  }
+  return meals;
+}
+
 // Timing des compléments AVANT / PENDANT / APRÈS selon le type de séance.
 // Contenu = repères de nutrition sportive courants (pas un avis médical).
 function supplementTiming(kind) {
@@ -464,5 +515,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES };
 }

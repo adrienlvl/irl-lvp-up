@@ -392,6 +392,38 @@ test('proteinTarget : g/kg selon objectif', () => {
   assert.ok(L.proteinTarget(undefined, 'force').gramsPerDay > 0); // défaut poids
 });
 
+test('generateMeals : compose depuis le frigo, totaux cohérents, signale les manques', () => {
+  const pantry = [
+    { n: 'Poulet, blanc, cuit', cat: 'P', kcal: 148, p: 30, c: 0, f: 3 },
+    { n: 'Riz blanc, cuit', cat: 'F', kcal: 130, p: 2.7, c: 28, f: 0.3 },
+    { n: 'Brocoli, cuit', cat: 'L', kcal: 35, p: 2.4, c: 4, f: 0.4 }
+  ];
+  const meals = L.generateMeals(pantry, { style: 'equilibre', seed: 0, count: 2 });
+  assert.ok(meals.length >= 1);
+  const m = meals[0];
+  assert.ok(m.items.length >= 3, 'protéine + féculent + légume');
+  assert.ok(m.items.every(it => it.grams > 0 && it.kcal >= 0));
+  assert.ok(m.totalKcal > 0 && m.totalP > 0);
+  assert.deepEqual(m.missing, [], 'rien ne manque quand P+F+L présents');
+});
+
+test('generateMeals : frigo incomplet → liste ce qui manque ; vide → []', () => {
+  const meals = L.generateMeals([{ n: 'Riz blanc, cuit', cat: 'F', kcal: 130, p: 2.7 }], { count: 1 });
+  assert.ok(meals[0].missing.includes('une protéine'));
+  assert.ok(meals[0].missing.includes('un légume'));
+  assert.deepEqual(L.generateMeals([], {}), []);
+});
+
+test('generateMeals : ancre (« envie de ») force l’aliment', () => {
+  const pantry = [
+    { n: 'Poulet, blanc, cuit', cat: 'P', kcal: 148, p: 30 },
+    { n: 'Boeuf, steak, cuit', cat: 'P', kcal: 200, p: 26 },
+    { n: 'Pâtes, cuites', cat: 'F', kcal: 158, p: 6 }
+  ];
+  const meals = L.generateMeals(pantry, { anchor: 'boeuf', seed: 0, count: 1 });
+  assert.ok(meals[0].items.some(it => /boeuf/i.test(it.name)), 'le boeuf est ancré');
+});
+
 test('supplementTiming : avant/pendant/après par type de séance', () => {
   const muscu = L.supplementTiming('muscu');
   assert.equal(muscu.title, 'Musculation');
