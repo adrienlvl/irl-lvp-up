@@ -34,6 +34,28 @@ function computeStreak(lastActive, today, yesterday, streak) {
   return lastActive === yesterday ? (Number(streak) || 0) + 1 : 1;
 }
 
+// Kinds/sources autorisés pour les événements du calendrier unifié (Vague 1).
+const AGENDA_KINDS = ['focus', 'sport', 'life', 'study'];
+const AGENDA_SOURCES = ['manual', 'training', 'study-glc', 'imported'];
+
+// Normalise une entrée d'agenda vers le modèle d'événement unifié :
+// {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
+// Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
+function normalizeAgendaItem(item) {
+  const x = item && typeof item === 'object' ? item : {};
+  return {
+    ...x,
+    id: Number(x.id) || Date.now(),
+    title: String(x.title || 'Bloc'),
+    date: typeof x.date === 'string' ? x.date : '',
+    time: typeof x.time === 'string' ? x.time : '',
+    durationMin: Math.max(5, Math.min(600, Number(x.durationMin) || 60)),
+    kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
+    source: AGENDA_SOURCES.includes(x.source) ? x.source : (x.planId ? 'training' : 'manual'),
+    completed: Boolean(x.completed)
+  };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES };
 }

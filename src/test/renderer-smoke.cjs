@@ -44,7 +44,7 @@ app.whenReady().then(async () => {
     await new Promise(r => setTimeout(r, 900)); // laisse app.js finir (onboarding, restore...)
     const checks = await win.webContents.executeJavaScript(`(function(){
       return {
-        logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function',
+        logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function' && typeof normalizeAgendaItem === 'function',
         normalize: typeof normalizeState === 'function',
         photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
         quests: document.querySelectorAll('#questList .quest').length,

@@ -27,11 +27,11 @@ _Livrable : un `.exe` reproductible + données à l'épreuve du quota._
 
 **Objectif : un modèle d'événement unique, prêt à accueillir les révisions BTS.**
 
-- [ ] **1.1** Modèle d'événement unifié : `{id, title, date, time, durationMin, kind, source, refId?, completed}` avec `kind ∈ {focus, sport, life, study}` et `source ∈ {manual, training, study-glc, imported}`.
-- [ ] **1.2** Migration douce : `agenda[]` + `plans[]` → événements unifiés (via `normalizeState`, sans perte).
-- [ ] **1.3** Cycle de vie cohérent : supprimer un événement lié à un plan/une séance nettoie les deux côtés (plus d'orphelins).
-- [ ] **1.4** Catégorie **« Révision / Étude »** dans l'UI (légende, filtres, couleur dédiée) du calendrier hebdo et mensuel.
-- [ ] **1.5** `.ics` amélioré : durée réelle, `UID` stable, échappement complet, catégorie `study`.
+- [x] **1.1** Modèle d'événement unifié : `{id, title, date, time, durationMin, kind, source, refId?, completed}` — `normalizeAgendaItem` dans `lib/logic.js`, testée. ✅ _boucle #05._
+- [x] **1.2** Migration douce : chaque entrée d'`agenda[]` passe par `normalizeAgendaItem` dans `normalizeState` (idempotent, `planId`/`refId` préservés, `source` déduite). ✅ _boucle #05._
+- [x] **1.3** Cycle de vie cohérent : supprimer un événement du calendrier mensuel supprime aussi le plan lié (`planId`) et rafraîchit toutes les vues — bug orphelin de l'audit corrigé. ✅ _boucle #05._
+- [x] **1.4** Catégorie **« Révision »** (`study`, ambre `#5a4a2b`) : selects des 2 formulaires, légende, styles hebdo + mensuel. ✅ _boucle #05._
+- [ ] **1.5** `.ics` amélioré : durée réelle (`durationMin`), `UID` stable, échappement complet, catégorie `study`.
 
 _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source externe idempotente._
 
