@@ -77,3 +77,59 @@ test('normalizeAgendaItem : idempotente', () => {
   const once = L.normalizeAgendaItem({ id: 6, title: 'Bloc', date: '2026-07-08', time: '09:00', kind: 'focus' });
   assert.deepEqual(L.normalizeAgendaItem(once), once);
 });
+
+test('normalizeAgendaItem : source planner acceptée', () => {
+  const e = L.normalizeAgendaItem({ id: 7, title: 'Révision', date: '2026-07-09', time: '17:30', kind: 'study', source: 'planner' });
+  assert.equal(e.source, 'planner');
+});
+
+test('buildIcs : durée réelle, UID stable, échappement, CRLF', () => {
+  const now = new Date('2026-07-06T10:00:00');
+  const ics = L.buildIcs([{ id: 42, title: 'Révision; compta, chap.1\nTVA', date: '2026-07-10', time: '17:30', durationMin: 45, kind: 'study' }], now);
+  assert.match(ics, /UID:42@irllvpup/);
+  assert.match(ics, /DTSTART:20260710T173000/);
+  assert.match(ics, /DTEND:20260710T181500/); // 17:30 + 45 min
+  assert.match(ics, /SUMMARY:Révision\\; compta\\, chap\.1\\nTVA/);
+  assert.match(ics, /CATEGORIES:study/);
+  assert.ok(ics.includes('\r\n'), 'lignes CRLF');
+  assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
+});
+
+test('buildIcs : événements invalides ignorés, durée défaut 60', () => {
+  const now = new Date('2026-07-06T10:00:00');
+  const ics = L.buildIcs([{ id: 1, title: 'Sans heure', date: '2026-07-10' }, { id: 2, title: 'OK', date: '2026-07-10', time: '09:00' }], now);
+  assert.ok(!ics.includes('UID:1@'), 'événement sans heure ignoré');
+  assert.match(ics, /DTEND:20260710T100000/); // 09:00 + 60 min par défaut
+});
+
+test('planStudySessions : lun/mer/ven entre deux dates, modèle study/planner', () => {
+  // 2026-07-06 = lundi ; jusqu'au dimanche 2026-07-19 → L/M/V ×2 semaines = 6 créneaux
+  const events = L.planStudySessions({ title: 'Révision compta', time: '17:30', durationMin: 45, weekdays: [1, 3, 5], startDate: '2026-07-06', examDate: '2026-07-19', baseId: 1000 });
+  assert.equal(events.length, 6);
+  assert.equal(events[0].date, '2026-07-06');
+  assert.equal(events[0].kind, 'study');
+  assert.equal(events[0].source, 'planner');
+  assert.equal(events[0].refId, 'planner-2026-07-06-17:30');
+  assert.equal(new Set(events.map(e => e.id)).size, 6, 'ids uniques');
+});
+
+test('planStudySessions : config invalide → []', () => {
+  assert.deepEqual(L.planStudySessions({ weekdays: [], startDate: '2026-07-06', examDate: '2026-07-19' }), []);
+  assert.deepEqual(L.planStudySessions({ weekdays: [1], startDate: '2026-07-20', examDate: '2026-07-19' }), []);
+  assert.deepEqual(L.planStudySessions(null), []);
+});
+
+test('mergePlannedEvents : idempotent, préserve completed et id, garde le reste', () => {
+  const manual = { id: 1, title: 'Muscu', date: '2026-07-07', time: '18:00', kind: 'sport' };
+  const plan1 = L.planStudySessions({ weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 100 });
+  let agenda = L.mergePlannedEvents([manual], plan1);
+  assert.equal(agenda.length, 3); // manuel + 2 lundis
+  agenda = agenda.map(e => e.refId === 'planner-2026-07-06-17:30' ? { ...e, completed: true } : e);
+  const plan2 = L.planStudySessions({ weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 999 });
+  const again = L.mergePlannedEvents(agenda, plan2);
+  assert.equal(again.length, 3, 'pas de doublon après régénération');
+  const kept = again.find(e => e.refId === 'planner-2026-07-06-17:30');
+  assert.equal(kept.completed, true, 'statut validé préservé');
+  assert.equal(kept.id, 100, 'id préservé');
+  assert.ok(again.some(e => e.title === 'Muscu'), 'événement manuel intact');
+});

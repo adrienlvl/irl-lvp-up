@@ -47,6 +47,7 @@ app.whenReady().then(async () => {
         logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function' && typeof normalizeAgendaItem === 'function',
         normalize: typeof normalizeState === 'function',
         photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
+        studyPlanner: !!document.getElementById('studyPlanForm') && typeof planStudySessions === 'function' && typeof buildIcs === 'function',
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''
@@ -56,6 +57,7 @@ app.whenReady().then(async () => {
     if (!checks.logicLoaded) errors.push('lib/logic.js non chargé (localDate/pct/computeStreak absents)');
     if (!checks.normalize) errors.push('normalizeState absente');
     if (!checks.photosApi) errors.push('API photos absente (loadGalleryPhotos/migratePhotosToDisk/desktop.savePhoto)');
+    if (!checks.studyPlanner) errors.push('Planificateur de révision absent (studyPlanForm/planStudySessions/buildIcs)');
     if (checks.quests < 1) errors.push('#questList vide → render() ne s\'est pas exécuté');
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
   } catch (e) {

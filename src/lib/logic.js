@@ -35,8 +35,9 @@ function computeStreak(lastActive, today, yesterday, streak) {
 }
 
 // Kinds/sources autorisés pour les événements du calendrier unifié (Vague 1).
+// 'planner' = créneaux générés par le planificateur de révision interne (Vague 2).
 const AGENDA_KINDS = ['focus', 'sport', 'life', 'study'];
-const AGENDA_SOURCES = ['manual', 'training', 'study-glc', 'imported'];
+const AGENDA_SOURCES = ['manual', 'training', 'study-glc', 'imported', 'planner'];
 
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
@@ -56,6 +57,58 @@ function normalizeAgendaItem(item) {
   };
 }
 
+// Échappement RFC 5545 pour les valeurs texte iCalendar.
+function icsEscape(text) { return String(text || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+
+// Construit un fichier iCalendar à partir des événements du calendrier unifié.
+// DTEND = début + durationMin (défaut 60), UID stable <id>@irllvpup, lignes CRLF.
+// `now` injectable pour des tests déterministes.
+function buildIcs(events, now) {
+  const pad = n => String(n).padStart(2, '0');
+  const stamp = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00';
+  const dtstamp = stamp(now instanceof Date ? now : new Date());
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//IRL LVP UP//FR'];
+  (events || []).forEach(a => {
+    if (!a || !a.date || !a.time) return;
+    const d = new Date(`${a.date}T${a.time}`);
+    if (isNaN(d)) return;
+    const end = new Date(d.getTime() + (Number(a.durationMin) || 60) * 60000);
+    lines.push('BEGIN:VEVENT', `UID:${a.id}@irllvpup`, `DTSTAMP:${dtstamp}`, `DTSTART:${stamp(d)}`, `DTEND:${stamp(end)}`, `SUMMARY:${icsEscape(a.title)}`, `CATEGORIES:${icsEscape(a.kind || 'life')}`, 'END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n') + '\r\n';
+}
+
+// Planificateur de révision : génère des événements `study` récurrents entre
+// startDate et examDate (incluses) sur les jours cochés (0=dim..6=sam).
+// refId = planner-<date>-<time> → régénération idempotente via mergePlannedEvents.
+function planStudySessions(config) {
+  const { title = 'Révision', time = '17:30', durationMin = 45, weekdays = [], startDate, examDate, baseId } = config || {};
+  if (!startDate || !examDate || !Array.isArray(weekdays) || !weekdays.length) return [];
+  const days = new Set(weekdays.map(Number));
+  const start = new Date(`${startDate}T12:00:00`), end = new Date(`${examDate}T12:00:00`);
+  if (isNaN(start) || isNaN(end) || start > end) return [];
+  const events = []; const idBase = Number(baseId) || Date.now();
+  for (let d = new Date(start), i = 0; d <= end && i < 400; d.setDate(d.getDate() + 1), i++) {
+    if (!days.has(d.getDay())) continue;
+    const date = dateKey(d);
+    events.push({ id: idBase + events.length, title, date, time, durationMin, kind: 'study', source: 'planner', refId: `planner-${date}-${time}`, completed: false });
+  }
+  return events;
+}
+
+// Fusionne un plan (re)généré dans l'agenda sans doublon :
+// les événements existants portant le même refId sont remplacés en PRÉSERVANT
+// leur id et leur statut `completed` ; tout le reste de l'agenda est intact.
+function mergePlannedEvents(agenda, events) {
+  const list = Array.isArray(agenda) ? agenda : [];
+  const incoming = Array.isArray(events) ? events : [];
+  const previous = new Map(list.filter(a => a && a.refId).map(a => [a.refId, a]));
+  const merged = incoming.map(e => { const old = previous.get(e.refId); return old ? { ...e, id: old.id, completed: Boolean(old.completed) } : e; });
+  const refs = new Set(incoming.map(e => e.refId));
+  return list.filter(a => !(a && a.refId && refs.has(a.refId))).concat(merged);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents };
 }

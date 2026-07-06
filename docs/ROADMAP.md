@@ -31,7 +31,9 @@ _Livrable : un `.exe` reproductible + données à l'épreuve du quota._
 - [x] **1.2** Migration douce : chaque entrée d'`agenda[]` passe par `normalizeAgendaItem` dans `normalizeState` (idempotent, `planId`/`refId` préservés, `source` déduite). ✅ _boucle #05._
 - [x] **1.3** Cycle de vie cohérent : supprimer un événement du calendrier mensuel supprime aussi le plan lié (`planId`) et rafraîchit toutes les vues — bug orphelin de l'audit corrigé. ✅ _boucle #05._
 - [x] **1.4** Catégorie **« Révision »** (`study`, ambre `#5a4a2b`) : selects des 2 formulaires, légende, styles hebdo + mensuel. ✅ _boucle #05._
-- [ ] **1.5** `.ics` amélioré : durée réelle (`durationMin`), `UID` stable, échappement complet, catégorie `study`.
+- [x] **1.5** `.ics` amélioré : `buildIcs()` dans `lib/logic.js` (testée) — durée réelle (`durationMin`), UID stable `<id>@irllvpup`, échappement RFC 5545 complet, catégorie `study`, CRLF. ✅ _boucle #06._
+
+> ✅ **Vague 1 terminée** (boucles #05–#06, 2026-07-06).
 
 _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source externe idempotente._
 
@@ -44,7 +46,7 @@ _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source
 > **Décision révisée (2026-07-05, soir) : pas de fusion des flashcards.** Adrien ne veut pas réviser depuis IRL LVP UP. Ce qu'il veut : (1) un **planning de révision sur la durée** visible dans le calendrier, (2) des **rappels de ce qu'il y a à faire dans la journée**, (3) des **notifications Windows**, (4) une app **complète** et **sécurisée** (voir Vague S). L'ancienne option « Fusion » est abandonnée ; on est sur un hybride A/B léger + planificateur interne.
 
 Tâches :
-- [ ] **2.1** **Planificateur de révision interne** : générer un plan de révision BTS CG sur la durée (matières/chapitres, échéance examen, fréquence par semaine, répartition espacée) → événements `kind: study` dans le calendrier unifié. Fonctionne même sans données du Grand Livre.
+- [x] **2.1** **Planificateur de révision interne** : formulaire dans la page Calendrier (matière, jours de la semaine, heure, durée, date d'examen) → `planStudySessions()` + `mergePlannedEvents()` (lib/logic.js, testées) génèrent les créneaux `study` jusqu'à l'examen. **Idempotent** : régénérer ne crée pas de doublon et préserve les créneaux déjà validés. ✅ _boucle #06._
 - [ ] **2.2** **Import optionnel du planning Grand Livre** : bouton « Exporter mon planning » ajouté à `le-grand-livre-compta.html` (JSON : cartes dues par date) + import côté IRL (sélecteur de fichier, idempotent via `refId`) pour affiner le plan avec les vraies échéances de répétition espacée.
 - [ ] **2.3** **« Ma journée » au premier plan** : le dashboard liste tout ce qu'il y a à faire aujourd'hui (blocs agenda, séance prévue, créneaux de révision, quêtes) en une seule vue.
 - [ ] **2.4** **Notifications enrichies** (via le système de rappels Electron existant) : résumé du matin (« Aujourd'hui : 1 séance, 2 blocs focus, révision compta 30 min »), rappel avant chaque événement du jour (X min avant, réglable), rappel du soir si des choses restent non faites.
