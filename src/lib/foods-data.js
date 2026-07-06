@@ -1,6 +1,6 @@
 /*
  * foods-data.js — petite base d'aliments curée (valeurs approximatives pour 100 g,
- * inspirées de données du domaine public type USDA FoodData Central).
+ * cohérentes avec la table CIQUAL de l'ANSES — référence française, OpenData/Licence Ouverte).
  * Repères indicatifs, pas des valeurs officielles. Hors-ligne, aucune dépendance réseau.
  * Chargé AVANT app.js. Champs : n=nom, kcal, p=protéines(g), c=glucides(g), f=lipides(g).
  */

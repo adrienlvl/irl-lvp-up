@@ -20,7 +20,10 @@ Recherche ciblée (données nutrition : aliments, macros, JSON/CSV, hors-ligne) 
 - **Ne pas embarquer** de données sans licence claire (risque juridique) ni de provenance douteuse.
 - Préférer une **source de référence en domaine public** (USDA) et rester **hors-ligne** (cohérent avec le « 100 % local » de l'app).
 
+## Référence française (Adrien habite en France)
+La bonne référence n'est pas l'USDA (américaine) mais la **table CIQUAL de l'ANSES** : ~3 500 aliments représentatifs de la consommation française, publiée en **OpenData sous Licence Ouverte** (Etalab) sur data.gouv.fr → réutilisation libre avec attribution. Les valeurs de macros d'aliments bruts sont quasi identiques entre pays, mais l'attribution et le référentiel doivent être **français**.
+
 ## Décision retenue
-Plutôt qu'importer un repo douteux, on embarque un **petit jeu d'aliments curé à la main** (`src/lib/foods-data.js`, 54 aliments, valeurs pour 100 g inspirées du domaine public type USDA). Zéro code tiers, zéro dépendance réseau, zéro risque de licence. Extensible ensuite.
+Plutôt qu'importer un repo douteux, on embarque un **petit jeu d'aliments curé à la main** (`src/lib/foods-data.js`, 54 aliments, valeurs pour 100 g **cohérentes avec la table CIQUAL / ANSES**). Zéro code tiers, zéro dépendance réseau, zéro risque de licence. Extensible ensuite (une importation d'un sous-ensemble CIQUAL sous Licence Ouverte est possible plus tard).
 
 Pour un scan de frigo (futur), la reconnaissance d'image nécessitera un modèle embarqué **ou** un appel réseau à un service — ce dernier cas devra passer par la Vague Sécurité (allowlist, pas de secret en clair, opt-in explicite).
