@@ -78,9 +78,9 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
 
 ## Vague 3 — Qualité & maintenabilité _(P2)_
 
-- [ ] **3.1** Découper `app.js` en modules logiques (données, rendu, calendrier, entraînement, focus) — sans bundler si possible (ES modules) ou avec un bundler léger.
-- [ ] **3.2** Rationaliser les 20 CSS → 3-4 fichiers thématiques, supprimer le mort.
-- [ ] **3.3** Rendu ciblé : ne re-rendre que la section touchée (au lieu du `render()` global) pour supprimer le jank et la perte de focus.
+- [ ] **3.1** Découper `app.js` en modules logiques (données, rendu, calendrier, entraînement, focus) — entamé : logique pure déjà dans `lib/logic.js` ; prochaine étape = extraire les données (exercices, programmes).
+- [~] **3.2** Rationaliser les CSS : **19 → 15 fichiers** (4 `-plus` fusionnés dans `extras.css`, `audit.css` dans `pages.css`, ordre de cascade préservé). Reste : purge des règles mortes (analyse fine). _boucle #12._
+- [x] **3.3** Rendu ciblé : `renderDashboardCore()` (léger) pour les actions fréquentes — quêtes, défi, pas de vie, focus, validation Ma journée — au lieu du `render()` complet (20 sections). Le `render()` global reste pour les changements larges (séances, restauration). ✅ _boucle #12._
 - [ ] **3.4** Étendre la couverture de tests.
 
 ---
