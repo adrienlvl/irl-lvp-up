@@ -175,6 +175,30 @@ function weekItems(state, mondayKey) {
   return days;
 }
 
+// Bilan chiffré d'une semaine (lundi YYYY-MM-DD) : sport, focus, sommeil, révision.
+// Pur et testable. Utilisé par l'export PDF hebdo (Vague 4.2).
+function weeklySummary(state, mondayKey) {
+  const s = state || {};
+  const start = new Date(`${mondayKey}T00:00:00`);
+  const end = new Date(start); end.setDate(end.getDate() + 7);
+  const inWeek = d => { if (typeof d !== 'string') return false; const t = new Date(`${d}T12:00:00`); return t >= start && t < end; };
+  const workouts = (Array.isArray(s.workouts) ? s.workouts : []).filter(w => w && inWeek(w.date));
+  const sessions = workouts.length;
+  const minutes = workouts.reduce((a, w) => a + (Number(w.duration) || 0), 0);
+  const km = workouts.filter(w => w.type === 'run').reduce((a, w) => a + (Number(w.distance) || 0), 0);
+  const load = workouts.reduce((a, w) => a + (Number(w.duration) || 0) * (Number(w.effort) || 2), 0);
+  const focusMin = (Array.isArray(s.focusSessions) ? s.focusSessions : []).filter(f => f && inWeek(f.date)).reduce((a, f) => a + (Number(f.minutes) || 0), 0);
+  const rec = (Array.isArray(s.recovery) ? s.recovery : []).filter(r => r && inWeek(r.date));
+  const sleepAvg = rec.length ? rec.reduce((a, r) => a + (Number(r.sleep) || 0), 0) / rec.length : 0;
+  const study = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.kind === 'study' && inWeek(a.date));
+  const studyDone = study.filter(a => a.completed).length;
+  return {
+    mondayKey, sessions, minutes, km: Math.round(km * 10) / 10, load,
+    focusMin, sleepAvg: Math.round(sleepAvg * 10) / 10,
+    studyPlanned: study.length, studyDone
+  };
+}
+
 // Calcul pur de la prescription d'un exercice (unité, repos, durée estimée).
 // `source` = fiche de la bibliothèque (ou undefined) ; injectée pour rester testable
 // sans dépendre du global `exercises`. app.js fournit le lookup.
@@ -222,5 +246,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary };
 }

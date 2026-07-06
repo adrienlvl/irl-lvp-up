@@ -228,6 +228,39 @@ test('weekItems : 7 jours du lundi, items placés au bon jour', () => {
   assert.ok(days.every(d => !d.items.some(i => i.title === 'Hors semaine')));
 });
 
+test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions', () => {
+  const state = {
+    workouts: [
+      { date: '2026-07-06', type: 'run', duration: 40, distance: 8, effort: 2 },
+      { date: '2026-07-08', type: 'strength', duration: 50, effort: 3 },
+      { date: '2026-07-20', type: 'run', duration: 30, distance: 5, effort: 2 } // hors semaine
+    ],
+    focusSessions: [{ date: '2026-07-07', minutes: 25 }, { date: '2026-07-09', minutes: 50 }],
+    recovery: [{ date: '2026-07-06', sleep: 8 }, { date: '2026-07-08', sleep: 6 }],
+    agenda: [
+      { date: '2026-07-08', kind: 'study', completed: true },
+      { date: '2026-07-10', kind: 'study', completed: false }
+    ]
+  };
+  const r = L.weeklySummary(state, '2026-07-06');
+  assert.equal(r.sessions, 2);         // le run du 20 est exclu
+  assert.equal(r.minutes, 90);
+  assert.equal(r.km, 8);
+  assert.equal(r.load, 40 * 2 + 50 * 3); // 230
+  assert.equal(r.focusMin, 75);
+  assert.equal(r.sleepAvg, 7);         // (8+6)/2
+  assert.equal(r.studyPlanned, 2);
+  assert.equal(r.studyDone, 1);
+});
+
+test('weeklySummary : semaine vide → zéros', () => {
+  const r = L.weeklySummary({}, '2026-07-06');
+  assert.equal(r.sessions, 0);
+  assert.equal(r.load, 0);
+  assert.equal(r.sleepAvg, 0);
+  assert.equal(r.studyPlanned, 0);
+});
+
 test('weekItems : lundi invalide → [], state vide → 7 jours vides', () => {
   assert.deepEqual(L.weekItems({}, 'pas-une-date'), []);
   const empty = L.weekItems({}, '2026-07-06');

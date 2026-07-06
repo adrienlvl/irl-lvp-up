@@ -1,0 +1,28 @@
+/* Bilan hebdo imprimable (Vague 4.2). Masqué à l'écran, visible seulement à l'impression. */
+#printReport{display:none}
+@media print{
+  @page{margin:14mm}
+  html,body{background:#fff !important;color:#111 !important}
+  body>*:not(#printReport){display:none !important}
+  #printReport{display:block !important;color:#111;font:13px/1.5 system-ui,Arial,sans-serif}
+  .print-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:6px}
+  .print-eyebrow{margin:0;font-size:10px;letter-spacing:.14em;color:#555}
+  .print-head h1{margin:3px 0 0;font-size:22px}
+  .print-logo{font-size:26px}
+  .print-kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:14px 0}
+  .print-kpis div{border:1px solid #ccc;border-radius:8px;padding:7px 6px;text-align:center}
+  .print-kpis b{display:block;font-size:15px}
+  .print-kpis small{color:#555;font-size:9px}
+  .print-bilan{background:#f2f4f7;border-left:3px solid #111;padding:9px 12px;margin:12px 0;border-radius:4px}
+  .print-week{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
+  .print-week th{font-size:11px;text-align:left;border-bottom:1px solid #111;padding:4px}
+  .print-week td{vertical-align:top;border:1px solid #ddd;padding:5px;font-size:10px;height:150px}
+  .print-item{margin-bottom:4px;padding:3px 4px;border-radius:3px;border-left:3px solid #888;background:#f5f5f5}
+  .print-item b{font-variant-numeric:tabular-nums}
+  .print-item.sport{border-left-color:#8a5a9a}
+  .print-item.focus{border-left-color:#5a7ab0}
+  .print-item.life{border-left-color:#4a8a76}
+  .print-item.study{border-left-color:#b5942b}
+  .print-empty{color:#aaa}
+  .print-foot{margin-top:14px;color:#777;font-size:10px}
+}

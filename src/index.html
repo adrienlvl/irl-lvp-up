@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="companion.css" />
     <link rel="stylesheet" href="extras.css" />
     <link rel="stylesheet" href="mission-control.css" />
+    <link rel="stylesheet" href="print.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -191,7 +192,7 @@
     </section>
     <section id="weekPage" class="calendar-page week-page" hidden aria-label="Ma semaine">
       <header><div><p class="eyebrow">ÉQUILIBRE DE LA SEMAINE</p><h1 id="weekPageLabel">Ma semaine</h1><p>Sport, focus, vie et révision côte à côte — pour voir où placer ta prochaine action.</p></div><button id="closeWeekPage" class="secondary-button">← Retour au dashboard</button></header>
-      <div class="calendar-toolbar"><button id="previousWeek" class="secondary-button">←</button><button id="todayWeek" class="secondary-button">Cette semaine</button><button id="nextWeek" class="secondary-button">→</button></div>
+      <div class="calendar-toolbar"><button id="previousWeek" class="secondary-button">←</button><button id="todayWeek" class="secondary-button">Cette semaine</button><button id="nextWeek" class="secondary-button">→</button><button id="printWeekReport" class="secondary-button">🖨️ Bilan PDF</button></div>
       <div class="calendar-legend"><span class="sport">Sport</span><span class="focus">Focus</span><span class="life">Vie perso</span><span class="study">Révision</span></div>
       <div id="weekBalance" class="week-balance"></div>
       <div id="weekGrid" class="week-page-grid"></div>
@@ -204,6 +205,7 @@
       <section class="ultra-columns"><article class="ultra-block"><p class="eyebrow">SÉANCES CLÉS</p><h2>Le minimum qui compte</h2><div class="session-guide"><div><b>🏃 Endurance facile</b><p>Rythme où tu peux parler en phrases. C’est le socle cardio et la récupération active.</p></div><div><b>⛰️ Côtes / marche en montée</b><p>Effort contrôlé : marche énergique ou côtes courtes. Renforce jambes, mollets et économie de course.</p></div><div><b>🗺️ Sortie longue</b><p>Progression graduelle, ravitaillement testé, allure facile. La finir frais vaut plus que la finir vidé.</p></div><div><b>🔔 Force trail</b><p>Step-ups, fentes, mollets, gainage, kettlebell. Technique et régularité avant charge.</p></div></div></article><article class="ultra-block"><p class="eyebrow">CHECKLIST</p><h2>Avant / après</h2><ul class="ultra-check"><li>Avant : chaussures, eau, météo, itinéraire.</li><li>Pendant : effort facile, marche assumée en montée.</li><li>Après : note sensations, eau, repas, sommeil.</li><li>Douleur qui modifie la foulée ou persiste : stop, allège, demande conseil.</li></ul><p id="ultraCoach" class="week-insight"></p></article></section>
     </section>
 
+    <section id="printReport" aria-hidden="true"></section>
     <dialog id="onboardingDialog" class="onboarding-dialog"><div class="dialog-heading"><div><p class="eyebrow">BIENVENUE</p><h2>Construisons ton point de départ</h2></div></div><p>Trois choix suffisent. Ils restent sur cet appareil et peuvent être modifiés plus tard.</p><div class="onboarding-fields"><label>Priorité<select id="onboardingGoal"><option value="recomposition">Corps capable</option><option value="trail">Trail / endurance</option><option value="force">Force générale</option></select></label><label>Niveau<select id="onboardingLevel"><option value="debutant">Débutant</option><option value="intermediaire">Intermédiaire</option><option value="avance">Avancé</option></select></label><label>Séances réalistes / semaine<input id="onboardingSessions" type="number" min="1" max="7" value="3" /></label><label class="check-label"><input id="onboardingKettlebell" type="checkbox" /> Kettlebell</label><label class="check-label"><input id="onboardingVest" type="checkbox" /> Gilet lesté</label><label class="check-label"><input id="onboardingBench" type="checkbox" /> Banc / marche</label></div><button id="finishOnboarding" type="button" class="primary-button">Démarrer mon aventure</button></dialog>
     <dialog id="questDialog">
       <form id="questForm" method="dialog">
