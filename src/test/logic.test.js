@@ -307,6 +307,20 @@ test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue 
   assert.equal(L.raceGoalStatus(null, now), null);
 });
 
+test('warmupFor : échauffement adapté au type de séance', () => {
+  const haut = L.warmupFor('A · Tirage & poussée');
+  assert.match(haut.label, /haut du corps/i);
+  assert.ok(haut.moves.length >= 3);
+  const jambes = L.warmupFor('B · Jambes & chaîne postérieure');
+  assert.match(jambes.label, /bas du corps/i);
+  const trail = L.warmupFor('Sortie longue trail · côtes');
+  assert.match(trail.label, /trail|course/i);
+  const def = L.warmupFor('Séance inconnue');
+  assert.match(def.label, /général/i);
+  assert.ok(def.moves.length >= 3);
+  assert.deepEqual(L.warmupFor('').moves.length >= 3, true);
+});
+
 test('volumeRamp : cas d’Adrien (15→50 km en 8 sem) = trop rapide, honnête', () => {
   const r = L.volumeRamp(15, 50, 8);
   assert.equal(r.series.length, 8);

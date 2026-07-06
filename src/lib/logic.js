@@ -256,6 +256,19 @@ function raceGoalStatus(goal, now) {
   };
 }
 
+// Échauffement spécifique selon le type de séance (mots-clés du titre).
+// Renvoie { label, moves:[...] } — 3-4 mouvements, ~5 min, pas d'XP.
+function warmupFor(title) {
+  const t = String(title || '').toLowerCase();
+  if (/poussée|tirage|haut|traction|pompes|press|militaire/.test(t))
+    return { label: 'Échauffement haut du corps · ~5 min', moves: ['Cercles de bras + rotations d’épaules · 30 s', 'Étirements dynamiques poitrine/dos · 30 s', 'Suspension passive à la barre · 20 s', '1 série de pompes faciles + tractions négatives lentes'] };
+  if (/jambe|chaîne|squat|fessier|fente|mollet/.test(t))
+    return { label: 'Échauffement bas du corps · ~5 min', moves: ['Mobilité hanches (balanciers) · 30 s/jambe', 'Mobilité chevilles (genou au mur) · 30 s/côté', '15 squats à vide en contrôle', 'Fentes marchées lentes · 6/jambe'] };
+  if (/trail|côte|course|puissance|longue|swing|explos/.test(t))
+    return { label: 'Échauffement trail/course · ~5 min', moves: ['Marche rapide ou trot très facile · 2 min', 'Montées de genoux + talons-fesses · 30 s chacun', 'Mobilité chevilles + fentes lentes · 30 s', 'Gainage planche léger · 20 s'] };
+  return { label: 'Échauffement général · ~5 min', moves: ['Mobilité cou/épaules/hanches · 1 min', 'Rotations chevilles et poignets · 30 s', '10 squats à vide + 10 rotations du tronc', 'Montée progressive du rythme cardiaque · 1 min'] };
+}
+
 // Montée en volume de course sécurisée : progression hebdomadaire du kilométrage
 // de startKm vers targetKm sur `weeks` semaines, avec un gain hebdo plafonné
 // (défaut 12 %) et une semaine de décharge périodique. Renvoie la série + un
@@ -419,5 +432,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor };
 }

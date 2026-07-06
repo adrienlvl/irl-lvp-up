@@ -58,6 +58,7 @@ app.whenReady().then(async () => {
         supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
         weekPlanner: typeof buildWeekPlan === 'function' && typeof generateAutomaticWeek === 'function' && document.querySelectorAll('#availabilityDays input').length === 7,
         volume: typeof volumeRamp === 'function' && !!document.getElementById('volStart') && typeof renderVolumeGoal === 'function',
+        warmup: typeof warmupFor === 'function' && !!document.getElementById('guidedWarmupList'),
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
@@ -78,6 +79,7 @@ app.whenReady().then(async () => {
     if (!checks.supplements) errors.push('Compléments absents (suppHeat/hydrationPlan/suppProteinTarget)');
     if (!checks.weekPlanner) errors.push('Planificateur hebdo absent (buildWeekPlan/generateAutomaticWeek/7 cases jours)');
     if (!checks.volume) errors.push('Montée en volume absente (volumeRamp/volStart/renderVolumeGoal)');
+    if (!checks.warmup) errors.push('Échauffement guidé absent (warmupFor/guidedWarmupList)');
     if (checks.exCount < 37) errors.push('Bibliothèque incomplète : ' + checks.exCount + ' exercices (attendu ≥ 37)');
     if (checks.quests < 1) errors.push('#questList vide → render() ne s\'est pas exécuté');
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
