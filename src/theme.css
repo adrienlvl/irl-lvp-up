@@ -1,0 +1,39 @@
+/* Thème clair (Vague 4.5). Activé via [data-theme="light"] sur <html>. */
+:root[data-theme="light"]{
+  --bg:#eef1f6;
+  --card:#ffffff;
+  --card-light:#e7ecf3;
+  --surface-2:#f4f6fa;
+  --input-bg:#ffffff;
+  --text:#1a2230;
+  --muted:#586275;
+  --accent:#2f7d0a;           /* vert lisible en texte ET en fond */
+  --accent-ink:#ffffff;       /* texte sur les boutons pleins */
+  --purple:#6d4bd8;
+  --pink:#d81b60;
+  --line:rgba(20,28,45,.14);
+}
+/* Fonds globaux */
+:root[data-theme="light"] body{background:radial-gradient(circle at 20% 0,#d9e2f2 0,transparent 34%),var(--bg)}
+:root[data-theme="light"] .calendar-page,:root[data-theme="light"] .ultra-page{background:radial-gradient(circle at 90% 0,#d3ddf1,transparent 35%),var(--bg)}
+/* Surfaces sombres résiduelles (hors variables) */
+:root[data-theme="light"] .xp-track{background:#dbe2ee}
+:root[data-theme="light"] .quest{background:#f5f7fb}
+:root[data-theme="light"] .tag{background:#e6ebf3;color:#3a4658}
+:root[data-theme="light"] dialog{background:var(--card)}
+:root[data-theme="light"] dialog input,:root[data-theme="light"] dialog select{background:#f4f6fa}
+:root[data-theme="light"] .month-calendar{background:var(--card)}
+:root[data-theme="light"] .month-day.today,:root[data-theme="light"] .day-column.today{background:rgba(47,125,10,.08)}
+:root[data-theme="light"] .session-exercise-list div{background:#eef1f7}
+:root[data-theme="light"] .exercise-detail-visual{background:linear-gradient(135deg,#e7ecf5,#d7e0f0)}
+:root[data-theme="light"] .agenda-item{background:#e6ebf3;color:#26314a}
+:root[data-theme="light"] .week-chip{background:#eef1f7;color:#26314a}
+:root[data-theme="light"] .my-day-item,:root[data-theme="light"] .chart-card,:root[data-theme="light"] .week-page-day,:root[data-theme="light"] .achievement{background:#f5f7fb}
+:root[data-theme="light"] .player-card,:root[data-theme="light"] .panel,:root[data-theme="light"] .stat{box-shadow:0 10px 30px rgba(30,45,75,.08)}
+:root[data-theme="light"] .guided-recovery-note{color:#2a5a0a}
+:root[data-theme="light"] .mission-control{background:radial-gradient(circle at 90% 0,rgba(47,125,10,.10),transparent 35%),var(--card);border-color:rgba(47,125,10,.22)}
+:root[data-theme="light"] .month-event{background:#e6ebf3;color:#26314a}
+:root[data-theme="light"] .calendar-legend span{background:#e6ebf3;color:#26314a}
+:root[data-theme="light"] .mission-step{background:#f5f7fb}
+/* Boutons/toggle du thème */
+.theme-toggle{border:0;background:var(--card);color:var(--text);width:42px;height:42px;border-radius:50%;font-size:1.25rem;cursor:pointer;border:1px solid var(--line)}

@@ -1,5 +1,5 @@
 /* ===== audit.css (fusionné 2026-07-06) ===== */
-.meal-ideas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.meal-ideas div{background:#111728;border:1px solid var(--line);padding:9px;border-radius:9px;font-size:.74rem}.meal-ideas b{display:block;color:var(--accent);margin-bottom:4px}.restore-label{cursor:pointer;display:inline-flex;align-items:center}.restore-label input{display:none}@media(max-width:700px){.meal-ideas{grid-template-columns:1fr}}
+.meal-ideas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.meal-ideas div{background:var(--surface-2);border:1px solid var(--line);padding:9px;border-radius:9px;font-size:.74rem}.meal-ideas b{display:block;color:var(--accent);margin-bottom:4px}.restore-label{cursor:pointer;display:inline-flex;align-items:center}.restore-label input{display:none}@media(max-width:700px){.meal-ideas{grid-template-columns:1fr}}
 
 /* ===== pages.css ===== */
 .app-nav button.active{background:var(--accent);color:#142014}.app-page-hidden{display:none!important}.page-title{margin:26px 0 18px}.page-title h2{margin:0;font-size:2rem;letter-spacing:-.05em}.page-title p{color:var(--muted);margin:6px 0 0}
