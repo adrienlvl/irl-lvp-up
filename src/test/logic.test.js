@@ -307,6 +307,46 @@ test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue 
   assert.equal(L.raceGoalStatus(null, now), null);
 });
 
+test('buildWeekPlan : un type par jour coché, jusqu’à 7 jours', () => {
+  const all = L.buildWeekPlan([1, 2, 3, 4, 5, 6, 0], { phase: 'base' });
+  assert.equal(all.length, 7);
+  assert.ok(all.every(x => typeof x.type === 'string' && x.type.length > 0));
+});
+
+test('buildWeekPlan : exactement une sortie longue (≥2 jours), week-end privilégié', () => {
+  const p = L.buildWeekPlan([1, 3, 6], { phase: 'base' }); // Lun/Mer/Sam
+  const longs = p.filter(x => x.type === 'Sortie longue');
+  assert.equal(longs.length, 1);
+  assert.equal(longs[0].weekday, 6); // samedi privilégié
+});
+
+test('buildWeekPlan : pas deux jours DURS consécutifs', () => {
+  const isHard = t => ['Musculation', 'Fractionné', 'Sortie longue'].includes(t);
+  const p = L.buildWeekPlan([1, 2, 3, 4, 5], { phase: 'specific' });
+  const pos = d => (d + 6) % 7;
+  const sorted = [...p].sort((a, b) => pos(a.weekday) - pos(b.weekday));
+  for (let i = 1; i < sorted.length; i++) {
+    if (Math.abs(pos(sorted[i].weekday) - pos(sorted[i - 1].weekday)) === 1) {
+      assert.ok(!(isHard(sorted[i].type) && isHard(sorted[i - 1].type)), 'pas 2 durs de suite');
+    }
+  }
+});
+
+test('buildWeekPlan : fractionné seulement en phase avancée + assez de jours', () => {
+  const base = L.buildWeekPlan([1, 2, 3, 4, 5], { phase: 'base' });
+  assert.ok(!base.some(x => x.type === 'Fractionné'), 'pas de fractionné en base');
+  const specific = L.buildWeekPlan([1, 2, 3, 4, 5], { phase: 'specific' });
+  assert.ok(specific.some(x => x.type === 'Fractionné'), 'fractionné en spécifique');
+  const few = L.buildWeekPlan([1, 3], { phase: 'specific' });
+  assert.ok(!few.some(x => x.type === 'Fractionné'), 'pas de fractionné si <4 jours');
+});
+
+test('buildWeekPlan : 1 seul jour → 1 séance, aucun jour → []', () => {
+  assert.equal(L.buildWeekPlan([3], { phase: 'base' }).length, 1);
+  assert.deepEqual(L.buildWeekPlan([], {}), []);
+  assert.deepEqual(L.buildWeekPlan(null, {}), []);
+});
+
 test('proteinTarget : g/kg selon objectif', () => {
   assert.equal(L.proteinTarget(80, 'force').gramsPerDay, 150); // 80*1.9=152 -> arrondi 5
   assert.equal(L.proteinTarget(80, 'trail').gramsPerDay, 130); // 80*1.6=128 -> 130

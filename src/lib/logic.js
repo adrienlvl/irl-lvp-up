@@ -256,6 +256,49 @@ function raceGoalStatus(goal, now) {
   };
 }
 
+// Répartit une semaine d'entraînement hybride sur les jours choisis (0=dim..6=sam).
+// Assigne un type à CHAQUE jour coché : Sortie longue, Musculation, Fractionné,
+// Course, Mobilité / repos. Espace les jours durs, garde les jambes fraîches
+// avant la sortie longue, et n'ajoute du fractionné qu'en phase avancée.
+function buildWeekPlan(days, opts) {
+  opts = opts || {};
+  const phase = opts.phase || 'base';
+  const pos = d => (Number(d) + 6) % 7; // lundi=0 … dimanche=6
+  const sorted = [...new Set((Array.isArray(days) ? days : []).map(Number).filter(d => d >= 0 && d <= 6))].sort((a, b) => pos(a) - pos(b));
+  const n = sorted.length;
+  if (!n) return [];
+  const plan = {};
+  const isHard = t => t === 'Musculation' || t === 'Fractionné' || t === 'Sortie longue';
+  const adjacent = (a, b) => Math.abs(pos(a) - pos(b)) === 1;
+  // 1) Sortie longue : week-end si possible, sinon dernier jour coché
+  let longDay = null;
+  if (n >= 2) { longDay = sorted.includes(6) ? 6 : sorted.includes(0) ? 0 : sorted[n - 1]; plan[longDay] = 'Sortie longue'; }
+  // 2) Fractionné : uniquement phase développement/spécifique, loin de la sortie longue
+  if ((phase === 'build' || phase === 'specific' || phase === 'dev') && n >= 4) {
+    const cand = sorted.filter(d => !plan[d] && (longDay == null || Math.abs(pos(d) - pos(longDay)) >= 2));
+    const pick = cand.find(d => d === 2 || d === 3);
+    const chosen = pick != null ? pick : cand[0];
+    if (chosen != null) plan[chosen] = 'Fractionné';
+  }
+  // 3) Musculation : cible selon le nombre de jours, en évitant la veille de la sortie longue
+  const strengthTarget = n >= 6 ? 3 : n >= 3 ? 2 : 1;
+  const dayBeforeLong = longDay == null ? null : [...sorted].reverse().find(d => pos(d) < pos(longDay));
+  let placed = 0;
+  for (const d of sorted) { if (plan[d] || placed >= strengthTarget) continue; if (d === dayBeforeLong && sorted.filter(x => !plan[x]).length > strengthTarget - placed) continue; plan[d] = 'Musculation'; placed++; }
+  for (const d of sorted) { if (plan[d] || placed >= strengthTarget) continue; plan[d] = 'Musculation'; placed++; }
+  // 4) Le reste : course facile
+  for (const d of sorted) { if (!plan[d]) plan[d] = 'Course'; }
+  // 5) Lissage : jamais deux jours durs consécutifs (une muscu redevient course facile)
+  for (let i = 1; i < n; i++) {
+    const a = sorted[i - 1], b = sorted[i];
+    if (adjacent(a, b) && isHard(plan[a]) && isHard(plan[b])) {
+      if (plan[b] === 'Musculation') plan[b] = 'Course';
+      else if (plan[a] === 'Musculation') plan[a] = 'Course';
+    }
+  }
+  return sorted.map(d => ({ weekday: d, type: plan[d] }));
+}
+
 // ---- Compléments & ravitaillement (nutrition sportive, repères généraux) ----
 // Cible protéique quotidienne (g/kg selon l'objectif). Repère, pas une prescription.
 function proteinTarget(weightKg, goal) {
@@ -345,5 +388,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan };
 }

@@ -56,6 +56,7 @@ app.whenReady().then(async () => {
         theme: !!document.getElementById('themeToggle') && (getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim().length > 0),
         raceGoal: !!document.getElementById('raceGoalType') && typeof raceGoalStatus === 'function' && typeof renderRaceGoal === 'function',
         supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
+        weekPlanner: typeof buildWeekPlan === 'function' && typeof generateAutomaticWeek === 'function' && document.querySelectorAll('#availabilityDays input').length === 7,
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
@@ -74,6 +75,7 @@ app.whenReady().then(async () => {
     if (!checks.theme) errors.push('Thème absent (themeToggle / variable --surface-2)');
     if (!checks.raceGoal) errors.push('Objectif de course absent (raceGoalType/raceGoalStatus/renderRaceGoal)');
     if (!checks.supplements) errors.push('Compléments absents (suppHeat/hydrationPlan/suppProteinTarget)');
+    if (!checks.weekPlanner) errors.push('Planificateur hebdo absent (buildWeekPlan/generateAutomaticWeek/7 cases jours)');
     if (checks.exCount < 37) errors.push('Bibliothèque incomplète : ' + checks.exCount + ' exercices (attendu ≥ 37)');
     if (checks.quests < 1) errors.push('#questList vide → render() ne s\'est pas exécuté');
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
