@@ -47,12 +47,14 @@ _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source
 
 Tâches :
 - [x] **2.1** **Planificateur de révision interne** : formulaire dans la page Calendrier (matière, jours de la semaine, heure, durée, date d'examen) → `planStudySessions()` + `mergePlannedEvents()` (lib/logic.js, testées) génèrent les créneaux `study` jusqu'à l'examen. **Idempotent** : régénérer ne crée pas de doublon et préserve les créneaux déjà validés. ✅ _boucle #06._
-- [ ] **2.2** **Import optionnel du planning Grand Livre** : bouton « Exporter mon planning » ajouté à `le-grand-livre-compta.html` (JSON : cartes dues par date) + import côté IRL (sélecteur de fichier, idempotent via `refId`) pour affiner le plan avec les vraies échéances de répétition espacée.
+- [x] **2.2** **Import du planning Grand Livre** : bouton « ⬇ Exporter planning » injecté dans `le-grand-livre-compta.html` (backup `.bak` créé) → JSON des cartes dues par date ; import côté IRL (`glcPlanningToEvents`, validation défensive S.5, refId `glc-<date>` idempotent). ✅ _boucle #09._
 - [x] **2.3** **« Ma journée » au premier plan** : section sur le dashboard listant chronologiquement séances (démarrables), créneaux de révision (validables), blocs agenda + compteur de quêtes — `todayItems()` testée, plans orphelins inclus. ✅ _boucle #07._
-- [~] **2.4** **Notifications enrichies** : ✅ résumé du matin (« Aujourd'hui : 1 séance, 2 créneaux de révision, 3 quêtes ») au 1er rappel, lu défensivement depuis la copie locale. Reste : rappel X min avant chaque événement + rappel du soir si des choses restent non faites.
+- [x] **2.4** **Notifications enrichies** : résumé du matin au 1er rappel + **rappel X min avant chaque bloc** (réglable 5–60, une notif par événement/jour) + **rappel du soir** (heure réglable, désactivable) s'il reste des blocs/quêtes. Réglages validés côté main (S.3), compat rétro, fix du bug de date UTC (00h–02h). ✅ _boucles #07–#08._
 - [x] **2.5** XP « étude » : valider un créneau de révision = **+15 XP** (+1 Focus). ✅ _boucle #07._
 
 _Livrable : tu ouvres l'app (ou pas : les notifs tombent toutes seules) et tu sais exactement quoi faire aujourd'hui, sport ET révision._
+
+> ✅ **Vague 2 terminée** (boucles #06–#09, 2026-07-06).
 
 ---
 
@@ -62,12 +64,12 @@ _Livrable : tu ouvres l'app (ou pas : les notifs tombent toutes seules) et tu sa
 
 Déjà en place (Vague 0) : `contextIsolation: true`, `nodeIntegration: false`, CSP (`script-src 'self'`), instance unique, préload minimal.
 
-- [ ] **S.1** **Sandbox renderer** : `sandbox: true` sur la fenêtre + vérifier que le préload reste compatible.
-- [ ] **S.2** **Verrouillage de navigation** : bloquer `will-navigate` vers tout ce qui n'est pas le fichier local + `setWindowOpenHandler` → deny (aucune fenêtre/URL externe ne peut s'ouvrir, même via un lien piégé dans une note).
-- [ ] **S.3** **Validation des entrées IPC côté main** : tailles/chemins/types vérifiés dans chaque handler (`backup:save`, futurs `photos:*`, imports) ; jamais de chemin fourni par le renderer utilisé tel quel (anti path-traversal).
-- [ ] **S.4** **Échappement HTML systématique** : audit des `innerHTML` restants, tout passage de saisie utilisateur par `escapeHtml` (élimine le risque XSS local → RCE).
-- [ ] **S.5** **Imports défensifs** : les fichiers JSON importés (restauration, planning Grand Livre) sont validés champ par champ (schéma strict, tailles bornées) avant d'entrer dans le state.
-- [ ] **S.6** **Hygiène dépendances** : `npm audit` à chaque boucle de build, versions Electron suivies (les CVE Electron/Chromium sont fréquentes), lockfile commité.
+- [x] **S.1** **Sandbox renderer** : `sandbox: true` actif, préload validé sandboxé (smoke-test tourne lui aussi en sandbox). ✅ _boucle #10._
+- [x] **S.2** **Verrouillage de navigation** : `will-navigate` → preventDefault + `setWindowOpenHandler` → deny. Aucune fenêtre/URL externe possible. ✅ _boucle #10._
+- [x] **S.3** **Validation des entrées IPC côté main** : appliqué à `photos:*` (regex Data URL, taille bornée, nom regénéré anti path-traversal) et `notifications:save` (clamps + regex HH:MM). ✅ _boucles #04, #08._
+- [x] **S.4** **Échappement HTML** : revue des `innerHTML` — toutes les saisies utilisateur (titres, notes, noms, pensées) passent par `escapeHtml` ; les sinks restants n'affichent que des données internes. ✅ _revue boucle #10 (à re-vérifier à chaque nouvelle feature)._
+- [x] **S.5** **Imports défensifs** : restauration JSON (normalizeState), planning Grand Livre (`glcPlanningToEvents` : schéma strict, regex, bornes, cap 120 jours, 1 Mo max). ✅ _boucles #04, #09._
+- [x] **S.6** **Hygiène dépendances** : `npm audit` intégré aux boucles ; **Electron monté 33 → 43.0.0** (purge ~18 CVE dont contournement d'intégrité ASAR). Résiduel : `tar` dans la chaîne electron-builder = **outillage de build uniquement** (jamais livré) — suivi, à purger avec electron-builder next (Vague 3). Lockfile commité. ✅ _boucle #10._
 - [ ] **S.7** **Si connexion internet un jour** (préparé, pas activé) : allowlist stricte de domaines HTTPS, aucun code distant exécuté (pas de script tiers), secrets via `safeStorage` (chiffrement OS, jamais en clair dans le state), mises à jour signées uniquement, et CSP resserrée par domaine.
 
 _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future sera explicite, minimale et vérifiée._

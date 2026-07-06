@@ -26,7 +26,8 @@ app.whenReady().then(async () => {
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.cjs'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   });
   win.webContents.on('console-message', (_e, level, message) => {

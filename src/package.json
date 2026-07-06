@@ -14,7 +14,7 @@
     "verify": "npm test && npm run test:smoke"
   },
   "devDependencies": {
-    "electron": "^33.3.1",
+    "electron": "^43.0.0",
     "electron-builder": "^25.1.8"
   },
   "build": {
