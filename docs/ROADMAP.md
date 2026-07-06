@@ -4,6 +4,19 @@ _Établie le 2026-07-05. Séquencée par vagues. Chaque vague est livrable indé
 
 Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (qualité/confort) · 🟩 P3 (plus tard).
 
+## Vague 6 — UX : clarté & désencombrement _(en cours, choix d'Adrien)_
+_Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, D1+D2._
+- [x] **A1** Sections fantômes rattachées à leur page (agenda→dashboard ; trail/plan/revue→athlète). Fuites = 0. ✅ _boucle #27._
+- [x] **A2** Sections repliables (16 panneaux), état mémorisé (`localStorage['irl-collapsed']`). ✅ _boucle #27._
+- [ ] **C1** Fusionner Mission Control + Ma journée + Boussole en un bloc « Aujourd'hui ».
+- [ ] **C2** Retirer le formulaire d'agenda du dashboard.
+- [ ] **B2** Sortir la bibliothèque d'exercices dans son propre onglet.
+- [ ] **B1** Page Athlète en sous-onglets (Séance / Progrès / Nutrition).
+- [ ] **B3** Bloc « Mes progrès » (poids/mensurations/photos/tendances/graphiques) replié.
+- [ ] **D1** Agenda unifié (semaine + mois + agenda en un onglet).
+- [ ] **D2** Navigation regroupée (moins d'onglets ; Ultra-trail sous Entraînement).
+
+
 ---
 
 ## Vague 0 — Fondations & sécurité _(P0, indispensable avant tout)_
