@@ -252,6 +252,42 @@ test('todosForDay : entrée non-tableau tolérée → vide', () => {
   assert.equal(r.remaining, 0);
 });
 
+test('normalizeBirthday : bornes jour/mois, année optionnelle', () => {
+  const b = L.normalizeBirthday({ id: 1, name: 'Maman', day: 1, month: 7, year: 1963 });
+  assert.equal(b.name, 'Maman'); assert.equal(b.day, 1); assert.equal(b.month, 7); assert.equal(b.year, 1963);
+  assert.equal(L.normalizeBirthday({ day: 40, month: 13 }).day, 0);
+  assert.equal(L.normalizeBirthday({ day: 40, month: 13 }).month, 0);
+  assert.equal(L.normalizeBirthday({ day: 5, month: 5, year: 1700 }).year, null);
+});
+
+test('birthdaysForDay : anniversaire récurrent + âge calculé', () => {
+  const bdays = [
+    { id: 1, name: 'Adrien', day: 7, month: 7, year: 1999 },
+    { id: 2, name: 'Maman', day: 1, month: 7, year: 1963 },
+    { id: 3, name: 'Papa', day: 1, month: 9, year: 1960 }
+  ];
+  const jul7 = L.birthdaysForDay(bdays, '2026-07-07');
+  assert.deepEqual(jul7, [{ id: 1, name: 'Adrien', age: 27 }]);
+  const jul1 = L.birthdaysForDay(bdays, '2027-07-01');
+  assert.deepEqual(jul1, [{ id: 2, name: 'Maman', age: 64 }]);
+  assert.deepEqual(L.birthdaysForDay(bdays, '2026-12-25'), []);
+});
+
+test('birthdaysForDay : sans année → age null ; date invalide → []', () => {
+  assert.deepEqual(L.birthdaysForDay([{ id: 9, name: 'X', day: 3, month: 3 }], '2026-03-03'), [{ id: 9, name: 'X', age: null }]);
+  assert.deepEqual(L.birthdaysForDay([{ id: 9, name: 'X', day: 3, month: 3 }], 'nope'), []);
+});
+
+test('todayItems : les anniversaires du jour apparaissent (non validables)', () => {
+  const state = { birthdays: [{ id: 1, name: 'Maman', day: 6, month: 7, year: 1963 }] };
+  const items = L.todayItems(state, '2026-07-06');
+  const b = items.find(i => i.type === 'birthday');
+  assert.ok(b, 'un item anniversaire est présent');
+  assert.match(b.title, /Maman/);
+  assert.match(b.title, /63 ans/);
+  assert.equal(b.allDay, true);
+});
+
 test('prescriptionFor : repos par défaut selon la famille', () => {
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'general' }).rest, 75);
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'core' }).rest, 45);

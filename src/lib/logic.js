@@ -70,6 +70,32 @@ function todosForDay(todos, today) {
   return { active, done, remaining: active.length, overdue: active.filter(t => t.overdue).length };
 }
 
+// ---- Anniversaires : personnes connues, récurrents chaque année dans l'agenda ----
+// Modèle : {id, name, day (1-31), month (1-12), year|null (pour calculer l'âge)}.
+function normalizeBirthday(item) {
+  const x = item && typeof item === 'object' ? item : {};
+  const day = Math.round(Number(x.day)), month = Math.round(Number(x.month)), year = Math.round(Number(x.year));
+  return {
+    id: Number(x.id) || Date.now(),
+    name: String(x.name || '').slice(0, 60),
+    day: day >= 1 && day <= 31 ? day : 0,
+    month: month >= 1 && month <= 12 ? month : 0,
+    year: (Number.isFinite(year) && year >= 1900 && year <= 2100) ? year : null
+  };
+}
+
+// Anniversaires tombant un jour donné (clé YYYY-MM-DD) → [{id, name, age|null}].
+// L'âge est celui atteint ce jour-là (année de la date − année de naissance).
+function birthdaysForDay(birthdays, dateKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || ''));
+  if (!m) return [];
+  const year = +m[1], month = +m[2], day = +m[3];
+  return (Array.isArray(birthdays) ? birthdays : [])
+    .map(normalizeBirthday)
+    .filter(b => b.day === day && b.month === month)
+    .map(b => ({ id: b.id, name: b.name, age: b.year ? year - b.year : null }));
+}
+
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
 // Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
@@ -231,6 +257,8 @@ function todayItems(state, date) {
   }));
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
   plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', allDay: false, completed: false, planId: p.id, type: 'plan' }));
+  // Anniversaires (récurrents chaque année, non validables)
+  birthdaysForDay(s.birthdays, date).forEach(b => items.push({ id: 'bday-' + b.id, time: '', title: `🎂 ${b.name}${b.age != null ? ` (${b.age} ans)` : ''}`, kind: 'birthday', priority: 'normal', allDay: true, completed: false, planId: null, type: 'birthday' }));
   // Chronologique, puis priorité (haute avant basse) à heure égale.
   return items.sort((x, y) => String(x.time).localeCompare(String(y.time)) || priorityRank(x.priority) - priorityRank(y.priority));
 }
@@ -654,5 +682,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }
