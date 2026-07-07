@@ -1,6 +1,6 @@
 {
   "name": "irl-lvp-up",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Ton RPG de vie local",
   "main": "electron-main.cjs",
   "author": "Adrien",
@@ -9,6 +9,7 @@
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win",
+    "release": "electron-builder --win -p always",
     "test": "node --test test/logic.test.js test/foods.test.js",
     "test:smoke": "electron test/renderer-smoke.cjs",
     "verify": "npm test && npm run test:smoke"
@@ -41,6 +42,16 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "REPLACE_WITH_GITHUB_USER",
+        "repo": "REPLACE_WITH_GITHUB_REPO"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

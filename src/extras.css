@@ -137,3 +137,8 @@ html[data-density=compact] .panel-heading{margin-bottom:10px}
 html[data-density=compact] .my-day-item,html[data-density=compact] .todo-item,html[data-density=compact] .shopping-row{padding:6px 9px}
 html[data-density=compact] .meal-card{padding:10px}
 html[data-density=compact] .app-foot{margin-top:16px}
+/* Bannière de mise à jour automatique */
+.update-banner{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;max-width:min(560px,92vw);padding:12px 14px;background:var(--surface-2);border:1px solid var(--accent);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.32);font-size:.84rem}
+.update-banner[hidden]{display:none}
+.update-banner #updateBannerText{flex:1}
+.update-banner .primary-button{padding:8px 14px;white-space:nowrap}

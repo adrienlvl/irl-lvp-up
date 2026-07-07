@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage } = require('electron');
 const path = require('path'); const fs = require('fs'); let win, tray, timer;
+let autoUpdater; try { ({ autoUpdater } = require('electron-updater')); } catch (_) { autoUpdater = null; }
 const settingsFile = () => path.join(app.getPath('userData'), 'notifications.json');
 const stateBackupFile = () => path.join(app.getPath('userData'), 'irl-lvp-up-local-backup.json');
 const stateBackupHistoryDir = () => path.join(app.getPath('userData'), 'irl-lvp-up-backups');
@@ -22,10 +23,30 @@ function createWindow() { win = new BrowserWindow({ width: 1120, height: 820, mi
 win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 win.webContents.on('will-navigate', event => event.preventDefault());
 win.on('close', event => { if (!app.isQuitting) { event.preventDefault(); win.hide(); showReminder('Level Up IRL', 'L’application reste active pour tes rappels.'); } }); }
+/* Auto-update (electron-updater) — uniquement en build empaqueté. Vérifie GitHub
+   Releases au démarrage, télécharge en tâche de fond, prévient le renderer quand
+   c'est prêt. Les erreurs (dépôt non configuré, hors-ligne) sont avalées : l'app
+   reste 100 % fonctionnelle en local. Seul le process principal parle à GitHub
+   (HTTPS, hôte fixe) ; le renderer n'a aucun accès réseau. */
+function sendUpdate(status) { try { if (win && !win.isDestroyed()) win.webContents.send('update:status', status); } catch (_) {} }
+function initAutoUpdate() {
+  if (!autoUpdater || !app.isPackaged) return;
+  try {
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.on('update-available', info => sendUpdate({ state: 'available', version: info && info.version }));
+    autoUpdater.on('download-progress', p => sendUpdate({ state: 'downloading', percent: Math.round((p && p.percent) || 0) }));
+    autoUpdater.on('update-downloaded', info => sendUpdate({ state: 'ready', version: info && info.version }));
+    autoUpdater.on('error', err => sendUpdate({ state: 'error', message: String((err && err.message) || err) }));
+    autoUpdater.checkForUpdates().catch(() => {});
+  } catch (_) {}
+}
+ipcMain.handle('update:install', () => { app.isQuitting = true; try { autoUpdater && autoUpdater.quitAndInstall(); } catch (_) {} });
+ipcMain.handle('update:check', () => { try { if (autoUpdater && app.isPackaged) autoUpdater.checkForUpdates().catch(() => {}); } catch (_) {} });
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) { app.quit(); } else {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
-app.whenReady().then(() => { createWindow(); let trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.ico')); if (trayIcon.isEmpty()) trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'irl-lvp-up-logo.png')); tray = new Tray(trayIcon.isEmpty() ? nativeImage.createEmpty() : trayIcon); tray.setToolTip('Level Up IRL'); tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Ouvrir Level Up IRL', click: () => { win.show(); win.focus(); } }, { type: 'separator' }, { label: 'Quitter', click: () => { app.isQuitting = true; app.quit(); } }])); tray.on('click', () => { win.show(); win.focus(); }); timer = setInterval(checkReminders, 30000); checkReminders(); });
+app.whenReady().then(() => { createWindow(); let trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.ico')); if (trayIcon.isEmpty()) trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'irl-lvp-up-logo.png')); tray = new Tray(trayIcon.isEmpty() ? nativeImage.createEmpty() : trayIcon); tray.setToolTip('Level Up IRL'); tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Ouvrir Level Up IRL', click: () => { win.show(); win.focus(); } }, { type: 'separator' }, { label: 'Quitter', click: () => { app.isQuitting = true; app.quit(); } }])); tray.on('click', () => { win.show(); win.focus(); }); timer = setInterval(checkReminders, 30000); checkReminders(); setTimeout(initAutoUpdate, 3500); });
 }
 ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('notifications:get', () => settings());

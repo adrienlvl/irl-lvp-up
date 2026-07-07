@@ -263,6 +263,8 @@ function setupComfort(){
   applyDensity();
   const top=$('#backToTop');
   if(top){const onScroll=()=>{top.hidden=(window.scrollY||document.documentElement.scrollTop||0)<600;};window.addEventListener('scroll',onScroll,{passive:true});onScroll();top.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});}
+  // Mise à jour automatique : bannière discrète pilotée par le process principal.
+  if(window.desktop&&window.desktop.onUpdateStatus){const banner=$('#updateBanner'),txt=$('#updateBannerText'),inst=$('#updateInstallBtn');window.desktop.onUpdateStatus(s=>{if(!s||!banner)return;if(s.state==='available'){banner.hidden=false;inst.hidden=true;txt.textContent=`Mise à jour v${s.version||''} disponible — téléchargement en cours…`;}else if(s.state==='downloading'){banner.hidden=false;inst.hidden=true;txt.textContent=`Téléchargement de la mise à jour… ${s.percent||0} %`;}else if(s.state==='ready'){banner.hidden=false;inst.hidden=false;txt.textContent=`Mise à jour v${s.version||''} prête à installer.`;}});if(inst)inst.onclick=()=>window.desktop.installUpdate();const dis=$('#updateDismissBtn');if(dis)dis.onclick=()=>{banner.hidden=true;};}
 }
 const ATHLETE_TABS={'athlete-companion':'seance','trail-panel':'seance','trail-plan':'seance','goal-panel':'seance','profile-panel':'seance','workout-panel':'seance','program-panel':'seance','planning-panel':'seance','history-panel':'progres','photo-panel':'progres','measurements-panel':'progres','weekly-review-panel':'progres','personal-trends':'progres','charts-panel':'progres'};
 let athleteTab='seance';try{athleteTab=localStorage.getItem('irl-athlete-tab')||'seance';}catch(_){}if(athleteTab!=='seance'&&athleteTab!=='progres')athleteTab='seance';
