@@ -59,9 +59,10 @@ Tout y est empilé : compagnon, objectifs, semaine, profil, échauffement, journ
 - **D2.** Regrouper la nav en moins d'onglets, ex. **Aujourd'hui · Agenda · Entraînement · Focus & Vie** (Ultra-trail devient une section d'Entraînement). ⭐⭐ · 🔧🔧
 
 ### Thème E — Confort & lisibilité
-- **E1.** Densité réglable + un peu plus d'air/hiérarchie visuelle (titres, séparateurs). ⭐⭐ · 🔧
-- **E2.** Un **« retour en haut »** flottant sur les pages longues. ⭐ · 🔧
+- [x] **E1.** Densité réglable (confort / compact) — bouton ⇕ dans l'en-tête, mémorisé (`irl-density`), applique un mode compact (moins de padding, plus d'infos à l'écran). ✅ _boucle #39 (build 1.4.1)._
+- [x] **E2.** Un **« retour en haut »** flottant sur les pages longues (apparaît après ~600 px de défilement). ✅ _boucle #39._
 - **E3.** Recherche/raccourci global (aller directement à une section). ⭐ · 🔧🔧
+- _Bonus #39 :_ **version affichée** dans le pied de page (`IRL LVP UP vX.Y.Z` via IPC `app:version`) — pour savoir quelle version on utilise.
 
 ### Thème F — Première utilisation
 - **F1.** Un mode « **essentiel** » au démarrage (afficher peu, déplier au besoin) pour ne pas noyer un nouveau venu. ⭐⭐ · 🔧🔧

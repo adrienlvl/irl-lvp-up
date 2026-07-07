@@ -33,7 +33,7 @@
           <h1>IRL <span>LVP UP</span></h1>
           <p id="dailyMessage" class="subtitle"></p>
         </div>
-        <div class="hero-actions"><button id="themeToggle" class="theme-toggle" title="Changer de thème" aria-label="Changer de thème">🌙</button><button id="resetButton" class="icon-button" title="Réinitialiser les données" aria-label="Réinitialiser les données">↻</button></div>
+        <div class="hero-actions"><button id="densityToggle" class="icon-button" title="Densité d’affichage (confort / compact)" aria-label="Changer la densité d’affichage">⇕</button><button id="themeToggle" class="theme-toggle" title="Changer de thème" aria-label="Changer de thème">🌙</button><button id="resetButton" class="icon-button" title="Réinitialiser les données" aria-label="Réinitialiser les données">↻</button></div>
       </header>
       <nav class="app-nav" aria-label="Navigation principale"><button data-page="dashboard" class="active">Aujourd’hui</button><button id="openWeekPage">Agenda</button><button data-page="athlete">Athlète</button><button data-page="library">Exercices</button><button data-page="nutrition">Nutrition</button><button data-page="focus">Focus & vie</button></nav>
 
@@ -186,7 +186,9 @@
           <button id="saveReminders" class="primary-button">Enregistrer</button><button id="testReminder" class="secondary-button">Tester</button>
         </div><small id="desktopNote">Disponible dans la version Windows de l’application.</small>
       </section>
+      <footer class="app-foot"><span id="appVersion">IRL LVP UP</span><span class="app-foot-sep">·</span><span>données locales, cet appareil</span></footer>
     </main>
+    <button id="backToTop" class="back-to-top" hidden aria-label="Revenir en haut" title="Revenir en haut">↑</button>
     <section id="calendarPage" class="calendar-page" hidden aria-label="Calendrier IRL LVP UP">
       <header><div><p class="eyebrow">AGENDA IRL LVP UP</p><h1 id="monthLabel">Calendrier</h1></div><button id="closeCalendarPage" class="secondary-button">← Retour au dashboard</button></header>
       <div class="calendar-toolbar"><button id="backToWeek" class="secondary-button">🗓️ Vue semaine</button><button id="previousMonth" class="secondary-button">←</button><button id="todayMonth" class="secondary-button">Aujourd’hui</button><button id="nextMonth" class="secondary-button">→</button><button id="exportIcsPage" class="secondary-button">Exporter .ics</button></div>

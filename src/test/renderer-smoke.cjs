@@ -8,6 +8,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 // Stubs des canaux IPC attendus par preload/app.js (sinon rejets non gérés parasites).
+ipcMain.handle('app:version', () => '0.0.0-test');
 ipcMain.handle('notifications:get', () => ({ enabled: false, times: ['09:00', '18:00'], lastSent: {}, leadMinutes: 15, eveningTime: '21:00', eveningEnabled: true }));
 ipcMain.handle('notifications:save', (_e, v) => v);
 ipcMain.handle('notifications:test', () => true);
@@ -62,6 +63,7 @@ app.whenReady().then(async () => {
         agendaImport: typeof parseIcs === 'function' && !!document.getElementById('importIcs') && !!document.getElementById('importIcsKind') && !!document.getElementById('calendarAgendaPriority'),
         agendaUx: !!document.getElementById('weekQuickAdd') && !!document.getElementById('agendaFilters') && !!document.getElementById('importIcsWeek') && document.querySelectorAll('#agendaFilters [data-filter]').length === 5,
         todo: typeof todosForDay === 'function' && typeof normalizeTodo === 'function' && !!document.getElementById('todoForm') && !!document.getElementById('todoList') && !!document.getElementById('todoPriorityBtn'),
+        comfort: !!document.getElementById('backToTop') && !!document.getElementById('densityToggle') && !!document.getElementById('appVersion'),
         weekPlanner: typeof buildWeekPlan === 'function' && typeof generateAutomaticWeek === 'function' && document.querySelectorAll('#availabilityDays input').length === 7,
         volume: typeof volumeRamp === 'function' && !!document.getElementById('volStart') && typeof renderVolumeGoal === 'function',
         warmup: typeof warmupFor === 'function' && !!document.getElementById('guidedWarmupList'),
@@ -89,6 +91,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaImport) errors.push('Import agenda absent (parseIcs/importIcs/importIcsKind/calendarAgendaPriority)');
     if (!checks.agendaUx) errors.push('UX agenda absente (weekQuickAdd/agendaFilters 5 filtres/importIcsWeek)');
     if (!checks.todo) errors.push('To-Do absente (todosForDay/normalizeTodo/todoForm/todoList/todoPriorityBtn)');
+    if (!checks.comfort) errors.push('Confort absent (backToTop/densityToggle/appVersion)');
     if (!checks.weekPlanner) errors.push('Planificateur hebdo absent (buildWeekPlan/generateAutomaticWeek/7 cases jours)');
     if (!checks.volume) errors.push('Montée en volume absente (volumeRamp/volStart/renderVolumeGoal)');
     if (!checks.warmup) errors.push('Échauffement guidé absent (warmupFor/guidedWarmupList)');
