@@ -137,6 +137,7 @@ function normalizeRecurring(item) {
     durationMin: Math.max(5, Math.min(600, Number(x.durationMin) || 60)),
     kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
     priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
+    refId: typeof x.refId === 'string' ? x.refId : '',
     rule: {
       freq: RECUR_FREQ.includes(r.freq) ? r.freq : 'weekly',
       interval: Math.max(1, Math.min(52, Math.round(Number(r.interval) || 1))),
@@ -292,6 +293,25 @@ function parseIcsDateTime(value) {
 // VEVENT (SUMMARY, DTSTART, DTEND, UID), déduit la durée, et marque source:'imported'
 // avec refId 'ics-<uid>' pour un réimport idempotent via mergePlannedEvents.
 // opts.kind = catégorie attribuée (défaut 'life'). Purement local, aucun réseau.
+// Convertit une RRULE iCalendar (ex. "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261231T000000Z")
+// en règle de récurrence interne, à partir de la date de début (YYYY-MM-DD). null si non géré.
+const ICS_DAY = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+const RRULE_FREQ = { DAILY: 'daily', WEEKLY: 'weekly', MONTHLY: 'monthly', YEARLY: 'yearly' };
+function parseRRule(rrule, startDateKey) {
+  if (typeof rrule !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(String(startDateKey || ''))) return null;
+  const parts = {};
+  rrule.split(';').forEach(kv => { const i = kv.indexOf('='); if (i > 0) parts[kv.slice(0, i).trim().toUpperCase()] = kv.slice(i + 1).trim(); });
+  const freq = RRULE_FREQ[String(parts.FREQ || '').toUpperCase()];
+  if (!freq) return null;
+  const interval = Math.max(1, Math.round(Number(parts.INTERVAL) || 1));
+  const weekdays = freq === 'weekly' && parts.BYDAY
+    ? parts.BYDAY.split(',').map(d => ICS_DAY[d.trim().slice(-2).toUpperCase()]).filter(n => n != null)
+    : [];
+  let until = '';
+  if (parts.UNTIL) { const m = /^(\d{4})(\d{2})(\d{2})/.exec(parts.UNTIL.trim()); if (m) until = `${m[1]}-${m[2]}-${m[3]}`; }
+  return { freq, interval, weekdays, startDate: startDateKey, until };
+}
+
 function parseIcs(text, opts) {
   opts = opts || {};
   const kind = AGENDA_KINDS.includes(opts.kind) ? opts.kind : 'life';
@@ -318,6 +338,7 @@ function parseIcs(text, opts) {
           source: 'imported',
           refId: 'ics-' + (cur.uid || `${cur.start.date}-${cur.start.time}-${cur.summary || ''}`),
           allDay: !!cur.start.allDay,
+          recurrence: cur.rrule ? parseRRule(cur.rrule, cur.start.date) : null,
           completed: false
         });
       }
@@ -332,6 +353,7 @@ function parseIcs(text, opts) {
     else if (name === 'UID') cur.uid = value.trim();
     else if (name === 'DTSTART') cur.start = parseIcsDateTime(value);
     else if (name === 'DTEND') cur.end = parseIcsDateTime(value);
+    else if (name === 'RRULE') cur.rrule = value;
   }
   return events;
 }
@@ -813,5 +835,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, parseIcs, parseRRule, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

@@ -205,6 +205,33 @@ test('parseIcs : entrée vide / sans VEVENT → []', () => {
   assert.deepEqual(L.parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR'), []);
 });
 
+test('parseRRule : FREQ/INTERVAL/BYDAY/UNTIL → règle interne ; non géré → null', () => {
+  assert.deepEqual(
+    L.parseRRule('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261231T000000Z', '2026-07-06'),
+    { freq: 'weekly', interval: 2, weekdays: [1, 3], startDate: '2026-07-06', until: '2026-12-31' }
+  );
+  assert.deepEqual(
+    L.parseRRule('FREQ=DAILY', '2026-07-01'),
+    { freq: 'daily', interval: 1, weekdays: [], startDate: '2026-07-01', until: '' }
+  );
+  assert.equal(L.parseRRule('FREQ=HOURLY', '2026-07-01'), null, 'fréquence non gérée');
+  assert.equal(L.parseRRule('FREQ=DAILY', 'nope'), null, 'date de début invalide');
+});
+
+test('parseIcs : événement récurrent (RRULE) → champ recurrence exploitable par le moteur', () => {
+  const ics = 'BEGIN:VEVENT\r\nUID:r1\r\nSUMMARY:Standup\r\nDTSTART:20260706T090000\r\nRRULE:FREQ=WEEKLY;BYDAY=MO\r\nEND:VEVENT';
+  const ev = L.parseIcs(ics)[0];
+  assert.equal(ev.recurrence.freq, 'weekly');
+  assert.deepEqual(ev.recurrence.weekdays, [1]);
+  assert.equal(ev.recurrence.startDate, '2026-07-06');
+  // la règle produite est directement consommable par recurrenceMatches
+  assert.equal(L.recurrenceMatches(ev.recurrence, '2026-07-13'), true, 'lundi suivant');
+  assert.equal(L.recurrenceMatches(ev.recurrence, '2026-07-14'), false, 'mardi');
+  // un événement sans RRULE a recurrence null
+  const single = L.parseIcs('BEGIN:VEVENT\r\nUID:s1\r\nSUMMARY:Ponctuel\r\nDTSTART:20260710T100000\r\nEND:VEVENT')[0];
+  assert.equal(single.recurrence, null);
+});
+
 test('todayItems : allDay exposé (booléen) pour l’affichage « Journée »', () => {
   const state = { agenda: [
     { id: 1, title: 'Congé', date: '2026-07-06', time: '', kind: 'life', allDay: true },
