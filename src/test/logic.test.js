@@ -395,15 +395,22 @@ test('recurrenceMatches : mensuel, annuel, borne until', () => {
   assert.equal(L.recurrenceMatches(until, '2026-07-06'), false, 'après until');
 });
 
-test('todayItems : un événement récurrent tombant ce jour apparaît (non validable)', () => {
-  const state = { recurring: [{ id: 1, title: 'Standup', time: '09:00', kind: 'focus', rule: { freq: 'weekly', interval: 1, weekdays: [2], startDate: '2026-07-01' } }] };
-  const items = L.todayItems(state, '2026-07-07'); // mardi (weekday 2)
-  const r = items.find(i => i.type === 'recurring');
-  assert.ok(r, 'occurrence récurrente présente');
-  assert.equal(r.title, 'Standup');
-  assert.equal(r.time, '09:00');
-  assert.equal(r.recurring, true);
+test('todayItems : un événement récurrent tombant ce jour apparaît, validable par date (doneLog)', () => {
+  const state = { recurring: [{ id: 1, title: 'Standup', time: '09:00', kind: 'focus', doneLog: ['2026-07-07'], rule: { freq: 'weekly', interval: 1, weekdays: [2, 4], startDate: '2026-07-01' } }] };
+  const tue = L.todayItems(state, '2026-07-07').find(i => i.type === 'recurring'); // mardi
+  assert.ok(tue, 'occurrence récurrente présente');
+  assert.equal(tue.title, 'Standup');
+  assert.equal(tue.recurring, true);
+  assert.equal(tue.completed, true, 'mardi validé via doneLog');
+  const thu = L.todayItems(state, '2026-07-09').find(i => i.type === 'recurring'); // jeudi
+  assert.equal(thu.completed, false, 'jeudi pas encore validé');
   assert.equal(L.todayItems(state, '2026-07-08').some(i => i.type === 'recurring'), false, 'mercredi : pas d’occurrence');
+});
+
+test('normalizeRecurring : doneLog filtré (dates valides uniquement)', () => {
+  const r = L.normalizeRecurring({ id: 1, doneLog: ['2026-07-07', 'nope', 42] });
+  assert.deepEqual(r.doneLog, ['2026-07-07']);
+  assert.deepEqual(L.normalizeRecurring({ id: 2 }).doneLog, []);
 });
 
 test('normalizeHabit : défauts, xp borné, weekdays/log filtrés', () => {

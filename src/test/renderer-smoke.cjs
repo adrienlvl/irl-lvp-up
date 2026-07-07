@@ -67,7 +67,8 @@ app.whenReady().then(async () => {
         ux2pass2: document.querySelectorAll('details.calendar-setting').length >= 3 && !document.querySelector('.trail-plan') && !!document.querySelector('.training-grid > article.panel .collapse-toggle'),
         ux3: typeof upcomingBirthdays === 'function' && !!document.getElementById('birthdayUpcoming') && !!document.querySelector('.training-grid > .trail-panel'),
         recurring: typeof recurrenceMatches === 'function' && typeof normalizeRecurring === 'function' && !!document.getElementById('recurringForm') && !!document.getElementById('recFreq') && !!document.getElementById('recurringList'),
-        habits: typeof habitsForDay === 'function' && typeof habitStreak === 'function' && !!document.getElementById('habitForm') && !!document.getElementById('habitList'),
+        habits: typeof habitsForDay === 'function' && typeof habitStreak === 'function' && !!document.getElementById('habitForm') && !!document.getElementById('habitList') && document.querySelectorAll('#habitDays input').length === 7,
+        recDone: typeof completeRecurringOn === 'function' && (L => { const r = normalizeRecurring({ id: 1, doneLog: ['2026-07-07'] }); return r.doneLog.length === 1; })(),
         icsRrule: typeof parseRRule === 'function' && (parseIcs('BEGIN:VEVENT\\r\\nUID:x\\r\\nSUMMARY:R\\r\\nDTSTART:20260706T090000\\r\\nRRULE:FREQ=WEEKLY;BYDAY=MO\\r\\nEND:VEVENT')[0]||{}).recurrence != null,
         icsExport: typeof buildRRuleLine === 'function' && buildIcs([{ id: 1, title: 'R', time: '09:00', rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } }]).includes('RRULE:FREQ=WEEKLY'),
         todo: typeof todosForDay === 'function' && typeof normalizeTodo === 'function' && !!document.getElementById('todoForm') && !!document.getElementById('todoList') && !!document.getElementById('todoPriorityBtn'),
@@ -104,7 +105,8 @@ app.whenReady().then(async () => {
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');
     if (!checks.recurring) errors.push('Récurrence KO (recurrenceMatches/normalizeRecurring/recurringForm/recFreq/recurringList)');
-    if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList)');
+    if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList/habitDays 7 jours)');
+    if (!checks.recDone) errors.push('Validation récurrent KO (completeRecurringOn/doneLog)');
     if (!checks.icsRrule) errors.push('Import RRULE KO (parseRRule / parseIcs ne remonte pas recurrence)');
     if (!checks.icsExport) errors.push('Export RRULE KO (buildRRuleLine / buildIcs ne produit pas de RRULE)');
     if (!checks.todo) errors.push('To-Do absente (todosForDay/normalizeTodo/todoForm/todoList/todoPriorityBtn)');

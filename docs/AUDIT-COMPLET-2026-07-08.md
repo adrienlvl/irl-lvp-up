@@ -18,11 +18,13 @@ _Demandé par Adrien avant de reprendre les boucles. Couvre : code, tests, sécu
 
 Les features récentes (récurrence, habitudes) ne sont **pas encore branchées partout** :
 
-- **F1 — Les notifications ignorent les événements récurrents.** `electron-main.cjs` (résumé du matin, rappel « X min avant », rappel du soir) ne lit que `agenda[]` : **zéro rappel** pour un rendez-vous récurrent (vérifié : 0 référence à `recurring` dans le main). ⭐⭐⭐
-- **F2 — L'export .ics n'exporte pas les récurrents.** `exportAgendaIcs()` ne sérialise que `agenda[]`. `buildIcs` pourrait émettre les `RRULE` (on sait déjà les parser). ⭐⭐
-- **F3 — Une occurrence récurrente n'est pas validable.** Les items ↻ sont en lecture seule : impossible de cocher « fait aujourd'hui » (pas de log de complétion par date). Incohérent avec le reste (blocs/étude validables + XP). ⭐⭐⭐
-- **F4 — Habitudes : le choix des jours n'est pas exposé.** La logique (`weekdays`) est prête et testée, mais le formulaire crée uniquement des habitudes « tous les jours ». ⭐⭐
-- **F5 — Habitudes absentes du rappel du soir.** Le bilan du soir compte blocs + quêtes mais pas les habitudes restantes. ⭐
+- [x] **F1 — Les notifications ignorent les événements récurrents.** → corrigé : le main réutilise `lib/logic.js` (`recurringToday`), résumé du matin + rappel « X min avant » couvrent les récurrents. ✅ _boucle #49 (1.5.9)._
+- [x] **F2 — L'export .ics n'exporte pas les récurrents.** → corrigé : `buildRRuleLine` + `buildIcs` émettent des séries `RRULE` (round-trip testé), `exportAgendaIcs` inclut `state.recurring`. ✅ _boucle #49 (1.5.9)._
+- [x] **F3 — Une occurrence récurrente n'est pas validable.** → corrigé : `doneLog[date]` sur `state.recurring`, bouton **Valider** dans « Ma journée » + vue Jour (`completeRecurringOn`), +15 XP pour les révisions, ✓ affiché. ✅ _boucle #50 (1.6.0)._
+- [x] **F4 — Habitudes : le choix des jours n'est pas exposé.** → corrigé : 7 cases jours au formulaire (toutes cochées = tous les jours) ; la liste montre aussi les habitudes « pas aujourd'hui » (grisées, gérables). ✅ _boucle #50 (1.6.0)._
+- [x] **F5 — Habitudes absentes du rappel du soir.** → corrigé : le bilan du soir compte blocs restants **+ occurrences récurrentes non validées + habitudes non faites**. ✅ _boucle #50 (1.6.0)._
+
+> ✅ **Roadmap de l'audit terminée** (boucles #49–#50, 2026-07-08) — tous les écarts F1–F5 corrigés.
 
 ## 3. 🟡 Points de vigilance (pas bloquants)
 

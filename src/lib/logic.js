@@ -138,6 +138,7 @@ function normalizeRecurring(item) {
     kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
     priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
     refId: typeof x.refId === 'string' ? x.refId : '',
+    doneLog: Array.isArray(x.doneLog) ? x.doneLog.filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) : [],
     rule: {
       freq: RECUR_FREQ.includes(r.freq) ? r.freq : 'weekly',
       interval: Math.max(1, Math.min(52, Math.round(Number(r.interval) || 1))),
@@ -433,9 +434,9 @@ function todayItems(state, date) {
   plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', allDay: false, completed: false, planId: p.id, type: 'plan' }));
   // Anniversaires (récurrents chaque année, non validables)
   birthdaysForDay(s.birthdays, date).forEach(b => items.push({ id: 'bday-' + b.id, time: '', title: `🎂 ${b.name}${b.age != null ? ` (${b.age} ans)` : ''}`, kind: 'birthday', priority: 'normal', allDay: true, completed: false, planId: null, type: 'birthday' }));
-  // Événements récurrents (règle de récurrence → occurrence du jour, non validables)
+  // Événements récurrents : occurrence du jour, validable (doneLog par date)
   (Array.isArray(s.recurring) ? s.recurring : []).map(normalizeRecurring).forEach(r => {
-    if (recurrenceMatches(r.rule, date)) items.push({ id: 'rec-' + r.id, time: r.time || '', title: r.title, kind: r.kind, priority: r.priority, allDay: !r.time, completed: false, planId: null, type: 'recurring', recId: r.id, recurring: true });
+    if (recurrenceMatches(r.rule, date)) items.push({ id: 'rec-' + r.id, time: r.time || '', title: r.title, kind: r.kind, priority: r.priority, allDay: !r.time, completed: r.doneLog.includes(date), planId: null, type: 'recurring', recId: r.id, recurring: true });
   });
   // Chronologique, puis priorité (haute avant basse) à heure égale.
   return items.sort((x, y) => String(x.time).localeCompare(String(y.time)) || priorityRank(x.priority) - priorityRank(y.priority));
