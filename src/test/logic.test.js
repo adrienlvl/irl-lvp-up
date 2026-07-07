@@ -205,6 +205,34 @@ test('parseIcs : entrée vide / sans VEVENT → []', () => {
   assert.deepEqual(L.parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR'), []);
 });
 
+test('buildRRuleLine : règle interne → RRULE iCalendar ; invalide → \'\'', () => {
+  assert.equal(
+    L.buildRRuleLine({ freq: 'weekly', interval: 2, weekdays: [1, 3], startDate: '2026-07-06', until: '2026-12-31' }),
+    'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261231T235959Z'
+  );
+  assert.equal(L.buildRRuleLine({ freq: 'daily', interval: 1, startDate: '2026-07-01' }), 'RRULE:FREQ=DAILY');
+  assert.equal(L.buildRRuleLine({ freq: 'nawak', startDate: '2026-07-01' }), '');
+  assert.equal(L.buildRRuleLine(null), '');
+  // aller-retour : la RRULE émise se re-parse en règle équivalente
+  const rule = { freq: 'weekly', interval: 2, weekdays: [1, 3], startDate: '2026-07-06', until: '2026-12-31' };
+  assert.deepEqual(L.parseRRule(L.buildRRuleLine(rule).replace('RRULE:', ''), '2026-07-06'), rule);
+});
+
+test('buildIcs : événement récurrent → DTSTART de série + ligne RRULE ; ponctuels inchangés', () => {
+  const now = new Date('2026-07-08T10:00:00');
+  const rec = { id: 7, title: 'Réunion hebdo', time: '09:00', durationMin: 30, kind: 'focus', rule: { freq: 'weekly', interval: 1, weekdays: [2], startDate: '2026-07-07' } };
+  const ics = L.buildIcs([rec, { id: 8, title: 'Ponctuel', date: '2026-07-10', time: '14:00' }], now);
+  assert.match(ics, /DTSTART:20260707T090000/);
+  assert.match(ics, /RRULE:FREQ=WEEKLY;BYDAY=TU/);
+  assert.match(ics, /SUMMARY:Réunion hebdo/);
+  assert.match(ics, /SUMMARY:Ponctuel/);
+  // récurrent sans heure → journée entière
+  const allday = L.buildIcs([{ id: 9, title: 'Rituel', rule: { freq: 'daily', interval: 1, startDate: '2026-07-01' } }], now);
+  assert.match(allday, /DTSTART;VALUE=DATE:20260701/);
+  // ponctuel sans heure : toujours ignoré (comportement historique)
+  assert.ok(!L.buildIcs([{ id: 10, title: 'Sans heure', date: '2026-07-10' }], now).includes('Sans heure'));
+});
+
 test('parseRRule : FREQ/INTERVAL/BYDAY/UNTIL → règle interne ; non géré → null', () => {
   assert.deepEqual(
     L.parseRRule('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261231T000000Z', '2026-07-06'),

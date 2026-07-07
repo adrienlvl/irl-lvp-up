@@ -247,20 +247,45 @@ function normalizeAgendaItem(item) {
 // Échappement RFC 5545 pour les valeurs texte iCalendar.
 function icsEscape(text) { return String(text || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
 
+// Ligne RRULE iCalendar depuis une règle de récurrence interne. '' si invalide.
+function buildRRuleLine(rule) {
+  if (!rule || !RECUR_FREQ.includes(rule.freq) || !/^\d{4}-\d{2}-\d{2}$/.test(String(rule.startDate || ''))) return '';
+  const F = { daily: 'DAILY', weekly: 'WEEKLY', monthly: 'MONTHLY', yearly: 'YEARLY' }[rule.freq];
+  const D = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  let s = 'RRULE:FREQ=' + F;
+  const iv = Math.max(1, Math.round(Number(rule.interval) || 1));
+  if (iv > 1) s += ';INTERVAL=' + iv;
+  if (rule.freq === 'weekly' && Array.isArray(rule.weekdays) && rule.weekdays.length) s += ';BYDAY=' + rule.weekdays.map(n => D[n]).filter(Boolean).join(',');
+  if (rule.until) s += ';UNTIL=' + rule.until.replace(/-/g, '') + 'T235959Z';
+  return s;
+}
+
 // Construit un fichier iCalendar à partir des événements du calendrier unifié.
 // DTEND = début + durationMin (défaut 60), UID stable <id>@irllvpup, lignes CRLF.
-// `now` injectable pour des tests déterministes.
+// Accepte aussi les événements récurrents ({rule}) : DTSTART = début de série
+// (ou journée entière sans heure) + ligne RRULE. `now` injectable pour les tests.
 function buildIcs(events, now) {
   const pad = n => String(n).padStart(2, '0');
   const stamp = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00';
   const dtstamp = stamp(now instanceof Date ? now : new Date());
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//IRL LVP UP//FR'];
   (events || []).forEach(a => {
-    if (!a || !a.date || !a.time) return;
-    const d = new Date(`${a.date}T${a.time}`);
-    if (isNaN(d)) return;
-    const end = new Date(d.getTime() + (Number(a.durationMin) || 60) * 60000);
-    lines.push('BEGIN:VEVENT', `UID:${a.id}@irllvpup`, `DTSTAMP:${dtstamp}`, `DTSTART:${stamp(d)}`, `DTEND:${stamp(end)}`, `SUMMARY:${icsEscape(a.title)}`, `CATEGORIES:${icsEscape(a.kind || 'life')}`, 'END:VEVENT');
+    if (!a) return;
+    const rrule = a.rule ? buildRRuleLine(a.rule) : '';
+    const date = rrule ? a.rule.startDate : a.date;
+    if (!date) return;
+    const head = ['BEGIN:VEVENT', `UID:${a.id}@irllvpup`, `DTSTAMP:${dtstamp}`];
+    if (a.time) {
+      const d = new Date(`${date}T${a.time}`);
+      if (isNaN(d)) return;
+      const end = new Date(d.getTime() + (Number(a.durationMin) || 60) * 60000);
+      head.push(`DTSTART:${stamp(d)}`, `DTEND:${stamp(end)}`);
+    } else if (rrule) {
+      head.push(`DTSTART;VALUE=DATE:${date.replace(/-/g, '')}`);
+    } else return; // ponctuel sans heure : ignoré (comportement historique)
+    if (rrule) head.push(rrule);
+    head.push(`SUMMARY:${icsEscape(a.title)}`, `CATEGORIES:${icsEscape(a.kind || 'life')}`, 'END:VEVENT');
+    lines.push(...head);
   });
   lines.push('END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
@@ -835,5 +860,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, parseIcs, parseRRule, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }
