@@ -96,6 +96,31 @@ function birthdaysForDay(birthdays, dateKey) {
     .map(b => ({ id: b.id, name: b.name, age: b.year ? year - b.year : null }));
 }
 
+// Prochains anniversaires à venir depuis `todayKey` (inclus) → triés par proximité.
+// Chaque entrée : {id, name, date (prochaine occurrence YYYY-MM-DD), age|null (âge
+// atteint à cette occurrence), daysUntil}. opts.withinDays borne l'horizon (défaut
+// 60), opts.max le nombre renvoyé (défaut 5, 0 = tous). Gère le passage d'année.
+function upcomingBirthdays(birthdays, todayKey, opts) {
+  opts = opts || {};
+  const withinDays = opts.withinDays == null ? 60 : Number(opts.withinDays);
+  const max = opts.max == null ? 5 : Number(opts.max);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
+  if (!m) return [];
+  const today = new Date(+m[1], +m[2] - 1, +m[3]); today.setHours(0, 0, 0, 0);
+  const pad = n => String(n).padStart(2, '0');
+  const out = [];
+  (Array.isArray(birthdays) ? birthdays : []).map(normalizeBirthday).filter(b => b.day && b.month).forEach(b => {
+    let year = today.getFullYear();
+    let next = new Date(year, b.month - 1, b.day); next.setHours(0, 0, 0, 0);
+    if (next < today) { year++; next = new Date(year, b.month - 1, b.day); next.setHours(0, 0, 0, 0); }
+    const daysUntil = Math.round((next - today) / 86400000);
+    if (daysUntil > withinDays) return;
+    out.push({ id: b.id, name: b.name, date: `${year}-${pad(b.month)}-${pad(b.day)}`, age: b.year ? year - b.year : null, daysUntil });
+  });
+  out.sort((a, b) => a.daysUntil - b.daysUntil || String(a.name).localeCompare(b.name));
+  return max > 0 ? out.slice(0, max) : out;
+}
+
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
 // Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
@@ -682,5 +707,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

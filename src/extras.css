@@ -191,3 +191,9 @@ details.calendar-setting>summary::before{content:'▸';color:var(--muted);font-s
 details.calendar-setting[open]>summary::before{content:'▾'}
 details.calendar-setting[open]{padding-bottom:14px}
 .setting-eyebrow{color:var(--accent);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+/* D2 — récap anniversaires à venir (agenda) */
+.birthday-upcoming{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:2px 0 12px;padding:10px 14px;background:color-mix(in srgb,#d9a441 8%,var(--surface-2));border:1px solid #d9a441;border-radius:12px;font-size:.82rem}
+.birthday-upcoming[hidden]{display:none}
+.birthday-upcoming .bu-label{font-weight:700;color:#d9a441}
+.birthday-upcoming .bu-item{color:var(--text)}
+.birthday-upcoming .bu-item b{color:#d9a441}

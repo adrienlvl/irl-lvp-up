@@ -278,6 +278,30 @@ test('birthdaysForDay : sans année → age null ; date invalide → []', () => 
   assert.deepEqual(L.birthdaysForDay([{ id: 9, name: 'X', day: 3, month: 3 }], 'nope'), []);
 });
 
+test('upcomingBirthdays : prochains anniversaires triés par proximité, horizon + âge', () => {
+  const bdays = [
+    { id: 1, name: 'Adrien', day: 7, month: 7, year: 1999 },
+    { id: 2, name: 'Maman', day: 1, month: 7, year: 1963 },
+    { id: 3, name: 'Papa', day: 1, month: 9, year: 1960 }
+  ];
+  const up = L.upcomingBirthdays(bdays, '2026-07-06', { withinDays: 60 });
+  assert.deepEqual(up.map(x => x.name), ['Adrien', 'Papa'], 'Maman (dans ~360j) hors horizon 60j');
+  assert.equal(up[0].daysUntil, 1);
+  assert.equal(up[0].age, 27);
+  assert.equal(up[0].date, '2026-07-07');
+  assert.equal(up[1].daysUntil, 57);
+  assert.equal(up[1].age, 66);
+});
+
+test('upcomingBirthdays : le jour même compte comme daysUntil 0 ; passage d’année', () => {
+  const bdays = [{ id: 1, name: 'Adrien', day: 7, month: 7, year: 1999 }];
+  assert.equal(L.upcomingBirthdays(bdays, '2026-07-07', {})[0].daysUntil, 0);
+  // depuis décembre, la prochaine occurrence est l'année suivante
+  const dec = L.upcomingBirthdays(bdays, '2026-12-01', { withinDays: 365 })[0];
+  assert.equal(dec.date, '2027-07-07');
+  assert.equal(dec.age, 28);
+});
+
 test('todayItems : les anniversaires du jour apparaissent (non validables)', () => {
   const state = { birthdays: [{ id: 1, name: 'Maman', day: 6, month: 7, year: 1963 }] };
   const items = L.todayItems(state, '2026-07-06');

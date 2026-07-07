@@ -53,14 +53,14 @@ Depuis qu'il y a un onglet Agenda complet (avec vue Jour), le mini-calendrier se
 ### Thème B — Raccourcir l'Athlète
 - [x] **B1.** **Retiré le bloc `CYCLE ULTRA-TRAIL` statique** (doublon du cycle dynamique de la page Ultra). `trail-panel` conservé (il porte le bouton d'ouverture du plan + la saisie trail). Athlète 6,3 → 6,0 écrans. ✅ _boucle #44 (1.5.4)._
 - [x] **B2.** **Sections d'Athlète repliables & mémorisées** : collapsibles étendus aux `article.panel` des grilles (Journal, Poids, Programmes, Progression, Objectifs…) + « Cap de vie » du dashboard. ✅ _boucle #44._
-- **B3.** Regrouper « Objectif de course » + « Cap hebdo » au même endroit. ⭐ · 🔧🔧 _(non retenu pour l'instant.)_
+- [x] **B3.** **Objectifs regroupés** : « Objectif ultra-trail » (`trail-panel`) déplacé dans la grille des objectifs, **côte à côte avec « Cap sur l'objectif »** (`goal-panel`). ✅ _boucle #45 (1.5.5)._
 
 ### Thème C — Exercices
 - [x] **C1.** **Barre de recherche/filtre collante** (sticky) en haut du catalogue → filtrer sans remonter. ✅ _boucle #43 (1.5.3)._
 
 ### Thème D — Réglages de l'agenda (Vue mois)
 - [x] **D1.** Import, planning révision et anniversaires passés en **`<details>` repliables** (repliés par défaut) → la Vue mois n'est plus un mur de formulaires ; le calendrier + l'ajout de bloc restent visibles. ✅ _boucle #44 (1.5.4)._
-- **D2.** Petit **récap des anniversaires à venir** en haut de l'agenda (pas juste le jour J). ⭐ · 🔧🔧 _(non retenu pour l'instant.)_
+- [x] **D2.** **Récap des anniversaires à venir** : bandeau doré en haut de l'agenda (`upcomingBirthdays`, testé) — les prochains anniversaires sous 60 j, triés par proximité, avec « aujourd'hui / demain / dans X j » et l'âge à venir. ✅ _boucle #45 (1.5.5)._
 
 ### Thème E — Cohérence & plus
 - [x] **E1.** **Rappel Windows le matin d'un anniversaire** : le résumé de notification du matin (`todaySummary`, process principal) inclut désormais « 🎂 anniversaire de X ». ✅ _boucle #44 (1.5.4)._
