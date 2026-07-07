@@ -205,6 +205,21 @@ test('parseIcs : entrée vide / sans VEVENT → []', () => {
   assert.deepEqual(L.parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR'), []);
 });
 
+test('todayItems : allDay exposé (booléen) pour l’affichage « Journée »', () => {
+  const state = { agenda: [
+    { id: 1, title: 'Congé', date: '2026-07-06', time: '', kind: 'life', allDay: true },
+    { id: 2, title: 'Réu', date: '2026-07-06', time: '10:00', kind: 'focus' }
+  ] };
+  const items = L.todayItems(state, '2026-07-06');
+  assert.equal(items.find(i => i.id === 1).allDay, true);
+  assert.equal(items.find(i => i.id === 2).allDay, false);
+});
+
+test('normalizeAgendaItem : allDay normalisé en booléen', () => {
+  assert.equal(L.normalizeAgendaItem({ id: 1, allDay: 1 }).allDay, true);
+  assert.equal(L.normalizeAgendaItem({ id: 2 }).allDay, false);
+});
+
 test('prescriptionFor : repos par défaut selon la famille', () => {
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'general' }).rest, 75);
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'core' }).rest, 45);

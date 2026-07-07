@@ -57,6 +57,7 @@ function normalizeAgendaItem(item) {
     kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
     source: AGENDA_SOURCES.includes(x.source) ? x.source : (x.planId ? 'training' : 'manual'),
     priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
+    allDay: Boolean(x.allDay),
     completed: Boolean(x.completed)
   };
 }
@@ -197,11 +198,11 @@ function todayItems(state, date) {
   const items = agenda.map(a => ({
     id: a.id, time: a.time || '', title: String(a.title || 'Bloc'), kind: a.kind || 'life',
     priority: AGENDA_PRIORITIES.includes(a.priority) ? a.priority : 'normal',
-    completed: Boolean(a.completed), planId: a.planId || null,
+    allDay: Boolean(a.allDay), completed: Boolean(a.completed), planId: a.planId || null,
     type: a.planId ? 'plan' : (a.kind === 'study' ? 'study' : 'agenda')
   }));
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
-  plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', completed: false, planId: p.id, type: 'plan' }));
+  plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', allDay: false, completed: false, planId: p.id, type: 'plan' }));
   // Chronologique, puis priorité (haute avant basse) à heure égale.
   return items.sort((x, y) => String(x.time).localeCompare(String(y.time)) || priorityRank(x.priority) - priorityRank(y.priority));
 }
