@@ -121,6 +121,65 @@ function upcomingBirthdays(birthdays, todayKey, opts) {
   return max > 0 ? out.slice(0, max) : out;
 }
 
+// ---- Récurrence native (sans dépendance) : rendez-vous répétés ----
+// rule = {freq:'daily'|'weekly'|'monthly'|'yearly', interval:1, weekdays:[0..6]?,
+//         startDate:'YYYY-MM-DD', until:'YYYY-MM-DD'?}. weekdays : 0=dim..6=sam.
+// Modèle stocké : {id, title, time, durationMin, kind, priority, rule}.
+const RECUR_FREQ = ['daily', 'weekly', 'monthly', 'yearly'];
+function normalizeRecurring(item) {
+  const x = item && typeof item === 'object' ? item : {};
+  const r = x.rule && typeof x.rule === 'object' ? x.rule : {};
+  const isDate = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  return {
+    id: Number(x.id) || Date.now(),
+    title: String(x.title || 'Bloc').slice(0, 70),
+    time: typeof x.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.time) ? x.time : '',
+    durationMin: Math.max(5, Math.min(600, Number(x.durationMin) || 60)),
+    kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
+    priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
+    rule: {
+      freq: RECUR_FREQ.includes(r.freq) ? r.freq : 'weekly',
+      interval: Math.max(1, Math.min(52, Math.round(Number(r.interval) || 1))),
+      weekdays: Array.isArray(r.weekdays) ? r.weekdays.map(Number).filter(n => n >= 0 && n <= 6) : [],
+      startDate: isDate(r.startDate) ? r.startDate : '',
+      until: isDate(r.until) ? r.until : ''
+    }
+  };
+}
+
+// Un jour donné (clé YYYY-MM-DD) correspond-il à la règle de récurrence ? Pur.
+function recurrenceMatches(rule, dateKey) {
+  if (!rule || typeof rule !== 'object') return false;
+  const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || '')); if (!dm) return false;
+  const sm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(rule.startDate || '')); if (!sm) return false;
+  const date = new Date(+dm[1], +dm[2] - 1, +dm[3]); date.setHours(0, 0, 0, 0);
+  const start = new Date(+sm[1], +sm[2] - 1, +sm[3]); start.setHours(0, 0, 0, 0);
+  if (date < start) return false;
+  if (rule.until) { const um = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rule.until); if (um) { const until = new Date(+um[1], +um[2] - 1, +um[3]); until.setHours(0, 0, 0, 0); if (date > until) return false; } }
+  const interval = Math.max(1, Math.round(Number(rule.interval) || 1));
+  const monday = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); x.setHours(0, 0, 0, 0); return x; };
+  switch (rule.freq) {
+    case 'daily':
+      return Math.round((date - start) / 86400000) % interval === 0;
+    case 'weekly': {
+      const wds = Array.isArray(rule.weekdays) && rule.weekdays.length ? rule.weekdays.map(Number) : [start.getDay()];
+      if (!wds.includes(date.getDay())) return false;
+      const weeks = Math.round((monday(date) - monday(start)) / (7 * 86400000));
+      return weeks % interval === 0;
+    }
+    case 'monthly': {
+      if (date.getDate() !== start.getDate()) return false;
+      const months = (date.getFullYear() - start.getFullYear()) * 12 + (date.getMonth() - start.getMonth());
+      return months >= 0 && months % interval === 0;
+    }
+    case 'yearly': {
+      if (date.getDate() !== start.getDate() || date.getMonth() !== start.getMonth()) return false;
+      return (date.getFullYear() - start.getFullYear()) % interval === 0;
+    }
+    default: return false;
+  }
+}
+
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
 // Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
@@ -284,6 +343,10 @@ function todayItems(state, date) {
   plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', allDay: false, completed: false, planId: p.id, type: 'plan' }));
   // Anniversaires (récurrents chaque année, non validables)
   birthdaysForDay(s.birthdays, date).forEach(b => items.push({ id: 'bday-' + b.id, time: '', title: `🎂 ${b.name}${b.age != null ? ` (${b.age} ans)` : ''}`, kind: 'birthday', priority: 'normal', allDay: true, completed: false, planId: null, type: 'birthday' }));
+  // Événements récurrents (règle de récurrence → occurrence du jour, non validables)
+  (Array.isArray(s.recurring) ? s.recurring : []).map(normalizeRecurring).forEach(r => {
+    if (recurrenceMatches(r.rule, date)) items.push({ id: 'rec-' + r.id, time: r.time || '', title: r.title, kind: r.kind, priority: r.priority, allDay: !r.time, completed: false, planId: null, type: 'recurring', recId: r.id, recurring: true });
+  });
   // Chronologique, puis priorité (haute avant basse) à heure égale.
   return items.sort((x, y) => String(x.time).localeCompare(String(y.time)) || priorityRank(x.priority) - priorityRank(y.priority));
 }
@@ -707,5 +770,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

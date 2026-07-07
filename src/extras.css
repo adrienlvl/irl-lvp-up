@@ -197,3 +197,9 @@ details.calendar-setting[open]{padding-bottom:14px}
 .birthday-upcoming .bu-label{font-weight:700;color:#d9a441}
 .birthday-upcoming .bu-item{color:var(--text)}
 .birthday-upcoming .bu-item b{color:#d9a441}
+/* Événements récurrents */
+.rec-mark{color:var(--accent);font-weight:700}
+.month-event.recurring{border:1px dashed var(--accent);background:none;color:var(--text);cursor:default;display:block;text-align:left}
+.rec-interval{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.82rem}
+.rec-interval input{width:64px;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.recurring-panel .availability-days{margin-top:8px}

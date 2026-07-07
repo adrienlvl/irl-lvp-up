@@ -302,6 +302,55 @@ test('upcomingBirthdays : le jour même compte comme daysUntil 0 ; passage d’a
   assert.equal(dec.age, 28);
 });
 
+test('normalizeRecurring : défauts, freq/interval validés, weekdays filtrés', () => {
+  const r = L.normalizeRecurring({ id: 1, title: 'X', rule: { freq: 'weekly', interval: 2, weekdays: [1, 3, 9], startDate: '2026-07-06' } });
+  assert.equal(r.rule.freq, 'weekly');
+  assert.equal(r.rule.interval, 2);
+  assert.deepEqual(r.rule.weekdays, [1, 3], '9 hors 0..6 filtré');
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'nawak' } }).rule.freq, 'weekly');
+  assert.equal(L.normalizeRecurring({ rule: { interval: 999 } }).rule.interval, 52);
+});
+
+test('recurrenceMatches : quotidien avec intervalle + borne de début', () => {
+  const rule = { freq: 'daily', interval: 2, startDate: '2026-07-01' };
+  assert.equal(L.recurrenceMatches(rule, '2026-07-01'), true);
+  assert.equal(L.recurrenceMatches(rule, '2026-07-03'), true);
+  assert.equal(L.recurrenceMatches(rule, '2026-07-02'), false);
+  assert.equal(L.recurrenceMatches(rule, '2026-06-30'), false, 'avant le début');
+});
+
+test('recurrenceMatches : hebdo avec jours + intervalle de semaines', () => {
+  const rule = { freq: 'weekly', interval: 1, weekdays: [1, 3], startDate: '2026-07-06' }; // lun 6, mer
+  assert.equal(L.recurrenceMatches(rule, '2026-07-06'), true, 'lundi');
+  assert.equal(L.recurrenceMatches(rule, '2026-07-08'), true, 'mercredi');
+  assert.equal(L.recurrenceMatches(rule, '2026-07-07'), false, 'mardi non coché');
+  const biweekly = { freq: 'weekly', interval: 2, weekdays: [1], startDate: '2026-07-06' };
+  assert.equal(L.recurrenceMatches(biweekly, '2026-07-06'), true, 'semaine 0');
+  assert.equal(L.recurrenceMatches(biweekly, '2026-07-13'), false, 'semaine 1');
+  assert.equal(L.recurrenceMatches(biweekly, '2026-07-20'), true, 'semaine 2');
+});
+
+test('recurrenceMatches : mensuel, annuel, borne until', () => {
+  assert.equal(L.recurrenceMatches({ freq: 'monthly', interval: 1, startDate: '2026-07-15' }, '2026-08-15'), true);
+  assert.equal(L.recurrenceMatches({ freq: 'monthly', interval: 1, startDate: '2026-07-15' }, '2026-08-14'), false);
+  assert.equal(L.recurrenceMatches({ freq: 'yearly', interval: 1, startDate: '2026-07-07' }, '2027-07-07'), true);
+  assert.equal(L.recurrenceMatches({ freq: 'yearly', interval: 2, startDate: '2026-07-07' }, '2027-07-07'), false);
+  const until = { freq: 'daily', interval: 1, startDate: '2026-07-01', until: '2026-07-05' };
+  assert.equal(L.recurrenceMatches(until, '2026-07-05'), true);
+  assert.equal(L.recurrenceMatches(until, '2026-07-06'), false, 'après until');
+});
+
+test('todayItems : un événement récurrent tombant ce jour apparaît (non validable)', () => {
+  const state = { recurring: [{ id: 1, title: 'Standup', time: '09:00', kind: 'focus', rule: { freq: 'weekly', interval: 1, weekdays: [2], startDate: '2026-07-01' } }] };
+  const items = L.todayItems(state, '2026-07-07'); // mardi (weekday 2)
+  const r = items.find(i => i.type === 'recurring');
+  assert.ok(r, 'occurrence récurrente présente');
+  assert.equal(r.title, 'Standup');
+  assert.equal(r.time, '09:00');
+  assert.equal(r.recurring, true);
+  assert.equal(L.todayItems(state, '2026-07-08').some(i => i.type === 'recurring'), false, 'mercredi : pas d’occurrence');
+});
+
 test('todayItems : les anniversaires du jour apparaissent (non validables)', () => {
   const state = { birthdays: [{ id: 1, name: 'Maman', day: 6, month: 7, year: 1963 }] };
   const items = L.todayItems(state, '2026-07-06');
