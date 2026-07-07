@@ -46,8 +46,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "REPLACE_WITH_GITHUB_USER",
-        "repo": "REPLACE_WITH_GITHUB_REPO"
+        "owner": "adrienlvl",
+        "repo": "irl-lvp-up"
       }
     ]
   },
