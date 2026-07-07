@@ -6,8 +6,8 @@
 .panel-heading,.mission-heading{position:relative}
 .collapse-toggle{background:none;border:0;color:var(--muted);font-size:1.05rem;line-height:1;cursor:pointer;padding:2px 4px;margin-left:6px;flex:0 0 auto;transition:color .15s}
 .collapse-toggle:hover{color:var(--text)}
-section.panel.collapsed{padding-bottom:20px}
-section.panel.collapsed > *:not(.panel-heading){display:none!important}
+section.panel.collapsed,article.panel.collapsed{padding-bottom:20px}
+section.panel.collapsed > *:not(.panel-heading),article.panel.collapsed > *:not(.panel-heading){display:none!important}
 section.mission-control.collapsed > *:not(.mission-heading){display:none!important}
 
 /* Sous-onglets page Athlète (B1) */

@@ -51,19 +51,19 @@ Depuis qu'il y a un onglet Agenda complet (avec vue Jour), le mini-calendrier se
 - [x] **A3.** Mission Control + Boussole repliés par défaut (installation neuve) — inchangé, déjà en place. ✅
 
 ### Thème B — Raccourcir l'Athlète
-- **B1.** **Retirer les blocs Ultra-trail inline** (ils vivent déjà dans la page Ultra-trail) → −2 gros blocs. ⭐⭐⭐ · 🔧
-- **B2.** **Rendre les sections d'Athlète repliables** (comme le dashboard), mémorisées. ⭐⭐⭐ · 🔧🔧
-- **B3.** Regrouper « Objectif de course » + « Cap hebdo » au même endroit. ⭐ · 🔧🔧
+- [x] **B1.** **Retiré le bloc `CYCLE ULTRA-TRAIL` statique** (doublon du cycle dynamique de la page Ultra). `trail-panel` conservé (il porte le bouton d'ouverture du plan + la saisie trail). Athlète 6,3 → 6,0 écrans. ✅ _boucle #44 (1.5.4)._
+- [x] **B2.** **Sections d'Athlète repliables & mémorisées** : collapsibles étendus aux `article.panel` des grilles (Journal, Poids, Programmes, Progression, Objectifs…) + « Cap de vie » du dashboard. ✅ _boucle #44._
+- **B3.** Regrouper « Objectif de course » + « Cap hebdo » au même endroit. ⭐ · 🔧🔧 _(non retenu pour l'instant.)_
 
 ### Thème C — Exercices
 - [x] **C1.** **Barre de recherche/filtre collante** (sticky) en haut du catalogue → filtrer sans remonter. ✅ _boucle #43 (1.5.3)._
 
 ### Thème D — Réglages de l'agenda (Vue mois)
-- **D1.** Mettre les 4 formulaires (ajout, import, révision, anniversaires) en **sections repliables** sous un bandeau « Réglages de l'agenda ». ⭐⭐ · 🔧🔧
-- **D2.** Petit **récap des anniversaires à venir** en haut de l'agenda (pas juste le jour J). ⭐ · 🔧🔧
+- [x] **D1.** Import, planning révision et anniversaires passés en **`<details>` repliables** (repliés par défaut) → la Vue mois n'est plus un mur de formulaires ; le calendrier + l'ajout de bloc restent visibles. ✅ _boucle #44 (1.5.4)._
+- **D2.** Petit **récap des anniversaires à venir** en haut de l'agenda (pas juste le jour J). ⭐ · 🔧🔧 _(non retenu pour l'instant.)_
 
 ### Thème E — Cohérence & plus
-- **E1.** **Rappel Windows le matin d'un anniversaire** (la notif du matin lit l'agenda mais pas encore les anniversaires). ⭐⭐ · 🔧🔧
+- [x] **E1.** **Rappel Windows le matin d'un anniversaire** : le résumé de notification du matin (`todaySummary`, process principal) inclut désormais « 🎂 anniversaire de X ». ✅ _boucle #44 (1.5.4)._
 - **E2.** Uniformiser les **états vides** et les libellés d'un onglet à l'autre. ⭐ · 🔧
 - **E3.** Un **fil d'Ariane / titre de page** cohérent partout (déjà en place hors dashboard). ⭐ · 🔧
 

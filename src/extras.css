@@ -183,3 +183,11 @@ html[data-density=compact] .app-foot{margin-top:16px}
 .subhead-hint{font-weight:400;color:var(--muted);font-size:.76rem}
 /* C1 — barre de recherche collante sur Exercices */
 .exercise-library .exercise-controls{position:sticky;top:0;z-index:6;background:var(--card,var(--surface-2));padding-top:12px;padding-bottom:12px;box-shadow:0 10px 14px -12px rgba(0,0,0,.55)}
+/* D1 — réglages de l'agenda repliables (Vue mois) */
+details.calendar-setting{border:1px solid var(--line);border-radius:12px;padding:0 14px;margin:10px 0;background:var(--surface-2)}
+details.calendar-setting>summary{cursor:pointer;list-style:none;padding:13px 0;font-weight:650;font-size:.9rem;display:flex;align-items:center;gap:8px}
+details.calendar-setting>summary::-webkit-details-marker{display:none}
+details.calendar-setting>summary::before{content:'▸';color:var(--muted);font-size:.8rem}
+details.calendar-setting[open]>summary::before{content:'▾'}
+details.calendar-setting[open]{padding-bottom:14px}
+.setting-eyebrow{color:var(--accent);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
