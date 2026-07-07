@@ -82,3 +82,14 @@
 .shop-qty{color:var(--accent);font-size:.74rem;font-weight:650;white-space:nowrap}
 .shop-sugg{color:var(--muted);font-size:.74rem;text-align:right}
 @media(max-width:700px){.meal-suggestions{grid-template-columns:1fr}.shopping-row{grid-template-columns:1fr auto}.shop-sugg{grid-column:1/-1;text-align:left}}
+/* Agenda — priorités */
+.prio-flag{margin-right:5px;font-size:.7rem}
+.my-day-item.prio-high{border-left:3px solid var(--pink,#e5484d);padding-left:9px}
+.my-day-item.prio-low{opacity:.72}
+.month-event.prio-high,.week-chip.prio-high{outline:1.5px solid var(--pink,#e5484d);outline-offset:-1px}
+.week-chip.prio-low,.month-event.prio-low{opacity:.66}
+/* Agenda — import .ics (Google / Apple) */
+.ics-import-block{margin-top:14px}
+.ics-import-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.ics-import-controls select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:.82rem}
+#importIcsStatus{display:block;color:var(--muted)}

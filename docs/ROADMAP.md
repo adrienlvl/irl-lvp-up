@@ -63,8 +63,11 @@ _Livrable : un `.exe` reproductible + données à l'épreuve du quota._
 - [x] **1.3** Cycle de vie cohérent : supprimer un événement du calendrier mensuel supprime aussi le plan lié (`planId`) et rafraîchit toutes les vues — bug orphelin de l'audit corrigé. ✅ _boucle #05._
 - [x] **1.4** Catégorie **« Révision »** (`study`, ambre `#5a4a2b`) : selects des 2 formulaires, légende, styles hebdo + mensuel. ✅ _boucle #05._
 - [x] **1.5** `.ics` amélioré : `buildIcs()` dans `lib/logic.js` (testée) — durée réelle (`durationMin`), UID stable `<id>@irllvpup`, échappement RFC 5545 complet, catégorie `study`, CRLF. ✅ _boucle #06._
+- [x] **1.6** **Priorités** : champ `priority` (haute/normale/basse) dans le modèle + `normalizeAgendaItem` ; sélecteur au formulaire ; badge 🔴/🔵 et bordure dans « Ma journée », le mois et la semaine ; tri chronologique **puis** priorité à heure égale (`priorityRank`). ✅ _boucle #36._
+- [x] **1.7** **Import Google Agenda / Apple Calendrier (.ics)** : `parseIcs()` dans `lib/logic.js` (testée) — dépliage RFC 5545, `SUMMARY`/`DTSTART`/`DTEND`/`UID`, journée entière (`VALUE=DATE`), UTC `Z`→local, durée déduite ; import de fichier **100 % local, sans réseau** ; `source:'imported'`, `refId:'ics-<uid>'` → réimport sans doublon via `mergePlannedEvents`. ✅ _boucle #36._
+  - ⏳ **À venir (Vague S)** : synchronisation **automatique** live (OAuth Google / abonnement CalDAV Apple) — nécessite réseau + jetons → traitée dans la Vague Sécurité, comme le scan du frigo.
 
-> ✅ **Vague 1 terminée** (boucles #05–#06, 2026-07-06).
+> ✅ **Vague 1 terminée** (boucles #05–#06, 2026-07-06) · enrichie #36 (priorités + import .ics).
 
 _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source externe idempotente._
 
@@ -102,6 +105,9 @@ Déjà en place (Vague 0) : `contextIsolation: true`, `nodeIntegration: false`, 
 - [x] **S.5** **Imports défensifs** : restauration JSON (normalizeState), planning Grand Livre (`glcPlanningToEvents` : schéma strict, regex, bornes, cap 120 jours, 1 Mo max). ✅ _boucles #04, #09._
 - [x] **S.6** **Hygiène dépendances** : `npm audit` intégré aux boucles ; **Electron monté 33 → 43.0.0** (purge ~18 CVE dont contournement d'intégrité ASAR). Résiduel : `tar` dans la chaîne electron-builder = **outillage de build uniquement** (jamais livré) — suivi, à purger avec electron-builder next (Vague 3). Lockfile commité. ✅ _boucle #10._
 - [ ] **S.7** **Si connexion internet un jour** (préparé, pas activé) : allowlist stricte de domaines HTTPS, aucun code distant exécuté (pas de script tiers), secrets via `safeStorage` (chiffrement OS, jamais en clair dans le state), mises à jour signées uniquement, et CSP resserrée par domaine.
+- [ ] **S.8** **Fonctions réseau demandées, à ouvrir dans cette vague** (chacune = accès Internet explicite et minimal) :
+  - 📸 **Scan du frigo par photo** → reconnaissance d'image (IA/API) qui remplit « Mon frigo ». _(Demandé par Adrien — 2026-07-07.)_
+  - 🔄 **Sync agenda automatique** Google (OAuth) / Apple (abonnement CalDAV/webcal) — complète l'import `.ics` manuel déjà livré (#1.7). Jetons via `safeStorage`, lecture seule d'abord. _(Demandé par Adrien — 2026-07-07.)_
 
 _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future sera explicite, minimale et vérifiée._
 

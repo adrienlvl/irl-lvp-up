@@ -151,6 +151,60 @@ test('todayItems : state vide → []', () => {
   assert.deepEqual(L.todayItems(null, '2026-07-06'), []);
 });
 
+test('normalizeAgendaItem : priorité par défaut normal, valides gardées, invalide → normal', () => {
+  assert.equal(L.normalizeAgendaItem({ id: 1, title: 'X' }).priority, 'normal');
+  assert.equal(L.normalizeAgendaItem({ id: 2, priority: 'high' }).priority, 'high');
+  assert.equal(L.normalizeAgendaItem({ id: 3, priority: 'low' }).priority, 'low');
+  assert.equal(L.normalizeAgendaItem({ id: 4, priority: 'urgent' }).priority, 'normal');
+});
+
+test('todayItems : à heure égale, haute priorité avant basse', () => {
+  const state = { agenda: [
+    { id: 1, title: 'Basse', date: '2026-07-06', time: '09:00', kind: 'life', priority: 'low' },
+    { id: 2, title: 'Haute', date: '2026-07-06', time: '09:00', kind: 'life', priority: 'high' },
+    { id: 3, title: 'Normale', date: '2026-07-06', time: '09:00', kind: 'life' }
+  ] };
+  const titles = L.todayItems(state, '2026-07-06').map(i => i.title);
+  assert.deepEqual(titles, ['Haute', 'Normale', 'Basse']);
+});
+
+test('parseIcs : événement horaire local, durée déduite, source/refId imported', () => {
+  const ics = 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:abc-123\r\nSUMMARY:Réunion projet\r\nDTSTART:20260710T140000\r\nDTEND:20260710T151500\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n';
+  const ev = L.parseIcs(ics, { kind: 'focus', baseId: 1000 });
+  assert.equal(ev.length, 1);
+  assert.equal(ev[0].title, 'Réunion projet');
+  assert.equal(ev[0].date, '2026-07-10');
+  assert.equal(ev[0].time, '14:00');
+  assert.equal(ev[0].durationMin, 75);
+  assert.equal(ev[0].kind, 'focus');
+  assert.equal(ev[0].source, 'imported');
+  assert.equal(ev[0].refId, 'ics-abc-123');
+});
+
+test('parseIcs : journée entière (VALUE=DATE) → time vide, allDay true', () => {
+  const ics = 'BEGIN:VEVENT\r\nUID:d1\r\nSUMMARY:Congé\r\nDTSTART;VALUE=DATE:20260712\r\nDTEND;VALUE=DATE:20260713\r\nEND:VEVENT';
+  const ev = L.parseIcs(ics);
+  assert.equal(ev[0].time, '');
+  assert.equal(ev[0].allDay, true);
+  assert.equal(ev[0].date, '2026-07-12');
+});
+
+test('parseIcs : dépliage des lignes + déséchappement + réimport idempotent', () => {
+  // ligne repliée (SUMMARY sur 2 lignes) et virgule échappée
+  const ics = 'BEGIN:VEVENT\r\nUID:x9\r\nSUMMARY:Courses\\, pharmacie et\r\n  banque\r\nDTSTART:20260711T100000\r\nEND:VEVENT';
+  const ev = L.parseIcs(ics, { baseId: 5 });
+  assert.equal(ev[0].title, 'Courses, pharmacie et banque');
+  assert.equal(ev[0].durationMin, 60); // pas de DTEND → défaut 60
+  // réimport : même refId → mergePlannedEvents ne duplique pas
+  const merged = L.mergePlannedEvents(L.mergePlannedEvents([], ev), L.parseIcs(ics, { baseId: 99 }));
+  assert.equal(merged.filter(a => a.refId === 'ics-x9').length, 1);
+});
+
+test('parseIcs : entrée vide / sans VEVENT → []', () => {
+  assert.deepEqual(L.parseIcs(''), []);
+  assert.deepEqual(L.parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR'), []);
+});
+
 test('prescriptionFor : repos par défaut selon la famille', () => {
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'general' }).rest, 75);
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'core' }).rest, 45);

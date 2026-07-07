@@ -38,6 +38,9 @@ function computeStreak(lastActive, today, yesterday, streak) {
 // 'planner' = créneaux générés par le planificateur de révision interne (Vague 2).
 const AGENDA_KINDS = ['focus', 'sport', 'life', 'study'];
 const AGENDA_SOURCES = ['manual', 'training', 'study-glc', 'imported', 'planner'];
+// Priorités, de la plus forte à la plus faible (sert aussi de rang de tri).
+const AGENDA_PRIORITIES = ['high', 'normal', 'low'];
+function priorityRank(p) { const i = AGENDA_PRIORITIES.indexOf(p); return i === -1 ? 1 : i; }
 
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
@@ -53,6 +56,7 @@ function normalizeAgendaItem(item) {
     durationMin: Math.max(5, Math.min(600, Number(x.durationMin) || 60)),
     kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
     source: AGENDA_SOURCES.includes(x.source) ? x.source : (x.planId ? 'training' : 'manual'),
+    priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
     completed: Boolean(x.completed)
   };
 }
@@ -77,6 +81,77 @@ function buildIcs(events, now) {
   });
   lines.push('END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
+}
+
+// Inverse de icsEscape : restitue les caractères échappés d'une valeur iCalendar.
+function unescapeIcs(v) {
+  return String(v || '').replace(/\\n/gi, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+}
+
+// Analyse une valeur DTSTART/DTEND iCalendar → {date:'YYYY-MM-DD', time:'HH:MM'|'',
+// allDay, ms}. Gère la date seule (VALUE=DATE, journée entière), l'heure locale/
+// flottante (heure de paroi telle quelle) et l'UTC (suffixe Z → converti en local).
+// TZID non résolu : l'heure de paroi est prise telle quelle (suffisant en perso).
+function parseIcsDateTime(value) {
+  const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(String(value || '').trim());
+  if (!m) return null;
+  const [, Y, Mo, D, h, mi, s, z] = m;
+  const pad = n => String(n).padStart(2, '0');
+  if (h === undefined) return { date: `${Y}-${Mo}-${D}`, time: '', allDay: true, ms: Date.UTC(+Y, +Mo - 1, +D) };
+  if (z === 'Z') {
+    const d = new Date(Date.UTC(+Y, +Mo - 1, +D, +h, +mi, +(s || 0)));
+    return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, allDay: false, ms: d.getTime() };
+  }
+  return { date: `${Y}-${Mo}-${D}`, time: `${h}:${mi}`, allDay: false, ms: Date.UTC(+Y, +Mo - 1, +D, +h, +mi, +(s || 0)) };
+}
+
+// Importe un fichier .ics (export/abonnement Google Agenda ou Apple Calendrier)
+// vers des événements du modèle unifié. Déplie les lignes RFC 5545, lit chaque
+// VEVENT (SUMMARY, DTSTART, DTEND, UID), déduit la durée, et marque source:'imported'
+// avec refId 'ics-<uid>' pour un réimport idempotent via mergePlannedEvents.
+// opts.kind = catégorie attribuée (défaut 'life'). Purement local, aucun réseau.
+function parseIcs(text, opts) {
+  opts = opts || {};
+  const kind = AGENDA_KINDS.includes(opts.kind) ? opts.kind : 'life';
+  const idBase = Number(opts.baseId) || Date.now();
+  const unfolded = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]/g, '');
+  const events = [];
+  let cur = null;
+  for (const line of unfolded.split('\n')) {
+    if (line === 'BEGIN:VEVENT') { cur = {}; continue; }
+    if (line === 'END:VEVENT') {
+      if (cur && cur.start && cur.start.date) {
+        let durationMin = 60;
+        if (cur.end && cur.end.ms != null && cur.start.ms != null) {
+          const diff = Math.round((cur.end.ms - cur.start.ms) / 60000);
+          if (diff > 0) durationMin = Math.min(1440, diff);
+        }
+        events.push({
+          id: idBase + events.length,
+          title: cur.summary || 'Événement',
+          date: cur.start.date,
+          time: cur.start.allDay ? '' : cur.start.time,
+          durationMin,
+          kind,
+          source: 'imported',
+          refId: 'ics-' + (cur.uid || `${cur.start.date}-${cur.start.time}-${cur.summary || ''}`),
+          allDay: !!cur.start.allDay,
+          completed: false
+        });
+      }
+      cur = null; continue;
+    }
+    if (!cur) continue;
+    const idx = line.indexOf(':');
+    if (idx === -1) continue;
+    const name = line.slice(0, idx).split(';')[0].toUpperCase();
+    const value = line.slice(idx + 1);
+    if (name === 'SUMMARY') cur.summary = unescapeIcs(value);
+    else if (name === 'UID') cur.uid = value.trim();
+    else if (name === 'DTSTART') cur.start = parseIcsDateTime(value);
+    else if (name === 'DTEND') cur.end = parseIcsDateTime(value);
+  }
+  return events;
 }
 
 // Planificateur de révision : génère des événements `study` récurrents entre
@@ -121,12 +196,14 @@ function todayItems(state, date) {
   const agenda = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.date === date);
   const items = agenda.map(a => ({
     id: a.id, time: a.time || '', title: String(a.title || 'Bloc'), kind: a.kind || 'life',
+    priority: AGENDA_PRIORITIES.includes(a.priority) ? a.priority : 'normal',
     completed: Boolean(a.completed), planId: a.planId || null,
     type: a.planId ? 'plan' : (a.kind === 'study' ? 'study' : 'agenda')
   }));
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
-  plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', completed: false, planId: p.id, type: 'plan' }));
-  return items.sort((x, y) => String(x.time).localeCompare(String(y.time)));
+  plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', completed: false, planId: p.id, type: 'plan' }));
+  // Chronologique, puis priorité (haute avant basse) à heure égale.
+  return items.sort((x, y) => String(x.time).localeCompare(String(y.time)) || priorityRank(x.priority) - priorityRank(y.priority));
 }
 
 // Convertit un export de planning du Grand Livre Compta en événements `study`.
@@ -548,5 +625,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }
