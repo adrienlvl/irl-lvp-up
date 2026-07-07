@@ -424,6 +424,23 @@ test('generateMeals : ancre (« envie de ») force l’aliment', () => {
   assert.ok(meals[0].items.some(it => /boeuf/i.test(it.name)), 'le boeuf est ancré');
 });
 
+test('buildShoppingList : ne liste que les catégories manquantes de l’envie', () => {
+  // frigo avec seulement une protéine → il manque féculent + légume (+ laitier en équilibré)
+  const items = L.buildShoppingList([{ n: 'Poulet, blanc, cuit', cat: 'P' }], { style: 'equilibre', count: 3 });
+  const cats = items.map(i => i.cat);
+  assert.ok(!cats.includes('P'), 'la protéine déjà présente n’est pas dans la liste');
+  assert.ok(cats.includes('F') && cats.includes('L') && cats.includes('D'), 'féculent, légume et laitier manquent');
+  const f = items.find(i => i.cat === 'F');
+  assert.ok(f.grams > 0 && f.suggestions.length, 'quantité estimée + suggestions concrètes');
+});
+
+test('buildShoppingList : frigo complet → liste vide ; frigo vide → toutes les catégories de l’envie', () => {
+  const full = [{ cat: 'P', n: 'a' }, { cat: 'F', n: 'b' }, { cat: 'L', n: 'c' }, { cat: 'G', n: 'd' }];
+  assert.deepEqual(L.buildShoppingList(full, { style: 'reconfort' }), [], 'rien à acheter');
+  const empty = L.buildShoppingList([], { style: 'proteine' }).map(i => i.cat);
+  assert.deepEqual(empty, ['P', 'F', 'L', 'D'], 'protéiné → P+F+L+laitier');
+});
+
 test('supplementTiming : avant/pendant/après par type de séance', () => {
   const muscu = L.supplementTiming('muscu');
   assert.equal(muscu.title, 'Musculation');

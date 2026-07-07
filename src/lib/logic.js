@@ -402,6 +402,39 @@ function generateMeals(pantry, opts) {
   return meals;
 }
 
+// Liste de courses : à partir du frigo + de l'envie du jour, propose des aliments
+// concrets à acheter pour les catégories que l'envie demande mais qui manquent au
+// frigo (P/F/L + l'extra du style). Renvoie [{cat, label, grams, suggestions[]}]. Pur.
+const SHOP_LABELS = { P: 'Protéine', F: 'Féculent', L: 'Légume', R: 'Fruit', D: 'Produit laitier', G: 'Gourmandise' };
+const SHOPPING_STAPLES = {
+  P: ['Poulet (blanc/filet)', 'Œufs', 'Thon au naturel', 'Steak haché 5%'],
+  F: ['Riz', 'Pâtes complètes', 'Pain complet', 'Pommes de terre'],
+  L: ['Brocoli', 'Courgettes', 'Carottes', 'Haricots verts'],
+  R: ['Pommes', 'Bananes', 'Oranges', 'Fruits rouges'],
+  D: ['Yaourt nature', 'Fromage blanc', 'Skyr'],
+  G: ['Chocolat noir', 'Amandes', 'Miel']
+};
+function buildShoppingList(pantry, opts) {
+  opts = opts || {};
+  const st = MEAL_STYLES[opts.style] || MEAL_STYLES.equilibre;
+  const count = Math.max(1, Math.min(4, Number(opts.count) || 3));
+  const list = Array.isArray(pantry) ? pantry.filter(x => x && x.cat) : [];
+  const have = {}; list.forEach(x => { have[x.cat] = true; });
+  const needed = ['P', 'F', 'L'].concat(st.extra || []);
+  const items = [], seen = {};
+  needed.forEach(cat => {
+    if (seen[cat] || have[cat]) return;
+    seen[cat] = true;
+    items.push({
+      cat,
+      label: SHOP_LABELS[cat] || cat,
+      grams: Math.round((MEAL_PORTIONS[cat] || 100) * count),
+      suggestions: (SHOPPING_STAPLES[cat] || []).slice(0, 3)
+    });
+  });
+  return items;
+}
+
 // Timing des compléments AVANT / PENDANT / APRÈS selon le type de séance.
 // Contenu = repères de nutrition sportive courants (pas un avis médical).
 function supplementTiming(kind) {
@@ -515,5 +548,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, icsEscape, buildIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }
