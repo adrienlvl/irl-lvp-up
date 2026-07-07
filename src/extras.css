@@ -203,3 +203,15 @@ details.calendar-setting[open]{padding-bottom:14px}
 .rec-interval{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.82rem}
 .rec-interval input{width:64px;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
 .recurring-panel .availability-days{margin-top:8px}
+/* Habitudes quotidiennes (Dailies) */
+.habit-list{display:grid;gap:6px}
+.habit-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.habit-item.done{border-left:3px solid var(--accent)}
+.habit-check{width:24px;height:24px;flex:0 0 auto;border:1.5px solid var(--line);border-radius:50%;background:none;color:var(--accent);cursor:pointer;font-size:.8rem;line-height:1}
+.habit-check.checked{border-color:var(--accent)}
+.habit-name{flex:1;font-size:.86rem}
+.habit-item.done .habit-name{color:var(--muted)}
+.habit-streak{font-size:.78rem;font-weight:700;color:#e5843a;white-space:nowrap}
+.habit-xp{font-size:.72rem;color:var(--accent);font-weight:650;white-space:nowrap}
+.habit-del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:0 3px}
+.habit-del:hover{color:var(--pink,#e5484d)}

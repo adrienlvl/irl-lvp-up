@@ -180,6 +180,49 @@ function recurrenceMatches(rule, dateKey) {
   }
 }
 
+// ---- Habitudes quotidiennes (façon Habitica « Dailies ») : récurrentes + série ----
+// Modèle : {id, name, weekdays:[0..6] (vide = tous les jours), xp, log:[YYYY-MM-DD faits], createdAt}.
+function normalizeHabit(item) {
+  const x = item && typeof item === 'object' ? item : {};
+  return {
+    id: Number(x.id) || Date.now(),
+    name: String(x.name || '').slice(0, 70),
+    weekdays: Array.isArray(x.weekdays) ? x.weekdays.map(Number).filter(n => n >= 0 && n <= 6) : [],
+    xp: Math.max(1, Math.min(50, Math.round(Number(x.xp) || 10))),
+    log: Array.isArray(x.log) ? x.log.filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) : [],
+    createdAt: Number(x.createdAt) || Number(x.id) || Date.now()
+  };
+}
+
+// Série (streak) courante d'une habitude au jour `todayKey` : nombre de jours
+// programmés consécutifs faits, en remontant. Tolérant : si le jour même est
+// programmé mais pas encore fait, la série n'est pas cassée (on part de la veille).
+function habitStreak(habit, todayKey) {
+  const h = normalizeHabit(habit);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || '')); if (!m) return 0;
+  const done = new Set(h.log);
+  const wds = h.weekdays.length ? new Set(h.weekdays) : new Set([0, 1, 2, 3, 4, 5, 6]);
+  const pad = n => String(n).padStart(2, '0');
+  const key = x => `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`;
+  let d = new Date(+m[1], +m[2] - 1, +m[3]); d.setHours(0, 0, 0, 0);
+  if (wds.has(d.getDay()) && !done.has(key(d))) d.setDate(d.getDate() - 1); // aujourd'hui pas encore fait : on n'entame pas
+  let streak = 0, guard = 0;
+  while (guard++ < 3660) {
+    if (wds.has(d.getDay())) { if (done.has(key(d))) streak++; else break; }
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+// Habitudes prévues un jour donné → [{id, name, xp, done, streak}].
+function habitsForDay(habits, todayKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || '')); if (!m) return [];
+  const wd = new Date(+m[1], +m[2] - 1, +m[3]).getDay();
+  return (Array.isArray(habits) ? habits : []).map(normalizeHabit)
+    .filter(h => !h.weekdays.length || h.weekdays.includes(wd))
+    .map(h => ({ id: h.id, name: h.name, xp: h.xp, done: h.log.includes(todayKey), streak: habitStreak(h, todayKey) }));
+}
+
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
 // Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
@@ -770,5 +813,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

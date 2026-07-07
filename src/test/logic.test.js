@@ -351,6 +351,36 @@ test('todayItems : un événement récurrent tombant ce jour apparaît (non vali
   assert.equal(L.todayItems(state, '2026-07-08').some(i => i.type === 'recurring'), false, 'mercredi : pas d’occurrence');
 });
 
+test('normalizeHabit : défauts, xp borné, weekdays/log filtrés', () => {
+  const h = L.normalizeHabit({ id: 1, name: 'Lecture', xp: 999, weekdays: [1, 3, 9], log: ['2026-07-06', 'oops'] });
+  assert.equal(h.name, 'Lecture');
+  assert.equal(h.xp, 50, 'xp borné à 50');
+  assert.deepEqual(h.weekdays, [1, 3]);
+  assert.deepEqual(h.log, ['2026-07-06'], 'entrée de log invalide filtrée');
+  assert.equal(L.normalizeHabit({ id: 2 }).xp, 10, 'xp défaut 10');
+});
+
+test('habitStreak : jours consécutifs, tolérant au jour non encore fait, cassé par un trou', () => {
+  const h = { id: 1, name: 'X', log: ['2026-07-05', '2026-07-06', '2026-07-07'] };
+  assert.equal(L.habitStreak(h, '2026-07-07'), 3, 'fait aujourd’hui → 3');
+  assert.equal(L.habitStreak(h, '2026-07-08'), 3, 'pas encore fait aujourd’hui, série intacte de la veille');
+  assert.equal(L.habitStreak(h, '2026-07-09'), 0, 'trou le 08 → série cassée');
+  assert.equal(L.habitStreak({ id: 2, log: [] }, '2026-07-07'), 0);
+});
+
+test('habitsForDay : filtre par jour de semaine, statut fait + série', () => {
+  const habits = [
+    { id: 1, name: 'Eau', log: ['2026-07-06', '2026-07-07'] }, // tous les jours
+    { id: 2, name: 'Muscu', weekdays: [1, 3], log: [] } // lun/mer seulement
+  ];
+  const tue = L.habitsForDay(habits, '2026-07-07'); // mardi
+  assert.deepEqual(tue.map(h => h.name), ['Eau'], 'Muscu non prévue le mardi');
+  assert.equal(tue[0].done, true);
+  assert.equal(tue[0].streak, 2);
+  const mon = L.habitsForDay(habits, '2026-07-06'); // lundi
+  assert.deepEqual(mon.map(h => h.name).sort(), ['Eau', 'Muscu']);
+});
+
 test('todayItems : les anniversaires du jour apparaissent (non validables)', () => {
   const state = { birthdays: [{ id: 1, name: 'Maman', day: 6, month: 7, year: 1963 }] };
   const items = L.todayItems(state, '2026-07-06');
