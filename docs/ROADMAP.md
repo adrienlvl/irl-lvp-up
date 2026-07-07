@@ -67,8 +67,9 @@ _Livrable : un `.exe` reproductible + données à l'épreuve du quota._
 - [x] **1.7** **Import Google Agenda / Apple Calendrier (.ics)** : `parseIcs()` dans `lib/logic.js` (testée) — dépliage RFC 5545, `SUMMARY`/`DTSTART`/`DTEND`/`UID`, journée entière (`VALUE=DATE`), UTC `Z`→local, durée déduite ; import de fichier **100 % local, sans réseau** ; `source:'imported'`, `refId:'ics-<uid>'` → réimport sans doublon via `mergePlannedEvents`. ✅ _boucle #36._
   - ⏳ **À venir (Vague S)** : synchronisation **automatique** live (OAuth Google / abonnement CalDAV Apple) — nécessite réseau + jetons → traitée dans la Vague Sécurité, comme le scan du frigo.
 - [x] **1.8** **UX Agenda (passe « Agenda d'abord », choix d'Adrien)** : l'entrée Agenda (vue semaine) devient limpide — **ajout rapide** en tête (titre/date/heure/type/priorité + **journée entière**), **filtres** par type (sport/focus/vie/révision) et **haute priorité seulement**, bouton **⬇️ Importer (Google/Apple)** dans la barre d'outils, et affichage **« Journée »** pour le tout-la-journée (`allDay` porté par `todayItems`/`normalizeAgendaItem`). ✅ _boucle #37._
+- [x] **1.9** **To-Do du jour** (demande d'Adrien : « ce qu'il y a à faire dans la journée autre que les rendez-vous ») — panneau **« À faire aujourd'hui »** sur le dashboard, sous « Ma journée ». Capture rapide, tâche **prioritaire (🔴)**, terminer (+5 XP), **report visible des tâches en retard** (`overdue`) avec bouton « → auj. » plutôt qu'un report silencieux (bonne pratique relevée en recherche web : Sunsama/TeuxDeux/Todoist). `normalizeTodo`/`todosForDay` purs + testés ; `state.todos`. Compte de tâches restantes ajouté au résumé de « Ma journée ». ✅ _boucle #38._
 
-> ✅ **Vague 1 terminée** (boucles #05–#06, 2026-07-06) · enrichie #36 (priorités + import .ics) · #37 (UX Agenda).
+> ✅ **Vague 1 terminée** (boucles #05–#06, 2026-07-06) · enrichie #36 (priorités + import .ics) · #37 (UX Agenda) · #38 (To-Do du jour).
 
 _Livrable : calendrier unifié, filtrable par type, prêt à recevoir une source externe idempotente._
 

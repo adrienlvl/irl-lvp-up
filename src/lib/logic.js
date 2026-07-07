@@ -42,6 +42,34 @@ const AGENDA_SOURCES = ['manual', 'training', 'study-glc', 'imported', 'planner'
 const AGENDA_PRIORITIES = ['high', 'normal', 'low'];
 function priorityRank(p) { const i = AGENDA_PRIORITIES.indexOf(p); return i === -1 ? 1 : i; }
 
+// ---- To-Do du jour : tâches sans horaire, distinctes des rendez-vous d'agenda ----
+// Modèle : {id, text, date, priority, done, doneAt, createdAt}.
+function normalizeTodo(item) {
+  const x = item && typeof item === 'object' ? item : {};
+  return {
+    ...x,
+    id: Number(x.id) || Date.now(),
+    text: String(x.text || '').slice(0, 200),
+    date: typeof x.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.date) ? x.date : '',
+    priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
+    done: Boolean(x.done),
+    doneAt: typeof x.doneAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.doneAt) ? x.doneAt : null,
+    createdAt: Number(x.createdAt) || Number(x.id) || Date.now()
+  };
+}
+
+// Vue « à faire aujourd'hui » : tâches actives (non faites, du jour OU en retard) +
+// tâches terminées aujourd'hui. Les tâches non faites d'un jour passé remontent
+// marquées `overdue` (report visible) — l'utilisateur décide (faire/reporter/suppr),
+// pas de report silencieux. Tri : en retard d'abord, puis priorité, puis ancienneté.
+function todosForDay(todos, today) {
+  const list = (Array.isArray(todos) ? todos : []).map(normalizeTodo).filter(t => t.date);
+  const active = list.filter(t => !t.done && t.date <= today).map(t => ({ ...t, overdue: t.date < today }));
+  const done = list.filter(t => t.done && (t.doneAt ? t.doneAt === today : t.date === today));
+  active.sort((a, b) => (Number(b.overdue) - Number(a.overdue)) || (priorityRank(a.priority) - priorityRank(b.priority)) || (a.createdAt - b.createdAt));
+  return { active, done, remaining: active.length, overdue: active.filter(t => t.overdue).length };
+}
+
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
 // {id, title, date, time, durationMin, kind, source, refId?, planId?, completed}
 // Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
@@ -626,5 +654,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, icsEscape, buildIcs, parseIcs, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

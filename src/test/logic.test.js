@@ -220,6 +220,38 @@ test('normalizeAgendaItem : allDay normalisé en booléen', () => {
   assert.equal(L.normalizeAgendaItem({ id: 2 }).allDay, false);
 });
 
+test('normalizeTodo : défauts, texte borné, priorité validée', () => {
+  const t = L.normalizeTodo({ id: 5, text: 'Appeler le garage', date: '2026-07-07', priority: 'high' });
+  assert.equal(t.text, 'Appeler le garage');
+  assert.equal(t.priority, 'high');
+  assert.equal(t.done, false);
+  assert.equal(L.normalizeTodo({ id: 6, priority: 'nawak' }).priority, 'normal');
+  assert.equal(L.normalizeTodo({ id: 7, date: 'pas-une-date' }).date, '');
+  assert.equal(L.normalizeTodo({ id: 8, text: 'x'.repeat(300) }).text.length, 200);
+});
+
+test('todosForDay : actives (jour + en retard) triées, faites du jour séparées', () => {
+  const todos = [
+    { id: 1, text: 'Retard normal', date: '2026-07-05', priority: 'normal' },
+    { id: 2, text: 'Aujourd’hui haute', date: '2026-07-07', priority: 'high' },
+    { id: 3, text: 'Aujourd’hui basse', date: '2026-07-07', priority: 'low' },
+    { id: 4, text: 'Faite aujourd’hui', date: '2026-07-07', done: true, doneAt: '2026-07-07' },
+    { id: 5, text: 'Future', date: '2026-07-20' }
+  ];
+  const { active, done, remaining, overdue } = L.todosForDay(todos, '2026-07-07');
+  assert.deepEqual(active.map(t => t.id), [1, 2, 3], 'en retard d’abord, puis haute, puis basse ; future exclue');
+  assert.equal(active[0].overdue, true);
+  assert.equal(remaining, 3);
+  assert.equal(overdue, 1);
+  assert.deepEqual(done.map(t => t.id), [4]);
+});
+
+test('todosForDay : entrée non-tableau tolérée → vide', () => {
+  const r = L.todosForDay(null, '2026-07-07');
+  assert.deepEqual(r.active, []);
+  assert.equal(r.remaining, 0);
+});
+
 test('prescriptionFor : repos par défaut selon la famille', () => {
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'general' }).rest, 75);
   assert.equal(L.prescriptionFor({ sets: 3, reps: 10 }, { family: 'core' }).rest, 45);
