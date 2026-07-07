@@ -142,3 +142,25 @@ html[data-density=compact] .app-foot{margin-top:16px}
 .update-banner[hidden]{display:none}
 .update-banner #updateBannerText{flex:1}
 .update-banner .primary-button{padding:8px 14px;white-space:nowrap}
+/* Agenda — sélecteur Jour / Semaine + vue Jour */
+.agenda-view-switch{display:inline-flex;gap:4px;margin:4px 0 10px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px}
+.agenda-view-switch button{border:0;background:none;color:var(--muted);font:inherit;font-size:.84rem;font-weight:650;padding:7px 16px;border-radius:99px;cursor:pointer}
+.agenda-view-switch button.active{background:var(--accent);color:var(--accent-ink)}
+.week-page-grid[hidden],.week-balance[hidden],.day-view[hidden]{display:none}
+.day-view-head{margin:2px 0 12px;color:var(--muted);font-size:.86rem}
+.day-timeline{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.day-slot{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px}
+.day-slot.sport{border-left-color:#8a5a9a}
+.day-slot.life{border-left-color:#4a8a76}
+.day-slot.study{border-left-color:#b5942b}
+.day-slot.focus{border-left-color:#5a7ab0}
+.day-slot.prio-high{box-shadow:inset 3px 0 0 var(--pink,#e5484d)}
+.day-slot.completed{opacity:.55}
+.day-slot.completed .day-slot-body b{text-decoration:line-through}
+.day-time{flex:0 0 66px;font-weight:800;font-size:1rem;color:var(--accent)}
+.day-slot-body{flex:1;display:flex;flex-direction:column;gap:2px}
+.day-slot-body b{font-size:.95rem}
+.day-slot-body small{color:var(--muted);font-size:.74rem}
+.day-slot .primary-button,.day-slot .secondary-button{padding:8px 14px;white-space:nowrap}
+.day-slot>em{color:var(--accent);font-style:normal;font-weight:700}
+@media(max-width:520px){.day-slot{flex-wrap:wrap}.day-time{flex-basis:auto}}
