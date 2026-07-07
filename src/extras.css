@@ -177,3 +177,9 @@ html[data-density=compact] .app-foot{margin-top:16px}
 .birthday-row small{color:var(--muted);font-size:.74rem}
 .birthday-row button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:0 3px}
 .birthday-row button:hover{color:var(--pink,#e5484d)}
+/* A1 — bloc « Aujourd'hui » fusionné (Ma journée + To-Do) */
+.my-day-panel .subhead{margin:16px 0 8px;font-size:.82rem;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.my-day-panel .todo-subhead{padding-top:14px;border-top:1px solid var(--line)}
+.subhead-hint{font-weight:400;color:var(--muted);font-size:.76rem}
+/* C1 — barre de recherche collante sur Exercices */
+.exercise-library .exercise-controls{position:sticky;top:0;z-index:6;background:var(--card,var(--surface-2));padding-top:12px;padding-bottom:12px;box-shadow:0 10px 14px -12px rgba(0,0,0,.55)}

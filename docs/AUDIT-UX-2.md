@@ -46,9 +46,9 @@ Depuis qu'il y a un onglet Agenda complet (avec vue Jour), le mini-calendrier se
 ## 3. Menu de changements (⭐ impact · 🔧 effort)
 
 ### Thème A — Désencombrer le dashboard
-- **A1.** Réunir **Ma journée + À faire (To-Do)** dans un seul bloc clair « Aujourd'hui » (deux sous-parties : *Rendez-vous* / *À faire*). ⭐⭐⭐ · 🔧🔧
-- **A2.** **Retirer le mini « Agenda de la semaine »** du dashboard (doublon de l'onglet Agenda). ⭐⭐ · 🔧
-- **A3.** Replier par défaut Mission Control + Boussole + Cap de vie (n'en garder qu'un ouvert). ⭐⭐ · 🔧
+- [x] **A1.** Réunir **Ma journée + À faire (To-Do)** dans un seul bloc « Aujourd'hui » (sous-parties *Rendez-vous & blocs* / *À faire*). ✅ _boucle #43 (1.5.3)._
+- [x] **A2.** **Retiré le mini « Agenda de la semaine »** du dashboard (doublon de l'onglet Agenda). ✅ _boucle #43._
+- [x] **A3.** Mission Control + Boussole repliés par défaut (installation neuve) — inchangé, déjà en place. ✅
 
 ### Thème B — Raccourcir l'Athlète
 - **B1.** **Retirer les blocs Ultra-trail inline** (ils vivent déjà dans la page Ultra-trail) → −2 gros blocs. ⭐⭐⭐ · 🔧
@@ -56,7 +56,7 @@ Depuis qu'il y a un onglet Agenda complet (avec vue Jour), le mini-calendrier se
 - **B3.** Regrouper « Objectif de course » + « Cap hebdo » au même endroit. ⭐ · 🔧🔧
 
 ### Thème C — Exercices
-- **C1.** **Barre de recherche/filtre collante** (sticky) en haut du catalogue → filtrer sans remonter. ⭐⭐⭐ · 🔧
+- [x] **C1.** **Barre de recherche/filtre collante** (sticky) en haut du catalogue → filtrer sans remonter. ✅ _boucle #43 (1.5.3)._
 
 ### Thème D — Réglages de l'agenda (Vue mois)
 - **D1.** Mettre les 4 formulaires (ajout, import, révision, anniversaires) en **sections repliables** sous un bandeau « Réglages de l'agenda ». ⭐⭐ · 🔧🔧
