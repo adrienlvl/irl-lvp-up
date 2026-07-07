@@ -9,23 +9,52 @@ _But : plus besoin de réinstaller le `.exe` à la main. L'app vérifie GitHub a
 - **Renderer** : bannière discrète en bas (`#updateBanner`) → « disponible / téléchargement X % / prête », bouton **Redémarrer & installer**.
 - À la génération, `latest.yml` (le flux) et `app-update.yml` (embarqué) sont produits.
 
-## ⚠️ Ce qu'il reste à faire (une seule fois) pour l'ACTIVER
+## ⚠️ TUTO PAS À PAS pour l'ACTIVER (une seule fois)
 Tant que ces étapes ne sont pas faites, l'auto-update **ne fait rien de visible** (c'est voulu).
 
-1. **Créer un dépôt GitHub** pour l'app (public = le plus simple pour les mises à jour ; seuls les installeurs y sont déposés en « Releases »).
-2. **Renseigner le dépôt** dans `src/package.json` → `build.publish` :
-   ```json
-   "publish": [{ "provider": "github", "owner": "TON_USER_GITHUB", "repo": "TON_REPO" }]
-   ```
-   (Remplacer `REPLACE_WITH_GITHUB_USER` / `REPLACE_WITH_GITHUB_REPO`.)
-3. **Créer un token GitHub** (Settings → Developer settings → *Personal access token*, portée `repo`).
-4. **Publier une version** : dans `src/`, PowerShell :
-   ```powershell
-   $env:GH_TOKEN = "ton_token"
-   npm run release
-   ```
-   → construit l'installeur **et** crée la Release GitHub avec `latest.yml` + le `.exe`.
-5. Pour chaque amélioration suivante : bump la version dans `package.json`, `npm run release`. Les apps déjà installées se mettront à jour toutes seules au prochain lancement.
+### Étape 1 — Avoir un compte GitHub
+- Va sur **https://github.com**. Si tu n'as pas de compte : « Sign up », suis les étapes (email + mot de passe). Si tu en as un : « Sign in ».
+- Ton **nom d'utilisateur** (ex. `adrienlanneval`) = le futur `owner`. Tu le vois en haut à droite (ton avatar) ou dans l'URL `github.com/TON_NOM`.
+
+### Étape 2 — Créer le dépôt (le « repo »)
+- Clique le **« + » en haut à droite** → **« New repository »** (ou va direct sur **https://github.com/new**).
+- **Repository name** : `irl-lvp-up`.
+- Coche **Public** (le plus simple pour les mises à jour ; seuls les installeurs `.exe` y seront déposés, pas tes données).
+- Laisse le reste par défaut, clique **« Create repository »**.
+- → Ton repo est `TON_NOM/irl-lvp-up`. Note-le.
+
+### Étape 3 — Renseigner le repo dans le code
+Dans `src/package.json`, section `build.publish`, remplace les placeholders :
+```json
+"publish": [{ "provider": "github", "owner": "TON_NOM", "repo": "irl-lvp-up" }]
+```
+_(Ou donne-moi `TON_NOM/irl-lvp-up` et je le fais.)_
+
+### Étape 4 — Créer un jeton (token) GitHub
+Le token autorise ton PC à déposer les versions sur GitHub.
+- Va sur **https://github.com/settings/tokens** (ou : avatar → **Settings** → tout en bas à gauche **Developer settings** → **Personal access tokens** → **Tokens (classic)**).
+- **« Generate new token »** → **« Generate new token (classic) »**.
+- **Note** : `IRL LVP UP release`. **Expiration** : 90 jours (ou plus).
+- **Coche la case `repo`** (tout le bloc). Rien d'autre n'est nécessaire.
+- **« Generate token »** en bas → **copie le token** (il commence par `ghp_…`). ⚠️ Il ne s'affiche qu'une fois — garde-le de côté (pas dans le code, pas sur GitHub).
+
+### Étape 5 — Publier la première version
+Ouvre **PowerShell**, puis :
+```powershell
+cd "D:\IRL LVP UP\src"
+$env:GH_TOKEN = "ghp_colle_ton_token_ici"
+npm run release
+```
+Ça construit l'installeur **et** l'envoie sur GitHub.
+
+### Étape 6 — Publier la Release (important !)
+electron-builder crée la Release en **brouillon (draft)**. L'auto-update ne lit que les Releases **publiées** :
+- Va sur **`https://github.com/TON_NOM/irl-lvp-up/releases`**.
+- Tu vois un brouillon **« v1.5.0 »** → clique le **crayon (Edit)** → en bas **« Publish release »**.
+
+### C'est actif ✅
+- La **première** installation reste manuelle (double-clic sur le `Setup .exe`).
+- Ensuite, pour **chaque** amélioration : je bump la version + `npm run release` + tu publies la Release → **les apps déjà installées se mettent à jour toutes seules** au lancement (bannière « Redémarrer & installer »).
 
 ## Notes
 - **Signature de code** : les installeurs ne sont pas signés → Windows SmartScreen peut afficher un avertissement à la 1re installation. La mise à jour electron-updater fonctionne quand même. Signer (certificat OV/EV) est une amélioration future (supprime l'avertissement).
