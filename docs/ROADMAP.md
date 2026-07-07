@@ -30,7 +30,7 @@ _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, 
 
 ### Idées Nutrition à explorer (futur, demandé par Adrien)
 - 📸 **Scanner le frigo** (photo → détection des aliments) → remplit « Mon frigo » automatiquement (nécessite reconnaissance d'image = IA/réseau → Vague Sécurité).
-- Préférer automatiquement les versions **cuites** pour les féculents/protéines.
+- [x] Préférer automatiquement les versions **cuites** : `searchFoods` classe désormais les aliments **cuits avant les crus** (kcal/100 g du cru trompeuses pour l'assiette), sauf si la requête contient « cru ». « riz » → riz cuit ~145 kcal en tête (au lieu du cru à 528). ✅ _boucle #51 (build 1.6.1)._
 - 🍽️ **Suggestions de repas** à partir de ce qui est dans le frigo (anti-gaspi + budget).
 - 🛒 Liste de courses intelligente, suivi macros/protéines relié à l'objectif.
 

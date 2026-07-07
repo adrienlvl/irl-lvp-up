@@ -2275,20 +2275,26 @@ const FOODS = [
 ];
 
 // Recherche insensible à la casse, aux accents et à la ligature œ, avec classement :
-// les aliments simples (nom qui commence par la requête, nom court) remontent avant
-// les plats composés. Jusqu'à `limit` résultats.
+// aliments simples avant plats composés, et versions CUITES avant CRUES (les kcal/100 g
+// du cru sont trompeuses pour une assiette) — sauf si la requête contient « cru ».
+// Jusqu'à `limit` résultats.
 function searchFoods(query, limit) {
   const norm = s => String(s || '').toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const q = norm(query).trim();
   const max = Number(limit) || 12;
   if (!q) return FOODS.slice(0, max);
   const terms = q.split(/\s+/).filter(Boolean);
+  const wantsRaw = terms.some(t => /^crue?s?$/.test(t));
   const scored = [];
   for (const x of FOODS) {
     const n = norm(x.n);
     if (!terms.every(t => n.includes(t))) continue;
     let score = n.startsWith(q) ? 0 : (n.split(/[ ,]/)[0] === terms[0] ? 1 : 2);
     if (x.cat === 'M') score += 2; // plats composés en dernier
+    if (!wantsRaw) {
+      if (/\bcrue?s?\b/.test(n)) score += 2; // cru rétrogradé (kcal/100 g trompeuses pour l'assiette)
+      else if (/\bcuite?s?\b/.test(n)) score -= 1; // cuit favorisé
+    }
     scored.push({ x, score, len: n.length });
   }
   scored.sort((a, b) => a.score - b.score || a.len - b.len);
