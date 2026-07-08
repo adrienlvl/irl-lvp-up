@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { EXERCISE_PATTERN, POSES, EXERCISE_ART, exerciseIcon, exercisePicture } = require('../lib/exercise-icons.js');
-const { exercises } = require('../lib/exercises-data.js');
+const { exercises, programs } = require('../lib/exercises-data.js');
 
 test('chaque exercice de la bibliothèque est mappé à un pattern connu', () => {
   const patterns = new Set(Object.keys(POSES));
@@ -16,6 +16,17 @@ test('chaque pattern a deux positions (a/b) — le mouvement est illustrable', (
   for (const [name, P] of Object.entries(POSES)) {
     assert.ok(typeof P.a === 'string' && P.a.length > 0, name + ' pose A');
     assert.ok(typeof P.b === 'string' && P.b.length > 0, name + ' pose B');
+  }
+});
+
+test('programmes : chaque exercice cité existe dans la bibliothèque, days ↔ workouts alignés', () => {
+  const names = new Set(exercises.map(e => e.name));
+  for (const [key, p] of Object.entries(programs)) {
+    assert.equal(p.days.length, p.workouts.length, `${key} : ${p.days.length} jours vs ${p.workouts.length} séances`);
+    for (const w of p.workouts) {
+      assert.ok(Array.isArray(w.exercises) && w.exercises.length, `${key} > ${w.title} : séance vide`);
+      for (const ex of w.exercises) assert.ok(names.has(ex.name), `${key} > ${w.title} : « ${ex.name} » introuvable dans la bibliothèque`);
+    }
   }
 });
 
