@@ -338,6 +338,37 @@ function parseRRule(rrule, startDateKey) {
   return { freq, interval, weekdays, startDate: startDateKey, until };
 }
 
+// Hôte privé / loopback / lien-local → interdit pour un abonnement calendrier
+// (garde-fou anti-SSRF : on ne fetch que des hôtes publics). Pur.
+function isPrivateHost(host) {
+  const h = String(host || '').toLowerCase().replace(/\.$/, '');
+  if (!h || h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true;
+  if (h.startsWith('[') || h.includes(':')) return true; // littéral IPv6 → refusé
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (m) {
+    const a = +m[1], b = +m[2];
+    if ([a, b, +m[3], +m[4]].some(n => n > 255)) return true;
+    if (a === 0 || a === 127 || a === 10) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a >= 224) return true; // multicast/réservé
+  }
+  return false;
+}
+
+// Valide/normalise une URL d'abonnement calendrier : HTTPS uniquement
+// (webcal:// → https://), hôtes publics seulement. Renvoie l'URL https ou '' si refusée.
+function normalizeCalendarUrl(input) {
+  let s = String(input || '').trim();
+  if (!s) return '';
+  if (/^webcal:\/\//i.test(s)) s = s.replace(/^webcal:\/\//i, 'https://');
+  if (!/^https:\/\//i.test(s)) { if (/^\w+:\/\//.test(s)) return ''; s = 'https://' + s; }
+  let u; try { u = new URL(s); } catch { return ''; }
+  if (u.protocol !== 'https:' || !u.hostname || isPrivateHost(u.hostname)) return '';
+  return u.toString();
+}
+
 function parseIcs(text, opts) {
   opts = opts || {};
   const kind = AGENDA_KINDS.includes(opts.kind) ? opts.kind : 'life';
@@ -861,5 +892,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

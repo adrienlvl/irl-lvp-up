@@ -233,6 +233,23 @@ test('buildIcs : événement récurrent → DTSTART de série + ligne RRULE ; po
   assert.ok(!L.buildIcs([{ id: 10, title: 'Sans heure', date: '2026-07-10' }], now).includes('Sans heure'));
 });
 
+test('isPrivateHost : loopback/privés/lien-local refusés, hôtes publics acceptés', () => {
+  ['localhost', '127.0.0.1', '10.1.2.3', '192.168.0.1', '169.254.1.1', '172.16.0.1', '172.31.255.255', '0.0.0.0', 'nas.local', '::1', 'fe80::1'].forEach(h => assert.equal(L.isPrivateHost(h), true, h + ' privé'));
+  ['calendar.google.com', 'p28-caldav.icloud.com', 'outlook.office365.com', '172.32.0.1', '8.8.8.8'].forEach(h => assert.equal(L.isPrivateHost(h), false, h + ' public'));
+});
+
+test('normalizeCalendarUrl : https only, webcal→https, hôtes publics, sinon \'\'', () => {
+  assert.equal(L.normalizeCalendarUrl('https://calendar.google.com/ical/x/basic.ics'), 'https://calendar.google.com/ical/x/basic.ics');
+  assert.equal(L.normalizeCalendarUrl('webcal://p1.icloud.com/published/cal.ics'), 'https://p1.icloud.com/published/cal.ics');
+  assert.equal(L.normalizeCalendarUrl('calendar.google.com/x.ics'), 'https://calendar.google.com/x.ics', 'schéma manquant → https');
+  assert.equal(L.normalizeCalendarUrl('http://example.com/x.ics'), '', 'http refusé');
+  assert.equal(L.normalizeCalendarUrl('ftp://example.com/x.ics'), '', 'ftp refusé');
+  assert.equal(L.normalizeCalendarUrl('https://localhost/x.ics'), '', 'hôte local refusé');
+  assert.equal(L.normalizeCalendarUrl('https://192.168.1.5/x.ics'), '', 'hôte privé refusé');
+  assert.equal(L.normalizeCalendarUrl(''), '');
+  assert.equal(L.normalizeCalendarUrl('   '), '');
+});
+
 test('parseRRule : FREQ/INTERVAL/BYDAY/UNTIL → règle interne ; non géré → null', () => {
   assert.deepEqual(
     L.parseRRule('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;UNTIL=20261231T000000Z', '2026-07-06'),

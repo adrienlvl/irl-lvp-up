@@ -1,5 +1,5 @@
-const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage } = require('electron');
-const path = require('path'); const fs = require('fs'); let win, tray, timer;
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, safeStorage } = require('electron');
+const path = require('path'); const fs = require('fs'); const https = require('https'); let win, tray, timer;
 let autoUpdater; try { ({ autoUpdater } = require('electron-updater')); } catch (_) { autoUpdater = null; }
 /* Logique partagée avec le renderer (récurrence testée dans lib/logic.js). */
 const L = require(path.join(__dirname, 'lib', 'logic.js'));
@@ -47,6 +47,42 @@ function initAutoUpdate() {
 }
 ipcMain.handle('update:install', () => { app.isQuitting = true; try { autoUpdater && autoUpdater.quitAndInstall(); } catch (_) {} });
 ipcMain.handle('update:check', () => { try { if (autoUpdater && app.isPackaged) autoUpdater.checkForUpdates().catch(() => {}); } catch (_) {} });
+/* ---- Vague S.8 : abonnement calendrier par URL (.ics/webcal) ----
+   Réseau UNIQUEMENT ici (process principal) ; le renderer reste verrouillé (CSP self,
+   navigation bloquée). HTTPS only + hôte public (anti-SSRF via L.normalizeCalendarUrl),
+   timeout, taille plafonnée, redirections https limitées. Contenu parsé côté renderer
+   par parseIcs (défensif), jamais exécuté. */
+function fetchIcs(rawUrl, redirectsLeft) {
+  return new Promise(resolve => {
+    const url = L.normalizeCalendarUrl(rawUrl);
+    if (!url) return resolve({ ok: false, error: 'URL refusée (HTTPS et hôte public requis).' });
+    if (redirectsLeft == null) redirectsLeft = 3;
+    let settled = false; const done = r => { if (!settled) { settled = true; resolve(r); } };
+    let req;
+    try {
+      req = https.get(url, { timeout: 10000, headers: { 'User-Agent': 'IRL-LVP-UP', 'Accept': 'text/calendar, text/plain, */*' } }, res => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          res.resume();
+          if (redirectsLeft <= 0) return done({ ok: false, error: 'Trop de redirections.' });
+          let next; try { next = new URL(res.headers.location, url).toString(); } catch { return done({ ok: false, error: 'Redirection invalide.' }); }
+          return fetchIcs(next, redirectsLeft - 1).then(done);
+        }
+        if (res.statusCode !== 200) { res.resume(); return done({ ok: false, error: `Réponse ${res.statusCode}.` }); }
+        let data = '', size = 0; res.setEncoding('utf8');
+        res.on('data', c => { size += Buffer.byteLength(c); if (size > 5 * 1024 * 1024) { req.destroy(); return done({ ok: false, error: 'Fichier trop volumineux (max 5 Mo).' }); } data += c; });
+        res.on('end', () => { if (!/BEGIN:VCALENDAR/i.test(data.slice(0, 300))) return done({ ok: false, error: 'La réponse n’est pas un calendrier .ics.' }); done({ ok: true, text: data }); });
+      });
+    } catch (e) { return done({ ok: false, error: 'Réseau : ' + String(e && e.message || e) }); }
+    req.on('timeout', () => { req.destroy(); done({ ok: false, error: 'Délai dépassé (10 s).' }); });
+    req.on('error', err => done({ ok: false, error: 'Réseau : ' + String(err && err.message || err) }));
+  });
+}
+const subsFile = () => path.join(app.getPath('userData'), 'calendar-subs.dat');
+function readCalendarSubs() { try { const buf = fs.readFileSync(subsFile()); const json = (safeStorage.isEncryptionAvailable() && buf.length && buf[0] !== 0x5b) ? safeStorage.decryptString(buf) : buf.toString('utf8'); const arr = JSON.parse(json); return Array.isArray(arr) ? arr : []; } catch { return []; } }
+function writeCalendarSubs(list) { try { const clean = (Array.isArray(list) ? list : []).filter(s => s && typeof s.url === 'string').slice(0, 20).map(s => ({ id: Number(s.id) || Date.now(), name: String(s.name || '').slice(0, 60), url: String(s.url).slice(0, 2000), kind: String(s.kind || 'life').slice(0, 12) })); const json = JSON.stringify(clean); fs.writeFileSync(subsFile(), safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(json) : Buffer.from(json, 'utf8')); return clean; } catch { return null; } }
+ipcMain.handle('calendar:fetch', (_e, url) => fetchIcs(String(url || '')));
+ipcMain.handle('calendar:subs:get', () => readCalendarSubs());
+ipcMain.handle('calendar:subs:save', (_e, list) => writeCalendarSubs(list));
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) { app.quit(); } else {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });

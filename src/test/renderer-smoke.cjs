@@ -9,6 +9,9 @@ const path = require('path');
 
 // Stubs des canaux IPC attendus par preload/app.js (sinon rejets non gérés parasites).
 ipcMain.handle('app:version', () => '0.0.0-test');
+ipcMain.handle('calendar:fetch', () => ({ ok: false, error: 'stub' }));
+ipcMain.handle('calendar:subs:get', () => []);
+ipcMain.handle('calendar:subs:save', (_e, l) => l);
 ipcMain.handle('notifications:get', () => ({ enabled: false, times: ['09:00', '18:00'], lastSent: {}, leadMinutes: 15, eveningTime: '21:00', eveningEnabled: true }));
 ipcMain.handle('notifications:save', (_e, v) => v);
 ipcMain.handle('notifications:test', () => true);
@@ -69,6 +72,7 @@ app.whenReady().then(async () => {
         recurring: typeof recurrenceMatches === 'function' && typeof normalizeRecurring === 'function' && !!document.getElementById('recurringForm') && !!document.getElementById('recFreq') && !!document.getElementById('recurringList'),
         habits: typeof habitsForDay === 'function' && typeof habitStreak === 'function' && !!document.getElementById('habitForm') && !!document.getElementById('habitList') && document.querySelectorAll('#habitDays input').length === 7,
         recDone: typeof completeRecurringOn === 'function' && (L => { const r = normalizeRecurring({ id: 1, doneLog: ['2026-07-07'] }); return r.doneLog.length === 1; })(),
+        calSync: typeof normalizeCalendarUrl === 'function' && !!document.getElementById('calSubForm') && !!document.getElementById('calSubList') && !!document.getElementById('calSyncAll') && !!(window.desktop && typeof window.desktop.fetchCalendar === 'function' && typeof window.desktop.getCalendarSubs === 'function'),
         icsRrule: typeof parseRRule === 'function' && (parseIcs('BEGIN:VEVENT\\r\\nUID:x\\r\\nSUMMARY:R\\r\\nDTSTART:20260706T090000\\r\\nRRULE:FREQ=WEEKLY;BYDAY=MO\\r\\nEND:VEVENT')[0]||{}).recurrence != null,
         icsExport: typeof buildRRuleLine === 'function' && buildIcs([{ id: 1, title: 'R', time: '09:00', rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } }]).includes('RRULE:FREQ=WEEKLY'),
         todo: typeof todosForDay === 'function' && typeof normalizeTodo === 'function' && !!document.getElementById('todoForm') && !!document.getElementById('todoList') && !!document.getElementById('todoPriorityBtn'),
@@ -107,6 +111,7 @@ app.whenReady().then(async () => {
     if (!checks.recurring) errors.push('Récurrence KO (recurrenceMatches/normalizeRecurring/recurringForm/recFreq/recurringList)');
     if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList/habitDays 7 jours)');
     if (!checks.recDone) errors.push('Validation récurrent KO (completeRecurringOn/doneLog)');
+    if (!checks.calSync) errors.push('Sync calendrier KO (normalizeCalendarUrl/calSubForm/calSubList/calSyncAll/desktop.fetchCalendar)');
     if (!checks.icsRrule) errors.push('Import RRULE KO (parseRRule / parseIcs ne remonte pas recurrence)');
     if (!checks.icsExport) errors.push('Export RRULE KO (buildRRuleLine / buildIcs ne produit pas de RRULE)');
     if (!checks.todo) errors.push('To-Do absente (todosForDay/normalizeTodo/todoForm/todoList/todoPriorityBtn)');
