@@ -146,29 +146,33 @@ const EXERCISE_ART = {
   'Nordic curl': '8 p0', 'Turkish get-up kettlebell': '8 p1', 'Équilibre unipodal': '8 p2', 'Planche touches d’épaule': '8 p3'
 };
 
-// Planches disposant d'une "position 2" (fichier sheet-<n>b) → animation début↔fin.
-// On y ajoute un numéro de planche dès que sa planche « position B » est livrée et
-// intégrée (CSS .sheet-<n>b). Tant qu'un numéro n'y est pas, l'exercice reste en photo fixe.
-const ANIMATED_SHEETS = new Set();
+// Exercices animés : planche dédiée « début↔fin » où l'exercice occupe 2 cases de la
+// MÊME planche (position A + position B). Valeur = "<planche> <caseA> <caseB>".
+// On ajoute une entrée dès qu'une planche d'animation est livrée et intégrée
+// (CSS .sheet-<n>). Absent → l'exercice reste en photo fixe (aucune régression).
+const EXERCISE_ANIM = {
+  'Pompes classiques': '9 p0 p3', 'Goblet squat kettlebell': '9 p1 p4', 'Tractions': '9 p2 p5'
+};
 
-// Deux calques empilés (position A + position B), la position B clignote en alternance
-// via CSS (@keyframes exFrameFlip) → mini-démo du mouvement avec un vrai humain. Pur.
-function buildAnimatedArt(artValue, extraClass, name) {
-  const parts = String(artValue).split(' ');
+// Deux calques empilés (case A + case B de la même planche), la case B clignote en
+// alternance via CSS (@keyframes exFrameFlip) → mini-démo du mouvement (vrai humain). Pur.
+function buildAnimatedArt(animValue, extraClass, name) {
+  const [sheet, cellA, cellB] = String(animValue).split(' ');
   const label = String(name || '').replace(/"/g, '');
-  return `<span class="exercise-art-anim ${extraClass || ''}" role="img" aria-label="${label}"><span class="exercise-art sheet-${parts[0]} art-${parts[1]} frame-a" aria-hidden="true"></span><span class="exercise-art sheet-${parts[0]}b art-${parts[1]} frame-b" aria-hidden="true"></span></span>`;
+  return `<span class="exercise-art-anim ${extraClass || ''}" role="img" aria-label="${label}"><span class="exercise-art sheet-${sheet} art-${cellA} frame-a" aria-hidden="true"></span><span class="exercise-art sheet-${sheet} art-${cellB} frame-b" aria-hidden="true"></span></span>`;
 }
 
-// Visuel d'un exercice : vraie photo si disponible (animée début↔fin si sa planche
-// "position B" existe et qu'on demande l'animation), sinon figure SVG (repli).
+// Visuel d'un exercice : vraie photo si disponible (animée début↔fin si une planche
+// d'animation existe pour cet exercice et qu'on la demande), sinon figure SVG (repli).
 function exercisePicture(name, extraClass, animated) {
+  const anim = EXERCISE_ANIM[name];
+  if (animated && anim) return buildAnimatedArt(anim, extraClass, name);
   const a = EXERCISE_ART[name];
   if (a) {
     const parts = a.split(' ');
-    if (animated && ANIMATED_SHEETS.has(Number(parts[0]))) return buildAnimatedArt(a, extraClass, name);
     return `<span class="exercise-art sheet-${parts[0]} art-${parts[1]} ${extraClass || ''}" role="img" aria-label="${String(name).replace(/"/g, '')}"></span>`;
   }
   return `<span class="exercise-art ex-figure ${extraClass || ''}" aria-hidden="true">${exerciseIcon(name, animated)}</span>`;
 }
 
-if (typeof module !== 'undefined' && module.exports) { module.exports = { EXERCISE_PATTERN, POSES, EXERCISE_ART, ANIMATED_SHEETS, buildAnimatedArt, exerciseIcon, exercisePicture }; }
+if (typeof module !== 'undefined' && module.exports) { module.exports = { EXERCISE_PATTERN, POSES, EXERCISE_ART, EXERCISE_ANIM, buildAnimatedArt, exerciseIcon, exercisePicture }; }
