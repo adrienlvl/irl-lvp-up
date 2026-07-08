@@ -1,4 +1,4 @@
-# Boucle #58 — Détails d'événement + heure de départ (build 1.8.3)
+# Boucle #60 — Détails d'événement + heure de départ (build 1.8.3)
 
 **Demande d'Adrien :** « je peux pas actuellement mettre de détails sur l'agenda, j'aimerai bien pouvoir les mettre, et si aussi je pouvais avoir le temps de trajet estimé, heure de départ si c'est loin… prévoir le temps que j'ai pour y aller quoi ! 🙂 »
 
