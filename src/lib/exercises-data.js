@@ -59,3 +59,5 @@ const programs = {
   ]}
 };
 
+
+if (typeof module !== "undefined" && module.exports) { module.exports = { exercises, programs }; }

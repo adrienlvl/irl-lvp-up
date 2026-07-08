@@ -73,6 +73,7 @@ app.whenReady().then(async () => {
         habits: typeof habitsForDay === 'function' && typeof habitStreak === 'function' && !!document.getElementById('habitForm') && !!document.getElementById('habitList') && document.querySelectorAll('#habitDays input').length === 7,
         recDone: typeof completeRecurringOn === 'function' && (L => { const r = normalizeRecurring({ id: 1, doneLog: ['2026-07-07'] }); return r.doneLog.length === 1; })(),
         calSync: typeof normalizeCalendarUrl === 'function' && !!document.getElementById('calSubForm') && !!document.getElementById('calSubList') && !!document.getElementById('calSyncAll') && !!(window.desktop && typeof window.desktop.fetchCalendar === 'function' && typeof window.desktop.getCalendarSubs === 'function'),
+        exIcons: typeof exerciseIcon === 'function' && exerciseIcon('Tractions').includes('viewBox="0 0 80 76"') && exerciseIcon('Tractions', true).includes('<animate') && exerciseIcon('Goblet squat kettlebell') !== exerciseIcon('Pompes classiques') && (document.querySelector('.exercise-card .ex-svg') ? document.querySelectorAll('.exercise-card .ex-svg').length >= 1 : true),
         icsRrule: typeof parseRRule === 'function' && (parseIcs('BEGIN:VEVENT\\r\\nUID:x\\r\\nSUMMARY:R\\r\\nDTSTART:20260706T090000\\r\\nRRULE:FREQ=WEEKLY;BYDAY=MO\\r\\nEND:VEVENT')[0]||{}).recurrence != null,
         icsExport: typeof buildRRuleLine === 'function' && buildIcs([{ id: 1, title: 'R', time: '09:00', rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } }]).includes('RRULE:FREQ=WEEKLY'),
         todo: typeof todosForDay === 'function' && typeof normalizeTodo === 'function' && !!document.getElementById('todoForm') && !!document.getElementById('todoList') && !!document.getElementById('todoPriorityBtn'),
@@ -112,6 +113,7 @@ app.whenReady().then(async () => {
     if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList/habitDays 7 jours)');
     if (!checks.recDone) errors.push('Validation récurrent KO (completeRecurringOn/doneLog)');
     if (!checks.calSync) errors.push('Sync calendrier KO (normalizeCalendarUrl/calSubForm/calSubList/calSyncAll/desktop.fetchCalendar)');
+    if (!checks.exIcons) errors.push('Illustrations exercices KO (exerciseIcon viewBox/animate/patterns distincts)');
     if (!checks.icsRrule) errors.push('Import RRULE KO (parseRRule / parseIcs ne remonte pas recurrence)');
     if (!checks.icsExport) errors.push('Export RRULE KO (buildRRuleLine / buildIcs ne produit pas de RRULE)');
     if (!checks.todo) errors.push('To-Do absente (todosForDay/normalizeTodo/todoForm/todoList/todoPriorityBtn)');
