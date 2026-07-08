@@ -19,6 +19,15 @@ test('chaque pattern a deux positions (a/b) — le mouvement est illustrable', (
   }
 });
 
+test('chaque exercice a des notes de coaching complètes (fiche riche)', () => {
+  for (const e of exercises) {
+    for (const f of ['cue', 'explain', 'goal', 'avoid', 'family', 'kind']) {
+      assert.ok(typeof e[f] === 'string' && e[f].trim().length > 0, `« ${e.name} » : champ « ${f} » manquant`);
+    }
+    assert.ok(e.sets > 0 && e.reps > 0, `« ${e.name} » : prescription (sets/reps) manquante`);
+  }
+});
+
 test('programmes : chaque exercice cité existe dans la bibliothèque, days ↔ workouts alignés', () => {
   const names = new Set(exercises.map(e => e.name));
   for (const [key, p] of Object.entries(programs)) {

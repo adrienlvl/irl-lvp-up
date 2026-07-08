@@ -19,8 +19,8 @@ App **100 % locale**, hors **2 accès réseau opt-in** (auto-update GitHub · sy
 
 - [x] **B-1** Finisher / **retour au calme guidé** après chaque séance : `cooldownFor()` pur+testé (haut du corps / bas du corps / trail-course / général) → section repliable « 🧊 Retour au calme » dans la séance guidée, **ouverte automatiquement au dernier exercice**. Complète **5.2**. ✅ _boucle #58 (build 1.8.2)._
 - [ ] **B-2** **Purge des règles CSS mortes** (**3.2**) — analyse fine, zéro régression visuelle.
-- [ ] **B-3** **États vides & libellés harmonisés** (finitions UX, thème E des audits).
-- [ ] **B-4** **Couverture de tests élargie** sur les modules récents (récurrence, habitudes, sync, anniversaires) — cas limites supplémentaires.
+- [x] **B-3** États vides & libellés — **vérifiés : déjà cohérents** (« Aucun… / Rien… Ajoute… »), 10 nouveaux exercices tous complets (famille, cue, explain, goal, avoid, prescription). Rien à corriger. ✅ _boucle #59._
+- [x] **B-4** **Couverture de tests élargie** : richesse coaching des 47 exercices verrouillée ; cas limites récurrence (fin de mois, 29 fév, passage d'année), série d'habitude (jour programmé manqué), **SSRF** (métadonnées cloud 169.254.169.254, IPv6 loopback, hôte `.local`). **106 → 110 tests.** ✅ _boucle #59 (tests-only, pas de build)._
 - [ ] **B-5** _(option, prudent)_ Séparer les gros blocs de rendu d'`app.js` par domaine (**3.1**).
 
 _Hors boucle auto (décision/action d'Adrien) : planches photo 7-8, Vague S.8 (scan frigo, OAuth), signature de code, publication du lot 1.5.2→1.8.1._

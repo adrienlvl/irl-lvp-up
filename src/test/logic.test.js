@@ -318,6 +318,16 @@ test('todosForDay : actives (jour + en retard) triées, faites du jour séparée
   assert.deepEqual(done.map(t => t.id), [4]);
 });
 
+test('habitStreak : un jour programmé manqué casse la série, les jours non programmés non', () => {
+  // programmée lun/mer/ven, faite lun 6 + mer 8, mardi 7 non programmé ne compte pas
+  const h = { id: 1, name: 'X', weekdays: [1, 3, 5], log: ['2026-07-06', '2026-07-08'] };
+  assert.equal(L.habitStreak(h, '2026-07-08'), 2, 'lun + mer consécutifs (programmés)');
+  // vendredi 10 non fait, mais on interroge le 10 : la série d’avant (lun+mer) reste, on part de la veille
+  assert.equal(L.habitStreak(h, '2026-07-10'), 2, 'vendredi pas encore fait → série de la veille intacte');
+  // mais si on saute au lundi 13 sans avoir fait vendredi 10 → série cassée
+  assert.equal(L.habitStreak(h, '2026-07-13'), 0, 'vendredi 10 (programmé) manqué → cassé');
+});
+
 test('todosForDay : entrée non-tableau tolérée → vide', () => {
   const r = L.todosForDay(null, '2026-07-07');
   assert.deepEqual(r.active, []);
@@ -422,6 +432,27 @@ test('todayItems : un événement récurrent tombant ce jour apparaît, validabl
   const thu = L.todayItems(state, '2026-07-09').find(i => i.type === 'recurring'); // jeudi
   assert.equal(thu.completed, false, 'jeudi pas encore validé');
   assert.equal(L.todayItems(state, '2026-07-08').some(i => i.type === 'recurring'), false, 'mercredi : pas d’occurrence');
+});
+
+test('recurrenceMatches : cas limites fin de mois / année bissextile', () => {
+  // mensuel démarré le 31 : sauté les mois sans 31, présent les mois avec
+  const m31 = { freq: 'monthly', interval: 1, startDate: '2026-01-31' };
+  assert.equal(L.recurrenceMatches(m31, '2026-02-28'), false, 'février n’a pas de 31');
+  assert.equal(L.recurrenceMatches(m31, '2026-03-31'), true, 'mars a un 31');
+  // annuel un 29 février : uniquement les années bissextiles
+  const feb29 = { freq: 'yearly', interval: 1, startDate: '2024-02-29' };
+  assert.equal(L.recurrenceMatches(feb29, '2028-02-29'), true, '2028 bissextile');
+  assert.equal(L.recurrenceMatches(feb29, '2025-02-28'), false, '2025 non bissextile, pas de 29');
+  // hebdo au passage d'année : lundi d'une semaine paire
+  const wk = { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2025-12-29' };
+  assert.equal(L.recurrenceMatches(wk, '2026-01-05'), true, 'lundi suivant, nouvelle année');
+});
+
+test('normalizeCalendarUrl : bloque les cibles SSRF sensibles (métadonnées cloud, IPv6 loopback)', () => {
+  assert.equal(L.normalizeCalendarUrl('https://169.254.169.254/latest/meta-data/'), '', 'endpoint métadonnées cloud bloqué');
+  assert.equal(L.normalizeCalendarUrl('https://[::1]/cal.ics'), '', 'IPv6 loopback bloqué');
+  assert.equal(L.normalizeCalendarUrl('HTTPS://Calendar.Google.com/x.ics'), 'https://calendar.google.com/x.ics', 'schéma/hôte normalisés en minuscules');
+  assert.equal(L.normalizeCalendarUrl('https://nas.local./cal.ics'), '', 'hôte .local (point final) bloqué');
 });
 
 test('normalizeRecurring : doneLog filtré (dates valides uniquement)', () => {
