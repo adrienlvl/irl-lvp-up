@@ -164,6 +164,12 @@ html[data-density=compact] .app-foot{margin-top:16px}
 .day-slot .primary-button,.day-slot .secondary-button{padding:8px 14px;white-space:nowrap}
 .day-slot>em{color:var(--accent);font-style:normal;font-weight:700}
 @media(max-width:520px){.day-slot{flex-wrap:wrap}.day-time{flex-basis:auto}}
+/* Détails d'événement dans la vue Jour : lieu, départ conseillé, notes */
+.slot-meta{display:flex;flex-direction:column;gap:2px;margin-top:5px}
+.slot-meta span{font-size:.74rem;color:var(--muted);line-height:1.3}
+.slot-meta .slot-dep{color:var(--accent)}
+.slot-meta .slot-dep b{color:var(--accent)}
+.slot-meta .slot-dep .slot-late{color:var(--pink,#e5484d)}
 /* Anniversaires */
 .day-slot.birthday{border-left-color:#d9a441;background:color-mix(in srgb,#d9a441 8%,var(--surface-2))}
 .week-chip.birthday{background:#3a2f20;border-left-color:#d9a441}

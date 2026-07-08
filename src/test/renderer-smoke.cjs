@@ -66,6 +66,7 @@ app.whenReady().then(async () => {
         agendaImport: typeof parseIcs === 'function' && !!document.getElementById('importIcs') && !!document.getElementById('importIcsKind') && !!document.getElementById('calendarAgendaPriority'),
         agendaUx: !!document.getElementById('weekQuickAdd') && !!document.getElementById('agendaFilters') && !!document.getElementById('importIcsWeek') && document.querySelectorAll('#agendaFilters [data-filter]').length === 5,
         agendaDay: typeof renderDayView === 'function' && typeof renderAgenda === 'function' && !!document.getElementById('dayView') && document.querySelectorAll('#agendaViewSwitch [data-view]').length === 2,
+        agendaDetails: typeof departureInfo === 'function' && !!document.getElementById('calendarAgendaLocation') && !!document.getElementById('calendarAgendaTravel') && !!document.getElementById('calendarAgendaNotes'),
         birthdays: typeof birthdaysForDay === 'function' && typeof normalizeBirthday === 'function' && !!document.getElementById('birthdayForm') && !!document.getElementById('birthdayList'),
         ux2pass2: document.querySelectorAll('details.calendar-setting').length >= 3 && !document.querySelector('.trail-plan') && !!document.querySelector('.training-grid > article.panel .collapse-toggle'),
         ux3: typeof upcomingBirthdays === 'function' && !!document.getElementById('birthdayUpcoming') && !!document.querySelector('.training-grid > .trail-panel'),
@@ -107,6 +108,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaImport) errors.push('Import agenda absent (parseIcs/importIcs/importIcsKind/calendarAgendaPriority)');
     if (!checks.agendaUx) errors.push('UX agenda absente (weekQuickAdd/agendaFilters 5 filtres/importIcsWeek)');
     if (!checks.agendaDay) errors.push('Vue Jour absente (renderDayView/renderAgenda/dayView/agendaViewSwitch 2 vues)');
+    if (!checks.agendaDetails) errors.push('Détails événement absents (departureInfo/location/travel/notes)');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');

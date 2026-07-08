@@ -241,8 +241,28 @@ function normalizeAgendaItem(item) {
     source: AGENDA_SOURCES.includes(x.source) ? x.source : (x.planId ? 'training' : 'manual'),
     priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
     allDay: Boolean(x.allDay),
+    location: typeof x.location === 'string' ? x.location.slice(0, 120) : '',
+    notes: typeof x.notes === 'string' ? x.notes.slice(0, 500) : '',
+    travelMin: Math.max(0, Math.min(600, Math.round(Number(x.travelMin) || 0))),
     completed: Boolean(x.completed)
   };
+}
+
+// Heure de départ conseillée pour un événement horodaté avec un temps de trajet.
+// Renvoie {departAt:'HH:MM', travelMin, leaveInMin|null (min avant de partir si `now`
+// est un Date)} ; `late` = déjà l'heure de partir. null si pas d'heure ou pas de trajet.
+function departureInfo(item, now) {
+  if (!item || !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(item.time || ''))) return null;
+  const travel = Math.round(Number(item.travelMin) || 0);
+  if (travel <= 0) return null;
+  const [h, m] = item.time.split(':').map(Number);
+  const depMin = h * 60 + m - travel;
+  const pad = n => String(n).padStart(2, '0');
+  const wrapped = ((depMin % 1440) + 1440) % 1440;
+  const departAt = `${pad(Math.floor(wrapped / 60))}:${pad(wrapped % 60)}`;
+  let leaveInMin = null;
+  if (now instanceof Date) leaveInMin = depMin - (now.getHours() * 60 + now.getMinutes());
+  return { departAt, travelMin: travel, leaveInMin, late: leaveInMin != null && leaveInMin < 0 };
 }
 
 // Échappement RFC 5545 pour les valeurs texte iCalendar.
@@ -459,6 +479,7 @@ function todayItems(state, date) {
     id: a.id, time: a.time || '', title: String(a.title || 'Bloc'), kind: a.kind || 'life',
     priority: AGENDA_PRIORITIES.includes(a.priority) ? a.priority : 'normal',
     allDay: Boolean(a.allDay), completed: Boolean(a.completed), planId: a.planId || null,
+    location: typeof a.location === 'string' ? a.location : '', notes: typeof a.notes === 'string' ? a.notes : '', travelMin: Math.max(0, Math.round(Number(a.travelMin) || 0)),
     type: a.planId ? 'plan' : (a.kind === 'study' ? 'study' : 'agenda')
   }));
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
@@ -905,5 +926,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }

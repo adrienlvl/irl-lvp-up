@@ -292,6 +292,30 @@ test('normalizeAgendaItem : allDay normalisé en booléen', () => {
   assert.equal(L.normalizeAgendaItem({ id: 2 }).allDay, false);
 });
 
+test('normalizeAgendaItem : lieu, notes (bornés) et trajet', () => {
+  const e = L.normalizeAgendaItem({ id: 1, location: 'GRETA Rennes', notes: 'apporter dossier', travelMin: 25 });
+  assert.equal(e.location, 'GRETA Rennes');
+  assert.equal(e.notes, 'apporter dossier');
+  assert.equal(e.travelMin, 25);
+  assert.equal(L.normalizeAgendaItem({ id: 2, travelMin: -5 }).travelMin, 0);
+  assert.equal(L.normalizeAgendaItem({ id: 3, notes: 'x'.repeat(700) }).notes.length, 500);
+  assert.equal(L.normalizeAgendaItem({ id: 4 }).location, '');
+});
+
+test('departureInfo : heure de départ = heure − trajet, temps restant selon l’heure actuelle', () => {
+  const evt = { time: '09:00', travelMin: 25 };
+  assert.equal(L.departureInfo(evt).departAt, '08:35');
+  assert.equal(L.departureInfo(evt).travelMin, 25);
+  // à 08:00, il reste 35 min avant de partir ; à 08:50, on est en retard
+  const at8 = L.departureInfo(evt, new Date(2026, 6, 8, 8, 0));
+  assert.equal(at8.leaveInMin, 35); assert.equal(at8.late, false);
+  const at850 = L.departureInfo(evt, new Date(2026, 6, 8, 8, 50));
+  assert.equal(at850.leaveInMin, -15); assert.equal(at850.late, true);
+  // pas d'heure ou pas de trajet → null
+  assert.equal(L.departureInfo({ time: '', travelMin: 25 }), null);
+  assert.equal(L.departureInfo({ time: '09:00', travelMin: 0 }), null);
+});
+
 test('normalizeTodo : défauts, texte borné, priorité validée', () => {
   const t = L.normalizeTodo({ id: 5, text: 'Appeler le garage', date: '2026-07-07', priority: 'high' });
   assert.equal(t.text, 'Appeler le garage');
