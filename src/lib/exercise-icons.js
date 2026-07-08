@@ -129,4 +129,22 @@ function exerciseIcon(name, animated) {
     + '</svg>';
 }
 
-if (typeof module !== 'undefined' && module.exports) { module.exports = { EXERCISE_PATTERN, POSES, exerciseIcon }; }
+// Vraies illustrations photo (humain, planches assets/exercise-illustrations-v1..5.png,
+// 5×6 cases). « sheet art ». Les exercices absents (barre/traction : aucune photo)
+// retombent proprement sur la figure SVG animée.
+const EXERCISE_ART = {
+  'Goblet squat kettlebell': '1 p0', 'Pompes inclinées': '1 p1', 'Fentes arrière': '1 p2', 'Soulevé de terre kettlebell': '1 p3', 'Step-up escalier': '1 p4', 'Step-down escalier': '1 p4', 'Gainage planche': '1 p5',
+  'Pompes classiques': '2 p0', 'Pompes déficit': '2 p0', 'Pompes diamants': '2 p1', 'Pompes gilet lesté': '2 p2', 'Gainage latéral': '2 p3', 'Kettlebell swing': '2 p4', 'Élévations mollets': '2 p5',
+  'Mountain climbers': '3 p0', 'Hollow hold': '3 p1', 'Bear crawl': '3 p2', 'Split squat bulgare': '3 p3', 'Marche fermier kettlebell': '3 p4', 'Dead bug': '3 p5',
+  'Step-up gilet': '4 p0', 'Step-down latéral': '4 p0', 'Soulevé de terre une jambe kettlebell': '4 p1', 'Pont fessier': '4 p2', 'Relevés tibiaux au mur': '4 p3', 'Chaise au mur': '4 p4', 'Squat cosaque': '4 p5',
+  'Pike push-up': '5 p0', 'Rowing kettlebell un bras': '5 p1', 'Développé militaire kettlebell': '5 p2', 'Floor press kettlebell': '5 p3', 'Bird dog': '5 p4', 'Superman': '5 p5'
+};
+
+// Visuel d'un exercice : vraie photo si disponible, sinon figure SVG animée (repli).
+function exercisePicture(name, extraClass, animated) {
+  const a = EXERCISE_ART[name];
+  if (a) { const parts = a.split(' '); return `<span class="exercise-art sheet-${parts[0]} art-${parts[1]} ${extraClass || ''}" role="img" aria-label="${String(name).replace(/"/g, '')}"></span>`; }
+  return `<span class="exercise-art ex-figure ${extraClass || ''}" aria-hidden="true">${exerciseIcon(name, animated)}</span>`;
+}
+
+if (typeof module !== 'undefined' && module.exports) { module.exports = { EXERCISE_PATTERN, POSES, EXERCISE_ART, exerciseIcon, exercisePicture }; }
