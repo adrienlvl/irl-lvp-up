@@ -17,7 +17,10 @@ const EXERCISE_PATTERN = {
   'Marche fermier kettlebell': 'carry',
   'Élévations mollets': 'calf', 'Relevés tibiaux au mur': 'calf',
   'Gainage planche': 'plank', 'Gainage latéral': 'plank', 'Hollow hold': 'plank',
-  'Dead bug': 'coredyn', 'Bird dog': 'coredyn', 'Superman': 'coredyn', 'Mountain climbers': 'coredyn', 'Bear crawl': 'coredyn'
+  'Dead bug': 'coredyn', 'Bird dog': 'coredyn', 'Superman': 'coredyn', 'Mountain climbers': 'coredyn', 'Bear crawl': 'coredyn',
+  'Squat sauté': 'squat', 'Fentes sautées': 'lunge', 'Montées de genoux': 'lunge', 'Sauts de cheville': 'calf',
+  'Pont fessier une jambe': 'bridge', 'Good morning kettlebell': 'hinge', 'Nordic curl': 'hinge',
+  'Turkish get-up kettlebell': 'coredyn', 'Équilibre unipodal': 'calf', 'Planche touches d’épaule': 'plank'
 };
 
 // Figure à partir de segments : head=[x,y,(r)], segs=[[[x,y],[x,y]],…]. Le remplissage

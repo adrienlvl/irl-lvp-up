@@ -19,16 +19,19 @@ test('chaque pattern a deux positions (a/b) — le mouvement est illustrable', (
   }
 });
 
-test('les 37 exercices ont une vraie photo (EXERCISE_ART) ; exercisePicture renvoie le sprite', () => {
+test('chaque exercice rend quelque chose : vraie photo si dispo, sinon figure SVG', () => {
   for (const ex of exercises) {
-    assert.ok(EXERCISE_ART[ex.name], `photo manquante pour « ${ex.name} »`);
+    const p = exercisePicture(ex.name);
+    const ok = /exercise-art sheet-[1-6] art-p[0-5]/.test(p) || /ex-figure/.test(p);
+    assert.ok(ok, `« ${ex.name} » ne rend ni photo ni figure`);
   }
-  // les 6 exercices barre/traction sont sur la planche 6
+  // les 6 exercices barre/traction sont sur la planche 6 (vraie photo)
   ['Tractions', 'Tractions supination', 'Tractions négatives', 'Suspension barre', 'Relevés de genoux suspendu', 'Rowing australien'].forEach(n => {
     assert.match(EXERCISE_ART[n], /^6 p[0-5]$/, n + ' → planche 6');
     assert.match(exercisePicture(n), /exercise-art sheet-6 art-p[0-5]/, n + ' rend une vraie photo');
   });
-  // un exercice sans photo retomberait sur la figure SVG (repli)
+  // un exercice sans photo retombe sur la figure SVG (repli) — ex. les nouveaux plyo
+  assert.match(exercisePicture('Squat sauté'), /ex-figure/);
   assert.match(exercisePicture('Exercice sans photo'), /ex-figure/);
 });
 
