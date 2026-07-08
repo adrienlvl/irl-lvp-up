@@ -4,6 +4,29 @@ _Établie le 2026-07-05. Séquencée par vagues. Chaque vague est livrable indé
 
 Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (qualité/confort) · 🟩 P3 (plus tard).
 
+---
+
+## 📍 État actuel — build 1.8.1 (2026-07-08)
+
+App **100 % locale**, hors **2 accès réseau opt-in** (auto-update GitHub · sync agenda par URL). **105 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→57) :
+- **Agenda complet** : vues Jour / Semaine / Mois, priorités, import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
+- **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
+- **Coaching** : **47 exercices** (vraies photos pour 37, figure SVG animée pour 10) tous programmés ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
+- **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
+- ⚠️ Versions **1.5.2 → 1.8.1 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
+
+## 🔧 Backlog actionnable — boucles autonomes (sans dépendance externe)
+
+- [ ] **B-1** Finisher / **retour au calme guidé** après chaque séance (mobilité + étirements ciblés trail : hanches, mollets, ischios, dos). Complète **5.2**.
+- [ ] **B-2** **Purge des règles CSS mortes** (**3.2**) — analyse fine, zéro régression visuelle.
+- [ ] **B-3** **États vides & libellés harmonisés** (finitions UX, thème E des audits).
+- [ ] **B-4** **Couverture de tests élargie** sur les modules récents (récurrence, habitudes, sync, anniversaires) — cas limites supplémentaires.
+- [ ] **B-5** _(option, prudent)_ Séparer les gros blocs de rendu d'`app.js` par domaine (**3.1**).
+
+_Hors boucle auto (décision/action d'Adrien) : planches photo 7-8, Vague S.8 (scan frigo, OAuth), signature de code, publication du lot 1.5.2→1.8.1._
+
+---
+
 ## Vague 6 — UX : clarté & désencombrement _(en cours, choix d'Adrien)_
 _Détail : [`AUDIT-UX.md`](AUDIT-UX.md). Adrien a retenu : A1+A2, B1+B3, C1+B2, D1+D2._
 - [x] **A1** Sections fantômes rattachées à leur page (agenda→dashboard ; trail/plan/revue→athlète). Fuites = 0. ✅ _boucle #27._
