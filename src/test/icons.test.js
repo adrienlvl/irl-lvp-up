@@ -42,7 +42,7 @@ test('programmes : chaque exercice cité existe dans la bibliothèque, days ↔ 
 test('chaque exercice rend quelque chose : vraie photo si dispo, sinon figure SVG', () => {
   for (const ex of exercises) {
     const p = exercisePicture(ex.name);
-    const ok = /exercise-art sheet-[1-6] art-p[0-5]/.test(p) || /ex-figure/.test(p);
+    const ok = /exercise-art sheet-[1-8] art-p[0-5]/.test(p) || /ex-figure/.test(p);
     assert.ok(ok, `« ${ex.name} » ne rend ni photo ni figure`);
   }
   // les 6 exercices barre/traction sont sur la planche 6 (vraie photo)
@@ -50,8 +50,14 @@ test('chaque exercice rend quelque chose : vraie photo si dispo, sinon figure SV
     assert.match(EXERCISE_ART[n], /^6 p[0-5]$/, n + ' → planche 6');
     assert.match(exercisePicture(n), /exercise-art sheet-6 art-p[0-5]/, n + ' rend une vraie photo');
   });
-  // un exercice sans photo retombe sur la figure SVG (repli) — ex. les nouveaux plyo
-  assert.match(exercisePicture('Squat sauté'), /ex-figure/);
+  // planches 7 & 8 : les 10 exercices trail-hybride ont désormais une vraie photo
+  assert.match(exercisePicture('Squat sauté'), /exercise-art sheet-7 art-p0/, 'Squat sauté → planche 7');
+  assert.match(exercisePicture('Good morning kettlebell'), /exercise-art sheet-7 art-p5/, 'Good morning KB → planche 7');
+  assert.match(exercisePicture('Nordic curl'), /exercise-art sheet-8 art-p0/, 'Nordic curl → planche 8');
+  assert.match(exercisePicture('Planche touches d’épaule'), /exercise-art sheet-8 art-p3/, 'Planche touches d’épaule → planche 8');
+  // désormais les 47 exercices ont une vraie photo : plus aucun ne retombe sur la figure SVG
+  assert.ok(exercises.every(e => /sheet-[1-8] art-p[0-5]/.test(exercisePicture(e.name))), 'tous les exercices ont une photo');
+  // un NOM inconnu retombe proprement sur la figure SVG (repli sûr)
   assert.match(exercisePicture('Exercice sans photo'), /ex-figure/);
 });
 

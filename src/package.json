@@ -1,6 +1,6 @@
 {
   "name": "irl-lvp-up",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "description": "Ton RPG de vie local",
   "main": "electron-main.cjs",
   "author": "Adrien",

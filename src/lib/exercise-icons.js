@@ -141,7 +141,9 @@ const EXERCISE_ART = {
   'Mountain climbers': '3 p0', 'Hollow hold': '3 p1', 'Bear crawl': '3 p2', 'Split squat bulgare': '3 p3', 'Marche fermier kettlebell': '3 p4', 'Dead bug': '3 p5',
   'Step-up gilet': '4 p0', 'Step-down latéral': '4 p0', 'Soulevé de terre une jambe kettlebell': '4 p1', 'Pont fessier': '4 p2', 'Relevés tibiaux au mur': '4 p3', 'Chaise au mur': '4 p4', 'Squat cosaque': '4 p5',
   'Pike push-up': '5 p0', 'Rowing kettlebell un bras': '5 p1', 'Développé militaire kettlebell': '5 p2', 'Floor press kettlebell': '5 p3', 'Bird dog': '5 p4', 'Superman': '5 p5',
-  'Tractions': '6 p0', 'Tractions supination': '6 p1', 'Tractions négatives': '6 p2', 'Suspension barre': '6 p3', 'Relevés de genoux suspendu': '6 p4', 'Rowing australien': '6 p5'
+  'Tractions': '6 p0', 'Tractions supination': '6 p1', 'Tractions négatives': '6 p2', 'Suspension barre': '6 p3', 'Relevés de genoux suspendu': '6 p4', 'Rowing australien': '6 p5',
+  'Squat sauté': '7 p0', 'Fentes sautées': '7 p1', 'Montées de genoux': '7 p2', 'Sauts de cheville': '7 p3', 'Pont fessier une jambe': '7 p4', 'Good morning kettlebell': '7 p5',
+  'Nordic curl': '8 p0', 'Turkish get-up kettlebell': '8 p1', 'Équilibre unipodal': '8 p2', 'Planche touches d’épaule': '8 p3'
 };
 
 // Visuel d'un exercice : vraie photo si disponible, sinon figure SVG animée (repli).
