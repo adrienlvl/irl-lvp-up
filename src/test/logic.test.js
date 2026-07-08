@@ -640,6 +640,17 @@ test('warmupFor : échauffement adapté au type de séance', () => {
   assert.deepEqual(L.warmupFor('').moves.length >= 3, true);
 });
 
+test('cooldownFor : retour au calme adapté au type de séance', () => {
+  assert.match(L.cooldownFor('A · Tirage & poussée').label, /haut du corps/i);
+  assert.match(L.cooldownFor('B · Jambes & chaîne postérieure').label, /bas du corps/i);
+  assert.match(L.cooldownFor('Puissance & prévention').label, /trail|course/i);
+  const def = L.cooldownFor('Séance inconnue');
+  assert.match(def.label, /général/i);
+  assert.ok(def.moves.length >= 3, '≥ 3 mouvements');
+  // des étirements/récup, pas de l'échauffement
+  assert.match(L.cooldownFor('B · Jambes').moves.join(' '), /étirement/i);
+});
+
 test('volumeRamp : cas d’Adrien (15→50 km en 8 sem) = trop rapide, honnête', () => {
   const r = L.volumeRamp(15, 50, 8);
   assert.equal(r.series.length, 8);

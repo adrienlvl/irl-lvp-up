@@ -613,6 +613,19 @@ function warmupFor(title) {
   return { label: 'Échauffement général · ~5 min', moves: ['Mobilité cou/épaules/hanches · 1 min', 'Rotations chevilles et poignets · 30 s', '10 squats à vide + 10 rotations du tronc', 'Montée progressive du rythme cardiaque · 1 min'] };
 }
 
+// Retour au calme spécifique selon le type de séance : mobilité douce + étirements
+// tenus (~5 min) pour récupérer et entretenir la souplesse. Pas d'XP.
+function cooldownFor(title) {
+  const t = String(title || '').toLowerCase();
+  if (/poussée|tirage|haut|traction|pompes|press|militaire/.test(t))
+    return { label: 'Retour au calme haut du corps · ~5 min', moves: ['Étirement pectoraux au cadre de porte · 30 s/côté', 'Étirement dorsaux/lats, bras tendu · 30 s/côté', 'Étirement triceps derrière la tête · 30 s/côté', 'Rotations lentes du cou + respirations profondes · 1 min'] };
+  if (/jambe|chaîne|squat|fessier|fente|mollet/.test(t))
+    return { label: 'Retour au calme bas du corps · ~5 min', moves: ['Étirement quadriceps debout · 30 s/jambe', 'Étirement ischios, jambe tendue · 30 s/jambe', 'Étirement fléchisseurs de hanche (fente basse) · 30 s/côté', 'Étirement mollets au mur · 30 s/jambe'] };
+  if (/trail|côte|course|puissance|longue|swing|explos|prévention/.test(t))
+    return { label: 'Retour au calme trail/course · ~5 min', moves: ['Marche lente · 2 min pour faire redescendre le cardio', 'Étirement mollets + tendon d’Achille au mur · 30 s/jambe', 'Étirement ischios et fléchisseurs de hanche · 30 s/côté', 'Étirement fessiers (figure 4 au sol) · 30 s/côté'] };
+  return { label: 'Retour au calme général · ~5 min', moves: ['Respiration lente : 4 s inspire / 6 s expire · 1 min', 'Étirement chaîne postérieure (mains vers les pieds) · 30 s', 'Mobilité douce hanches + épaules · 30 s/côté', 'Relâchement complet, allongé · 1 min'] };
+}
+
 // Montée en volume de course sécurisée : progression hebdomadaire du kilométrage
 // de startKm vers targetKm sur `weeks` semaines, avec un gain hebdo plafonné
 // (défaut 12 %) et une semaine de décharge périodique. Renvoie la série + un
@@ -892,5 +905,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }
