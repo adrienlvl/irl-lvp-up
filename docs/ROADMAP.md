@@ -6,14 +6,14 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.8.1 (2026-07-08)
+## 📍 État actuel — build 1.8.4 (2026-07-09)
 
-App **100 % locale**, hors **2 accès réseau opt-in** (auto-update GitHub · sync agenda par URL). **105 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→57) :
-- **Agenda complet** : vues Jour / Semaine / Mois, priorités, import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
+App **100 % locale**, hors **2 accès réseau opt-in** (auto-update GitHub · sync agenda par URL). **112 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→61) :
+- **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** (vraies photos pour 37, figure SVG animée pour 10) tous programmés ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
-- ⚠️ Versions **1.5.2 → 1.8.1 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
+- ⚠️ Versions **1.5.2 → 1.8.4 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
 
 ## 🔧 Backlog actionnable — boucles autonomes (sans dépendance externe)
 
@@ -176,7 +176,7 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
 ## Vague 3 — Qualité & maintenabilité _(P2)_
 
 - [~] **3.1** Découper `app.js` : logique pure dans `lib/logic.js` ✅, données statiques (30 exercices + 3 programmes) dans `lib/exercises-data.js` ✅ (_boucle #13_, app.js 100 Ko → 93 Ko). Reste (optionnel) : séparer les gros blocs de rendu par domaine.
-- [~] **3.2** Rationaliser les CSS : **19 → 15 fichiers** (4 `-plus` fusionnés dans `extras.css`, `audit.css` dans `pages.css`, ordre de cascade préservé). Reste : purge des règles mortes (analyse fine). _boucle #12._
+- [x] **3.2** Rationaliser les CSS : **19 → 15 fichiers** (4 `-plus` fusionnés dans `extras.css`, `audit.css` dans `pages.css`, ordre de cascade préservé, _boucle #12_) **+ purge des règles mortes** (B-2 : 7 classes obsolètes retirées, analyse outillée, 0 régression, _boucle #61_). ✅
 - [x] **3.3** Rendu ciblé : `renderDashboardCore()` (léger) pour les actions fréquentes — quêtes, défi, pas de vie, focus, validation Ma journée — au lieu du `render()` complet (20 sections). Le `render()` global reste pour les changements larges (séances, restauration). ✅ _boucle #12._
 - [x] **3.4** Couverture de tests étendue : **23 → 31 tests**. Calcul de prescription extrait en pur (`prescriptionFor`/`formatFor`), + cas limites (bornes, familles, titres hostiles XSS, ICS multi-événements, listes vides). ✅ _boucle #14._
 
