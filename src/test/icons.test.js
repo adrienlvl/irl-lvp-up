@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { EXERCISE_PATTERN, POSES, EXERCISE_ART, exerciseIcon, exercisePicture } = require('../lib/exercise-icons.js');
+const { EXERCISE_PATTERN, POSES, EXERCISE_ART, ANIMATED_SHEETS, buildAnimatedArt, exerciseIcon, exercisePicture } = require('../lib/exercise-icons.js');
 const { exercises, programs } = require('../lib/exercises-data.js');
 
 test('chaque exercice de la bibliothèque est mappé à un pattern connu', () => {
@@ -59,6 +59,21 @@ test('chaque exercice rend quelque chose : vraie photo si dispo, sinon figure SV
   assert.ok(exercises.every(e => /sheet-[1-8] art-p[0-5]/.test(exercisePicture(e.name))), 'tous les exercices ont une photo');
   // un NOM inconnu retombe proprement sur la figure SVG (repli sûr)
   assert.match(exercisePicture('Exercice sans photo'), /ex-figure/);
+});
+
+test('animation début↔fin : moteur prêt, activé par planche « position B »', () => {
+  // builder pur : 2 calques (position A + position B) sur la même case
+  const m = buildAnimatedArt('6 p0', '', 'Tractions');
+  assert.match(m, /exercise-art-anim/);
+  assert.match(m, /sheet-6 art-p0 frame-a/);
+  assert.match(m, /sheet-6b art-p0 frame-b/);
+  // tant qu'une planche n'est pas déclarée animée : photo fixe (aucune régression)
+  assert.ok(!/exercise-art-anim/.test(exercisePicture('Tractions', '', true)), 'pas d’animation sans planche B');
+  // dès qu'une planche « position B » est livrée : l'exercice s'anime en vue détail
+  ANIMATED_SHEETS.add(6);
+  assert.match(exercisePicture('Tractions', '', true), /exercise-art-anim/, 'animé quand la planche B existe');
+  assert.ok(!/exercise-art-anim/.test(exercisePicture('Tractions', '', false)), 'statique hors vue détail (animated=false)');
+  ANIMATED_SHEETS.delete(6);
 });
 
 test('exerciseIcon : SVG valide ; animé = va-et-vient ; statique = deux positions', () => {
