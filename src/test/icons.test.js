@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { EXERCISE_PATTERN, POSES, exerciseIcon } = require('../lib/exercise-icons.js');
+const { EXERCISE_PATTERN, POSES, EXERCISE_ART, exerciseIcon, exercisePicture } = require('../lib/exercise-icons.js');
 const { exercises } = require('../lib/exercises-data.js');
 
 test('chaque exercice de la bibliothèque est mappé à un pattern connu', () => {
@@ -17,6 +17,19 @@ test('chaque pattern a deux positions (a/b) — le mouvement est illustrable', (
     assert.ok(typeof P.a === 'string' && P.a.length > 0, name + ' pose A');
     assert.ok(typeof P.b === 'string' && P.b.length > 0, name + ' pose B');
   }
+});
+
+test('les 37 exercices ont une vraie photo (EXERCISE_ART) ; exercisePicture renvoie le sprite', () => {
+  for (const ex of exercises) {
+    assert.ok(EXERCISE_ART[ex.name], `photo manquante pour « ${ex.name} »`);
+  }
+  // les 6 exercices barre/traction sont sur la planche 6
+  ['Tractions', 'Tractions supination', 'Tractions négatives', 'Suspension barre', 'Relevés de genoux suspendu', 'Rowing australien'].forEach(n => {
+    assert.match(EXERCISE_ART[n], /^6 p[0-5]$/, n + ' → planche 6');
+    assert.match(exercisePicture(n), /exercise-art sheet-6 art-p[0-5]/, n + ' rend une vraie photo');
+  });
+  // un exercice sans photo retomberait sur la figure SVG (repli)
+  assert.match(exercisePicture('Exercice sans photo'), /ex-figure/);
 });
 
 test('exerciseIcon : SVG valide ; animé = va-et-vient ; statique = deux positions', () => {
