@@ -83,6 +83,66 @@ function writeCalendarSubs(list) { try { const clean = (Array.isArray(list) ? li
 ipcMain.handle('calendar:fetch', (_e, url) => fetchIcs(String(url || '')));
 ipcMain.handle('calendar:subs:get', () => readCalendarSubs());
 ipcMain.handle('calendar:subs:save', (_e, list) => writeCalendarSubs(list));
+
+/* ---- Vague S.8 : trajet auto (géocodage Nominatim + itinéraire OSRM, sans clé) ----
+   Même modèle que fetchIcs : réseau UNIQUEMENT ici, HTTPS, hôtes ALLOWLISTÉS
+   (L.isAllowedTravelUrl → nominatim.openstreetmap.org + router.project-osrm.org),
+   timeout 10 s, taille bornée, redirections https limitées, réponse parsée en JSON
+   (jamais exécutée). Opt-in strict : rien ne sort tant qu'Adrien n'a pas cliqué « Estimer ». */
+function httpsGetJson(rawUrl, redirectsLeft) {
+  return new Promise(resolve => {
+    const url = L.isAllowedTravelUrl(rawUrl);
+    if (!url) return resolve({ ok: false, error: 'URL refusée (hôte non autorisé).' });
+    if (redirectsLeft == null) redirectsLeft = 3;
+    let settled = false; const done = r => { if (!settled) { settled = true; resolve(r); } };
+    let req;
+    try {
+      req = https.get(url, { timeout: 10000, headers: { 'User-Agent': 'IRL-LVP-UP/1.0 (app perso locale; estimation de trajet agenda)', 'Accept': 'application/json' } }, res => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          res.resume();
+          if (redirectsLeft <= 0) return done({ ok: false, error: 'Trop de redirections.' });
+          let next; try { next = new URL(res.headers.location, url).toString(); } catch { return done({ ok: false, error: 'Redirection invalide.' }); }
+          return httpsGetJson(next, redirectsLeft - 1).then(done);
+        }
+        if (res.statusCode !== 200) { res.resume(); return done({ ok: false, error: `Réponse ${res.statusCode}.` }); }
+        let data = '', size = 0; res.setEncoding('utf8');
+        res.on('data', c => { size += Buffer.byteLength(c); if (size > 2 * 1024 * 1024) { req.destroy(); return done({ ok: false, error: 'Réponse trop volumineuse.' }); } data += c; });
+        res.on('end', () => { try { done({ ok: true, json: JSON.parse(data) }); } catch { done({ ok: false, error: 'Réponse illisible.' }); } });
+      });
+    } catch (e) { return done({ ok: false, error: 'Réseau : ' + String((e && e.message) || e) }); }
+    req.on('timeout', () => { req.destroy(); done({ ok: false, error: 'Délai dépassé (10 s).' }); });
+    req.on('error', err => done({ ok: false, error: 'Réseau : ' + String((err && err.message) || err) }));
+  });
+}
+async function geocodeAddress(query) {
+  const r = await httpsGetJson(L.buildGeocodeUrl(query));
+  if (!r.ok) return r;
+  const first = Array.isArray(r.json) ? r.json[0] : null;
+  if (!first || first.lat == null || first.lon == null) return { ok: false, error: 'adresse introuvable' };
+  return { ok: true, lat: Number(first.lat), lon: Number(first.lon), label: String(first.display_name || query).slice(0, 120) };
+}
+ipcMain.handle('travel:estimate', async (_e, payload) => {
+  try {
+    const p = payload && typeof payload === 'object' ? payload : {};
+    const from = String(p.from || '').slice(0, 200).trim(), to = String(p.to || '').slice(0, 200).trim();
+    if (!from || !to) return { ok: false, error: 'Point de départ et destination requis.' };
+    const g1 = await geocodeAddress(from); if (!g1.ok) return { ok: false, error: 'Départ : ' + g1.error };
+    const g2 = await geocodeAddress(to); if (!g2.ok) return { ok: false, error: 'Destination : ' + g2.error };
+    const r = await httpsGetJson(L.buildRouteUrl(g1, g2));
+    let distanceM = null, driveSec = 0;
+    if (r.ok && r.json && Array.isArray(r.json.routes) && r.json.routes[0]) { distanceM = Number(r.json.routes[0].distance); driveSec = Number(r.json.routes[0].duration) || 0; }
+    let approx = false;
+    if (distanceM == null || !Number.isFinite(distanceM)) { const km = L.haversineKm(g1, g2); if (km == null) return { ok: false, error: 'Itinéraire indisponible.' }; distanceM = km * 1000 * 1.3; driveSec = 0; approx = true; }
+    return { ok: true, modes: L.travelModes(distanceM, driveSec), from: g1.label, to: g2.label, approx };
+  } catch (e) { return { ok: false, error: 'Erreur : ' + String((e && e.message) || e) }; }
+});
+// Point de départ (adresse = donnée personnelle) + mode préféré — chiffré via safeStorage.
+const travelFile = () => path.join(app.getPath('userData'), 'travel.dat');
+const TRAVEL_MODES = ['driving', 'cycling', 'walking'];
+function readTravelConfig() { try { const buf = fs.readFileSync(travelFile()); const json = (safeStorage.isEncryptionAvailable() && buf.length && buf[0] !== 0x7b) ? safeStorage.decryptString(buf) : buf.toString('utf8'); const o = JSON.parse(json) || {}; return { home: String(o.home || '').slice(0, 200), mode: TRAVEL_MODES.includes(o.mode) ? o.mode : 'driving' }; } catch { return { home: '', mode: 'driving' }; } }
+function writeTravelConfig(v) { try { const clean = { home: String((v && v.home) || '').slice(0, 200), mode: TRAVEL_MODES.includes(v && v.mode) ? v.mode : 'driving' }; const json = JSON.stringify(clean); fs.writeFileSync(travelFile(), safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(json) : Buffer.from(json, 'utf8')); return clean; } catch { return null; } }
+ipcMain.handle('travel:config:get', () => readTravelConfig());
+ipcMain.handle('travel:config:save', (_e, v) => writeTravelConfig(v));
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) { app.quit(); } else {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });

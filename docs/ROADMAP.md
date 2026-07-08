@@ -6,14 +6,14 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.8.4 (2026-07-09)
+## 📍 État actuel — build 1.8.5 (2026-07-09)
 
-App **100 % locale**, hors **2 accès réseau opt-in** (auto-update GitHub · sync agenda par URL). **112 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→61) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **117 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→62) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** (vraies photos pour 37, figure SVG animée pour 10) tous programmés ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
-- ⚠️ Versions **1.5.2 → 1.8.4 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
+- ⚠️ Versions **1.5.2 → 1.8.5 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
 
 ## 🔧 Backlog actionnable — boucles autonomes (sans dépendance externe)
 
@@ -96,7 +96,7 @@ _Livrable : un `.exe` reproductible + données à l'épreuve du quota._
 - [x] **1.11** **Anniversaires** (demande d'Adrien) — panneau « 🎂 Anniversaires » (page Calendrier) : ajout de proches (nom + date de naissance) ; `normalizeBirthday`/`birthdaysForDay` purs + testés ; `state.birthdays`. Récurrents chaque année, injectés dans `todayItems` → visibles en vue **Jour / Semaine / Mois** + **« Ma journée »**, avec l'**âge** calculé. Non validables. ✅ _boucle #42 (build 1.5.2)._
 - [x] **1.13** **Habitudes quotidiennes (« Dailies » façon Habitica)** — panneau « 🔥 Habitudes du jour » sur le dashboard. `normalizeHabit`/`habitStreak`/`habitsForDay` purs + testés ; `state.habits`. Chaque habitude : jours prévus (défaut tous), **série (streak) 🔥** tolérante au jour non encore fait, **XP** à la validation (repris si décoché). Résumé « X/Y — parfait ✨ ». ✅ _boucle #47 (build 1.5.7)._
 - [x] **1.14** **Détails d'événement + heure de départ** (demande d'Adrien) — chaque événement peut porter un **📍 lieu**, des **📝 notes** et un **🚗 temps de trajet (min)** ; `departureInfo()` pur+testé calcule l'**heure de départ conseillée** (heure − trajet) et, pour aujourd'hui, **« pars dans X min »** / « déjà l'heure de partir ». Affiché dans la vue Jour. Champs au formulaire d'ajout. ✅ _boucle #60 (build 1.8.3)._
-  - ⏳ **À venir (Vague S.8)** : trajet **auto** depuis ta position GPS → l'adresse (géocodage + itinéraire via une carte) — réseau + API, cadré comme les autres fonctions réseau.
+  - [x] **Trajet auto livré (S.8, build 1.8.5)** : point de départ + lieu → géocodage/itinéraire OpenStreetMap sans clé, bouton « 🧭 Estimer » qui remplit le trajet. Reste optionnel : détection **GPS live** de « où je suis » (nécessite une clé de géolocalisation Chromium) — le point de départ manuel couvre déjà le besoin.
 - [x] **1.12** **Événements récurrents (moteur natif, sans dépendance)** — `recurrenceMatches(rule, dateKey)` + `normalizeRecurring` purs + testés ; `state.recurring`. Fréquences **quotidien / hebdo (jours au choix) / toutes les N semaines / mensuel / annuel**, avec date de début et **jusqu'au** optionnel. Formulaire repliable « 🔁 Événements récurrents » (Vue mois) + liste. Occurrences injectées dans `todayItems` → visibles Jour/Semaine/Mois/« Ma journée » avec marqueur **↻** (non validables). ✅ _boucle #46 (build 1.5.6)._
   - [x] **1b — Import RRULE** : `parseRRule` (FREQ/INTERVAL/BYDAY/UNTIL → règle interne) ; `parseIcs` remonte un champ `recurrence` ; à l'import, les VEVENT récurrents deviennent des **événements récurrents** (dédup par `refId` ics-uid), les ponctuels vont dans l'agenda. Testé + flux réel vérifié. ✅ _boucle #48 (build 1.5.8)._
 
@@ -142,6 +142,7 @@ Déjà en place (Vague 0) : `contextIsolation: true`, `nodeIntegration: false`, 
   - [~] 🔁 **Mise à jour automatique** (electron-updater + GitHub Releases) — **code branché** (build 1.5.0) : vérif au démarrage, téléchargement en fond, bannière « Redémarrer & installer » ; erreurs avalées, seul le main parle à GitHub (HTTPS). **Reste à activer par Adrien** : créer le dépôt GitHub + renseigner `owner`/`repo` + `npm run release` avec `GH_TOKEN`. Voir `docs/AUTO-UPDATE.md`. Non signé pour l'instant (avertissement SmartScreen ; signature = étape future). _(Demandé par Adrien — 2026-07-07, boucle #40.)_
   - 📸 **Scan du frigo par photo** → reconnaissance d'image (IA/API) qui remplit « Mon frigo ». _(Demandé par Adrien — 2026-07-07.)_
   - [x] 🔄 **Sync agenda par URL (.ics/webcal)** — 1re brique S.8 (choix d'Adrien). Abonnement au lien privé Google/Apple : fetch **HTTPS uniquement** dans le **main** (`fetchIcs`, timeout 10 s, 5 Mo max, redirections https limitées, garde-fou anti-SSRF `normalizeCalendarUrl`/`isPrivateHost`), parsé par `parseIcs` (récurrents RRULE dépliés) ; **liens chiffrés `safeStorage`** ; renderer **inchangé** (CSP self, navigation bloquée) ; sync auto à l'ouverture + bouton manuel. Cadre : `docs/SECURITE-RESEAU-S8.md`. ✅ _boucle #52 (build 1.7.0)._
+  - [x] 🧭 **Trajet auto : adresse → temps de trajet & heure de départ** (choix d'Adrien : OpenStreetMap sans clé). Point de départ (chiffré `safeStorage`) + lieu de l'événement → **géocodage Nominatim** puis **itinéraire OSRM** dans le **main** (`httpsGetJson`, **allowlist stricte** `isAllowedTravelUrl` = 2 hôtes OSM/OSRM, HTTPS, timeout 10 s, ≤ 2 Mo, ≤ 3 redirections, JSON parsé jamais exécuté). Bouton « 🧭 Estimer » qui remplit le champ 🚗 (voiture/vélo/marche), **opt-in strict** (rien ne part avant le clic). `isAllowedTravelUrl`/`buildGeocodeUrl`/`buildRouteUrl`/`haversineKm`/`travelModes` purs + testés ; flux réseau réel vérifié (Lorient→Rennes 156 km). Cadre mis à jour : `docs/SECURITE-RESEAU-S8.md`. ✅ _boucle #62 (build 1.8.5)._
   - 🔄 **Sync agenda OAuth complet** Google/Apple CalDAV (option « tout auto ») — plus tard si besoin (nécessite projet Google Cloud + flux OAuth). _(Demandé par Adrien.)_
 
 _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future sera explicite, minimale et vérifiée._

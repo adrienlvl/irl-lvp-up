@@ -953,3 +953,44 @@ test('mergePlannedEvents : idempotent, préserve completed et id, garde le reste
   assert.equal(kept.id, 100, 'id préservé');
   assert.ok(again.some(e => e.title === 'Muscu'), 'événement manuel intact');
 });
+
+// --- Vague S.8 : trajet auto (allowlist + builders + calcul) ---
+test('isAllowedTravelUrl : seuls Nominatim/OSRM en https, hôtes publics', () => {
+  assert.ok(L.isAllowedTravelUrl('https://nominatim.openstreetmap.org/search?q=x'), 'nominatim ok');
+  assert.ok(L.isAllowedTravelUrl('https://router.project-osrm.org/route/v1/driving/0,0;1,1'), 'osrm ok');
+  assert.equal(L.isAllowedTravelUrl('https://evil.example.com/'), '', 'autre hôte refusé');
+  assert.equal(L.isAllowedTravelUrl('http://nominatim.openstreetmap.org/'), '', 'http refusé');
+  assert.equal(L.isAllowedTravelUrl('https://127.0.0.1/'), '', 'loopback refusé');
+  assert.equal(L.isAllowedTravelUrl('https://nominatim.openstreetmap.org.evil.com/'), '', 'suffixe piégé refusé');
+  assert.equal(L.isAllowedTravelUrl('pas une url'), '', 'invalide refusé');
+});
+test('buildGeocodeUrl : encode la requête, vide si requête vide', () => {
+  const u = L.buildGeocodeUrl('12 rue de la Paix, Lorient');
+  assert.ok(u.startsWith('https://nominatim.openstreetmap.org/search?'), 'bon hôte');
+  assert.ok(u.includes('q=12%20rue%20de%20la%20Paix%2C%20Lorient'), 'requête encodée');
+  assert.equal(L.buildGeocodeUrl('   '), '', 'vide → ""');
+  assert.ok(L.isAllowedTravelUrl(u), 'URL construite passe l’allowlist');
+});
+test('buildRouteUrl : ordre lon,lat ; vide si coords invalides', () => {
+  const u = L.buildRouteUrl({ lat: 47.75, lon: -3.36 }, { lat: 48.11, lon: -1.68 });
+  assert.ok(u.includes('/driving/-3.36,47.75;-1.68,48.11'), 'lon,lat dans le bon ordre');
+  assert.ok(L.isAllowedTravelUrl(u), 'URL route passe l’allowlist');
+  assert.equal(L.buildRouteUrl({ lat: 1 }, { lat: 2, lon: 3 }), '', 'coord manquante → ""');
+  assert.equal(L.buildRouteUrl(null, null), '', 'null → ""');
+});
+test('haversineKm : Lorient→Rennes ~ 130 km, null si invalide', () => {
+  const km = L.haversineKm({ lat: 47.748, lon: -3.366 }, { lat: 48.117, lon: -1.677 });
+  assert.ok(km > 110 && km < 150, 'ordre de grandeur plausible : ' + km);
+  assert.equal(L.haversineKm({ lat: 1 }, { lat: 2, lon: 3 }), null, 'coord manquante → null');
+});
+test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () => {
+  const m = L.travelModes(20000, 1200); // 20 km, 20 min voiture
+  assert.equal(m.distanceKm, 20, 'distance en km arrondie');
+  assert.equal(m.driving, 20, 'voiture = 1200 s → 20 min');
+  assert.equal(m.cycling, 80, 'vélo 15 km/h → 80 min');
+  assert.equal(m.walking, 240, 'marche 5 km/h → 240 min');
+  const z = L.travelModes(0, 0);
+  assert.equal(z.driving, 0, 'distance nulle → 0');
+  const noDrive = L.travelModes(50000, 0); // repli voiture 50 km/h
+  assert.equal(noDrive.driving, 60, 'sans durée OSRM → 50 km à 50 km/h = 60 min');
+});

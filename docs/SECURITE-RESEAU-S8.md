@@ -16,8 +16,17 @@ _Cadre appliqué à toute fonction réseau de l'app (jusqu'ici 100 % locale). Pr
 |---|---|---|
 | GitHub Releases (auto-update) | main (`electron-updater`) | au démarrage si dépôt configuré |
 | URL(s) d'agenda `.ics` fournie(s) par Adrien | main (`fetchIcs`) | à l'ouverture + bouton « Synchroniser » |
+| Géocodage **nominatim.openstreetmap.org** (adresses → coordonnées) | main (`httpsGetJson` + `isAllowedTravelUrl`) | à la demande seulement, bouton « 🧭 Estimer le trajet » |
+| Itinéraire **router.project-osrm.org** (coordonnées → distance/durée) | main (`httpsGetJson` + `isAllowedTravelUrl`) | idem, après le géocodage |
 
 Rien d'autre. Pas d'analytics, pas de télémétrie, pas de CDN.
+
+### Trajet auto (build 1.8.5) — garanties spécifiques
+- **Allowlist stricte par hôte** : `isAllowedTravelUrl` (pur + testé) n'accepte que `nominatim.openstreetmap.org` et `router.project-osrm.org`, en **HTTPS**, hôtes publics (réutilise `isPrivateHost`). Tout autre hôte (y compris un suffixe piégé `…openstreetmap.org.evil.com`) est refusé.
+- **JSON parsé, jamais exécuté** ; requêtes bornées (timeout 10 s, ≤ 2 Mo, ≤ 3 redirections https).
+- **Opt-in strict** : aucune requête tant qu'Adrien n'a pas cliqué « Estimer ». Les deux adresses (départ + destination) ne partent qu'à ce moment-là.
+- **Point de départ chiffré** : l'adresse de départ (donnée personnelle) est stockée via `safeStorage` dans `userData/travel.dat`, jamais dans le blob `localStorage` ni les backups en clair.
+- Sans clé d'API, sans compte : les serveurs publics OSM/OSRM suffisent pour un usage perso à faible volume.
 
 ## À faire si on ajoute d'autres fonctions réseau (OAuth, scan frigo…)
 - Garder le même modèle : appel dans le main, hôtes **allowlistés** par domaine, secrets `safeStorage`.

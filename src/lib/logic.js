@@ -389,6 +389,61 @@ function normalizeCalendarUrl(input) {
   return u.toString();
 }
 
+// --- Vague S.8 : trajet auto (géocodage Nominatim + itinéraire OSRM, sans clé) ---
+// Hôtes publics ALLOWLISTÉS — aucun autre hôte n'est contactable pour le trajet.
+const TRAVEL_HOSTS = ['nominatim.openstreetmap.org', 'router.project-osrm.org'];
+
+// Valide une URL de trajet : HTTPS + hôte exactement dans l'allowlist + public
+// (réutilise isPrivateHost). Renvoie l'URL normalisée, ou '' si refusée. Pur.
+function isAllowedTravelUrl(input) {
+  let u; try { u = new URL(String(input || '')); } catch { return ''; }
+  if (u.protocol !== 'https:' || !u.hostname || isPrivateHost(u.hostname)) return '';
+  const h = u.hostname.toLowerCase().replace(/\.$/, '');
+  return TRAVEL_HOSTS.includes(h) ? u.toString() : '';
+}
+
+// URL de géocodage Nominatim (1 résultat). Pur. '' si requête vide.
+function buildGeocodeUrl(query) {
+  const q = String(query || '').trim();
+  if (!q) return '';
+  return 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=0&limit=1&q=' + encodeURIComponent(q);
+}
+
+// URL d'itinéraire OSRM (profil voiture) entre deux points {lat, lon}. Pur. '' si coords invalides.
+function buildRouteUrl(from, to) {
+  if (!from || !to) return '';
+  const n = v => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const a = [n(from.lon), n(from.lat)], b = [n(to.lon), n(to.lat)];
+  if (a.concat(b).some(v => v == null)) return '';
+  return `https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=false&alternatives=false&steps=false`;
+}
+
+// Distance à vol d'oiseau (km) entre deux points {lat, lon} — repli si l'itinéraire échoue. Pur.
+function haversineKm(from, to) {
+  if (!from || !to) return null;
+  const lat1 = Number(from.lat), lon1 = Number(from.lon), lat2 = Number(to.lat), lon2 = Number(to.lon);
+  if ([lat1, lon1, lat2, lon2].some(v => !Number.isFinite(v))) return null;
+  const R = 6371, rad = d => d * Math.PI / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+// À partir de la distance routière (m) et de la durée voiture (s) d'OSRM, dérive un
+// temps par mode : voiture = durée réelle ; vélo ~15 km/h, marche ~5 km/h sur la
+// distance routière. Renvoie des entiers de minutes (min. 1 dès qu'il y a une distance). Pur.
+function travelModes(distanceM, driveSec) {
+  const km = Math.max(0, Number(distanceM) || 0) / 1000;
+  const drive = Math.max(0, Number(driveSec) || 0);
+  const at = kmh => (km > 0 ? Math.max(1, Math.round((km / kmh) * 60)) : 0);
+  return {
+    distanceKm: Math.round(km * 10) / 10,
+    driving: drive > 0 ? Math.max(1, Math.round(drive / 60)) : at(50),
+    cycling: at(15),
+    walking: at(5)
+  };
+}
+
 function parseIcs(text, opts) {
   opts = opts || {};
   const kind = AGENDA_KINDS.includes(opts.kind) ? opts.kind : 'life';
@@ -926,5 +981,5 @@ function weeklyAggregate(records, options) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
 }
