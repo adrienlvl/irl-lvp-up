@@ -980,6 +980,47 @@ function weeklyAggregate(records, options) {
   });
 }
 
+// --- Objectifs physiques par zone (demande d'Adrien : abdos/6-pack, bras, jambes…) ---
+// Chaque exercice est tagué par les zones musculaires qu'il travaille, zone principale
+// en premier (sert à classer les plus ciblés d'abord). Pur, testé.
+const TRAINING_GOALS = [
+  { id: 'abs', emoji: '🔥', label: 'Abdos (tablette)' },
+  { id: 'arms', emoji: '💪', label: 'Bras (biceps & triceps)' },
+  { id: 'chest', emoji: '🎯', label: 'Pectoraux' },
+  { id: 'back', emoji: '🦅', label: 'Dos (largeur)' },
+  { id: 'shoulders', emoji: '🏔️', label: 'Épaules' },
+  { id: 'legs', emoji: '🦵', label: 'Jambes' },
+  { id: 'glutes', emoji: '🍑', label: 'Fessiers' }
+];
+const EXERCISE_ZONES = {
+  'Goblet squat kettlebell': ['legs', 'glutes'], 'Pompes inclinées': ['chest', 'arms', 'shoulders'],
+  'Fentes arrière': ['legs', 'glutes'], 'Soulevé de terre kettlebell': ['back', 'glutes', 'legs'],
+  'Step-up escalier': ['legs', 'glutes'], 'Gainage planche': ['abs'],
+  'Pompes classiques': ['chest', 'arms', 'shoulders'], 'Pompes diamants': ['arms', 'chest'],
+  'Pompes gilet lesté': ['chest', 'arms', 'shoulders'], 'Gainage latéral': ['abs'],
+  'Kettlebell swing': ['glutes', 'back', 'legs'], 'Élévations mollets': ['legs'],
+  'Mountain climbers': ['abs', 'legs'], 'Hollow hold': ['abs'], 'Bear crawl': ['abs', 'shoulders'],
+  'Split squat bulgare': ['legs', 'glutes'], 'Marche fermier kettlebell': ['back', 'abs', 'shoulders'],
+  'Dead bug': ['abs'], 'Step-down escalier': ['legs'],
+  'Soulevé de terre une jambe kettlebell': ['glutes', 'legs', 'back'], 'Pont fessier': ['glutes'],
+  'Relevés tibiaux au mur': ['legs'], 'Chaise au mur': ['legs'], 'Squat cosaque': ['legs'],
+  'Pike push-up': ['shoulders', 'arms'], 'Rowing kettlebell un bras': ['back', 'arms'],
+  'Développé militaire kettlebell': ['shoulders', 'arms'], 'Floor press kettlebell': ['chest', 'arms'],
+  'Bird dog': ['abs', 'back'], 'Superman': ['back'], 'Tractions': ['back', 'arms'],
+  'Tractions supination': ['arms', 'back'], 'Tractions négatives': ['back', 'arms'],
+  'Rowing australien': ['back', 'arms'], 'Suspension barre': ['back', 'shoulders'],
+  'Relevés de genoux suspendu': ['abs'], 'Pompes déficit': ['chest', 'arms', 'shoulders'],
+  'Squat sauté': ['legs', 'glutes'], 'Fentes sautées': ['legs', 'glutes'],
+  'Montées de genoux': ['legs', 'abs'], 'Sauts de cheville': ['legs'],
+  'Pont fessier une jambe': ['glutes', 'legs'], 'Good morning kettlebell': ['back', 'glutes'],
+  'Nordic curl': ['legs'], 'Turkish get-up kettlebell': ['abs', 'shoulders'],
+  'Équilibre unipodal': ['legs'], 'Planche touches d’épaule': ['abs', 'shoulders']
+};
+function exerciseZones(name) { return EXERCISE_ZONES[name] || []; }
+function goalMatch(name, zone) { return exerciseZones(name).indexOf(zone) !== -1; }
+// Rang de ciblage : 0 = zone principale, 1 = secondaire… 99 = ne cible pas. Plus petit = plus ciblé.
+function goalRank(name, zone) { const i = exerciseZones(name).indexOf(zone); return i < 0 ? 99 : i; }
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank };
 }

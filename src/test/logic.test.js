@@ -983,6 +983,28 @@ test('haversineKm : Lorient→Rennes ~ 130 km, null si invalide', () => {
   assert.ok(km > 110 && km < 150, 'ordre de grandeur plausible : ' + km);
   assert.equal(L.haversineKm({ lat: 1 }, { lat: 2, lon: 3 }), null, 'coord manquante → null');
 });
+// --- Objectifs physiques par zone ---
+test('objectifs par zone : couverture complète et cohérente', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const names = new Set(exercises.map(e => e.name));
+  const valid = new Set(L.TRAINING_GOALS.map(g => g.id));
+  for (const [name, zones] of Object.entries(L.EXERCISE_ZONES)) {
+    assert.ok(names.has(name), `zone mappée pour un exercice inconnu : « ${name} »`);
+    assert.ok(zones.length > 0, `${name} : au moins une zone`);
+    zones.forEach(z => assert.ok(valid.has(z), `${name} : zone inconnue « ${z} »`));
+  }
+  for (const e of exercises) assert.ok(L.exerciseZones(e.name).length > 0, `${e.name} : aucune zone`);
+  for (const g of L.TRAINING_GOALS) {
+    const n = exercises.filter(e => L.goalMatch(e.name, g.id)).length;
+    assert.ok(n >= 5, `objectif ${g.id} : seulement ${n} exercice(s)`);
+  }
+});
+test('goalRank : zone principale avant secondaire, 99 hors cible', () => {
+  assert.equal(L.goalRank('Gainage planche', 'abs'), 0, 'planche → abdos principal');
+  assert.equal(L.goalRank('Montées de genoux', 'abs'), 1, 'montées de genoux → abdos secondaire');
+  assert.equal(L.goalRank('Tractions', 'legs'), 99, 'tractions ne ciblent pas les jambes');
+  assert.equal(L.goalMatch('Tractions supination', 'arms'), true, 'tractions supination → bras');
+});
 test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () => {
   const m = L.travelModes(20000, 1200); // 20 km, 20 min voiture
   assert.equal(m.distanceKm, 20, 'distance en km arrondie');
