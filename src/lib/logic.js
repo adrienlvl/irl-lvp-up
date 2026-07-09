@@ -1021,6 +1021,30 @@ function goalMatch(name, zone) { return exerciseZones(name).indexOf(zone) !== -1
 // Rang de ciblage : 0 = zone principale, 1 = secondaire… 99 = ne cible pas. Plus petit = plus ciblé.
 function goalRank(name, zone) { const i = exerciseZones(name).indexOf(zone); return i < 0 ? 99 : i; }
 
+// Meilleurs exercices d'une zone (les plus ciblés d'abord). Pur.
+function zoneTopExercises(zone, n) {
+  const names = Object.keys(EXERCISE_ZONES).filter(name => goalMatch(name, zone));
+  names.sort((a, b) => goalRank(a, zone) - goalRank(b, zone) || a.localeCompare(b));
+  return names.slice(0, Math.max(1, n || 5));
+}
+// Programme progressif ciblé sur une zone (ex. « objectif abdos en 8 semaines »).
+// Volume qui monte, décharge toutes les 4 semaines. Pur + testé.
+function buildZonePlan(zone, weeks, perWeek) {
+  const goal = TRAINING_GOALS.find(g => g.id === zone);
+  if (!goal) return null;
+  weeks = Math.max(4, Math.min(12, Math.round(Number(weeks) || 8)));
+  perWeek = Math.max(2, Math.min(5, Math.round(Number(perWeek) || 3)));
+  const exercises = zoneTopExercises(zone, 5);
+  const blocks = [];
+  for (let w = 1; w <= weeks; w++) {
+    const deload = w % 4 === 0;
+    const sets = deload ? 2 : (w > weeks / 2 ? 4 : 3);
+    const reps = deload ? 12 : Math.min(22, 12 + (w - 1) * 2);
+    blocks.push({ week: w, deload, sets, reps });
+  }
+  return { zone, label: goal.label, emoji: goal.emoji, weeks, perWeek, exercises, blocks };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan };
 }

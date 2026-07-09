@@ -1005,6 +1005,26 @@ test('goalRank : zone principale avant secondaire, 99 hors cible', () => {
   assert.equal(L.goalRank('Tractions', 'legs'), 99, 'tractions ne ciblent pas les jambes');
   assert.equal(L.goalMatch('Tractions supination', 'arms'), true, 'tractions supination → bras');
 });
+test('zoneTopExercises : les plus ciblés d’abord', () => {
+  const top = L.zoneTopExercises('abs', 3);
+  assert.equal(top.length, 3);
+  assert.ok(top.every(n => L.goalRank(n, 'abs') === 0), 'zone principale en tête');
+});
+test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', () => {
+  const p = L.buildZonePlan('abs', 8, 3);
+  assert.equal(p.zone, 'abs');
+  assert.equal(p.weeks, 8);
+  assert.equal(p.perWeek, 3);
+  assert.equal(p.exercises.length, 5, '5 exercices clés');
+  assert.ok(p.exercises.every(n => L.goalMatch(n, 'abs')), 'tous ciblent les abdos');
+  assert.equal(p.blocks.length, 8);
+  assert.ok(p.blocks[3].deload && p.blocks[7].deload, 'décharge sem. 4 et 8');
+  assert.ok(!p.blocks[0].deload, 'sem. 1 pas une décharge');
+  assert.ok(p.blocks[6].reps >= p.blocks[0].reps, 'volume qui monte');
+  assert.equal(L.buildZonePlan('zone-bidon', 8), null, 'zone inconnue → null');
+  const clamp = L.buildZonePlan('legs', 99, 9);
+  assert.ok(clamp.weeks <= 12 && clamp.perWeek <= 5, 'bornes respectées');
+});
 test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () => {
   const m = L.travelModes(20000, 1200); // 20 km, 20 min voiture
   assert.equal(m.distanceKm, 20, 'distance en km arrondie');
