@@ -1025,6 +1025,21 @@ test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', ()
   const clamp = L.buildZonePlan('legs', 99, 9);
   assert.ok(clamp.weeks <= 12 && clamp.perWeek <= 5, 'bornes respectées');
 });
+test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restant', () => {
+  const p = L.buildTrainingWeek(['arms', 'abs', 'legs'], 3, 2);
+  assert.equal(p.zones.length, 3);
+  assert.equal(p.sessions, 5, '3 muscu + 2 runs');
+  assert.ok(p.days.every(d => d.weekday >= 1 && d.weekday <= 6), 'jours Lun-Sam');
+  const wd = p.days.map(d => d.weekday);
+  assert.equal(new Set(wd).size, wd.length, 'pas 2 séances le même jour');
+  const musc = p.days.filter(d => d.type === 'muscu');
+  assert.equal(musc.length, 3);
+  assert.ok(musc.every(d => d.exercises.length > 0), 'chaque muscu a des exercices');
+  assert.ok(p.days.some(d => d.long), 'une sortie longue');
+  assert.equal(L.buildTrainingWeek([], 3, 2), null, 'sans objectif → null');
+  const clamp = L.buildTrainingWeek(['legs'], 6, 5);
+  assert.ok(clamp.strengthDays + clamp.runs <= 6, 'au moins 1 jour de repos');
+});
 test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () => {
   const m = L.travelModes(20000, 1200); // 20 km, 20 min voiture
   assert.equal(m.distanceKm, 20, 'distance en km arrondie');

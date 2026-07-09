@@ -71,6 +71,7 @@ app.whenReady().then(async () => {
         goalsZones: typeof goalMatch === 'function' && typeof goalRank === 'function' && Array.isArray(TRAINING_GOALS) && document.querySelectorAll('#exerciseGoal option').length === 8,
         animEngine: typeof buildAnimatedArt === 'function' && typeof EXERCISE_ANIM === 'object' && /sheet-9 art-p1 frame-a/.test(buildAnimatedArt('9 p1 p4', '', 'x')) && /sheet-9 art-p4 frame-b/.test(buildAnimatedArt('9 p1 p4', '', 'x')) && /exercise-art-anim/.test(exercisePicture('Tractions', '', true)),
         zonePlan: typeof buildZonePlan === 'function' && typeof zoneTopExercises === 'function' && !!document.getElementById('zonePlanBtn') && !!document.getElementById('zonePlanDialog') && !!document.getElementById('zonePlanTable'),
+        weekProgram: typeof buildTrainingWeek === 'function' && !!document.getElementById('wpGoals') && document.querySelectorAll('#wpGoals input').length === 7 && !!document.getElementById('wpGenerate') && !!document.getElementById('wpSchedule'),
         birthdays: typeof birthdaysForDay === 'function' && typeof normalizeBirthday === 'function' && !!document.getElementById('birthdayForm') && !!document.getElementById('birthdayList'),
         ux2pass2: document.querySelectorAll('details.calendar-setting').length >= 3 && !document.querySelector('.trail-plan') && !!document.querySelector('.training-grid > article.panel .collapse-toggle'),
         ux3: typeof upcomingBirthdays === 'function' && !!document.getElementById('birthdayUpcoming') && !!document.querySelector('.training-grid > .trail-panel'),
@@ -117,6 +118,7 @@ app.whenReady().then(async () => {
     if (!checks.goalsZones) errors.push('Objectifs par zone absents (goalMatch/goalRank/TRAINING_GOALS/#exerciseGoal 8 options)');
     if (!checks.animEngine) errors.push('Moteur d’animation absent (buildAnimatedArt/EXERCISE_ANIM/frame-a/frame-b)');
     if (!checks.zonePlan) errors.push('Programme par zone absent (buildZonePlan/zoneTopExercises/zonePlanBtn/zonePlanDialog/zonePlanTable)');
+    if (!checks.weekProgram) errors.push('Planificateur semaine absent (buildTrainingWeek/wpGoals 7/wpGenerate/wpSchedule)');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');

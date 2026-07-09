@@ -1045,6 +1045,57 @@ function buildZonePlan(zone, weeks, perWeek) {
   return { zone, label: goal.label, emoji: goal.emoji, weeks, perWeek, exercises, blocks };
 }
 
+// Planificateur intelligent : combine plusieurs objectifs de muscu/renfo + des runs
+// en UNE semaine type. Répartit les zones sur les jours de force, intercale les runs
+// pour espacer les jours durs, place la sortie longue le week-end. Pur + testé.
+const WEEKDAY_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+function buildTrainingWeek(zones, strengthDays, runs) {
+  zones = (Array.isArray(zones) ? zones : []).filter(z => TRAINING_GOALS.some(g => g.id === z));
+  if (!zones.length) return null;
+  strengthDays = Math.max(1, Math.min(6, Math.round(Number(strengthDays) || 3)));
+  runs = Math.max(0, Math.min(5, Math.round(Number(runs) || 0)));
+  if (strengthDays + runs > 6) runs = Math.max(0, 6 - strengthDays); // ≥ 1 jour de repos
+  const labelOf = z => (TRAINING_GOALS.find(g => g.id === z) || {}).label || z;
+  // Séances de force : chaque jour prend une (ou plusieurs) zones en tournant.
+  const strengthSessions = [];
+  for (let i = 0; i < strengthDays; i++) {
+    const zs = [];
+    for (let j = i; j < zones.length; j += strengthDays) zs.push(zones[j]);
+    if (!zs.length) zs.push(zones[i % zones.length]);
+    const per = Math.max(1, Math.round(5 / zs.length));
+    let ex = [];
+    zs.forEach(z => { ex = ex.concat(zoneTopExercises(z, per)); });
+    ex = [...new Set(ex)].slice(0, 5);
+    strengthSessions.push({ type: 'muscu', kind: 'sport', zones: zs, title: '💪 ' + zs.map(labelOf).join(' & '), exercises: ex });
+  }
+  // Runs : faciles, la dernière devient « sortie longue » s'il y en a ≥ 2.
+  const runSessions = [];
+  for (let i = 0; i < runs; i++) {
+    const long = runs >= 2 && i === runs - 1;
+    runSessions.push({ type: 'run', kind: 'sport', long, title: long ? '🏃 Sortie longue' : '🏃 Course facile', exercises: [] });
+  }
+  // Intercalage muscu/run pour espacer les jours durs.
+  const seq = []; let a = 0, b = 0;
+  while (a < strengthSessions.length || b < runSessions.length) {
+    if (a < strengthSessions.length) seq.push(strengthSessions[a++]);
+    if (b < runSessions.length) seq.push(runSessions[b++]);
+  }
+  // Jours de la semaine choisis (Lun=1 … Sam=6), répartis.
+  const layouts = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
+  const wds = layouts[seq.length] || layouts[6];
+  const days = seq.map((s, i) => ({ weekday: wds[i], weekdayLabel: WEEKDAY_FR[wds[i]], ...s }));
+  // Placer la sortie longue sur le dernier jour dispo (week-end si possible).
+  const longIdx = days.findIndex(d => d.long);
+  if (longIdx >= 0 && longIdx !== days.length - 1) {
+    const target = days.length - 1;
+    const tmpW = days[target].weekday, tmpL = days[target].weekdayLabel;
+    days[target].weekday = days[longIdx].weekday; days[target].weekdayLabel = days[longIdx].weekdayLabel;
+    days[longIdx].weekday = tmpW; days[longIdx].weekdayLabel = tmpL;
+    days.sort((x, y) => x.weekday - y.weekday);
+  }
+  return { zones, strengthDays, runs, sessions: days.length, days };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR };
 }
