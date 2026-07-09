@@ -244,6 +244,7 @@ function normalizeAgendaItem(item) {
     location: typeof x.location === 'string' ? x.location.slice(0, 120) : '',
     notes: typeof x.notes === 'string' ? x.notes.slice(0, 500) : '',
     travelMin: Math.max(0, Math.min(600, Math.round(Number(x.travelMin) || 0))),
+    workout: Array.isArray(x.workout) ? x.workout.filter(n => typeof n === 'string' && n).slice(0, 12) : undefined,
     completed: Boolean(x.completed)
   };
 }
@@ -535,6 +536,7 @@ function todayItems(state, date) {
     priority: AGENDA_PRIORITIES.includes(a.priority) ? a.priority : 'normal',
     allDay: Boolean(a.allDay), completed: Boolean(a.completed), planId: a.planId || null,
     location: typeof a.location === 'string' ? a.location : '', notes: typeof a.notes === 'string' ? a.notes : '', travelMin: Math.max(0, Math.round(Number(a.travelMin) || 0)),
+    workout: Array.isArray(a.workout) && a.workout.length ? a.workout.slice(0, 12) : null,
     type: a.planId ? 'plan' : (a.kind === 'study' ? 'study' : 'agenda')
   }));
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
