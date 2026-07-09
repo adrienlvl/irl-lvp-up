@@ -43,6 +43,9 @@ function initAutoUpdate() {
     autoUpdater.on('update-downloaded', info => sendUpdate({ state: 'ready', version: info && info.version }));
     autoUpdater.on('error', err => sendUpdate({ state: 'error', message: String((err && err.message) || err) }));
     autoUpdater.checkForUpdates().catch(() => {});
+    // Re-vérifie périodiquement (toutes les 3 h) : l'app reste ouverte dans la zone de
+    // notification, donc elle capte une nouvelle version sans qu'Adrien ait à relancer.
+    setInterval(() => { try { autoUpdater.checkForUpdates().catch(() => {}); } catch (_) {} }, 3 * 60 * 60 * 1000);
   } catch (_) {}
 }
 ipcMain.handle('update:install', () => { app.isQuitting = true; try { autoUpdater && autoUpdater.quitAndInstall(); } catch (_) {} });

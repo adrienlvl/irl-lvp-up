@@ -56,6 +56,10 @@ electron-builder crée la Release en **brouillon (draft)**. L'auto-update ne lit
 - La **première** installation reste manuelle (double-clic sur le `Setup .exe`).
 - Ensuite, pour **chaque** amélioration : je bump la version + `npm run release` + tu publies la Release → **les apps déjà installées se mettent à jour toutes seules** au lancement (bannière « Redémarrer & installer »).
 
+### Quand la mise à jour est détectée (build 1.9.4+)
+- **Au démarrage** (3,5 s après le lancement), **puis toutes les 3 h** tant que l'app reste ouverte (elle vit dans la zone de notification). Donc si tu publies une release pendant que l'app tourne, elle la capte au prochain cycle **sans que tu aies à la relancer**.
+- Avant 1.9.4, la vérification n'avait lieu **qu'au démarrage** → il fallait relancer l'app pour voir la nouvelle version (comportement normal, désormais amélioré).
+
 ## Notes
 - **Signature de code** : les installeurs ne sont pas signés → Windows SmartScreen peut afficher un avertissement à la 1re installation. La mise à jour electron-updater fonctionne quand même. Signer (certificat OV/EV) est une amélioration future (supprime l'avertissement).
 - **Vie privée** : la vérification de version contacte GitHub (ton dépôt) au lancement. Rien d'autre ne part sur le réseau.
