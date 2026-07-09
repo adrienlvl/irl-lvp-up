@@ -35,7 +35,7 @@
         </div>
         <div class="hero-actions"><button id="densityToggle" class="icon-button" title="Densité d’affichage (confort / compact)" aria-label="Changer la densité d’affichage">⇕</button><button id="themeToggle" class="theme-toggle" title="Changer de thème" aria-label="Changer de thème">🌙</button><button id="resetButton" class="icon-button" title="Réinitialiser les données" aria-label="Réinitialiser les données">↻</button></div>
       </header>
-      <nav class="app-nav" aria-label="Navigation principale"><button data-page="dashboard" class="active">Aujourd’hui</button><button id="openWeekPage">Agenda</button><button data-page="athlete">Athlète</button><button data-page="library">Exercices</button><button data-page="nutrition">Nutrition</button><button data-page="focus">Focus & vie</button></nav>
+      <nav class="app-nav" aria-label="Navigation principale"><button data-page="dashboard" class="active">Aujourd’hui</button><button id="openWeekPage">Agenda</button><button data-page="athlete">Athlète</button><button data-page="library">Exercices</button><button data-page="nutrition">Nutrition</button><button data-page="focus">Focus & vie</button><button data-page="settings">⚙️ Réglages</button></nav>
 
       <section id="today" class="player-card" aria-label="Profil du joueur">
         <div class="avatar">⚡</div>
@@ -172,6 +172,12 @@
         <div id="achievementList" class="achievement-list"></div>
       </section>
 
+      <section class="panel settings-page">
+        <div class="panel-heading"><div><p class="eyebrow">TON APPLICATION</p><h2>Réglages</h2></div><span>⚙️</span></div>
+        <div class="settings-group"><h3>🎨 Apparence</h3><div class="settings-row"><button id="settingsTheme" class="secondary-button" type="button">🌙 / ☀️ Changer de thème</button><button id="settingsDensity" class="secondary-button" type="button">↕️ Densité (confort / compact)</button></div></div>
+        <div class="settings-group"><h3>🔗 Connexions sportives</h3><p class="settings-note">Importer tes activités depuis une montre / appli. Chaque service demande une <b>app développeur</b> + une <b>connexion sécurisée (OAuth)</b> — prévu dans la vague sécurité, une fois que tu auras créé les accès.</p><div class="settings-conn"><div class="conn-row"><span class="conn-name">🟧 Strava</span><span class="conn-badge soon">Bientôt</span><small>Le plus simple : tu crées une app sur <b>strava.com/settings/api</b>, tu me donnes le Client&nbsp;ID → je branche l'import de tes runs/activités.</small></div><div class="conn-row"><span class="conn-name">🔵 Polar</span><span class="conn-badge soon">Bientôt</span><small>Compte développeur Polar AccessLink requis.</small></div><div class="conn-row"><span class="conn-name">⌚ Garmin</span><span class="conn-badge later">Plus tard</span><small>API Health/Activity = programme partenaire sur approbation (difficile en solo).</small></div></div></div>
+        <div class="settings-group"><h3>📂 Autres réglages</h3><div class="settings-row"><button id="settingsGotoReminders" class="secondary-button" type="button">🔔 Rappels & notifications</button><button id="settingsGotoCalendar" class="secondary-button" type="button">🧭 Point de départ · 🔄 Calendriers · 🎓 Révisions</button></div><small class="settings-note">Le point de départ (trajet), les calendriers synchronisés et le planning de révision sont sur la page <b>Calendrier</b> (Agenda → 🗓️ Vue mois).</small></div>
+      </section>
       <section class="panel reminder-panel">
         <div class="panel-heading"><div><p class="eyebrow">ALLIÉ DE FOND</p><h2>Rappels de quêtes</h2></div><span>🔔</span></div>
         <p>Reçois un rappel Windows aux moments où tu veux reprendre l’aventure.</p>

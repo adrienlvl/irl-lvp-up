@@ -69,6 +69,7 @@ app.whenReady().then(async () => {
         agendaDetails: typeof departureInfo === 'function' && !!document.getElementById('calendarAgendaLocation') && !!document.getElementById('calendarAgendaTravel') && !!document.getElementById('calendarAgendaNotes'),
         agendaEdit: !!document.getElementById('weekQuickLocation') && !!document.getElementById('weekQuickTravel') && !!document.getElementById('weekQuickNotes') && !!document.getElementById('weekQuickEstimate') && !!document.getElementById('agendaEditForm') && !!document.getElementById('editAgendaNotes'),
         guidedFromPlan: typeof startGuidedFromNames === 'function' && typeof openGuidedWorkout === 'function' && !!document.getElementById('guidedWorkoutDialog'),
+        settingsPage: !!document.querySelector('[data-page="settings"]') && !!document.querySelector('.settings-page') && document.querySelectorAll('.settings-conn .conn-row').length === 3 && !!document.getElementById('settingsTheme') && !!document.getElementById('settingsDensity'),
         s8Travel: typeof isAllowedTravelUrl === 'function' && typeof travelModes === 'function' && !!document.getElementById('calendarAgendaEstimate') && !!document.getElementById('travelStartForm') && !!document.getElementById('travelHome') && !!document.getElementById('travelMode'),
         goalsZones: typeof goalMatch === 'function' && typeof goalRank === 'function' && Array.isArray(TRAINING_GOALS) && document.querySelectorAll('#exerciseGoal option').length === 8,
         animEngine: typeof buildAnimatedArt === 'function' && typeof EXERCISE_ANIM === 'object' && /sheet-9 art-p1 frame-a/.test(buildAnimatedArt('9 p1 p4', '', 'x')) && /sheet-9 art-p4 frame-b/.test(buildAnimatedArt('9 p1 p4', '', 'x')) && /exercise-art-anim/.test(exercisePicture('Tractions', '', true)),
@@ -118,6 +119,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaDetails) errors.push('Détails événement absents (departureInfo/location/travel/notes)');
     if (!checks.agendaEdit) errors.push('Ajout rapide/édition détaillés absents (weekQuickLocation/Travel/Notes/Estimate/agendaEditForm/editAgendaNotes)');
     if (!checks.guidedFromPlan) errors.push('Séance guidée depuis le programme absente (startGuidedFromNames/openGuidedWorkout/guidedWorkoutDialog)');
+    if (!checks.settingsPage) errors.push('Page Réglages absente (data-page=settings/.settings-page/3 conn-row/settingsTheme/settingsDensity)');
     if (!checks.s8Travel) errors.push('Trajet auto S.8 absent (isAllowedTravelUrl/travelModes/calendarAgendaEstimate/travelStartForm/travelHome/travelMode)');
     if (!checks.goalsZones) errors.push('Objectifs par zone absents (goalMatch/goalRank/TRAINING_GOALS/#exerciseGoal 8 options)');
     if (!checks.animEngine) errors.push('Moteur d’animation absent (buildAnimatedArt/EXERCISE_ANIM/frame-a/frame-b)');
