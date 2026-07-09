@@ -165,7 +165,8 @@ const EXERCISE_ANIM = {
   'Mountain climbers': '20 p0 p3', 'Bear crawl': '20 p1 p4', 'Dead bug': '20 p2 p5',
   'Gainage planche': '21 p0 p3', 'Gainage latéral': '21 p1 p4', 'Hollow hold': '21 p2 p5',
   'Bird dog': '22 p0 p3', 'Superman': '22 p1 p4', 'Planche touches d’épaule': '22 p2 p5',
-  'Marche fermier kettlebell': '23 p0 p3', 'Relevés de genoux suspendu': '23 p1 p4', 'Turkish get-up kettlebell': '23 p2 p5'
+  'Marche fermier kettlebell': '23 p0 p3', 'Relevés de genoux suspendu': '23 p1 p4', 'Turkish get-up kettlebell': '23 p2 p5',
+  'Équilibre unipodal': '24 p0 p3', 'Pont fessier une jambe': '24 p1 p4'
 };
 
 // Deux calques empilés (case A + case B de la même planche), la case B clignote en

@@ -1040,6 +1040,15 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   const clamp = L.buildTrainingWeek(['legs'], 6, 5);
   assert.ok(clamp.strengthDays + clamp.runs <= 6, 'au moins 1 jour de repos');
 });
+test('buildTrainingWeek : mode « même jour » attache les runs aux jours de muscu', () => {
+  const p = L.buildTrainingWeek(['arms', 'legs'], 3, 2, true);
+  assert.equal(p.sameDay, true);
+  assert.equal(p.sessions, 3, '3 jours (= jours de muscu)');
+  const totalRuns = p.days.reduce((n, d) => n + (d.runs ? d.runs.length : 0), 0);
+  assert.equal(totalRuns, 2, 'les 2 runs sont attachés à des jours de muscu');
+  assert.ok(p.days.every(d => d.exercises && d.exercises.length), 'chaque jour garde sa muscu');
+  assert.ok(p.days[p.days.length - 1].runs.some(r => r.long), 'sortie longue le dernier jour');
+});
 test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () => {
   const m = L.travelModes(20000, 1200); // 20 km, 20 min voiture
   assert.equal(m.distanceKm, 20, 'distance en km arrondie');

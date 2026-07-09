@@ -71,9 +71,8 @@ test('animation début↔fin : 2 cases de la même planche, activée par EXERCIS
   assert.match(exercisePicture('Tractions', '', true), /exercise-art-anim/, 'Tractions animées (vue détail)');
   // …mais reste en photo fixe dans les vignettes (animated=false)
   assert.ok(!/exercise-art-anim/.test(exercisePicture('Tractions', '', false)), 'statique hors vue détail');
-  // un exercice sans planche d'animation reste en photo fixe même en vue détail
-  // (Équilibre unipodal = planche 24, pas encore générée)
-  assert.ok(!/exercise-art-anim/.test(exercisePicture('Équilibre unipodal', '', true)), 'pas d’animation sans planche dédiée');
+  // un nom sans planche d'animation ni photo reste en figure SVG même en vue détail
+  assert.ok(!/exercise-art-anim/.test(exercisePicture('Exercice sans photo', '', true)), 'pas d’animation sans planche dédiée');
   // toute entrée d'EXERCISE_ANIM pointe un exercice connu et un triplet planche+2 cases
   const names = new Set(exercises.map(e => e.name));
   for (const [name, v] of Object.entries(EXERCISE_ANIM)) {
@@ -82,8 +81,9 @@ test('animation début↔fin : 2 cases de la même planche, activée par EXERCIS
     const [, a, b] = v.split(' ');
     assert.notEqual(a, b, `${name} : les 2 poses doivent être des cases différentes`);
   }
-  // 45 des 47 exercices sont animés (manque planche 24 : équilibre unipodal + pont fessier une jambe)
-  assert.ok(Object.keys(EXERCISE_ANIM).length >= 45, 'au moins 45 exercices animés');
+  // les 47 exercices sont désormais animés (planches 9-24)
+  assert.ok(exercises.every(e => EXERCISE_ANIM[e.name]), 'tous les exercices ont une animation');
+  assert.ok(Object.keys(EXERCISE_ANIM).length >= 47, 'au moins 47 exercices animés');
 });
 
 test('exerciseIcon : SVG valide ; animé = va-et-vient ; statique = deux positions', () => {

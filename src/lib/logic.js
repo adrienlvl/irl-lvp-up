@@ -1049,13 +1049,15 @@ function buildZonePlan(zone, weeks, perWeek) {
 // en UNE semaine type. Répartit les zones sur les jours de force, intercale les runs
 // pour espacer les jours durs, place la sortie longue le week-end. Pur + testé.
 const WEEKDAY_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-function buildTrainingWeek(zones, strengthDays, runs) {
+function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
   zones = (Array.isArray(zones) ? zones : []).filter(z => TRAINING_GOALS.some(g => g.id === z));
   if (!zones.length) return null;
   strengthDays = Math.max(1, Math.min(6, Math.round(Number(strengthDays) || 3)));
   runs = Math.max(0, Math.min(5, Math.round(Number(runs) || 0)));
-  if (strengthDays + runs > 6) runs = Math.max(0, 6 - strengthDays); // ≥ 1 jour de repos
+  sameDay = Boolean(sameDay);
+  if (!sameDay && strengthDays + runs > 6) runs = Math.max(0, 6 - strengthDays); // ≥ 1 jour de repos
   const labelOf = z => (TRAINING_GOALS.find(g => g.id === z) || {}).label || z;
+  const layouts = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
   // Séances de force : chaque jour prend une (ou plusieurs) zones en tournant.
   const strengthSessions = [];
   for (let i = 0; i < strengthDays; i++) {
@@ -1074,17 +1076,27 @@ function buildTrainingWeek(zones, strengthDays, runs) {
     const long = runs >= 2 && i === runs - 1;
     runSessions.push({ type: 'run', kind: 'sport', long, title: long ? '🏃 Sortie longue' : '🏃 Course facile', exercises: [] });
   }
-  // Intercalage muscu/run pour espacer les jours durs.
+
+  if (sameDay) {
+    // Une journée = muscu + un/des runs (ex. muscu le matin, run plus tard).
+    const wds = layouts[strengthDays] || layouts[6];
+    const days = strengthSessions.map((s, i) => ({ weekday: wds[i], weekdayLabel: WEEKDAY_FR[wds[i]], ...s, runs: [] }));
+    let ordered = runSessions.slice();
+    const li = ordered.findIndex(r => r.long);
+    const longRun = li >= 0 ? ordered.splice(li, 1)[0] : null;
+    ordered.forEach((r, i) => { days[i % days.length].runs.push(r); });
+    if (longRun) days[days.length - 1].runs.push(longRun); // sortie longue le dernier jour (week-end)
+    return { zones, strengthDays, runs, sameDay: true, sessions: days.length, days };
+  }
+
+  // Jours séparés : intercalage muscu/run pour espacer les jours durs.
   const seq = []; let a = 0, b = 0;
   while (a < strengthSessions.length || b < runSessions.length) {
     if (a < strengthSessions.length) seq.push(strengthSessions[a++]);
     if (b < runSessions.length) seq.push(runSessions[b++]);
   }
-  // Jours de la semaine choisis (Lun=1 … Sam=6), répartis.
-  const layouts = { 1: [1], 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 5, 6], 6: [1, 2, 3, 4, 5, 6] };
   const wds = layouts[seq.length] || layouts[6];
   const days = seq.map((s, i) => ({ weekday: wds[i], weekdayLabel: WEEKDAY_FR[wds[i]], ...s }));
-  // Placer la sortie longue sur le dernier jour dispo (week-end si possible).
   const longIdx = days.findIndex(d => d.long);
   if (longIdx >= 0 && longIdx !== days.length - 1) {
     const target = days.length - 1;
@@ -1093,7 +1105,7 @@ function buildTrainingWeek(zones, strengthDays, runs) {
     days[longIdx].weekday = tmpW; days[longIdx].weekdayLabel = tmpL;
     days.sort((x, y) => x.weekday - y.weekday);
   }
-  return { zones, strengthDays, runs, sessions: days.length, days };
+  return { zones, strengthDays, runs, sameDay: false, sessions: days.length, days };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
