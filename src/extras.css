@@ -94,7 +94,7 @@
 .ics-import-controls select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:.82rem}
 #importIcsStatus{display:block;color:var(--muted)}
 /* Agenda — ajout rapide sur la vue semaine */
-.week-quick-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.week-quick-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}.week-quick-add #weekQuickLocation,.week-quick-add #weekQuickNotes{flex:1 1 150px;min-width:120px}.week-quick-add #weekQuickTravel{width:88px}.day-edit{background:none;border:1px solid var(--line);border-radius:8px;padding:6px 9px;cursor:pointer;font-size:.85rem;color:var(--muted);line-height:1}.day-edit:hover{border-color:var(--accent);color:var(--text)}
 .week-quick-add input[type=text],.week-quick-add>input:not([type]){flex:1 1 200px}
 .week-quick-add input,.week-quick-add select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:.82rem}
 .week-quick-add .quick-allday{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem;white-space:nowrap}

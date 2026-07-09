@@ -181,7 +181,8 @@ function buildAnimatedArt(animValue, extraClass, name) {
 // d'animation existe pour cet exercice et qu'on la demande), sinon figure SVG (repli).
 function exercisePicture(name, extraClass, animated) {
   const anim = EXERCISE_ANIM[name];
-  if (animated && anim) return buildAnimatedArt(anim, extraClass, name);
+  // animated === 'hover' → markup animé mais figé, la CSS ne l'anime qu'au survol (cartes).
+  if (animated && anim) return buildAnimatedArt(anim, (extraClass || '') + (animated === 'hover' ? ' anim-hover' : ''), name);
   const a = EXERCISE_ART[name];
   if (a) {
     const parts = a.split(' ');
