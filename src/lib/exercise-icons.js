@@ -151,7 +151,21 @@ const EXERCISE_ART = {
 // On ajoute une entrée dès qu'une planche d'animation est livrée et intégrée
 // (CSS .sheet-<n>). Absent → l'exercice reste en photo fixe (aucune régression).
 const EXERCISE_ANIM = {
-  'Pompes classiques': '9 p0 p3', 'Goblet squat kettlebell': '9 p1 p4', 'Tractions': '9 p2 p5'
+  'Pompes classiques': '9 p0 p3', 'Goblet squat kettlebell': '9 p1 p4', 'Tractions': '9 p2 p5',
+  'Pompes inclinées': '10 p0 p3', 'Pompes diamants': '10 p1 p4', 'Pompes gilet lesté': '10 p2 p5',
+  'Pompes déficit': '11 p0 p3', 'Pike push-up': '11 p1 p4', 'Développé militaire kettlebell': '11 p2 p5',
+  'Tractions supination': '12 p0 p3', 'Tractions négatives': '12 p1 p4', 'Rowing australien': '12 p2 p5',
+  'Rowing kettlebell un bras': '13 p0 p3', 'Floor press kettlebell': '13 p1 p4', 'Suspension barre': '13 p2 p5',
+  'Fentes arrière': '14 p0 p3', 'Split squat bulgare': '14 p1 p4', 'Squat cosaque': '14 p2 p5',
+  'Step-up escalier': '15 p0 p3', 'Step-down escalier': '15 p1 p4', 'Chaise au mur': '15 p2 p5',
+  'Soulevé de terre kettlebell': '16 p0 p3', 'Soulevé de terre une jambe kettlebell': '16 p1 p4', 'Pont fessier': '16 p2 p5',
+  'Kettlebell swing': '17 p0 p3', 'Good morning kettlebell': '17 p1 p4', 'Nordic curl': '17 p2 p5',
+  'Élévations mollets': '18 p0 p3', 'Relevés tibiaux au mur': '18 p1 p4', 'Sauts de cheville': '18 p2 p5',
+  'Squat sauté': '19 p0 p3', 'Fentes sautées': '19 p1 p4', 'Montées de genoux': '19 p2 p5',
+  'Mountain climbers': '20 p0 p3', 'Bear crawl': '20 p1 p4', 'Dead bug': '20 p2 p5',
+  'Gainage planche': '21 p0 p3', 'Gainage latéral': '21 p1 p4', 'Hollow hold': '21 p2 p5',
+  'Bird dog': '22 p0 p3', 'Superman': '22 p1 p4', 'Planche touches d’épaule': '22 p2 p5',
+  'Marche fermier kettlebell': '23 p0 p3', 'Relevés de genoux suspendu': '23 p1 p4', 'Turkish get-up kettlebell': '23 p2 p5'
 };
 
 // Deux calques empilés (case A + case B de la même planche), la case B clignote en
