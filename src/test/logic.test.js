@@ -1060,6 +1060,14 @@ test('dayColumns : chevauchements côte à côte, indépendants sur 1 colonne', 
   assert.ok(s.every(x => x.cols === 1), 'contigus sans chevauchement = 1 colonne');
   assert.deepEqual(L.dayColumns([]), [], 'vide → []');
 });
+test('waterStatus : verres, litres, %, objectif', () => {
+  const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
+  assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);
+  const full = L.waterStatus({ '2026-07-10': 8 }, '2026-07-10', 8);
+  assert.ok(full.done && full.pct === 100, 'objectif atteint');
+  assert.equal(L.waterStatus({}, '2026-07-10', 8).count, 0, 'aucun jour → 0');
+  assert.equal(L.waterStatus({ '2026-07-10': 99 }, '2026-07-10', 8).pct, 100, '% plafonné');
+});
 test('buildTrainingWeek : mode « même jour » attache les runs aux jours de muscu', () => {
   const p = L.buildTrainingWeek(['arms', 'legs'], 3, 2, true);
   assert.equal(p.sameDay, true);
