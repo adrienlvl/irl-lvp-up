@@ -1040,6 +1040,19 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   const clamp = L.buildTrainingWeek(['legs'], 6, 5);
   assert.ok(clamp.strengthDays + clamp.runs <= 6, 'au moins 1 jour de repos');
 });
+test('dayColumns : chevauchements côte à côte, indépendants sur 1 colonne', () => {
+  // deux qui se chevauchent + un séparé
+  const r = L.dayColumns([{ start: 540, end: 600 }, { start: 570, end: 630 }, { start: 700, end: 760 }]);
+  assert.equal(r[0].cols, 2, 'le groupe qui se chevauche a 2 colonnes');
+  assert.equal(r[1].cols, 2);
+  assert.notEqual(r[0].col, r[1].col, 'colonnes différentes pour les 2 qui se chevauchent');
+  assert.equal(r[2].cols, 1, 'l’événement isolé garde 1 colonne');
+  assert.equal(r[2].col, 0);
+  // tous séparés → 1 colonne chacun
+  const s = L.dayColumns([{ start: 60, end: 120 }, { start: 120, end: 180 }]);
+  assert.ok(s.every(x => x.cols === 1), 'contigus sans chevauchement = 1 colonne');
+  assert.deepEqual(L.dayColumns([]), [], 'vide → []');
+});
 test('buildTrainingWeek : mode « même jour » attache les runs aux jours de muscu', () => {
   const p = L.buildTrainingWeek(['arms', 'legs'], 3, 2, true);
   assert.equal(p.sameDay, true);
