@@ -676,6 +676,29 @@ test('daysUntil : jours entre deux dates, négatif si passé', () => {
   assert.equal(L.daysUntil('pas-une-date', '2026-07-10'), null);
 });
 
+test('nextTrainingSession : prochaine séance à venir, tri date puis heure', () => {
+  const plans = [
+    { id: 1, date: '2026-07-15', time: '18:00', type: 'Musculation' },
+    { id: 2, date: '2026-07-12', time: '10:00', type: 'Course' },
+    { id: 3, date: '2026-07-12', time: '08:00', type: 'Mobilité' },
+    { id: 4, date: '2026-07-01', time: '18:00', type: 'Passé' },
+  ];
+  const r = L.nextTrainingSession(plans, '2026-07-10', 12 * 60);
+  assert.equal(r.plan.id, 3, 'la plus proche = 12/07 08:00');
+  assert.equal(r.daysLeft, 2);
+  // même jour : une séance dont l'heure est passée est ignorée, celle à venir est gardée
+  const today = [
+    { id: 5, date: '2026-07-10', time: '07:00', type: 'Déjà passée' },
+    { id: 6, date: '2026-07-10', time: '19:00', type: 'Ce soir' },
+  ];
+  const r2 = L.nextTrainingSession(today, '2026-07-10', 12 * 60);
+  assert.equal(r2.plan.id, 6);
+  assert.equal(r2.daysLeft, 0);
+  // aucune séance future → null
+  assert.equal(L.nextTrainingSession([{ id: 7, date: '2026-07-01', time: '10:00' }], '2026-07-10', 0), null);
+  assert.equal(L.nextTrainingSession('pas-un-tableau', '2026-07-10', 0), null);
+});
+
 test('intermediateGoals : ultra 170km/2ans → paliers croissants échelonnés', () => {
   const now = new Date('2026-07-06T12:00:00');
   const ms = L.intermediateGoals({ type: 'ultra160', distanceKm: 170, date: '2028-07-01' }, now);

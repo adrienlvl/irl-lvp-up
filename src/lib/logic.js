@@ -696,6 +696,32 @@ function daysUntil(fromKey, toKey) {
   const db = new Date(+b[1], +b[2] - 1, +b[3]); db.setHours(0, 0, 0, 0);
   return Math.round((db - da) / 86400000);
 }
+// Prochaine séance planifiée à venir (aujourd'hui non encore passée, ou plus tard).
+// plans : [{id,date,time,type}] ; todayKey 'YYYY-MM-DD' ; nowMinutes = minutes depuis minuit.
+function nextTrainingSession(plans, todayKey, nowMinutes) {
+  if (!Array.isArray(plans)) return null;
+  const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
+  if (!isKey(todayKey)) return null;
+  const nowMin = Number.isFinite(nowMinutes) ? nowMinutes : -1;
+  const toMin = t => {
+    const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(t || ''));
+    return m ? +m[1] * 60 + +m[2] : null;
+  };
+  const upcoming = plans
+    .filter(p => p && isKey(p.date))
+    .filter(p => {
+      if (p.date > todayKey) return true;
+      if (p.date < todayKey) return false;
+      const min = toMin(p.time);      // même jour : garder si pas d'heure ou heure pas encore passée
+      return min == null || min >= nowMin;
+    })
+    .sort((a, b) =>
+      String(a.date).localeCompare(String(b.date)) ||
+      String(a.time || '99:99').localeCompare(String(b.time || '99:99')));
+  const next = upcoming[0];
+  if (!next) return null;
+  return { plan: next, daysLeft: daysUntil(todayKey, next.date) };
+}
 function raceGoalStatus(goal, now) {
   if (!goal || !goal.date) return null;
   const today = now instanceof Date ? dateKey(now) : (typeof now === 'string' ? now : localDate());
@@ -1215,5 +1241,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, daysUntil, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, agendaMatch };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, agendaMatch };
 }
