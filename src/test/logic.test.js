@@ -685,6 +685,26 @@ test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
   assert.equal(s.km, 170);
   assert.ok(s.daysLeft > 630, 'daysLeft cohérent (~2 ans)');
 });
+test('weeklyWorkoutStreak : semaines consécutives avec séance, grâce semaine en cours', () => {
+  // aujourd'hui = vendredi 10/07/2026 (semaine lundi 06/07)
+  const today = '2026-07-10';
+  // séances cette semaine + les 2 précédentes → 3
+  assert.equal(L.weeklyWorkoutStreak([
+    { date: '2026-07-08' }, { date: '2026-07-01' }, { date: '2026-06-24' },
+  ], today), 3);
+  // rien cette semaine mais 2 semaines avant → grâce → 2
+  assert.equal(L.weeklyWorkoutStreak([
+    { date: '2026-07-01' }, { date: '2026-06-24' },
+  ], today), 2);
+  // trou (cette semaine + il y a 2 semaines, semaine dernière manquante) → 1
+  assert.equal(L.weeklyWorkoutStreak([
+    { date: '2026-07-08' }, { date: '2026-06-24' },
+  ], today), 1);
+  // rien du tout / entrées invalides
+  assert.equal(L.weeklyWorkoutStreak([], today), 0);
+  assert.equal(L.weeklyWorkoutStreak('nope', today), 0);
+});
+
 test('daysUntil : jours entre deux dates, négatif si passé', () => {
   assert.equal(L.daysUntil('2026-07-10', '2026-07-20'), 10);
   assert.equal(L.daysUntil('2026-07-10', '2026-07-10'), 0);

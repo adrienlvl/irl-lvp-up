@@ -654,6 +654,36 @@ function weeksBetween(from, to) {
   return Math.round((b - a) / (7 * 864e5));
 }
 
+// Nombre de semaines (lundi→dimanche) consécutives avec au moins une séance,
+// en terminant cette semaine. Si la semaine en cours est encore vide, on part de
+// la semaine précédente (grâce) pour ne pas remettre à zéro en début de semaine.
+function weeklyWorkoutStreak(workouts, todayKey) {
+  if (!Array.isArray(workouts)) return 0;
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
+  if (!t) return 0;
+  const pad = n => String(n).padStart(2, '0');
+  const monKey = d => {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const day = x.getDay() || 7;
+    x.setDate(x.getDate() - day + 1);
+    return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`;
+  };
+  const weeks = new Set();
+  for (const w of workouts) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(w && w.date || ''));
+    if (m) weeks.add(monKey(new Date(+m[1], +m[2] - 1, +m[3])));
+  }
+  if (!weeks.size) return 0;
+  let cur = new Date(+t[1], +t[2] - 1, +t[3]);
+  const day = cur.getDay() || 7;
+  cur.setDate(cur.getDate() - day + 1);                 // lundi de la semaine courante
+  const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  if (!weeks.has(keyOf(cur))) cur.setDate(cur.getDate() - 7); // grâce : semaine en cours vide
+  let streak = 0;
+  while (weeks.has(keyOf(cur))) { streak++; cur.setDate(cur.getDate() - 7); }
+  return streak;
+}
+
 // Phase de préparation en fonction des semaines restantes avant la course.
 function racePhase(weeksLeft) {
   if (weeksLeft == null) return { key: 'none', label: '—', focus: '', longMul: 0 };
@@ -1255,5 +1285,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, agendaMatch };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, agendaMatch };
 }

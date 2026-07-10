@@ -37,6 +37,7 @@ function renderAthlete() {
   const sessionP = pct(sessions, g.sessions), distanceP = pct(distance, g.distance); $('#sessionsProgress').style.width = `${sessionP}%`; $('#distanceProgress').style.width = `${distanceP}%`;
   $('#sessionsProgressText').textContent = `${sessions} / ${g.sessions} séances`; $('#distanceProgressText').textContent = `${distance.toFixed(1)} / ${g.distance} km`; $('#sessionsPercent').textContent = `${sessionP}%`; $('#distancePercent').textContent = `${distanceP}%`;
   $('#weekInsight').textContent = sessions >= g.sessions ? 'Objectif séances atteint. Garde du jus pour récupérer et recommencer.' : `${Math.max(0, g.sessions - sessions)} séance${g.sessions-sessions > 1 ? 's' : ''} pour boucler ton objectif de la semaine.`;
+  const streak=weeklyWorkoutStreak(state.workouts,localDate()),sb=$('#weekStreakBadge');if(sb){sb.textContent=streak>=2?`🔥 ${streak} sem.`:'📈';sb.classList.toggle('on',streak>=2);}
   const now=new Date(), nextSes=nextTrainingSession(state.plans,localDate(),now.getHours()*60+now.getMinutes()), nsBtn=$('#nextSessionLine');
   if(nextSes){const p=nextSes.plan,d=nextSes.daysLeft,when=d===0?`aujourd’hui${p.time?` à ${p.time}`:''}`:d===1?`demain${p.time?` à ${p.time}`:''}`:`dans ${d} j (${p.date.split('-').reverse().join('/')}${p.time?` · ${p.time}`:''})`;nsBtn.textContent=`⏭️ Prochaine séance : ${p.type} — ${when}`;nsBtn.dataset.planId=p.id;nsBtn.hidden=false;}else{nsBtn.hidden=true;}
   $('#workoutCount').textContent = `${state.workouts.length} total`;
