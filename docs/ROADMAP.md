@@ -6,14 +6,14 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.17 (2026-07-09)
+## 📍 État actuel — build 1.9.18 (2026-07-09)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **128 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→83) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **129 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→84) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
-- ⚠️ Versions **1.5.2 → 1.9.17 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
+- ⚠️ Versions **1.5.2 → 1.9.18 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
 - [x] **Menu Réglages** (choix d'Adrien : « juste le menu ») — nouvelle page **⚙️ Réglages** (nav) : Apparence (thème/densité), **Rappels** (panneau rapatrié depuis Focus, sa vraie place), **Connexions sportives** (Strava/Polar « Bientôt », Garmin « Plus tard », avec l'explication honnête), accès aux réglages Calendrier. ✅ _boucle #73 (build 1.9.7)._
 - ⏳ **Connecter Strava / Garmin / Polar** (OAuth réel) → **Vague S.8** : nécessite qu'Adrien enregistre une app développeur chez chaque service (Strava = faisable en solo → Client ID à me fournir ; Garmin/Polar = API partenaires gated).
 
@@ -112,6 +112,7 @@ _Livrable : un `.exe` reproductible + données à l'épreuve du quota._
   - [x] **1.14g — alerte chevauchement (double-booking)** : dans la grille horaire, les événements qui se **chevauchent** sont **entourés d'ambre** et un badge **⚠️ chevauchement** apparaît dans l'en-tête du jour (réutilise `dayColumns`, déjà testé). ✅ _boucle #78 (build 1.9.12, boucle autonome)._
   - [x] **Trajet auto livré (S.8, build 1.8.5)** : point de départ + lieu → géocodage/itinéraire OpenStreetMap sans clé, bouton « 🧭 Estimer » qui remplit le trajet. Reste optionnel : détection **GPS live** de « où je suis » (nécessite une clé de géolocalisation Chromium) — le point de départ manuel couvre déjà le besoin.
 - [x] **1.12** **Événements récurrents (moteur natif, sans dépendance)** — `recurrenceMatches(rule, dateKey)` + `normalizeRecurring` purs + testés ; `state.recurring`. Fréquences **quotidien / hebdo (jours au choix) / toutes les N semaines / mensuel / annuel**, avec date de début et **jusqu'au** optionnel. Formulaire repliable « 🔁 Événements récurrents » (Vue mois) + liste. Occurrences injectées dans `todayItems` → visibles Jour/Semaine/Mois/« Ma journée » avec marqueur **↻** (non validables). ✅ _boucle #46 (build 1.5.6)._
+  - [x] **1c — Mettre en pause un récurrent** (boucle autonome) : bouton **⏸️ / ▶️** dans la liste des événements récurrents pour **suspendre** un rendez-vous répété sans le supprimer (ex. réunion en vacances). Champ `paused` (pur+testé) ; les occurrences en pause disparaissent de Jour/Semaine/Mois/« Ma journée » et des notifications. ✅ _boucle #84 (build 1.9.18)._
   - [x] **1b — Import RRULE** : `parseRRule` (FREQ/INTERVAL/BYDAY/UNTIL → règle interne) ; `parseIcs` remonte un champ `recurrence` ; à l'import, les VEVENT récurrents deviennent des **événements récurrents** (dédup par `refId` ics-uid), les ponctuels vont dans l'agenda. Testé + flux réel vérifié. ✅ _boucle #48 (build 1.5.8)._
 
 > ✅ **Vague 1 terminée** (boucles #05–#06, 2026-07-06) · enrichie #36 (priorités + import .ics) · #37 (UX Agenda) · #38 (To-Do) · #41 (Vue Jour).

@@ -351,6 +351,14 @@ test('habitStreak : un jour programmé manqué casse la série, les jours non pr
   // mais si on saute au lundi 13 sans avoir fait vendredi 10 → série cassée
   assert.equal(L.habitStreak(h, '2026-07-13'), 0, 'vendredi 10 (programmé) manqué → cassé');
 });
+test('récurrent en pause : normalisé et exclu de todayItems', () => {
+  const r = { id: 1, title: 'Réunion', paused: true, rule: { freq: 'daily', interval: 1, startDate: '2026-01-01' } };
+  assert.equal(L.normalizeRecurring(r).paused, true, 'paused conservé');
+  const items = L.todayItems({ recurring: [r] }, '2026-07-10');
+  assert.ok(!items.some(i => i.type === 'recurring'), 'aucune occurrence quand en pause');
+  const items2 = L.todayItems({ recurring: [{ ...r, paused: false }] }, '2026-07-10');
+  assert.ok(items2.some(i => i.type === 'recurring'), 'occurrence présente quand actif');
+});
 test('habitBestStreak : plus longue série d’occurrences prévues réalisées', () => {
   const h = { id: 1, name: 'Eau', weekdays: [], log: ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-10', '2026-06-11'] };
   assert.equal(L.habitBestStreak(h, '2026-06-11'), 3, 'record = 3 jours (1-3 juin), malgré le trou');
