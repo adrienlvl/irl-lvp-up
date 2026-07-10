@@ -667,6 +667,13 @@ test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
   assert.ok(s.monthsLeft > 20);
   assert.ok(s.longRunMin > 0);
   assert.equal(s.km, 170);
+  assert.ok(s.daysLeft > 630, 'daysLeft cohérent (~2 ans)');
+});
+test('daysUntil : jours entre deux dates, négatif si passé', () => {
+  assert.equal(L.daysUntil('2026-07-10', '2026-07-20'), 10);
+  assert.equal(L.daysUntil('2026-07-10', '2026-07-10'), 0);
+  assert.equal(L.daysUntil('2026-07-20', '2026-07-10'), -10);
+  assert.equal(L.daysUntil('pas-une-date', '2026-07-10'), null);
 });
 
 test('intermediateGoals : ultra 170km/2ans → paliers croissants échelonnés', () => {

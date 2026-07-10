@@ -687,16 +687,26 @@ function intermediateGoals(goal, now) {
 }
 
 // Statut complet de l'objectif : semaines/mois restants, phase, cible de sortie longue.
+// Jours entre deux clés YYYY-MM-DD (de `fromKey` à `toKey`) — négatif si passé. Pur + testé.
+function daysUntil(fromKey, toKey) {
+  const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(fromKey || ''));
+  const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(toKey || ''));
+  if (!a || !b) return null;
+  const da = new Date(+a[1], +a[2] - 1, +a[3]); da.setHours(0, 0, 0, 0);
+  const db = new Date(+b[1], +b[2] - 1, +b[3]); db.setHours(0, 0, 0, 0);
+  return Math.round((db - da) / 86400000);
+}
 function raceGoalStatus(goal, now) {
   if (!goal || !goal.date) return null;
   const today = now instanceof Date ? dateKey(now) : (typeof now === 'string' ? now : localDate());
   const weeksLeft = weeksBetween(today, goal.date);
+  const daysLeft = daysUntil(today, goal.date);
   const phase = racePhase(weeksLeft);
   const km = Number(goal.distanceKm) || 0;
   const peakLong = Math.min(300, Math.max(60, Math.round(km * 3)));
   const longRunMin = Math.round(peakLong * phase.longMul / 5) * 5;
   return {
-    weeksLeft,
+    weeksLeft, daysLeft,
     monthsLeft: weeksLeft == null ? null : Math.round(weeksLeft / 4.345 * 10) / 10,
     phase, km, longRunMin
   };
@@ -1205,5 +1215,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, agendaMatch };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, daysUntil, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, agendaMatch };
 }
