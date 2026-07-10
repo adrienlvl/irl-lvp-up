@@ -1191,6 +1191,20 @@ test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercise
   assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
   assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
 });
+test('exerciseVolumeSeries : volume par séance, N dernières, agrégé par jour', () => {
+  const entries = [
+    { name: 'Tractions', date: '2026-06-01', volume: 100 },
+    { name: 'Tractions', date: '2026-06-03', volume: 120 },
+    { name: 'Tractions', date: '2026-06-03', volume: 30 },   // même jour → agrégé
+    { name: 'Pompes', date: '2026-06-02', volume: 200 },     // autre exo → ignoré
+  ];
+  const s = L.exerciseVolumeSeries(entries, 'Tractions', 8);
+  assert.deepEqual(s, [{ date: '2026-06-01', volume: 100 }, { date: '2026-06-03', volume: 150 }]);
+  // limite = 1 → ne garde que la dernière séance
+  assert.deepEqual(L.exerciseVolumeSeries(entries, 'Tractions', 1), [{ date: '2026-06-03', volume: 150 }]);
+  assert.deepEqual(L.exerciseVolumeSeries(entries, 'Inconnu', 8), []);
+  assert.deepEqual(L.exerciseVolumeSeries('nope', 'Tractions', 8), []);
+});
 test('waterStatus : verres, litres, %, objectif', () => {
   const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
   assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);

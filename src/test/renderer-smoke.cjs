@@ -65,6 +65,7 @@ app.whenReady().then(async () => {
         nutritionPlus: typeof supplementTiming === 'function' && typeof searchFoods === 'function' && !!document.getElementById('foodResults') && (document.querySelectorAll('#suppTimingGrid .supp-phase').length >= 3),
         hydration: typeof waterStatus === 'function' && !!document.getElementById('waterPlus') && !!document.getElementById('waterMinus') && !!document.getElementById('hydraFill') && !!document.getElementById('proteinFill') && typeof proteinTarget === 'function',
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
+        progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         kitchen: typeof generateMeals === 'function' && !!document.getElementById('pantryList') && !!document.getElementById('mealSuggestions') && !!document.getElementById('envieStyles'),
         shopping: typeof buildShoppingList === 'function' && !!document.getElementById('shoppingBlock') && !!document.getElementById('shoppingList') && !!document.getElementById('copyShoppingBtn'),
         shoppingCheck: typeof remainingShopping === 'function' && !!document.getElementById('shoppingRemaining') && remainingShopping([{ label: 'a' }, { label: 'b' }], { a: true }) === 1,
