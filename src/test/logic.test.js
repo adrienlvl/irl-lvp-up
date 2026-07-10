@@ -907,6 +907,15 @@ test('buildShoppingList : frigo complet → liste vide ; frigo vide → toutes l
   assert.deepEqual(empty, ['P', 'F', 'L', 'D'], 'protéiné → P+F+L+laitier');
 });
 
+test('remainingShopping : compte les articles non cochés', () => {
+  const items = [{ label: 'Protéine' }, { label: 'Féculent' }, { label: 'Légume' }];
+  assert.equal(L.remainingShopping(items, {}), 3);
+  assert.equal(L.remainingShopping(items, { 'Féculent': true }), 2);
+  assert.equal(L.remainingShopping(items, { 'Protéine': true, 'Féculent': true, 'Légume': true }), 0);
+  assert.equal(L.remainingShopping(items, null), 3, 'checked absent → tout à acheter');
+  assert.equal(L.remainingShopping('pas-un-tableau', {}), 0);
+});
+
 test('supplementTiming : avant/pendant/après par type de séance', () => {
   const muscu = L.supplementTiming('muscu');
   assert.equal(muscu.title, 'Musculation');

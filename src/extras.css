@@ -77,11 +77,17 @@
 .shopping-head b{margin:0}
 .shopping-block>.week-insight{margin:6px 0 10px}
 .shopping-list{display:grid;gap:8px}
-.shopping-row{display:grid;grid-template-columns:auto auto 1fr;align-items:baseline;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.shopping-row{display:grid;grid-template-columns:auto auto auto 1fr;align-items:baseline;gap:10px;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;width:100%;text-align:left;cursor:pointer;color:var(--text);font:inherit;transition:background .12s,opacity .12s}
+.shopping-row:hover{background:var(--surface-2)}
 .shopping-row b{font-size:.82rem}
+.shop-check{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1.5px solid var(--line);border-radius:5px;color:var(--accent);font-size:.72rem;font-weight:800;flex:none;align-self:center}
+.shopping-row.shop-done{opacity:.55}
+.shopping-row.shop-done b{text-decoration:line-through}
+.shopping-row.shop-done .shop-check{border-color:var(--accent);background:rgba(171,255,85,.14)}
 .shop-qty{color:var(--accent);font-size:.74rem;font-weight:650;white-space:nowrap}
 .shop-sugg{color:var(--muted);font-size:.74rem;text-align:right}
-@media(max-width:700px){.meal-suggestions{grid-template-columns:1fr}.shopping-row{grid-template-columns:1fr auto}.shop-sugg{grid-column:1/-1;text-align:left}}
+.shop-remaining{color:var(--muted);font-size:.72rem;margin-left:auto}
+@media(max-width:700px){.meal-suggestions{grid-template-columns:1fr}.shopping-row{grid-template-columns:auto 1fr auto}.shop-sugg{grid-column:1/-1;text-align:left}}
 /* Agenda — priorités */
 .prio-flag{margin-right:5px;font-size:.7rem}
 .my-day-item.prio-high{border-left:3px solid var(--pink,#e5484d);padding-left:9px}
