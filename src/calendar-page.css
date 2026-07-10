@@ -2,7 +2,8 @@
 
 /* ===== Ma semaine (Vague 4.4, 2026-07-06) ===== */
 .week-page-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px}
-.week-page-day{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:9px;min-height:150px;display:flex;flex-direction:column;gap:7px}
+.week-page-day{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:9px;min-height:150px;display:flex;flex-direction:column;gap:7px;cursor:pointer}
+.week-page-day:hover{border-color:var(--accent)}
 .week-page-day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .week-page-day>header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:5px}
 .week-page-day>header b{font-size:.72rem}
