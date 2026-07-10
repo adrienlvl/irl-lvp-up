@@ -1060,6 +1060,18 @@ test('dayColumns : chevauchements côte à côte, indépendants sur 1 colonne', 
   assert.ok(s.every(x => x.cols === 1), 'contigus sans chevauchement = 1 colonne');
   assert.deepEqual(L.dayColumns([]), [], 'vide → []');
 });
+test('personalRecords : meilleure charge et meilleures reps par exercice', () => {
+  const w = [
+    { date: '2026-06-01', exercises: [{ name: 'Goblet squat kettlebell', load: 16, reps: 8 }] },
+    { date: '2026-06-08', exercises: [{ name: 'Goblet squat kettlebell', load: 20, reps: 6 }, { name: 'Tractions', load: 0, reps: 8 }] },
+    { date: '2026-06-15', exercises: [{ name: 'Tractions', load: 0, setLogs: [{ load: 0, reps: 10 }, { load: 0, reps: 9 }] }] }
+  ];
+  const r = L.personalRecords(w);
+  assert.equal(r['Goblet squat kettlebell'].load, 20, 'record charge = 20 kg');
+  assert.equal(r['Goblet squat kettlebell'].date, '2026-06-08', 'date du record de charge');
+  assert.equal(r['Tractions'].reps, 10, 'record reps (via setLogs) = 10');
+  assert.deepEqual(L.personalRecords([]), {}, 'vide → {}');
+});
 test('waterStatus : verres, litres, %, objectif', () => {
   const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
   assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);

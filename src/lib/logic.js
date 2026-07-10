@@ -1070,6 +1070,24 @@ function buildZonePlan(zone, weeks, perWeek) {
   return { zone, label: goal.label, emoji: goal.emoji, weeks, perWeek, exercises, blocks };
 }
 
+// Records personnels par exercice, depuis l'historique des séances. Pour chaque exercice :
+// meilleure charge (kg) et meilleur nombre de reps jamais enregistrés (séries incluses). Pur + testé.
+function personalRecords(workouts) {
+  const rec = {};
+  (Array.isArray(workouts) ? workouts : []).forEach(w => {
+    if (!w || !Array.isArray(w.exercises)) return;
+    w.exercises.forEach(ex => {
+      if (!ex || !ex.name) return;
+      let load = Number(ex.load) || 0, reps = Number(ex.reps) || 0;
+      if (Array.isArray(ex.setLogs)) ex.setLogs.forEach(s => { load = Math.max(load, Number(s && s.load) || 0); reps = Math.max(reps, Number(s && s.reps) || 0); });
+      const cur = rec[ex.name] || { load: 0, reps: 0, date: '' };
+      const improved = load > cur.load || reps > cur.reps;
+      rec[ex.name] = { load: Math.max(cur.load, load), reps: Math.max(cur.reps, reps), date: improved ? (w.date || cur.date) : cur.date };
+    });
+  });
+  return rec;
+}
+
 // Hydratation du jour : compte de verres (1 verre ≈ 0,25 L) vs objectif. Pur + testé.
 function waterStatus(waterLog, dateKey, goal) {
   const g = Math.max(1, Math.min(20, Math.round(Number(goal) || 8)));
@@ -1166,5 +1184,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords };
 }
