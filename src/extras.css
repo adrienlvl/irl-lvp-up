@@ -229,5 +229,11 @@ details.calendar-setting[open]{padding-bottom:14px}
 .habit-del:hover{color:var(--pink,#e5484d)}
 .habit-days{margin:-2px 0 10px}
 .habit-days-hint{display:block;color:var(--muted);font-size:.7rem}
+.habit-week{display:inline-flex;gap:3px;margin-top:5px}
+.hw-dot{width:9px;height:9px;border-radius:3px;background:var(--input-bg);border:1px solid var(--line);box-sizing:border-box}
+.hw-dot.hw-done{background:var(--accent);border-color:var(--accent)}
+.hw-dot.hw-miss{background:transparent;border-color:color-mix(in srgb,#ef4444 55%,var(--line))}
+.hw-dot.hw-off{opacity:.4}
+.hw-dot.hw-today{outline:2px solid color-mix(in srgb,var(--accent) 60%,transparent);outline-offset:1px}
 .habit-item.offday{opacity:.55}
 .habit-check.off{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;color:var(--muted)}

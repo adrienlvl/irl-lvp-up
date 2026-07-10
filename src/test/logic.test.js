@@ -383,6 +383,23 @@ test('habitBestStreak : plus longue série d’occurrences prévues réalisées'
   assert.equal(L.habitBestStreak(w, '2026-07-10'), 3, 'lun+mer+ven prévus enchaînés = record 3');
 });
 
+test('habitWeekMap : 7 derniers jours (ancien→récent) avec prévu/fait', () => {
+  // habitude quotidienne, faite les 08 et 10/07
+  const map = L.habitWeekMap({ id: 1, weekdays: [], log: ['2026-07-08', '2026-07-10'] }, '2026-07-10');
+  assert.equal(map.length, 7);
+  assert.equal(map[6].key, '2026-07-10', 'dernier = aujourd’hui');
+  assert.equal(map[0].key, '2026-07-04', 'premier = J-6');
+  assert.equal(map[6].done, true);
+  assert.equal(map[4].done, true);  // 08/07
+  assert.equal(map[5].done, false); // 09/07 non fait
+  assert.ok(map.every(d => d.scheduled), 'sans weekdays → tous prévus');
+  // habitude lun/mer/ven : les autres jours ne sont pas "scheduled"
+  const w = L.habitWeekMap({ id: 2, weekdays: [1, 3, 5], log: [] }, '2026-07-10');
+  assert.equal(w[6].scheduled, true, 'ven 10/07 prévu');   // vendredi
+  assert.equal(w[5].scheduled, false, 'jeu 09/07 non prévu');
+  assert.deepEqual(L.habitWeekMap({ id: 3 }, 'pas-une-date'), []);
+});
+
 test('todosForDay : entrée non-tableau tolérée → vide', () => {
   const r = L.todosForDay(null, '2026-07-07');
   assert.deepEqual(r.active, []);
