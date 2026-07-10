@@ -67,6 +67,7 @@ app.whenReady().then(async () => {
         shopping: typeof buildShoppingList === 'function' && !!document.getElementById('shoppingBlock') && !!document.getElementById('shoppingList') && !!document.getElementById('copyShoppingBtn'),
         agendaImport: typeof parseIcs === 'function' && !!document.getElementById('importIcs') && !!document.getElementById('importIcsKind') && !!document.getElementById('calendarAgendaPriority'),
         agendaUx: !!document.getElementById('weekQuickAdd') && !!document.getElementById('agendaFilters') && !!document.getElementById('importIcsWeek') && document.querySelectorAll('#agendaFilters [data-filter]').length === 5,
+        agendaSearch: typeof agendaMatch === 'function' && !!document.getElementById('agendaSearch'),
         agendaDay: typeof renderDayView === 'function' && typeof renderAgenda === 'function' && !!document.getElementById('dayView') && document.querySelectorAll('#agendaViewSwitch [data-view]').length === 2,
         dayGrid: typeof dayColumns === 'function' && typeof endTimeOf === 'function',
         agendaDetails: typeof departureInfo === 'function' && !!document.getElementById('calendarAgendaLocation') && !!document.getElementById('calendarAgendaTravel') && !!document.getElementById('calendarAgendaNotes'),
@@ -121,6 +122,7 @@ app.whenReady().then(async () => {
     if (!checks.shopping) errors.push('Liste de courses absente (buildShoppingList/shoppingBlock/shoppingList/copyShoppingBtn)');
     if (!checks.agendaImport) errors.push('Import agenda absent (parseIcs/importIcs/importIcsKind/calendarAgendaPriority)');
     if (!checks.agendaUx) errors.push('UX agenda absente (weekQuickAdd/agendaFilters 5 filtres/importIcsWeek)');
+    if (!checks.agendaSearch) errors.push('Recherche agenda absente (agendaMatch/agendaSearch)');
     if (!checks.agendaDay) errors.push('Vue Jour absente (renderDayView/renderAgenda/dayView/agendaViewSwitch 2 vues)');
     if (!checks.dayGrid) errors.push('Grille horaire absente (dayColumns/endTimeOf)');
     if (!checks.agendaDetails) errors.push('Détails événement absents (departureInfo/location/travel/notes)');

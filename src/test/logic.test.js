@@ -1055,6 +1055,15 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   const clamp = L.buildTrainingWeek(['legs'], 6, 5);
   assert.ok(clamp.strengthDays + clamp.runs <= 6, 'au moins 1 jour de repos');
 });
+test('agendaMatch : recherche titre/lieu/notes, insensible à la casse', () => {
+  const it = { title: 'RDV Kiné', location: 'Cabinet Lorient', notes: 'ordonnance' };
+  assert.equal(L.agendaMatch(it, ''), true, 'requête vide → tout passe');
+  assert.equal(L.agendaMatch(it, 'kiné'), true, 'titre');
+  assert.equal(L.agendaMatch(it, 'LORIENT'), true, 'lieu (insensible casse)');
+  assert.equal(L.agendaMatch(it, 'ordonnance'), true, 'notes');
+  assert.equal(L.agendaMatch(it, 'dentiste'), false, 'sans correspondance');
+  assert.equal(L.agendaMatch(null, 'x'), false, 'item nul → false');
+});
 test('dayColumns : chevauchements côte à côte, indépendants sur 1 colonne', () => {
   // deux qui se chevauchent + un séparé
   const r = L.dayColumns([{ start: 540, end: 600 }, { start: 570, end: 630 }, { start: 700, end: 760 }]);
