@@ -216,13 +216,35 @@ function habitStreak(habit, todayKey) {
   return streak;
 }
 
-// Habitudes prévues un jour donné → [{id, name, xp, done, streak}].
+// Record de série : la plus longue suite d'occurrences prévues consécutives réalisées,
+// sur tout l'historique (du 1er jour validé jusqu'à aujourd'hui). Pur + testé.
+function habitBestStreak(habit, todayKey) {
+  const h = normalizeHabit(habit);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || '')); if (!m) return 0;
+  const logs = h.log.filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+  if (!logs.length) return 0;
+  const done = new Set(logs);
+  const wds = h.weekdays.length ? new Set(h.weekdays) : new Set([0, 1, 2, 3, 4, 5, 6]);
+  const pad = n => String(n).padStart(2, '0');
+  const key = x => `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`;
+  const f = logs[0].split('-').map(Number);
+  let d = new Date(f[0], f[1] - 1, f[2]); d.setHours(0, 0, 0, 0);
+  const end = new Date(+m[1], +m[2] - 1, +m[3]); end.setHours(0, 0, 0, 0);
+  let cur = 0, best = 0, guard = 0;
+  while (d <= end && guard++ < 3660) {
+    if (wds.has(d.getDay())) { if (done.has(key(d))) { cur++; if (cur > best) best = cur; } else cur = 0; }
+    d.setDate(d.getDate() + 1);
+  }
+  return best;
+}
+
+// Habitudes prévues un jour donné → [{id, name, xp, done, streak, best}].
 function habitsForDay(habits, todayKey) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || '')); if (!m) return [];
   const wd = new Date(+m[1], +m[2] - 1, +m[3]).getDay();
   return (Array.isArray(habits) ? habits : []).map(normalizeHabit)
     .filter(h => !h.weekdays.length || h.weekdays.includes(wd))
-    .map(h => ({ id: h.id, name: h.name, xp: h.xp, done: h.log.includes(todayKey), streak: habitStreak(h, todayKey) }));
+    .map(h => ({ id: h.id, name: h.name, xp: h.xp, done: h.log.includes(todayKey), streak: habitStreak(h, todayKey), best: habitBestStreak(h, todayKey) }));
 }
 
 // Normalise une entrée d'agenda vers le modèle d'événement unifié :
@@ -1137,5 +1159,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, racePhase, raceGoalStatus, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns };
 }

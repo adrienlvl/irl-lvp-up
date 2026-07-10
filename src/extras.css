@@ -217,7 +217,7 @@ details.calendar-setting[open]{padding-bottom:14px}
 .habit-check.checked{border-color:var(--accent)}
 .habit-name{flex:1;font-size:.86rem}
 .habit-item.done .habit-name{color:var(--muted)}
-.habit-streak{font-size:.78rem;font-weight:700;color:#e5843a;white-space:nowrap}
+.habit-streak{font-size:.78rem;font-weight:700;color:#e5843a;white-space:nowrap}.habit-record{font-size:.74rem;font-weight:700;color:#eab308;white-space:nowrap;margin-left:6px}
 .habit-xp{font-size:.72rem;color:var(--accent);font-weight:650;white-space:nowrap}
 .habit-del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:0 3px}
 .habit-del:hover{color:var(--pink,#e5484d)}

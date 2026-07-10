@@ -351,6 +351,13 @@ test('habitStreak : un jour programmé manqué casse la série, les jours non pr
   // mais si on saute au lundi 13 sans avoir fait vendredi 10 → série cassée
   assert.equal(L.habitStreak(h, '2026-07-13'), 0, 'vendredi 10 (programmé) manqué → cassé');
 });
+test('habitBestStreak : plus longue série d’occurrences prévues réalisées', () => {
+  const h = { id: 1, name: 'Eau', weekdays: [], log: ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-10', '2026-06-11'] };
+  assert.equal(L.habitBestStreak(h, '2026-06-11'), 3, 'record = 3 jours (1-3 juin), malgré le trou');
+  assert.equal(L.habitBestStreak({ id: 2, weekdays: [], log: [] }, '2026-06-11'), 0, 'sans historique → 0');
+  const w = { id: 3, weekdays: [1, 3, 5], log: ['2026-07-06', '2026-07-08', '2026-07-10'] }; // lun/mer/ven
+  assert.equal(L.habitBestStreak(w, '2026-07-10'), 3, 'lun+mer+ven prévus enchaînés = record 3');
+});
 
 test('todosForDay : entrée non-tableau tolérée → vide', () => {
   const r = L.todosForDay(null, '2026-07-07');
