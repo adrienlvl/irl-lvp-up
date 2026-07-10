@@ -537,6 +537,7 @@ function todayItems(state, date) {
     allDay: Boolean(a.allDay), completed: Boolean(a.completed), planId: a.planId || null,
     location: typeof a.location === 'string' ? a.location : '', notes: typeof a.notes === 'string' ? a.notes : '', travelMin: Math.max(0, Math.round(Number(a.travelMin) || 0)),
     workout: Array.isArray(a.workout) && a.workout.length ? a.workout.slice(0, 12) : null,
+    durationMin: Math.max(0, Math.round(Number(a.durationMin) || 0)),
     type: a.planId ? 'plan' : (a.kind === 'study' ? 'study' : 'agenda')
   }));
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
