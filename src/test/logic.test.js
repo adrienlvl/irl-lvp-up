@@ -1080,6 +1080,16 @@ test('personalRecords : meilleure charge et meilleures reps par exercice', () =>
   assert.equal(r['Tractions'].reps, 10, 'record reps (via setLogs) = 10');
   assert.deepEqual(L.personalRecords([]), {}, 'vide → {}');
 });
+test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercises[])', () => {
+  const w = [
+    { date: '2026-06-01', exercise: 'Tractions', exercises: [{ name: 'Tractions' }, { name: 'Pompes classiques' }] },
+    { date: '2026-06-08', exercises: [{ name: 'Goblet squat kettlebell' }] },
+    { date: '2026-06-09' }
+  ];
+  const names = L.loggedExerciseNames(w).sort();
+  assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
+  assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
+});
 test('waterStatus : verres, litres, %, objectif', () => {
   const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
   assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);
