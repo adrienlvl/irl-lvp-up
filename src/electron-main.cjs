@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, safeStorage, dialog } = require('electron');
 const path = require('path'); const fs = require('fs'); const https = require('https'); let win, tray, timer;
 let autoUpdater; try { ({ autoUpdater } = require('electron-updater')); } catch (_) { autoUpdater = null; }
 /* Logique partagée avec le renderer (récurrence testée dans lib/logic.js). */
@@ -157,6 +157,9 @@ ipcMain.handle('notifications:save', (_, value) => { const v = value && typeof v
 ipcMain.handle('notifications:test', () => showReminder('⚡ Test réussi', 'Prêt. Ton prochain petit geste compte.'));
 ipcMain.handle('backup:save', (_, value) => { if (!value || typeof value !== 'object') return false; const backup={ version: 4, savedAt: new Date().toISOString(), state: value };fs.writeFileSync(stateBackupFile(), JSON.stringify(backup, null, 2));const dir=stateBackupHistoryDir(),daily=path.join(dir,`irl-lvp-up-${backup.savedAt.slice(0,10)}.json`);fs.mkdirSync(dir,{recursive:true});if(!fs.existsSync(daily))fs.writeFileSync(daily,JSON.stringify(backup,null,2));const old=fs.readdirSync(dir).filter(name=>name.endsWith('.json')).sort().reverse().slice(14);old.forEach(name=>fs.rmSync(path.join(dir,name),{force:true}));return true; });
 ipcMain.handle('backup:get', () => { try { return JSON.parse(fs.readFileSync(stateBackupFile(), 'utf8')); } catch { return null; } });
+/* Export / import manuels des données (portabilité, sauvegarde sur fichier choisi par Adrien). */
+ipcMain.handle('data:export', async (_e, json) => { try { const r = await dialog.showSaveDialog(win, { title: 'Exporter mes données', defaultPath: `irl-lvp-up-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: 'JSON', extensions: ['json'] }] }); if (r.canceled || !r.filePath) return { ok: false, canceled: true }; fs.writeFileSync(r.filePath, String(json || '{}'), 'utf8'); return { ok: true, path: r.filePath }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; } });
+ipcMain.handle('data:import', async () => { try { const r = await dialog.showOpenDialog(win, { title: 'Importer une sauvegarde', properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] }); if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true }; const buf = fs.readFileSync(r.filePaths[0], 'utf8'); if (buf.length > 20 * 1024 * 1024) return { ok: false, error: 'Fichier trop volumineux (max 20 Mo).' }; return { ok: true, text: buf }; } catch (e) { return { ok: false, error: String((e && e.message) || e) }; } });
 /* --- Photos : stockées en fichiers dans userData/photos/ (hors du blob localStorage). ---
    Sécurité (S.3) : nom de fichier regénéré côté main (jamais de chemin fourni par le renderer),
    Data URL validée par regex stricte, taille bornée à 8 Mo. */
