@@ -73,6 +73,22 @@ test('normalizeAgendaItem : durationMin bornée [5..600], completed booléen', (
   assert.equal(L.normalizeAgendaItem({ id: 5, completed: 1 }).completed, true);
 });
 
+test('duplicateAgendaItem : nouvel id, repart à faire, détaché de planId/recId', () => {
+  const src = { id: 10, title: 'Muscu', date: '2026-07-10', time: '18:00', kind: 'sport', completed: true, planId: 99, recId: 'r5', notes: 'haut du corps' };
+  const copy = L.duplicateAgendaItem(src, 20);
+  assert.equal(copy.id, 20);
+  assert.equal(copy.completed, false, 'la copie repart à faire');
+  assert.equal(copy.planId, undefined, 'détaché du créneau planifié');
+  assert.equal(copy.recId, undefined);
+  assert.equal(copy.title, 'Muscu');
+  assert.equal(copy.date, '2026-07-10', 'même jour par défaut');
+  assert.equal(copy.notes, 'haut du corps', 'contenu conservé');
+  assert.equal(src.completed, true, 'source non mutée');
+  // targetDate déplace la copie
+  assert.equal(L.duplicateAgendaItem(src, 21, '2026-07-11').date, '2026-07-11');
+  assert.equal(L.duplicateAgendaItem(null, 22), null);
+});
+
 test('normalizeAgendaItem : idempotente', () => {
   const once = L.normalizeAgendaItem({ id: 6, title: 'Bloc', date: '2026-07-08', time: '09:00', kind: 'focus' });
   assert.deepEqual(L.normalizeAgendaItem(once), once);

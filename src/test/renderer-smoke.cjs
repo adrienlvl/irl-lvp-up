@@ -73,6 +73,7 @@ app.whenReady().then(async () => {
         dayGrid: typeof dayColumns === 'function' && typeof endTimeOf === 'function',
         agendaDetails: typeof departureInfo === 'function' && !!document.getElementById('calendarAgendaLocation') && !!document.getElementById('calendarAgendaTravel') && !!document.getElementById('calendarAgendaNotes'),
         agendaEdit: !!document.getElementById('weekQuickLocation') && !!document.getElementById('weekQuickTravel') && !!document.getElementById('weekQuickNotes') && !!document.getElementById('weekQuickEstimate') && !!document.getElementById('agendaEditForm') && !!document.getElementById('editAgendaNotes'),
+        agendaDuplicate: typeof duplicateAgendaItem === 'function' && !!document.getElementById('duplicateAgendaEdit') && (duplicateAgendaItem({ id: 1, date: '2026-07-10', planId: 9, completed: true }, 2) || {}).planId === undefined,
         guidedFromPlan: typeof startGuidedFromNames === 'function' && typeof openGuidedWorkout === 'function' && !!document.getElementById('guidedWorkoutDialog'),
         settingsPage: !!document.querySelector('[data-page="settings"]') && !!document.querySelector('.settings-page') && document.querySelectorAll('.settings-conn .conn-row').length === 3 && !!document.getElementById('settingsTheme') && !!document.getElementById('settingsDensity'),
         dataIo: !!document.getElementById('exportDataBtn') && !!document.getElementById('importDataBtn') && !!document.getElementById('dataIoStatus'),
