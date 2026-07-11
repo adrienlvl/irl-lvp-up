@@ -1757,6 +1757,22 @@ test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
   assert.equal(mid.score, 73); assert.equal(mid.label, 'Correct — garde une marge');
   assert.equal(L.readinessScore(null), null);
 });
+test('readinessTrend : série de forme des derniers check-ins + delta', () => {
+  const rec = [
+    { date: '2026-07-06', sleep: 5, fatigue: 4, soreness: 4 }, // 40
+    { date: '2026-07-08', sleep: 7, fatigue: 2, soreness: 3 }, // 73
+    { date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+  ];
+  const rt = L.readinessTrend(rec, 8);
+  assert.equal(rt.points.length, 3);
+  assert.deepEqual(rt.points.map(p => p.score), [40, 73, 100]);
+  assert.equal(rt.delta, 60, '100 - 40'); assert.equal(rt.direction, 'up');
+  assert.equal(rt.latest, 100);
+  // ordre chronologique forcé même si entrée dans le désordre
+  assert.deepEqual(L.readinessTrend([rec[2], rec[0]], 8).points.map(p => p.date), ['2026-07-06', '2026-07-10']);
+  assert.equal(L.readinessTrend([rec[0]], 8), null, '< 2 check-ins → null');
+  assert.equal(L.readinessTrend([], 8), null);
+});
 
 test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () => {
   const rec = [

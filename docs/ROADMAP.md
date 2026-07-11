@@ -6,15 +6,16 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.80 (2026-07-11)
+## 📍 État actuel — build 1.9.81 (2026-07-12)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **182 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→146) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **183 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→147) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.80** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.81** non publiées (attendent un `npm run release` / upload d'Adrien).
+- 🌙 **Tendance de forme (readiness)** (panneau Récupération) : mini-courbe du score de forme des 8 derniers check-ins + delta (▲/▼) pour repérer la fatigue qui s'accumule ou la récupération qui remonte. ✅ _boucle #147 (build 1.9.81)._
 - 📈 **Courbe « Tonnage soulevé »** (graphiques 8 sem.) : total de kg soulevés par semaine (charge × reps × séries, séries validées prioritaires) — la métrique directe de progression en muscu, à côté de la charge d'effort, du focus, du sommeil et des révisions. ✅ _boucle #146 (build 1.9.80)._
 - 🎚️ **Charges cibles selon % du 1RM** (panneau Progression, dépliable) : à partir du 1RM estimé de l'exercice, table 60/70/80/90 % avec charge (arrondie 0,5 kg), plage de reps et objectif (endurance / hypertrophie / force / force max). ✅ _boucle #145 (build 1.9.79)._
 - ⛰️ **Synthèse course « données réelles »** (panneau Ultra-trail) : à partir des sorties `run` enregistrées — **km sur 7 j**, **km sur 4 sem.**, **nb de sorties**, **plus longue sortie** (km + date) — avec rappel « rallonge la sortie longue ~+10%/sem. max ». Complète les repères D+/sortie longue saisis à la main. ✅ _boucle #144 (build 1.9.78)._
