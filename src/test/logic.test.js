@@ -1351,6 +1351,24 @@ test('setLandmark : repères hypertrophie (<10 low, 10-20 ok, >20 high)', () => 
   assert.equal(L.setLandmark('bad').zone, 'low');
   assert.equal(typeof L.setLandmark(12).label, 'string');
 });
+test('muscleBalance : équilibre poussée (pecs+épaules) / tirage (dos) sur 28 j', () => {
+  const w = [
+    { date: '2026-07-08', exercises: [{ name: 'Pompes classiques', sets: 4 }] }, // push +4 (chest/shoulders)
+    { date: '2026-07-06', exercises: [{ name: 'Pompes inclinées', sets: 4 }] },   // push +4
+    { date: '2026-07-05', exercises: [{ name: 'Tractions', sets: 3 }] },          // pull +3 (back)
+    { date: '2026-05-01', exercises: [{ name: 'Tractions', sets: 5 }] },          // hors 28 j
+  ];
+  const mb = L.muscleBalance(w, '2026-07-10', 28);
+  assert.equal(mb.push, 8); assert.equal(mb.pull, 3);
+  assert.equal(mb.ratio, 2.67, '8/3'); assert.equal(mb.zone, 'push-heavy');
+  // pas de tirage → no-pull
+  assert.equal(L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Pompes classiques', sets: 3 }] }], '2026-07-10').zone, 'no-pull');
+  // équilibré
+  const bal = L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Pompes classiques', sets: 3 }, { name: 'Tractions', sets: 3 }] }], '2026-07-10');
+  assert.equal(bal.zone, 'balanced'); assert.equal(bal.ratio, 1);
+  assert.equal(L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Gainage planche', sets: 3 }] }], '2026-07-10'), null, 'ni poussée ni tirage → null');
+  assert.equal(L.muscleBalance(w, 'x'), null);
+});
 test('zoneFreshness : jours depuis le dernier travail de chaque zone + statut', () => {
   const w = [
     { date: '2026-07-10', exercises: [{ name: 'Gainage planche' }] },       // abs aujourd'hui
