@@ -20,6 +20,13 @@ ipcMain.handle('backup:get', () => null);
 ipcMain.handle('photos:save', (_e, p) => ({ id: (p && p.id) || 1, file: `${(p && p.id) || 1}.png` }));
 ipcMain.handle('photos:read', () => null);
 ipcMain.handle('photos:delete', () => true);
+ipcMain.handle('travel:config:get', () => ({ home: '', mode: 'driving' }));
+ipcMain.handle('travel:config:save', (_e, v) => v);
+ipcMain.handle('travel:estimate', () => ({ ok: false, error: 'stub' }));
+ipcMain.handle('update:check', () => ({ ok: true }));
+ipcMain.handle('update:install', () => true);
+ipcMain.handle('data:export', () => ({ ok: false, canceled: true }));
+ipcMain.handle('data:import', () => ({ ok: false, canceled: true }));
 
 const errors = [];
 app.disableHardwareAcceleration();
