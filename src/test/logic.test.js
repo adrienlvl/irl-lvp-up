@@ -850,6 +850,19 @@ test('daysUntil : jours entre deux dates, négatif si passé', () => {
   assert.equal(L.daysUntil('pas-une-date', '2026-07-10'), null);
 });
 
+test('upcomingKeyDates : examen + course triés dans l’horizon', () => {
+  const exam = { title: 'BTS CG', date: '2026-07-25' }, race = { date: '2026-07-15' };
+  const r = L.upcomingKeyDates(exam, race, '2026-07-10', 60);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].kind, 'race'); assert.equal(r[0].daysLeft, 5); // course plus proche
+  assert.equal(r[1].kind, 'exam'); assert.equal(r[1].daysLeft, 15);
+  // hors horizon exclu
+  assert.equal(L.upcomingKeyDates({ date: '2027-01-01' }, null, '2026-07-10', 60).length, 0);
+  // date passée exclue
+  assert.equal(L.upcomingKeyDates({ date: '2026-07-01' }, null, '2026-07-10', 60).length, 0);
+  assert.deepEqual(L.upcomingKeyDates(null, null, '2026-07-10', 60), []);
+});
+
 test('keyDateMarkers : examen et course sur un jour donné', () => {
   const exam = { title: 'BTS CG', date: '2026-05-15' }, race = { date: '2026-06-01' };
   assert.deepEqual(L.keyDateMarkers(exam, race, '2026-05-15'), [{ kind: 'exam', label: 'BTS CG' }]);
