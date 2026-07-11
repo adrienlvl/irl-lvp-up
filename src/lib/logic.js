@@ -1248,6 +1248,38 @@ function weightTrend(weights, target) {
   return { ratePerWeek, direction, toTarget, weeksToTarget, onTrack, current: b.value };
 }
 
+// Succès (badges) calculés à partir de l'état complet. Pur + testé.
+// Retourne { badges:[{id,emoji,title,desc,unlocked}], unlocked, total }.
+function computeAchievements(state) {
+  const s = state && typeof state === 'object' ? state : {};
+  const arr = k => Array.isArray(s[k]) ? s[k] : [];
+  const workouts = arr('workouts'), focus = arr('focusSessions'), habits = arr('habits'),
+    nutrition = arr('nutrition'), measurements = arr('measurements'), quests = arr('quests'),
+    agenda = arr('agenda'), weights = arr('weights');
+  const hasType = t => workouts.some(w => w && w.type === t);
+  const studyDone = agenda.filter(a => a && a.kind === 'study' && a.completed).length;
+  const waterGoal = 8;
+  const bestWater = nutrition.reduce((mx, n) => Math.max(mx, Number(n && n.water) || 0), 0);
+  const defs = [
+    ['first-quest', '⚔️', 'Première quête', 'Valide une quête du jour.', quests.some(q => q && q.done)],
+    ['focus-found', '⏳', 'Focus trouvé', 'Termine un premier bloc de concentration.', (Number(s.timerRuns) || 0) > 0 || focus.length > 0],
+    ['streak-3', '🔥', 'Série de 3 jours', 'Garde ta série active 3 jours.', (Number(s.streak) || 0) >= 3],
+    ['first-workout', '👟', 'En mouvement', 'Enregistre ta première séance.', workouts.length >= 1],
+    ['workouts-10', '🏋️', 'Assidu·e', 'Enregistre 10 séances.', workouts.length >= 10],
+    ['first-strength', '💪', 'Première fonte', 'Note une séance de musculation.', hasType('strength')],
+    ['first-run', '🏃', 'Premier run', 'Note une sortie course.', hasType('run')],
+    ['hydrated', '💧', 'Bien hydraté', `Atteins ${waterGoal} verres d'eau un jour.`, bestWater >= waterGoal],
+    ['focus-10', '🧠', 'Marathon mental', 'Cumule 10 blocs de focus.', focus.length >= 10],
+    ['race-goal', '🎯', 'Cap fixé', 'Définis une course objectif.', !!(s.raceGoal && s.raceGoal.date)],
+    ['body-track', '📏', 'Miroir', 'Enregistre 2 mensurations.', measurements.length >= 2],
+    ['weigh-in', '⚖️', 'Sur la balance', 'Note un premier poids.', weights.length >= 1],
+    ['study-5', '📚', 'Réviseur', 'Valide 5 créneaux de révision.', studyDone >= 5],
+    ['habit-built', '🌱', 'Rituel ancré', 'Crée une habitude.', habits.length >= 1],
+  ];
+  const badges = defs.map(([id, emoji, title, desc, unlocked]) => ({ id, emoji, title, desc, unlocked: !!unlocked }));
+  return { badges, unlocked: badges.filter(b => b.unlocked).length, total: badges.length };
+}
+
 // Évolution d'une mensuration (waist/chest/arm…) : première vs dernière valeur > 0.
 // measurements : [{date, <field>}]. Retourne {latest, first, delta, count, date} ou null. Pur + testé.
 function measurementDelta(measurements, field) {
@@ -1393,5 +1425,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, weightTrend, measurementDelta, loggedExerciseNames, exerciseVolumeSeries, agendaMatch };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, weightTrend, measurementDelta, computeAchievements, loggedExerciseNames, exerciseVolumeSeries, agendaMatch };
 }

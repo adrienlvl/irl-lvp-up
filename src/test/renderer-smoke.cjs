@@ -109,6 +109,7 @@ app.whenReady().then(async () => {
         warmup: typeof warmupFor === 'function' && !!document.getElementById('guidedWarmupList'),
         cooldown: typeof cooldownFor === 'function' && !!document.getElementById('guidedCooldownList') && !!document.getElementById('guidedCooldown'),
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
+        achievements: typeof computeAchievements === 'function' && computeAchievements({ quests: [{ done: true }] }).total === 14 && document.querySelectorAll('#achievementList .achievement').length >= 10,
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''

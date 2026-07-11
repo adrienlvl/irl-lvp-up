@@ -1253,6 +1253,39 @@ test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   assert.equal(L.weightTrend('nope', 79), null);
 });
 
+test('computeAchievements : badges débloqués selon l’état', () => {
+  const empty = L.computeAchievements({});
+  assert.equal(empty.total, 14);
+  assert.equal(empty.unlocked, 0, 'état vide → rien de débloqué');
+  const rich = L.computeAchievements({
+    quests: [{ done: true }],
+    timerRuns: 2,
+    streak: 5,
+    workouts: [{ type: 'strength' }, { type: 'run' }],
+    focusSessions: [{}],
+    raceGoal: { date: '2027-01-01' },
+    measurements: [{ waist: 80 }, { waist: 79 }],
+    weights: [{ value: 81 }],
+    habits: [{ name: 'Eau' }],
+    nutrition: [{ water: 8 }],
+    agenda: [],
+  });
+  const on = id => rich.badges.find(b => b.id === id).unlocked;
+  assert.equal(on('first-quest'), true);
+  assert.equal(on('streak-3'), true);
+  assert.equal(on('first-strength'), true);
+  assert.equal(on('first-run'), true);
+  assert.equal(on('hydrated'), true);
+  assert.equal(on('race-goal'), true);
+  assert.equal(on('body-track'), true);
+  assert.equal(on('weigh-in'), true);
+  assert.equal(on('workouts-10'), false, '2 séances < 10');
+  assert.equal(on('study-5'), false);
+  assert.ok(rich.unlocked >= 8 && rich.unlocked < rich.total);
+  // robustesse
+  assert.equal(L.computeAchievements(null).unlocked, 0);
+});
+
 test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => {
   const m = [
     { date: '2026-06-01', waist: 88, arm: 34 },
