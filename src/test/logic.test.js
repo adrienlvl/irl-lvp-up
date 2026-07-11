@@ -1585,6 +1585,17 @@ test('estimate1RM : formule d’Epley, arrondi 0,5, garde-fous', () => {
   assert.equal(L.estimate1RM(80, 40), null, 'reps > 30 → non fiable → null');
   assert.equal(L.estimate1RM('x', 5), null);
 });
+test('loadPercentages : charges cibles selon % du 1RM', () => {
+  const rows = L.loadPercentages(100);
+  assert.equal(rows.length, 4);
+  assert.deepEqual(rows.map(r => r.pct), [60, 70, 80, 90]);
+  assert.equal(rows[0].load, 60); assert.equal(rows[2].load, 80);
+  assert.equal(rows[1].focus, 'Hypertrophie');
+  // arrondi 0,5 : 85 × 0,7 = 59,5
+  assert.equal(L.loadPercentages(85)[1].load, 59.5);
+  assert.deepEqual(L.loadPercentages(0), []);
+  assert.deepEqual(L.loadPercentages('x'), []);
+});
 
 test('exerciseVolumeSeries : volume par séance, N dernières, agrégé par jour', () => {
   const entries = [
