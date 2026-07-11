@@ -6,15 +6,16 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.73 (2026-07-11)
+## 📍 État actuel — build 1.9.74 (2026-07-11)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **175 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→139) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **176 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→140) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.73** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.74** non publiées (attendent un `npm run release` / upload d'Adrien).
+- 🏆 **Palmarès de force** (Athlète → Progrès) : tableau de tes **meilleures séries** par exercice (charge × reps) + **1RM estimé** (Epley), trié du plus fort au plus léger, 1ᵉ en or 👑. Vue d'ensemble de ta force à partir de tout ton historique. ✅ _boucle #140 (build 1.9.74)._
 - 🏋️ **Volume de séries hebdo par groupe musculaire** (revue hebdo) : barres par zone (abdos/bras/pecs/dos/épaules/jambes/fessiers) avec **repère d'hypertrophie** — <10 séries « à augmenter » (orange), 10–20 « optimal » (vert), >20 « volume élevé » (rouge). Pilotage direct de l'objectif muscu. ✅ _boucle #138 (build 1.9.72)._
 - 🎯 **Suggestion de progression (double progression)** dans le panneau Progression : lit la dernière séance chargée d'un exercice et propose la cible suivante — +1 rep jusqu'au haut de fourchette (8–12), puis **+2,5 kg** en repartant en bas. Retient la meilleure série (setLogs). ✅ _boucle #139 (build 1.9.73)._
 - [x] **Export / import des données** (boucle autonome, fiabilité) : dans **Réglages → 💾 Sauvegarde & données**, boutons **⬇️ Exporter (.json)** et **⬆️ Importer** — via les dialogues Electron (fichier choisi par Adrien), écriture/lecture dans le **main** (taille bornée 20 Mo). Import passé par `normalizeState` (défensif) + confirmation. Portabilité vers un autre PC + sauvegarde manuelle. ✅ _boucle #85 (build 1.9.19)._

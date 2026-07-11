@@ -1427,6 +1427,22 @@ test('newRecords : détecte les records battus entre deux instantanés', () => {
   assert.deepEqual(L.newRecords(after, after), [], 'rien battu → []');
   assert.deepEqual(L.newRecords(null, null), []);
 });
+test('strengthRecords : meilleure série (1RM estimé) par exercice, triée', () => {
+  const w = [
+    { date: '2026-06-01', exercises: [{ name: 'Développé couché', load: 40, reps: 8 }] },       // 1RM ≈ 50.5
+    { date: '2026-06-08', exercises: [{ name: 'Développé couché', load: 45, reps: 5 }] },       // 1RM ≈ 52.5 → mieux
+    { date: '2026-06-08', exercises: [{ name: 'Squat', setLogs: [{ load: 60, reps: 10 }, { load: 70, reps: 3 }] }] }, // 60×10≈80 > 70×3≈77 → meilleure série retenue
+    { date: '2026-06-15', exercises: [{ name: 'Gainage', reps: 60 }] },                          // sans charge → ignoré
+  ];
+  const r = L.strengthRecords(w);
+  assert.equal(r.length, 2, 'seuls les exercices chargés');
+  assert.equal(r[0].name, 'Squat', 'trié par 1RM décroissant');
+  assert.equal(r[0].load, 60); assert.equal(r[0].reps, 10);
+  const dc = r.find(x => x.name === 'Développé couché');
+  assert.equal(dc.load, 45); assert.equal(dc.reps, 5); assert.equal(dc.date, '2026-06-08');
+  assert.equal(dc.e1rm, L.estimate1RM(45, 5));
+  assert.deepEqual(L.strengthRecords([]), []);
+});
 test('workoutsTable : TSV en-tête + lignes triées récent→ancien', () => {
   const w = [
     { date: '2026-07-05', type: 'strength', duration: 40, effort: 3, exercises: [{ name: 'Tractions' }, { name: 'Pompes' }] },
