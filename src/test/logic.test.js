@@ -1214,6 +1214,16 @@ test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercise
   assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
   assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
 });
+test('estimate1RM : formule d’Epley, arrondi 0,5, garde-fous', () => {
+  assert.equal(L.estimate1RM(100, 1), 100, '1 rep → charge');
+  assert.equal(L.estimate1RM(100, 10), 133.5, '100×(1+10/30)=133.33 → 133.5');
+  assert.equal(L.estimate1RM(60, 5), 70, '60×(1+5/30)=70');
+  assert.equal(L.estimate1RM(0, 5), null, 'charge nulle → null');
+  assert.equal(L.estimate1RM(80, 0), null, '0 rep → null');
+  assert.equal(L.estimate1RM(80, 40), null, 'reps > 30 → non fiable → null');
+  assert.equal(L.estimate1RM('x', 5), null);
+});
+
 test('exerciseVolumeSeries : volume par séance, N dernières, agrégé par jour', () => {
   const entries = [
     { name: 'Tractions', date: '2026-06-01', volume: 100 },
