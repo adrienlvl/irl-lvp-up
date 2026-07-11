@@ -81,6 +81,7 @@ app.whenReady().then(async () => {
         waterGoalAdaptive: typeof waterGoalFor === 'function' && waterGoalFor(8, true) === 10 && waterGoalFor(8, false) === 8,
         proteinWeek: typeof proteinDaysOnTarget === 'function' && proteinDaysOnTarget([{ date: '2026-07-06', protein: 160 }, { date: '2026-07-09', protein: 130 }], 130, '2026-07-06', '2026-07-10') === 2,
         waterWeek: typeof daysHittingTarget === 'function' && daysHittingTarget([{ date: '2026-07-06', water: 8 }, { date: '2026-07-07', water: 5 }], 'water', 8, '2026-07-06', '2026-07-10') === 1,
+        proteinTargetUnified: typeof proteinTarget === 'function' && (() => { const t = proteinTarget(state.profile.weight, state.profile.goal).gramsPerDay; const s = (document.getElementById('nutritionStatus') || {}).textContent || ''; return t === 145 && (s.includes(String(t)) || /\d/.test(s)); })(),
         sleepDebt: typeof sleepDebtHours === 'function' && (r => r.debt === 3.5 && r.nights === 3)(sleepDebtHours([{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5.5 }], 7.5, '2026-07-06', '2026-07-10')),
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
         newRecordToast: typeof newRecords === 'function' && typeof flashToast === 'function' && newRecords({ T: { load: 0, reps: 8 } }, { T: { load: 0, reps: 10 } }).length === 1,
