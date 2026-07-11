@@ -6,15 +6,16 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.86 (2026-07-12)
+## 📍 État actuel — build 1.9.87 (2026-07-12)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **189 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→152) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **190 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→153) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.86** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.87** non publiées (attendent un `npm run release` / upload d'Adrien).
+- 🗂️ **Filtre historique par exercice** : nouveau menu « Tous les exercices » (peuplé depuis les séances enregistrées) dans l'historique, cumulable avec le filtre discipline — pour retrouver toutes les séances où un exercice donné a été fait. ✅ _boucle #153 (build 1.9.87)._
 - 💪 **Compteur de tonnage en direct** (séance guidée) : dans l'en-tête, « 💪 N séries · X kg » qui s'incrémente à chaque série validée (séries cochées uniquement). Retour immédiat sur l'effort accompli pendant la séance. ✅ _boucle #152 (build 1.9.86)._
 - 🎯 **Suggestion « à privilégier aujourd'hui »** (panneau « Cette semaine ») : croise fraîcheur musculaire (#142) et volume hebdo (#138) pour recommander le groupe le plus reposé ET sous la cible de 10 séries — ex. « Dos — reposé (4 j) et sous ta cible (4/10 séries) ». ✅ _boucle #151 (build 1.9.85)._
 - ⭐ **Exercices favoris** : étoile ★ sur la fiche d'un exercice pour le marquer favori (persistant, `exerciseFavorites`), badge ★ sur les cartes concernées et filtre **« ⭐ Favoris »** dans la bibliothèque (cumulable avec les autres filtres). ✅ _boucle #150 (build 1.9.84)._

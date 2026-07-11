@@ -1557,6 +1557,19 @@ test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercise
   assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
   assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
 });
+test('workoutsWithExercise : séances contenant un exercice (exercises[] ou top-level)', () => {
+  const w = [
+    { id: 1, date: '2026-06-01', exercises: [{ name: 'Tractions' }, { name: 'Pompes classiques' }] },
+    { id: 2, date: '2026-06-08', exercise: 'Tractions' },
+    { id: 3, date: '2026-06-09', exercises: [{ name: 'Squat' }] },
+  ];
+  assert.deepEqual(L.workoutsWithExercise(w, 'Tractions').map(x => x.id), [1, 2]);
+  assert.deepEqual(L.workoutsWithExercise(w, 'Squat').map(x => x.id), [3]);
+  assert.deepEqual(L.workoutsWithExercise(w, 'Inconnu'), []);
+  assert.equal(L.workoutsWithExercise(w, 'all').length, 3, '\'all\' → toutes');
+  assert.equal(L.workoutsWithExercise(w, '').length, 3, 'vide → toutes');
+  assert.deepEqual(L.workoutsWithExercise('x', 'Tractions'), []);
+});
 test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge×reps×séries)', () => {
   // setLogs avec complétion → seules les séries validées comptent (40×8)
   assert.equal(L.workoutTonnage({ exercises: [{ name: 'DC', setLogs: [{ load: 40, reps: 8, completed: true }, { load: 40, reps: 6, completed: false }] }] }), 320);
