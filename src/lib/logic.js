@@ -1194,6 +1194,33 @@ function personalRecords(workouts) {
   return rec;
 }
 
+// Tendance de poids : rythme récent (kg/sem) sur les 6 dernières mesures, direction,
+// et estimation de semaines pour atteindre la cible si on va dans le bon sens. Pur + testé.
+// weights : [{date:'YYYY-MM-DD', value}]. Retourne null si < 2 mesures exploitables.
+function weightTrend(weights, target) {
+  const list = (Array.isArray(weights) ? weights : [])
+    .filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')) && Number.isFinite(Number(w.value)))
+    .map(w => ({ date: w.date, value: Number(w.value) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (list.length < 2) return null;
+  const recent = list.slice(-6), a = recent[0], b = recent[recent.length - 1];
+  const days = (new Date(b.date + 'T12:00:00') - new Date(a.date + 'T12:00:00')) / 864e5;
+  if (!(days > 0)) return null;
+  const ratePerWeek = Math.round(((b.value - a.value) / days * 7) * 100) / 100;
+  const direction = ratePerWeek <= -0.05 ? 'down' : ratePerWeek >= 0.05 ? 'up' : 'flat';
+  const tgt = Number(target);
+  let toTarget = null, weeksToTarget = null, onTrack = null;
+  if (Number.isFinite(tgt) && tgt > 0) {
+    toTarget = Math.round((tgt - b.value) * 10) / 10;   // + = doit prendre, − = doit perdre
+    if (Math.abs(toTarget) < 0.1) { weeksToTarget = 0; onTrack = true; }
+    else if (Math.abs(ratePerWeek) >= 0.05 && Math.sign(ratePerWeek) === Math.sign(toTarget)) {
+      weeksToTarget = Math.max(1, Math.round(toTarget / ratePerWeek));
+      onTrack = true;
+    } else onTrack = false;
+  }
+  return { ratePerWeek, direction, toTarget, weeksToTarget, onTrack, current: b.value };
+}
+
 // Noms d'exercices déjà réalisés au moins une fois (historique de séances). Pur + testé.
 function loggedExerciseNames(workouts) {
   const set = new Set();
@@ -1327,5 +1354,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, loggedExerciseNames, exerciseVolumeSeries, agendaMatch };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, weightTrend, loggedExerciseNames, exerciseVolumeSeries, agendaMatch };
 }

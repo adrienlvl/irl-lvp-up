@@ -1205,6 +1205,31 @@ test('exerciseVolumeSeries : volume par séance, N dernières, agrégé par jour
   assert.deepEqual(L.exerciseVolumeSeries(entries, 'Inconnu', 8), []);
   assert.deepEqual(L.exerciseVolumeSeries('nope', 'Tractions', 8), []);
 });
+test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
+  // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
+  const w = [
+    { date: '2026-06-26', value: 82 }, { date: '2026-07-03', value: 81.5 }, { date: '2026-07-10', value: 81 },
+  ];
+  const t = L.weightTrend(w, 79);
+  assert.equal(t.ratePerWeek, -0.5);
+  assert.equal(t.direction, 'down');
+  assert.equal(t.toTarget, -2, 'il reste 2 kg à perdre');
+  assert.equal(t.onTrack, true);
+  assert.equal(t.weeksToTarget, 4);
+  // mauvais sens : cible plus basse mais poids qui monte → onTrack false, pas d'ETA
+  const up = L.weightTrend([{ date: '2026-06-26', value: 80 }, { date: '2026-07-10', value: 81 }], 78);
+  assert.equal(up.direction, 'up');
+  assert.equal(up.onTrack, false);
+  assert.equal(up.weeksToTarget, null);
+  // cible déjà atteinte
+  const at = L.weightTrend([{ date: '2026-06-26', value: 79.1 }, { date: '2026-07-10', value: 79 }], 79);
+  assert.equal(at.weeksToTarget, 0);
+  assert.equal(at.onTrack, true);
+  // pas assez de mesures
+  assert.equal(L.weightTrend([{ date: '2026-07-10', value: 80 }], 79), null);
+  assert.equal(L.weightTrend('nope', 79), null);
+});
+
 test('waterStatus : verres, litres, %, objectif', () => {
   const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
   assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);
