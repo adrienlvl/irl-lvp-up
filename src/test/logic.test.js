@@ -1530,6 +1530,17 @@ test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercise
   assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
   assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
 });
+test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge×reps×séries)', () => {
+  // setLogs avec complétion → seules les séries validées comptent (40×8)
+  assert.equal(L.workoutTonnage({ exercises: [{ name: 'DC', setLogs: [{ load: 40, reps: 8, completed: true }, { load: 40, reps: 6, completed: false }] }] }), 320);
+  // setLogs sans aucune complétion → toutes comptent (40×8 + 40×7)
+  assert.equal(L.workoutTonnage({ exercises: [{ name: 'DC', setLogs: [{ load: 40, reps: 8 }, { load: 40, reps: 7 }] }] }), 600);
+  // pas de setLogs → charge × reps × séries (60×10×3)
+  assert.equal(L.workoutTonnage({ exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }), 1800);
+  assert.equal(L.workoutTonnage({ exercises: [{ name: 'Tractions', reps: 10, sets: 3 }] }), 0, 'poids du corps → 0');
+  assert.equal(L.workoutTonnage({}), 0);
+  assert.equal(L.workoutTonnage(null), 0);
+});
 test('runKmInWindow : cumule les km de course dans la fenêtre', () => {
   const w = [
     { type: 'run', date: '2026-07-06', distance: 10 },
