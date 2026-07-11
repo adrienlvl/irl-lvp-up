@@ -1541,6 +1541,19 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
 
+test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
+  // parfait : 8h, fatigue 1, courbatures 1 → 40+30+30 = 100
+  const top = L.readinessScore({ sleep: 8, fatigue: 1, soreness: 1 });
+  assert.equal(top.score, 100); assert.equal(top.label, 'Prêt à pousser');
+  // médiocre : 5h, fatigue 4, courbatures 4 → 25 + 7.5 + 7.5 = 40 → basse
+  const low = L.readinessScore({ sleep: 5, fatigue: 4, soreness: 4 });
+  assert.equal(low.score, 40); assert.equal(low.label, 'Récupération prioritaire');
+  // correct : 7h, fatigue 2, courbatures 3 → 35 + 22.5 + 15 = 72.5 → 73
+  const mid = L.readinessScore({ sleep: 7, fatigue: 2, soreness: 3 });
+  assert.equal(mid.score, 73); assert.equal(mid.label, 'Correct — garde une marge');
+  assert.equal(L.readinessScore(null), null);
+});
+
 test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () => {
   const rec = [
     { date: '2026-07-06', sleep: 6 },   // -1.5

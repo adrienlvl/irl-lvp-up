@@ -86,6 +86,7 @@ app.whenReady().then(async () => {
         waterWeek: typeof daysHittingTarget === 'function' && daysHittingTarget([{ date: '2026-07-06', water: 8 }, { date: '2026-07-07', water: 5 }], 'water', 8, '2026-07-06', '2026-07-10') === 1,
         proteinTargetUnified: typeof proteinTarget === 'function' && (() => { const t = proteinTarget(state.profile.weight, state.profile.goal).gramsPerDay; const s = (document.getElementById('nutritionStatus') || {}).textContent || ''; return t === 145 && (s.includes(String(t)) || /\d/.test(s)); })(),
         sleepDebt: typeof sleepDebtHours === 'function' && (r => r.debt === 3.5 && r.nights === 3)(sleepDebtHours([{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5.5 }], 7.5, '2026-07-06', '2026-07-10')),
+        readiness: typeof readinessScore === 'function' && !!document.getElementById('recoveryScore') && readinessScore({ sleep: 8, fatigue: 1, soreness: 1 }).score === 100 && readinessScore(null) === null,
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
         newRecordToast: typeof newRecords === 'function' && typeof flashToast === 'function' && newRecords({ T: { load: 0, reps: 8 } }, { T: { load: 0, reps: 10 } }).length === 1,
         repeatLast: typeof lastLoggedSession === 'function' && !!document.getElementById('repeatLastSession') && lastLoggedSession([{ type: 'strength', date: '2026-07-08', exercises: [{ name: 'T' }] }]).date === '2026-07-08',
