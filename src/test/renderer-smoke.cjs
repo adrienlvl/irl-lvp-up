@@ -87,6 +87,7 @@ app.whenReady().then(async () => {
         sleepDebt: typeof sleepDebtHours === 'function' && (r => r.debt === 3.5 && r.nights === 3)(sleepDebtHours([{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5.5 }], 7.5, '2026-07-06', '2026-07-10')),
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
         newRecordToast: typeof newRecords === 'function' && typeof flashToast === 'function' && newRecords({ T: { load: 0, reps: 8 } }, { T: { load: 0, reps: 10 } }).length === 1,
+        repeatLast: typeof lastLoggedSession === 'function' && !!document.getElementById('repeatLastSession') && lastLoggedSession([{ type: 'strength', date: '2026-07-08', exercises: [{ name: 'T' }] }]).date === '2026-07-08',
         progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         oneRepMax: typeof estimate1RM === 'function' && estimate1RM(100, 10) === 133.5 && estimate1RM(100, 1) === 100 && estimate1RM(0, 5) === null,
         pace: typeof runPace === 'function' && runPace(10, 50).label === '5:00' && runPace(0, 30) === null,

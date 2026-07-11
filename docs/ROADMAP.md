@@ -6,15 +6,15 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.62 (2026-07-11)
+## 📍 État actuel — build 1.9.63 (2026-07-11)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **164 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→128) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **165 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→129) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.62** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.63** non publiées (attendent un `npm run release` / upload d'Adrien).
 - [x] **Export / import des données** (boucle autonome, fiabilité) : dans **Réglages → 💾 Sauvegarde & données**, boutons **⬇️ Exporter (.json)** et **⬆️ Importer** — via les dialogues Electron (fichier choisi par Adrien), écriture/lecture dans le **main** (taille bornée 20 Mo). Import passé par `normalizeState` (défensif) + confirmation. Portabilité vers un autre PC + sauvegarde manuelle. ✅ _boucle #85 (build 1.9.19)._
 - [x] **Menu Réglages** (choix d'Adrien : « juste le menu ») — nouvelle page **⚙️ Réglages** (nav) : Apparence (thème/densité), **Rappels** (panneau rapatrié depuis Focus, sa vraie place), **Connexions sportives** (Strava/Polar « Bientôt », Garmin « Plus tard », avec l'explication honnête), accès aux réglages Calendrier. ✅ _boucle #73 (build 1.9.7)._
 - ⏳ **Connecter Strava / Garmin / Polar** (OAuth réel) → **Vague S.8** : nécessite qu'Adrien enregistre une app développeur chez chaque service (Strava = faisable en solo → Client ID à me fournir ; Garmin/Polar = API partenaires gated).
@@ -228,6 +228,7 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
   - **Progression des révisions BTS** (boucle autonome) : `studyStats` pur+testé → sous le compte à rebours d'examen, « 📖 X/Y révisions faites · Z à venir » (agenda kind='study'). ✅ _boucle #126 (build 1.9.60)._
   - **Échéances clés au calendrier** (boucle autonome) : `keyDateMarkers` pur+testé → l'examen (📚) et la course objectif (🏁) apparaissent comme marqueurs colorés sur leur jour dans le calendrier mensuel. ✅ _boucle #127 (build 1.9.61)._
   - **Copier ma journée** (boucle autonome) : `dayPlanText` pur+testé → bouton « 📋 Copier » dans la vue jour qui met le planning du jour (heure + titre + ✓) dans le presse-papiers. ✅ _boucle #128 (build 1.9.62)._
+  - **Refaire ma dernière séance** (boucle autonome) : `lastLoggedSession` pur+testé → bouton « 🔁 Refaire ma dernière séance » qui repropose les exercices de la dernière séance muscu/renfo (reprise d'une routine en un clic). ✅ _boucle #129 (build 1.9.63)._
   - _Note diagnostic : bug « impossible de taper dans les champs » signalé par Adrien **non reproductible** en 1.9.53 (frappe testée OK sur Dashboard/Nutrition/Agenda via le vrai renderer) → très probablement une install pas encore à jour ; correctif = réinstaller le Setup 1.9.53._
   - **Paliers intermédiaires** (`intermediateGoals`, testé) : échelle de courses croissantes échelonnées vers l'objectif (ex. ultra 170 km/2 ans → Semi ~7 mois, 50 km ~13 mois, 100 km ~20 mois, puis 170 km). Affichés en timeline dans la section objectif. ✅ _boucle #22._
 - [x] **5.4** **Guidage renforcé** : échauffement spécifique (`warmupFor`, testé) en tête de chaque séance guidée (encart repliable, adapté haut/bas/trail) + le compagnon d'entraînement affiche le **contexte de course** (objectif, échéance, phase). ✅ _boucle #26._

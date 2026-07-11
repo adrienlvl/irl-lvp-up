@@ -1354,6 +1354,21 @@ test('newRecords : détecte les records battus entre deux instantanés', () => {
   assert.deepEqual(L.newRecords(after, after), [], 'rien battu → []');
   assert.deepEqual(L.newRecords(null, null), []);
 });
+test('lastLoggedSession : dernière séance muscu/renfo avec exercices', () => {
+  const w = [
+    { type: 'run', date: '2026-07-10', distance: 5 },                    // pas muscu
+    { type: 'strength', date: '2026-07-08', exercises: [{ name: 'Tractions' }] },
+    { type: 'strength', date: '2026-07-05', exercises: [{ name: 'Pompes' }] },
+    { type: 'strength', date: '2026-07-09', exercises: [] },             // sans exercices
+  ];
+  const s = L.lastLoggedSession(w);
+  assert.equal(s.date, '2026-07-08'); assert.equal(s.exercises[0].name, 'Tractions');
+  assert.equal(L.lastLoggedSession([{ type: 'run', date: '2026-07-10' }]), null, 'aucune muscu → null');
+  assert.equal(L.lastLoggedSession([]), null);
+  // type personnalisé
+  assert.equal(L.lastLoggedSession(w, ['run']), null, 'run n’a pas d’exercices');
+});
+
 test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercises[])', () => {
   const w = [
     { date: '2026-06-01', exercise: 'Tractions', exercises: [{ name: 'Tractions' }, { name: 'Pompes classiques' }] },
