@@ -1366,6 +1366,21 @@ test('zoneFreshness : jours depuis le dernier travail de chaque zone + statut', 
   assert.deepEqual(L.zoneFreshness([], '2026-07-10').filter(z => z.status !== 'never'), []);
   assert.deepEqual(L.zoneFreshness(w, 'x'), []);
 });
+test('suggestTrainingFocus : groupes reposés + déficit, exclut le récent', () => {
+  const w = [
+    { date: '2026-07-10', exercises: [{ name: 'Goblet squat kettlebell', sets: 3 }] }, // legs+glutes aujourd'hui → récent
+    { date: '2026-07-04', exercises: [{ name: 'Tractions', sets: 3 }] },                // back+arms 6 j → prêt
+  ];
+  const tf = L.suggestTrainingFocus(w, '2026-07-10');
+  const zones = tf.map(z => z.zone);
+  assert.ok(!zones.includes('legs') && !zones.includes('glutes'), 'groupes récents exclus');
+  assert.equal(tf.length, 5, '7 zones - 2 récentes');
+  // jamais travaillés (score 17) devant back/arms (13)
+  assert.equal(tf[0].status, 'never'); assert.equal(tf[0].zone, 'abs', 'alpha entre jamais-travaillés');
+  const back = tf.find(z => z.zone === 'back');
+  assert.equal(back.sets, 3); assert.equal(back.deficit, 7); assert.equal(back.days, 6);
+  assert.deepEqual(L.suggestTrainingFocus(w, 'x'), []);
+});
 test('equipmentOptions : matériels distincts, comptés et triés par fréquence', () => {
   const ex = [
     { name: 'A', kind: 'Poids du corps' }, { name: 'B', kind: 'Poids du corps' },
