@@ -796,6 +796,19 @@ test('acuteChronicRatio : aiguë (7j) vs chronique (28j/4), zones', () => {
   assert.equal(L.acuteChronicRatio(steady, 'pas-une-date'), null);
 });
 
+test('trainingHeatmap : grille w*7 alignée lundi, comptes et futur', () => {
+  // aujourd'hui = vendredi 10/07/2026
+  const hm = L.trainingHeatmap([{ date: '2026-07-08' }, { date: '2026-07-08' }, { date: '2026-07-06' }], '2026-07-10', 1);
+  assert.equal(hm.length, 7, '1 semaine = 7 jours');
+  assert.equal(hm[0].date, '2026-07-06', 'commence un lundi');
+  assert.equal(hm[0].count, 1);            // lundi 06
+  assert.equal(hm[2].count, 2);            // mercredi 08 (deux séances)
+  assert.equal(hm[4].future, false);       // vendredi 10 = aujourd'hui
+  assert.equal(hm[5].future, true);        // samedi 11 = futur
+  assert.equal(L.trainingHeatmap([], '2026-07-10', 8).length, 56);
+  assert.deepEqual(L.trainingHeatmap([], 'nope', 8), []);
+});
+
 test('dailyStreak : jours calendaires consécutifs, grâce aujourd’hui, cassé par un trou', () => {
   const today = '2026-07-10';
   assert.equal(L.dailyStreak(['2026-07-10', '2026-07-09', '2026-07-08'], today), 3);
