@@ -332,6 +332,20 @@ test('departureInfo : heure de départ = heure − trajet, temps restant selon l
   assert.equal(L.departureInfo({ time: '09:00', travelMin: 0 }), null);
 });
 
+test('dayPlannedMinutes : somme des durées des créneaux horodatés', () => {
+  const items = [
+    { time: '09:00', durationMin: 60 },
+    { time: '14:00', durationMin: 90 },
+    { time: '', durationMin: 30 },           // pas d'heure → ignoré
+    { time: '18:00', allDay: true, durationMin: 45 }, // journée entière → ignoré
+    { time: '20:00', type: 'birthday' },     // anniversaire → ignoré
+    { time: '21:00' },                        // sans durée → 60 par défaut
+  ];
+  assert.equal(L.dayPlannedMinutes(items), 60 + 90 + 60);
+  assert.equal(L.dayPlannedMinutes([]), 0);
+  assert.equal(L.dayPlannedMinutes('nope'), 0);
+});
+
 test('reminderAnchorMinutes : ancre = départ si trajet, sinon heure de l’événement', () => {
   assert.equal(L.reminderAnchorMinutes({ time: '09:00', travelMin: 25 }), 8 * 60 + 35, 'trajet → 08:35');
   assert.equal(L.reminderAnchorMinutes({ time: '18:30' }), 18 * 60 + 30, 'sans trajet → 18:30');
