@@ -1282,6 +1282,18 @@ test('personalRecords : meilleure charge et meilleures reps par exercice', () =>
   assert.equal(r['Tractions'].reps, 10, 'record reps (via setLogs) = 10');
   assert.deepEqual(L.personalRecords([]), {}, 'vide → {}');
 });
+test('newRecords : détecte les records battus entre deux instantanés', () => {
+  const before = { Tractions: { load: 0, reps: 10 }, 'Goblet squat': { load: 20, reps: 8 } };
+  const after = { Tractions: { load: 0, reps: 12 }, 'Goblet squat': { load: 24, reps: 8 }, Pompes: { load: 0, reps: 20 } };
+  const prs = L.newRecords(before, after);
+  const byName = Object.fromEntries(prs.map(p => [p.name, p]));
+  assert.ok(byName.Tractions.repsPr && !byName.Tractions.loadPr, 'Tractions : record de reps');
+  assert.ok(byName['Goblet squat'].loadPr, 'Goblet : record de charge');
+  assert.ok(byName.Pompes, 'nouvel exercice → record');
+  assert.equal(prs.length, 3);
+  assert.deepEqual(L.newRecords(after, after), [], 'rien battu → []');
+  assert.deepEqual(L.newRecords(null, null), []);
+});
 test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercises[])', () => {
   const w = [
     { date: '2026-06-01', exercise: 'Tractions', exercises: [{ name: 'Tractions' }, { name: 'Pompes classiques' }] },
