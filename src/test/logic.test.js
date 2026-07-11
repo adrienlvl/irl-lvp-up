@@ -1443,6 +1443,23 @@ test('strengthRecords : meilleure série (1RM estimé) par exercice, triée', ()
   assert.equal(dc.e1rm, L.estimate1RM(45, 5));
   assert.deepEqual(L.strengthRecords([]), []);
 });
+test('exerciseHistoryStats : séances, dernière date, meilleure série, total séries', () => {
+  const w = [
+    { date: '2026-06-01', exercises: [{ name: 'Développé couché', load: 40, reps: 8, sets: 3 }] },
+    { date: '2026-06-10', exercises: [{ name: 'Développé couché', setLogs: [{ load: 42.5, reps: 6 }, { load: 42.5, reps: 6 }] }, { name: 'Tractions', reps: 10, sets: 4 }] },
+    { date: '2026-05-20', exercise: 'Tractions', reps: 8, sets: 3 }, // top-level
+  ];
+  const dc = L.exerciseHistoryStats(w, 'Développé couché');
+  assert.equal(dc.sessions, 2);
+  assert.equal(dc.lastDate, '2026-06-10', 'dernière séance');
+  assert.equal(dc.totalSets, 5, '3 + 2 séries loggées');
+  assert.equal(dc.bestSet.load, 42.5); assert.equal(dc.bestSet.e1rm, L.estimate1RM(42.5, 6));
+  const tr = L.exerciseHistoryStats(w, 'Tractions'); // poids du corps
+  assert.equal(tr.sessions, 2); assert.equal(tr.bestSet, null, 'aucune charge → pas de meilleure série chargée');
+  assert.equal(tr.bestReps, 10, 'meilleures reps au poids du corps');
+  assert.equal(L.exerciseHistoryStats(w, 'Inconnu'), null);
+  assert.equal(L.exerciseHistoryStats([], 'X'), null);
+});
 test('workoutsTable : TSV en-tête + lignes triées récent→ancien', () => {
   const w = [
     { date: '2026-07-05', type: 'strength', duration: 40, effort: 3, exercises: [{ name: 'Tractions' }, { name: 'Pompes' }] },
