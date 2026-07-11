@@ -1253,6 +1253,24 @@ test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   assert.equal(L.weightTrend('nope', 79), null);
 });
 
+test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => {
+  const m = [
+    { date: '2026-06-01', waist: 88, arm: 34 },
+    { date: '2026-06-15', waist: 86.5, arm: 34.5 },
+    { date: '2026-07-01', waist: 85, arm: 35 },
+  ];
+  const waist = L.measurementDelta(m, 'waist');
+  assert.equal(waist.latest, 85); assert.equal(waist.first, 88); assert.equal(waist.delta, -3); assert.equal(waist.count, 3);
+  const arm = L.measurementDelta(m, 'arm');
+  assert.equal(arm.delta, 1);
+  // ignore les valeurs nulles/absentes
+  const partial = L.measurementDelta([{ date: '2026-06-01', chest: 0 }, { date: '2026-06-10', chest: 100 }, { date: '2026-06-20', chest: 102 }], 'chest');
+  assert.equal(partial.first, 100); assert.equal(partial.delta, 2);
+  assert.equal(L.measurementDelta([], 'waist'), null);
+  assert.equal(L.measurementDelta([{ date: '2026-06-01', waist: 0 }], 'waist'), null);
+  assert.equal(L.measurementDelta('nope', 'waist'), null);
+});
+
 test('waterStatus : verres, litres, %, objectif', () => {
   const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
   assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);
