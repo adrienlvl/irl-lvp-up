@@ -1383,6 +1383,28 @@ test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   assert.equal(L.weightTrend('nope', 79), null);
 });
 
+test('lifetimeStats : totaux cumulés séances / minutes / km / focus / xp', () => {
+  const s = {
+    workouts: [
+      { type: 'strength', duration: 45 },
+      { type: 'run', duration: 60, distance: 10.4 },
+      { type: 'run', duration: 30, distance: 5.1 },
+    ],
+    focusSessions: [{ minutes: 25 }, { minutes: 50 }],
+    xp: 1234.6,
+  };
+  const l = L.lifetimeStats(s);
+  assert.equal(l.workouts, 3);
+  assert.equal(l.workoutMinutes, 135);
+  assert.equal(l.runKm, 15.5);
+  assert.equal(l.focusSessions, 2);
+  assert.equal(l.focusMinutes, 75);
+  assert.equal(l.xp, 1235);
+  const empty = L.lifetimeStats({});
+  assert.equal(empty.workouts, 0); assert.equal(empty.runKm, 0);
+  assert.equal(L.lifetimeStats(null).xp, 0);
+});
+
 test('computeAchievements : badges débloqués selon l’état', () => {
   const empty = L.computeAchievements({});
   assert.equal(empty.total, 14);

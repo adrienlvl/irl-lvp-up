@@ -125,6 +125,7 @@ app.whenReady().then(async () => {
         restSound: typeof guidedRestCue === 'function' && typeof restSoundEnabled === 'function' && !!document.getElementById('restSoundToggle'),
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         achievements: typeof computeAchievements === 'function' && computeAchievements({ quests: [{ done: true }] }).total === 14 && document.querySelectorAll('#achievementList .achievement').length >= 10,
+        lifetime: typeof lifetimeStats === 'function' && !!document.getElementById('lifetimeStats') && lifetimeStats({ workouts: [{ type: 'run', duration: 60, distance: 10 }] }).runKm === 10,
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''
