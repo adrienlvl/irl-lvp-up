@@ -247,6 +247,10 @@ function renderHydration(){const today=localDate(),n=state.nutrition.at(-1),isTo
 function bumpWater(delta){const today=localDate();let n=state.nutrition.at(-1);if(!n||n.date!==today){n={date:today,protein:Number($('#proteinInput').value)||0,water:0,fruit:$('#fruitCheck').checked};state.nutrition.push(n);}n.water=Math.max(0,Math.min(40,(Number(n.water)||0)+delta));save();if($('#waterInput'))$('#waterInput').value=n.water;renderHydration();}
 $('#waterPlus')?.addEventListener('click',()=>bumpWater(1));
 $('#waterMinus')?.addEventListener('click',()=>bumpWater(-1));
+function bumpProtein(delta){const today=localDate();let n=state.nutrition.at(-1);if(!n||n.date!==today){n={date:today,protein:0,water:Number($('#waterInput').value)||0,fruit:$('#fruitCheck').checked};state.nutrition.push(n);}n.protein=Math.max(0,Math.min(500,(Number(n.protein)||0)+delta));save();if($('#proteinInput'))$('#proteinInput').value=n.protein;renderHydration();}
+$('#proteinPlus20')?.addEventListener('click',()=>bumpProtein(20));
+$('#proteinPlus30')?.addEventListener('click',()=>bumpProtein(30));
+$('#proteinMinus')?.addEventListener('click',()=>bumpProtein(-10));
 $('#nextSessionLine').onclick=()=>{const el=$('#plannedList');el?.scrollIntoView({behavior:'smooth',block:'center'});};
 $('#addPlan').onclick=()=>{const date=$('#planDate').value,time=$('#planTime').value||'18:00',type=$('#planType').value;if(!date)return;const id=Date.now();state.plans.push({id,date,time,type});state.agenda.push(normalizeAgendaItem({id,title:`Séance · ${type}`,date,time,kind:'sport',planId:id}));save();renderGrowth();renderCommandCenter();renderDailyCompass();renderTrainingCompanion();};
 $('#availabilityDays').onchange=()=>{state.profile={...state.profile,availableDays:[...document.querySelectorAll('#availabilityDays input:checked')].map(input=>Number(input.value))};save();renderWeeklyPlanner();};$('#generateWeekPlan').onclick=generateAutomaticWeek;
