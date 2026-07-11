@@ -825,6 +825,16 @@ test('daysUntil : jours entre deux dates, négatif si passé', () => {
   assert.equal(L.daysUntil('pas-une-date', '2026-07-10'), null);
 });
 
+test('keyDateMarkers : examen et course sur un jour donné', () => {
+  const exam = { title: 'BTS CG', date: '2026-05-15' }, race = { date: '2026-06-01' };
+  assert.deepEqual(L.keyDateMarkers(exam, race, '2026-05-15'), [{ kind: 'exam', label: 'BTS CG' }]);
+  assert.deepEqual(L.keyDateMarkers(exam, race, '2026-06-01'), [{ kind: 'race', label: 'Course' }]);
+  assert.deepEqual(L.keyDateMarkers(exam, race, '2026-07-10'), [], 'autre jour → rien');
+  // les deux le même jour
+  assert.equal(L.keyDateMarkers({ date: '2026-05-15' }, { date: '2026-05-15' }, '2026-05-15').length, 2);
+  assert.deepEqual(L.keyDateMarkers(null, null, '2026-05-15'), []);
+});
+
 test('studyStats : total / faites / à venir des révisions', () => {
   const agenda = [
     { kind: 'study', date: '2026-07-05', completed: true },

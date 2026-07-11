@@ -66,6 +66,7 @@ app.whenReady().then(async () => {
         charts: !!document.getElementById('chartGrid') && typeof weeklyAggregate === 'function' && typeof renderCharts === 'function',
         weekView: !!document.getElementById('weekGrid') && typeof weekItems === 'function' && typeof renderWeekPage === 'function' && !!document.getElementById('openWeekPage'),
         monthDayJump: typeof renderMonthCalendar === 'function' && (() => { renderMonthCalendar(); return document.querySelectorAll('#monthCalendar .month-day[data-cal-day]').length >= 28; })(),
+        keyDateMarkers: typeof keyDateMarkers === 'function' && keyDateMarkers({ title: 'BTS', date: '2026-05-15' }, { date: '2026-06-01' }, '2026-05-15')[0].kind === 'exam' && keyDateMarkers(null, null, '2026-05-15').length === 0,
         printReport: !!document.getElementById('printReport') && typeof weeklySummary === 'function' && typeof renderPrintReport === 'function' && !!document.getElementById('printWeekReport'),
         theme: !!document.getElementById('themeToggle') && (getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim().length > 0),
         themeAuto: typeof nextThemeMode === 'function' && typeof resolveTheme === 'function' && nextThemeMode('auto') === 'light' && resolveTheme('auto', true) === 'dark' && typeof applyTheme === 'function' && typeof currentThemeMode === 'function',
