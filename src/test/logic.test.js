@@ -825,6 +825,19 @@ test('daysUntil : jours entre deux dates, négatif si passé', () => {
   assert.equal(L.daysUntil('pas-une-date', '2026-07-10'), null);
 });
 
+test('studyStats : total / faites / à venir des révisions', () => {
+  const agenda = [
+    { kind: 'study', date: '2026-07-05', completed: true },
+    { kind: 'study', date: '2026-07-12', completed: false },  // à venir
+    { kind: 'study', date: '2026-07-08', completed: false },  // passée non faite → pas "à venir"
+    { kind: 'sport', date: '2026-07-12', completed: false },  // pas une révision
+  ];
+  const s = L.studyStats(agenda, '2026-07-10');
+  assert.equal(s.total, 3); assert.equal(s.done, 1); assert.equal(s.upcoming, 1);
+  assert.deepEqual(L.studyStats([], '2026-07-10'), { total: 0, done: 0, upcoming: 0 });
+  assert.deepEqual(L.studyStats('x', '2026-07-10'), { total: 0, done: 0, upcoming: 0 });
+});
+
 test('examCountdown : J-XX vers la date d’examen', () => {
   const c = L.examCountdown({ title: 'BTS CG', date: '2026-07-20' }, '2026-07-10');
   assert.equal(c.daysLeft, 10); assert.equal(c.weeksLeft, 1); assert.equal(c.past, false); assert.equal(c.title, 'BTS CG');
