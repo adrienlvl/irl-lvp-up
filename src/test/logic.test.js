@@ -1205,6 +1205,19 @@ test('zoneTopExercises : les plus ciblés d’abord', () => {
   assert.equal(top.length, 3);
   assert.ok(top.every(n => L.goalRank(n, 'abs') === 0), 'zone principale en tête');
 });
+test('weeklyZoneCoverage : compte des exercices par zone sur 7 jours', () => {
+  const w = [
+    { date: '2026-07-08', exercises: [{ name: 'Gainage planche' }, { name: 'Tractions' }] }, // abs ; back+arms
+    { date: '2026-07-06', exercise: 'Gainage latéral' }, // abs (top-level)
+    { date: '2026-06-01', exercises: [{ name: 'Gainage planche' }] }, // hors fenêtre
+  ];
+  const cov = L.weeklyZoneCoverage(w, '2026-07-10');
+  assert.equal(cov.abs, 2, 'planche + latéral');
+  assert.equal(cov.back, 1); assert.equal(cov.arms, 1);
+  assert.equal(cov.legs, undefined, 'aucune jambe cette semaine');
+  assert.deepEqual(L.weeklyZoneCoverage([], '2026-07-10'), {});
+  assert.deepEqual(L.weeklyZoneCoverage(w, 'pas-une-date'), {});
+});
 test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', () => {
   const p = L.buildZonePlan('abs', 8, 3);
   assert.equal(p.zone, 'abs');
