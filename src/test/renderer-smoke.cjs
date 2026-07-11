@@ -77,6 +77,7 @@ app.whenReady().then(async () => {
         heatmap: typeof trainingHeatmap === 'function' && !!document.getElementById('trainingHeatmap') && trainingHeatmap([], '2026-07-10', 8).length === 56 && trainingHeatmap([{ date: '2026-07-08' }], '2026-07-10', 1)[2].count === 1,
         acwr: typeof acuteChronicRatio === 'function' && (r => r && r.ratio === 1 && r.zone === 'optimal')(acuteChronicRatio([{ date: '2026-07-08', duration: 60, effort: 2 }, { date: '2026-06-30', duration: 60, effort: 2 }, { date: '2026-06-23', duration: 60, effort: 2 }, { date: '2026-06-17', duration: 60, effort: 2 }], '2026-07-10')),
         focusStreak: typeof dailyStreak === 'function' && dailyStreak(['2026-07-10', '2026-07-09', '2026-07-08'], '2026-07-10') === 3,
+        focusHeatmap: !!document.getElementById('focusHeatmap') && document.querySelectorAll('#focusHeatmap .hm-cell').length === 56,
         supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
         nutritionPlus: typeof supplementTiming === 'function' && typeof searchFoods === 'function' && !!document.getElementById('foodResults') && (document.querySelectorAll('#suppTimingGrid .supp-phase').length >= 3),
         foodLogProt: typeof bumpProtein === 'function' && typeof searchFoods === 'function' && searchFoods('', 12).some(x => x.p > 0),
