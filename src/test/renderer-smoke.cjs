@@ -157,6 +157,7 @@ app.whenReady().then(async () => {
         warmup: typeof warmupFor === 'function' && !!document.getElementById('guidedWarmupList'),
         cooldown: typeof cooldownFor === 'function' && !!document.getElementById('guidedCooldownList') && !!document.getElementById('guidedCooldown'),
         restSound: typeof guidedRestCue === 'function' && typeof restSoundEnabled === 'function' && !!document.getElementById('restSoundToggle'),
+        restAdjust: typeof restBarPct === 'function' && typeof adjustRestSeconds === 'function' && typeof adjustGuidedRest === 'function' && !!document.getElementById('guidedRestMinus') && !!document.getElementById('guidedRestPlus') && !!document.getElementById('guidedRestBar') && restBarPct(30, 60) === 50 && adjustRestSeconds(75, -15) === 60 && adjustRestSeconds(595, 30) === 600,
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         achievements: typeof computeAchievements === 'function' && computeAchievements({ quests: [{ done: true }] }).total === 14 && document.querySelectorAll('#achievementList .achievement').length >= 10,
         lifetime: typeof lifetimeStats === 'function' && !!document.getElementById('lifetimeStats') && lifetimeStats({ workouts: [{ type: 'run', duration: 60, distance: 10 }] }).runKm === 10,

@@ -1587,6 +1587,21 @@ test('sessionMinutes : somme des durées, valeurs invalides ignorées', () => {
   assert.equal(L.sessionMinutes('nope'), 0);
 });
 
+test('restBarPct : temps restant en % du total, borné', () => {
+  assert.equal(L.restBarPct(75, 75), 100);
+  assert.equal(L.restBarPct(30, 60), 50);
+  assert.equal(L.restBarPct(0, 60), 0);
+  assert.equal(L.restBarPct(90, 60), 100, 'borné à 100');
+  assert.equal(L.restBarPct(30, 0), 0, 'total nul → 0');
+  assert.equal(L.restBarPct(-5, 60), 0);
+});
+test('adjustRestSeconds : ±delta borné [0, 600]', () => {
+  assert.equal(L.adjustRestSeconds(75, 15), 90);
+  assert.equal(L.adjustRestSeconds(75, -15), 60);
+  assert.equal(L.adjustRestSeconds(10, -30), 0, 'plancher 0');
+  assert.equal(L.adjustRestSeconds(595, 30), 600, 'plafond 600');
+  assert.equal(L.adjustRestSeconds('x', 15), 15);
+});
 test('estimate1RM : formule d’Epley, arrondi 0,5, garde-fous', () => {
   assert.equal(L.estimate1RM(100, 1), 100, '1 rep → charge');
   assert.equal(L.estimate1RM(100, 10), 133.5, '100×(1+10/30)=133.33 → 133.5');
