@@ -186,8 +186,10 @@ function download(name, type, content) { const a=document.createElement('a'); a.
 /* Rendu léger du cœur du dashboard (XP/niveau, stats, quêtes, trophées, défi,
    boussole, mission control, Ma journée). Utilisé par les actions fréquentes
    à la place du render() complet — voir Vague 3.3. */
+let lastKnownXp=null;
 function renderDashboardCore() {
   resetDailyContent(); updateStreak(); save(); const level = levelFromXp(state.xp), within = xpWithinLevel(state.xp);
+  if(lastKnownXp!=null){const up=leveledUp(lastKnownXp,state.xp);if(up)flashToast(`🆙 Niveau ${up} ! ${titles[Math.min(up-1,titles.length-1)]}`,3600);}lastKnownXp=state.xp;
   $('#levelLabel').textContent = `NIVEAU ${level}`; $('#xpLabel').textContent = `${within} / 100 XP`; $('#xpBar').style.width = `${within}%`; $('#playerTitle').textContent = titles[Math.min(level - 1, titles.length - 1)]; $('#streakCount').textContent = state.streak;
   $('#healthValue').textContent = state.health; $('#focusValue').textContent = state.focus; $('#lifeValue').textContent = state.life; $('#dailyMessage').textContent = `Jour ${state.streak || 1} de ton aventure. Choisis ta prochaine petite victoire.`;
   $('#questList').innerHTML = state.quests.map(q => `<div class="quest ${q.done ? 'completed' : ''}"><input type="checkbox" data-id="${q.id}" ${q.done ? 'checked' : ''} aria-label="Valider ${q.name}"><span class="quest-name">${escapeHtml(q.name)}</span><span class="tag">${categoryLabel[q.category]}</span><span class="xp-reward">+${q.xp} XP</span><button class="delete-quest" data-delete="${q.id}" aria-label="Supprimer">×</button></div>`).join('');

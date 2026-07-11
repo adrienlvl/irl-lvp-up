@@ -10,6 +10,14 @@ test('levelFromXp : 100 XP par niveau', () => {
   assert.equal(L.levelFromXp(undefined), 1);
 });
 
+test('leveledUp : nouveau niveau si franchi, sinon null', () => {
+  assert.equal(L.leveledUp(90, 110), 2, '90→110 franchit le palier 100');
+  assert.equal(L.leveledUp(0, 350), 4, 'plusieurs paliers → dernier niveau');
+  assert.equal(L.leveledUp(120, 150), null, 'même niveau → null');
+  assert.equal(L.leveledUp(200, 150), null, 'baisse → null');
+  assert.equal(L.leveledUp(99, 100), 2);
+});
+
 test('xpWithinLevel : reste 0..99', () => {
   assert.equal(L.xpWithinLevel(0), 0);
   assert.equal(L.xpWithinLevel(100), 0);

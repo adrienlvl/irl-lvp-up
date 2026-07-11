@@ -126,6 +126,7 @@ app.whenReady().then(async () => {
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         achievements: typeof computeAchievements === 'function' && computeAchievements({ quests: [{ done: true }] }).total === 14 && document.querySelectorAll('#achievementList .achievement').length >= 10,
         lifetime: typeof lifetimeStats === 'function' && !!document.getElementById('lifetimeStats') && lifetimeStats({ workouts: [{ type: 'run', duration: 60, distance: 10 }] }).runKm === 10,
+        levelUp: typeof leveledUp === 'function' && leveledUp(90, 110) === 2 && leveledUp(120, 150) === null,
         quests: document.querySelectorAll('#questList .quest').length,
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''
