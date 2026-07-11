@@ -1489,6 +1489,18 @@ test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () 
   assert.equal(L.sleepDebtHours('x', 7.5, '2026-07-06', '2026-07-10').nights, 0);
 });
 
+test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {
+  const nut = [
+    { date: '2026-07-06', water: 8 },  // ok
+    { date: '2026-07-07', water: 5 },  // sous cible
+    { date: '2026-07-08', water: 4 }, { date: '2026-07-08', water: 9 }, // max 9 → ok
+    { date: '2026-06-01', water: 10 }, // hors fenêtre
+  ];
+  assert.equal(L.daysHittingTarget(nut, 'water', 8, '2026-07-06', '2026-07-10'), 2, '06 et 08');
+  assert.equal(L.daysHittingTarget(nut, 'water', 0, '2026-07-06', '2026-07-10'), 0);
+  assert.equal(L.daysHittingTarget([], 'water', 8, '2026-07-06', '2026-07-10'), 0);
+});
+
 test('proteinDaysOnTarget : jours ≥ cible dans la fenêtre, agrégé par date', () => {
   const nut = [
     { date: '2026-07-06', protein: 160 }, // ok
