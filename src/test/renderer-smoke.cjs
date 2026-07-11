@@ -66,6 +66,7 @@ app.whenReady().then(async () => {
         focusStreak: typeof dailyStreak === 'function' && dailyStreak(['2026-07-10', '2026-07-09', '2026-07-08'], '2026-07-10') === 3,
         supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
         nutritionPlus: typeof supplementTiming === 'function' && typeof searchFoods === 'function' && !!document.getElementById('foodResults') && (document.querySelectorAll('#suppTimingGrid .supp-phase').length >= 3),
+        foodLogProt: typeof bumpProtein === 'function' && typeof searchFoods === 'function' && searchFoods('', 12).some(x => x.p > 0),
         hydration: typeof waterStatus === 'function' && !!document.getElementById('waterPlus') && !!document.getElementById('waterMinus') && !!document.getElementById('hydraFill') && !!document.getElementById('proteinFill') && typeof proteinTarget === 'function',
         proteinQuick: !!document.getElementById('proteinPlus20') && !!document.getElementById('proteinPlus30') && !!document.getElementById('proteinMinus'),
         waterGoalAdaptive: typeof waterGoalFor === 'function' && waterGoalFor(8, true) === 10 && waterGoalFor(8, false) === 8,

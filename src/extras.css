@@ -50,9 +50,10 @@
 @media(max-width:700px){.supp-timing-grid{grid-template-columns:1fr}.food-row{grid-template-columns:1.4fr repeat(4,1fr);font-size:.72rem}}
 
 /* Cuisine du jour : frigo + envie + repas (Nutrition) */
-.food-row{grid-template-columns:1.5fr repeat(4,.6fr) auto}
+.food-row{grid-template-columns:1.5fr repeat(4,.6fr) auto auto}
 .food-add{background:var(--accent);color:var(--accent-ink);border:0;border-radius:7px;width:26px;height:26px;font-size:1rem;line-height:1;cursor:pointer;font-weight:800}
 .food-add:hover{filter:brightness(1.08)}
+.food-prot{background:rgba(167,139,250,.16);color:#a78bfa;border:1px solid rgba(167,139,250,.4);border-radius:7px;height:26px;padding:0 8px;font-size:.72rem;font-weight:800;line-height:1;cursor:pointer;white-space:nowrap}.food-prot:hover{filter:brightness(1.1)}
 .kitchen-panel{margin-top:16px}
 .kitchen-block{margin:14px 0}
 .kitchen-block>b{display:block;font-size:.82rem;margin-bottom:8px}
