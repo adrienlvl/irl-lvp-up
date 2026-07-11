@@ -1379,6 +1379,18 @@ test('equipmentOptions : matériels distincts, comptés et triés par fréquence
   assert.deepEqual(L.equipmentOptions([]), []);
   assert.deepEqual(L.equipmentOptions('nope'), []);
 });
+test('toggleFavorite : ajoute/retire un nom, sans muter, ignore vides', () => {
+  const a = L.toggleFavorite([], 'Squat');
+  assert.deepEqual(a, ['Squat'], 'ajout');
+  const b = L.toggleFavorite(a, 'Tractions');
+  assert.deepEqual(b, ['Squat', 'Tractions']);
+  const c = L.toggleFavorite(b, 'Squat');
+  assert.deepEqual(c, ['Tractions'], 'retrait');
+  assert.deepEqual(a, ['Squat'], 'entrée non mutée');
+  assert.deepEqual(L.toggleFavorite(['X'], '  '), ['X'], 'nom vide ignoré');
+  assert.deepEqual(L.toggleFavorite(['X', 5, ''], 'X'), [], 'nettoie les non-chaînes et retire X');
+  assert.deepEqual(L.toggleFavorite('nope', 'Squat'), ['Squat']);
+});
 test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', () => {
   const p = L.buildZonePlan('abs', 8, 3);
   assert.equal(p.zone, 'abs');
