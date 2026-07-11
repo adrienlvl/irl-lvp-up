@@ -6,15 +6,16 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.89 (2026-07-12)
+## 📍 État actuel — build 1.9.90 (2026-07-12)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **192 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→155) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **193 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→156) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.89** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.90** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚡ **Générateur de séance express** (bibliothèque) : choisis une durée (15/20/30/45 min), l'app compose un circuit qui tient dans le budget en respectant les filtres zone & matériel actifs, puis **démarre la séance guidée** en un clic (minuteur + séries inclus). ✅ _boucle #156 (build 1.9.90)._
 - ⚖️ **Équilibre poussée / tirage** (revue hebdo) : sur 4 semaines, compare les séries de poussée (pectoraux + épaules) et de tirage (dos) et alerte en cas de déséquilibre (ratio > 1,5 = trop de poussée, ajoute du dos) — évite le classique pecs ≫ dos, bon pour la posture. ✅ _boucle #155 (build 1.9.89)._
 - 📈 **Garde-fou kilométrage** (panneau Ultra-trail) : compare le volume de course de la semaine à la précédente (règle des +10 %/sem.) et alerte si hausse > 30 % (risque de blessure), avec code couleur — build (10-30 %), stable, plus légère, ou hausse rapide. ✅ _boucle #154 (build 1.9.88)._
 - 🗂️ **Filtre historique par exercice** : nouveau menu « Tous les exercices » (peuplé depuis les séances enregistrées) dans l'historique, cumulable avec le filtre discipline — pour retrouver toutes les séances où un exercice donné a été fait. ✅ _boucle #153 (build 1.9.87)._

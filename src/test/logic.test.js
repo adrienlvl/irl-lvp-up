@@ -1307,6 +1307,25 @@ test('zoneTopExercises : les plus ciblés d’abord', () => {
   assert.equal(top.length, 3);
   assert.ok(top.every(n => L.goalRank(n, 'abs') === 0), 'zone principale en tête');
 });
+test('quickSessionPlan : remplit un budget temps selon zone/matériel', () => {
+  const ex = [
+    { name: 'Gainage planche', kind: 'Poids du corps', family: 'core', sets: 3, reps: 30, unit: 'sec' },
+    { name: 'Hollow hold', kind: 'Poids du corps', family: 'core', sets: 3, reps: 20, unit: 'sec' },
+    { name: 'Goblet squat kettlebell', kind: 'Kettlebell', family: 'general', sets: 3, reps: 8 },
+  ];
+  // budget large, zone abdos → ne garde que les exos abdos (planche + hollow)
+  const abs = L.quickSessionPlan(ex, { minutes: 60, zone: 'abs', maxExercises: 8 });
+  assert.deepEqual(abs.exercises.map(x => x.name).sort(), ['Gainage planche', 'Hollow hold']);
+  assert.ok(abs.totalMinutes > 0 && abs.count === 2);
+  // filtre matériel kettlebell
+  const kb = L.quickSessionPlan(ex, { minutes: 60, equipment: 'Kettlebell' });
+  assert.deepEqual(kb.exercises.map(x => x.name), ['Goblet squat kettlebell']);
+  // budget serré → limite le nombre d'exercices
+  const tight = L.quickSessionPlan(ex, { minutes: 1, maxExercises: 8 });
+  assert.equal(tight.count, 1, 'au moins 1 même si ça dépasse le mini budget');
+  assert.deepEqual(L.quickSessionPlan([], { minutes: 20 }).exercises, []);
+  assert.deepEqual(L.quickSessionPlan(ex, { zone: 'inconnu' }).exercises, []);
+});
 test('neglectedZone : première zone prioritaire à 0', () => {
   assert.equal(L.neglectedZone({ legs: 2, back: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'abs', 'abdos non travaillés');
   assert.equal(L.neglectedZone({ abs: 1, legs: 2, arms: 1 }, ['abs', 'legs', 'arms']), null, 'tout couvert → null');
