@@ -825,6 +825,15 @@ test('daysUntil : jours entre deux dates, négatif si passé', () => {
   assert.equal(L.daysUntil('pas-une-date', '2026-07-10'), null);
 });
 
+test('examCountdown : J-XX vers la date d’examen', () => {
+  const c = L.examCountdown({ title: 'BTS CG', date: '2026-07-20' }, '2026-07-10');
+  assert.equal(c.daysLeft, 10); assert.equal(c.weeksLeft, 1); assert.equal(c.past, false); assert.equal(c.title, 'BTS CG');
+  const past = L.examCountdown({ date: '2026-07-01' }, '2026-07-10');
+  assert.equal(past.past, true); assert.equal(past.daysLeft, -9); assert.equal(past.title, 'Examen');
+  assert.equal(L.examCountdown({ date: '' }, '2026-07-10'), null, 'pas de date → null');
+  assert.equal(L.examCountdown(null, '2026-07-10'), null);
+});
+
 test('nextTrainingSession : prochaine séance à venir, tri date puis heure', () => {
   const plans = [
     { id: 1, date: '2026-07-15', time: '18:00', type: 'Musculation' },

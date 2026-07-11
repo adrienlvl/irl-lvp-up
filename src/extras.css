@@ -206,6 +206,8 @@ details.calendar-setting>summary::before{content:'▸';color:var(--muted);font-s
 details.calendar-setting[open]>summary::before{content:'▾'}
 details.calendar-setting[open]{padding-bottom:14px}
 .setting-eyebrow{color:var(--accent);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.exam-countdown{margin:8px 0 4px;font-size:.85rem;font-weight:800;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:9px 12px}
+.exam-countdown.exam-soon{border-left-color:#f59e0b;color:#f59e0b}
 /* D2 — récap anniversaires à venir (agenda) */
 .birthday-upcoming{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:2px 0 12px;padding:10px 14px;background:color-mix(in srgb,#d9a441 8%,var(--surface-2));border:1px solid #d9a441;border-radius:12px;font-size:.82rem}
 .birthday-upcoming[hidden]{display:none}

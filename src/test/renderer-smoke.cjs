@@ -60,6 +60,7 @@ app.whenReady().then(async () => {
         normalize: typeof normalizeState === 'function',
         photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
         studyPlanner: !!document.getElementById('studyPlanForm') && typeof planStudySessions === 'function' && typeof buildIcs === 'function',
+        examCountdown: typeof examCountdown === 'function' && typeof renderExamCountdown === 'function' && !!document.getElementById('examCountdown') && examCountdown({ title: 'BTS', date: '2099-01-11' }, '2099-01-01').daysLeft === 10,
         myDay: !!document.getElementById('myDayList') && typeof todayItems === 'function' && !!(document.getElementById('myDaySummary') || {}).textContent,
         charts: !!document.getElementById('chartGrid') && typeof weeklyAggregate === 'function' && typeof renderCharts === 'function',
         weekView: !!document.getElementById('weekGrid') && typeof weekItems === 'function' && typeof renderWeekPage === 'function' && !!document.getElementById('openWeekPage'),
