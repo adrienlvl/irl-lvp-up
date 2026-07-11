@@ -1366,6 +1366,19 @@ test('zoneFreshness : jours depuis le dernier travail de chaque zone + statut', 
   assert.deepEqual(L.zoneFreshness([], '2026-07-10').filter(z => z.status !== 'never'), []);
   assert.deepEqual(L.zoneFreshness(w, 'x'), []);
 });
+test('equipmentOptions : matériels distincts, comptés et triés par fréquence', () => {
+  const ex = [
+    { name: 'A', kind: 'Poids du corps' }, { name: 'B', kind: 'Poids du corps' },
+    { name: 'C', kind: 'Kettlebell' }, { name: 'D', kind: 'Gilet lesté' }, { name: 'E', kind: '' }, { name: 'F' },
+  ];
+  const opts = L.equipmentOptions(ex);
+  assert.equal(opts[0].kind, 'Poids du corps'); assert.equal(opts[0].count, 2, 'le plus fréquent en premier');
+  assert.equal(opts.length, 3, 'kinds vides/absents ignorés');
+  // fréquences égales (1) → ordre alphabétique FR : Gilet lesté avant Kettlebell
+  assert.equal(opts[1].kind, 'Gilet lesté'); assert.equal(opts[2].kind, 'Kettlebell');
+  assert.deepEqual(L.equipmentOptions([]), []);
+  assert.deepEqual(L.equipmentOptions('nope'), []);
+});
 test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', () => {
   const p = L.buildZonePlan('abs', 8, 3);
   assert.equal(p.zone, 'abs');

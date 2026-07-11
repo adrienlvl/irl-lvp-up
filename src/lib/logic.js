@@ -1323,6 +1323,18 @@ const EXERCISE_ZONES = {
   'Équilibre unipodal': ['legs'], 'Planche touches d’épaule': ['abs', 'shoulders']
 };
 function exerciseZones(name) { return EXERCISE_ZONES[name] || []; }
+// Liste des équipements (champ `kind`) présents dans la bibliothèque, avec le nombre d'exercices,
+// triée par fréquence décroissante puis alphabétique. Pur + testé.
+function equipmentOptions(exercises) {
+  const counts = {};
+  (Array.isArray(exercises) ? exercises : []).forEach(x => {
+    const k = x && typeof x.kind === 'string' ? x.kind.trim() : '';
+    if (!k) return;
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  return Object.entries(counts).map(([kind, count]) => ({ kind, count }))
+    .sort((a, b) => b.count - a.count || a.kind.localeCompare(b.kind, 'fr'));
+}
 // Nombre de séries effectuées par groupe musculaire sur les 7 derniers jours.
 // Compte les séries validées (completedSets) sinon les séries prévues (sets), par zone. Pur + testé.
 function weeklySetsPerZone(workouts, todayKey) {
@@ -1880,5 +1892,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, zoneFreshness, neglectedZone, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, readinessScore, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, loggedExerciseNames, exerciseVolumeSeries, estimate1RM, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, runPace, runKmInWindow, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, zoneFreshness, neglectedZone, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, readinessScore, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, loggedExerciseNames, exerciseVolumeSeries, estimate1RM, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, runPace, runKmInWindow, agendaMatch };
 }
