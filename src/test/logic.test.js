@@ -718,6 +718,20 @@ test('weekItems : 7 jours du lundi, items placés au bon jour', () => {
   assert.ok(days.every(d => !d.items.some(i => i.title === 'Hors semaine')));
 });
 
+test('weeklySummaryText : bilan partageable formaté', () => {
+  const txt = L.weeklySummaryText({ mondayKey: '2026-07-06', sessions: 3, minutes: 150, km: 12, focusMin: 75, studyDone: 2, studyPlanned: 4, sleepAvg: 7.2 });
+  assert.match(txt, /Bilan de la semaine du 06\/07\/2026/);
+  assert.match(txt, /3 séances · 150 min · 12 km/);
+  assert.match(txt, /75 min de focus/);
+  assert.match(txt, /2\/4 révisions/);
+  assert.match(txt, /7\.2 h de sommeil/);
+  // champs absents non affichés
+  const min = L.weeklySummaryText({ sessions: 1, minutes: 30 });
+  assert.ok(!/focus|révisions|sommeil/.test(min));
+  assert.match(min, /1 séance · 30 min/);
+  assert.equal(typeof L.weeklySummaryText(null), 'string');
+});
+
 test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions', () => {
   const state = {
     workouts: [
