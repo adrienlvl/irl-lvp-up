@@ -67,6 +67,7 @@ app.whenReady().then(async () => {
         nutritionPlus: typeof supplementTiming === 'function' && typeof searchFoods === 'function' && !!document.getElementById('foodResults') && (document.querySelectorAll('#suppTimingGrid .supp-phase').length >= 3),
         hydration: typeof waterStatus === 'function' && !!document.getElementById('waterPlus') && !!document.getElementById('waterMinus') && !!document.getElementById('hydraFill') && !!document.getElementById('proteinFill') && typeof proteinTarget === 'function',
         proteinQuick: !!document.getElementById('proteinPlus20') && !!document.getElementById('proteinPlus30') && !!document.getElementById('proteinMinus'),
+        waterGoalAdaptive: typeof waterGoalFor === 'function' && waterGoalFor(8, true) === 10 && waterGoalFor(8, false) === 8,
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
         progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         weightTrend: typeof weightTrend === 'function' && !!document.getElementById('weightTrend') && (t => t && t.ratePerWeek === -0.5 && t.weeksToTarget === 4)(weightTrend([{ date: '2026-06-26', value: 82 }, { date: '2026-07-10', value: 81 }], 79)),

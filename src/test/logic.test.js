@@ -1304,6 +1304,15 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
 
+test('waterGoalFor : +2 verres les jours de séance, borné [1..20]', () => {
+  assert.equal(L.waterGoalFor(8, false), 8);
+  assert.equal(L.waterGoalFor(8, true), 10);
+  assert.equal(L.waterGoalFor(undefined, false), 8, 'défaut 8');
+  assert.equal(L.waterGoalFor(19, true), 20, 'plafonné à 20');
+  assert.equal(L.waterGoalFor(0, false), 8, 'base 0/invalide → repli défaut 8');
+  assert.equal(L.waterGoalFor(25, false), 20, 'base excessive plafonnée à 20');
+});
+
 test('waterStatus : verres, litres, %, objectif', () => {
   const s = L.waterStatus({ '2026-07-10': 4 }, '2026-07-10', 8);
   assert.equal(s.count, 4); assert.equal(s.goal, 8); assert.equal(s.liters, 1); assert.equal(s.pct, 50); assert.equal(s.done, false);
