@@ -97,6 +97,7 @@ app.whenReady().then(async () => {
         exportTsv: typeof workoutsTable === 'function' && !!document.getElementById('exportHistoryTsv') && workoutsTable([{ date: '2026-07-08', type: 'run', duration: 30 }]).split(String.fromCharCode(10)).length === 2,
         progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         oneRepMax: typeof estimate1RM === 'function' && estimate1RM(100, 10) === 133.5 && estimate1RM(100, 1) === 100 && estimate1RM(0, 5) === null,
+        progression: typeof progressionSuggestion === 'function' && typeof progressionText === 'function' && (() => { const s = progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'DC', load: 40, reps: 12 }] }], 'DC', { minReps: 8, maxReps: 12, increment: 2.5 }); return s && s.action === 'weight' && s.nextLoad === 42.5 && s.nextReps === 8 && /42,5 kg/.test(progressionText(s)) && progressionSuggestion([], 'X') === null; })(),
         pace: typeof runPace === 'function' && runPace(10, 50).label === '5:00' && runPace(0, 30) === null,
         sessionTime: typeof sessionMinutes === 'function' && sessionMinutes([8, 10, 12]) === 30 && !!document.getElementById('guidedSessionTime'),
         runVolumeWow: typeof runKmInWindow === 'function' && runKmInWindow([{ type: 'run', date: '2026-07-06', distance: 10 }, { type: 'run', date: '2026-07-09', distance: 5.5 }], '2026-07-06', '2026-07-12') === 15.5,

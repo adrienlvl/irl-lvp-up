@@ -1523,6 +1523,31 @@ test('exerciseVolumeSeries : volume par séance, N dernières, agrégé par jour
   assert.deepEqual(L.exerciseVolumeSeries(entries, 'Inconnu', 8), []);
   assert.deepEqual(L.exerciseVolumeSeries('nope', 'Tractions', 8), []);
 });
+test('progressionSuggestion : double progression (+reps puis +charge)', () => {
+  const w = [
+    { date: '2026-06-01', exercises: [{ name: 'Développé couché', load: 40, reps: 8 }] },
+    { date: '2026-06-08', exercises: [{ name: 'Développé couché', load: 40, reps: 12 }] }, // dernière : au plafond
+  ];
+  const s = L.progressionSuggestion(w, 'Développé couché', { minReps: 8, maxReps: 12, increment: 2.5 });
+  assert.equal(s.action, 'weight', '12 reps atteintes → on monte la charge');
+  assert.equal(s.nextLoad, 42.5); assert.equal(s.nextReps, 8);
+  assert.equal(s.lastLoad, 40); assert.equal(s.lastReps, 12);
+  // sous le plafond → +1 rep, même charge
+  const s2 = L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Curl', load: 12, reps: 9 }] }], 'Curl', { minReps: 8, maxReps: 12 });
+  assert.equal(s2.action, 'reps'); assert.equal(s2.nextLoad, 12); assert.equal(s2.nextReps, 10);
+  // setLogs : meilleure série retenue (charge la plus lourde)
+  const s3 = L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Squat', setLogs: [{ load: 50, reps: 5 }, { load: 60, reps: 12 }] }] }], 'Squat', { minReps: 8, maxReps: 12, increment: 5 });
+  assert.equal(s3.lastLoad, 60); assert.equal(s3.action, 'weight'); assert.equal(s3.nextLoad, 65);
+  // pas de charge → null ; nom absent → null
+  assert.equal(L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Gainage', reps: 60 }] }], 'Gainage'), null);
+  assert.equal(L.progressionSuggestion(w, 'Inconnu'), null);
+  assert.equal(L.progressionSuggestion([], 'X'), null);
+});
+test('progressionText : phrases FR selon l’action', () => {
+  assert.match(L.progressionText({ action: 'weight', lastReps: 12, lastLoad: 40, nextLoad: 42.5, nextReps: 8, increment: 2.5, maxReps: 12 }), /42,5 kg/);
+  assert.match(L.progressionText({ action: 'reps', lastReps: 9, lastLoad: 12, nextLoad: 12, nextReps: 10, increment: 2.5, maxReps: 12 }), /vise 10 reps/);
+  assert.equal(L.progressionText(null), '');
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
