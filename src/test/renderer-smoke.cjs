@@ -102,6 +102,7 @@ app.whenReady().then(async () => {
         ux2pass2: document.querySelectorAll('details.calendar-setting').length >= 3 && !document.querySelector('.trail-plan') && !!document.querySelector('.training-grid > article.panel .collapse-toggle'),
         ux3: typeof upcomingBirthdays === 'function' && !!document.getElementById('birthdayUpcoming') && !!document.querySelector('.training-grid > .trail-panel'),
         recurring: typeof recurrenceMatches === 'function' && typeof normalizeRecurring === 'function' && !!document.getElementById('recurringForm') && !!document.getElementById('recFreq') && !!document.getElementById('recurringList'),
+        recSkip: typeof recurringOccurs === 'function' && typeof skipRecurringOn === 'function' && recurringOccurs({ id: 1, rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' }, skipLog: ['2026-07-13'] }, '2026-07-13') === false,
         habits: typeof habitsForDay === 'function' && typeof habitStreak === 'function' && !!document.getElementById('habitForm') && !!document.getElementById('habitList') && document.querySelectorAll('#habitDays input').length === 7,
         habitWeek: typeof habitWeekMap === 'function' && (m => m.length === 7 && m[6].key === '2026-07-10' && m[6].done === true)(habitWeekMap({ id: 1, weekdays: [], log: ['2026-07-10'] }, '2026-07-10')),
         recDone: typeof completeRecurringOn === 'function' && (L => { const r = normalizeRecurring({ id: 1, doneLog: ['2026-07-07'] }); return r.doneLog.length === 1; })(),

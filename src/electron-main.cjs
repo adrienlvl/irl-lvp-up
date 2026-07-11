@@ -4,7 +4,7 @@ let autoUpdater; try { ({ autoUpdater } = require('electron-updater')); } catch 
 /* Logique partagée avec le renderer (récurrence testée dans lib/logic.js). */
 const L = require(path.join(__dirname, 'lib', 'logic.js'));
 /* Occurrences récurrentes du jour, depuis la copie locale de l'état. */
-function recurringToday(s, date) { return (Array.isArray(s.recurring) ? s.recurring : []).map(L.normalizeRecurring).filter(r => !r.paused && L.recurrenceMatches(r.rule, date)); }
+function recurringToday(s, date) { return (Array.isArray(s.recurring) ? s.recurring : []).map(L.normalizeRecurring).filter(r => L.recurringOccurs(r, date)); }
 const settingsFile = () => path.join(app.getPath('userData'), 'notifications.json');
 const stateBackupFile = () => path.join(app.getPath('userData'), 'irl-lvp-up-local-backup.json');
 const stateBackupHistoryDir = () => path.join(app.getPath('userData'), 'irl-lvp-up-backups');

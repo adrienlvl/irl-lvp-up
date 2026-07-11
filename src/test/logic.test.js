@@ -567,6 +567,20 @@ test('normalizeRecurring : doneLog filtré (dates valides uniquement)', () => {
   assert.deepEqual(L.normalizeRecurring({ id: 2 }).doneLog, []);
 });
 
+test('recurringOccurs : occurrence sauf si pause / jour sauté', () => {
+  // hebdo tous les lundis à partir du 06/07/2026 (un lundi)
+  const rec = { id: 1, title: 'Muscu', rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } };
+  assert.equal(L.recurringOccurs(rec, '2026-07-06'), true, 'lundi → occurrence');
+  assert.equal(L.recurringOccurs(rec, '2026-07-07'), false, 'mardi → pas d’occurrence');
+  // jour sauté
+  assert.equal(L.recurringOccurs({ ...rec, skipLog: ['2026-07-13'] }, '2026-07-13'), false, 'lundi sauté');
+  assert.equal(L.recurringOccurs({ ...rec, skipLog: ['2026-07-13'] }, '2026-07-20'), true, 'lundi suivant OK');
+  // en pause
+  assert.equal(L.recurringOccurs({ ...rec, paused: true }, '2026-07-06'), false);
+  // skipLog normalisé (dates invalides filtrées)
+  assert.deepEqual(L.normalizeRecurring({ id: 2, skipLog: ['2026-07-13', 'x', 5] }).skipLog, ['2026-07-13']);
+});
+
 test('normalizeHabit : défauts, xp borné, weekdays/log filtrés', () => {
   const h = L.normalizeHabit({ id: 1, name: 'Lecture', xp: 999, weekdays: [1, 3, 9], log: ['2026-07-06', 'oops'] });
   assert.equal(h.name, 'Lecture');
