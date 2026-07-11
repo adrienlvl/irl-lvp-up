@@ -332,6 +332,15 @@ test('departureInfo : heure de départ = heure − trajet, temps restant selon l
   assert.equal(L.departureInfo({ time: '09:00', travelMin: 0 }), null);
 });
 
+test('reminderAnchorMinutes : ancre = départ si trajet, sinon heure de l’événement', () => {
+  assert.equal(L.reminderAnchorMinutes({ time: '09:00', travelMin: 25 }), 8 * 60 + 35, 'trajet → 08:35');
+  assert.equal(L.reminderAnchorMinutes({ time: '18:30' }), 18 * 60 + 30, 'sans trajet → 18:30');
+  assert.equal(L.reminderAnchorMinutes({ time: '18:30', travelMin: 0 }), 18 * 60 + 30);
+  assert.equal(L.reminderAnchorMinutes({ time: '00:10', travelMin: 30 }), 0, 'borné au même jour (pas de veille)');
+  assert.equal(L.reminderAnchorMinutes({ time: 'pas-une-heure' }), null);
+  assert.equal(L.reminderAnchorMinutes(null), null);
+});
+
 test('normalizeTodo : défauts, texte borné, priorité validée', () => {
   const t = L.normalizeTodo({ id: 5, text: 'Appeler le garage', date: '2026-07-07', priority: 'high' });
   assert.equal(t.text, 'Appeler le garage');
