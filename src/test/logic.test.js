@@ -1621,6 +1621,24 @@ test('trailReadiness : km 7j/28j, sorties et plus longue sortie', () => {
   assert.equal(L.trailReadiness([{ type: 'strength', date: '2026-07-09' }], '2026-07-10'), null, 'aucun run → null');
   assert.equal(L.trailReadiness(w, 'x'), null);
 });
+test('weeklyKmRamp : progression du kilométrage semaine sur semaine', () => {
+  const w = [
+    { type: 'run', date: '2026-07-08', distance: 12 }, // 2 j → cette semaine
+    { type: 'run', date: '2026-07-06', distance: 13 }, // 4 j → cette semaine (total 25)
+    { type: 'run', date: '2026-07-01', distance: 20 }, // 9 j → semaine précédente
+    { type: 'strength', date: '2026-07-05', distance: 0 }, // ignoré
+  ];
+  const rm = L.weeklyKmRamp(w, '2026-07-10');
+  assert.equal(rm.thisWeekKm, 25); assert.equal(rm.lastWeekKm, 20);
+  assert.equal(rm.rampPct, 25, '(25-20)/20'); assert.equal(rm.zone, 'build');
+  // hausse rapide
+  assert.equal(L.weeklyKmRamp([{ type: 'run', date: '2026-07-09', distance: 30 }, { type: 'run', date: '2026-07-01', distance: 10 }], '2026-07-10').zone, 'high');
+  // pas de semaine précédente → start
+  const start = L.weeklyKmRamp([{ type: 'run', date: '2026-07-09', distance: 8 }], '2026-07-10');
+  assert.equal(start.zone, 'start'); assert.equal(start.rampPct, null);
+  assert.equal(L.weeklyKmRamp([], '2026-07-10'), null);
+  assert.equal(L.weeklyKmRamp(w, 'x'), null);
+});
 
 test('runPace : allure min:sec par km', () => {
   assert.equal(L.runPace(10, 50).label, '5:00', '10 km en 50 min → 5:00/km');
