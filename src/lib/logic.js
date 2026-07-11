@@ -1577,6 +1577,52 @@ function strengthRecords(workouts) {
   return Object.values(best).sort((a, b) => b.e1rm - a.e1rm || a.name.localeCompare(b.name, 'fr'));
 }
 
+// Métabolisme de base (kcal/j) — formule de Mifflin-St Jeor. sex : 'femme' sinon homme.
+// Null si entrées invalides. Pur + testé.
+function basalMetabolicRate(weightKg, heightCm, age, sex) {
+  const w = Number(weightKg), h = Number(heightCm), a = Number(age);
+  if (!(w > 0) || !(h > 0) || !(a > 0)) return null;
+  const base = 10 * w + 6.25 * h - 5 * a;
+  return Math.round(sex === 'femme' ? base - 161 : base + 5);
+}
+// Facteur d'activité selon le nombre de séances/semaine. Pur + testé.
+function activityFactor(sessionsPerWeek) {
+  const s = Number(sessionsPerWeek) || 0;
+  if (s <= 0) return 1.2; if (s <= 2) return 1.375; if (s <= 4) return 1.55; if (s <= 6) return 1.725; return 1.9;
+}
+// Plan énergétique complet pour atteindre une cible de poids : métabolisme, dépense (TDEE),
+// calories & macros cibles, rythme sûr, nombre de semaines et date d'atteinte estimée.
+// opts : { weight, height, age, sex, sessionsPerWeek, targetWeight, todayKey }. Null si données manquantes.
+// Rythme borné (~0,6 %/sem en perte, 0,25 kg/sem en prise), calories jamais sous le métabolisme de base. Pur + testé.
+function energyPlan(opts) {
+  const o = opts || {};
+  const weight = Number(o.weight), target = Number(o.targetWeight);
+  const bmr = basalMetabolicRate(weight, o.height, o.age, o.sex);
+  if (bmr == null || !(target > 0)) return null;
+  const tdee = Math.round(bmr * activityFactor(o.sessionsPerWeek));
+  const diff = Math.round((weight - target) * 10) / 10; // + = perdre, - = prendre
+  const goal = Math.abs(diff) < 0.3 ? 'maintien' : diff > 0 ? 'perte' : 'prise';
+  let ratePerWeek = 0, deficit = 0, dailyTarget = tdee;
+  if (goal === 'perte') {
+    const desired = Math.min(0.9, Math.max(0.25, Math.round(weight * 0.006 * 100) / 100));
+    deficit = Math.round(desired * 7700 / 7);
+    dailyTarget = Math.max(bmr, tdee - deficit);
+    const eff = tdee - dailyTarget;
+    ratePerWeek = Math.round(eff * 7 / 7700 * 100) / 100; deficit = eff;
+  } else if (goal === 'prise') {
+    ratePerWeek = 0.25; const surplus = Math.round(ratePerWeek * 7700 / 7);
+    dailyTarget = tdee + surplus; deficit = -surplus;
+  }
+  const weeks = goal === 'maintien' ? 0 : Math.max(1, Math.ceil(Math.abs(diff) / (ratePerWeek || 0.25)));
+  const proteinG = Math.round(weight * (goal === 'perte' ? 2 : 1.8));
+  const fatG = Math.round(weight * 0.9);
+  const carbG = Math.max(0, Math.round((dailyTarget - (proteinG * 4 + fatG * 9)) / 4));
+  let targetDate = null;
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(o.todayKey || ''));
+  if (t && weeks > 0) { const d = new Date(+t[1], +t[2] - 1, +t[3]); d.setDate(d.getDate() + weeks * 7); const p = n => String(n).padStart(2, '0'); targetDate = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
+  return { bmr, tdee, goal, diff: Math.abs(diff), ratePerWeek, deficit, dailyTarget, proteinG, fatG, carbG, weeks, targetDate };
+}
+
 // Tendance de poids : rythme récent (kg/sem) sur les 6 dernières mesures, direction,
 // et estimation de semaines pour atteindre la cible si on va dans le bon sens. Pur + testé.
 // weights : [{date:'YYYY-MM-DD', value}]. Retourne null si < 2 mesures exploitables.
@@ -2116,5 +2162,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, energyPlan, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }

@@ -1785,6 +1785,36 @@ test('progressionText : phrases FR selon l’action', () => {
   assert.match(L.progressionText({ action: 'reps', lastReps: 9, lastLoad: 12, nextLoad: 12, nextReps: 10, increment: 2.5, maxReps: 12 }), /vise 10 reps/);
   assert.equal(L.progressionText(null), '');
 });
+test('basalMetabolicRate : Mifflin-St Jeor homme/femme + garde-fous', () => {
+  assert.equal(L.basalMetabolicRate(80, 180, 30, 'homme'), 1780, '10·80+6.25·180−5·30+5');
+  assert.equal(L.basalMetabolicRate(80, 180, 30, 'femme'), 1614, 'variante femme (−161)');
+  assert.equal(L.basalMetabolicRate(0, 180, 30, 'homme'), null);
+  assert.equal(L.basalMetabolicRate(80, 180, 0, 'homme'), null);
+});
+test('activityFactor : palier selon séances/semaine', () => {
+  assert.equal(L.activityFactor(0), 1.2);
+  assert.equal(L.activityFactor(2), 1.375);
+  assert.equal(L.activityFactor(4), 1.55);
+  assert.equal(L.activityFactor(6), 1.725);
+  assert.equal(L.activityFactor(7), 1.9);
+});
+test('energyPlan : calories, macros, rythme et date d’atteinte (perte)', () => {
+  const p = L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', sessionsPerWeek: 4, targetWeight: 72, todayKey: '2026-07-12' });
+  assert.equal(p.bmr, 1780); assert.equal(p.tdee, 2759, '1780×1.55');
+  assert.equal(p.goal, 'perte'); assert.equal(p.diff, 8);
+  assert.equal(p.ratePerWeek, 0.48, '~0,6 %/sem borné'); assert.equal(p.deficit, 528);
+  assert.equal(p.dailyTarget, 2231, 'TDEE − déficit, ≥ métabolisme de base');
+  assert.equal(p.proteinG, 160, '2 g/kg en perte'); assert.equal(p.fatG, 72);
+  assert.equal(p.carbG, 236, '(2231 − 640 − 648)/4');
+  assert.equal(p.weeks, 17, 'ceil(8 / 0,48)');
+  assert.equal(p.targetDate, '2026-11-08', '12/07 + 17 semaines');
+  // prise de masse : surplus + rythme 0,25
+  const gain = L.energyPlan({ weight: 70, height: 175, age: 25, sex: 'homme', sessionsPerWeek: 4, targetWeight: 74, todayKey: '2026-07-12' });
+  assert.equal(gain.goal, 'prise'); assert.equal(gain.ratePerWeek, 0.25); assert.ok(gain.dailyTarget > gain.tdee);
+  // maintien
+  assert.equal(L.energyPlan({ weight: 75, height: 175, age: 25, sex: 'homme', sessionsPerWeek: 3, targetWeight: 75, todayKey: '2026-07-12' }).goal, 'maintien');
+  assert.equal(L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', targetWeight: 0 }), null, 'sans cible → null');
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
