@@ -1304,6 +1304,19 @@ test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercise
   assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
   assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
 });
+test('runKmInWindow : cumule les km de course dans la fenêtre', () => {
+  const w = [
+    { type: 'run', date: '2026-07-06', distance: 10 },
+    { type: 'run', date: '2026-07-09', distance: 5.5 },
+    { type: 'strength', date: '2026-07-08', distance: 0 }, // pas un run
+    { type: 'run', date: '2026-06-25', distance: 20 },      // hors fenêtre
+  ];
+  assert.equal(L.runKmInWindow(w, '2026-07-06', '2026-07-12'), 15.5);
+  assert.equal(L.runKmInWindow(w, '2026-06-22', '2026-06-28'), 20, 'semaine précédente');
+  assert.equal(L.runKmInWindow([], '2026-07-06', '2026-07-12'), 0);
+  assert.equal(L.runKmInWindow('x', '2026-07-06', '2026-07-12'), 0);
+});
+
 test('runPace : allure min:sec par km', () => {
   assert.equal(L.runPace(10, 50).label, '5:00', '10 km en 50 min → 5:00/km');
   assert.equal(L.runPace(10, 50).secPerKm, 300);
