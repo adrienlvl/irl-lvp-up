@@ -205,6 +205,9 @@ function render() {
 }
 $('#questList').addEventListener('change', e => { if (!e.target.matches('[data-id]')) return; const q = state.quests.find(x=>x.id === Number(e.target.dataset.id)); q.done = e.target.checked; if(q.done) award(q.xp, q.category); else { state.xp = Math.max(0,state.xp-q.xp); state[q.category] = Math.max(0,state[q.category]-1); save(); renderDashboardCore(); } });
 $('#questList').addEventListener('click', e => { const id = Number(e.target.dataset.delete); if(id) { state.quests = state.quests.filter(q=>q.id!==id); save(); renderDashboardCore(); } });
+// Robustesse UX : fermer un dialogue en cliquant sur le fond (backdrop), en plus d'Échap / ✕.
+function bindDialogBackdropClose(){document.querySelectorAll('dialog').forEach(d=>{if(d.dataset.bdBound)return;d.dataset.bdBound='1';d.addEventListener('click',e=>{if(e.target!==d)return;const r=d.getBoundingClientRect();const inside=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;if(!inside)d.close();});});}
+bindDialogBackdropClose();
 $('#addQuestButton').onclick = () => $('#questDialog').showModal(); $('#closeDialog').onclick = () => $('#questDialog').close();
 $('#questForm').addEventListener('submit', e => { e.preventDefault(); state.quests.push({id:Date.now(),name:$('#questName').value.trim(),category:$('#questCategory').value,xp:Number($('#questXp').value),done:false}); e.target.reset(); $('#questDialog').close(); save(); renderDashboardCore(); });
 $('#completeChallenge').onclick = () => { if(!state.challengeDone){state.challengeDone=true; award(20,'life');} }; $('#resetButton').onclick = () => { if(confirm('Recommencer totalement ton aventure ?')) { state=structuredClone(defaults); save(); render(); } };
