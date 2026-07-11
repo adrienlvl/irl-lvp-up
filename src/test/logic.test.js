@@ -1637,6 +1637,22 @@ test('exerciseVolumeSeries : volume par séance, N dernières, agrégé par jour
   assert.deepEqual(L.exerciseVolumeSeries(entries, 'Inconnu', 8), []);
   assert.deepEqual(L.exerciseVolumeSeries('nope', 'Tractions', 8), []);
 });
+test('estimatedOneRmSeries : 1RM estimé par séance, meilleur set du jour', () => {
+  const w = [
+    { date: '2026-06-01', exercises: [{ name: 'DC', load: 40, reps: 8 }] },                     // ≈ 50.5
+    { date: '2026-06-08', exercises: [{ name: 'DC', setLogs: [{ load: 45, reps: 5 }, { load: 50, reps: 3 }] }] }, // max(52.5, 55) = 55
+    { date: '2026-06-15', exercises: [{ name: 'Gainage', reps: 60 }] },                          // sans charge → ignoré
+  ];
+  const s = L.estimatedOneRmSeries(w, 'DC', 8);
+  assert.equal(s.length, 2);
+  assert.deepEqual(s.map(p => p.date), ['2026-06-01', '2026-06-08']);
+  assert.equal(s[0].e1rm, L.estimate1RM(40, 8));
+  assert.equal(s[1].e1rm, L.estimate1RM(50, 3), 'meilleur set du jour (50×3)');
+  // limite = 1 → dernière séance seulement
+  assert.equal(L.estimatedOneRmSeries(w, 'DC', 1).length, 1);
+  assert.deepEqual(L.estimatedOneRmSeries(w, 'Gainage', 8), [], 'aucune charge → vide');
+  assert.deepEqual(L.estimatedOneRmSeries([], 'DC', 8), []);
+});
 test('progressionSuggestion : double progression (+reps puis +charge)', () => {
   const w = [
     { date: '2026-06-01', exercises: [{ name: 'Développé couché', load: 40, reps: 8 }] },
