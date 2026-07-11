@@ -1254,6 +1254,15 @@ test('loggedExerciseNames : noms uniques déjà réalisés (top-level + exercise
   assert.deepEqual(names, ['Goblet squat kettlebell', 'Pompes classiques', 'Tractions'], 'uniques, sans doublon');
   assert.deepEqual(L.loggedExerciseNames([]), [], 'vide → []');
 });
+test('runPace : allure min:sec par km', () => {
+  assert.equal(L.runPace(10, 50).label, '5:00', '10 km en 50 min → 5:00/km');
+  assert.equal(L.runPace(10, 50).secPerKm, 300);
+  assert.equal(L.runPace(5, 27.5).label, '5:30', '5 km en 27,5 min → 5:30/km');
+  assert.equal(L.runPace(0, 30), null, 'distance nulle → null');
+  assert.equal(L.runPace(10, 0), null, 'durée nulle → null');
+  assert.equal(L.runPace('x', 30), null);
+});
+
 test('estimate1RM : formule d’Epley, arrondi 0,5, garde-fous', () => {
   assert.equal(L.estimate1RM(100, 1), 100, '1 rep → charge');
   assert.equal(L.estimate1RM(100, 10), 133.5, '100×(1+10/30)=133.33 → 133.5');
