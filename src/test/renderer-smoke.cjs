@@ -59,6 +59,7 @@ app.whenReady().then(async () => {
         monthDayJump: typeof renderMonthCalendar === 'function' && (() => { renderMonthCalendar(); return document.querySelectorAll('#monthCalendar .month-day[data-cal-day]').length >= 28; })(),
         printReport: !!document.getElementById('printReport') && typeof weeklySummary === 'function' && typeof renderPrintReport === 'function' && !!document.getElementById('printWeekReport'),
         theme: !!document.getElementById('themeToggle') && (getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim().length > 0),
+        themeAuto: typeof nextThemeMode === 'function' && typeof resolveTheme === 'function' && nextThemeMode('auto') === 'light' && resolveTheme('auto', true) === 'dark' && typeof applyTheme === 'function' && typeof currentThemeMode === 'function',
         raceGoal: !!document.getElementById('raceGoalType') && typeof raceGoalStatus === 'function' && typeof renderRaceGoal === 'function',
         nextSession: typeof nextTrainingSession === 'function' && !!document.getElementById('nextSessionLine') && (nextTrainingSession([{ id: 1, date: '2999-01-02', time: '10:00', type: 'X' }], '2999-01-01', 0) || {}).daysLeft === 1,
         weekStreak: typeof weeklyWorkoutStreak === 'function' && !!document.getElementById('weekStreakBadge') && weeklyWorkoutStreak([{ date: '2026-07-08' }, { date: '2026-07-01' }], '2026-07-10') === 2,

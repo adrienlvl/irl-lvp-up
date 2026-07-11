@@ -43,6 +43,17 @@ test('localDate / dateKey : format YYYY-MM-DD', () => {
   assert.equal(L.dateKey(new Date('2026-03-15T12:00:00')), '2026-03-15');
 });
 
+test('nextThemeMode / resolveTheme : cycle et résolution système', () => {
+  assert.equal(L.nextThemeMode('auto'), 'light');
+  assert.equal(L.nextThemeMode('light'), 'dark');
+  assert.equal(L.nextThemeMode('dark'), 'auto');
+  assert.equal(L.nextThemeMode('inconnu'), 'auto', 'valeur inconnue → repart sur auto');
+  assert.equal(L.resolveTheme('light', true), 'light', 'mode explicite ignore le système');
+  assert.equal(L.resolveTheme('dark', false), 'dark');
+  assert.equal(L.resolveTheme('auto', true), 'dark', 'auto suit le système (sombre)');
+  assert.equal(L.resolveTheme('auto', false), 'light', 'auto suit le système (clair)');
+});
+
 test('normalizeAgendaItem : défauts pour une entrée legacy minimale', () => {
   const e = L.normalizeAgendaItem({ id: 42, title: 'Muscu', date: '2026-07-06', time: '18:00', kind: 'sport' });
   assert.equal(e.id, 42);
