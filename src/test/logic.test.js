@@ -1301,6 +1301,14 @@ test('runPace : allure min:sec par km', () => {
   assert.equal(L.runPace('x', 30), null);
 });
 
+test('sessionMinutes : somme des durées, valeurs invalides ignorées', () => {
+  assert.equal(L.sessionMinutes([8, 10, 12]), 30);
+  assert.equal(L.sessionMinutes([8.4, 10.6]), 19, 'arrondi par élément (8 + 11)');
+  assert.equal(L.sessionMinutes([5, null, 'x', -3]), 5, 'invalides/négatifs → 0');
+  assert.equal(L.sessionMinutes([]), 0);
+  assert.equal(L.sessionMinutes('nope'), 0);
+});
+
 test('estimate1RM : formule d’Epley, arrondi 0,5, garde-fous', () => {
   assert.equal(L.estimate1RM(100, 1), 100, '1 rep → charge');
   assert.equal(L.estimate1RM(100, 10), 133.5, '100×(1+10/30)=133.33 → 133.5');

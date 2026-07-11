@@ -77,6 +77,7 @@ app.whenReady().then(async () => {
         progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         oneRepMax: typeof estimate1RM === 'function' && estimate1RM(100, 10) === 133.5 && estimate1RM(100, 1) === 100 && estimate1RM(0, 5) === null,
         pace: typeof runPace === 'function' && runPace(10, 50).label === '5:00' && runPace(0, 30) === null,
+        sessionTime: typeof sessionMinutes === 'function' && sessionMinutes([8, 10, 12]) === 30 && !!document.getElementById('guidedSessionTime'),
         weightTrend: typeof weightTrend === 'function' && !!document.getElementById('weightTrend') && (t => t && t.ratePerWeek === -0.5 && t.weeksToTarget === 4)(weightTrend([{ date: '2026-06-26', value: 82 }, { date: '2026-07-10', value: 81 }], 79)),
         measureTrend: typeof measurementDelta === 'function' && !!document.getElementById('measurementsTrend') && (d => d && d.delta === -3)(measurementDelta([{ date: '2026-06-01', waist: 88 }, { date: '2026-07-01', waist: 85 }], 'waist')),
         kitchen: typeof generateMeals === 'function' && !!document.getElementById('pantryList') && !!document.getElementById('mealSuggestions') && !!document.getElementById('envieStyles'),
