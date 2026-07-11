@@ -62,6 +62,7 @@ app.whenReady().then(async () => {
         studyPlanner: !!document.getElementById('studyPlanForm') && typeof planStudySessions === 'function' && typeof buildIcs === 'function',
         examCountdown: typeof examCountdown === 'function' && typeof renderExamCountdown === 'function' && !!document.getElementById('examCountdown') && examCountdown({ title: 'BTS', date: '2099-01-11' }, '2099-01-01').daysLeft === 10,
         studyProgress: typeof studyStats === 'function' && !!document.getElementById('studyProgress') && (s => s.total === 2 && s.done === 1 && s.upcoming === 1)(studyStats([{ kind: 'study', date: '2026-07-05', completed: true }, { kind: 'study', date: '2099-07-12', completed: false }], '2026-07-10')),
+        examReminder: typeof examReminderDue === 'function' && /demain/.test(examReminderDue({ title: 'BTS', date: '2026-05-15' }, '2026-05-14')) && examReminderDue({ date: '' }, '2026-05-14') === null,
         myDay: !!document.getElementById('myDayList') && typeof todayItems === 'function' && !!(document.getElementById('myDaySummary') || {}).textContent,
         charts: !!document.getElementById('chartGrid') && typeof weeklyAggregate === 'function' && typeof renderCharts === 'function',
         weekView: !!document.getElementById('weekGrid') && typeof weekItems === 'function' && typeof renderWeekPage === 'function' && !!document.getElementById('openWeekPage'),

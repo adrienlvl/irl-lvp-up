@@ -860,6 +860,16 @@ test('studyStats : total / faites / à venir des révisions', () => {
   assert.deepEqual(L.studyStats('x', '2026-07-10'), { total: 0, done: 0, upcoming: 0 });
 });
 
+test('examReminderDue : rappel aux paliers J-30/14/7/3/1/0', () => {
+  const g = { title: 'BTS CG', date: '2026-05-15' };
+  assert.match(L.examReminderDue(g, '2026-05-08'), /dans 7 jours/);
+  assert.match(L.examReminderDue(g, '2026-05-14'), /demain/);
+  assert.match(L.examReminderDue(g, '2026-05-15'), /aujourd/);
+  assert.equal(L.examReminderDue(g, '2026-05-10'), null, 'J-5 n’est pas un palier');
+  assert.equal(L.examReminderDue(g, '2026-05-16'), null, 'passé → null');
+  assert.equal(L.examReminderDue({ date: '' }, '2026-05-08'), null);
+});
+
 test('examCountdown : J-XX vers la date d’examen', () => {
   const c = L.examCountdown({ title: 'BTS CG', date: '2026-07-20' }, '2026-07-10');
   assert.equal(c.daysLeft, 10); assert.equal(c.weeksLeft, 1); assert.equal(c.past, false); assert.equal(c.title, 'BTS CG');
