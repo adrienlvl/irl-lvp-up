@@ -1351,6 +1351,21 @@ test('setLandmark : repères hypertrophie (<10 low, 10-20 ok, >20 high)', () => 
   assert.equal(L.setLandmark('bad').zone, 'low');
   assert.equal(typeof L.setLandmark(12).label, 'string');
 });
+test('zoneFreshness : jours depuis le dernier travail de chaque zone + statut', () => {
+  const w = [
+    { date: '2026-07-10', exercises: [{ name: 'Gainage planche' }] },       // abs aujourd'hui
+    { date: '2026-07-06', exercises: [{ name: 'Goblet squat kettlebell' }] }, // legs+glutes il y a 4 j
+  ];
+  const zf = L.zoneFreshness(w, '2026-07-10');
+  const byZone = Object.fromEntries(zf.map(z => [z.zone, z]));
+  assert.equal(zf.length, 7, 'les 7 groupes');
+  assert.equal(byZone.abs.days, 0); assert.equal(byZone.abs.status, 'recent', '0 j → récent');
+  assert.equal(byZone.legs.days, 4); assert.equal(byZone.legs.status, 'ready', '≥ 2 j → prêt');
+  assert.equal(byZone.glutes.status, 'ready');
+  assert.equal(byZone.chest.days, null); assert.equal(byZone.chest.status, 'never', 'jamais travaillé');
+  assert.deepEqual(L.zoneFreshness([], '2026-07-10').filter(z => z.status !== 'never'), []);
+  assert.deepEqual(L.zoneFreshness(w, 'x'), []);
+});
 test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', () => {
   const p = L.buildZonePlan('abs', 8, 3);
   assert.equal(p.zone, 'abs');
