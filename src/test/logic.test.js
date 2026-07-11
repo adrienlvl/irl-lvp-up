@@ -1328,6 +1328,29 @@ test('weeklyZoneCoverage : compte des exercices par zone sur 7 jours', () => {
   assert.deepEqual(L.weeklyZoneCoverage([], '2026-07-10'), {});
   assert.deepEqual(L.weeklyZoneCoverage(w, 'pas-une-date'), {});
 });
+test('weeklySetsPerZone : somme des séries par zone (7 j), completedSets prioritaire', () => {
+  const w = [
+    { date: '2026-07-08', exercises: [{ name: 'Gainage planche', sets: 3 }, { name: 'Tractions', sets: 4, completedSets: 2 }] }, // abs+3 ; back/arms +2 (validées)
+    { date: '2026-07-06', exercise: 'Gainage latéral', sets: 2 }, // abs +2 (top-level)
+    { date: '2026-06-01', exercises: [{ name: 'Gainage planche', sets: 5 }] }, // hors fenêtre
+  ];
+  const s = L.weeklySetsPerZone(w, '2026-07-10');
+  assert.equal(s.abs, 5, '3 planche + 2 latéral');
+  assert.equal(s.back, 2, 'completedSets (2) prioritaire sur sets (4)');
+  assert.equal(s.arms, 2);
+  assert.equal(s.legs, undefined, 'aucune jambe cette semaine');
+  assert.deepEqual(L.weeklySetsPerZone([], '2026-07-10'), {});
+  assert.deepEqual(L.weeklySetsPerZone(w, 'pas-une-date'), {});
+});
+test('setLandmark : repères hypertrophie (<10 low, 10-20 ok, >20 high)', () => {
+  assert.equal(L.setLandmark(0).zone, 'low');
+  assert.equal(L.setLandmark(9).zone, 'low');
+  assert.equal(L.setLandmark(10).zone, 'ok');
+  assert.equal(L.setLandmark(20).zone, 'ok');
+  assert.equal(L.setLandmark(21).zone, 'high');
+  assert.equal(L.setLandmark('bad').zone, 'low');
+  assert.equal(typeof L.setLandmark(12).label, 'string');
+});
 test('buildZonePlan : programme progressif, décharge toutes les 4 semaines', () => {
   const p = L.buildZonePlan('abs', 8, 3);
   assert.equal(p.zone, 'abs');
