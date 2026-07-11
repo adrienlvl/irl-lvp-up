@@ -1568,6 +1568,18 @@ test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge
   assert.equal(L.workoutTonnage({}), 0);
   assert.equal(L.workoutTonnage(null), 0);
 });
+test('completedTonnage / completedSetCount : séries validées uniquement', () => {
+  const ex = [
+    { name: 'DC', setLogs: [{ load: 40, reps: 8, completed: true }, { load: 40, reps: 6, completed: false }] }, // 320
+    { name: 'Sq', setLogs: [{ load: 60, reps: 10, completed: true }, { load: 60, reps: 8, completed: true }] }, // 600 + 480 = 1080
+    { name: 'Gainage', setLogs: [{ load: 0, reps: 45, completed: true }] }, // 0 kg mais 1 série
+    { name: 'Repos', reps: 10 }, // pas de setLogs → ignoré
+  ];
+  assert.equal(L.completedTonnage(ex), 1400, '320 + 1080 + 0');
+  assert.equal(L.completedSetCount(ex), 4, '1 + 2 + 1 validées');
+  assert.equal(L.completedTonnage([]), 0);
+  assert.equal(L.completedSetCount(null), 0);
+});
 test('runKmInWindow : cumule les km de course dans la fenêtre', () => {
   const w = [
     { type: 'run', date: '2026-07-06', distance: 10 },
