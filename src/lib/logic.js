@@ -682,6 +682,23 @@ function weeksBetween(from, to) {
   return Math.round((b - a) / (7 * 864e5));
 }
 
+// Série de jours calendaires consécutifs présents dans l'ensemble, en terminant
+// aujourd'hui (grâce : si aujourd'hui est absent, on part d'hier pour ne pas casser
+// la série en cours de journée). dateKeys : liste de 'YYYY-MM-DD'. Pur + testé.
+function dailyStreak(dateKeys, todayKey) {
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
+  if (!t) return 0;
+  const set = new Set((Array.isArray(dateKeys) ? dateKeys : []).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(String(k))));
+  if (!set.size) return 0;
+  const pad = n => String(n).padStart(2, '0');
+  const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const cur = new Date(+t[1], +t[2] - 1, +t[3]); cur.setHours(0, 0, 0, 0);
+  if (!set.has(keyOf(cur))) cur.setDate(cur.getDate() - 1);   // grâce : aujourd'hui encore vide
+  let streak = 0;
+  while (set.has(keyOf(cur))) { streak++; cur.setDate(cur.getDate() - 1); }
+  return streak;
+}
+
 // Nombre de semaines (lundi→dimanche) consécutives avec au moins une séance,
 // en terminant cette semaine. Si la semaine en cours est encore vide, on part de
 // la semaine précédente (grâce) pour ne pas remettre à zéro en début de semaine.
@@ -1364,5 +1381,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, weightTrend, loggedExerciseNames, exerciseVolumeSeries, agendaMatch };
+  module.exports = { localDate, dateKey, weekStart, pct, levelFromXp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, racePhase, raceGoalStatus, daysUntil, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, goalMatch, goalRank, zoneTopExercises, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, personalRecords, weightTrend, loggedExerciseNames, exerciseVolumeSeries, agendaMatch };
 }

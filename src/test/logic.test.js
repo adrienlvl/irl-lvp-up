@@ -711,6 +711,20 @@ test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
   assert.equal(s.km, 170);
   assert.ok(s.daysLeft > 630, 'daysLeft cohérent (~2 ans)');
 });
+test('dailyStreak : jours calendaires consécutifs, grâce aujourd’hui, cassé par un trou', () => {
+  const today = '2026-07-10';
+  assert.equal(L.dailyStreak(['2026-07-10', '2026-07-09', '2026-07-08'], today), 3);
+  // aujourd'hui absent mais hier + avant-hier → grâce → 2
+  assert.equal(L.dailyStreak(['2026-07-09', '2026-07-08'], today), 2);
+  // trou hier → seul aujourd'hui compte
+  assert.equal(L.dailyStreak(['2026-07-10', '2026-07-08'], today), 1);
+  // doublons tolérés, tri non requis
+  assert.equal(L.dailyStreak(['2026-07-08', '2026-07-10', '2026-07-09', '2026-07-10'], today), 3);
+  assert.equal(L.dailyStreak([], today), 0);
+  assert.equal(L.dailyStreak(['2026-07-01'], today), 0, 'rien de récent → 0');
+  assert.equal(L.dailyStreak(['2026-07-10'], 'pas-une-date'), 0);
+});
+
 test('weeklyWorkoutStreak : semaines consécutives avec séance, grâce semaine en cours', () => {
   // aujourd'hui = vendredi 10/07/2026 (semaine lundi 06/07)
   const today = '2026-07-10';
