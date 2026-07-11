@@ -90,6 +90,7 @@ app.whenReady().then(async () => {
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
         newRecordToast: typeof newRecords === 'function' && typeof flashToast === 'function' && newRecords({ T: { load: 0, reps: 8 } }, { T: { load: 0, reps: 10 } }).length === 1,
         repeatLast: typeof lastLoggedSession === 'function' && !!document.getElementById('repeatLastSession') && lastLoggedSession([{ type: 'strength', date: '2026-07-08', exercises: [{ name: 'T' }] }]).date === '2026-07-08',
+        exportTsv: typeof workoutsTable === 'function' && !!document.getElementById('exportHistoryTsv') && workoutsTable([{ date: '2026-07-08', type: 'run', duration: 30 }]).split(String.fromCharCode(10)).length === 2,
         progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         oneRepMax: typeof estimate1RM === 'function' && estimate1RM(100, 10) === 133.5 && estimate1RM(100, 1) === 100 && estimate1RM(0, 5) === null,
         pace: typeof runPace === 'function' && runPace(10, 50).label === '5:00' && runPace(0, 30) === null,

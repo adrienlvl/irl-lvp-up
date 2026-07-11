@@ -1364,6 +1364,23 @@ test('newRecords : détecte les records battus entre deux instantanés', () => {
   assert.deepEqual(L.newRecords(after, after), [], 'rien battu → []');
   assert.deepEqual(L.newRecords(null, null), []);
 });
+test('workoutsTable : TSV en-tête + lignes triées récent→ancien', () => {
+  const w = [
+    { date: '2026-07-05', type: 'strength', duration: 40, effort: 3, exercises: [{ name: 'Tractions' }, { name: 'Pompes' }] },
+    { date: '2026-07-08', type: 'run', duration: 30, distance: 6, effort: 2 },
+  ];
+  const tsv = L.workoutsTable(w);
+  const lines = tsv.split('\n');
+  assert.equal(lines.length, 3);
+  assert.equal(lines[0], 'Date\tType\tDurée (min)\tDistance (km)\tRPE\tExercices');
+  assert.ok(lines[1].startsWith('2026-07-08\trun\t30\t6\t2'), 'le plus récent en premier');
+  assert.ok(lines[2].includes('Tractions, Pompes'));
+  // séparateur personnalisé + robustesse
+  assert.ok(L.workoutsTable(w, ';').split('\n')[1].includes(';'));
+  assert.equal(L.workoutsTable([]).split('\n').length, 1, 'juste l’en-tête');
+  assert.equal(L.workoutsTable('x').split('\n').length, 1);
+});
+
 test('lastLoggedSession : dernière séance muscu/renfo avec exercices', () => {
   const w = [
     { type: 'run', date: '2026-07-10', distance: 5 },                    // pas muscu
