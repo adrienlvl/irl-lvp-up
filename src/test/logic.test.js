@@ -1213,6 +1213,14 @@ test('zoneTopExercises : les plus ciblés d’abord', () => {
   assert.equal(top.length, 3);
   assert.ok(top.every(n => L.goalRank(n, 'abs') === 0), 'zone principale en tête');
 });
+test('neglectedZone : première zone prioritaire à 0', () => {
+  assert.equal(L.neglectedZone({ legs: 2, back: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'abs', 'abdos non travaillés');
+  assert.equal(L.neglectedZone({ abs: 1, legs: 2, arms: 1 }, ['abs', 'legs', 'arms']), null, 'tout couvert → null');
+  assert.equal(L.neglectedZone({ abs: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'legs', 'jambes manquantes');
+  assert.equal(L.neglectedZone({}, ['abs']), 'abs', 'rien fait → première zone');
+  assert.equal(typeof L.neglectedZone(null, null), 'string', 'défauts robustes → une zone');
+});
+
 test('weeklyZoneCoverage : compte des exercices par zone sur 7 jours', () => {
   const w = [
     { date: '2026-07-08', exercises: [{ name: 'Gainage planche' }, { name: 'Tractions' }] }, // abs ; back+arms
