@@ -103,6 +103,7 @@ app.whenReady().then(async () => {
         agendaDay: typeof renderDayView === 'function' && typeof renderAgenda === 'function' && !!document.getElementById('dayView') && document.querySelectorAll('#agendaViewSwitch [data-view]').length === 2,
         dayGrid: typeof dayColumns === 'function' && typeof endTimeOf === 'function',
         dayPlanned: typeof dayPlannedMinutes === 'function' && dayPlannedMinutes([{ time: '09:00', durationMin: 60 }, { time: '14:00', durationMin: 90 }]) === 150,
+        dayCopy: typeof dayPlanText === 'function' && dayPlanText([{ time: '09:00', title: 'X', completed: true }]) === '- 09:00 X ✓',
         agendaDetails: typeof departureInfo === 'function' && !!document.getElementById('calendarAgendaLocation') && !!document.getElementById('calendarAgendaTravel') && !!document.getElementById('calendarAgendaNotes'),
         agendaEdit: !!document.getElementById('weekQuickLocation') && !!document.getElementById('weekQuickTravel') && !!document.getElementById('weekQuickNotes') && !!document.getElementById('weekQuickEstimate') && !!document.getElementById('agendaEditForm') && !!document.getElementById('editAgendaNotes'),
         agendaDuplicate: typeof duplicateAgendaItem === 'function' && !!document.getElementById('duplicateAgendaEdit') && (duplicateAgendaItem({ id: 1, date: '2026-07-10', planId: 9, completed: true }, 2) || {}).planId === undefined,

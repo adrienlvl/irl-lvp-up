@@ -351,6 +351,18 @@ test('departureInfo : heure de départ = heure − trajet, temps restant selon l
   assert.equal(L.departureInfo({ time: '09:00', travelMin: 0 }), null);
 });
 
+test('dayPlanText : lignes heure + titre, ✓ si fait, hors anniversaires', () => {
+  const items = [
+    { time: '09:00', title: 'Réunion', completed: true },
+    { allDay: true, title: 'Congé' },
+    { time: '', title: 'Appeler dentiste' },
+    { type: 'birthday', title: '🎂 Maman' },
+  ];
+  assert.equal(L.dayPlanText(items), '- 09:00 Réunion ✓\n- Journée Congé\n- — Appeler dentiste');
+  assert.equal(L.dayPlanText([]), '');
+  assert.equal(L.dayPlanText('x'), '');
+});
+
 test('dayPlannedMinutes : somme des durées des créneaux horodatés', () => {
   const items = [
     { time: '09:00', durationMin: 60 },
