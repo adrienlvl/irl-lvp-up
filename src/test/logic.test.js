@@ -711,6 +711,32 @@ test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
   assert.equal(s.km, 170);
   assert.ok(s.daysLeft > 630, 'daysLeft cohérent (~2 ans)');
 });
+test('acuteChronicRatio : aiguë (7j) vs chronique (28j/4), zones', () => {
+  const today = '2026-07-10';
+  // charge répartie régulièrement : ~même charge chaque semaine → ratio ~1 (optimal)
+  const steady = [
+    { date: '2026-07-08', duration: 60, effort: 2 }, // 120, dans les 7j
+    { date: '2026-06-30', duration: 60, effort: 2 }, // 120, semaine -1
+    { date: '2026-06-23', duration: 60, effort: 2 }, // 120, semaine -2
+    { date: '2026-06-17', duration: 60, effort: 2 }, // 120, semaine -3 (<=27j)
+  ];
+  const r = L.acuteChronicRatio(steady, today);
+  assert.equal(r.acute, 120);
+  assert.equal(r.chronic, 120, 'moyenne hebdo = 480/4');
+  assert.equal(r.ratio, 1);
+  assert.equal(r.zone, 'optimal');
+  // pic : grosse semaine aiguë vs chronique faible → high
+  const spike = [
+    { date: '2026-07-09', duration: 120, effort: 4 }, // 480 aiguë
+    { date: '2026-06-20', duration: 30, effort: 2 },  // 60 il y a ~20j
+  ];
+  const s = L.acuteChronicRatio(spike, today);
+  assert.ok(s.ratio > 1.5 && s.zone === 'high', 'pic → zone high');
+  // pas de charge chronique → null
+  assert.equal(L.acuteChronicRatio([], today), null);
+  assert.equal(L.acuteChronicRatio(steady, 'pas-une-date'), null);
+});
+
 test('dailyStreak : jours calendaires consécutifs, grâce aujourd’hui, cassé par un trou', () => {
   const today = '2026-07-10';
   assert.equal(L.dailyStreak(['2026-07-10', '2026-07-09', '2026-07-08'], today), 3);
