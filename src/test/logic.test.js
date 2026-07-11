@@ -1542,6 +1542,22 @@ test('runKmInWindow : cumule les km de course dans la fenêtre', () => {
   assert.equal(L.runKmInWindow([], '2026-07-06', '2026-07-12'), 0);
   assert.equal(L.runKmInWindow('x', '2026-07-06', '2026-07-12'), 0);
 });
+test('trailReadiness : km 7j/28j, sorties et plus longue sortie', () => {
+  const w = [
+    { type: 'run', date: '2026-07-08', distance: 12 },   // 2 j → dans 7 j
+    { type: 'run', date: '2026-07-04', distance: 8 },     // 6 j → dans 7 j
+    { type: 'run', date: '2026-06-20', distance: 21 },    // 20 j → dans 28 j → plus longue
+    { type: 'run', date: '2026-05-01', distance: 30 },    // hors 28 j
+    { type: 'strength', date: '2026-07-09', distance: 0 },// ignoré
+  ];
+  const tr = L.trailReadiness(w, '2026-07-10');
+  assert.equal(tr.weekKm, 20, '12 + 8 (les deux ≤ 6 j)');
+  assert.equal(tr.monthKm, 41, '12 + 8 + 21');
+  assert.equal(tr.runs, 3);
+  assert.equal(tr.longRun.km, 21); assert.equal(tr.longRun.date, '2026-06-20');
+  assert.equal(L.trailReadiness([{ type: 'strength', date: '2026-07-09' }], '2026-07-10'), null, 'aucun run → null');
+  assert.equal(L.trailReadiness(w, 'x'), null);
+});
 
 test('runPace : allure min:sec par km', () => {
   assert.equal(L.runPace(10, 50).label, '5:00', '10 km en 50 min → 5:00/km');
