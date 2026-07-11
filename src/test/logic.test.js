@@ -1374,6 +1374,20 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
 
+test('proteinDaysOnTarget : jours ≥ cible dans la fenêtre, agrégé par date', () => {
+  const nut = [
+    { date: '2026-07-06', protein: 160 }, // ok
+    { date: '2026-07-07', protein: 90 },  // sous cible
+    { date: '2026-07-08', protein: 100 }, { date: '2026-07-08', protein: 60 }, // même jour → max 100, sous cible
+    { date: '2026-07-09', protein: 130 }, // ok
+    { date: '2026-06-01', protein: 200 }, // hors fenêtre
+  ];
+  assert.equal(L.proteinDaysOnTarget(nut, 130, '2026-07-06', '2026-07-10'), 2, '06 et 09 juillet');
+  assert.equal(L.proteinDaysOnTarget(nut, 0, '2026-07-06', '2026-07-10'), 0, 'cible nulle → 0');
+  assert.equal(L.proteinDaysOnTarget([], 130, '2026-07-06', '2026-07-10'), 0);
+  assert.equal(L.proteinDaysOnTarget('x', 130, '2026-07-06', '2026-07-10'), 0);
+});
+
 test('waterGoalFor : +2 verres les jours de séance, borné [1..20]', () => {
   assert.equal(L.waterGoalFor(8, false), 8);
   assert.equal(L.waterGoalFor(8, true), 10);

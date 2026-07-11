@@ -71,6 +71,7 @@ app.whenReady().then(async () => {
         hydration: typeof waterStatus === 'function' && !!document.getElementById('waterPlus') && !!document.getElementById('waterMinus') && !!document.getElementById('hydraFill') && !!document.getElementById('proteinFill') && typeof proteinTarget === 'function',
         proteinQuick: !!document.getElementById('proteinPlus20') && !!document.getElementById('proteinPlus30') && !!document.getElementById('proteinMinus'),
         waterGoalAdaptive: typeof waterGoalFor === 'function' && waterGoalFor(8, true) === 10 && waterGoalFor(8, false) === 8,
+        proteinWeek: typeof proteinDaysOnTarget === 'function' && proteinDaysOnTarget([{ date: '2026-07-06', protein: 160 }, { date: '2026-07-09', protein: 130 }], 130, '2026-07-06', '2026-07-10') === 2,
         records: typeof personalRecords === 'function' && !!document.getElementById('exerciseDetailNotes'),
         progSpark: typeof exerciseVolumeSeries === 'function' && (s => s.length === 2 && s[1].volume === 150)(exerciseVolumeSeries([{ name: 'T', date: '2026-06-01', volume: 100 }, { name: 'T', date: '2026-06-03', volume: 150 }], 'T', 8)),
         oneRepMax: typeof estimate1RM === 'function' && estimate1RM(100, 10) === 133.5 && estimate1RM(100, 1) === 100 && estimate1RM(0, 5) === null,
