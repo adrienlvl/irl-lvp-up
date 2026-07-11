@@ -6,14 +6,14 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.38 (2026-07-09)
+## 📍 État actuel — build 1.9.39 (2026-07-09)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **146 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→104) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **146 tests + smoke** verts. Livré au-delà de la roadmap initiale (boucles #36→105) :
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
-- ⚠️ Versions **1.5.2 → 1.9.38 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
+- ⚠️ Versions **1.5.2 → 1.9.39 non publiées** sur GitHub Releases (attendent un `npm run release` d'Adrien).
 - [x] **Export / import des données** (boucle autonome, fiabilité) : dans **Réglages → 💾 Sauvegarde & données**, boutons **⬇️ Exporter (.json)** et **⬆️ Importer** — via les dialogues Electron (fichier choisi par Adrien), écriture/lecture dans le **main** (taille bornée 20 Mo). Import passé par `normalizeState` (défensif) + confirmation. Portabilité vers un autre PC + sauvegarde manuelle. ✅ _boucle #85 (build 1.9.19)._
 - [x] **Menu Réglages** (choix d'Adrien : « juste le menu ») — nouvelle page **⚙️ Réglages** (nav) : Apparence (thème/densité), **Rappels** (panneau rapatrié depuis Focus, sa vraie place), **Connexions sportives** (Strava/Polar « Bientôt », Garmin « Plus tard », avec l'explication honnête), accès aux réglages Calendrier. ✅ _boucle #73 (build 1.9.7)._
 - ⏳ **Connecter Strava / Garmin / Polar** (OAuth réel) → **Vague S.8** : nécessite qu'Adrien enregistre une app développeur chez chaque service (Strava = faisable en solo → Client ID à me fournir ; Garmin/Polar = API partenaires gated).
@@ -203,6 +203,7 @@ _Principe : par défaut l'app n'a AUCUN accès réseau ; chaque ouverture future
   - **Objectif d'eau adaptatif** (boucle autonome) : `waterGoalFor` pur+testé → **+2 verres les jours de séance** (sudation), borné [1..20] ; la jauge d'hydratation affiche « +2 (jour de séance) ». ✅ _boucle #102 (build 1.9.36)._
   - **1RM estimé (Epley)** (boucle autonome) : `estimate1RM` pur+testé (charge × (1 + reps/30), arrondi 0,5, garde-fous reps 1–30) → ligne « 🏆 1RM estimé : X kg » dans le suivi de progression, calculée depuis la dernière série chargée. ✅ _boucle #103 (build 1.9.37)._
   - **Ratio charge aiguë:chronique (ACWR)** (boucle autonome) : `acuteChronicRatio` pur+testé (charge 7 j vs moyenne hebdo sur 28 j, charge = durée×RPE) → conseil de charge enrichi « Aiguë/chronique 1.2 (✅ zone optimale / ⚠️ pic — allège / charge en baisse) », alerte orange en cas de pic (> 1,5). ✅ _boucle #104 (build 1.9.38)._
+  - **Bip de fin de repos** (boucle autonome) : signal sonore Web Audio (double bip) à la fin du minuteur de repos de la séance guidée, avec toggle 🔔 (persisté), pour ne pas fixer l'écran entre les séries. ✅ _boucle #105 (build 1.9.39)._
   - **Paliers intermédiaires** (`intermediateGoals`, testé) : échelle de courses croissantes échelonnées vers l'objectif (ex. ultra 170 km/2 ans → Semi ~7 mois, 50 km ~13 mois, 100 km ~20 mois, puis 170 km). Affichés en timeline dans la section objectif. ✅ _boucle #22._
 - [x] **5.4** **Guidage renforcé** : échauffement spécifique (`warmupFor`, testé) en tête de chaque séance guidée (encart repliable, adapté haut/bas/trail) + le compagnon d'entraînement affiche le **contexte de course** (objectif, échéance, phase). ✅ _boucle #26._
 

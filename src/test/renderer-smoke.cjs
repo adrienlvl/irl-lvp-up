@@ -111,6 +111,7 @@ app.whenReady().then(async () => {
         volume: typeof volumeRamp === 'function' && !!document.getElementById('volStart') && typeof renderVolumeGoal === 'function',
         warmup: typeof warmupFor === 'function' && !!document.getElementById('guidedWarmupList'),
         cooldown: typeof cooldownFor === 'function' && !!document.getElementById('guidedCooldownList') && !!document.getElementById('guidedCooldown'),
+        restSound: typeof guidedRestCue === 'function' && typeof restSoundEnabled === 'function' && !!document.getElementById('restSoundToggle'),
         exCount: (typeof exercises !== 'undefined') ? exercises.length : 0,
         achievements: typeof computeAchievements === 'function' && computeAchievements({ quests: [{ done: true }] }).total === 14 && document.querySelectorAll('#achievementList .achievement').length >= 10,
         quests: document.querySelectorAll('#questList .quest').length,
