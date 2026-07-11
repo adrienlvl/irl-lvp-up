@@ -1401,6 +1401,23 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
 
+test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () => {
+  const rec = [
+    { date: '2026-07-06', sleep: 6 },   // -1.5
+    { date: '2026-07-07', sleep: 8 },   // 0 (au-dessus)
+    { date: '2026-07-08', sleep: 5.5 }, // -2
+    { date: '2026-07-09', sleep: 0 },   // non renseigné → ignoré
+    { date: '2026-06-01', sleep: 4 },   // hors fenêtre
+  ];
+  const r = L.sleepDebtHours(rec, 7.5, '2026-07-06', '2026-07-10');
+  assert.equal(r.debt, 3.5, '1.5 + 2 (le 08 seulement sous cible avec le 06)');
+  assert.equal(r.nights, 3, '06, 07 et 08 renseignées (09 = 0 ignoré)');
+  assert.equal(r.avg, 6.5, 'moyenne (6+8+5.5)/3 = 6.5');
+  assert.equal(r.target, 7.5);
+  assert.equal(L.sleepDebtHours([], 7.5, '2026-07-06', '2026-07-10').debt, 0);
+  assert.equal(L.sleepDebtHours('x', 7.5, '2026-07-06', '2026-07-10').nights, 0);
+});
+
 test('proteinDaysOnTarget : jours ≥ cible dans la fenêtre, agrégé par date', () => {
   const nut = [
     { date: '2026-07-06', protein: 160 }, // ok
