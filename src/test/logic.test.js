@@ -2095,6 +2095,20 @@ test('programWeekSummary : total séances/minutes/heures d’un programme', () =
   assert.deepEqual(empty, { sessions: 0, muscu: 0, course: 0, minutes: 0, hours: 0 });
   assert.equal(L.programWeekSummary(null).sessions, 0, 'entrée invalide → 0');
 });
+test('objectiveProgramText : export texte lisible du programme', () => {
+  const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
+  const prog = L.objectiveProgram('athletique', ex);
+  const nutri = L.objectiveNutrition('athletique', { weight: 80, height: 178, age: 30, sex: 'homme', activityLevel: 'modere' });
+  const txt = L.objectiveProgramText(prog, { nutri });
+  assert.ok(txt.includes('Corps athlétique'), 'titre présent');
+  assert.ok(/muscu · \d+ course/.test(txt), 'résumé présent');
+  assert.ok(txt.includes('🏋️') && txt.includes('🏃'), 'muscu et course listées');
+  assert.ok(/×/.test(txt), 'séries×reps présentes');
+  assert.ok(txt.includes('Nutrition') && txt.includes('kcal/j'), 'nutrition présente');
+  assert.equal(txt.split('\n').length > 5, true, 'plusieurs lignes');
+  assert.equal(L.objectiveProgramText(null), '', 'programme vide → chaîne vide');
+  assert.equal(L.objectiveProgramText({ title: 'x', week: [] }), '', 'sans séances → vide');
+});
 test('objectiveProgram : courses adaptées à l’objectif (accent)', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
   const seche = L.objectiveProgram('seche', ex);

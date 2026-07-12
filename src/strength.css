@@ -22,6 +22,8 @@
 .op-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
 .op-head b{font-size:1.1rem}
 .op-head span{color:var(--muted);font-size:.8rem;font-weight:700}
+.op-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px}
+.op-actions .primary-button{flex:1;min-width:200px}
 .op-summary{margin-top:8px;font-size:.82rem;color:var(--muted)}
 .op-summary b{color:var(--text)}
 .op-tools{display:flex;align-items:center;gap:10px;margin-top:10px}
