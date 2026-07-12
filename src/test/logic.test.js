@@ -1917,6 +1917,12 @@ test('coachWeekPlan : semaine muscu/renfo/course adaptée à l’objectif', () =
   // objectif inconnu → maintien
   assert.match(L.coachWeekPlan('xxx', [1, 3]).note, /Maintien/);
 });
+test('coachSessionLabel : titre agenda par type', () => {
+  assert.match(L.coachSessionLabel('muscu'), /Musculation/);
+  assert.match(L.coachSessionLabel('renfo'), /Renfo/);
+  assert.match(L.coachSessionLabel('course'), /Course/);
+  assert.equal(L.coachSessionLabel('inconnu'), 'Séance');
+});
 test('runPlanWeek : semaine de course, sortie longue en fin, garde-fous', () => {
   const p = L.runPlanWeek(4);
   assert.equal(p.count, 4);
