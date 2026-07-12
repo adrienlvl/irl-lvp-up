@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.138 (2026-07-12)
+## 📍 État actuel — build 1.9.139 (2026-07-12)
 
-App **100 % locale** (desktop) + **PWA installable/mobile en préparation**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **239 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→204) :
+App **100 % locale** (desktop) + **PWA installable/mobile en préparation**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **239 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→205) :
 
 > 🧭 **Cap actuel (Adrien, 2026-07-12) : boucles #1→#4** — (1) version mobile/PWA, (2) onboarding guidé, (3) contenu mobilité/récup, (4) coaching périodisé. Le « 100 % local » n'est plus une contrainte stricte (réseau OK si sécurisé).
 
+- 📱 **PWA — SW network-first (anti-stale)** : code en network-first (frais en ligne, offline en repli), images en cache-first, cache versionné. Vérifié en navigateur : SW v2 actif, sert la version disque à jour. ✅ _boucle #205 (build 1.9.139)._
 - 📱 **Mobile — nav accessible + replis vérifiés** : la barre de nav passe en grille (7 onglets tous visibles/tappables ≤650 px, avant : moitié hors écran) ; audit confirmé que tous les appels `window.desktop` dégradent proprement en navigateur. ✅ _boucle #204 (build 1.9.138)._ _À suivre : SW network-first (anti-cache-stale), passe responsive panneaux/dialogues, déploiement web._
 - 📱 **PWA — fondations (app installable + hors-ligne)** : manifest + service worker (précache app-shell) + métas iOS ; enregistrement gardé au http(s) (inactif dans Electron). Vérifié en navigateur mobile : SW actif, app-shell rendu, installable. ✅ _boucle #203 (build 1.9.137) — début du chantier #1 mobile._
 - 🗓️ **Séances manquées (agenda ↔ entraînement)** : rappel bienveillant des séances prévues non faites sur 14 j (ni cochées ni loguées). ✅ _boucle #202 (build 1.9.136)._
@@ -39,7 +40,7 @@ App **100 % locale** (desktop) + **PWA installable/mobile en préparation**, hor
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.138** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.139** non publiées (attendent un `npm run release` / upload d'Adrien).
 - 📱 **Cartes de stats mobile** : sur petit écran, les tuiles de stats (accueil) passent en colonne centrée (icône au-dessus du texte) et les tuiles « à vie » se resserrent — plus de contenu à l'étroit ni de débordement. ✅ _boucle #179 (build 1.9.113)._
 - 🎯 **Palmarès de force — prochain palier** : chaque exercice affiche le **prochain palier rond de 1RM** et l'écart à combler (ex. « 🎯 140 kg dans 6,5 »), pour un objectif de force concret et motivant. ✅ _boucle #178 (build 1.9.112)._
 - 📱 **Bibliothèque d'exercices fluide** : la grille des cartes passe en `auto-fill minmax(158px)` — elle s'adapte toute seule de 1 à N colonnes selon la largeur (téléphone → grand écran), sans média-query rigide. ✅ _boucle #177 (build 1.9.111)._

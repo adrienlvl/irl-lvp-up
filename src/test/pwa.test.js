@@ -32,6 +32,10 @@ test('PWA : le service worker précache des fichiers qui existent vraiment', () 
     assert.ok(fs.existsSync(path.join(dir, rel)), 'précache existe : ' + e);
   });
   assert.ok(entries.includes('app.js') && (entries.includes('./') || entries.includes('index.html')));
+  // cache versionné + gestion des requêtes
+  assert.ok(/const CACHE = 'irl-lvp-up-v\d+'/.test(sw), 'nom de cache versionné');
+  assert.ok(/addEventListener\('fetch'/.test(sw) && /addEventListener\('activate'/.test(sw), 'handlers fetch + activate');
+  assert.ok(/isAsset/.test(sw), 'distinction code vs image (network-first / cache-first)');
 });
 
 test('PWA : index.html lie le manifest et app.js enregistre le SW', () => {
