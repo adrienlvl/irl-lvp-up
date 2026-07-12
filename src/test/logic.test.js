@@ -2423,6 +2423,31 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta([{ date: '2026-06-01', waist: 0 }], 'waist'), null);
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
+test('photoComparePair : avant/après + poids proche', () => {
+  const photos = [
+    { id: 2, date: '2026-06-15', file: 'b.jpg' },
+    { id: 1, date: '2026-05-01', file: 'a.jpg' },
+    { id: 3, date: '2026-07-10', file: 'c.jpg' },
+  ];
+  const weights = [
+    { date: '2026-05-02', value: 84 },
+    { date: '2026-07-09', value: 79 },
+  ];
+  const cmp = L.photoComparePair(photos, weights);
+  assert.equal(cmp.before.date, '2026-05-01', 'plus ancienne');
+  assert.equal(cmp.after.date, '2026-07-10', 'plus récente');
+  assert.equal(cmp.before.weight, 84, 'poids le plus proche du 01/05');
+  assert.equal(cmp.after.weight, 79);
+  assert.equal(cmp.weightDelta, -5, '79 - 84');
+  assert.equal(cmp.days, 70, 'jours entre 01/05 et 10/07');
+  // sans poids → weight null, delta null
+  const noW = L.photoComparePair(photos, []);
+  assert.equal(noW.before.weight, null);
+  assert.equal(noW.weightDelta, null);
+  // < 2 photos → null
+  assert.equal(L.photoComparePair([{ date: '2026-05-01' }]), null);
+  assert.equal(L.photoComparePair(null), null);
+});
 test('recompositionInsight : poids vs tour de taille', () => {
   // poids stable, taille en baisse → recomposition
   assert.equal(L.recompositionInsight(-0.3, -2).key, 'recomp');

@@ -59,6 +59,7 @@ app.whenReady().then(async () => {
         logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function' && typeof normalizeAgendaItem === 'function',
         normalize: typeof normalizeState === 'function',
         photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
+        photoCompare: typeof photoComparePair === 'function' && !!document.getElementById('photoCompare') && (() => { const c = photoComparePair([{ date: '2026-05-01', file: 'a' }, { date: '2026-07-10', file: 'b' }], [{ date: '2026-05-02', value: 84 }, { date: '2026-07-09', value: 79 }]); return c && c.before.date === '2026-05-01' && c.after.date === '2026-07-10' && c.weightDelta === -5 && photoComparePair([{ date: '2026-05-01' }]) === null; })(),
         studyPlanner: !!document.getElementById('studyPlanForm') && typeof planStudySessions === 'function' && typeof buildIcs === 'function',
         examCountdown: typeof examCountdown === 'function' && typeof renderExamCountdown === 'function' && !!document.getElementById('examCountdown') && examCountdown({ title: 'BTS', date: '2099-01-11' }, '2099-01-01').daysLeft === 10,
         studyProgress: typeof studyStats === 'function' && !!document.getElementById('studyProgress') && (s => s.total === 2 && s.done === 1 && s.upcoming === 1)(studyStats([{ kind: 'study', date: '2026-07-05', completed: true }, { kind: 'study', date: '2099-07-12', completed: false }], '2026-07-10')),
