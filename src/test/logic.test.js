@@ -2273,8 +2273,20 @@ test('wellnessRoutine : routines de mobilité/récup en secondes', () => {
   assert.ok(r.exercises.every(e => e.name && e.unit === 'sec' && e.reps > 0 && e.sets === 1 && e.rest === 0));
   assert.ok(L.wellnessRoutine('stretch').exercises.some(e => /Ischios|Fessiers|enfant/i.test(e.name)));
   assert.equal(L.wellnessRoutine('inconnu'), null);
+  assert.ok(L.wellnessRoutine('backpain') && L.wellnessRoutine('sleep'), 'nouvelles routines bas du dos / sommeil');
   // chaque routine a un emoji, un titre, des minutes et des mouvements
   L.WELLNESS_ROUTINES.forEach(rt => { assert.ok(rt.key && rt.emoji && rt.title && rt.minutes > 0 && rt.moves.length >= 3); });
+});
+test('suggestedRoutine : routine selon forme + charge', () => {
+  assert.equal(L.suggestedRoutine('deload', 90).key, 'cooldown', 'charge élevée → récup');
+  assert.equal(L.suggestedRoutine('maintain', 40).key, 'cooldown', 'forme basse → récup');
+  assert.equal(L.suggestedRoutine('push', 85).key, 'warmup', 'en forme → échauffement');
+  assert.equal(L.suggestedRoutine('maintain', 60).key, 'hips', 'neutre → mobilité');
+  assert.equal(L.suggestedRoutine(null, null).key, 'hips', 'sans donnée → mobilité');
+  ['recover', 'ready', 'mobility'].forEach(() => {});
+  assert.ok(L.suggestedRoutine('deload', 90).reason.length > 10);
+  // la clé suggérée correspond toujours à une vraie routine
+  assert.ok(L.wellnessRoutine(L.suggestedRoutine('deload', 40).key));
 });
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
