@@ -17,6 +17,12 @@
 .guided-warmup summary::after{content:' ▾';color:var(--muted)}
 .guided-warmup[open] summary::after{content:' ▴'}
 .guided-warmup ul{margin:8px 0 2px;padding-left:18px;display:grid;gap:5px;color:var(--muted);font-size:.8rem;line-height:1.4}
+.wellness-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.wellness-chip{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--surface-2,#111728);color:var(--text);border:1px solid var(--line);border-left:3px solid var(--purple,#a78bfa);border-radius:12px;padding:11px 13px;cursor:pointer;transition:border-color .15s,transform .15s}
+.wellness-chip:hover{border-color:var(--accent);transform:translateY(-1px)}
+.wellness-chip b{font-size:.86rem}
+.wellness-chip small{color:var(--muted);font-size:.74rem}
+@media(max-width:650px){.wellness-bar{grid-template-columns:1fr 1fr}}
 .op-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .op-bar select{flex:1;min-width:180px;background:var(--input-bg,#101625);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}
 .op-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}

@@ -2242,6 +2242,17 @@ test('programWeekSummary : total séances/minutes/heures d’un programme', () =
   assert.deepEqual(empty, { sessions: 0, muscu: 0, course: 0, minutes: 0, hours: 0 });
   assert.equal(L.programWeekSummary(null).sessions, 0, 'entrée invalide → 0');
 });
+test('wellnessRoutine : routines de mobilité/récup en secondes', () => {
+  assert.ok(Array.isArray(L.WELLNESS_ROUTINES) && L.WELLNESS_ROUTINES.length >= 5);
+  const r = L.wellnessRoutine('warmup');
+  assert.equal(r.title, 'Échauffement dynamique');
+  assert.ok(r.exercises.length >= 4);
+  assert.ok(r.exercises.every(e => e.name && e.unit === 'sec' && e.reps > 0 && e.sets === 1 && e.rest === 0));
+  assert.ok(L.wellnessRoutine('stretch').exercises.some(e => /Ischios|Fessiers|enfant/i.test(e.name)));
+  assert.equal(L.wellnessRoutine('inconnu'), null);
+  // chaque routine a un emoji, un titre, des minutes et des mouvements
+  L.WELLNESS_ROUTINES.forEach(rt => { assert.ok(rt.key && rt.emoji && rt.title && rt.minutes > 0 && rt.moves.length >= 3); });
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');

@@ -1738,6 +1738,58 @@ function objectiveProgramText(program, opts) {
   return lines.join('\n');
 }
 
+// Routines bien-être : mobilité, étirements, échauffement, récupération. Chaque mouvement est
+// tenu `sec` secondes (guidé comme une séance, unité 'sec'). Contenu curé, sans matériel.
+const WELLNESS_ROUTINES = [
+  { key: 'warmup', emoji: '🔥', title: 'Échauffement dynamique', minutes: 5, why: 'Réveille le corps avant l\'effort : cœur, articulations, muscles.', moves: [
+    { name: 'Cercles de bras', sec: 30, cue: 'Grands cercles avant puis arrière, épaules relâchées.' },
+    { name: 'Rotations du tronc', sec: 30, cue: 'Pieds fixes, tourne le buste de gauche à droite.' },
+    { name: 'Balancements de jambe', sec: 40, cue: 'Appuie-toi à un mur, balance chaque jambe d\'avant en arrière.' },
+    { name: 'Fentes marchées', sec: 40, cue: 'Grands pas, genou arrière vers le sol, buste droit.' },
+    { name: 'Squats à vide', sec: 40, cue: 'Descends lentement, poids sur les talons.' },
+    { name: 'Talons-fesses', sec: 30, cue: 'Sur place, ramène les talons vers les fessiers.' },
+  ] },
+  { key: 'hips', emoji: '🦵', title: 'Mobilité hanches', minutes: 6, why: 'Des hanches souples = squats plus profonds, moins de mal de dos.', moves: [
+    { name: 'Fente basse + rotation', sec: 45, cue: 'En fente, main au sol, ouvre le bras vers le ciel.' },
+    { name: '90/90 hanches', sec: 60, cue: 'Assis, une jambe devant une derrière à 90°, bascule d\'un côté à l\'autre.' },
+    { name: 'Pont fessier', sec: 45, cue: 'Sur le dos, pousse les hanches vers le haut, serre les fessiers.' },
+    { name: 'Squat profond tenu', sec: 45, cue: 'Talons au sol, coudes qui poussent les genoux vers l\'extérieur.' },
+    { name: 'Étirement psoas', sec: 60, cue: 'Genou au sol, avance le bassin, sens l\'avant de la hanche.' },
+  ] },
+  { key: 'shoulders', emoji: '🏔️', title: 'Mobilité épaules', minutes: 5, why: 'Prépare tractions et pompes, ouvre la posture.', moves: [
+    { name: 'Dislocations (bâton/serviette)', sec: 45, cue: 'Bras tendus, passe une serviette de l\'avant à l\'arrière.' },
+    { name: 'Cercles d\'omoplates', sec: 30, cue: 'Rentre et sors les omoplates en cercle.' },
+    { name: 'Étirement porte de chambranle', sec: 60, cue: 'Avant-bras contre le mur, avance le buste, sens l\'ouverture des pecs.' },
+    { name: 'Rotation externe bras', sec: 45, cue: 'Coude au corps, ouvre l\'avant-bras vers l\'extérieur.' },
+  ] },
+  { key: 'stretch', emoji: '🧘', title: 'Étirements complets', minutes: 8, why: 'Relâche les grands groupes après une séance.', moves: [
+    { name: 'Ischios (jambe tendue)', sec: 45, cue: 'Debout ou assis, penche-toi vers le pied, dos long.' },
+    { name: 'Quadriceps debout', sec: 45, cue: 'Attrape la cheville, genou vers le sol, bassin en avant.' },
+    { name: 'Fessiers (figure 4)', sec: 60, cue: 'Sur le dos, cheville sur le genou opposé, tire la cuisse.' },
+    { name: 'Dos (posture de l\'enfant)', sec: 60, cue: 'À genoux, bras tendus devant, relâche le dos.' },
+    { name: 'Pecs / épaules au sol', sec: 45, cue: 'Bras au sol en croix, laisse la poitrine s\'ouvrir.' },
+    { name: 'Mollets contre le mur', sec: 45, cue: 'Jambe arrière tendue, talon au sol, avance le bassin.' },
+  ] },
+  { key: 'cooldown', emoji: '🧊', title: 'Retour au calme', minutes: 5, why: 'Fait redescendre le cœur et détend après la course/muscu.', moves: [
+    { name: 'Respiration profonde', sec: 60, cue: 'Inspire 4 s, expire 6 s, épaules basses.' },
+    { name: 'Marche sur place lente', sec: 60, cue: 'Décontracte les jambes, respire calmement.' },
+    { name: 'Étirement chaîne postérieure', sec: 60, cue: 'Penché en avant, relâche la nuque et le dos.' },
+    { name: 'Torsion allongée', sec: 60, cue: 'Sur le dos, genoux d\'un côté, regard de l\'autre.' },
+  ] },
+  { key: 'morning', emoji: '☀️', title: 'Réveil articulaire', minutes: 4, why: 'Démarre la journée en douceur, dérouille les articulations.', moves: [
+    { name: 'Cercles de nuque', sec: 30, cue: 'Lents et petits, sans forcer.' },
+    { name: 'Cercles de chevilles & poignets', sec: 40, cue: 'Dans les deux sens.' },
+    { name: 'Chat-vache', sec: 45, cue: 'À quatre pattes, arrondis puis creuse le dos.' },
+    { name: 'Étirement latéral debout', sec: 40, cue: 'Bras au-dessus de la tête, penche de chaque côté.' },
+  ] },
+];
+// Prépare une routine bien-être pour la séance guidée (mouvements → exercices en secondes). Null si clé inconnue. Pur + testé.
+function wellnessRoutine(key) {
+  const r = WELLNESS_ROUTINES.find(x => x.key === key);
+  if (!r) return null;
+  return { key: r.key, emoji: r.emoji, title: r.title, minutes: r.minutes, why: r.why, exercises: r.moves.map(m => ({ name: m.name, sets: 1, reps: Number(m.sec) || 30, unit: 'sec', rest: 0, cue: m.cue })) };
+}
+
 // Bloc de progression sur 4 semaines : S1 base, S2 volume (+1 série), S3 intensité (charge ↑),
 // S4 décharge (récup). weekIndex 0-based (cycle tous les 4). Pur + testé.
 function blockPhase(weekIndex) {
@@ -2851,5 +2903,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, missedSessions, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveNutrition, programWeekSummary, objectiveProgramText, onboardingSetup, blockPhase, progressSets, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, missedSessions, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveNutrition, programWeekSummary, objectiveProgramText, onboardingSetup, WELLNESS_ROUTINES, wellnessRoutine, blockPhase, progressSets, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }
