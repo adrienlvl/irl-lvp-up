@@ -1766,6 +1766,20 @@ test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge
   assert.equal(L.workoutTonnage({}), 0);
   assert.equal(L.workoutTonnage(null), 0);
 });
+test('strengthPlateau : détecte l’absence de nouveau record de force', () => {
+  // progression continue → pas de plateau
+  assert.equal(L.strengthPlateau([90, 92, 94, 96, 98], 3), null);
+  // plateau : 3 dernières séances ne dépassent pas le meilleur d'avant (100)
+  const p = L.strengthPlateau([95, 100, 98, 99, 97], 3);
+  assert.ok(p && p.plateau === true && p.sessions === 3 && p.best === 100);
+  assert.ok(/plateau/i.test(p.advice));
+  // égalité au record → considéré plateau (pas de dépassement strict)
+  assert.ok(L.strengthPlateau([100, 98, 99, 100], 3));
+  // historique insuffisant → null
+  assert.equal(L.strengthPlateau([100, 101, 102], 3), null);
+  assert.equal(L.strengthPlateau([], 3), null);
+  assert.equal(L.strengthPlateau(null), null);
+});
 test('lifetimeTonnage : cumul du tonnage sur toutes les séances', () => {
   const workouts = [
     { exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }, // 1800
