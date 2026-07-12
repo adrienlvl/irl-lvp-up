@@ -1694,6 +1694,14 @@ test('sessionMinutes : somme des durées, valeurs invalides ignorées', () => {
   assert.equal(L.sessionMinutes('nope'), 0);
 });
 
+test('formatClock : secondes → m:ss', () => {
+  assert.equal(L.formatClock(90), '1:30');
+  assert.equal(L.formatClock(45), '0:45');
+  assert.equal(L.formatClock(125), '2:05');
+  assert.equal(L.formatClock(0), '0:00');
+  assert.equal(L.formatClock(-8), '0:00');
+  assert.equal(L.formatClock('x'), '0:00');
+});
 test('restBarPct : temps restant en % du total, borné', () => {
   assert.equal(L.restBarPct(75, 75), 100);
   assert.equal(L.restBarPct(30, 60), 50);
