@@ -1961,6 +1961,20 @@ test('mealIdea : exemple d’assiette par repas, rotation par seed', () => {
   // repas inconnu → repli
   assert.match(L.mealIdea('Brunch', 400, 0).example, /Protéine/);
 });
+test('coachPlanText : plan Coach Poids en texte partageable', () => {
+  const txt = L.coachPlanText({
+    plan: { goal: 'perte', diff: 6, targetDate: '2026-11-08', dailyTarget: 1875, proteinG: 162, carbG: 143, fatG: 73 },
+    week: [{ weekday: 1, label: 'Course', minutes: 40 }, { weekday: 3, label: 'Musculation', minutes: 45 }],
+    meals: [{ meal: 'Petit-déjeuner', kcal: 469, example: 'Avoine + skyr' }],
+  });
+  assert.match(txt, /Perdre 6 kg/);
+  assert.match(txt, /1875 kcal\/jour/);
+  assert.match(txt, /cible ~ 08\/11\/2026/);
+  assert.match(txt, /- Lun : Course · 40 min/);
+  assert.match(txt, /- Mer : Musculation · 45 min/);
+  assert.match(txt, /- Petit-déjeuner : 469 kcal · Avoine \+ skyr/);
+  assert.equal(L.coachPlanText({}), '', 'sans plan → vide');
+});
 test('coachSteps : marche à suivre selon l’objectif', () => {
   assert.match(L.coachSteps('perte')[0], /déficit/);
   assert.match(L.coachSteps('prise')[0], /surplus/);
