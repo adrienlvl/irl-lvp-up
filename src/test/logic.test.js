@@ -2286,6 +2286,19 @@ test('wellnessRoutine : routines de mobilité/récup en secondes', () => {
   // chaque routine a un emoji, un titre, des minutes et des mouvements
   L.WELLNESS_ROUTINES.forEach(rt => { assert.ok(rt.key && rt.emoji && rt.title && rt.minutes > 0 && rt.moves.length >= 3); });
 });
+test('wellnessRecurringEvent : routine récup programmable en récurrent', () => {
+  const ev = L.wellnessRecurringEvent('cooldown', { startDate: '2026-07-13' });
+  assert.ok(/Retour au calme/.test(ev.title));
+  assert.equal(ev.kind, 'sport');
+  assert.equal(ev.refId, 'wellness-cooldown');
+  assert.equal(ev.rule.freq, 'weekly');
+  assert.deepEqual(ev.rule.weekdays, [2, 5]);
+  assert.equal(ev.rule.startDate, '2026-07-13');
+  assert.ok(ev.durationMin > 0);
+  // jours personnalisables
+  assert.deepEqual(L.wellnessRecurringEvent('hips', { weekdays: [1, 3, 5] }).rule.weekdays, [1, 3, 5]);
+  assert.equal(L.wellnessRecurringEvent('inconnu'), null);
+});
 test('suggestedRoutine : routine selon forme + charge', () => {
   assert.equal(L.suggestedRoutine('deload', 90).key, 'cooldown', 'charge élevée → récup');
   assert.equal(L.suggestedRoutine('maintain', 40).key, 'cooldown', 'forme basse → récup');
