@@ -14,5 +14,11 @@
   "icons": [
     { "src": "assets/irl-lvp-up-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "assets/irl-lvp-up-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Mon entraînement", "short_name": "Séance", "url": "./index.html?go=athlete" },
+    { "name": "Coach Poids", "short_name": "Coach", "url": "./index.html?go=coach" },
+    { "name": "Mon agenda", "short_name": "Agenda", "url": "./index.html?go=agenda" },
+    { "name": "Nutrition", "short_name": "Nutrition", "url": "./index.html?go=nutrition" }
   ]
 }

@@ -2,6 +2,10 @@ function showAppError(msg){try{console.error('[IRL]',msg);let bar=document.getEl
 /* PWA : enregistre le service worker quand l'app est servie en http(s) (mobile/navigateur).
    Ignoré dans Electron (file://) et si l'API n'existe pas. */
 (function(){try{if(/^https?:$/.test(location.protocol)&&'serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').catch(function(){});}}catch(_){}})();
+/* PWA : bouton « Installer l'app » (Android/desktop) quand le navigateur le propose. */
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById('installBtn');if(b)b.hidden=false;});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.hidden=true;});
 window.addEventListener('error',e=>showAppError((e.error&&e.error.message)||e.message||'erreur inconnue'));
 window.addEventListener('unhandledrejection',e=>showAppError((e.reason&&e.reason.message)||String(e.reason||'rejet non géré')));
 (function(){try{var v=localStorage.getItem('irl-theme');var mode=(v==='light'||v==='dark'||v==='auto')?v:'dark';var sysDark=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)').matches:true;var eff=mode==='light'?'light':mode==='dark'?'dark':(sysDark?'dark':'light');document.documentElement.dataset.theme=eff==='light'?'light':'';}catch(_){}})();
@@ -442,6 +446,8 @@ function showAthleteTab(tab){athleteTab=tab;document.querySelectorAll('.athlete-
 const athleteSubnav=document.querySelector('.athlete-subnav');if(athleteSubnav)athleteSubnav.onclick=e=>{const b=e.target.closest('[data-atab]');if(b)showAthleteTab(b.dataset.atab);};
 assignAthleteTabs();showAthleteTab(athleteTab);
 render();paintTimer();showPage('dashboard');setupCollapsibles();setupComfort();setupDesktopReminders();setupCalendarSync();setupTravelStart();offerLocalBackupRestore().then(migratePhotosToDisk);
+$('#installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;const b=$('#installBtn');deferredInstall.prompt();try{await deferredInstall.userChoice;}catch(_){}deferredInstall=null;if(b)b.hidden=true;});
+(function(){try{const go=new URLSearchParams(location.search).get('go');if(!go)return;const nav={athlete:()=>showPage('athlete'),coach:()=>{showPage('athlete');if(typeof showAthleteTab==='function')showAthleteTab('progres');},nutrition:()=>showPage('nutrition'),agenda:()=>$('#openWeekPage')?.click()};if(nav[go])setTimeout(nav[go],140);}catch(_){}})();
 /* Vue Jour vivante : rafraîchit chaque minute la ligne « maintenant » et les « pars dans X min »
    quand la vue Jour est affichée et qu'aucune boîte de dialogue n'est ouverte (ne touche pas au formulaire). */
 setInterval(()=>{try{const wp=$('#weekPage'),dv=$('#dayView');if(wp&&!wp.hidden&&dv&&!dv.hidden&&!document.querySelector('dialog[open]')&&typeof renderDayView==='function')renderDayView();}catch(_){}},60000);setTimeout(()=>{const isNew=!state.onboardingDone&&!state.workouts.length&&!state.focusSessions.length&&!state.lifeGoals.some(Boolean);if(isNew)openOnboarding();},180);

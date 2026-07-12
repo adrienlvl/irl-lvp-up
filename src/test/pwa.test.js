@@ -19,6 +19,15 @@ test('PWA : manifest valide + champs requis + icônes présentes', () => {
     assert.equal(ic.type, 'image/png', 'icône PNG');
     assert.ok(fs.existsSync(path.join(dir, ic.src)), 'fichier icône présent : ' + ic.src);
   });
+  // raccourcis d'app (menu long-press sur l'icône installée)
+  assert.ok(Array.isArray(m.shortcuts) && m.shortcuts.length >= 3, 'shortcuts définis');
+  m.shortcuts.forEach(sc => { assert.ok(sc.name && /\?go=/.test(sc.url), 'shortcut nom + url ?go='); });
+  // bouton d'installation + capture beforeinstallprompt
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.ok(/id="installBtn"/.test(html), 'bouton installer présent');
+  const appjs = fs.readFileSync(path.join(dir, 'app.js'), 'utf8');
+  assert.ok(/beforeinstallprompt/.test(appjs), 'capture beforeinstallprompt');
+  assert.ok(/URLSearchParams\(location\.search\)/.test(appjs), 'traitement du paramètre ?go des raccourcis');
 });
 
 test('PWA : le service worker précache des fichiers qui existent vraiment', () => {
