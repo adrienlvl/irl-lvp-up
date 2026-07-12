@@ -2242,6 +2242,30 @@ test('programWeekSummary : total séances/minutes/heures d’un programme', () =
   assert.deepEqual(empty, { sessions: 0, muscu: 0, course: 0, minutes: 0, hours: 0 });
   assert.equal(L.programWeekSummary(null).sessions, 0, 'entrée invalide → 0');
 });
+test('onboardingSetup : patch d’état initial validé/borné', () => {
+  const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
+  assert.equal(s.fitnessObjective, 'seche');
+  assert.equal(s.goals.sessions, 4);
+  assert.equal(s.profile.weight, 82.4);
+  assert.equal(s.profile.height, 178);
+  assert.equal(s.profile.age, 29);
+  assert.equal(s.profile.goal, 'recomposition');
+  assert.deepEqual(s.profile.equipment, { handles: false, vest: false, kettlebell: true, pullup: false });
+  assert.equal(s.activeProgram, 'fullbody');
+  // objectif inconnu → athletique ; endurance → activeProgram run + goal trail
+  assert.equal(L.onboardingSetup({ objective: 'zzz' }).fitnessObjective, 'athletique');
+  const endu = L.onboardingSetup({ objective: 'endurance', sessions: 9 });
+  assert.equal(endu.activeProgram, 'run');
+  assert.equal(endu.profile.goal, 'trail');
+  assert.equal(endu.goals.sessions, 7, 'séances bornées à 7');
+  // valeurs hors bornes → omises / défauts
+  const bad = L.onboardingSetup({ weight: 5, height: 999, age: 200, sex: 'x' });
+  assert.equal(bad.profile.weight, undefined);
+  assert.equal(bad.profile.height, undefined);
+  assert.equal(bad.profile.age, 30);
+  assert.equal(bad.profile.sex, 'homme');
+  assert.ok(L.onboardingSetup(null).fitnessObjective === 'athletique');
+});
 test('objectiveProgramText : export texte lisible du programme', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
   const prog = L.objectiveProgram('athletique', ex);
