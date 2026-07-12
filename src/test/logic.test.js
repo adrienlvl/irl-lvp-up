@@ -1815,6 +1815,21 @@ test('energyPlan : calories, macros, rythme et date d’atteinte (perte)', () =>
   assert.equal(L.energyPlan({ weight: 75, height: 175, age: 25, sex: 'homme', sessionsPerWeek: 3, targetWeight: 75, todayKey: '2026-07-12' }).goal, 'maintien');
   assert.equal(L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', targetWeight: 0 }), null, 'sans cible → null');
 });
+test('weightForecast : trajectoire hebdo bornée à la cible', () => {
+  const f = L.weightForecast(80, 72, 0.48, 17, '2026-07-12');
+  assert.equal(f.length, 18, 'today + 17 semaines');
+  assert.deepEqual(f[0], { date: '2026-07-12', value: 80 });
+  assert.equal(f[1].value, 79.5, '80 − 0,48 arrondi 0,1');
+  assert.equal(f.at(-1).value, 72, 'borné à la cible');
+  assert.equal(f.at(-1).date, '2026-11-08', '12/07 + 17 sem.');
+  // prise de masse : monte vers la cible
+  const g = L.weightForecast(70, 74, 0.25, 16, '2026-07-12');
+  assert.equal(g.at(-1).value, 74); assert.ok(g[1].value > 70);
+  // garde-fous
+  assert.deepEqual(L.weightForecast(80, 72, 0, 17, '2026-07-12'), [], 'rythme nul → []');
+  assert.deepEqual(L.weightForecast(80, 72, 0.5, 0, '2026-07-12'), [], '0 semaine → []');
+  assert.deepEqual(L.weightForecast(80, 0, 0.5, 17, '2026-07-12'), [], 'sans cible → []');
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
