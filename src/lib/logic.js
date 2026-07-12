@@ -1264,6 +1264,38 @@ function weeklySummaryText(sum) {
   return lines.join('\n');
 }
 
+// Bilan hebdo intelligent : compare la semaine (weeklySummary) aux objectifs et à la semaine
+// précédente (+ ACWR, sommeil) et renvoie des insights personnalisés { emoji, tone, text }
+// (tone: good|warn|info), 1 à 5. Pur + testé.
+function weeklyInsights(state, mondayKey, todayKey) {
+  const s = state || {};
+  const cur = weeklySummary(s, mondayKey);
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(mondayKey || ''));
+  let prev = null;
+  if (t) { const d = new Date(+t[1], +t[2] - 1, +t[3]); d.setDate(d.getDate() - 7); const p = n => String(n).padStart(2, '0'); prev = weeklySummary(s, `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`); }
+  const goals = s.goals && typeof s.goals === 'object' ? s.goals : {};
+  const out = [];
+  const goalSessions = Math.round(Number(goals.sessions) || 0);
+  if (goalSessions > 0) {
+    if (cur.sessions >= goalSessions) out.push({ emoji: '✅', tone: 'good', text: `${cur.sessions}/${goalSessions} séances — objectif atteint, bravo !` });
+    else out.push({ emoji: '🎯', tone: 'warn', text: `${cur.sessions}/${goalSessions} séances — encore ${goalSessions - cur.sessions} pour ton objectif hebdo.` });
+  } else if (cur.sessions > 0) out.push({ emoji: '🏋️', tone: 'info', text: `${cur.sessions} séance${cur.sessions > 1 ? 's' : ''} cette semaine.` });
+  const goalKm = Number(goals.distance) || 0;
+  if (goalKm > 0 && cur.km > 0) out.push(cur.km >= goalKm
+    ? { emoji: '🏃', tone: 'good', text: `${cur.km} km courus — objectif ${goalKm} km atteint.` }
+    : { emoji: '🏃', tone: 'info', text: `${cur.km}/${goalKm} km courus cette semaine.` });
+  if (prev && (prev.minutes > 0 || cur.minutes > 0)) {
+    const d = cur.minutes - prev.minutes;
+    if (d >= 15) out.push({ emoji: '📈', tone: 'good', text: `+${d} min vs semaine dernière — tu montes en volume.` });
+    else if (d <= -30) out.push({ emoji: '📉', tone: 'warn', text: `${d} min vs semaine dernière — volume en baisse, semaine plus légère ?` });
+  }
+  const acwr = acuteChronicRatio(s.workouts, todayKey || mondayKey);
+  if (acwr && acwr.zone === 'high') out.push({ emoji: '🟥', tone: 'warn', text: `Charge en pic (ACWR ${acwr.ratio}) : prévois une semaine plus légère pour éviter la blessure.` });
+  if (cur.sleepAvg > 0 && cur.sleepAvg < 7) out.push({ emoji: '😴', tone: 'warn', text: `Sommeil moyen ${cur.sleepAvg} h — vise 7–8 h pour mieux récupérer et progresser.` });
+  if (!out.length) out.push({ emoji: '🌱', tone: 'info', text: `Pas encore de données cette semaine — lance une séance pour démarrer ton bilan.` });
+  return out.slice(0, 5);
+}
+
 // Calcul pur de la prescription d'un exercice (unité, repos, durée estimée).
 // `source` = fiche de la bibliothèque (ou undefined) ; injectée pour rester testable
 // sans dépendre du global `exercises`. app.js fournit le lookup.
@@ -2707,5 +2739,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveNutrition, programWeekSummary, objectiveProgramText, blockPhase, progressSets, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveNutrition, programWeekSummary, objectiveProgramText, blockPhase, progressSets, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }

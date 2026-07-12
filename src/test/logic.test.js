@@ -756,6 +756,30 @@ test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions',
   assert.equal(r.studyPlanned, 2);
   assert.equal(r.studyDone, 1);
 });
+test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
+  const state = {
+    workouts: [
+      { date: '2026-07-06', type: 'run', duration: 40, distance: 8, effort: 2 },
+      { date: '2026-07-08', type: 'strength', duration: 50, effort: 3 },
+      { date: '2026-07-09', type: 'strength', duration: 50, effort: 3 },
+      { date: '2026-07-10', type: 'run', duration: 30, distance: 4, effort: 2 },
+    ],
+    recovery: [{ date: '2026-07-07', sleep: 5 }],
+    goals: { sessions: 4, distance: 10 },
+  };
+  const ins = L.weeklyInsights(state, '2026-07-06', '2026-07-11');
+  assert.ok(Array.isArray(ins) && ins.length >= 1 && ins.length <= 5);
+  assert.ok(ins.every(i => i.emoji && i.text && ['good', 'warn', 'info'].includes(i.tone)));
+  // 4/4 séances → objectif atteint (good)
+  assert.ok(ins.some(i => i.tone === 'good' && /séances/.test(i.text)));
+  // 12 km >= 10 → objectif course atteint
+  assert.ok(ins.some(i => /km/.test(i.text)));
+  // sommeil 5 h → alerte
+  assert.ok(ins.some(i => /[Ss]ommeil/.test(i.text) && i.tone === 'warn'));
+  // état vide → un message d'amorce
+  const empty = L.weeklyInsights({}, '2026-07-06', '2026-07-11');
+  assert.equal(empty.length, 1);
+});
 
 test('weeksBetween : compte les semaines, négatif si passé', () => {
   assert.equal(L.weeksBetween('2026-07-06', '2026-07-20'), 2);
