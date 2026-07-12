@@ -1531,6 +1531,26 @@ test('phaseSetsForDay : séries d’une séance ajustées à la phase du bloc', 
   assert.equal(L.phaseSetsForDay(3, start, '2026-08-20'), 3, 'hors bloc → base');
   assert.equal(L.phaseSetsForDay(3, '', '2026-07-15'), 3, 'sans bloc → base');
 });
+test('archiveBlock / blockHistorySummary : historique des blocs', () => {
+  let h = [];
+  h = L.archiveBlock(h, { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 });
+  h = L.archiveBlock(h, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 });
+  assert.equal(h.length, 2);
+  assert.equal(h[1].objective, 'muscle');
+  // entrée invalide ignorée
+  assert.equal(L.archiveBlock(h, { start: 'x' }).length, 2);
+  assert.equal(L.archiveBlock(h, null).length, 2);
+  // plafond
+  let big = []; for (let i = 0; i < 20; i++) big = L.archiveBlock(big, { objective: 'forme', start: '2026-01-01', weeks: 4 }, 12);
+  assert.equal(big.length, 12);
+  // summary
+  const s = L.blockHistorySummary(h);
+  assert.equal(s.count, 2);
+  assert.equal(s.last.objective, 'muscle');
+  assert.equal(s.byObjective.seche, 1);
+  assert.equal(L.blockHistorySummary([]), null);
+  assert.equal(L.blockHistorySummary(null), null);
+});
 test('nextBlockAdvice : reco du prochain bloc selon les résultats', () => {
   assert.equal(L.nextBlockAdvice({ adherence: 30 }).action, 'ease', 'adhérence basse prime');
   assert.equal(L.nextBlockAdvice({ adherence: 90, loadStatus: 'deload' }).action, 'lighten', 'charge haute → alléger');
