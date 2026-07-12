@@ -1663,6 +1663,58 @@ function coachWeekPlan(goal, days, opts) {
   };
 }
 
+// Étapes de coaching « comment y arriver » selon l'objectif de poids. Liste de conseils. Pur + testé.
+function coachSteps(goal) {
+  if (goal === 'prise') return [
+    'Vise un léger surplus calorique constant : c’est lui qui construit.',
+    'Muscu en surcharge progressive : ajoute des reps puis de la charge chaque semaine.',
+    'Protéines élevées réparties sur la journée pour nourrir le muscle.',
+    'Dors 7-9 h : la croissance se fait au repos.',
+    'Sois patient : ~0,25 kg/sem évite de prendre trop de gras.',
+  ];
+  if (goal === 'perte') return [
+    'Tiens un déficit calorique modéré et régulier : la régularité bat l’intensité.',
+    'Garde les protéines hautes + la muscu : tu perds du gras, pas du muscle.',
+    'Ajoute course/renfo pour creuser le déficit sans trop couper les calories.',
+    'Dors et gère le stress : ils pilotent l’appétit.',
+    'Pèse-toi 1×/sem à jeun et regarde la tendance sur 2-3 sem, pas le chiffre du jour.',
+  ];
+  return [
+    'Mange autour de ta dépense et bouge régulièrement.',
+    'Muscu pour entretenir la masse, cardio pour le cœur.',
+    'Protéines suffisantes et sommeil régulier.',
+    'Surveille la tendance de ton poids sur plusieurs semaines.',
+  ];
+}
+// Adhérence hebdo au plan (lundi → today) à partir des données réelles de l'état.
+// opts : { proteinTargetG, sessionTarget, waterGoal=8, sleepTarget=7, minProteinDays=3, minWaterDays=3 }.
+// Renvoie { items:[{key,label,done}], done, total, score }. Pur + testé.
+function weeklyAdherence(state, mondayKey, todayKey, opts) {
+  const s = state && typeof state === 'object' ? state : {};
+  const o = opts || {};
+  const arr = k => Array.isArray(s[k]) ? s[k] : [];
+  const inWeek = d => /^\d{4}-\d{2}-\d{2}$/.test(String(d || '')) && d >= mondayKey && d <= todayKey;
+  const sessionTarget = Math.max(1, Math.round(Number(o.sessionTarget) || 3));
+  const workouts = arr('workouts').filter(w => w && inWeek(w.date)).length;
+  const protTgt = Number(o.proteinTargetG) || 0, waterGoal = Number(o.waterGoal) || 8, sleepTarget = Number(o.sleepTarget) || 7;
+  const minProt = o.minProteinDays || 3, minWater = o.minWaterDays || 3;
+  const nut = arr('nutrition').filter(n => n && inWeek(n.date));
+  const protDays = protTgt > 0 ? nut.filter(n => (Number(n.protein) || 0) >= protTgt).length : 0;
+  const waterDays = nut.filter(n => (Number(n.water) || 0) >= waterGoal).length;
+  const rec = arr('recovery').filter(r => r && inWeek(r.date) && Number(r.sleep) > 0);
+  const sleepAvg = rec.length ? rec.reduce((a, r) => a + Number(r.sleep), 0) / rec.length : 0;
+  const weighed = arr('weights').some(w => w && inWeek(w.date));
+  const items = [
+    { key: 'sessions', label: `Séances (${workouts}/${sessionTarget})`, done: workouts >= sessionTarget },
+    { key: 'protein', label: `Protéines à la cible (${protDays} j)`, done: protTgt > 0 && protDays >= minProt },
+    { key: 'water', label: `Hydratation (${waterDays} j)`, done: waterDays >= minWater },
+    { key: 'sleep', label: `Sommeil ≥ ${sleepTarget} h (moy. ${sleepAvg ? Math.round(sleepAvg * 10) / 10 : '—'})`, done: sleepAvg >= sleepTarget },
+    { key: 'weighin', label: 'Pesée cette semaine', done: weighed },
+  ];
+  const done = items.filter(i => i.done).length;
+  return { items, done, total: items.length, score: Math.round(done / items.length * 100) };
+}
+
 // Répartition des calories & macros cibles sur les repas (petit-déj 25 % / déj 35 % / dîner 30 % / collation 10 %).
 // Renvoie [{meal, share, kcal, proteinG, carbG, fatG}] ou [] si calories invalides. Pur + testé.
 function mealSplit(dailyTarget, proteinG, carbG, fatG) {
@@ -2250,5 +2302,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, energyPlan, weightForecast, coachWeekPlan, mealSplit, nutritionTips, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, energyPlan, weightForecast, coachWeekPlan, mealSplit, nutritionTips, coachSteps, weeklyAdherence, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }

@@ -1862,6 +1862,29 @@ test('nutritionTips : conseils adaptés à l’objectif', () => {
   assert.match(L.nutritionTips('maintien')[0], /stabiliser/);
   assert.ok(L.nutritionTips('perte').length >= 4 && L.nutritionTips('perte').every(t => typeof t === 'string'));
 });
+test('coachSteps : marche à suivre selon l’objectif', () => {
+  assert.match(L.coachSteps('perte')[0], /déficit/);
+  assert.match(L.coachSteps('prise')[0], /surplus/);
+  assert.ok(L.coachSteps('maintien').length >= 4);
+});
+test('weeklyAdherence : score d’adhérence hebdo sur données réelles', () => {
+  const st = {
+    workouts: [{ date: '2026-07-06' }, { date: '2026-07-08' }, { date: '2026-07-10' }],
+    nutrition: [{ date: '2026-07-07', protein: 150, water: 8 }, { date: '2026-07-08', protein: 150, water: 8 }, { date: '2026-07-09', protein: 150, water: 8 }],
+    recovery: [{ date: '2026-07-08', sleep: 7.5 }, { date: '2026-07-09', sleep: 7 }],
+    weights: [{ date: '2026-07-08', value: 80 }],
+  };
+  const full = L.weeklyAdherence(st, '2026-07-06', '2026-07-12', { proteinTargetG: 140, sessionTarget: 3 });
+  assert.equal(full.total, 5); assert.equal(full.done, 5); assert.equal(full.score, 100);
+  // sans pesée → 80 %
+  const noWeigh = L.weeklyAdherence({ ...st, weights: [] }, '2026-07-06', '2026-07-12', { proteinTargetG: 140, sessionTarget: 3 });
+  assert.equal(noWeigh.score, 80);
+  assert.equal(noWeigh.items.find(i => i.key === 'weighin').done, false);
+  // séances insuffisantes → item séances non validé
+  const few = L.weeklyAdherence(st, '2026-07-06', '2026-07-12', { proteinTargetG: 140, sessionTarget: 5 });
+  assert.equal(few.items.find(i => i.key === 'sessions').done, false);
+  assert.equal(L.weeklyAdherence({}, '2026-07-06', '2026-07-12', {}).score, 0, 'état vide → 0');
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
