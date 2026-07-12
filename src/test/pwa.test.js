@@ -29,6 +29,13 @@ test('PWA : manifest valide + champs requis + icônes présentes', () => {
   assert.ok(/beforeinstallprompt/.test(appjs), 'capture beforeinstallprompt');
   assert.ok(/URLSearchParams\(location\.search\)/.test(appjs), 'traitement du paramètre ?go des raccourcis');
 });
+test('PWA : bannières hors-ligne + mise à jour + détection SW update', () => {
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.ok(/id="offlineBanner"/.test(html) && /id="pwaUpdateBanner"/.test(html), 'bannières présentes');
+  const appjs = fs.readFileSync(path.join(dir, 'app.js'), 'utf8');
+  assert.ok(/updatefound/.test(appjs), 'détection de mise à jour du SW');
+  assert.ok(/addEventListener\('offline'/.test(appjs) && /navigator\.onLine/.test(appjs), 'indicateur hors-ligne');
+});
 
 test('PWA : le service worker précache des fichiers qui existent vraiment', () => {
   const sw = fs.readFileSync(path.join(dir, 'service-worker.js'), 'utf8');

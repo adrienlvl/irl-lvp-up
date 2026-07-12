@@ -1,7 +1,10 @@
 function showAppError(msg){try{console.error('[IRL]',msg);let bar=document.getElementById('appErrorBar');if(!bar){bar=document.createElement('div');bar.id='appErrorBar';bar.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7f1d1d;color:#fff;padding:8px 14px;font:13px system-ui;text-align:center;cursor:pointer';bar.title='Cliquer pour masquer';bar.onclick=()=>bar.remove();if(document.body)document.body.appendChild(bar);}bar.textContent='⚠ Une erreur est survenue — tes données restent sauvegardées. '+msg;}catch(_){}}
 /* PWA : enregistre le service worker quand l'app est servie en http(s) (mobile/navigateur).
    Ignoré dans Electron (file://) et si l'API n'existe pas. */
-(function(){try{if(/^https?:$/.test(location.protocol)&&'serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').catch(function(){});}}catch(_){}})();
+(function(){try{if(/^https?:$/.test(location.protocol)&&'serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').then(function(reg){reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='installed'&&navigator.serviceWorker.controller){var b=document.getElementById('pwaUpdateBanner');if(b)b.hidden=false;}});});}).catch(function(){});}}catch(_){}})();
+/* PWA : indicateur hors-ligne. */
+function updateOnlineStatus(){try{var b=document.getElementById('offlineBanner');if(b)b.hidden=(navigator.onLine!==false);}catch(_){}}
+window.addEventListener('online',updateOnlineStatus);window.addEventListener('offline',updateOnlineStatus);
 /* PWA : bouton « Installer l'app » (Android/desktop) quand le navigateur le propose. */
 let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById('installBtn');if(b)b.hidden=false;});
@@ -452,6 +455,7 @@ const athleteSubnav=document.querySelector('.athlete-subnav');if(athleteSubnav)a
 assignAthleteTabs();showAthleteTab(athleteTab);
 render();paintTimer();showPage('dashboard');setupCollapsibles();setupComfort();setupDesktopReminders();setupCalendarSync();setupTravelStart();offerLocalBackupRestore().then(migratePhotosToDisk);
 $('#installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;const b=$('#installBtn');deferredInstall.prompt();try{await deferredInstall.userChoice;}catch(_){}deferredInstall=null;if(b)b.hidden=true;});
+$('#pwaReloadBtn')?.addEventListener('click',()=>location.reload());updateOnlineStatus();
 (function(){try{const go=new URLSearchParams(location.search).get('go');if(!go)return;const nav={athlete:()=>showPage('athlete'),coach:()=>{showPage('athlete');if(typeof showAthleteTab==='function')showAthleteTab('progres');},nutrition:()=>showPage('nutrition'),agenda:()=>$('#openWeekPage')?.click()};if(nav[go])setTimeout(nav[go],140);}catch(_){}})();
 /* Vue Jour vivante : rafraîchit chaque minute la ligne « maintenant » et les « pars dans X min »
    quand la vue Jour est affichée et qu'aucune boîte de dialogue n'est ouverte (ne touche pas au formulaire). */

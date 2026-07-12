@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.149 (2026-07-12)
+## 📍 État actuel — build 1.9.150 (2026-07-12)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **247 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→215) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **248 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→216) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) sont traités** ; phase d'**approfondissement en cours** (rotation #1→#4).
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 1re rotation d'approfondissement** ; **2e rotation en cours**.
 
+- 📴 **#1 approfondi (2) — hors-ligne + maj PWA** : bandeau hors-ligne + bannière « nouvelle version → Recharger ». ✅ _boucle #216 (build 1.9.150)._
 - 📆 **#4 approfondi — la décharge allège vraiment la séance** : la séance guidée d'un jour programmé applique les séries de la phase (S2 +1, S4 ~60 %), phase affichée au titre. ✅ _boucle #215 (build 1.9.149)._
 - 🧘 **#3 approfondi — routine suggérée selon la forme** : bandeau qui propose récup/échauffement/mobilité selon readiness+charge, + 2 routines (bas du dos, détente du soir → 8 au total). ✅ _boucle #214 (build 1.9.148)._
 - 🧭 **#2 approfondi — aperçu du programme à l'onboarding** : bouton « Voir un aperçu » (semaine + heures + macros) avant de valider. ✅ _boucle #213 (build 1.9.147)._
@@ -55,7 +56,7 @@ App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.149** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.150** non publiées (attendent un `npm run release` / upload d'Adrien).
 - 📱 **Cartes de stats mobile** : sur petit écran, les tuiles de stats (accueil) passent en colonne centrée (icône au-dessus du texte) et les tuiles « à vie » se resserrent — plus de contenu à l'étroit ni de débordement. ✅ _boucle #179 (build 1.9.113)._
 - 🎯 **Palmarès de force — prochain palier** : chaque exercice affiche le **prochain palier rond de 1RM** et l'écart à combler (ex. « 🎯 140 kg dans 6,5 »), pour un objectif de force concret et motivant. ✅ _boucle #178 (build 1.9.112)._
 - 📱 **Bibliothèque d'exercices fluide** : la grille des cartes passe en `auto-fill minmax(158px)` — elle s'adapte toute seule de 1 à N colonnes selon la largeur (téléphone → grand écran), sans média-query rigide. ✅ _boucle #177 (build 1.9.111)._
