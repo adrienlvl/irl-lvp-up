@@ -1848,6 +1848,20 @@ test('coachWeekPlan : semaine muscu/renfo/course adaptée à l’objectif', () =
   // objectif inconnu → maintien
   assert.match(L.coachWeekPlan('xxx', [1, 3]).note, /Maintien/);
 });
+test('mealSplit : répartition calories/macros sur 4 repas', () => {
+  const m = L.mealSplit(2000, 160, 200, 60);
+  assert.equal(m.length, 4);
+  assert.deepEqual(m.map(x => x.meal), ['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Collation']);
+  assert.deepEqual(m.map(x => x.kcal), [500, 700, 600, 200], '25/35/30/10 %');
+  assert.equal(m[1].proteinG, 56, '160 × 0,35'); assert.equal(m[1].carbG, 70); assert.equal(m[1].fatG, 21);
+  assert.deepEqual(L.mealSplit(0, 100, 100, 100), []);
+});
+test('nutritionTips : conseils adaptés à l’objectif', () => {
+  assert.match(L.nutritionTips('perte')[0], /déficit/);
+  assert.match(L.nutritionTips('prise')[0], /surplus/);
+  assert.match(L.nutritionTips('maintien')[0], /stabiliser/);
+  assert.ok(L.nutritionTips('perte').length >= 4 && L.nutritionTips('perte').every(t => typeof t === 'string'));
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
