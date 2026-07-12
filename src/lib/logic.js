@@ -1623,6 +1623,46 @@ function energyPlan(opts) {
   return { bmr, tdee, goal, diff: Math.abs(diff), ratePerWeek, deficit, dailyTarget, proteinG, fatG, carbG, weeks, targetDate };
 }
 
+// Répartition d'entraînement hebdo adaptée à l'objectif de poids, placée sur les jours dispo.
+// goal : 'perte'|'prise'|'maintien'. days : jours dispo (0=Dim … 6=Sam). Combine muscu (garde le muscle),
+// renfo (circuit intense) et course (déficit). Sessions espacées sur la semaine. Pur + testé.
+// Renvoie { sessions:[{weekday,type,label,minutes,why}], strength, runs, renfo, note }.
+function coachWeekPlan(goal, days, opts) {
+  const g = goal === 'perte' || goal === 'prise' ? goal : 'maintien';
+  const uniq = [...new Set((Array.isArray(days) ? days : []).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+  const slots = uniq.length || 4;
+  const TEMPLATE = {
+    perte: ['course', 'muscu', 'renfo', 'course', 'muscu', 'course'],
+    prise: ['muscu', 'muscu', 'course', 'muscu', 'muscu'],
+    maintien: ['muscu', 'course', 'muscu', 'renfo', 'course'],
+  };
+  const NOTE = {
+    perte: 'Perte de poids : la course et le renfo creusent le déficit, la muscu garde ton muscle. Garde des protéines hautes.',
+    prise: 'Prise de masse : priorité à la muscu en surcharge progressive ; peu de cardio pour préserver le surplus.',
+    maintien: 'Maintien : équilibre muscu + cardio pour entretenir forme et composition.',
+  };
+  const META = {
+    muscu: { label: 'Musculation', minutes: 45, why: 'Force : garde/construit le muscle.' },
+    renfo: { label: 'Renfo / circuit', minutes: 30, why: 'Circuit intense : grosse dépense en peu de temps.' },
+    course: { label: 'Course', minutes: 40, why: 'Endurance : creuse le déficit énergétique.' },
+  };
+  const goalTotal = g === 'perte' ? 6 : 5;
+  const total = Math.max(1, Math.min(goalTotal, slots));
+  const chosen = TEMPLATE[g].slice(0, total);
+  const dayList = [];
+  if (!uniq.length) { const def = [1, 3, 5, 2, 4, 6, 0]; for (let i = 0; i < total; i++) dayList.push(def[i % 7]); }
+  else if (uniq.length <= total) { for (let i = 0; i < total; i++) dayList.push(uniq[i % uniq.length]); }
+  else { for (let i = 0; i < total; i++) dayList.push(uniq[Math.round(i * (uniq.length - 1) / (total - 1 || 1))]); }
+  const sessions = chosen.map((type, i) => ({ weekday: dayList[i], type, ...META[type] })).sort((a, b) => a.weekday - b.weekday);
+  return {
+    sessions,
+    strength: sessions.filter(s => s.type === 'muscu').length,
+    runs: sessions.filter(s => s.type === 'course').length,
+    renfo: sessions.filter(s => s.type === 'renfo').length,
+    note: NOTE[g],
+  };
+}
+
 // Trajectoire de poids prévue vers la cible : un point par semaine de today → date cible,
 // au rythme donné (kg/sem, signe déduit du sens cible). Valeurs bornées à la cible, arrondies 0,1.
 // Renvoie [{date, value}] (>= 2 points) ou [] si données invalides. Pur + testé.
@@ -2184,5 +2224,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, energyPlan, weightForecast, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, energyPlan, weightForecast, coachWeekPlan, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }

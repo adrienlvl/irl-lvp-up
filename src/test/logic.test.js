@@ -1830,6 +1830,24 @@ test('weightForecast : trajectoire hebdo bornée à la cible', () => {
   assert.deepEqual(L.weightForecast(80, 72, 0.5, 0, '2026-07-12'), [], '0 semaine → []');
   assert.deepEqual(L.weightForecast(80, 0, 0.5, 17, '2026-07-12'), [], 'sans cible → []');
 });
+test('coachWeekPlan : semaine muscu/renfo/course adaptée à l’objectif', () => {
+  const perte = L.coachWeekPlan('perte', [1, 3, 5]);
+  assert.equal(perte.sessions.length, 3, '3 jours dispo → 3 séances');
+  assert.deepEqual(perte.sessions.map(s => s.weekday), [1, 3, 5], 'triées par jour');
+  assert.deepEqual(perte.sessions.map(s => s.type), ['course', 'muscu', 'renfo']);
+  assert.equal(perte.strength, 1); assert.equal(perte.runs, 1); assert.equal(perte.renfo, 1);
+  assert.match(perte.note, /déficit/);
+  // prise : priorité muscu, peu de cardio, espacé sur 6 jours
+  const prise = L.coachWeekPlan('prise', [1, 2, 3, 4, 5, 6]);
+  assert.equal(prise.strength, 4); assert.equal(prise.runs, 1);
+  assert.equal(prise.sessions.length, 5, 'cap à 5, un jour de repos');
+  // sans jours dispo → répartition par défaut, objectif maintien
+  const m = L.coachWeekPlan('maintien', []);
+  assert.ok(m.sessions.length >= 1 && m.sessions.length <= 5);
+  assert.match(m.note, /Maintien/);
+  // objectif inconnu → maintien
+  assert.match(L.coachWeekPlan('xxx', [1, 3]).note, /Maintien/);
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
