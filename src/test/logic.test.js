@@ -1766,6 +1766,16 @@ test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge
   assert.equal(L.workoutTonnage({}), 0);
   assert.equal(L.workoutTonnage(null), 0);
 });
+test('lifetimeTonnage : cumul du tonnage sur toutes les séances', () => {
+  const workouts = [
+    { exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }, // 1800
+    { exercises: [{ name: 'DC', setLogs: [{ load: 40, reps: 8, completed: true }] }] }, // 320
+    { exercises: [{ name: 'Tractions', reps: 10, sets: 3 }] }, // 0
+  ];
+  assert.equal(L.lifetimeTonnage(workouts), 2120);
+  assert.equal(L.lifetimeTonnage([]), 0);
+  assert.equal(L.lifetimeTonnage(null), 0);
+});
 test('completedTonnage / completedSetCount : séries validées uniquement', () => {
   const ex = [
     { name: 'DC', setLogs: [{ load: 40, reps: 8, completed: true }, { load: 40, reps: 6, completed: false }] }, // 320
