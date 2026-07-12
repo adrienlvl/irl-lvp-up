@@ -1986,6 +1986,15 @@ test('basalMetabolicRate : Mifflin-St Jeor homme/femme + garde-fous', () => {
   assert.equal(L.basalMetabolicRate(0, 180, 30, 'homme'), null);
   assert.equal(L.basalMetabolicRate(80, 180, 0, 'homme'), null);
 });
+test('nextStreakMilestone : prochain palier de série', () => {
+  assert.deepEqual(L.nextStreakMilestone(0), { milestone: 3, remaining: 3 });
+  assert.deepEqual(L.nextStreakMilestone(3), { milestone: 7, remaining: 4 }, 'strictement au-dessus');
+  assert.deepEqual(L.nextStreakMilestone(5), { milestone: 7, remaining: 2 });
+  assert.deepEqual(L.nextStreakMilestone(29), { milestone: 30, remaining: 1 });
+  assert.equal(L.nextStreakMilestone(365), null, 'dernier palier atteint');
+  assert.equal(L.nextStreakMilestone(500), null);
+  assert.deepEqual(L.nextStreakMilestone(-4), { milestone: 3, remaining: 3 }, 'négatif → 0');
+});
 test('bmiInfo : IMC + catégorie OMS', () => {
   assert.deepEqual(L.bmiInfo(80, 180), { bmi: 24.7, category: 'corpulence normale' });
   assert.equal(L.bmiInfo(60, 180).category, 'corpulence normale');
