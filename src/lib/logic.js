@@ -1508,13 +1508,19 @@ function bodyGoalWorkout(key, exercises, opts) {
 }
 
 // Choisit ~n exercices couvrant une liste de zones, en tournant (round-robin) : une par zone,
-// meilleures d'abord, sans doublon. Renvoie [{name,sets,reps,unit}]. Pur + testé.
-function pickExercisesForZones(zones, exercises, n) {
+// meilleures d'abord, sans doublon. `offset` fait tourner le choix dans chaque zone (variété /
+// bouton régénérer) tout en restant pertinent. Renvoie [{name,sets,reps,unit}]. Pur + testé.
+function pickExercisesForZones(zones, exercises, n, offset) {
   const list = Array.isArray(exercises) ? exercises : [];
   const zs = Array.isArray(zones) ? zones : [];
   const num = Math.max(1, Math.round(Number(n) || 5));
-  const byZone = zs.map(z => list.filter(x => x && x.name && exerciseZones(x.name).indexOf(z) !== -1)
-    .sort((a, b) => goalRank(a.name, z) - goalRank(b.name, z) || a.name.localeCompare(b.name, 'fr')));
+  const off = Math.max(0, Math.round(Number(offset) || 0));
+  const byZone = zs.map(z => {
+    const l = list.filter(x => x && x.name && exerciseZones(x.name).indexOf(z) !== -1)
+      .sort((a, b) => goalRank(a.name, z) - goalRank(b.name, z) || a.name.localeCompare(b.name, 'fr'));
+    if (off > 0 && l.length > 1) { const k = off % l.length; return l.slice(k).concat(l.slice(0, k)); }
+    return l;
+  });
   const picked = [], seen = new Set();
   let round = 0, added = true;
   while (picked.length < num && added) {
@@ -1542,7 +1548,8 @@ function objectiveProgram(key, exercises, opts) {
   const o = FITNESS_OBJECTIVES.find(x => x.key === key);
   if (!o) return null;
   const per = Math.max(3, Math.min(7, Math.round((opts && opts.perSession) || 5)));
-  const muscu = o.split.map(f => ({ kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45, exercises: pickExercisesForZones(FOCUS_ZONES[f], exercises, per) }));
+  const seed = Math.max(0, Math.round((opts && opts.seed) || 0));
+  const muscu = o.split.map((f, fi) => ({ kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45, exercises: pickExercisesForZones(FOCUS_ZONES[f], exercises, per, seed ? seed + fi : 0) }));
   const runs = runPlanWeek(o.runs).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why }));
   const ordered = []; let mi = 0, ri = 0;
   while (mi < muscu.length || ri < runs.length) { if (mi < muscu.length) ordered.push(muscu[mi++]); if (ri < runs.length) ordered.push(runs[ri++]); }

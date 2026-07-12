@@ -1366,6 +1366,16 @@ test('pickExercisesForZones : round-robin par zone, sans doublon', () => {
   assert.ok(p.every(e => e.sets > 0 && e.reps > 0 && e.unit));
   assert.deepEqual(L.pickExercisesForZones(['inconnu'], rich, 3), [], 'zone sans exercice → vide');
   assert.deepEqual(L.pickExercisesForZones(['legs'], [], 3), [], 'liste vide → vide');
+  // offset (bouton « varier ») : rotation → sélection différente mais valide sur une zone à ≥2 exos
+  const armsPool = [
+    { name: 'Pompes diamants', sets: 3, reps: 12 },
+    { name: 'Tractions supination', sets: 3, reps: 10 },
+    { name: 'Pike push-up', sets: 3, reps: 12 },
+  ];
+  const a0 = L.pickExercisesForZones(['arms'], armsPool, 1, 0).map(e => e.name);
+  const a1 = L.pickExercisesForZones(['arms'], armsPool, 1, 1).map(e => e.name);
+  assert.notDeepEqual(a1, a0, 'offset change la sélection');
+  assert.equal(L.pickExercisesForZones(['arms'], armsPool, 1, 3).length, 1, 'offset > taille reste borné');
 });
 test('objectiveProgram : programme hebdo auto par objectif', () => {
   const ex = [
