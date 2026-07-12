@@ -1561,6 +1561,13 @@ test('strengthRecords : meilleure série (1RM estimé) par exercice, triée', ()
   assert.equal(dc.e1rm, L.estimate1RM(45, 5));
   assert.deepEqual(L.strengthRecords([]), []);
 });
+test('nextStrengthMilestone : prochain palier rond + écart', () => {
+  assert.deepEqual(L.nextStrengthMilestone(133.5, 10), { milestone: 140, gap: 6.5 });
+  assert.deepEqual(L.nextStrengthMilestone(100, 10), { milestone: 110, gap: 10 }, 'strictement au-dessus');
+  assert.deepEqual(L.nextStrengthMilestone(62, 5), { milestone: 65, gap: 3 });
+  assert.equal(L.nextStrengthMilestone(0), null);
+  assert.equal(L.nextStrengthMilestone('x'), null);
+});
 test('exerciseHistoryStats : séances, dernière date, meilleure série, total séries', () => {
   const w = [
     { date: '2026-06-01', exercises: [{ name: 'Développé couché', load: 40, reps: 8, sets: 3 }] },
