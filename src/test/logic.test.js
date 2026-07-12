@@ -2297,6 +2297,23 @@ test('suggestedRoutine : routine selon forme + charge', () => {
   // la clé suggérée correspond toujours à une vraie routine
   assert.ok(L.wellnessRoutine(L.suggestedRoutine('deload', 40).key));
 });
+test('starterChecklist : premiers pas cochés selon l’état réel', () => {
+  const empty = L.starterChecklist({}, '2026-07-13');
+  assert.equal(empty.total, 6);
+  assert.equal(empty.done, 0);
+  assert.equal(empty.complete, false);
+  const some = L.starterChecklist({
+    fitnessObjective: 'seche', blockStart: '2026-07-13',
+    weights: [{ value: 80 }], workouts: [{ type: 'strength' }],
+    nutrition: [{ date: '2026-07-13', water: 5 }], quests: [{ done: true }],
+  }, '2026-07-13');
+  assert.equal(some.done, 6); assert.equal(some.complete, true);
+  const on = k => some.items.find(i => i.key === k).done;
+  assert.ok(on('objective') && on('program') && on('weight') && on('workout') && on('water') && on('quest'));
+  // eau insuffisante → non cochée
+  assert.equal(L.starterChecklist({ nutrition: [{ date: '2026-07-13', water: 2 }] }, '2026-07-13').items.find(i => i.key === 'water').done, false);
+  assert.equal(L.starterChecklist(null).done, 0);
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');
