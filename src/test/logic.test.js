@@ -1962,6 +1962,15 @@ test('basalMetabolicRate : Mifflin-St Jeor homme/femme + garde-fous', () => {
   assert.equal(L.basalMetabolicRate(0, 180, 30, 'homme'), null);
   assert.equal(L.basalMetabolicRate(80, 180, 0, 'homme'), null);
 });
+test('bmiInfo : IMC + catégorie OMS', () => {
+  assert.deepEqual(L.bmiInfo(80, 180), { bmi: 24.7, category: 'corpulence normale' });
+  assert.equal(L.bmiInfo(60, 180).category, 'corpulence normale');
+  assert.equal(L.bmiInfo(55, 180).category, 'maigreur', 'IMC < 18,5');
+  assert.equal(L.bmiInfo(90, 180).category, 'surpoids', 'IMC 25–30');
+  assert.equal(L.bmiInfo(105, 180).category, 'obésité', 'IMC ≥ 30');
+  assert.equal(L.bmiInfo(0, 180), null);
+  assert.equal(L.bmiInfo(80, 0), null);
+});
 test('activityFactor : palier selon séances/semaine', () => {
   assert.equal(L.activityFactor(0), 1.2);
   assert.equal(L.activityFactor(2), 1.375);
