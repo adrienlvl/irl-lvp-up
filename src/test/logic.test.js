@@ -2025,6 +2025,33 @@ test('basalMetabolicRate : Mifflin-St Jeor homme/femme + garde-fous', () => {
   assert.equal(L.basalMetabolicRate(0, 180, 30, 'homme'), null);
   assert.equal(L.basalMetabolicRate(80, 180, 0, 'homme'), null);
 });
+test('suggestedQuests : quêtes du jour depuis l’état réel', () => {
+  const today = '2026-07-13';
+  const state = {
+    agenda: [{ kind: 'sport', date: today, completed: false }],
+    workouts: [],
+    nutrition: [{ date: today, protein: 20, water: 2 }],
+    focusSessions: [],
+    habits: [],
+    profile: { weight: 80, goal: 'recomposition' },
+    quests: [],
+  };
+  const q = L.suggestedQuests(state, today);
+  assert.ok(Array.isArray(q) && q.length >= 1 && q.length <= 4);
+  assert.ok(q.every(x => x.name && x.category && x.xp > 0));
+  assert.ok(q.some(x => x.key === 'session'), 'séance prévue non faite');
+  assert.ok(q.some(x => x.key === 'protein'), 'protéines sous la cible');
+  assert.ok(q.some(x => x.key === 'water'), 'eau sous la cible');
+  // exclut celles déjà présentes (par nom)
+  const dejaLa = q.find(x => x.key === 'protein').name;
+  const q2 = L.suggestedQuests({ ...state, quests: [{ name: dejaLa }] }, today);
+  assert.ok(!q2.some(x => x.name === dejaLa), 'quête déjà ajoutée exclue');
+  // séance faite → pas de quête séance
+  const q3 = L.suggestedQuests({ ...state, workouts: [{ date: today, type: 'strength' }] }, today);
+  assert.ok(!q3.some(x => x.key === 'session' || x.key === 'move'));
+  const qNull = L.suggestedQuests(null, today);
+  assert.ok(Array.isArray(qNull) && qNull.length <= 4, 'état nul → sûr (suggestions par défaut)');
+});
 test('nextStreakMilestone : prochain palier de série', () => {
   assert.deepEqual(L.nextStreakMilestone(0), { milestone: 3, remaining: 3 });
   assert.deepEqual(L.nextStreakMilestone(3), { milestone: 7, remaining: 4 }, 'strictement au-dessus');
