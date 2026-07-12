@@ -980,6 +980,24 @@ test('nextTrainingSession : prochaine séance à venir, tri date puis heure', ()
   assert.equal(L.nextTrainingSession([{ id: 7, date: '2026-07-01', time: '10:00' }], '2026-07-10', 0), null);
   assert.equal(L.nextTrainingSession('pas-un-tableau', '2026-07-10', 0), null);
 });
+test('missedSessions : séances sport prévues récentes non faites', () => {
+  const today = '2026-07-15';
+  const agenda = [
+    { kind: 'sport', date: '2026-07-13', title: '🏋️ Haut du corps', completed: false }, // manquée
+    { kind: 'sport', date: '2026-07-12', title: '🏃 Course facile', completed: true },     // faite (completed)
+    { kind: 'sport', date: '2026-07-11', title: '🏋️ Bas du corps', completed: false },    // faite (workout loggé)
+    { kind: 'sport', date: '2026-07-16', title: '🏋️ À venir', completed: false },          // futur → ignoré
+    { kind: 'study', date: '2026-07-10', title: 'Révision', completed: false },             // pas sport
+    { kind: 'sport', date: '2026-06-01', title: '🏋️ Trop vieux', completed: false },       // hors fenêtre 14 j
+  ];
+  const workouts = [{ date: '2026-07-11', type: 'strength' }];
+  const m = L.missedSessions(agenda, workouts, today, { days: 14 });
+  assert.equal(m.length, 1, 'seule la séance du 13 est manquée');
+  assert.equal(m[0].date, '2026-07-13');
+  assert.equal(m[0].title, '🏋️ Haut du corps');
+  assert.deepEqual(L.missedSessions([], [], today), []);
+  assert.deepEqual(L.missedSessions(agenda, workouts, 'pas-une-date'), []);
+});
 
 test('intermediateGoals : ultra 170km/2ans → paliers croissants échelonnés', () => {
   const now = new Date('2026-07-06T12:00:00');

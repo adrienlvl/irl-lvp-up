@@ -6,6 +6,9 @@
 .load-advice.build{border-left-color:#5eb2ff;background:rgba(94,178,255,.07)}
 .load-advice.deload{border-left-color:var(--pink);background:rgba(251,113,133,.08)}
 .load-advice.ease{border-left-color:#fbbf24;background:rgba(251,191,36,.08)}
+.missed-sessions{margin:10px 0;padding:11px 14px;border-radius:11px;border:1px solid var(--line);border-left:3px solid var(--purple);background:rgba(167,139,250,.08);display:flex;flex-direction:column;gap:3px}
+.missed-sessions b{font-size:.88rem}
+.missed-sessions span{color:var(--muted);font-size:.82rem;line-height:1.4}
 .weekly-insights{display:grid;gap:8px;margin:10px 0}
 .wi-item{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);border-left:3px solid var(--muted);background:var(--surface-2)}
 .wi-item span{font-size:1rem;line-height:1.2}
