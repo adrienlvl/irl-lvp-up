@@ -6,17 +6,18 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.113 (2026-07-12)
+## 📍 État actuel — build 1.9.114 (2026-07-12)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **217 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→179) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **219 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→180) :
 
+- 🎯 **PROGRAMME AUTO PAR OBJECTIF — NOUVEAU** (panneau Athlète → Séance, boucle #180, build 1.9.114) : tu choisis **un objectif** (🏃 Corps athlétique · 💪 Prise de muscle · 🔥 Perte de gras · 🏔️ Endurance/trail · ⚖️ Remise en forme) et l'app génère **toute la semaine** — nombre de **courses** (type + durée) **et** de **séances muscu avec un split précis** (haut/bas/full body, poussée/tirage/jambes…), chaque séance étant **concrète** (exercices + séries × reps de ta bibliothèque) et **lançable direct en mode guidé** ; **« Programmer la semaine (4 sem.) »** place tout dans l'agenda.
 - 🎯 **MODULE COACH POIDS — COMPLET** (panneau Athlète → Progrès, boucles #157→162, builds 1.9.91→1.9.96) : à partir du poids actuel, taille, âge, sexe et **niveau d'activité**, il calcule métabolisme + dépense (TDEE), **calories & macros cibles**, la **date d'atteinte estimée**, une **projection graphique** (prévu vs réel + jalon + recalage sur la tendance réelle), un **plan d'entraînement semaine** (muscu+renfo+course adapté perte/prise), une **nutrition détaillée** (répartition sur 4 repas + « quoi manger »), et un **coaching pas à pas** + **checklist d'adhérence hebdo** (score sur données réelles).
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.113** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.114** non publiées (attendent un `npm run release` / upload d'Adrien).
 - 📱 **Cartes de stats mobile** : sur petit écran, les tuiles de stats (accueil) passent en colonne centrée (icône au-dessus du texte) et les tuiles « à vie » se resserrent — plus de contenu à l'étroit ni de débordement. ✅ _boucle #179 (build 1.9.113)._
 - 🎯 **Palmarès de force — prochain palier** : chaque exercice affiche le **prochain palier rond de 1RM** et l'écart à combler (ex. « 🎯 140 kg dans 6,5 »), pour un objectif de force concret et motivant. ✅ _boucle #178 (build 1.9.112)._
 - 📱 **Bibliothèque d'exercices fluide** : la grille des cartes passe en `auto-fill minmax(158px)` — elle s'adapte toute seule de 1 à N colonnes selon la largeur (téléphone → grand écran), sans média-query rigide. ✅ _boucle #177 (build 1.9.111)._

@@ -1352,6 +1352,45 @@ test('bodyGoalWorkout : séance préconçue par envie de corps', () => {
   const names = fb.exercises.map(e => e.name);
   assert.ok(names.includes('Goblet squat kettlebell') && names.includes('Tractions') && names.includes('Pompes classiques') && names.includes('Gainage planche'), 'couvre jambes/dos/pecs/abdos');
 });
+test('pickExercisesForZones : round-robin par zone, sans doublon', () => {
+  const rich = [
+    { name: 'Gainage planche', sets: 3, reps: 30 },        // abs
+    { name: 'Tractions', sets: 3, reps: 8 },               // back + arms
+    { name: 'Pompes classiques', sets: 3, reps: 10 },      // chest + arms + shoulders
+    { name: 'Goblet squat kettlebell', sets: 3, reps: 8 }, // legs + glutes
+  ];
+  const p = L.pickExercisesForZones(['legs', 'back', 'chest', 'abs'], rich, 4);
+  assert.equal(p.length, 4);
+  const names = p.map(e => e.name);
+  assert.ok(names.includes('Goblet squat kettlebell') && names.includes('Tractions') && names.includes('Pompes classiques') && names.includes('Gainage planche'));
+  assert.ok(p.every(e => e.sets > 0 && e.reps > 0 && e.unit));
+  assert.deepEqual(L.pickExercisesForZones(['inconnu'], rich, 3), [], 'zone sans exercice → vide');
+  assert.deepEqual(L.pickExercisesForZones(['legs'], [], 3), [], 'liste vide → vide');
+});
+test('objectiveProgram : programme hebdo auto par objectif', () => {
+  const ex = [
+    { name: 'Gainage planche', sets: 3, reps: 30 },
+    { name: 'Tractions', sets: 3, reps: 8 },
+    { name: 'Pompes classiques', sets: 3, reps: 10 },
+    { name: 'Pompes diamants', sets: 3, reps: 8 },
+    { name: 'Goblet squat kettlebell', sets: 3, reps: 8 },
+    { name: 'Kettlebell swing', sets: 3, reps: 12 },
+  ];
+  const p = L.objectiveProgram('athletique', ex, { perSession: 4 });
+  assert.equal(p.title, 'Corps athlétique');
+  assert.equal(p.strength, 3);
+  assert.equal(p.runs, 3);
+  const muscu = p.week.filter(s => s.kind === 'muscu');
+  const course = p.week.filter(s => s.kind === 'course');
+  assert.equal(muscu.length, 3, '3 séances muscu');
+  assert.equal(course.length, 3, '3 courses');
+  assert.ok(muscu.every(s => Array.isArray(s.exercises) && s.exercises.length >= 1), 'chaque muscu a des exos');
+  assert.ok(p.week.every(s => s.weekday >= 0 && s.weekday <= 6), 'jours valides');
+  const days = p.week.map(s => s.weekday);
+  assert.equal(new Set(days).size, 6, '6 séances sur 6 jours distincts');
+  assert.ok(Array.isArray(L.FITNESS_OBJECTIVES) && L.FITNESS_OBJECTIVES.length === 5);
+  assert.equal(L.objectiveProgram('inconnu', ex), null);
+});
 test('neglectedZone : première zone prioritaire à 0', () => {
   assert.equal(L.neglectedZone({ legs: 2, back: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'abs', 'abdos non travaillés');
   assert.equal(L.neglectedZone({ abs: 1, legs: 2, arms: 1 }, ['abs', 'legs', 'arms']), null, 'tout couvert → null');
