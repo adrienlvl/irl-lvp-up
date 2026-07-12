@@ -2347,6 +2347,14 @@ test('starterChecklist : premiers pas cochés selon l’état réel', () => {
   assert.equal(L.starterChecklist({ nutrition: [{ date: '2026-07-13', water: 2 }] }, '2026-07-13').items.find(i => i.key === 'water').done, false);
   assert.equal(L.starterChecklist(null).done, 0);
 });
+test('objectiveWelcome : message personnalisé par objectif', () => {
+  assert.ok(/muscle/i.test(L.objectiveWelcome('muscle')));
+  assert.ok(/gras|déficit/i.test(L.objectiveWelcome('seche')));
+  assert.ok(/endurance|trail|course/i.test(L.objectiveWelcome('endurance')));
+  assert.ok(L.objectiveWelcome('athletique').length > 20);
+  // clé inconnue → message par défaut (athlétique)
+  assert.equal(L.objectiveWelcome('zzz'), L.objectiveWelcome('athletique'));
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');

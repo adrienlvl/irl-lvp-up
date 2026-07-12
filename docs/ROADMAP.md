@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.154 (2026-07-12)
+## 📍 État actuel — build 1.9.155 (2026-07-12)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **252 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→220) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **253 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→221) :
 
 > ✅ **Les 4 caps d'Adrien (#1→#4) traités + 2 rotations complètes** ; **3e rotation en cours**.
 
+- 🧭 **#2 approfondi (3) — bienvenue personnalisée** : message par objectif (ce que l'app met en place) + préremplissage du poids depuis la dernière pesée. ✅ _boucle #221 (build 1.9.155)._
 - 📲 **#1 approfondi (3) — aide d'installation iOS** : bannière « Partager → Sur l'écran d'accueil » sur iPhone/iPad non installé. ✅ _boucle #220 (build 1.9.154)._
 - 📚 **#4 approfondi (2) — historique de blocs** : archivage auto du bloc précédent (objectif/dates) + ligne « N blocs terminés · dernier : … » sous la carte bloc. ✅ _boucle #219 (build 1.9.153) — 2e rotation complète._
 - 🧘 **#3 approfondi (2) — routine récup programmable** : bouton « 📅 Programmer » (récurrent mar & ven 19h dans l'agenda) en plus de « ▶️ Lancer ». ✅ _boucle #218 (build 1.9.152)._
