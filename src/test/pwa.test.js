@@ -38,6 +38,22 @@ test('PWA : le service worker précache des fichiers qui existent vraiment', () 
   assert.ok(/isAsset/.test(sw), 'distinction code vs image (network-first / cache-first)');
 });
 
+test('PWA : workflow de déploiement + doc présents et cohérents', () => {
+  const repo = path.join(dir, '..');
+  const wf = path.join(repo, '.github', 'workflows', 'pages.yml');
+  assert.ok(fs.existsSync(wf), 'workflow GitHub Pages présent');
+  const y = fs.readFileSync(wf, 'utf8');
+  assert.ok(/upload-pages-artifact/.test(y) && /deploy-pages/.test(y), 'étapes Pages');
+  assert.ok(/src\/index\.html/.test(y) && /src\/\*\.css/.test(y) && /src\/lib\/\*\.js/.test(y), 'copie les assets web');
+  assert.ok(fs.existsSync(path.join(repo, 'docs', 'DEPLOIEMENT-WEB.md')), 'doc de déploiement présente');
+});
+test('PWA : aucun chemin absolu qui casserait un hébergement en sous-chemin', () => {
+  for (const f of ['index.html', 'app.js']) {
+    const txt = fs.readFileSync(path.join(dir, f), 'utf8');
+    assert.ok(!/(href|src)="\//.test(txt), `pas de href/src absolu dans ${f}`);
+    assert.ok(!/register\('\//.test(txt), `enregistrement SW relatif dans ${f}`);
+  }
+});
 test('PWA : index.html lie le manifest et app.js enregistre le SW', () => {
   const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
   assert.ok(/rel="manifest"/.test(html), 'lien manifest dans le <head>');

@@ -1,0 +1,45 @@
+name: Déployer la PWA sur GitHub Pages
+
+# Publie la version web/mobile (PWA) de IRL LVP UP sur GitHub Pages à chaque push.
+# L'app sera accessible sur https://adrienlvl.github.io/irl-lvp-up/ (voir docs/DEPLOIEMENT-WEB.md).
+# Aucune donnée d'Adrien n'est publiée : seul le code de l'app est mis en ligne ; les données
+# restent en local (localStorage) sur chaque appareil.
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assembler le bundle web (assets PWA de src/)
+        run: |
+          mkdir -p _site/lib _site/assets
+          cp src/index.html src/app.js src/service-worker.js src/manifest.webmanifest _site/
+          cp src/*.css _site/
+          cp src/lib/*.js _site/lib/
+          cp src/assets/* _site/assets/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
