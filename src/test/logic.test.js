@@ -1819,6 +1819,27 @@ test('strengthPlateau : détecte l’absence de nouveau record de force', () => 
   assert.equal(L.strengthPlateau([], 3), null);
   assert.equal(L.strengthPlateau(null), null);
 });
+test('strengthForecast : prévision d’atteinte du prochain palier de force', () => {
+  // +2,5 kg de 1RM par semaine : de 90 à 97,5 en 3 semaines → prochain palier 100 (step 5)
+  const series = [
+    { date: '2026-06-08', e1rm: 90 },
+    { date: '2026-06-15', e1rm: 92.5 },
+    { date: '2026-06-22', e1rm: 95 },
+    { date: '2026-06-29', e1rm: 97.5 },
+  ];
+  const f = L.strengthForecast(series, 5, '2026-06-29');
+  assert.equal(f.current, 97.5);
+  assert.equal(f.milestone, 100, 'prochain palier rond de 5');
+  assert.equal(f.perWeek, 2.5, '+2,5 kg/sem');
+  assert.equal(f.gap, 2.5);
+  assert.equal(f.weeks, 1, 'ceil(2.5/2.5)');
+  assert.equal(f.date, '2026-07-06');
+  // progression nulle → pas de prévision
+  assert.equal(L.strengthForecast([{ date: '2026-06-08', e1rm: 90 }, { date: '2026-06-22', e1rm: 90 }], 5, '2026-06-22'), null);
+  // historique insuffisant → null
+  assert.equal(L.strengthForecast([{ date: '2026-06-08', e1rm: 90 }], 5), null);
+  assert.equal(L.strengthForecast(null), null);
+});
 test('lifetimeTonnage : cumul du tonnage sur toutes les séances', () => {
   const workouts = [
     { exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }, // 1800
