@@ -1868,6 +1868,22 @@ test('activityLevelFactor / dateAfterWeeks / paceStatus', () => {
   assert.equal(L.paceStatus(17, 10), 'fast', '10/17 < 0,77');
   assert.equal(L.paceStatus(0, 5), null);
 });
+test('calorieAdjustment : stagnation → baisse/hausse calorique', () => {
+  const flat = [{ date: '2026-06-21', value: 80 }, { date: '2026-07-01', value: 80.1 }, { date: '2026-07-12', value: 80 }];
+  const a = L.calorieAdjustment(flat, 'perte', 2000);
+  assert.equal(a.stagnating, true); assert.equal(a.suggestion, 'reduce');
+  assert.equal(a.newTarget, 1875); assert.equal(a.delta, 125);
+  // perte qui progresse → pas de stagnation
+  const losing = [{ date: '2026-06-21', value: 82 }, { date: '2026-07-01', value: 81 }, { date: '2026-07-12', value: 80 }];
+  assert.equal(L.calorieAdjustment(losing, 'perte', 2000).stagnating, false);
+  // recul insuffisant (< 14 j)
+  const short = [{ date: '2026-07-08', value: 80 }, { date: '2026-07-10', value: 80 }, { date: '2026-07-12', value: 80 }];
+  assert.equal(L.calorieAdjustment(short, 'perte', 2000).stagnating, false);
+  // prise qui stagne → hausse
+  const gainFlat = [{ date: '2026-06-21', value: 70 }, { date: '2026-07-01', value: 70 }, { date: '2026-07-12', value: 70 }];
+  assert.equal(L.calorieAdjustment(gainFlat, 'prise', 2500).suggestion, 'increase');
+  assert.equal(L.calorieAdjustment(flat, 'maintien', 2000).stagnating, false);
+});
 test('weightForecast : trajectoire hebdo bornée à la cible', () => {
   const f = L.weightForecast(80, 72, 0.48, 17, '2026-07-12');
   assert.equal(f.length, 18, 'today + 17 semaines');
