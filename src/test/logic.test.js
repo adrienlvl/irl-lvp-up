@@ -1522,6 +1522,15 @@ test('currentBlock : suivi de la semaine dans le bloc de 4 semaines', () => {
   assert.equal(L.currentBlock(start, '2026-07-01'), null, 'avant le début → null');
   assert.equal(L.currentBlock('', '2026-07-10'), null);
 });
+test('phaseSetsForDay : séries d’une séance ajustées à la phase du bloc', () => {
+  const start = '2026-07-06';
+  assert.equal(L.phaseSetsForDay(3, start, '2026-07-06'), 3, 'S1 Base = base');
+  assert.equal(L.phaseSetsForDay(3, start, '2026-07-15'), 4, 'S2 Volume = +1');
+  assert.equal(L.phaseSetsForDay(3, start, '2026-07-22'), 3, 'S3 Intensité = base');
+  assert.equal(L.phaseSetsForDay(3, start, '2026-07-29'), 2, 'S4 Décharge ≈ 60%');
+  assert.equal(L.phaseSetsForDay(3, start, '2026-08-20'), 3, 'hors bloc → base');
+  assert.equal(L.phaseSetsForDay(3, '', '2026-07-15'), 3, 'sans bloc → base');
+});
 test('nextBlockAdvice : reco du prochain bloc selon les résultats', () => {
   assert.equal(L.nextBlockAdvice({ adherence: 30 }).action, 'ease', 'adhérence basse prime');
   assert.equal(L.nextBlockAdvice({ adherence: 90, loadStatus: 'deload' }).action, 'lighten', 'charge haute → alléger');
