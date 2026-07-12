@@ -1508,6 +1508,20 @@ test('objectiveNutrition : calories/macros cohérentes avec l’objectif', () =>
   assert.equal(L.objectiveNutrition('inconnu', base), null);
   assert.equal(L.objectiveNutrition('seche', { weight: 0 }), null, 'données manquantes → null');
 });
+test('currentBlock : suivi de la semaine dans le bloc de 4 semaines', () => {
+  const start = '2026-07-06'; // lundi
+  assert.equal(L.currentBlock(start, '2026-07-06').week, 1);
+  assert.equal(L.currentBlock(start, '2026-07-06').phase.phase, 'Base');
+  assert.equal(L.currentBlock(start, '2026-07-06').deloadInWeeks, 3);
+  const w2 = L.currentBlock(start, '2026-07-15'); // semaine 2 (9 jours après)
+  assert.equal(w2.week, 2); assert.equal(w2.phase.phase, 'Volume'); assert.equal(w2.deloadInWeeks, 2);
+  const w4 = L.currentBlock(start, '2026-07-29'); // semaine 4 (23 j)
+  assert.equal(w4.week, 4); assert.ok(w4.phase.deload); assert.equal(w4.deloadInWeeks, 0);
+  const over = L.currentBlock(start, '2026-08-10'); // au-delà
+  assert.equal(over.done, true); assert.equal(over.week, 4);
+  assert.equal(L.currentBlock(start, '2026-07-01'), null, 'avant le début → null');
+  assert.equal(L.currentBlock('', '2026-07-10'), null);
+});
 test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
   assert.equal(L.blockPhase(0).phase, 'Base');
   assert.equal(L.blockPhase(1).phase, 'Volume');
