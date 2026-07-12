@@ -1,4 +1,7 @@
 function showAppError(msg){try{console.error('[IRL]',msg);let bar=document.getElementById('appErrorBar');if(!bar){bar=document.createElement('div');bar.id='appErrorBar';bar.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7f1d1d;color:#fff;padding:8px 14px;font:13px system-ui;text-align:center;cursor:pointer';bar.title='Cliquer pour masquer';bar.onclick=()=>bar.remove();if(document.body)document.body.appendChild(bar);}bar.textContent='⚠ Une erreur est survenue — tes données restent sauvegardées. '+msg;}catch(_){}}
+/* PWA : enregistre le service worker quand l'app est servie en http(s) (mobile/navigateur).
+   Ignoré dans Electron (file://) et si l'API n'existe pas. */
+(function(){try{if(/^https?:$/.test(location.protocol)&&'serviceWorker'in navigator){navigator.serviceWorker.register('service-worker.js').catch(function(){});}}catch(_){}})();
 window.addEventListener('error',e=>showAppError((e.error&&e.error.message)||e.message||'erreur inconnue'));
 window.addEventListener('unhandledrejection',e=>showAppError((e.reason&&e.reason.message)||String(e.reason||'rejet non géré')));
 (function(){try{var v=localStorage.getItem('irl-theme');var mode=(v==='light'||v==='dark'||v==='auto')?v:'dark';var sysDark=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)').matches:true;var eff=mode==='light'?'light':mode==='dark'?'dark':(sysDark?'dark':'light');document.documentElement.dataset.theme=eff==='light'?'light':'';}catch(_){}})();

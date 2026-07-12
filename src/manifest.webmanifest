@@ -1,0 +1,18 @@
+{
+  "name": "IRL LVP UP — Ton RPG de vie",
+  "short_name": "IRL LVP UP",
+  "description": "Ton jeu dans la vraie vie : sport, coaching poids, révisions BTS, habitudes — 100 % à toi.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1220",
+  "theme_color": "#0d1220",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "assets/irl-lvp-up-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/irl-lvp-up-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
