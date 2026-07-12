@@ -1553,11 +1553,11 @@ function filterByEquipment(exercises, equipment) {
 const FOCUS_ZONES = { upper: ['chest', 'back', 'shoulders', 'arms'], lower: ['legs', 'glutes', 'abs'], push: ['chest', 'shoulders', 'arms'], pull: ['back', 'arms'], legs: ['legs', 'glutes'], fullbody: ['legs', 'back', 'chest', 'abs', 'shoulders'] };
 const FOCUS_TITLE = { upper: 'Haut du corps', lower: 'Bas du corps', push: 'Poussée', pull: 'Tirage', legs: 'Jambes', fullbody: 'Full body' };
 const FITNESS_OBJECTIVES = [
-  { key: 'athletique', title: 'Corps athlétique', emoji: '🏃', runs: 3, split: ['upper', 'lower', 'fullbody'], why: 'Polyvalent : cardio + force pour une silhouette sportive.' },
-  { key: 'muscle', title: 'Prise de muscle', emoji: '💪', runs: 1, split: ['push', 'pull', 'legs', 'upper'], why: 'Priorité muscu (4 séances), cardio léger.' },
-  { key: 'seche', title: 'Perte de gras', emoji: '🔥', runs: 4, split: ['fullbody', 'fullbody', 'upper'], why: 'Beaucoup de cardio + full body pour garder le muscle.' },
-  { key: 'endurance', title: 'Endurance / trail', emoji: '🏔️', runs: 4, split: ['lower', 'fullbody'], why: 'Volume de course + renfo jambes et tronc.' },
-  { key: 'forme', title: 'Remise en forme', emoji: '⚖️', runs: 2, split: ['fullbody', 'fullbody'], why: 'Doux et régulier : full body + course facile.' },
+  { key: 'athletique', title: 'Corps athlétique', emoji: '🏃', runs: 3, split: ['upper', 'lower', 'fullbody'], runEmphasis: 'balanced', runFocus: 'course équilibrée', why: 'Polyvalent : cardio + force pour une silhouette sportive.' },
+  { key: 'muscle', title: 'Prise de muscle', emoji: '💪', runs: 1, split: ['push', 'pull', 'legs', 'upper'], runEmphasis: 'facile', runFocus: 'footing de récup', why: 'Priorité muscu (4 séances), cardio léger.' },
+  { key: 'seche', title: 'Perte de gras', emoji: '🔥', runs: 4, split: ['fullbody', 'fullbody', 'upper'], runEmphasis: 'vitesse', runFocus: 'tempo & fractionné', why: 'Beaucoup de cardio + full body pour garder le muscle.' },
+  { key: 'endurance', title: 'Endurance / trail', emoji: '🏔️', runs: 4, split: ['lower', 'fullbody'], runEmphasis: 'endurance', runFocus: 'sorties longues', why: 'Volume de course + renfo jambes et tronc.' },
+  { key: 'forme', title: 'Remise en forme', emoji: '⚖️', runs: 2, split: ['fullbody', 'fullbody'], runEmphasis: 'facile', runFocus: 'course facile', why: 'Doux et régulier : full body + course facile.' },
 ];
 // Programme hebdo automatique selon un objectif physique : séances de muscu (avec exercices précis)
 // + de course, alternées et espacées sur la semaine. opts.perSession = nb d'exos/séance muscu (défaut 5).
@@ -1569,14 +1569,14 @@ function objectiveProgram(key, exercises, opts) {
   const seed = Math.max(0, Math.round((opts && opts.seed) || 0));
   const pool = opts && opts.equipment ? filterByEquipment(exercises, opts.equipment) : exercises;
   const muscu = o.split.map((f, fi) => ({ kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45, exercises: pickExercisesForZones(FOCUS_ZONES[f], pool, per, seed ? seed + fi : 0) }));
-  const runs = runPlanWeek(o.runs).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why }));
+  const runs = runPlanWeek(o.runs, { emphasis: o.runEmphasis }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why }));
   const ordered = []; let mi = 0, ri = 0;
   while (mi < muscu.length || ri < runs.length) { if (mi < muscu.length) ordered.push(muscu[mi++]); if (ri < runs.length) ordered.push(runs[ri++]); }
   const total = ordered.length;
   const P = { 1: [3], 2: [2, 5], 3: [1, 3, 5], 4: [1, 3, 5, 0], 5: [1, 2, 4, 5, 0], 6: [1, 2, 3, 4, 5, 0], 7: [1, 2, 3, 4, 5, 6, 0] };
   const days = P[Math.max(1, Math.min(7, total))] || [1, 3, 5, 0];
   const week = ordered.map((s, i) => ({ ...s, weekday: days[i % days.length] })).sort((a, b) => ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7));
-  return { key: o.key, title: o.title, emoji: o.emoji, why: o.why, runs: o.runs, strength: o.split.length, week };
+  return { key: o.key, title: o.title, emoji: o.emoji, why: o.why, runs: o.runs, runFocus: o.runFocus, strength: o.split.length, week };
 }
 
 // Bloc de progression sur 4 semaines : S1 base, S2 volume (+1 série), S3 intensité (charge ↑),
@@ -1808,11 +1808,13 @@ function objectiveNutrition(objectiveKey, opts) {
 function runPlanWeek(count, opts) {
   const want = Math.max(3, Math.min(6, Math.round(Number(count) || 4)));
   const PATTERN = { 3: [2, 4, 0], 4: [1, 3, 5, 0], 5: [1, 2, 4, 5, 0], 6: [1, 2, 3, 4, 5, 0] };
-  const TEMPLATE = {
-    3: ['facile', 'tempo', 'longue'],
-    4: ['facile', 'fractionne', 'facile', 'longue'],
-    5: ['facile', 'fractionne', 'facile', 'tempo', 'longue'],
-    6: ['facile', 'fractionne', 'facile', 'tempo', 'facile', 'longue'],
+  // Mélanges de séances selon l'accent : équilibré (défaut), endurance (volume/longues),
+  // vitesse (tempo/fractionné, ex. sèche), facile (footing de récup, ex. jours de muscu lourds).
+  const TEMPLATES = {
+    balanced: { 3: ['facile', 'tempo', 'longue'], 4: ['facile', 'fractionne', 'facile', 'longue'], 5: ['facile', 'fractionne', 'facile', 'tempo', 'longue'], 6: ['facile', 'fractionne', 'facile', 'tempo', 'facile', 'longue'] },
+    endurance: { 3: ['facile', 'facile', 'longue'], 4: ['facile', 'facile', 'tempo', 'longue'], 5: ['facile', 'facile', 'facile', 'tempo', 'longue'], 6: ['facile', 'facile', 'tempo', 'facile', 'facile', 'longue'] },
+    vitesse: { 3: ['fractionne', 'tempo', 'facile'], 4: ['fractionne', 'tempo', 'facile', 'longue'], 5: ['fractionne', 'tempo', 'fractionne', 'facile', 'longue'], 6: ['fractionne', 'tempo', 'facile', 'fractionne', 'tempo', 'longue'] },
+    facile: { 3: ['facile', 'facile', 'facile'], 4: ['facile', 'facile', 'facile', 'facile'], 5: ['facile', 'facile', 'tempo', 'facile', 'facile'], 6: ['facile', 'facile', 'facile', 'tempo', 'facile', 'facile'] },
   };
   const META = {
     facile: { label: 'Course facile', minutes: 35, why: 'Endurance fondamentale : à l’aise, tu peux parler.' },
@@ -1821,9 +1823,10 @@ function runPlanWeek(count, opts) {
     longue: { label: 'Sortie longue', minutes: 70, why: 'Volume : endurance et mental.' },
   };
   const o = opts || {};
+  const template = TEMPLATES[o.emphasis] || TEMPLATES.balanced;
   const days = Array.isArray(o.days) && o.days.length >= want ? o.days.slice(0, want) : PATTERN[want];
   const order = w => (w + 6) % 7;
-  const sessions = TEMPLATE[want].map((type, i) => ({ weekday: days[i], type, ...META[type] })).sort((a, b) => order(a.weekday) - order(b.weekday));
+  const sessions = template[want].map((type, i) => ({ weekday: days[i], type, ...META[type] })).sort((a, b) => order(a.weekday) - order(b.weekday));
   return { sessions, count: sessions.length, totalMinutes: sessions.reduce((a, s) => a + s.minutes, 0) };
 }
 

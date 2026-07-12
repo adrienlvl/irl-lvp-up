@@ -2068,6 +2068,26 @@ test('runPlanWeek : semaine de course, sortie longue en fin, garde-fous', () => 
   assert.equal(L.runPlanWeek(1).count, 3, 'plancher 3');
   // jours imposés
   assert.deepEqual(L.runPlanWeek(4, { days: [1, 2, 3, 4] }).sessions.map(s => s.weekday), [1, 2, 3, 4]);
+  // accents (emphasis) : mix de types adapté à l'objectif
+  const cnt = (arr, t) => arr.filter(x => x === t).length;
+  const vitesse = L.runPlanWeek(4, { emphasis: 'vitesse' }).sessions.map(s => s.type);
+  const endurance = L.runPlanWeek(4, { emphasis: 'endurance' }).sessions.map(s => s.type);
+  const facile = L.runPlanWeek(4, { emphasis: 'facile' }).sessions.map(s => s.type);
+  assert.ok(cnt(vitesse, 'fractionne') + cnt(vitesse, 'tempo') >= 2, 'vitesse : + de tempo/fractionné');
+  assert.ok(cnt(endurance, 'facile') >= 2, 'endurance : + de facile/volume');
+  assert.equal(cnt(facile, 'fractionne'), 0, 'facile : aucun fractionné');
+  assert.deepEqual(L.runPlanWeek(4, { emphasis: 'inconnu' }).sessions.map(s => s.type), ['facile', 'fractionne', 'facile', 'longue'], 'accent inconnu → équilibré');
+});
+test('objectiveProgram : courses adaptées à l’objectif (accent)', () => {
+  const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
+  const seche = L.objectiveProgram('seche', ex);
+  const types = seche.week.filter(s => s.kind === 'course').map(s => s.type);
+  assert.equal(seche.runFocus, 'tempo & fractionné');
+  assert.ok(types.includes('fractionne') || types.includes('tempo'), 'sèche : intervalles/tempo présents');
+  const endurance = L.objectiveProgram('endurance', ex);
+  assert.equal(endurance.runFocus, 'sorties longues');
+  const muscle = L.objectiveProgram('muscle', ex);
+  assert.ok(muscle.week.filter(s => s.kind === 'course').every(s => s.type === 'facile'), 'muscle : footing facile uniquement');
 });
 test('mealSplit : répartition calories/macros sur 4 repas', () => {
   const m = L.mealSplit(2000, 160, 200, 60);
