@@ -1391,6 +1391,22 @@ test('objectiveProgram : programme hebdo auto par objectif', () => {
   assert.ok(Array.isArray(L.FITNESS_OBJECTIVES) && L.FITNESS_OBJECTIVES.length === 5);
   assert.equal(L.objectiveProgram('inconnu', ex), null);
 });
+test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
+  assert.equal(L.blockPhase(0).phase, 'Base');
+  assert.equal(L.blockPhase(1).phase, 'Volume');
+  assert.equal(L.blockPhase(2).phase, 'Intensité');
+  assert.equal(L.blockPhase(3).phase, 'Décharge');
+  assert.ok(L.blockPhase(3).deload && !L.blockPhase(0).deload);
+  assert.equal(L.blockPhase(4).phase, 'Base', 'cycle tous les 4');
+  assert.equal(L.blockPhase(-1).phase, 'Décharge', 'index négatif géré');
+  // 3 séries de base : S1=3, S2=4 (+volume), S3=3, S4=2 (décharge ~60%)
+  assert.equal(L.progressSets(3, 0), 3);
+  assert.equal(L.progressSets(3, 1), 4);
+  assert.equal(L.progressSets(3, 2), 3);
+  assert.equal(L.progressSets(3, 3), 2);
+  assert.ok(L.progressSets(3, 3) < L.progressSets(3, 1), 'décharge < volume');
+  assert.ok(L.progressSets(0, 0) >= 1 && L.progressSets(3, 3) >= 2, 'planchers respectés');
+});
 test('neglectedZone : première zone prioritaire à 0', () => {
   assert.equal(L.neglectedZone({ legs: 2, back: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'abs', 'abdos non travaillés');
   assert.equal(L.neglectedZone({ abs: 1, legs: 2, arms: 1 }, ['abs', 'legs', 'arms']), null, 'tout couvert → null');
