@@ -809,6 +809,21 @@ test('acuteChronicRatio : aiguë (7j) vs chronique (28j/4), zones', () => {
   assert.equal(L.acuteChronicRatio([], today), null);
   assert.equal(L.acuteChronicRatio(steady, 'pas-une-date'), null);
 });
+test('loadAdvice : combine ACWR + forme du jour → recommandation', () => {
+  // surcharge (ACWR haut) prime, même avec bonne forme → déload
+  assert.equal(L.loadAdvice({ zone: 'high' }, { score: 90 }).status, 'deload');
+  // forme basse → récupération (sauf si déjà déload)
+  assert.equal(L.loadAdvice({ zone: 'optimal' }, { score: 40 }).status, 'ease');
+  // zone optimale + bonne forme → pousser
+  assert.equal(L.loadAdvice({ zone: 'optimal' }, { score: 80 }).status, 'push');
+  // charge basse + forme correcte → remonter le volume
+  assert.equal(L.loadAdvice({ zone: 'low' }, { score: 60 }).status, 'build');
+  // rien de particulier → maintien
+  assert.equal(L.loadAdvice({ zone: 'optimal' }, { score: 60 }).status, 'maintain');
+  // données manquantes → maintien (défaut sûr)
+  assert.equal(L.loadAdvice(null, null).status, 'maintain');
+  assert.ok(L.loadAdvice({ zone: 'high' }, null).advice.length > 10);
+});
 
 test('trainingHeatmap : grille w*7 alignée lundi, comptes et futur', () => {
   // aujourd'hui = vendredi 10/07/2026
