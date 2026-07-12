@@ -2290,7 +2290,7 @@ test('lifetimeStats : totaux cumulés séances / minutes / km / focus / xp', () 
 
 test('computeAchievements : badges débloqués selon l’état', () => {
   const empty = L.computeAchievements({});
-  assert.equal(empty.total, 14);
+  assert.equal(empty.total, 22);
   assert.equal(empty.unlocked, 0, 'état vide → rien de débloqué');
   const rich = L.computeAchievements({
     quests: [{ done: true }],
@@ -2316,7 +2316,26 @@ test('computeAchievements : badges débloqués selon l’état', () => {
   assert.equal(on('weigh-in'), true);
   assert.equal(on('workouts-10'), false, '2 séances < 10');
   assert.equal(on('study-5'), false);
+  assert.equal(on('streak-7'), false, 'série 5 < 7');
   assert.ok(rich.unlocked >= 8 && rich.unlocked < rich.total);
+  // nouveaux badges tied to real data
+  const beast = L.computeAchievements({
+    streak: 30,
+    fitnessObjective: 'seche',
+    weights: [{ value: 72 }],
+    goals: { targetWeight: 72 },
+    workouts: [
+      { type: 'run', distance: 60 }, { type: 'run', distance: 45 },
+      { type: 'strength', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] },
+    ],
+  });
+  const bon = id => beast.badges.find(b => b.id === id).unlocked;
+  assert.equal(bon('streak-7'), true);
+  assert.equal(bon('streak-30'), true);
+  assert.equal(bon('run-100'), true, '60+45 = 105 km');
+  assert.equal(bon('objective-set'), true);
+  assert.equal(bon('weight-goal'), true, '72 = cible 72');
+  assert.equal(bon('tonnage-10t'), false, '1 séance légère < 10 t');
   // robustesse
   assert.equal(L.computeAchievements(null).unlocked, 0);
 });

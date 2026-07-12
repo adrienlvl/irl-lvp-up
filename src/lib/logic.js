@@ -2141,6 +2141,12 @@ function computeAchievements(state) {
   const studyDone = agenda.filter(a => a && a.kind === 'study' && a.completed).length;
   const waterGoal = 8;
   const bestWater = nutrition.reduce((mx, n) => Math.max(mx, Number(n && n.water) || 0), 0);
+  const runKmTotal = workouts.filter(w => w && w.type === 'run').reduce((a, w) => a + (Number(w.distance) || 0), 0);
+  const totalTonnage = lifetimeTonnage(workouts);
+  const goals = s.goals && typeof s.goals === 'object' ? s.goals : {};
+  const targetW = Number(goals.targetWeight) || 0, curW = weights.length ? Number(weights[weights.length - 1].value) || 0 : 0;
+  const weightGoalHit = targetW > 0 && curW > 0 && Math.abs(curW - targetW) <= 0.5;
+  const strengthNames = new Set(workouts.filter(w => w && w.type === 'strength').flatMap(w => Array.isArray(w.exercises) ? w.exercises.map(e => e && e.name) : []).filter(Boolean));
   const defs = [
     ['first-quest', '⚔️', 'Première quête', 'Valide une quête du jour.', quests.some(q => q && q.done)],
     ['focus-found', '⏳', 'Focus trouvé', 'Termine un premier bloc de concentration.', (Number(s.timerRuns) || 0) > 0 || focus.length > 0],
@@ -2156,6 +2162,14 @@ function computeAchievements(state) {
     ['weigh-in', '⚖️', 'Sur la balance', 'Note un premier poids.', weights.length >= 1],
     ['study-5', '📚', 'Réviseur', 'Valide 5 créneaux de révision.', studyDone >= 5],
     ['habit-built', '🌱', 'Rituel ancré', 'Crée une habitude.', habits.length >= 1],
+    ['streak-7', '🔥', 'Semaine de feu', 'Garde ta série active 7 jours.', (Number(s.streak) || 0) >= 7],
+    ['streak-30', '🌋', 'Inarrêtable', 'Garde ta série active 30 jours.', (Number(s.streak) || 0) >= 30],
+    ['workouts-50', '🏅', 'Pilier', 'Enregistre 50 séances.', workouts.length >= 50],
+    ['tonnage-10t', '🐘', '10 tonnes', 'Soulève 10 000 kg cumulés.', totalTonnage >= 10000],
+    ['run-100', '🌍', 'Bornes avalées', 'Cours 100 km au total.', runKmTotal >= 100],
+    ['objective-set', '🧭', 'Cap physique', 'Choisis un objectif de programme auto.', !!s.fitnessObjective],
+    ['weight-goal', '🎖️', 'Cible atteinte', 'Atteins ta cible de poids.', weightGoalHit],
+    ['variety', '🎨', 'Touche-à-tout', 'Travaille 8 exercices de muscu différents.', strengthNames.size >= 8],
   ];
   const badges = defs.map(([id, emoji, title, desc, unlocked]) => ({ id, emoji, title, desc, unlocked: !!unlocked }));
   return { badges, unlocked: badges.filter(b => b.unlocked).length, total: badges.length };
