@@ -1435,6 +1435,22 @@ test('objectiveProgram : respecte le matériel dispo (exclut la kettlebell)', ()
   const namesFull = full.week.filter(s => s.kind === 'muscu').flatMap(s => s.exercises.map(e => e.name));
   assert.ok(namesFull.includes('Goblet squat kettlebell') || namesFull.includes('Tractions'), 'matériel dispo → exos avec matériel possibles');
 });
+test('objectiveNutrition : calories/macros cohérentes avec l’objectif', () => {
+  const base = { weight: 80, height: 178, age: 30, sex: 'homme', activityLevel: 'modere' };
+  const seche = L.objectiveNutrition('seche', base);
+  const muscle = L.objectiveNutrition('muscle', base);
+  const athle = L.objectiveNutrition('athletique', base);
+  assert.equal(seche.dir, 'déficit');
+  assert.equal(muscle.dir, 'surplus');
+  assert.equal(athle.dir, 'maintien');
+  assert.ok(seche.dailyTarget < athle.dailyTarget, 'sèche = moins de calories que maintien');
+  assert.ok(muscle.dailyTarget > athle.dailyTarget, 'muscle = plus de calories que maintien');
+  assert.ok(seche.proteinG >= muscle.proteinG && muscle.proteinG > 0, 'protéines élevées en sèche');
+  assert.ok(seche.dailyTarget >= seche.bmr, 'jamais sous le métabolisme de base');
+  assert.ok(seche.proteinG * 4 + seche.carbG * 4 + seche.fatG * 9 <= seche.dailyTarget + 30, 'macros cohérentes avec les calories');
+  assert.equal(L.objectiveNutrition('inconnu', base), null);
+  assert.equal(L.objectiveNutrition('seche', { weight: 0 }), null, 'données manquantes → null');
+});
 test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
   assert.equal(L.blockPhase(0).phase, 'Base');
   assert.equal(L.blockPhase(1).phase, 'Volume');
