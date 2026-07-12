@@ -1814,6 +1814,21 @@ test('energyPlan : calories, macros, rythme et date d’atteinte (perte)', () =>
   // maintien
   assert.equal(L.energyPlan({ weight: 75, height: 175, age: 25, sex: 'homme', sessionsPerWeek: 3, targetWeight: 75, todayKey: '2026-07-12' }).goal, 'maintien');
   assert.equal(L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', targetWeight: 0 }), null, 'sans cible → null');
+  // niveau d'activité manuel prioritaire sur le proxy séances
+  const act = L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', activityLevel: 'actif', sessionsPerWeek: 2, targetWeight: 72, todayKey: '2026-07-12' });
+  assert.equal(act.tdee, 3071, '1780 × 1.725');
+});
+test('activityLevelFactor / dateAfterWeeks / paceStatus', () => {
+  assert.equal(L.activityLevelFactor('modere'), 1.55);
+  assert.equal(L.activityLevelFactor('tres'), 1.9);
+  assert.equal(L.activityLevelFactor('inconnu'), null);
+  assert.equal(L.dateAfterWeeks('2026-07-12', 17), '2026-11-08');
+  assert.equal(L.dateAfterWeeks('2026-07-12', 0), null);
+  assert.equal(L.dateAfterWeeks('x', 5), null);
+  assert.equal(L.paceStatus(17, 17), 'on');
+  assert.equal(L.paceStatus(17, 25), 'slow', '25/17 > 1,3');
+  assert.equal(L.paceStatus(17, 10), 'fast', '10/17 < 0,77');
+  assert.equal(L.paceStatus(0, 5), null);
 });
 test('weightForecast : trajectoire hebdo bornée à la cible', () => {
   const f = L.weightForecast(80, 72, 0.48, 17, '2026-07-12');

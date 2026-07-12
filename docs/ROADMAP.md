@@ -6,15 +6,18 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.95 (2026-07-12)
+## 📍 État actuel — build 1.9.96 (2026-07-12)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **202 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→161) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **203 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→162) :
+
+- 🎯 **MODULE COACH POIDS — COMPLET** (panneau Athlète → Progrès, boucles #157→162, builds 1.9.91→1.9.96) : à partir du poids actuel, taille, âge, sexe et **niveau d'activité**, il calcule métabolisme + dépense (TDEE), **calories & macros cibles**, la **date d'atteinte estimée**, une **projection graphique** (prévu vs réel + jalon + recalage sur la tendance réelle), un **plan d'entraînement semaine** (muscu+renfo+course adapté perte/prise), une **nutrition détaillée** (répartition sur 4 repas + « quoi manger »), et un **coaching pas à pas** + **checklist d'adhérence hebdo** (score sur données réelles).
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
 - **Quotidien** : To-Do du jour (report visible), **habitudes/Dailies** (jours choisis, série 🔥, XP), notifications matin/avant/soir conscientes des récurrents **et** des habitudes.
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.95** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.96** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚙️ **Coach Poids — affiner l'estimation** (étape 6/6) : choix du **niveau d'activité** manuel (sédentaire→très actif, mémorisé) utilisé par le calcul de dépense à la place du proxy séances ; **recalage sur la tendance réelle** — date « réaliste » recalculée depuis le rythme mesuré + verdict (dans les temps / plus lent / plus rapide). ✅ _boucle #162 (build 1.9.96) — module Coach Poids complet._
 - 🧭 **Coach Poids — coaching + checklist hebdo** (étape 5/6) : marche à suivre « comment y arriver » (5 étapes adaptées perte/prise/maintien) + **checklist d'adhérence de la semaine** avec **score %** calculé sur les données réelles (séances faites, protéines à la cible, hydratation, sommeil, pesée hebdo). ✅ _boucle #161 (build 1.9.95)._
 - 🍽️ **Coach Poids — nutrition détaillée** (étape 4/6) : répartition des calories cibles sur 4 repas (petit-déj 25 % / déj 35 % / dîner 30 % / collation 10 %) avec **kcal + macros par repas**, et repères « quoi manger » adaptés à l'objectif (perte/prise/maintien) — renvoie vers « Cuisine du jour » pour des idées concrètes. ✅ _boucle #160 (build 1.9.94)._
 - 🗓️ **Coach Poids — plan d'entraînement semaine** (étape 3/6) : semaine type adaptée à l'objectif (perte = course/renfo pour le déficit + muscu pour garder le muscle ; prise = priorité muscu ; maintien = équilibre), séances placées et espacées sur les jours dispo, avec durée et raison de chaque séance + note pédagogique. ✅ _boucle #159 (build 1.9.93)._
