@@ -2009,6 +2009,23 @@ test('weeklyAdherence : score d’adhérence hebdo sur données réelles', () =>
   assert.equal(few.items.find(i => i.key === 'sessions').done, false);
   assert.equal(L.weeklyAdherence({}, '2026-07-06', '2026-07-12', {}).score, 0, 'état vide → 0');
 });
+test('upsertAdherenceSnapshot : historique hebdo (maj/ajout, tri, cap)', () => {
+  let h = L.upsertAdherenceSnapshot([], '2026-07-06', 80);
+  assert.deepEqual(h, [{ week: '2026-07-06', score: 80 }]);
+  // même semaine → mise à jour du score
+  h = L.upsertAdherenceSnapshot(h, '2026-07-06', 60);
+  assert.deepEqual(h, [{ week: '2026-07-06', score: 60 }], 'maj, pas de doublon');
+  // nouvelle semaine → ajout, trié
+  h = L.upsertAdherenceSnapshot(h, '2026-06-29', 40);
+  assert.deepEqual(h.map(x => x.week), ['2026-06-29', '2026-07-06'], 'trié par date');
+  // borne + arrondi
+  assert.equal(L.upsertAdherenceSnapshot([], '2026-07-06', 150)[0].score, 100, 'borné à 100');
+  // cap : garde les 2 dernières
+  const many = [{ week: '2026-06-01', score: 1 }, { week: '2026-06-08', score: 2 }, { week: '2026-06-15', score: 3 }];
+  assert.deepEqual(L.upsertAdherenceSnapshot(many, '2026-06-22', 4, 2).map(x => x.week), ['2026-06-15', '2026-06-22']);
+  // clé invalide → inchangé
+  assert.equal(L.upsertAdherenceSnapshot([{ week: '2026-07-06', score: 80 }], 'x', 50).length, 1);
+});
 test('weightTrend : rythme kg/sem, direction et ETA vers la cible', () => {
   // perte de 1 kg sur 14 jours → −0,5 kg/sem ; cible 79 (reste −2 kg) → ~4 sem.
   const w = [
