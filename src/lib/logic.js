@@ -1473,21 +1473,38 @@ function zoneTopExercises(zone, n) {
 const BODY_GOALS = [
   { key: 'abs', title: 'Abdos béton', emoji: '🔥', zones: ['abs'], why: 'Tronc solide et gainage.' },
   { key: 'arms', title: 'Bras', emoji: '💪', zones: ['arms'], why: 'Biceps, triceps et poussée.' },
+  { key: 'chest', title: 'Pectoraux', emoji: '🎯', zones: ['chest'], why: 'Poussée et pectoraux.' },
   { key: 'back', title: 'Dos largeur', emoji: '🦅', zones: ['back'], why: 'Dos et tirage.' },
+  { key: 'shoulders', title: 'Épaules', emoji: '🏔️', zones: ['shoulders'], why: 'Épaules et galbe.' },
   { key: 'legs', title: 'Bas du corps', emoji: '🦵', zones: ['legs', 'glutes'], why: 'Jambes et fessiers.' },
+  { key: 'fullbody', title: 'Full body', emoji: '⚡', zones: ['legs', 'back', 'chest', 'abs', 'shoulders'], why: 'Tout le corps en une séance.', spread: true },
 ];
 // Compose une séance préconçue pour une envie de corps : les meilleurs exercices de la ou des zones,
-// avec séries/reps de la bibliothèque. opts : { count=5 }. Null si clé inconnue. Pur + testé.
+// avec séries/reps de la bibliothèque. En mode `spread` (full body), prend une par zone en tournant.
+// opts : { count=5 }. Null si clé inconnue. Pur + testé.
 function bodyGoalWorkout(key, exercises, opts) {
   const g = BODY_GOALS.find(x => x.key === key);
   if (!g) return null;
   const list = Array.isArray(exercises) ? exercises : [];
   const n = Math.max(2, Math.min(8, Math.round((opts && opts.count) || 5)));
-  const rank = name => Math.min(...g.zones.map(z => goalRank(name, z)));
-  const pool = list.filter(x => x && x.name && g.zones.some(z => exerciseZones(x.name).indexOf(z) !== -1))
-    .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name, 'fr'));
-  const chosen = pool.slice(0, n).map(x => ({ name: x.name, sets: Number(x.sets) || 3, reps: Number(x.reps) || 10, unit: x.unit || 'reps' }));
-  return { key: g.key, title: g.title, emoji: g.emoji, zones: g.zones, why: g.why, exercises: chosen };
+  let chosen;
+  if (g.spread) {
+    const byZone = g.zones.map(z => list.filter(x => x && x.name && exerciseZones(x.name).indexOf(z) !== -1)
+      .sort((a, b) => goalRank(a.name, z) - goalRank(b.name, z) || a.name.localeCompare(b.name, 'fr')));
+    const picked = [], seen = new Set();
+    let round = 0, added = true;
+    while (picked.length < n && added) {
+      added = false;
+      for (const zl of byZone) { const c = zl[round]; if (c && !seen.has(c.name)) { picked.push(c); seen.add(c.name); added = true; if (picked.length >= n) break; } }
+      round++;
+    }
+    chosen = picked;
+  } else {
+    const rank = name => Math.min(...g.zones.map(z => goalRank(name, z)));
+    chosen = list.filter(x => x && x.name && g.zones.some(z => exerciseZones(x.name).indexOf(z) !== -1))
+      .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name, 'fr')).slice(0, n);
+  }
+  return { key: g.key, title: g.title, emoji: g.emoji, zones: g.zones, why: g.why, exercises: chosen.map(x => ({ name: x.name, sets: Number(x.sets) || 3, reps: Number(x.reps) || 10, unit: x.unit || 'reps' })) };
 }
 
 // Génère une séance express : remplit un budget de temps (minutes) avec des exercices

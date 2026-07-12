@@ -1339,7 +1339,18 @@ test('bodyGoalWorkout : séance préconçue par envie de corps', () => {
   assert.ok(abs.exercises.every(e => e.sets > 0 && e.reps > 0));
   assert.deepEqual(L.bodyGoalWorkout('legs', ex).exercises.map(e => e.name), ['Goblet squat kettlebell']);
   assert.equal(L.bodyGoalWorkout('inconnu', ex), null);
-  assert.ok(Array.isArray(L.BODY_GOALS) && L.BODY_GOALS.length === 4);
+  assert.ok(Array.isArray(L.BODY_GOALS) && L.BODY_GOALS.length === 7);
+  // full body : une par zone (round-robin), couvre plusieurs zones
+  const rich = [
+    { name: 'Gainage planche', sets: 3, reps: 30 },        // abs
+    { name: 'Tractions', sets: 3, reps: 8 },               // back + arms
+    { name: 'Pompes classiques', sets: 3, reps: 10 },      // chest + arms + shoulders
+    { name: 'Goblet squat kettlebell', sets: 3, reps: 8 }, // legs + glutes
+  ];
+  const fb = L.bodyGoalWorkout('fullbody', rich, { count: 4 });
+  assert.equal(fb.title, 'Full body'); assert.equal(fb.exercises.length, 4);
+  const names = fb.exercises.map(e => e.name);
+  assert.ok(names.includes('Goblet squat kettlebell') && names.includes('Tractions') && names.includes('Pompes classiques') && names.includes('Gainage planche'), 'couvre jambes/dos/pecs/abdos');
 });
 test('neglectedZone : première zone prioritaire à 0', () => {
   assert.equal(L.neglectedZone({ legs: 2, back: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'abs', 'abdos non travaillés');
