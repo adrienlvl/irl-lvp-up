@@ -36,6 +36,15 @@ test('PWA : bannières hors-ligne + mise à jour + détection SW update', () => 
   assert.ok(/updatefound/.test(appjs), 'détection de mise à jour du SW');
   assert.ok(/addEventListener\('offline'/.test(appjs) && /navigator\.onLine/.test(appjs), 'indicateur hors-ligne');
 });
+test('PWA : aide d’installation iOS (détection + bannière)', () => {
+  const L = require('../lib/logic.js');
+  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1';
+  assert.equal(L.isIosInstallable(ua, false), true, 'iPhone non installé → true');
+  assert.equal(L.isIosInstallable(ua, true), false, 'déjà en app → false');
+  assert.equal(L.isIosInstallable('Mozilla/5.0 (Windows NT 10.0)', false), false, 'desktop → false');
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.ok(/id="iosInstallHint"/.test(html), 'bannière iOS présente');
+});
 
 test('PWA : le service worker précache des fichiers qui existent vraiment', () => {
   const sw = fs.readFileSync(path.join(dir, 'service-worker.js'), 'utf8');
