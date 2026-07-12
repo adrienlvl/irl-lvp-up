@@ -6,9 +6,9 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.103 (2026-07-12)
+## 📍 État actuel — build 1.9.104 (2026-07-12)
 
-App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **209 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→169) :
+App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-check /3 h · sync agenda par URL · trajet auto OpenStreetMap, allowlist stricte). **210 tests + smoke** verts (harness durci). Livré au-delà de la roadmap initiale (boucles #36→170) :
 
 - 🎯 **MODULE COACH POIDS — COMPLET** (panneau Athlète → Progrès, boucles #157→162, builds 1.9.91→1.9.96) : à partir du poids actuel, taille, âge, sexe et **niveau d'activité**, il calcule métabolisme + dépense (TDEE), **calories & macros cibles**, la **date d'atteinte estimée**, une **projection graphique** (prévu vs réel + jalon + recalage sur la tendance réelle), un **plan d'entraînement semaine** (muscu+renfo+course adapté perte/prise), une **nutrition détaillée** (répartition sur 4 repas + « quoi manger »), et un **coaching pas à pas** + **checklist d'adhérence hebdo** (score sur données réelles).
 - **Agenda complet** : vues Jour / Semaine / Mois, priorités, **détails d'événement** (📍 lieu · 📝 notes · 🚗 trajet → **heure de départ conseillée** + « pars dans X min »), import **et** export `.ics` (avec **RRULE**), **événements récurrents natifs** (validables par date), **anniversaires** + récap « à venir », **sync par URL** (`.ics`/webcal, sécurisée — Vague S.8).
@@ -16,7 +16,8 @@ App **100 % locale**, hors accès réseau **opt-in** (auto-update GitHub, re-che
 - **Coaching** : **47 exercices** — vraie photo d'humain **animée début↔fin pour les 47** (16 planches) ; **filtrables par objectif physique**, **programme progressif 8 semaines** + **planificateur intelligent « Ma semaine »** (multi-objectifs + runs, muscu+run le même jour possible) planifiables dans l'agenda ; générateur de repas frigo+envie + liste de courses (CIQUAL, cuit avant cru).
 - **Confort/infra** : densité, retour-en-haut, version affichée, auto-update.
 - ✅ **1.9.53 publiée** sur GitHub Releases (`adrienlvl/irl-lvp-up`, marquée « Latest », auto-update actif). Versions intermédiaires 1.5.2 → 1.9.52 non publiées (inutile : la dernière suffit).
-- ⚠️ **1.9.54 → 1.9.103** non publiées (attendent un `npm run release` / upload d'Adrien).
+- ⚠️ **1.9.54 → 1.9.104** non publiées (attendent un `npm run release` / upload d'Adrien).
+- 🍽️ **Coach Poids — idées de repas concrètes** : chaque repas de la journée d'assiette (petit-déj/déj/dîner/collation) affiche un **exemple d'assiette réel** adapté au moment, avec bouton **« 🔁 Autres idées »** pour faire tourner les propositions. Concret : quoi mettre dans l'assiette pour approcher les kcal. ✅ _boucle #170 (build 1.9.104)._
 - 📅 **Coach Poids — programmer la semaine type** : bouton « Programmer (4 sem.) » sur la semaine d'entraînement du Coach Poids → pose les séances (muscu / renfo / course) dans l'agenda sur 4 semaines (18:00, sans doublon). Le plan devient concret dans le calendrier. ✅ _boucle #169 (build 1.9.103)._
 - ⚖️ **Coach Poids — ajustement calorique auto** : détecte la **stagnation du poids** (≥ 14 j / ≥ 3 pesées sans variation) et propose de baisser (perte) ou monter (prise) d'environ **125 kcal/jour**, avec la nouvelle cible affichée. ✅ _boucle #168 (build 1.9.102)._
 - 🏁 **Récap de fin de séance guidée** : en cliquant « Terminer la séance », un bilan s'affiche (nb exercices · séries · **kg soulevés**) + les **records en vue** (comparaison aux records antérieurs), avant de confirmer l'enregistrement. ✅ _boucle #167 (build 1.9.101)._

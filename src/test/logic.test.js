@@ -1950,6 +1950,17 @@ test('nutritionTips : conseils adaptés à l’objectif', () => {
   assert.match(L.nutritionTips('maintien')[0], /stabiliser/);
   assert.ok(L.nutritionTips('perte').length >= 4 && L.nutritionTips('perte').every(t => typeof t === 'string'));
 });
+test('mealIdea : exemple d’assiette par repas, rotation par seed', () => {
+  const a = L.mealIdea('Petit-déjeuner', 500, 0);
+  assert.equal(a.meal, 'Petit-déjeuner'); assert.equal(a.kcal, 500);
+  assert.equal(typeof a.example, 'string'); assert.ok(a.example.length > 0);
+  // seed fait tourner l'idée
+  assert.notEqual(L.mealIdea('Déjeuner', 700, 0).example, L.mealIdea('Déjeuner', 700, 1).example);
+  // seed cyclique
+  assert.equal(L.mealIdea('Collation', 200, 0).example, L.mealIdea('Collation', 200, 3).example, '3 idées → cycle de 3');
+  // repas inconnu → repli
+  assert.match(L.mealIdea('Brunch', 400, 0).example, /Protéine/);
+});
 test('coachSteps : marche à suivre selon l’objectif', () => {
   assert.match(L.coachSteps('perte')[0], /déficit/);
   assert.match(L.coachSteps('prise')[0], /surplus/);
