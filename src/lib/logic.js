@@ -1661,6 +1661,31 @@ function energyPlan(opts) {
   return { bmr, tdee, goal, diff: Math.abs(diff), ratePerWeek, deficit, dailyTarget, proteinG, fatG, carbG, weeks, targetDate };
 }
 
+// Plan de course de la semaine (≥ 3, plafonné à 6 sorties) pour progresser en cardio :
+// mix endurance facile / tempo / fractionné / sortie longue, réparti sur la semaine (longue le dimanche).
+// opts.days (0=Dim…6=Sam) peut imposer les jours. Renvoie { sessions:[{weekday,type,label,minutes,why}], count, totalMinutes }. Pur + testé.
+function runPlanWeek(count, opts) {
+  const want = Math.max(3, Math.min(6, Math.round(Number(count) || 4)));
+  const PATTERN = { 3: [2, 4, 0], 4: [1, 3, 5, 0], 5: [1, 2, 4, 5, 0], 6: [1, 2, 3, 4, 5, 0] };
+  const TEMPLATE = {
+    3: ['facile', 'tempo', 'longue'],
+    4: ['facile', 'fractionne', 'facile', 'longue'],
+    5: ['facile', 'fractionne', 'facile', 'tempo', 'longue'],
+    6: ['facile', 'fractionne', 'facile', 'tempo', 'facile', 'longue'],
+  };
+  const META = {
+    facile: { label: 'Course facile', minutes: 35, why: 'Endurance fondamentale : à l’aise, tu peux parler.' },
+    tempo: { label: 'Tempo', minutes: 30, why: 'Allure soutenue tenue : élève ton seuil.' },
+    fractionne: { label: 'Fractionné', minutes: 35, why: 'Intervalles rapides : booste la VMA et le cardio.' },
+    longue: { label: 'Sortie longue', minutes: 70, why: 'Volume : endurance et mental.' },
+  };
+  const o = opts || {};
+  const days = Array.isArray(o.days) && o.days.length >= want ? o.days.slice(0, want) : PATTERN[want];
+  const order = w => (w + 6) % 7;
+  const sessions = TEMPLATE[want].map((type, i) => ({ weekday: days[i], type, ...META[type] })).sort((a, b) => order(a.weekday) - order(b.weekday));
+  return { sessions, count: sessions.length, totalMinutes: sessions.reduce((a, s) => a + s.minutes, 0) };
+}
+
 // Répartition d'entraînement hebdo adaptée à l'objectif de poids, placée sur les jours dispo.
 // goal : 'perte'|'prise'|'maintien'. days : jours dispo (0=Dim … 6=Sam). Combine muscu (garde le muscle),
 // renfo (circuit intense) et course (déficit). Sessions espacées sur la semaine. Pur + testé.
@@ -2345,5 +2370,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, weightForecast, coachWeekPlan, mealSplit, nutritionTips, coachSteps, weeklyAdherence, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, weightForecast, coachWeekPlan, mealSplit, nutritionTips, coachSteps, weeklyAdherence, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, exerciseHistoryStats, sessionMinutes, workoutTonnage, completedTonnage, completedSetCount, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }

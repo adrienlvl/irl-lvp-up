@@ -1886,6 +1886,19 @@ test('coachWeekPlan : semaine muscu/renfo/course adaptée à l’objectif', () =
   // objectif inconnu → maintien
   assert.match(L.coachWeekPlan('xxx', [1, 3]).note, /Maintien/);
 });
+test('runPlanWeek : semaine de course, sortie longue en fin, garde-fous', () => {
+  const p = L.runPlanWeek(4);
+  assert.equal(p.count, 4);
+  assert.deepEqual(p.sessions.map(s => s.weekday), [1, 3, 5, 0], 'répartis Lun/Mer/Ven/Dim');
+  assert.deepEqual(p.sessions.map(s => s.type), ['facile', 'fractionne', 'facile', 'longue']);
+  assert.equal(p.sessions.at(-1).type, 'longue', 'sortie longue le dimanche');
+  assert.equal(p.totalMinutes, 175, '35+35+35+70');
+  assert.equal(L.runPlanWeek(5).count, 5);
+  assert.equal(L.runPlanWeek(99).count, 6, 'plafonné à 6');
+  assert.equal(L.runPlanWeek(1).count, 3, 'plancher 3');
+  // jours imposés
+  assert.deepEqual(L.runPlanWeek(4, { days: [1, 2, 3, 4] }).sessions.map(s => s.weekday), [1, 2, 3, 4]);
+});
 test('mealSplit : répartition calories/macros sur 4 repas', () => {
   const m = L.mealSplit(2000, 160, 200, 60);
   assert.equal(m.length, 4);
