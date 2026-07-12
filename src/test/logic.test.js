@@ -2078,6 +2078,23 @@ test('runPlanWeek : semaine de course, sortie longue en fin, garde-fous', () => 
   assert.equal(cnt(facile, 'fractionne'), 0, 'facile : aucun fractionné');
   assert.deepEqual(L.runPlanWeek(4, { emphasis: 'inconnu' }).sessions.map(s => s.type), ['facile', 'fractionne', 'facile', 'longue'], 'accent inconnu → équilibré');
 });
+test('programWeekSummary : total séances/minutes/heures d’un programme', () => {
+  const week = [
+    { kind: 'muscu', minutes: 45 },
+    { kind: 'course', minutes: 35 },
+    { kind: 'muscu', minutes: 45 },
+    { kind: 'course', minutes: 70 },
+  ];
+  const s = L.programWeekSummary(week);
+  assert.equal(s.sessions, 4);
+  assert.equal(s.muscu, 2);
+  assert.equal(s.course, 2);
+  assert.equal(s.minutes, 195);
+  assert.equal(s.hours, 3.3, '195 min ≈ 3,3 h');
+  const empty = L.programWeekSummary([]);
+  assert.deepEqual(empty, { sessions: 0, muscu: 0, course: 0, minutes: 0, hours: 0 });
+  assert.equal(L.programWeekSummary(null).sessions, 0, 'entrée invalide → 0');
+});
 test('objectiveProgram : courses adaptées à l’objectif (accent)', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
   const seche = L.objectiveProgram('seche', ex);
