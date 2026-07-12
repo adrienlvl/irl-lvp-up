@@ -1326,6 +1326,21 @@ test('quickSessionPlan : remplit un budget temps selon zone/matériel', () => {
   assert.deepEqual(L.quickSessionPlan([], { minutes: 20 }).exercises, []);
   assert.deepEqual(L.quickSessionPlan(ex, { zone: 'inconnu' }).exercises, []);
 });
+test('bodyGoalWorkout : séance préconçue par envie de corps', () => {
+  const ex = [
+    { name: 'Gainage planche', sets: 3, reps: 30, unit: 'sec' },     // abs
+    { name: 'Hollow hold', sets: 3, reps: 20, unit: 'sec' },          // abs
+    { name: 'Tractions', sets: 3, reps: 8 },                          // back + arms
+    { name: 'Goblet squat kettlebell', sets: 3, reps: 8 },            // legs + glutes
+  ];
+  const abs = L.bodyGoalWorkout('abs', ex, { count: 5 });
+  assert.equal(abs.title, 'Abdos béton');
+  assert.deepEqual(abs.exercises.map(e => e.name).sort(), ['Gainage planche', 'Hollow hold']);
+  assert.ok(abs.exercises.every(e => e.sets > 0 && e.reps > 0));
+  assert.deepEqual(L.bodyGoalWorkout('legs', ex).exercises.map(e => e.name), ['Goblet squat kettlebell']);
+  assert.equal(L.bodyGoalWorkout('inconnu', ex), null);
+  assert.ok(Array.isArray(L.BODY_GOALS) && L.BODY_GOALS.length === 4);
+});
 test('neglectedZone : première zone prioritaire à 0', () => {
   assert.equal(L.neglectedZone({ legs: 2, back: 1, arms: 1 }, ['abs', 'legs', 'arms']), 'abs', 'abdos non travaillés');
   assert.equal(L.neglectedZone({ abs: 1, legs: 2, arms: 1 }, ['abs', 'legs', 'arms']), null, 'tout couvert → null');
