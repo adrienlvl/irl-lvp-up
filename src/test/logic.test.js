@@ -2095,6 +2095,17 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta([{ date: '2026-06-01', waist: 0 }], 'waist'), null);
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
+test('recompositionInsight : poids vs tour de taille', () => {
+  // poids stable, taille en baisse → recomposition
+  assert.equal(L.recompositionInsight(-0.3, -2).key, 'recomp');
+  // poids ET taille en baisse → perte de gras
+  assert.equal(L.recompositionInsight(-2, -2).key, 'fatloss');
+  // poids et taille montent → prise (surveiller)
+  assert.equal(L.recompositionInsight(2, 2).key, 'gain');
+  // taille stable → pas d'insight
+  assert.equal(L.recompositionInsight(-0.2, -0.3), null);
+  assert.equal(L.recompositionInsight('x', -2), null);
+});
 
 test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
   // parfait : 8h, fatigue 1, courbatures 1 → 40+30+30 = 100
