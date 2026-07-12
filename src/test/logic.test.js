@@ -1645,6 +1645,21 @@ test('completedTonnage / completedSetCount : séries validées uniquement', () =
   assert.equal(L.completedTonnage([]), 0);
   assert.equal(L.completedSetCount(null), 0);
 });
+test('sessionSummary : bilan de séance (tonnage, séries, records battus)', () => {
+  const ex = [
+    { name: 'DC', setLogs: [{ load: 40, reps: 8, completed: true }, { load: 40, reps: 6, completed: false }] },
+    { name: 'Squat', setLogs: [{ load: 60, reps: 10, completed: true }] },
+  ];
+  const prior = { DC: { load: 35, reps: 8 }, Squat: { load: 60, reps: 8 } };
+  const s = L.sessionSummary(ex, prior);
+  assert.equal(s.tonnage, 320 + 600, '40×8 (validée) + 60×10');
+  assert.equal(s.sets, 2); assert.equal(s.exercises, 2);
+  const by = Object.fromEntries(s.prs.map(p => [p.name, p]));
+  assert.ok(by.DC && by.DC.loadPr, 'DC record de charge (40 > 35)');
+  assert.ok(by.Squat && by.Squat.repsPr, 'Squat record de reps (10 > 8)');
+  assert.equal(L.sessionSummary([], {}).tonnage, 0);
+  assert.deepEqual(L.sessionSummary([{ name: 'X', setLogs: [{ load: 20, reps: 5, completed: true }] }], { X: { load: 30, reps: 8 } }).prs, [], 'rien battu → []');
+});
 test('runKmInWindow : cumule les km de course dans la fenêtre', () => {
   const w = [
     { type: 'run', date: '2026-07-06', distance: 10 },
