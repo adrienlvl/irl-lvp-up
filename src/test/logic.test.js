@@ -1401,6 +1401,40 @@ test('objectiveProgram : programme hebdo auto par objectif', () => {
   assert.ok(Array.isArray(L.FITNESS_OBJECTIVES) && L.FITNESS_OBJECTIVES.length === 5);
   assert.equal(L.objectiveProgram('inconnu', ex), null);
 });
+test('exerciseAvailable / filterByEquipment : adaptation au matériel', () => {
+  const pool = [
+    { name: 'Pompes classiques', kind: 'Poids du corps' },
+    { name: 'Goblet squat kettlebell', kind: 'Kettlebell' },
+    { name: 'Tractions', kind: 'Barre de traction' },
+    { name: 'Pompes gilet lesté', kind: 'Gilet lesté' },
+  ];
+  assert.equal(L.exerciseAvailable(pool[0], { kettlebell: false }), true, 'poids du corps toujours OK');
+  assert.equal(L.exerciseAvailable(pool[1], { kettlebell: false }), false, 'kettlebell manquante');
+  assert.equal(L.exerciseAvailable(pool[1], { kettlebell: true }), true);
+  assert.equal(L.exerciseAvailable(pool[2], { pullup: false }), false, 'barre manquante');
+  const noKb = L.filterByEquipment(pool, { kettlebell: false, pullup: true, vest: true, handles: true }).map(x => x.name);
+  assert.ok(!noKb.includes('Goblet squat kettlebell') && noKb.includes('Pompes classiques') && noKb.includes('Tractions'));
+  assert.equal(L.filterByEquipment(pool, null).length, 4, 'pas de matériel fourni → pas de filtre');
+});
+test('objectiveProgram : respecte le matériel dispo (exclut la kettlebell)', () => {
+  const rich = [
+    { name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 },
+    { name: 'Pompes diamants', kind: 'Poids du corps', sets: 3, reps: 8 },
+    { name: 'Pike push-up', kind: 'Poids du corps', sets: 3, reps: 8 },
+    { name: 'Tractions', kind: 'Barre de traction', sets: 3, reps: 8 },
+    { name: 'Rowing australien', kind: 'Poids du corps', sets: 3, reps: 10 },
+    { name: 'Goblet squat kettlebell', kind: 'Kettlebell', sets: 3, reps: 8 },
+    { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 },
+    { name: 'Pont fessier une jambe', kind: 'Poids du corps', sets: 3, reps: 12 },
+  ];
+  const noGear = L.objectiveProgram('muscle', rich, { perSession: 5, equipment: { kettlebell: false, pullup: false, vest: false, handles: false } });
+  const names = noGear.week.filter(s => s.kind === 'muscu').flatMap(s => s.exercises.map(e => e.name));
+  assert.ok(names.length >= 1, 'au moins des exercices au poids du corps');
+  assert.ok(names.every(n => n !== 'Goblet squat kettlebell' && n !== 'Tractions'), 'aucun exo kettlebell/barre sans matériel');
+  const full = L.objectiveProgram('muscle', rich, { perSession: 5, equipment: { kettlebell: true, pullup: true, vest: true, handles: true } });
+  const namesFull = full.week.filter(s => s.kind === 'muscu').flatMap(s => s.exercises.map(e => e.name));
+  assert.ok(namesFull.includes('Goblet squat kettlebell') || namesFull.includes('Tractions'), 'matériel dispo → exos avec matériel possibles');
+});
 test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
   assert.equal(L.blockPhase(0).phase, 'Base');
   assert.equal(L.blockPhase(1).phase, 'Volume');
