@@ -2610,6 +2610,28 @@ test('wellnessGoalProgress : objectif hebdo de routines', () => {
   assert.equal(L.wellnessGoalProgress().target, 3);
   assert.equal(L.wellnessGoalProgress(-5, 3).done, 0);
 });
+test('wellnessInactivity : rappel doux après N jours sans routine', () => {
+  // dernière routine il y a 5 jours (> seuil 3) → inactif
+  const log = [{ date: '2026-07-01', key: 'a' }, { date: '2026-07-08', key: 'b' }];
+  const r = L.wellnessInactivity(log, '2026-07-13', 3);
+  assert.equal(r.inactive, true);
+  assert.equal(r.days, 5);
+  assert.ok(/5 jours/.test(r.message));
+  // routine récente (< seuil) → pas de rappel
+  const recent = L.wellnessInactivity([{ date: '2026-07-12', key: 'a' }], '2026-07-13', 3);
+  assert.equal(recent.inactive, false);
+  assert.equal(recent.days, 1);
+  // pile au seuil → inactif
+  assert.equal(L.wellnessInactivity([{ date: '2026-07-10', key: 'a' }], '2026-07-13', 3).inactive, true);
+  // jamais commencé (liste vide) → pas de rappel, days null
+  const none = L.wellnessInactivity([], '2026-07-13', 3);
+  assert.equal(none.inactive, false);
+  assert.equal(none.days, null);
+  // todayKey invalide → pas de rappel
+  assert.equal(L.wellnessInactivity(log, 'x').inactive, false);
+  // seuil minimum 2
+  assert.equal(L.wellnessInactivity([{ date: '2026-07-12', key: 'a' }], '2026-07-13', 1).inactive, false, 'seuil borné à 2 → 1 jour ne déclenche pas');
+});
 test('wellnessBadges / newWellnessBadge : paliers de badges bien-être', () => {
   // série de 3 jours + 3 routines → badge série 🌱, pas encore de badge total (10)
   const three = [{ date: '2026-07-11', key: 'a' }, { date: '2026-07-12', key: 'b' }, { date: '2026-07-13', key: 'c' }];

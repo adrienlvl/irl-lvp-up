@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.183 (2026-07-13)
+## 📍 État actuel — build 1.9.184 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **279 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→249) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **280 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→250) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 9 rotations complètes ; 10e rotation en cours (#1, #2) — boucle autonome continue**. Publication **option B** (workflow GitHub Actions release-on-tag) en place — voir `.github/workflows/release.yml`, en attente du branchement remote par Adrien.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 9 rotations complètes ; 10e rotation en cours (#1→#3) — boucle autonome continue**. Publication **option B** (GitHub Actions release-on-tag, `GITHUB_TOKEN` intégré) : `.github/workflows/release.yml` **poussé sur GitHub**, remote `origin` branché. Release déclenchée par un tag `v*` quand Adrien dit « publie ».
 
+- 🔔 **#3 approfondi (10) — rappel doux d'inactivité bien-être** : nudge après ≥3 j sans routine (ne relance pas ceux qui n'ont jamais commencé). ✅ _boucle #250 (build 1.9.184)._
 - 📝 **#2 approfondi (10) — brouillon d'onboarding** : sauvegarde des saisies si on ferme sans finir + reprise (« Brouillon repris » / « Repartir de zéro »). ✅ _boucle #249 (build 1.9.183)._
 - 📤 **#1 approfondi (10) — partage du bilan hebdo** : bouton Web Share sur la revue hebdo (feuille OS sur mobile, repli presse-papier). ✅ _boucle #248 (build 1.9.182)._
 - ⚖️ **#4 approfondi (9) — ratio push/pull** : carte de bloc affichant l'équilibre poussée/tirage sur 28 j + conseil de rééquilibrage. ✅ _boucle #247 (build 1.9.181)._
