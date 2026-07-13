@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.197 (2026-07-13)
+## 📍 État actuel — build 1.9.198 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **290 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→263) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **291 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→264) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 13 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193`/`v1.9.197` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 13 rotations complètes ; 14ᵉ rotation en cours (#1) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193`/`v1.9.197` publiées.
 
+- 🎖️ **#1 approfondi (14) — ancienneté « Membre depuis »** : compteur de jours + paliers de fidélité (👋→🌱→⭐→🏆→💎) dans la carte joueur (`membershipInfo`). ✅ _boucle #264 (build 1.9.198)._
 - 📏 **#4 approfondi (13) — régularité d'entraînement** : score 0-100 sur 28 j (constance des intervalles entre séances) + jauge (`trainingConsistency`). ✅ _boucle #263 (build 1.9.197) — clôt la 13ᵉ rotation._
 - 🏅 **#3 approfondi (13) — record de série bien-être** : chip « record N j » (meilleure suite de jours all-time) à côté du streak courant (`wellnessBestStreak`). ✅ _boucle #262 (build 1.9.196)._
 - 🏃 **#2 approfondi (13) — objectif de course à l'onboarding** : champ « Course (km/sem.) » relié à `goals.distance` (barre de progression distance). ✅ _boucle #261 (build 1.9.195)._

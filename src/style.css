@@ -17,6 +17,9 @@
 .wn-list li{font-size:.9rem;color:var(--text);padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--line);display:flex;align-items:flex-start;gap:9px;line-height:1.4}
 .wn-i-emoji{flex:none;font-size:1.05rem;line-height:1.2}
 .whatsnew-card .primary-button{align-self:flex-start;font-size:.86rem;padding:9px 16px}
+.membership-line{margin:6px 0 0!important;font-size:.78rem;color:var(--muted);line-height:1.4}
+.membership-line b{color:var(--text);font-weight:700}
+.membership-line .ms-next{opacity:.85}
 .ic-row{display:flex;align-items:flex-start;gap:12px}
 .ic-emoji{font-size:1.7rem;line-height:1}
 .ic-body{display:flex;flex-direction:column;gap:3px}

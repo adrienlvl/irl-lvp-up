@@ -3006,7 +3006,32 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.197');
+  assert.equal(L.CHANGELOG[0].v, '1.9.198');
+});
+test('membershipInfo : ancienneté et paliers de fidélité', () => {
+  // jour d'install → 0 j, palier Nouveau, prochain = 7 j
+  const d0 = L.membershipInfo('2026-07-13', '2026-07-13');
+  assert.equal(d0.days, 0);
+  assert.equal(d0.tier.label, 'Nouveau');
+  assert.equal(d0.next.days, 7);
+  assert.equal(d0.next.remaining, 7);
+  // 10 j → palier Lancé (≥7), prochain Régulier (30) dans 20 j
+  const d10 = L.membershipInfo('2026-07-03', '2026-07-13');
+  assert.equal(d10.days, 10);
+  assert.equal(d10.tier.label, 'Lancé');
+  assert.equal(d10.tier.emoji, '🌱');
+  assert.equal(d10.next.label, 'Régulier');
+  assert.equal(d10.next.remaining, 20);
+  // 400 j → Vétéran, plus de palier suivant
+  const dv = L.membershipInfo('2025-06-01', '2026-07-13');
+  assert.equal(dv.tier.label, 'Vétéran');
+  assert.equal(dv.next, null);
+  // date d'install future → borné à 0 j
+  assert.equal(L.membershipInfo('2026-08-01', '2026-07-13').days, 0);
+  // dates invalides → null
+  assert.equal(L.membershipInfo('', '2026-07-13'), null);
+  assert.equal(L.membershipInfo('2026-07-13', 'x'), null);
+  assert.equal(L.membershipInfo(null, null), null);
 });
 test('launchTarget : cible de lancement PWA depuis ?go=', () => {
   assert.equal(L.launchTarget('?go=wellness'), 'wellness');
