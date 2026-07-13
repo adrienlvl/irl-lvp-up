@@ -1712,6 +1712,32 @@ test('bestSessionTonnage : meilleure séance par tonnage', () => {
   assert.equal(L.bestSessionTonnage(w4).tonnage, 1000);
   assert.equal(L.bestSessionTonnage(null), null);
 });
+test('trainingConsistency : régularité des séances', () => {
+  // moins de 3 séances → null
+  assert.equal(L.trainingConsistency([{ date: '2026-07-13' }, { date: '2026-07-10' }], '2026-07-13', 28), null);
+  assert.equal(L.trainingConsistency([], '2026-07-13'), null);
+  // intervalles parfaitement réguliers (tous les 3 j) → régularité 100
+  const reg = [{ date: '2026-07-01' }, { date: '2026-07-04' }, { date: '2026-07-07' }, { date: '2026-07-10' }, { date: '2026-07-13' }];
+  const c = L.trainingConsistency(reg, '2026-07-13', 28);
+  assert.equal(c.sessions, 5);
+  assert.equal(c.avgGapDays, 3);
+  assert.equal(c.maxGapDays, 3);
+  assert.equal(c.regularity, 100);
+  assert.equal(c.label, 'Très régulier');
+  // intervalles en dents de scie (1,7,1,7) → régularité faible
+  const irr = [{ date: '2026-06-01' }, { date: '2026-06-02' }, { date: '2026-06-09' }, { date: '2026-06-10' }, { date: '2026-06-17' }];
+  const ci = L.trainingConsistency(irr, '2026-06-17', 28);
+  assert.ok(ci.regularity <= 40, 'régularité basse pour cadence irrégulière');
+  assert.equal(ci.maxGapDays, 7);
+  // dates dupliquées le même jour comptent pour une séance
+  const dup = [{ date: '2026-07-07' }, { date: '2026-07-07' }, { date: '2026-07-10' }, { date: '2026-07-13' }];
+  assert.equal(L.trainingConsistency(dup, '2026-07-13', 28).sessions, 3);
+  // hors fenêtre → exclu (séance de mai ignorée sur fenêtre 28 j depuis le 13/07)
+  const win = [{ date: '2026-05-01' }, { date: '2026-07-07' }, { date: '2026-07-10' }, { date: '2026-07-13' }];
+  assert.equal(L.trainingConsistency(win, '2026-07-13', 28).sessions, 3);
+  // todayKey invalide → null
+  assert.equal(L.trainingConsistency(reg, 'x', 28), null);
+});
 test('bestE1rmByExercise / blockExerciseProgress : progression de force par exercice', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -2980,7 +3006,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.196');
+  assert.equal(L.CHANGELOG[0].v, '1.9.197');
 });
 test('launchTarget : cible de lancement PWA depuis ?go=', () => {
   assert.equal(L.launchTarget('?go=wellness'), 'wellness');
