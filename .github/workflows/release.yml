@@ -1,0 +1,42 @@
+name: Build & publier la release Windows
+
+# Construit l'installeur Windows (.exe) et le publie sur les GitHub Releases.
+# Le token utilisé est le GITHUB_TOKEN INTÉGRÉ d'Actions : généré à chaque run, limité à ce dépôt,
+# il expire tout seul et n'est jamais stocké ni visible (ni par Adrien, ni par l'agent).
+# Déclenchement : pousser un tag « v… » (ex. v1.9.182) OU bouton « Run workflow ».
+# Aucune donnée d'Adrien n'est publiée : seul l'installeur de l'app est mis en ligne.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # nécessaire pour que GITHUB_TOKEN puisse créer la Release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: src   # package.json et package-lock.json sont dans src/
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Tests (node:test — sans interface)
+        run: npm test
+
+      - name: Build + publier sur les Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release
