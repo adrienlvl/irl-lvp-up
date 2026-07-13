@@ -1622,6 +1622,38 @@ test('blockWindowStats / blockComparison : progression 1er → dernier bloc', ()
   ], workouts);
   assert.equal(down.trend, 'down');
 });
+test('bestE1rmByExercise / blockExerciseProgress : progression de force par exercice', () => {
+  const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
+  const workouts = [
+    // bloc 1 (mai) : Squat 60×5 (e1RM 70), Développé 40×5 (e1RM ~46,5)
+    wo('2026-05-06', 'Squat', 60, 5), wo('2026-05-20', 'Développé', 40, 5),
+    // bloc 2 (juin) : Squat 75×5 (e1RM 87,5), Développé 45×5 (e1RM ~52,5), Tractions (pas de charge → ignoré)
+    wo('2026-06-03', 'Squat', 75, 5), wo('2026-06-10', 'Développé', 45, 5), wo('2026-06-20', 'Tractions', 0, 8),
+  ];
+  const b1 = L.bestE1rmByExercise(workouts, '2026-05-01', '2026-05-31');
+  assert.equal(b1.Squat, 70);
+  const history = [
+    { objective: 'muscle', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+    { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
+  ];
+  const prog = L.blockExerciseProgress(history, workouts);
+  const squat = prog.find(p => p.name === 'Squat');
+  assert.ok(squat, 'Squat présent dans les deux blocs');
+  assert.equal(squat.firstE1rm, 70);
+  assert.equal(squat.lastE1rm, 87.5);
+  assert.equal(squat.deltaKg, 17.5);
+  assert.equal(squat.deltaPct, 25);
+  // Tractions sans charge → absent
+  assert.ok(!prog.some(p => p.name === 'Tractions'), 'exercice sans charge exclu');
+  // trié par progression décroissante, limité
+  assert.ok(prog.length <= 5);
+  assert.equal(prog[0].name, 'Squat', 'Squat +25% en tête (avant Développé +13%)');
+  // < 2 blocs → []
+  assert.deepEqual(L.blockExerciseProgress(history.slice(0, 1), workouts), []);
+  assert.deepEqual(L.blockExerciseProgress([], workouts), []);
+  // limite personnalisable
+  assert.ok(L.blockExerciseProgress(history, workouts, { limit: 1 }).length === 1);
+});
 test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
   assert.equal(L.blockPhase(0).phase, 'Base');
   assert.equal(L.blockPhase(1).phase, 'Volume');
