@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.180 (2026-07-13)
+## 📍 État actuel — build 1.9.181 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **277 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→246) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **278 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→247) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 8 rotations complètes ; 9e rotation en cours (#1→#3) — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 9 rotations complètes — boucle autonome continue**.
 
+- ⚖️ **#4 approfondi (9) — ratio push/pull** : carte de bloc affichant l'équilibre poussée/tirage sur 28 j + conseil de rééquilibrage. ✅ _boucle #247 (build 1.9.181)._
 - 🎯 **#3 approfondi (9) — objectif hebdo de routines** : cible réglable (−/+) avec barre de progression dans le panneau bien-être. ✅ _boucle #246 (build 1.9.180)._
 - 🍽️ **#2 approfondi (9) — macros expliquées** : détail P/G/L (grammes, % des calories, rôle) dans l'aperçu d'onboarding. ✅ _boucle #245 (build 1.9.179)._
 - 📳 **#1 approfondi (9) — retour haptique centralisé** : vibration sur fin de repos, série validée, record et level-up via un helper testable. ✅ _boucle #244 (build 1.9.178)._

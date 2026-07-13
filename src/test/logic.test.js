@@ -1750,6 +1750,25 @@ test('muscleBalance : équilibre poussée (pecs+épaules) / tirage (dos) sur 28 
   assert.equal(L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Gainage planche', sets: 3 }] }], '2026-07-10'), null, 'ni poussée ni tirage → null');
   assert.equal(L.muscleBalance(w, 'x'), null);
 });
+test('pushPullAdvice : conseil d’équilibre poussée/tirage', () => {
+  // push-heavy (8/3) → avertissement, ajoute du tirage
+  const heavy = L.pushPullAdvice({ push: 8, pull: 3, ratio: 2.67, zone: 'push-heavy' });
+  assert.equal(heavy.ok, false);
+  assert.ok(/tirage|dos/i.test(heavy.advice));
+  assert.equal(heavy.push, 8); assert.equal(heavy.pull, 3);
+  // équilibré → ok
+  const bal = L.pushPullAdvice({ push: 6, pull: 6, ratio: 1, zone: 'balanced' });
+  assert.equal(bal.ok, true); assert.equal(bal.emoji, '⚖️');
+  // no-pull → conseil dos
+  assert.ok(/dos/i.test(L.pushPullAdvice({ push: 8, pull: 0, ratio: null, zone: 'no-pull' }).advice));
+  // pull-heavy
+  assert.equal(L.pushPullAdvice({ push: 2, pull: 8, ratio: 0.25, zone: 'pull-heavy' }).ok, false);
+  // données insuffisantes (< 6 séries) → null
+  assert.equal(L.pushPullAdvice({ push: 2, pull: 1, zone: 'push-heavy' }), null);
+  // null / vide → null
+  assert.equal(L.pushPullAdvice(null), null);
+  assert.equal(L.pushPullAdvice({ push: 0, pull: 0, zone: 'x' }), null);
+});
 test('zoneFreshness : jours depuis le dernier travail de chaque zone + statut', () => {
   const w = [
     { date: '2026-07-10', exercises: [{ name: 'Gainage planche' }] },       // abs aujourd'hui
