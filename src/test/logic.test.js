@@ -2607,6 +2607,27 @@ test('shareableRoutine : partage natif d’une routine bien-être', () => {
   assert.equal(L.shareableRoutine('zzz'), null);
   assert.equal(L.shareableRoutine(), null);
 });
+test('routinesByTimeBudget : filtre les routines par budget de temps', () => {
+  const all = L.routinesByTimeBudget(0);
+  assert.equal(all.length, L.WELLNESS_ROUTINES.length, 'budget invalide → toutes les routines');
+  // budget serré : seules les routines ≤ 4 min
+  const quick = L.routinesByTimeBudget(4);
+  assert.ok(quick.length > 0 && quick.length < all.length, 'filtre effectif');
+  quick.forEach(r => assert.ok(r.minutes <= 4, 'aucune routine ne dépasse le budget'));
+  // les routines de 4 min (morning, neck, wrists) sont incluses
+  assert.ok(quick.some(r => r.key === 'morning'));
+  // tri par durée décroissante puis titre
+  const six = L.routinesByTimeBudget(6);
+  for (let i = 1; i < six.length; i++) assert.ok(six[i - 1].minutes >= six[i].minutes, 'trié par durée décroissante');
+  // une routine de 8 min (stretch) exclue à 6 min mais présente à 8
+  assert.ok(!six.some(r => r.key === 'stretch'), 'stretch (8 min) exclue du budget 6 min');
+  assert.ok(L.routinesByTimeBudget(8).some(r => r.key === 'stretch'), 'stretch incluse à 8 min');
+  // budget négatif / non numérique → toutes
+  assert.equal(L.routinesByTimeBudget(-3).length, all.length);
+  assert.equal(L.routinesByTimeBudget('abc').length, all.length);
+  // chaque entrée expose key/emoji/title/minutes/moves
+  quick.forEach(r => { assert.ok(r.key && r.emoji && r.title && r.minutes > 0 && r.moves > 0); });
+});
 test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routines', () => {
   let log = [];
   log = L.logWellnessDone(log, 'hips', '2026-07-13');
