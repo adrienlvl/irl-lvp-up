@@ -2562,6 +2562,13 @@ test('objectiveProgramText : export texte lisible du programme', () => {
   assert.equal(txt.split('\n').length > 5, true, 'plusieurs lignes');
   assert.equal(L.objectiveProgramText(null), '', 'programme vide → chaîne vide');
   assert.equal(L.objectiveProgramText({ title: 'x', week: [] }), '', 'sans séances → vide');
+  // shareableProgram : objet de partage natif { title, text }
+  const share = L.shareableProgram(prog, { nutri });
+  assert.ok(share && share.title && share.text, 'objet de partage complet');
+  assert.ok(/Corps athlétique/.test(share.title) && /ma semaine/i.test(share.title), 'titre = nom + ma semaine');
+  assert.equal(share.text, txt, 'texte = export lisible');
+  assert.equal(L.shareableProgram(null), null, 'programme vide → null');
+  assert.equal(L.shareableProgram({ title: 'x', week: [] }), null, 'sans séances → null');
 });
 test('objectiveProgram : courses adaptées à l’objectif (accent)', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
