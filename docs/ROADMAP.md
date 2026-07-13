@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.193 (2026-07-13)
+## 📍 État actuel — build 1.9.194 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **288 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→259) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **289 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→260) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 12 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 12 rotations complètes ; 13ᵉ rotation en cours (#1) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193` publiées.
 
+- 🧘 **#1 approfondi (13) — raccourci « Bien-être »** : 5ᵉ shortcut manifest (`?go=wellness`) vers les routines de mobilité + cible de lancement en logique pure (`launchTarget`). ✅ _boucle #260 (build 1.9.194)._
 - 🏆 **#4 approfondi (12) — record de tonnage sur une séance** : meilleure séance (Σ charge×reps) + célébration si la dernière bat le record (`bestSessionTonnage`). ✅ _boucle #259 (build 1.9.193) — clôt la 12ᵉ rotation._
 - ⏱️ **#3 approfondi (12) — minutes de mobilité hebdo** : chip du temps total de mobilité de la semaine dans le bandeau bien-être (`wellnessMinutesInWindow`). ✅ _boucle #258 (build 1.9.192)._
 - 🎯 **#2 approfondi (12) — suggestion d'objectif à l'onboarding** : hint « Suggéré pour toi » selon IMC + poids cible, applicable en 1 clic (`suggestObjective`). ✅ _boucle #257 (build 1.9.191)._

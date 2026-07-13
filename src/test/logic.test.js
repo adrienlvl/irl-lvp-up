@@ -2968,7 +2968,22 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.193');
+  assert.equal(L.CHANGELOG[0].v, '1.9.194');
+});
+test('launchTarget : cible de lancement PWA depuis ?go=', () => {
+  assert.equal(L.launchTarget('?go=wellness'), 'wellness');
+  assert.equal(L.launchTarget('?go=athlete'), 'athlete');
+  assert.equal(L.launchTarget('go=coach'), 'coach'); // sans le ?
+  assert.equal(L.launchTarget('?foo=1&go=nutrition'), 'nutrition');
+  // cible inconnue → null
+  assert.equal(L.launchTarget('?go=hack'), null);
+  // absent / vide / malformé → null
+  assert.equal(L.launchTarget('?x=1'), null);
+  assert.equal(L.launchTarget(''), null);
+  assert.equal(L.launchTarget(null), null);
+  assert.equal(L.launchTarget(), null);
+  // wellness fait bien partie des cibles connues
+  assert.ok(L.LAUNCH_TARGETS.includes('wellness'));
 });
 test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
   // séance ouverte + page visible → ré-acquérir
