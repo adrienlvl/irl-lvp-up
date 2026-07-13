@@ -2833,6 +2833,34 @@ test('wellnessInactivity : rappel doux après N jours sans routine', () => {
   // seuil minimum 2
   assert.equal(L.wellnessInactivity([{ date: '2026-07-12', key: 'a' }], '2026-07-13', 1).inactive, false, 'seuil borné à 2 → 1 jour ne déclenche pas');
 });
+test('neglectedMobilityZone : zone la moins mobilisée', () => {
+  // rien fait → première zone jamais faite (hips), lastDays null
+  const n0 = L.neglectedMobilityZone([], '2026-07-13', 7);
+  assert.equal(n0.key, 'hips');
+  assert.equal(n0.lastDays, null);
+  assert.ok(n0.emoji && n0.title);
+  // hips fait récemment, épaules faites il y a longtemps, reste jamais → priorité aux jamais faites (ankles avant neck/wrists dans l'ordre)
+  const log = [
+    { date: '2026-07-12', key: 'hips' },      // récent → exclu
+    { date: '2026-06-01', key: 'shoulders' }, // vieux mais pas le plus prioritaire face aux jamais-faits
+  ];
+  const n1 = L.neglectedMobilityZone(log, '2026-07-13', 7);
+  assert.equal(n1.lastDays, null, 'une zone jamais faite prime (Infinity)');
+  assert.equal(n1.key, 'backpain', 'première zone jamais faite dans l’ordre après hips/shoulders');
+  // toutes les zones faites récemment (< minDays) → null
+  const recent = L.WELLNESS_ZONE_ROUTINES.map((k, i) => ({ date: '2026-07-1' + (i % 3 + 1), key: k }));
+  assert.equal(L.neglectedMobilityZone(recent, '2026-07-13', 30), null, 'toutes < 30 j → aucune négligée');
+  // parmi des zones toutes faites, la plus ancienne au-delà du seuil est choisie
+  const mixed = [
+    { date: '2026-07-11', key: 'hips' }, { date: '2026-07-10', key: 'shoulders' }, { date: '2026-07-09', key: 'backpain' },
+    { date: '2026-06-20', key: 'ankles' }, { date: '2026-07-08', key: 'neck' }, { date: '2026-07-07', key: 'wrists' },
+  ];
+  const nm = L.neglectedMobilityZone(mixed, '2026-07-13', 7);
+  assert.equal(nm.key, 'ankles');
+  assert.equal(nm.lastDays, 23);
+  // todayKey invalide → null
+  assert.equal(L.neglectedMobilityZone(log, 'x', 7), null);
+});
 test('wellnessBadges / newWellnessBadge : paliers de badges bien-être', () => {
   // série de 3 jours + 3 routines → badge série 🌱, pas encore de badge total (10)
   const three = [{ date: '2026-07-11', key: 'a' }, { date: '2026-07-12', key: 'b' }, { date: '2026-07-13', key: 'c' }];
@@ -3023,7 +3051,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.199');
+  assert.equal(L.CHANGELOG[0].v, '1.9.200');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
