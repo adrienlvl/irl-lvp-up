@@ -10,9 +10,15 @@
 // Date locale au format YYYY-MM-DD (indépendante du fuseau, ancrée sur l'heure locale).
 function localDate() { const d = new Date(), offset = d.getTimezoneOffset(); return new Date(d - offset * 6e4).toISOString().slice(0, 10); }
 // Cycle des modes de thème : auto → clair → sombre → auto. Pur + testé.
-function nextThemeMode(current) { const order = ['auto', 'light', 'dark']; const i = order.indexOf(current); return order[(i + 1) % order.length]; }
-// Thème effectif ('light'|'dark') selon le mode choisi et la préférence système. Pur + testé.
-function resolveTheme(mode, systemDark) { if (mode === 'light') return 'light'; if (mode === 'dark') return 'dark'; return systemDark ? 'dark' : 'light'; }
+function nextThemeMode(current) { const order = ['auto', 'light', 'dark', 'time']; const i = order.indexOf(current); return order[(i + 1) % order.length]; }
+// Thème effectif ('light'|'dark') selon le mode choisi, la préférence système et l'heure (mode 'time').
+// 'time' → clair de 7h à 18h59, sombre sinon (repli système si heure absente). Pur + testé.
+function resolveTheme(mode, systemDark, hour) {
+  if (mode === 'light') return 'light';
+  if (mode === 'dark') return 'dark';
+  if (mode === 'time') { const h = Number(hour); if (Number.isFinite(h)) return (h >= 7 && h < 19) ? 'light' : 'dark'; return systemDark ? 'dark' : 'light'; }
+  return systemDark ? 'dark' : 'light';
+}
 
 // Clé de date YYYY-MM-DD pour une date quelconque.
 function dateKey(d) { const x = new Date(d), offset = x.getTimezoneOffset(); return new Date(x - offset * 6e4).toISOString().slice(0, 10); }
@@ -1740,6 +1746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.202', emoji: '🕐', text: 'Thème selon l\'heure : clair le jour, sombre la nuit.' },
   { v: '1.9.201', emoji: '🗓️', text: 'Coaching : record hebdo de tonnage (meilleure semaine).' },
   { v: '1.9.200', emoji: '🎯', text: 'Bien-être : rappel de la zone du corps la moins mobilisée.' },
   { v: '1.9.199', emoji: '🔥', text: 'Onboarding : estimation calories/protéines en direct.' },

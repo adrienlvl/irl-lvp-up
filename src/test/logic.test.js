@@ -54,12 +54,22 @@ test('localDate / dateKey : format YYYY-MM-DD', () => {
 test('nextThemeMode / resolveTheme : cycle et résolution système', () => {
   assert.equal(L.nextThemeMode('auto'), 'light');
   assert.equal(L.nextThemeMode('light'), 'dark');
-  assert.equal(L.nextThemeMode('dark'), 'auto');
+  assert.equal(L.nextThemeMode('dark'), 'time');
+  assert.equal(L.nextThemeMode('time'), 'auto', 'le cycle boucle sur auto');
   assert.equal(L.nextThemeMode('inconnu'), 'auto', 'valeur inconnue → repart sur auto');
   assert.equal(L.resolveTheme('light', true), 'light', 'mode explicite ignore le système');
   assert.equal(L.resolveTheme('dark', false), 'dark');
   assert.equal(L.resolveTheme('auto', true), 'dark', 'auto suit le système (sombre)');
   assert.equal(L.resolveTheme('auto', false), 'light', 'auto suit le système (clair)');
+  // mode 'time' : clair le jour (7h-18h), sombre la nuit
+  assert.equal(L.resolveTheme('time', true, 8), 'light', 'matin → clair');
+  assert.equal(L.resolveTheme('time', false, 14), 'light', 'après-midi → clair');
+  assert.equal(L.resolveTheme('time', false, 18), 'light', '18h → encore clair');
+  assert.equal(L.resolveTheme('time', false, 19), 'dark', '19h → sombre');
+  assert.equal(L.resolveTheme('time', false, 23), 'dark', 'nuit → sombre');
+  assert.equal(L.resolveTheme('time', false, 6), 'dark', 'avant 7h → sombre');
+  assert.equal(L.resolveTheme('time', true), 'dark', 'heure absente → repli système (sombre)');
+  assert.equal(L.resolveTheme('time', false), 'light', 'heure absente → repli système (clair)');
 });
 
 test('normalizeAgendaItem : défauts pour une entrée legacy minimale', () => {
@@ -3077,7 +3087,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.201');
+  assert.equal(L.CHANGELOG[0].v, '1.9.202');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
