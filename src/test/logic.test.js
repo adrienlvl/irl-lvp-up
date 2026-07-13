@@ -1567,6 +1567,10 @@ test('onboardingNutritionEstimate : estimation calories en direct à l’onboard
   assert.ok(m.target > m.maintenance);
   // objectif inconnu → athletique (maintien)
   assert.equal(L.onboardingNutritionEstimate({ objective: 'zzz', weight: 80, height: 178, age: 30 }).dir, 'maintien');
+  // le niveau d'activité affine la maintenance (actif > sédentaire pour un même profil)
+  const sed = L.onboardingNutritionEstimate({ objective: 'athletique', weight: 80, height: 178, age: 30, sex: 'homme', activity: 'sedentaire' });
+  const act = L.onboardingNutritionEstimate({ objective: 'athletique', weight: 80, height: 178, age: 30, sex: 'homme', activity: 'tres' });
+  assert.ok(act.maintenance > sed.maintenance, 'très actif = maintenance plus élevée que sédentaire');
   // données insuffisantes → null
   assert.equal(L.onboardingNutritionEstimate({ objective: 'seche', weight: 80 }), null);
   assert.equal(L.onboardingNutritionEstimate({}), null);
@@ -3087,7 +3091,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.202');
+  assert.equal(L.CHANGELOG[0].v, '1.9.203');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3202,6 +3206,10 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal('distance' in L.onboardingSetup({ distance: 0 }).goals, false, '0 → absent');
   assert.equal('distance' in L.onboardingSetup({ distance: 999 }).goals, false, 'hors bornes → absent');
   assert.equal('distance' in s.goals, false, 'non fourni → absent');
+  // niveau d'activité : validé (5 clés), sinon '' (repli auto selon séances)
+  assert.equal(L.onboardingSetup({ activity: 'actif' }).profile.activityLevel, 'actif');
+  assert.equal(L.onboardingSetup({ activity: 'pro' }).profile.activityLevel, '', 'clé inconnue → vide');
+  assert.equal(s.profile.activityLevel, '', 'non fourni → vide');
   // niveau : validé, défaut débutant
   assert.equal(L.onboardingSetup({ level: 'avance' }).profile.level, 'avance');
   assert.equal(L.onboardingSetup({ level: 'pro' }).profile.level, 'debutant', 'niveau inconnu → débutant');

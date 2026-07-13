@@ -1746,6 +1746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.203', emoji: '🚶', text: 'Onboarding : niveau d\'activité pour affiner les calories.' },
   { v: '1.9.202', emoji: '🕐', text: 'Thème selon l\'heure : clair le jour, sombre la nuit.' },
   { v: '1.9.201', emoji: '🗓️', text: 'Coaching : record hebdo de tonnage (meilleure semaine).' },
   { v: '1.9.200', emoji: '🎯', text: 'Bien-être : rappel de la zone du corps la moins mobilisée.' },
@@ -1894,6 +1895,7 @@ function onboardingSetup(inputs) {
     availableDays,
     trainingSlot: TRAINING_SLOTS[i.slot] ? i.slot : '',
     level: (i.level === 'debutant' || i.level === 'intermediaire' || i.level === 'avance') ? i.level : 'debutant',
+    activityLevel: (['sedentaire', 'leger', 'modere', 'actif', 'tres'].indexOf(i.activity) !== -1) ? i.activity : '',
     equipment: { handles: !!eq.handles, vest: !!eq.vest, kettlebell: !!eq.kettlebell, pullup: !!eq.pullup },
   };
   const w = Number(i.weight); if (w >= 30 && w <= 300) profile.weight = Math.round(w * 10) / 10;
@@ -2958,7 +2960,7 @@ function objectiveNutrition(objectiveKey, opts) {
 function onboardingNutritionEstimate(inputs) {
   const i = inputs || {};
   const objective = FITNESS_OBJECTIVES.some(o => o.key === i.objective) ? i.objective : 'athletique';
-  const n = objectiveNutrition(objective, { weight: i.weight, height: i.height, age: i.age, sex: i.sex, sessionsPerWeek: i.sessions });
+  const n = objectiveNutrition(objective, { weight: i.weight, height: i.height, age: i.age, sex: i.sex, sessionsPerWeek: i.sessions, activityLevel: i.activity });
   if (!n) return null;
   return { maintenance: n.tdee, target: n.dailyTarget, dir: n.dir, adjustPct: n.adjustPct, proteinG: n.proteinG };
 }
