@@ -1795,6 +1795,30 @@ test('trainingConsistency : régularité des séances', () => {
   // todayKey invalide → null
   assert.equal(L.trainingConsistency(reg, 'x', 28), null);
 });
+test('trainingByWeekday : répartition et jour fort', () => {
+  const empty = L.trainingByWeekday([], '2026-07-13', 56);
+  assert.deepEqual(empty.counts, [0, 0, 0, 0, 0, 0, 0]);
+  assert.equal(empty.bestDay, null);
+  const w = [
+    { date: '2026-07-13' }, // lundi (0)
+    { date: '2026-07-07' }, // mardi (1)
+    { date: '2026-06-30' }, // mardi (1)
+    { date: '2026-07-08' }, // mercredi (2)
+  ];
+  const r = L.trainingByWeekday(w, '2026-07-13', 56);
+  assert.deepEqual(r.counts, [1, 2, 1, 0, 0, 0, 0]);
+  assert.equal(r.bestDay, 1); // mardi le plus fréquent
+  assert.equal(r.bestCount, 2);
+  assert.equal(r.total, 4);
+  // hors fenêtre exclu
+  assert.equal(L.trainingByWeekday([{ date: '2026-01-01' }, { date: '2026-07-13' }], '2026-07-13', 56).total, 1);
+  // dates futures exclues
+  assert.equal(L.trainingByWeekday([{ date: '2026-07-20' }, { date: '2026-07-13' }], '2026-07-13', 56).total, 1);
+  // égalité → jour le plus tôt en semaine (lundi avant mardi)
+  assert.equal(L.trainingByWeekday([{ date: '2026-07-13' }, { date: '2026-07-07' }], '2026-07-13', 56).bestDay, 0);
+  // todayKey invalide → pas de jour fort
+  assert.equal(L.trainingByWeekday(w, 'x', 56).bestDay, null);
+});
 test('bestE1rmByExercise / blockExerciseProgress : progression de force par exercice', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -3107,7 +3131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.204');
+  assert.equal(L.CHANGELOG[0].v, '1.9.205');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
