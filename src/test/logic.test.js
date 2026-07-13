@@ -2638,6 +2638,27 @@ test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
   assert.equal(L.shouldReacquireWakeLock(undefined, 'visible'), false);
   assert.equal(L.shouldReacquireWakeLock(true, undefined), false);
 });
+test('pendingBadgeCount : actions en attente pour le badge PWA', () => {
+  const state = {
+    quests: [{ done: false }, { done: true }, { done: false }],
+    agenda: [
+      { date: '2026-07-13', kind: 'sport' },
+      { date: '2026-07-13', kind: 'sport' },
+      { date: '2026-07-13', kind: 'perso' },   // pas sport → ignoré
+      { date: '2026-07-14', kind: 'sport' },    // autre jour → ignoré
+    ],
+  };
+  // 2 quêtes non faites + 2 séances sport du jour = 4
+  assert.equal(L.pendingBadgeCount(state, '2026-07-13'), 4);
+  // aucune action → 0
+  assert.equal(L.pendingBadgeCount({ quests: [{ done: true }], agenda: [] }, '2026-07-13'), 0);
+  // borné à 99
+  const many = { quests: Array.from({ length: 200 }, () => ({ done: false })), agenda: [] };
+  assert.equal(L.pendingBadgeCount(many, '2026-07-13'), 99);
+  // état vide → 0, sans planter
+  assert.equal(L.pendingBadgeCount({}, '2026-07-13'), 0);
+  assert.equal(L.pendingBadgeCount(null, '2026-07-13'), 0);
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');
