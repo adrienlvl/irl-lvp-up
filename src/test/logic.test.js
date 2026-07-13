@@ -2628,6 +2628,35 @@ test('sessionTimesForSlot : horaires des séances selon le moment préféré', (
   // format HH:MM valide
   Object.keys(L.TRAINING_SLOTS).forEach(k => { const t = L.sessionTimesForSlot(k); assert.ok(/^\d{2}:\d{2}$/.test(t.muscu) && /^\d{2}:\d{2}$/.test(t.course)); });
 });
+test('onboardingFirstSession : première séance planifiée + date', () => {
+  const week = [
+    { kind: 'course', title: 'Course facile', weekday: 5 },
+    { kind: 'muscu', title: 'Poussée', weekday: 3, exercises: [{ name: 'Pompes', sets: 3, reps: 10 }] },
+    { kind: 'muscu', title: 'Jambes', weekday: 1, exercises: [{ name: 'Squat', sets: 3, reps: 10 }] },
+  ];
+  // lundi 2026-07-13 → première séance = lundi (weekday 1) = Jambes
+  const f = L.onboardingFirstSession(week, '2026-07-13');
+  assert.equal(f.title, 'Jambes');
+  assert.equal(f.kind, 'muscu');
+  assert.equal(f.weekday, 1);
+  assert.equal(f.date, '2026-07-13');
+  assert.equal(f.dayLabel, 'Lundi');
+  assert.equal(f.guidable, true);
+  // mercredi calculé depuis le lundi
+  const wk2 = [{ kind: 'muscu', title: 'Haut', weekday: 3, exercises: [{ name: 'x', sets: 3, reps: 8 }] }];
+  assert.equal(L.onboardingFirstSession(wk2, '2026-07-13').date, '2026-07-15');
+  // première séance = course sans exercices → non guidable
+  const run = [{ kind: 'course', title: 'Sortie longue', weekday: 2 }];
+  assert.equal(L.onboardingFirstSession(run, '2026-07-13').guidable, false);
+  // dimanche placé en fin de semaine (pas en tête)
+  const withSun = [{ kind: 'muscu', title: 'Dim', weekday: 0, exercises: [{ name: 'x', sets: 1, reps: 1 }] }, { kind: 'muscu', title: 'Mar', weekday: 2, exercises: [{ name: 'y', sets: 1, reps: 1 }] }];
+  assert.equal(L.onboardingFirstSession(withSun, '2026-07-13').title, 'Mar');
+  // sans lundi valide → date vide mais séance renvoyée
+  assert.equal(L.onboardingFirstSession(week, '').date, '');
+  // vide → null
+  assert.equal(L.onboardingFirstSession([], '2026-07-13'), null);
+  assert.equal(L.onboardingFirstSession(null, '2026-07-13'), null);
+});
 test('objectiveProgramText : export texte lisible du programme', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
   const prog = L.objectiveProgram('athletique', ex);

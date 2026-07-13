@@ -3,6 +3,10 @@
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}
 .onb-equip-title{margin:14px 0 0;font-size:.82rem;color:var(--muted);font-weight:700}
+.onb-recap-list{list-style:none;margin:14px 0;padding:0;display:grid;gap:9px}
+.onb-recap-list li{font-size:.92rem;color:var(--text);padding:10px 13px;border-radius:10px;background:var(--surface-2,#111728);border:1px solid var(--line);border-left:3px solid var(--accent)}
+.onb-recap-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px}
+.onb-recap-actions .primary-button{flex:1;min-width:200px}
 .onb-days{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .onb-days .check-label{flex:0 0 auto;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-size:.84rem}
 .onb-days .check-label:has(input:checked){border-color:var(--accent);background:rgba(171,255,85,.08)}
