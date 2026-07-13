@@ -2929,6 +2929,26 @@ test('onboardingCompleteness : complétude du profil d’onboarding', () => {
   assert.equal(L.onboardingCompleteness({}).percent, 0);
   assert.equal(L.onboardingCompleteness(null).percent, 0);
 });
+test('sanitizeOnboardingDraft : brouillon d’onboarding validé', () => {
+  const d = L.sanitizeOnboardingDraft({ objective: 'seche', weight: '82.4', height: '178', age: '29', sex: 'femme', level: 'avance', sessions: '4', slot: 'matin', days: [5, 2, 2, 9] });
+  assert.equal(d.objective, 'seche');
+  assert.equal(d.weight, 82.4);
+  assert.equal(d.height, 178);
+  assert.equal(d.age, 29);
+  assert.equal(d.sex, 'femme');
+  assert.equal(d.level, 'avance');
+  assert.equal(d.sessions, 4);
+  assert.equal(d.slot, 'matin');
+  assert.deepEqual(d.days, [2, 5], 'jours dédupliqués + bornés 0-6');
+  // valeurs invalides écartées (pas dans l'objet)
+  const bad = L.sanitizeOnboardingDraft({ objective: 'zzz', weight: 5, height: 999, age: 200, sex: 'x', level: 'pro', sessions: 12, slot: 'nuit', days: 'x' });
+  assert.deepEqual(bad, null, 'aucun champ valide → null');
+  // partiel : ne garde que le valide
+  const part = L.sanitizeOnboardingDraft({ objective: 'muscle', slot: 'soir', weight: 999 });
+  assert.deepEqual(part, { objective: 'muscle', slot: 'soir' });
+  assert.equal(L.sanitizeOnboardingDraft(null), null);
+  assert.equal(L.sanitizeOnboardingDraft({}), null);
+});
 test('objectiveProgramText : export texte lisible du programme', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
   const prog = L.objectiveProgram('athletique', ex);

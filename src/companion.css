@@ -8,6 +8,9 @@
 .onb-macros li span{font-size:.84rem;color:var(--text)}
 .onb-macros li span em{font-style:normal;color:var(--accent);font-weight:800;font-size:.76rem;margin-left:4px}
 .onb-macros li small{color:var(--muted);font-size:.74rem}
+.onb-draft-note{margin:10px 0;padding:8px 12px;border-radius:10px;border:1px solid var(--line);border-left:3px solid var(--purple,#a78bfa);background:rgba(167,139,250,.1);font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.onb-draft-note button{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:.76rem;font-weight:600;cursor:pointer}
+.onb-draft-note button:hover{border-color:var(--accent);color:var(--text)}
 .onb-meter{margin:12px 0 4px}
 .onb-meter-head{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--muted);margin-bottom:4px}
 .onb-meter-head b{color:var(--text);font-size:.9rem}

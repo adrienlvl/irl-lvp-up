@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.182 (2026-07-13)
+## 📍 État actuel — build 1.9.183 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **278 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→248) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **279 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→249) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 9 rotations complètes ; 10e rotation entamée (#1) — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 9 rotations complètes ; 10e rotation en cours (#1, #2) — boucle autonome continue**. Publication **option B** (workflow GitHub Actions release-on-tag) en place — voir `.github/workflows/release.yml`, en attente du branchement remote par Adrien.
 
+- 📝 **#2 approfondi (10) — brouillon d'onboarding** : sauvegarde des saisies si on ferme sans finir + reprise (« Brouillon repris » / « Repartir de zéro »). ✅ _boucle #249 (build 1.9.183)._
 - 📤 **#1 approfondi (10) — partage du bilan hebdo** : bouton Web Share sur la revue hebdo (feuille OS sur mobile, repli presse-papier). ✅ _boucle #248 (build 1.9.182)._
 - ⚖️ **#4 approfondi (9) — ratio push/pull** : carte de bloc affichant l'équilibre poussée/tirage sur 28 j + conseil de rééquilibrage. ✅ _boucle #247 (build 1.9.181)._
 - 🎯 **#3 approfondi (9) — objectif hebdo de routines** : cible réglable (−/+) avec barre de progression dans le panneau bien-être. ✅ _boucle #246 (build 1.9.180)._
