@@ -1558,6 +1558,24 @@ test('phaseSetsForDay : séries d’une séance ajustées à la phase du bloc', 
   assert.equal(L.phaseSetsForDay(3, start, '2026-08-20'), 3, 'hors bloc → base');
   assert.equal(L.phaseSetsForDay(3, '', '2026-07-15'), 3, 'sans bloc → base');
 });
+test('blockPhaseHeadsUp : heads-up anticipé de fin de bloc', () => {
+  const start = '2026-07-06';
+  // S4 (décharge) → heads-up avec reco du prochain bloc
+  const s4 = L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-27'));
+  assert.ok(s4 && s4.phase === 'deload' && s4.showNextAdvice === true);
+  assert.ok(/décharge|dernière/i.test(s4.title + ' ' + s4.message));
+  // S3 (décharge la semaine prochaine) → heads-up preload sans reco
+  const s3 = L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-20'));
+  assert.ok(s3 && s3.phase === 'preload' && s3.showNextAdvice === false);
+  // S1 / S2 → rien
+  assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-06')), null, 'S1 → rien');
+  assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-13')), null, 'S2 → rien');
+  // bloc terminé → rien (la carte "terminé" prend le relais)
+  assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-08-03')), null, 'terminé → rien');
+  // entrée invalide → null
+  assert.equal(L.blockPhaseHeadsUp(null), null);
+  assert.equal(L.blockPhaseHeadsUp({ done: true }), null);
+});
 test('archiveBlock / blockHistorySummary : historique des blocs', () => {
   let h = [];
   h = L.archiveBlock(h, { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 });
