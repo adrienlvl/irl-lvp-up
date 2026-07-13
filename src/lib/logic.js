@@ -1819,7 +1819,9 @@ function onboardingSetup(inputs) {
   };
   const w = Number(i.weight); if (w >= 30 && w <= 300) profile.weight = Math.round(w * 10) / 10;
   const h = Number(i.height); if (h >= 100 && h <= 250) profile.height = Math.round(h);
-  return { fitnessObjective: objective, activeProgram: objective === 'endurance' ? 'run' : 'fullbody', goals: { sessions }, profile };
+  const goals = { sessions };
+  const tw = Number(i.targetWeight); if (tw >= 30 && tw <= 300) goals.targetWeight = Math.round(tw * 10) / 10;
+  return { fitnessObjective: objective, activeProgram: objective === 'endurance' ? 'run' : 'fullbody', goals, profile };
 }
 // Horaires par défaut des séances selon le moment préféré. Clé inconnue/'' → comportement historique
 // (muscu le soir, course le matin). Renvoie { muscu, course } en 'HH:MM'. Pur + testé.

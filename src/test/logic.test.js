@@ -2895,6 +2895,10 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(L.onboardingSetup({ slot: 'matin' }).profile.trainingSlot, 'matin');
   assert.equal(L.onboardingSetup({ slot: 'nuit' }).profile.trainingSlot, '', 'créneau inconnu → vide');
   assert.equal(s.profile.trainingSlot, '', 'sans créneau → vide');
+  // poids cible : capté dans goals si valide, sinon absent
+  assert.equal(L.onboardingSetup({ targetWeight: '75.5' }).goals.targetWeight, 75.5);
+  assert.equal('targetWeight' in L.onboardingSetup({ targetWeight: 5 }).goals, false, 'hors bornes → absent');
+  assert.equal('targetWeight' in s.goals, false, 'non fourni → absent');
   // niveau : validé, défaut débutant
   assert.equal(L.onboardingSetup({ level: 'avance' }).profile.level, 'avance');
   assert.equal(L.onboardingSetup({ level: 'pro' }).profile.level, 'debutant', 'niveau inconnu → débutant');
