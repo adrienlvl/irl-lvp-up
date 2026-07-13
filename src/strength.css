@@ -77,6 +77,12 @@
 .wellness-streak .wst-streak{border-color:var(--accent);color:var(--text);background:rgba(171,255,85,.08)}
 .wellness-streak .wst-badge{border-color:var(--purple,#a78bfa);color:var(--text);background:rgba(167,139,250,.12)}
 .wellness-streak .wst-next{border-style:dashed;color:var(--muted);background:transparent}
+.wellness-heatmap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 4px}
+.wellness-heatmap .wh-label{font-size:.74rem;color:var(--muted);font-weight:600}
+.wh-cells{display:flex;gap:5px}
+.wh-cell{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2,#111728);display:flex;align-items:center;justify-content:center;font-size:.66rem;color:var(--muted)}
+.wh-cell.wh-l1{background:rgba(171,255,85,.28);border-color:var(--accent);color:var(--text)}
+.wh-cell.wh-l2{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:800}
 .wellness-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
 .wellness-actions .local-note{margin:0}
 #wellnessSurprise{border-left:3px solid var(--purple,#a78bfa)}

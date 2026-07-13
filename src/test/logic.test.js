@@ -2526,6 +2526,32 @@ test('wellnessBadges / newWellnessBadge : paliers de badges bien-être', () => {
   const nb = L.newWellnessBadge(t9, t10);
   assert.ok(nb && nb.kind === 'total' && nb.count === 10);
 });
+test('wellnessWeekHeatmap : heatmap des routines sur 7 jours', () => {
+  const log = [
+    { date: '2026-07-13', key: 'a' }, { date: '2026-07-13', key: 'b' }, // 2 aujourd'hui
+    { date: '2026-07-11', key: 'c' },                                    // 1 avant-hier
+    { date: '2026-06-01', key: 'd' },                                    // hors fenêtre
+  ];
+  const h = L.wellnessWeekHeatmap(log, '2026-07-13', 7);
+  assert.equal(h.length, 7);
+  // dernier = aujourd'hui avec 2 routines
+  assert.equal(h[6].date, '2026-07-13');
+  assert.equal(h[6].count, 2);
+  assert.equal(h[6].dayLabel, 'L'); // 2026-07-13 = lundi
+  // premier = il y a 6 jours (2026-07-07)
+  assert.equal(h[0].date, '2026-07-07');
+  assert.equal(h[0].count, 0);
+  // 2026-07-11 présent avec 1
+  const d11 = h.find(c => c.date === '2026-07-11');
+  assert.equal(d11.count, 1);
+  // hors fenêtre non compté (somme = 3 sur la semaine)
+  assert.equal(h.reduce((s, c) => s + c.count, 0), 3);
+  // nombre de jours personnalisable
+  assert.equal(L.wellnessWeekHeatmap(log, '2026-07-13', 3).length, 3);
+  // todayKey invalide → []
+  assert.deepEqual(L.wellnessWeekHeatmap(log, 'x', 7), []);
+  assert.deepEqual(L.wellnessWeekHeatmap([], '2026-07-13', 7).map(c => c.count), [0, 0, 0, 0, 0, 0, 0]);
+});
 test('wellnessRecurringEvent : routine récup programmable en récurrent', () => {
   const ev = L.wellnessRecurringEvent('cooldown', { startDate: '2026-07-13' });
   assert.ok(/Retour au calme/.test(ev.title));
