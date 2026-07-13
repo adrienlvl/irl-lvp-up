@@ -1740,6 +1740,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.195', emoji: '🏃', text: 'Onboarding : objectif de course hebdo (km).' },
   { v: '1.9.194', emoji: '🧘', text: 'Raccourci « Bien-être » (appui long sur l\'icône installée).' },
   { v: '1.9.193', emoji: '🏆', text: 'Coaching : record de tonnage sur une séance.' },
   { v: '1.9.192', emoji: '⏱️', text: 'Bien-être : total des minutes de mobilité de la semaine.' },
@@ -1864,6 +1865,7 @@ function onboardingSetup(inputs) {
   const h = Number(i.height); if (h >= 100 && h <= 250) profile.height = Math.round(h);
   const goals = { sessions };
   const tw = Number(i.targetWeight); if (tw >= 30 && tw <= 300) goals.targetWeight = Math.round(tw * 10) / 10;
+  const dist = Number(i.distance); if (dist > 0 && dist <= 500) goals.distance = Math.round(dist);
   return { fitnessObjective: objective, activeProgram: objective === 'endurance' ? 'run' : 'fullbody', goals, profile };
 }
 // Suggère un objectif physique à l'onboarding d'après le profil saisi. Priorité au poids cible

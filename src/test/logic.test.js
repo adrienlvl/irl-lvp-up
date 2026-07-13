@@ -2968,7 +2968,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.194');
+  assert.equal(L.CHANGELOG[0].v, '1.9.195');
 });
 test('launchTarget : cible de lancement PWA depuis ?go=', () => {
   assert.equal(L.launchTarget('?go=wellness'), 'wellness');
@@ -3052,6 +3052,12 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(L.onboardingSetup({ targetWeight: '75.5' }).goals.targetWeight, 75.5);
   assert.equal('targetWeight' in L.onboardingSetup({ targetWeight: 5 }).goals, false, 'hors bornes → absent');
   assert.equal('targetWeight' in s.goals, false, 'non fourni → absent');
+  // objectif course (km/sem) : capté dans goals.distance si > 0 et ≤ 500, sinon absent
+  assert.equal(L.onboardingSetup({ distance: '25' }).goals.distance, 25);
+  assert.equal(L.onboardingSetup({ distance: 30.7 }).goals.distance, 31, 'arrondi');
+  assert.equal('distance' in L.onboardingSetup({ distance: 0 }).goals, false, '0 → absent');
+  assert.equal('distance' in L.onboardingSetup({ distance: 999 }).goals, false, 'hors bornes → absent');
+  assert.equal('distance' in s.goals, false, 'non fourni → absent');
   // niveau : validé, défaut débutant
   assert.equal(L.onboardingSetup({ level: 'avance' }).profile.level, 'avance');
   assert.equal(L.onboardingSetup({ level: 'pro' }).profile.level, 'debutant', 'niveau inconnu → débutant');
