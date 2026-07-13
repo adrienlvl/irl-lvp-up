@@ -2303,8 +2303,27 @@ test('wellnessRoutine : routines de mobilité/récup en secondes', () => {
   assert.ok(L.wellnessRoutine('stretch').exercises.some(e => /Ischios|Fessiers|enfant/i.test(e.name)));
   assert.equal(L.wellnessRoutine('inconnu'), null);
   assert.ok(L.wellnessRoutine('backpain') && L.wellnessRoutine('sleep'), 'nouvelles routines bas du dos / sommeil');
+  assert.ok(L.wellnessRoutine('ankles') && L.wellnessRoutine('neck') && L.wellnessRoutine('wrists'), 'routines chevilles/nuque/poignets');
+  assert.ok(L.WELLNESS_ROUTINES.length >= 11, 'catalogue enrichi');
+  // clés uniques
+  const keys = L.WELLNESS_ROUTINES.map(r => r.key);
+  assert.equal(new Set(keys).size, keys.length, 'clés de routines uniques');
   // chaque routine a un emoji, un titre, des minutes et des mouvements
   L.WELLNESS_ROUTINES.forEach(rt => { assert.ok(rt.key && rt.emoji && rt.title && rt.minutes > 0 && rt.moves.length >= 3); });
+});
+test('surpriseRoutine : pioche une routine valide, déterministe et variée', () => {
+  const keys = L.WELLNESS_ROUTINES.map(r => r.key);
+  // toujours une clé existante
+  for (let s = 0; s < 30; s++) assert.ok(keys.includes(L.surpriseRoutine(null, s)), 'clé valide');
+  // déterministe pour un même seed
+  assert.equal(L.surpriseRoutine(null, 7), L.surpriseRoutine(null, 7));
+  // exclut la clé demandée (varie de la suggestion du jour)
+  for (let s = 0; s < 30; s++) assert.notEqual(L.surpriseRoutine('warmup', s), 'warmup', 'exclusion respectée');
+  // la clé pointe vers une vraie routine lançable
+  assert.ok(L.wellnessRoutine(L.surpriseRoutine('hips', 3)).exercises.length);
+  // seed différents → au moins deux résultats distincts sur la plage
+  const got = new Set(); for (let s = 0; s < 20; s++) got.add(L.surpriseRoutine(null, s));
+  assert.ok(got.size >= 2, 'varie selon le seed');
 });
 test('wellnessRecurringEvent : routine récup programmable en récurrent', () => {
   const ev = L.wellnessRecurringEvent('cooldown', { startDate: '2026-07-13' });

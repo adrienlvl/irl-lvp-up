@@ -54,6 +54,9 @@
 .wc-launch small{color:var(--muted);font-size:.74rem}
 .wc-sched{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:0 10px;cursor:pointer;font-size:1rem}
 .wc-sched:hover{border-color:var(--accent);background:rgba(171,255,85,.08)}
+.wellness-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.wellness-actions .local-note{margin:0}
+#wellnessSurprise{border-left:3px solid var(--purple,#a78bfa)}
 @media(max-width:650px){.wellness-bar{grid-template-columns:1fr 1fr}}
 .op-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .op-bar select{flex:1;min-width:180px;background:var(--input-bg,#101625);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}
