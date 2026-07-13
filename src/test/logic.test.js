@@ -730,6 +730,16 @@ test('weeklySummaryText : bilan partageable formaté', () => {
   assert.ok(!/focus|révisions|sommeil/.test(min));
   assert.match(min, /1 séance · 30 min/);
   assert.equal(typeof L.weeklySummaryText(null), 'string');
+  // shareableWeek : objet de partage natif { title, text }
+  const sum = { mondayKey: '2026-07-06', sessions: 3, minutes: 150 };
+  const share = L.shareableWeek(sum);
+  assert.ok(share && share.title && share.text);
+  assert.match(share.title, /bilan de la semaine/i);
+  assert.match(share.title, /06\/07\/2026/);
+  assert.equal(share.text, L.weeklySummaryText(sum), 'texte = bilan formaté');
+  // le texte du bilan démarre toujours par "Bilan..." → jamais null
+  assert.ok(L.shareableWeek({}).text.length > 0);
+  assert.ok(L.shareableWeek(null).text.length > 0);
 });
 
 test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions', () => {
