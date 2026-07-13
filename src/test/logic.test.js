@@ -2773,6 +2773,22 @@ test('routinesByTimeBudget : filtre les routines par budget de temps', () => {
   // chaque entrée expose key/emoji/title/minutes/moves
   quick.forEach(r => { assert.ok(r.key && r.emoji && r.title && r.minutes > 0 && r.moves > 0); });
 });
+test('expressRoutine : routine aléatoire tenant dans un budget', () => {
+  const keys4 = L.routinesByTimeBudget(4).map(r => r.key);
+  // pioche dans les routines ≤ 4 min
+  for (let s = 0; s < 30; s++) assert.ok(keys4.includes(L.expressRoutine(4, null, s)), 'clé ≤ 4 min');
+  // déterministe pour un même seed
+  assert.equal(L.expressRoutine(6, null, 7), L.expressRoutine(6, null, 7));
+  // évite excludeKey quand c'est possible (plusieurs candidats)
+  for (let s = 0; s < 30; s++) { const ex = keys4[0]; assert.notEqual(L.expressRoutine(4, ex, s), ex, 'exclusion respectée'); }
+  // budget large → toutes les routines possibles
+  const all = L.WELLNESS_ROUTINES.map(r => r.key);
+  for (let s = 0; s < 20; s++) assert.ok(all.includes(L.expressRoutine(0, null, s)));
+  // budget impossible (aucune routine ≤ 1 min) → null
+  assert.equal(L.expressRoutine(1, null, 3), null);
+  // la clé renvoyée est jouable
+  assert.ok(L.wellnessRoutine(L.expressRoutine(8, null, 5)).exercises.length);
+});
 test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routines', () => {
   let log = [];
   log = L.logWellnessDone(log, 'hips', '2026-07-13');
@@ -3091,7 +3107,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.203');
+  assert.equal(L.CHANGELOG[0].v, '1.9.204');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

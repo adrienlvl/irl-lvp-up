@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.203 (2026-07-13)
+## 📍 État actuel — build 1.9.204 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **294 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→269) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **295 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→270) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 14 rotations complètes ; 15ᵉ rotation en cours (#1, #2) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193`/`v1.9.197`/`v1.9.201` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 14 rotations complètes ; 15ᵉ rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193`/`v1.9.197`/`v1.9.201` publiées.
 
+- ⚡ **#3 approfondi (15) — routine express aléatoire** : pioche au hasard une routine tenant dans le temps choisi (4/6/8 min), lancée en 1 clic (`expressRoutine`). ✅ _boucle #270 (build 1.9.204)._
 - 🚶 **#2 approfondi (15) — niveau d'activité à l'onboarding** : sélecteur sédentaire→très actif qui affine maintenance/objectif caloriques (`activityLevel` → `objectiveNutrition`). ✅ _boucle #269 (build 1.9.203)._
 - 🕐 **#1 approfondi (15) — thème selon l'heure** : 4ᵉ mode de thème (clair le jour, sombre la nuit), bascule au fil de la journée (`resolveTheme` heure). ✅ _boucle #268 (build 1.9.202)._
 - 🗓️ **#4 approfondi (14) — record hebdo de tonnage** : meilleure semaine all-time (Σ tonnage lundi→dimanche) + célébration si battu cette semaine (`bestTonnageWeek`). ✅ _boucle #267 (build 1.9.201) — clôt la 14ᵉ rotation._
