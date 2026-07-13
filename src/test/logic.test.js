@@ -1545,6 +1545,23 @@ test('objectiveNutrition : calories/macros cohérentes avec l’objectif', () =>
   assert.equal(L.objectiveNutrition('inconnu', base), null);
   assert.equal(L.objectiveNutrition('seche', { weight: 0 }), null, 'données manquantes → null');
 });
+test('onboardingNutritionEstimate : estimation calories en direct à l’onboarding', () => {
+  // profil complet → maintenance (TDEE) + cible selon l'objectif
+  const e = L.onboardingNutritionEstimate({ objective: 'seche', weight: 80, height: 178, age: 30, sex: 'homme', sessions: 4 });
+  assert.ok(e && e.maintenance > 0 && e.target > 0 && e.proteinG > 0);
+  assert.equal(e.dir, 'déficit');
+  assert.ok(e.target < e.maintenance, 'sèche = cible sous la maintenance');
+  // muscle → surplus (cible au-dessus de la maintenance)
+  const m = L.onboardingNutritionEstimate({ objective: 'muscle', weight: 80, height: 178, age: 30, sex: 'homme', sessions: 4 });
+  assert.equal(m.dir, 'surplus');
+  assert.ok(m.target > m.maintenance);
+  // objectif inconnu → athletique (maintien)
+  assert.equal(L.onboardingNutritionEstimate({ objective: 'zzz', weight: 80, height: 178, age: 30 }).dir, 'maintien');
+  // données insuffisantes → null
+  assert.equal(L.onboardingNutritionEstimate({ objective: 'seche', weight: 80 }), null);
+  assert.equal(L.onboardingNutritionEstimate({}), null);
+  assert.equal(L.onboardingNutritionEstimate(null), null);
+});
 test('currentBlock : suivi de la semaine dans le bloc de 4 semaines', () => {
   const start = '2026-07-06'; // lundi
   assert.equal(L.currentBlock(start, '2026-07-06').week, 1);
@@ -3006,7 +3023,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.198');
+  assert.equal(L.CHANGELOG[0].v, '1.9.199');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
