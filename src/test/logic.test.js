@@ -1983,6 +1983,35 @@ test('strengthPlateau : détecte l’absence de nouveau record de force', () => 
   assert.equal(L.strengthPlateau([], 3), null);
   assert.equal(L.strengthPlateau(null), null);
 });
+test('strengthPlateauAny : plateau sur au moins un exercice-clé', () => {
+  const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
+  // Squat stagne (100 puis n'excède plus), Développé progresse
+  const workouts = [
+    wo('2026-06-01', 'Squat', 100, 5), wo('2026-06-08', 'Squat', 98, 5), wo('2026-06-15', 'Squat', 99, 5), wo('2026-06-22', 'Squat', 97, 5),
+    wo('2026-06-01', 'Développé', 40, 5), wo('2026-06-08', 'Développé', 45, 5), wo('2026-06-15', 'Développé', 50, 5), wo('2026-06-22', 'Développé', 55, 5),
+  ];
+  const r = L.strengthPlateauAny(workouts, { window: 3 });
+  assert.equal(r.plateau, true);
+  assert.equal(r.exercise, 'Squat');
+  assert.ok(r.best > 0);
+  // que des exercices en progression → pas de plateau
+  const up = [
+    wo('2026-06-01', 'Squat', 90, 5), wo('2026-06-08', 'Squat', 95, 5), wo('2026-06-15', 'Squat', 100, 5), wo('2026-06-22', 'Squat', 105, 5),
+  ];
+  assert.equal(L.strengthPlateauAny(up, { window: 3 }).plateau, false);
+  // historique insuffisant → pas de plateau
+  assert.equal(L.strengthPlateauAny([wo('2026-06-01', 'Squat', 100, 5)]).plateau, false);
+  assert.equal(L.strengthPlateauAny([]).plateau, false);
+  assert.equal(L.strengthPlateauAny(null).plateau, false);
+  // exercices au poids du corps (sans charge) → ignorés, pas de plateau
+  const bw = [
+    { date: '2026-06-01', exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 }] }] },
+    { date: '2026-06-08', exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 }] }] },
+    { date: '2026-06-15', exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 }] }] },
+    { date: '2026-06-22', exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 }] }] },
+  ];
+  assert.equal(L.strengthPlateauAny(bw).plateau, false);
+});
 test('strengthForecast : prévision d’atteinte du prochain palier de force', () => {
   // +2,5 kg de 1RM par semaine : de 90 à 97,5 en 3 semaines → prochain palier 100 (step 5)
   const series = [

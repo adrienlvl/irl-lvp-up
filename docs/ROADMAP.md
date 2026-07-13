@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.164 (2026-07-13)
+## 📍 État actuel — build 1.9.165 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **262 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→230) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **263 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→231) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 4 rotations complètes ; 5e rotation en cours (#1→#3)**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 5 rotations complètes**.
 
+- 📈 **#4 approfondi (5) — plateau réel dans la reco de bloc** : `strengthPlateauAny` détecte un plateau de force sur un exercice-clé et alimente la reco de fin de bloc (« change une variable » nomme l'exercice). ✅ _boucle #231 (build 1.9.165)._
 - 🔥 **#3 approfondi (5) — streak de routines bien-être** : suivi gamifié (série de jours + compteurs semaine/total) journalisé au lancement d'une routine. ✅ _boucle #230 (build 1.9.164)._
 - 🕑 **#2 approfondi (5) — onboarding « moment préféré »** : créneau matin/midi/soir qui fixe l'heure des séances programmées (aperçu + agenda). ✅ _boucle #229 (build 1.9.163)._
 - 📤 **#1 approfondi (5) — partage natif du programme** : bouton « Partager » (Web Share sur mobile → feuille OS, repli presse-papier ailleurs). ✅ _boucle #228 (build 1.9.162)._
