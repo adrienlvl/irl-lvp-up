@@ -47,7 +47,8 @@
       {
         "provider": "github",
         "owner": "adrienlvl",
-        "repo": "irl-lvp-up"
+        "repo": "irl-lvp-up",
+        "releaseType": "release"
       }
     ]
   },
