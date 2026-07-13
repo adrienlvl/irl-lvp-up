@@ -1492,6 +1492,33 @@ test('objectiveProgram : respecte le matériel dispo (exclut la kettlebell)', ()
   const namesFull = full.week.filter(s => s.kind === 'muscu').flatMap(s => s.exercises.map(e => e.name));
   assert.ok(namesFull.includes('Goblet squat kettlebell') || namesFull.includes('Tractions'), 'matériel dispo → exos avec matériel possibles');
 });
+test('assignProgramDays : replace le programme sur les jours dispo', () => {
+  const week = [
+    { kind: 'muscu', title: 'A', weekday: 1 },
+    { kind: 'course', title: 'R', weekday: 3 },
+    { kind: 'muscu', title: 'B', weekday: 5 },
+  ];
+  // 3 séances, 2 jours dispo (mar/ven) → doublage, seules ces 2 valeurs utilisées
+  const two = L.assignProgramDays(week, [2, 5]);
+  assert.ok(two.every(s => s.weekday === 2 || s.weekday === 5), 'uniquement les jours choisis');
+  assert.equal(two.length, 3);
+  // 3 séances, 4 jours dispo → réparti, premier au 1er jour, dernier au dernier
+  const four = L.assignProgramDays(week, [1, 2, 4, 6]);
+  assert.equal(four[0].weekday, 1);
+  assert.equal(four[four.length - 1].weekday, 6);
+  assert.equal(new Set(four.map(s => s.weekday)).size, 3, 'répartis sur des jours distincts');
+  // trié lundi d'abord (dimanche en dernier)
+  const sun = L.assignProgramDays(week, [0, 1]);
+  assert.equal(sun[sun.length - 1].weekday, 0, 'dimanche placé en fin de semaine');
+  // jours invalides / vides → inchangé (mais copie)
+  assert.deepEqual(L.assignProgramDays(week, []).map(s => s.weekday), [1, 3, 5]);
+  assert.deepEqual(L.assignProgramDays(week, [9, -1, 'x']).map(s => s.weekday), [1, 3, 5]);
+  // doublons ignorés
+  assert.ok(L.assignProgramDays(week, [3, 3, 3]).every(s => s.weekday === 3));
+  // une seule séance → premier jour dispo
+  assert.equal(L.assignProgramDays([{ kind: 'muscu', title: 'A', weekday: 5 }], [2, 4])[0].weekday, 2);
+  assert.deepEqual(L.assignProgramDays(null, [1]), []);
+});
 test('objectiveNutrition : calories/macros cohérentes avec l’objectif', () => {
   const base = { weight: 80, height: 178, age: 30, sex: 'homme', activityLevel: 'modere' };
   const seche = L.objectiveNutrition('seche', base);
@@ -2440,6 +2467,10 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(s.profile.goal, 'recomposition');
   assert.deepEqual(s.profile.equipment, { handles: false, vest: false, kettlebell: true, pullup: false });
   assert.equal(s.activeProgram, 'fullbody');
+  // jours dispo : captés, dédupliqués, triés lundi d'abord ; défaut [1,3,5] si absent
+  assert.deepEqual(L.onboardingSetup({ objective: 'seche', days: [0, 5, 2, 2] }).profile.availableDays, [2, 5, 0]);
+  assert.deepEqual(s.profile.availableDays, [1, 3, 5], 'défaut sans jours fournis');
+  assert.deepEqual(L.onboardingSetup({ days: [9, -1] }).profile.availableDays, [1, 3, 5], 'jours invalides → défaut');
   // objectif inconnu → athletique ; endurance → activeProgram run + goal trail
   assert.equal(L.onboardingSetup({ objective: 'zzz' }).fitnessObjective, 'athletique');
   const endu = L.onboardingSetup({ objective: 'endurance', sessions: 9 });

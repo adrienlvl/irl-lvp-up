@@ -3,6 +3,9 @@
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}
 .onb-equip-title{margin:14px 0 0;font-size:.82rem;color:var(--muted);font-weight:700}
+.onb-days{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.onb-days .check-label{flex:0 0 auto;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-size:.84rem}
+.onb-days .check-label:has(input:checked){border-color:var(--accent);background:rgba(171,255,85,.08)}
 .onb-preview{margin:12px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--surface-2)}
 .onb-prev-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}
 .onb-prev-head b{font-size:.95rem}
