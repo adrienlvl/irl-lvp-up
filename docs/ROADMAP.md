@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.163 (2026-07-13)
+## 📍 État actuel — build 1.9.164 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **261 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→229) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **262 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→230) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 4 rotations complètes ; 5e rotation en cours (#1, #2)**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 4 rotations complètes ; 5e rotation en cours (#1→#3)**.
 
+- 🔥 **#3 approfondi (5) — streak de routines bien-être** : suivi gamifié (série de jours + compteurs semaine/total) journalisé au lancement d'une routine. ✅ _boucle #230 (build 1.9.164)._
 - 🕑 **#2 approfondi (5) — onboarding « moment préféré »** : créneau matin/midi/soir qui fixe l'heure des séances programmées (aperçu + agenda). ✅ _boucle #229 (build 1.9.163)._
 - 📤 **#1 approfondi (5) — partage natif du programme** : bouton « Partager » (Web Share sur mobile → feuille OS, repli presse-papier ailleurs). ✅ _boucle #228 (build 1.9.162)._
 - 💪 **#4 approfondi (4) — progression de force par exercice** : la comparaison de blocs affiche le 1RM estimé de chaque exercice-clé du 1ᵉʳ au dernier bloc (ex. Squat 70→88 kg +25%). ✅ _boucle #227 (build 1.9.161)._

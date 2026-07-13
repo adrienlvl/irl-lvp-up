@@ -2419,6 +2419,31 @@ test('surpriseRoutine : pioche une routine valide, déterministe et variée', ()
   const got = new Set(); for (let s = 0; s < 20; s++) got.add(L.surpriseRoutine(null, s));
   assert.ok(got.size >= 2, 'varie selon le seed');
 });
+test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routines', () => {
+  let log = [];
+  log = L.logWellnessDone(log, 'hips', '2026-07-13');
+  log = L.logWellnessDone(log, 'warmup', '2026-07-13'); // 2e routine même jour, autre clé
+  log = L.logWellnessDone(log, 'hips', '2026-07-13');    // doublon exact → ignoré
+  assert.equal(log.length, 2);
+  assert.deepEqual(log[0], { date: '2026-07-13', key: 'hips' });
+  // clé / date invalides → inchangé
+  assert.equal(L.logWellnessDone(log, '', '2026-07-13').length, 2);
+  assert.equal(L.logWellnessDone(log, 'hips', 'x').length, 2);
+  // streak : jours consécutifs jusqu'à aujourd'hui
+  const streakLog = [{ date: '2026-07-11', key: 'a' }, { date: '2026-07-12', key: 'b' }, { date: '2026-07-13', key: 'c' }];
+  assert.equal(L.wellnessStreak(streakLog, '2026-07-13'), 3);
+  // tolère de compter depuis hier si rien fait aujourd'hui
+  assert.equal(L.wellnessStreak(streakLog, '2026-07-14'), 3);
+  // trou → streak cassé (seul aujourd'hui)
+  assert.equal(L.wellnessStreak([{ date: '2026-07-10', key: 'a' }, { date: '2026-07-13', key: 'b' }], '2026-07-13'), 1);
+  // rien récemment → 0
+  assert.equal(L.wellnessStreak([{ date: '2026-07-01', key: 'a' }], '2026-07-13'), 0);
+  assert.equal(L.wellnessStreak([], '2026-07-13'), 0);
+  // comptage sur fenêtre (semaine)
+  assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-13', '2026-07-19'), 1);
+  assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-06', '2026-07-13'), 3);
+  assert.equal(L.wellnessCountInWindow([], '2026-07-06', '2026-07-13'), 0);
+});
 test('wellnessRecurringEvent : routine récup programmable en récurrent', () => {
   const ev = L.wellnessRecurringEvent('cooldown', { startDate: '2026-07-13' });
   assert.ok(/Retour au calme/.test(ev.title));
