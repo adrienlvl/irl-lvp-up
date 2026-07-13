@@ -1729,6 +1729,32 @@ test('bestSessionTonnage : meilleure séance par tonnage', () => {
   assert.equal(L.bestSessionTonnage(w4).tonnage, 1000);
   assert.equal(L.bestSessionTonnage(null), null);
 });
+test('bestTonnageWeek : record hebdo de tonnage', () => {
+  assert.equal(L.bestTonnageWeek([], '2026-07-13'), null);
+  // semaine du 06-07 = 2 séances (2500+2500=5000) ; semaine courante 13-07 = 3000 → record = 06-07
+  const w = [
+    { date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] }, // 2500 (lun)
+    { date: '2026-07-08', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] }, // 2500 (mer, même semaine)
+    { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }, // 3000 (semaine courante)
+  ];
+  const b = L.bestTonnageWeek(w, '2026-07-13');
+  assert.equal(b.weekStart, '2026-07-06');
+  assert.equal(b.tonnage, 5000);
+  assert.equal(b.sessions, 2);
+  assert.equal(b.isCurrent, false);
+  // si la semaine courante est le record → isCurrent true
+  const w2 = [
+    { date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, // 2000
+    { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 10 }] }, // 5000 (courante, record)
+  ];
+  const b2 = L.bestTonnageWeek(w2, '2026-07-13');
+  assert.equal(b2.weekStart, '2026-07-13');
+  assert.equal(b2.tonnage, 5000);
+  assert.equal(b2.isCurrent, true);
+  // séances sans tonnage (course) ignorées
+  assert.equal(L.bestTonnageWeek([{ date: '2026-07-13', type: 'run', exercises: [] }], '2026-07-13'), null);
+  assert.equal(L.bestTonnageWeek(null, '2026-07-13'), null);
+});
 test('trainingConsistency : régularité des séances', () => {
   // moins de 3 séances → null
   assert.equal(L.trainingConsistency([{ date: '2026-07-13' }, { date: '2026-07-10' }], '2026-07-13', 28), null);
@@ -3051,7 +3077,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.200');
+  assert.equal(L.CHANGELOG[0].v, '1.9.201');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
