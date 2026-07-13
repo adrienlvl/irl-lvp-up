@@ -3,6 +3,9 @@
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}
 .onb-equip-title{margin:14px 0 0;font-size:.82rem;color:var(--muted);font-weight:700}
+.onb-suggest{margin:12px 0 0;padding:10px 12px;border-radius:10px;border:1px solid rgba(96,165,250,.32);border-left:3px solid var(--blue,#60a5fa);background:rgba(96,165,250,.09);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.83rem;line-height:1.4;color:var(--text)}
+.onb-suggest>span{flex:1;min-width:180px}
+.onb-suggest button{white-space:nowrap;padding:7px 13px;font-size:.8rem}
 .onb-macros{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
 .onb-macros li{display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:9px;background:var(--surface-2,#111728);border:1px solid var(--line)}
 .onb-macros li span{font-size:.84rem;color:var(--text)}

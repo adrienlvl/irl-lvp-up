@@ -2909,7 +2909,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.190');
+  assert.equal(L.CHANGELOG[0].v, '1.9.191');
 });
 test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
   // séance ouverte + page visible → ré-acquérir
@@ -3070,6 +3070,26 @@ test('onboardingCompleteness : complétude du profil d’onboarding', () => {
   // vide → 0 %
   assert.equal(L.onboardingCompleteness({}).percent, 0);
   assert.equal(L.onboardingCompleteness(null).percent, 0);
+});
+test('suggestObjective : suggestion d’objectif selon le profil', () => {
+  // poids cible nettement plus bas → perte de gras (priorité au poids cible)
+  const cut = L.suggestObjective({ weight: 90, height: 178, targetWeight: 80 });
+  assert.equal(cut.key, 'seche');
+  assert.match(cut.reason, /80 kg/);
+  // poids cible plus haut → prise de muscle (même si IMC dirait autre chose)
+  assert.equal(L.suggestObjective({ weight: 65, height: 180, targetWeight: 72 }).key, 'muscle');
+  // écart de poids cible < 3 kg → on retombe sur l'IMC
+  assert.equal(L.suggestObjective({ weight: 95, height: 178, targetWeight: 94 }).key, 'seche'); // IMC ~30
+  // IMC seul (pas de poids cible) : surpoids → seche, maigreur → muscle, normal → athletique
+  assert.equal(L.suggestObjective({ weight: 95, height: 178 }).key, 'seche');
+  assert.equal(L.suggestObjective({ weight: 52, height: 180 }).key, 'muscle');
+  assert.equal(L.suggestObjective({ weight: 72, height: 178 }).key, 'athletique');
+  // info insuffisante → null
+  assert.equal(L.suggestObjective({ weight: 80 }), null);
+  assert.equal(L.suggestObjective({}), null);
+  assert.equal(L.suggestObjective(null), null);
+  // toujours un label lisible
+  assert.ok(/gras|muscle|athlétique/i.test(L.suggestObjective({ weight: 72, height: 178 }).label));
 });
 test('sanitizeOnboardingDraft : brouillon d’onboarding validé', () => {
   const d = L.sanitizeOnboardingDraft({ objective: 'seche', weight: '82.4', height: '178', age: '29', sex: 'femme', level: 'avance', sessions: '4', slot: 'matin', days: [5, 2, 2, 9] });
