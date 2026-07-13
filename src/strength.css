@@ -76,6 +76,16 @@
 .wc-launch small{color:var(--muted);font-size:.74rem}
 .wc-sched{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:0 10px;cursor:pointer;font-size:1rem}
 .wc-sched:hover{border-color:var(--accent);background:rgba(171,255,85,.08)}
+.wellness-goal{margin:12px 0 4px}
+.wg-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.8rem;color:var(--muted);margin-bottom:5px}
+.wg-adj{display:flex;align-items:center;gap:8px}
+.wg-adj b{color:var(--text);font-size:.92rem;min-width:34px;text-align:center}
+.wg-adj button{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2,#111728);color:var(--text);font-size:1rem;line-height:1;cursor:pointer;padding:0}
+.wg-adj button:hover{border-color:var(--accent)}
+.wg-bar{height:8px;border-radius:99px;background:var(--surface-2,#111728);border:1px solid var(--line);overflow:hidden}
+.wg-bar i{display:block;height:100%;background:var(--purple,#a78bfa);border-radius:99px;transition:width .25s}
+.wg-bar i.wg-done{background:var(--accent)}
+.wellness-goal small{display:block;margin-top:5px;color:var(--muted);font-size:.76rem}
 .wellness-streak{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
 .wellness-streak span{font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,#111728);color:var(--muted)}
 .wellness-streak .wst-streak{border-color:var(--accent);color:var(--text);background:rgba(171,255,85,.08)}

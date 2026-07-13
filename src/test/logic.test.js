@@ -2566,6 +2566,21 @@ test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routi
   assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-06', '2026-07-13'), 3);
   assert.equal(L.wellnessCountInWindow([], '2026-07-06', '2026-07-13'), 0);
 });
+test('wellnessGoalProgress : objectif hebdo de routines', () => {
+  const g = L.wellnessGoalProgress(2, 3);
+  assert.equal(g.done, 2); assert.equal(g.target, 3);
+  assert.equal(g.pct, 67); assert.equal(g.reached, false); assert.equal(g.remaining, 1);
+  // atteint / dépassé → pct plafonné 100, reached
+  const done = L.wellnessGoalProgress(4, 3);
+  assert.equal(done.reached, true); assert.equal(done.pct, 100); assert.equal(done.remaining, 0);
+  // cible bornée 1-14 (0/absent → défaut 3 ; négatif → 1 ; trop grand → 14)
+  assert.equal(L.wellnessGoalProgress(0, 0).target, 3, '0 → défaut 3');
+  assert.equal(L.wellnessGoalProgress(0, -2).target, 1, 'négatif → borne basse 1');
+  assert.equal(L.wellnessGoalProgress(0, 99).target, 14);
+  // défauts robustes
+  assert.equal(L.wellnessGoalProgress().target, 3);
+  assert.equal(L.wellnessGoalProgress(-5, 3).done, 0);
+});
 test('wellnessBadges / newWellnessBadge : paliers de badges bien-être', () => {
   // série de 3 jours + 3 routines → badge série 🌱, pas encore de badge total (10)
   const three = [{ date: '2026-07-11', key: 'a' }, { date: '2026-07-12', key: 'b' }, { date: '2026-07-13', key: 'c' }];
