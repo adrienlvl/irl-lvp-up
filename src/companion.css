@@ -3,6 +3,11 @@
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}
 .onb-equip-title{margin:14px 0 0;font-size:.82rem;color:var(--muted);font-weight:700}
+.onb-macros{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.onb-macros li{display:flex;flex-direction:column;gap:1px;padding:7px 10px;border-radius:9px;background:var(--surface-2,#111728);border:1px solid var(--line)}
+.onb-macros li span{font-size:.84rem;color:var(--text)}
+.onb-macros li span em{font-style:normal;color:var(--accent);font-weight:800;font-size:.76rem;margin-left:4px}
+.onb-macros li small{color:var(--muted);font-size:.74rem}
 .onb-meter{margin:12px 0 4px}
 .onb-meter-head{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--muted);margin-bottom:4px}
 .onb-meter-head b{color:var(--text);font-size:.9rem}

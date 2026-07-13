@@ -2476,6 +2476,21 @@ test('programWeekSummary : total séances/minutes/heures d’un programme', () =
   assert.deepEqual(empty, { sessions: 0, muscu: 0, course: 0, minutes: 0, hours: 0 });
   assert.equal(L.programWeekSummary(null).sessions, 0, 'entrée invalide → 0');
 });
+test('macroBreakdown : détail des macros avec rôle et % des calories', () => {
+  // 2000 kcal, P150 (600 kcal=30%), G200 (800=40%), L60 (540=27%)
+  const b = L.macroBreakdown({ dailyTarget: 2000, proteinG: 150, carbG: 200, fatG: 60, dir: 'maintien' });
+  assert.equal(b.length, 3);
+  const [p, c, f] = b;
+  assert.equal(p.key, 'protein'); assert.equal(p.grams, 150); assert.equal(p.pct, 30);
+  assert.ok(/muscle/i.test(p.role));
+  assert.equal(c.key, 'carb'); assert.equal(c.pct, 40); assert.ok(/carburant|effort/i.test(c.role));
+  assert.equal(f.key, 'fat'); assert.equal(f.pct, 27); assert.ok(/hormone/i.test(f.role));
+  assert.ok(b.every(m => m.emoji && m.label));
+  // pas de données → []
+  assert.deepEqual(L.macroBreakdown(null), []);
+  assert.deepEqual(L.macroBreakdown({ dailyTarget: 2000 }), []);
+  assert.deepEqual(L.macroBreakdown({ proteinG: 0 }), []);
+});
 test('wellnessRoutine : routines de mobilité/récup en secondes', () => {
   assert.ok(Array.isArray(L.WELLNESS_ROUTINES) && L.WELLNESS_ROUTINES.length >= 5);
   const r = L.wellnessRoutine('warmup');
