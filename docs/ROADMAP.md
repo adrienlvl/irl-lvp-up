@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.177 (2026-07-13)
+## 📍 État actuel — build 1.9.178 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **274 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→243) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **275 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→244) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 8 rotations complètes — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 8 rotations complètes ; 9e rotation entamée (#1) — boucle autonome continue**.
 
+- 📳 **#1 approfondi (9) — retour haptique centralisé** : vibration sur fin de repos, série validée, record et level-up via un helper testable. ✅ _boucle #244 (build 1.9.178)._
 - 🩹 **#4 approfondi (8) — zone à rattraper** : carte de bloc signalant le groupe musculaire le moins travaillé sur 28 j (déséquilibre). ✅ _boucle #243 (build 1.9.177)._
 - 🧭 **#3 approfondi (8) — parcours guidés bien-être** : enchaînements de 2 routines en une session (Réveil complet, Prépa séance, Détente du soir). ✅ _boucle #242 (build 1.9.176)._
 - 🎚️ **#2 approfondi (8) — choix de niveau** : débutant/intermédiaire/avancé ajuste le volume (4/5/6 exos par séance muscu) dans tout le générateur. ✅ _boucle #241 (build 1.9.175)._

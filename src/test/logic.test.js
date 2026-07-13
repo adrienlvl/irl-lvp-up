@@ -2745,6 +2745,20 @@ test('pendingBadgeCount : actions en attente pour le badge PWA', () => {
   assert.equal(L.pendingBadgeCount({}, '2026-07-13'), 0);
   assert.equal(L.pendingBadgeCount(null, '2026-07-13'), 0);
 });
+test('vibrationPattern : motifs haptiques par événement', () => {
+  assert.deepEqual(L.vibrationPattern('restEnd'), [180, 90, 180]);
+  assert.deepEqual(L.vibrationPattern('setDone'), [40]);
+  assert.ok(Array.isArray(L.vibrationPattern('record')) && L.vibrationPattern('record').length >= 3);
+  assert.ok(Array.isArray(L.vibrationPattern('levelUp')) && L.vibrationPattern('levelUp').length >= 3);
+  // événement inconnu → null
+  assert.equal(L.vibrationPattern('zzz'), null);
+  assert.equal(L.vibrationPattern(), null);
+  // chaque motif = durées positives
+  Object.keys(L.VIBRATION_PATTERNS).forEach(k => { const p = L.vibrationPattern(k); assert.ok(p.every(n => Number.isFinite(n) && n > 0)); });
+  // renvoie une COPIE (pas de mutation du motif source)
+  const p = L.vibrationPattern('setDone'); p.push(999);
+  assert.deepEqual(L.vibrationPattern('setDone'), [40], 'motif source non muté');
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');
