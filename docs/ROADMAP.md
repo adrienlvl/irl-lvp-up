@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.156 (2026-07-13)
+## 📍 État actuel — build 1.9.157 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **254 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→222) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **255 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→223) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 2 rotations complètes** ; **3e rotation en cours**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 3 rotations complètes**.
 
+- 📊 **#4 approfondi (3) — comparaison de blocs** : carte « Ma progression sur N blocs » (dès 2 blocs terminés) comparant tonnage/sem. et séances/sem. du 1ᵉʳ au dernier bloc, avec tendance 📈/➡️/📉. ✅ _boucle #223 (build 1.9.157)._
 - 🧘 **#3 approfondi (3) — routines ciblées + « Surprends-moi »** : 3 nouvelles routines (chevilles/course, nuque/bureau, poignets ; catalogue 8→11) + bouton tirage aléatoire d'une routine. ✅ _boucle #222 (build 1.9.156)._
 - 🧭 **#2 approfondi (3) — bienvenue personnalisée** : message par objectif (ce que l'app met en place) + préremplissage du poids depuis la dernière pesée. ✅ _boucle #221 (build 1.9.155)._
 - 📲 **#1 approfondi (3) — aide d'installation iOS** : bannière « Partager → Sur l'écran d'accueil » sur iPhone/iPad non installé. ✅ _boucle #220 (build 1.9.154)._

@@ -1560,6 +1560,41 @@ test('nextBlockAdvice : reco du prochain bloc selon les résultats', () => {
   assert.equal(L.nextBlockAdvice({}).action, 'keep', 'sans donnée → garder');
   assert.ok(L.nextBlockAdvice({ adherence: 30 }).emoji && L.nextBlockAdvice({ adherence: 30 }).advice.length > 10);
 });
+test('blockWindowStats / blockComparison : progression 1er → dernier bloc', () => {
+  const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] });
+  const workouts = [
+    wo('2026-05-06', 20, 10), wo('2026-05-20', 20, 10),            // bloc 1 : 2 séances, 400 kg
+    wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10), wo('2026-06-20', 30, 10), // bloc 2 : 3 séances, 900 kg
+    wo('2026-04-01', 99, 99),                                       // hors fenêtre : ignoré
+  ];
+  const st = L.blockWindowStats(workouts, '2026-05-01', '2026-05-31');
+  assert.equal(st.sessions, 2);
+  assert.equal(st.tonnage, 400);
+  assert.equal(st.sets, 2);
+  const history = [
+    { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+    { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
+  ];
+  const cmp = L.blockComparison(history, workouts);
+  assert.equal(cmp.blocks, 2);
+  assert.equal(cmp.first.sessions, 2);
+  assert.equal(cmp.first.tonnage, 400);
+  assert.equal(cmp.last.sessions, 3);
+  assert.equal(cmp.last.tonnage, 900);
+  assert.equal(cmp.sessionsDelta, 1);
+  assert.equal(cmp.tonnageDelta, 500);
+  assert.equal(cmp.tonnagePct, 125);
+  assert.equal(cmp.trend, 'up');
+  // moins de 2 blocs terminés → null
+  assert.equal(L.blockComparison(history.slice(0, 1), workouts), null);
+  assert.equal(L.blockComparison([], workouts), null);
+  // baisse de tonnage → trend down
+  const down = L.blockComparison([
+    { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
+    { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+  ], workouts);
+  assert.equal(down.trend, 'down');
+});
 test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
   assert.equal(L.blockPhase(0).phase, 'Base');
   assert.equal(L.blockPhase(1).phase, 'Volume');
