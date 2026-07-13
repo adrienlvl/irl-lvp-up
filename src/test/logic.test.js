@@ -2473,6 +2473,41 @@ test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routi
   assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-06', '2026-07-13'), 3);
   assert.equal(L.wellnessCountInWindow([], '2026-07-06', '2026-07-13'), 0);
 });
+test('wellnessBadges / newWellnessBadge : paliers de badges bien-être', () => {
+  // série de 3 jours + 3 routines → badge série 🌱, pas encore de badge total (10)
+  const three = [{ date: '2026-07-11', key: 'a' }, { date: '2026-07-12', key: 'b' }, { date: '2026-07-13', key: 'c' }];
+  const b3 = L.wellnessBadges(three, '2026-07-13');
+  assert.equal(b3.streak, 3);
+  assert.equal(b3.total, 3);
+  assert.equal(b3.streakBadge.days, 3);
+  assert.equal(b3.streakBadge.emoji, '🌱');
+  assert.equal(b3.totalBadge, null);
+  assert.equal(b3.nextStreak.days, 7);
+  assert.equal(b3.nextTotal.count, 10);
+  assert.equal(b3.badges.length, 1);
+  // 12 routines (dont série 7) → badge total 🧘 (10) + badge série 🔥 (7)
+  const many = []; for (let i = 0; i < 12; i++) { const d = new Date(2026, 6, 2 + i); many.push({ date: `2026-07-${String(2 + i).padStart(2, '0')}`, key: 'r' + i }); }
+  const bm = L.wellnessBadges(many, '2026-07-13');
+  assert.equal(bm.total, 12);
+  assert.equal(bm.totalBadge.count, 10);
+  assert.equal(bm.streakBadge.days, 7, 'série 7+ → badge 🔥');
+  assert.equal(bm.badges.length, 2);
+  // rien → aucun badge
+  const b0 = L.wellnessBadges([], '2026-07-13');
+  assert.equal(b0.streakBadge, null);
+  assert.equal(b0.totalBadge, null);
+  assert.equal(b0.badges.length, 0);
+  // newWellnessBadge : franchissement de palier série prioritaire
+  assert.equal(L.newWellnessBadge(b0, b3).days, 3);
+  assert.equal(L.newWellnessBadge(b0, b3).kind, 'streak');
+  // pas de nouveau palier → null
+  assert.equal(L.newWellnessBadge(b3, b3), null);
+  // franchissement total seul
+  const t9 = L.wellnessBadges(many.slice(0, 9), '2026-07-13'); // 9 routines, pas de badge total
+  const t10 = L.wellnessBadges(many.slice(0, 10), '2026-07-13'); // 10 → badge total
+  const nb = L.newWellnessBadge(t9, t10);
+  assert.ok(nb && nb.kind === 'total' && nb.count === 10);
+});
 test('wellnessRecurringEvent : routine récup programmable en récurrent', () => {
   const ev = L.wellnessRecurringEvent('cooldown', { startDate: '2026-07-13' });
   assert.ok(/Retour au calme/.test(ev.title));

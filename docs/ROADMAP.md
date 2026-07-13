@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.167 (2026-07-13)
+## 📍 État actuel — build 1.9.168 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **265 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→233) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **266 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→234) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 5 rotations complètes ; 6e rotation en cours (#1, #2)**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 5 rotations complètes ; 6e rotation en cours (#1→#3)**.
 
+- 🏅 **#3 approfondi (6) — badges/paliers bien-être** : médailles de série (3/7/14/30 j) et de total (10/25/50/100 routines) + toast au franchissement + prochain objectif. ✅ _boucle #234 (build 1.9.168)._
 - 🎉 **#2 approfondi (6) — récap de fin d'onboarding** : écran « voici ce qui a été mis en place » (séances placées, 1re séance datée, quêtes) + bouton « Lancer ma 1re séance ». ✅ _boucle #233 (build 1.9.167)._
 - 🔆 **#1 approfondi (6) — Wake Lock fiabilisé** : l'écran reste allumé pendant une séance guidée même après un passage en arrière-plan (ré-acquisition `visibilitychange`) + libération sur tous les chemins de fermeture. ✅ _boucle #232 (build 1.9.166)._
 - 📈 **#4 approfondi (5) — plateau réel dans la reco de bloc** : `strengthPlateauAny` détecte un plateau de force sur un exercice-clé et alimente la reco de fin de bloc (« change une variable » nomme l'exercice). ✅ _boucle #231 (build 1.9.165)._
