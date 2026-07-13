@@ -1682,6 +1682,29 @@ test('bestE1rmByExercise / blockExerciseProgress : progression de force par exer
   // limite personnalisable
   assert.ok(L.blockExerciseProgress(history, workouts, { limit: 1 }).length === 1);
 });
+test('blockProgressText / shareableBlockProgress : progression de bloc partageable', () => {
+  const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
+  const workouts = [
+    wo('2026-05-06', 'Squat', 60, 5), wo('2026-05-20', 'Squat', 60, 5),
+    wo('2026-06-03', 'Squat', 75, 5), wo('2026-06-10', 'Squat', 75, 5), wo('2026-06-20', 'Squat', 75, 5),
+  ];
+  const history = [
+    { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+    { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
+  ];
+  const txt = L.blockProgressText(history, workouts);
+  assert.match(txt, /progression sur 2 blocs/i);
+  assert.match(txt, /Tonnage\/sem/);
+  assert.match(txt, /Squat/);
+  assert.match(txt, /1RM estimé/);
+  const share = L.shareableBlockProgress(history, workouts);
+  assert.ok(share && share.title && share.text === txt);
+  assert.match(share.title, /progression/i);
+  // < 2 blocs → '' / null
+  assert.equal(L.blockProgressText(history.slice(0, 1), workouts), '');
+  assert.equal(L.shareableBlockProgress(history.slice(0, 1), workouts), null);
+  assert.equal(L.shareableBlockProgress([], workouts), null);
+});
 test('blockPhase / progressSets : bloc 4 semaines montée puis décharge', () => {
   assert.equal(L.blockPhase(0).phase, 'Base');
   assert.equal(L.blockPhase(1).phase, 'Volume');
