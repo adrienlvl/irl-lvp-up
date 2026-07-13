@@ -1650,6 +1650,35 @@ test('blockWindowStats / blockComparison : progression 1er → dernier bloc', ()
   ], workouts);
   assert.equal(down.trend, 'down');
 });
+test('weeklyTonnageTrend : tonnage muscu hebdo + tendance', () => {
+  // aucune séance chiffrée → null
+  assert.equal(L.weeklyTonnageTrend([], '2026-07-13', 8), null);
+  assert.equal(L.weeklyTonnageTrend([{ date: '2026-07-13', type: 'run', exercises: [] }], '2026-07-13', 8), null);
+  // 2026-07-13 est un lundi → semaine courante = bucket final
+  const w = [
+    { date: '2026-06-24', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] }, // sem. 06-22 → 2500
+    { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, // sem. 06-29 → 2000
+    { date: '2026-07-08', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, // sem. 07-06 → 2000
+    { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }, // sem. 07-13 → 3000
+  ];
+  const t = L.weeklyTonnageTrend(w, '2026-07-13', 8);
+  assert.equal(t.weeks.length, 8);
+  const last = t.weeks[t.weeks.length - 1];
+  assert.equal(last.start, '2026-07-13');
+  assert.equal(last.tonnage, 3000);
+  assert.equal(last.sessions, 1);
+  assert.equal(t.last, 3000);
+  assert.equal(t.max, 3000);
+  assert.equal(t.total, 9500);
+  // dernière (3000) vs moyenne des précédentes non vides (2500,2000,2000 → 2167) → +38 %, tendance up
+  assert.equal(t.avgPrior, 2167);
+  assert.equal(t.deltaPct, 38);
+  assert.equal(t.trend, 'up');
+  // buckets triés chronologiquement
+  for (let i = 1; i < t.weeks.length; i++) assert.ok(t.weeks[i - 1].start < t.weeks[i].start);
+  // paramètre weeks personnalisé
+  assert.equal(L.weeklyTonnageTrend(w, '2026-07-13', 4).weeks.length, 4);
+});
 test('bestE1rmByExercise / blockExerciseProgress : progression de force par exercice', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [

@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.188 (2026-07-13)
+## 📍 État actuel — build 1.9.189 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **283 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→254) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **284 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→255) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 10 rotations complètes ; 11e rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187` publiée.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 11 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187` publiée, `v1.9.189` (fin de 11ᵉ rotation).
 
+- 📈 **#4 approfondi (11) — tendance de tonnage hebdo** : sparkline du tonnage muscu sur 8 semaines + tendance de la semaine (`weeklyTonnageTrend`). ✅ _boucle #255 (build 1.9.189) — clôt la 11ᵉ rotation._
 - 🧘 **#3 approfondi (11) — filtre routines par temps dispo** : puces « J'ai ≤4/5/6 min » qui filtrent la barre bien-être (`routinesByTimeBudget`, tri durée décroissante). ✅ _boucle #254 (build 1.9.188)._
 - ⚖️ **#2 approfondi (11) — poids cible à l'onboarding** : champ optionnel qui alimente `goals.targetWeight` → coach poids. ✅ _boucle #253 (build 1.9.187)._
 - 📤 **#1 approfondi (11) — partage d'une routine bien-être** : bouton Web Share sur la suggestion du jour (mouvements détaillés). ✅ _boucle #252 (build 1.9.186)._
