@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.170 (2026-07-13)
+## 📍 État actuel — build 1.9.171 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **268 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→236) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **269 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→237) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 6 rotations complètes ; 7e rotation entamée (#1) — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 6 rotations complètes ; 7e rotation en cours (#1, #2) — boucle autonome continue**.
 
+- 📊 **#2 approfondi (7) — jauge de complétude du profil** : barre « profil complété à X% » en direct dans l'onboarding + indice « macros calculables » selon poids/taille. ✅ _boucle #237 (build 1.9.171)._
 - 🔴 **#1 approfondi (7) — badge d'app PWA** : pastille sur l'icône installée avec les actions du jour (quêtes non faites + séances), effacée quand tout est fait. ✅ _boucle #236 (build 1.9.170)._
 - ⏳ **#4 approfondi (6) — heads-up anticipé de fin de bloc** : dès la semaine de décharge (S4), carte « dernière semaine, allège » + reco du prochain bloc affichée d'avance. ✅ _boucle #235 (build 1.9.169)._
 - 🏅 **#3 approfondi (6) — badges/paliers bien-être** : médailles de série (3/7/14/30 j) et de total (10/25/50/100 routines) + toast au franchissement + prochain objectif. ✅ _boucle #234 (build 1.9.168)._

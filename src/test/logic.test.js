@@ -2731,6 +2731,31 @@ test('onboardingFirstSession : première séance planifiée + date', () => {
   assert.equal(L.onboardingFirstSession([], '2026-07-13'), null);
   assert.equal(L.onboardingFirstSession(null, '2026-07-13'), null);
 });
+test('onboardingCompleteness : complétude du profil d’onboarding', () => {
+  // tout rempli → 100 %, nutrition prête
+  const full = L.onboardingCompleteness({ objective: 'muscle', weight: 80, height: 178, age: 30, days: [1, 3, 5], slot: 'soir' });
+  assert.equal(full.percent, 100);
+  assert.equal(full.filled, 6);
+  assert.equal(full.nutritionReady, true);
+  assert.deepEqual(full.missing, []);
+  // objectif seul (défaut) → poids/taille/âge/jours/moment manquants
+  const min = L.onboardingCompleteness({ objective: 'muscle' });
+  assert.equal(min.filled, 1);
+  assert.equal(min.percent, Math.round(1 / 6 * 100));
+  assert.equal(min.nutritionReady, false);
+  assert.ok(min.missing.includes('poids') && min.missing.includes('taille') && min.missing.includes('moment préféré'));
+  // poids + taille valides → nutrition prête même si le reste manque
+  const nut = L.onboardingCompleteness({ objective: 'seche', weight: 72, height: 170 });
+  assert.equal(nut.nutritionReady, true);
+  assert.ok(!nut.missing.includes('poids') && !nut.missing.includes('taille'));
+  // valeurs hors bornes → non comptées
+  const bad = L.onboardingCompleteness({ objective: 'forme', weight: 5, height: 999, age: 200 });
+  assert.equal(bad.nutritionReady, false);
+  assert.ok(bad.missing.includes('poids') && bad.missing.includes('taille') && bad.missing.includes('âge'));
+  // vide → 0 %
+  assert.equal(L.onboardingCompleteness({}).percent, 0);
+  assert.equal(L.onboardingCompleteness(null).percent, 0);
+});
 test('objectiveProgramText : export texte lisible du programme', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
   const prog = L.objectiveProgram('athletique', ex);

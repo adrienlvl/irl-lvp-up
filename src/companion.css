@@ -3,6 +3,12 @@
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}
 .onb-equip-title{margin:14px 0 0;font-size:.82rem;color:var(--muted);font-weight:700}
+.onb-meter{margin:12px 0 4px}
+.onb-meter-head{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+.onb-meter-head b{color:var(--text);font-size:.9rem}
+.onb-meter-bar{height:7px;border-radius:99px;background:var(--surface-2,#111728);border:1px solid var(--line);overflow:hidden}
+.onb-meter-bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .25s}
+.onb-meter small{display:block;margin-top:5px;color:var(--muted);font-size:.76rem}
 .onb-recap-list{list-style:none;margin:14px 0;padding:0;display:grid;gap:9px}
 .onb-recap-list li{font-size:.92rem;color:var(--text);padding:10px 13px;border-radius:10px;background:var(--surface-2,#111728);border:1px solid var(--line);border-left:3px solid var(--accent)}
 .onb-recap-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px}
