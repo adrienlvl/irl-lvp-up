@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.173 (2026-07-13)
+## 📍 État actuel — build 1.9.174 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **271 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→239) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **271 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→240) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 7 rotations complètes — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 7 rotations complètes ; 8e rotation entamée (#1) — boucle autonome continue**.
 
+- 📱 **#1 approfondi (8) — safe-area insets iPhone** : `viewport-fit=cover` + `env(safe-area-inset-*)` sur bandeaux fixes et contenu (encoche/barre d'accueil), no-op ailleurs. ✅ _boucle #240 (build 1.9.174)._
 - 🎯 **#4 approfondi (7) — prévision de force sur la carte de bloc** : « ~N sem. pour atteindre X kg » sur l'exercice-clé qui progresse. ✅ _boucle #239 (build 1.9.173)._
 - 🗓️ **#3 approfondi (7) — mini-heatmap des routines** : vue 7 jours des routines bien-être faites (3 niveaux d'intensité). ✅ _boucle #238 (build 1.9.172)._
 - 📊 **#2 approfondi (7) — jauge de complétude du profil** : barre « profil complété à X% » en direct dans l'onboarding + indice « macros calculables » selon poids/taille. ✅ _boucle #237 (build 1.9.171)._

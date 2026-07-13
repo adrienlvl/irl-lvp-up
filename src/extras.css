@@ -144,7 +144,7 @@
 .back-to-top:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .back-to-top[hidden]{display:none}
 /* Mode compact : moins d'air, plus d'infos à l'écran */
-html[data-density=compact] .app-shell{padding:22px 14px 48px}
+html[data-density=compact] .app-shell{padding:max(22px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(48px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
 html[data-density=compact] section.panel{padding:15px}
 html[data-density=compact] .panel-heading{margin-bottom:10px}
 html[data-density=compact] .my-day-item,html[data-density=compact] .todo-item,html[data-density=compact] .shopping-row{padding:6px 9px}
