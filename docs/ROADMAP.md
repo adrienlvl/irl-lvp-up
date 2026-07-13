@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.172 (2026-07-13)
+## 📍 État actuel — build 1.9.173 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **270 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→238) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **271 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→239) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 6 rotations complètes ; 7e rotation en cours (#1→#3) — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 7 rotations complètes — boucle autonome continue**.
 
+- 🎯 **#4 approfondi (7) — prévision de force sur la carte de bloc** : « ~N sem. pour atteindre X kg » sur l'exercice-clé qui progresse. ✅ _boucle #239 (build 1.9.173)._
 - 🗓️ **#3 approfondi (7) — mini-heatmap des routines** : vue 7 jours des routines bien-être faites (3 niveaux d'intensité). ✅ _boucle #238 (build 1.9.172)._
 - 📊 **#2 approfondi (7) — jauge de complétude du profil** : barre « profil complété à X% » en direct dans l'onboarding + indice « macros calculables » selon poids/taille. ✅ _boucle #237 (build 1.9.171)._
 - 🔴 **#1 approfondi (7) — badge d'app PWA** : pastille sur l'icône installée avec les actions du jour (quêtes non faites + séances), effacée quand tout est fait. ✅ _boucle #236 (build 1.9.170)._

@@ -2051,6 +2051,24 @@ test('strengthForecast : prévision d’atteinte du prochain palier de force', (
   assert.equal(L.strengthForecast([{ date: '2026-06-08', e1rm: 90 }], 5), null);
   assert.equal(L.strengthForecast(null), null);
 });
+test('bestStrengthForecast : meilleure prévision de force à surfacer', () => {
+  const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
+  // Squat progresse régulièrement → prévision ; Développé plat → pas de prévision
+  const workouts = [
+    wo('2026-06-08', 'Squat', 90, 1), wo('2026-06-15', 'Squat', 92.5, 1), wo('2026-06-22', 'Squat', 95, 1), wo('2026-06-29', 'Squat', 97.5, 1),
+    wo('2026-06-08', 'Développé', 60, 1), wo('2026-06-22', 'Développé', 60, 1),
+  ];
+  const f = L.bestStrengthForecast(workouts, { step: 5, todayKey: '2026-06-29' });
+  assert.equal(f.exercise, 'Squat');
+  assert.equal(f.milestone, 100);
+  assert.equal(f.weeks, 1);
+  assert.ok(f.perWeek > 0 && f.current === 97.5);
+  // aucun exercice en progression → null
+  const flat = [wo('2026-06-08', 'Squat', 90, 1), wo('2026-06-22', 'Squat', 90, 1)];
+  assert.equal(L.bestStrengthForecast(flat, { todayKey: '2026-06-22' }), null);
+  assert.equal(L.bestStrengthForecast([], { todayKey: '2026-06-22' }), null);
+  assert.equal(L.bestStrengthForecast(null, {}), null);
+});
 test('lifetimeTonnage : cumul du tonnage sur toutes les séances', () => {
   const workouts = [
     { exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }, // 1800
