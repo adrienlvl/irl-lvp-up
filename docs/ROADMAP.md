@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.195 (2026-07-13)
+## 📍 État actuel — build 1.9.196 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **289 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→261) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **289 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→262) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 12 rotations complètes ; 13ᵉ rotation en cours (#1, #2) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 12 rotations complètes ; 13ᵉ rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193` publiées.
 
+- 🏅 **#3 approfondi (13) — record de série bien-être** : chip « record N j » (meilleure suite de jours all-time) à côté du streak courant (`wellnessBestStreak`). ✅ _boucle #262 (build 1.9.196)._
 - 🏃 **#2 approfondi (13) — objectif de course à l'onboarding** : champ « Course (km/sem.) » relié à `goals.distance` (barre de progression distance). ✅ _boucle #261 (build 1.9.195)._
 - 🧘 **#1 approfondi (13) — raccourci « Bien-être »** : 5ᵉ shortcut manifest (`?go=wellness`) vers les routines de mobilité + cible de lancement en logique pure (`launchTarget`). ✅ _boucle #260 (build 1.9.194)._
 - 🏆 **#4 approfondi (12) — record de tonnage sur une séance** : meilleure séance (Σ charge×reps) + célébration si la dernière bat le record (`bestSessionTonnage`). ✅ _boucle #259 (build 1.9.193) — clôt la 12ᵉ rotation._

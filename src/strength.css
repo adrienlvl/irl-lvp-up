@@ -114,6 +114,7 @@
 .wellness-streak span{font-size:.78rem;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,#111728);color:var(--muted)}
 .wellness-streak .wst-streak{border-color:var(--accent);color:var(--text);background:rgba(171,255,85,.08)}
 .wellness-streak .wst-min{border-color:var(--blue,#60a5fa);color:var(--text);background:rgba(96,165,250,.1)}
+.wellness-streak .wst-record{border-color:var(--gold,#f59e0b);color:var(--text);background:rgba(245,158,11,.12)}
 .wellness-streak .wst-badge{border-color:var(--purple,#a78bfa);color:var(--text);background:rgba(167,139,250,.12)}
 .wellness-streak .wst-next{border-style:dashed;color:var(--muted);background:transparent}
 .wellness-heatmap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 4px}

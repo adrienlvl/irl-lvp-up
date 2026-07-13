@@ -2710,6 +2710,18 @@ test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routi
   // rien récemment → 0
   assert.equal(L.wellnessStreak([{ date: '2026-07-01', key: 'a' }], '2026-07-13'), 0);
   assert.equal(L.wellnessStreak([], '2026-07-13'), 0);
+  // record de série (all-time), indépendant d'aujourd'hui
+  assert.equal(L.wellnessBestStreak(streakLog), 3);
+  // une série passée plus longue qu'un run récent → record = la plus longue
+  const past = [
+    { date: '2026-06-01', key: 'a' }, { date: '2026-06-02', key: 'b' }, { date: '2026-06-03', key: 'c' }, { date: '2026-06-04', key: 'd' }, // 4 d'affilée
+    { date: '2026-07-12', key: 'e' }, { date: '2026-07-13', key: 'f' }, // 2 récents
+  ];
+  assert.equal(L.wellnessBestStreak(past), 4);
+  // doublons le même jour ne gonflent pas le record
+  assert.equal(L.wellnessBestStreak([{ date: '2026-07-13', key: 'a' }, { date: '2026-07-13', key: 'b' }]), 1);
+  assert.equal(L.wellnessBestStreak([]), 0);
+  assert.equal(L.wellnessBestStreak(null), 0);
   // comptage sur fenêtre (semaine)
   assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-13', '2026-07-19'), 1);
   assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-06', '2026-07-13'), 3);
@@ -2968,7 +2980,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.195');
+  assert.equal(L.CHANGELOG[0].v, '1.9.196');
 });
 test('launchTarget : cible de lancement PWA depuis ?go=', () => {
   assert.equal(L.launchTarget('?go=wellness'), 'wellness');
