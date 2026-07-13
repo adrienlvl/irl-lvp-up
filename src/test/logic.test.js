@@ -2593,6 +2593,20 @@ test('wellnessParcours : enchaînement de 2 routines en une session', () => {
   assert.equal(L.wellnessParcours('zzz'), null);
   assert.equal(L.wellnessParcours(), null);
 });
+test('shareableRoutine : partage natif d’une routine bien-être', () => {
+  const s = L.shareableRoutine('warmup');
+  assert.ok(s && s.title && s.text);
+  assert.match(s.title, /routine bien-être/i);
+  assert.match(s.title, /Échauffement/);
+  // le texte liste les mouvements numérotés avec durée
+  assert.match(s.text, /1\. .+ — \d+ s/);
+  assert.match(s.text, /min\)/, 'durée totale en tête');
+  // toutes les routines produisent un objet valide
+  L.WELLNESS_ROUTINES.forEach(r => { const sr = L.shareableRoutine(r.key); assert.ok(sr && sr.text.length > 20); });
+  // clé inconnue → null
+  assert.equal(L.shareableRoutine('zzz'), null);
+  assert.equal(L.shareableRoutine(), null);
+});
 test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routines', () => {
   let log = [];
   log = L.logWellnessDone(log, 'hips', '2026-07-13');

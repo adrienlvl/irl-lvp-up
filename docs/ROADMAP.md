@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.185 (2026-07-13)
+## 📍 État actuel — build 1.9.186 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **281 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→251) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **282 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→252) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 10 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE** : release GitHub Actions déclenchée par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release lancée par Adrien**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 10 rotations complètes ; 11e rotation entamée (#1) — boucle autonome continue**. **Publication option B ACTIVE** : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; 1ʳᵉ release `v1.9.185` publiée.
 
+- 📤 **#1 approfondi (11) — partage d'une routine bien-être** : bouton Web Share sur la suggestion du jour (mouvements détaillés). ✅ _boucle #252 (build 1.9.186)._
 - 📤 **#4 approfondi (10) — partage de la progression de bloc** : bouton Web Share sur la comparaison de blocs (tendance + force par exercice). ✅ _boucle #251 (build 1.9.185)._
 - 🔔 **#3 approfondi (10) — rappel doux d'inactivité bien-être** : nudge après ≥3 j sans routine (ne relance pas ceux qui n'ont jamais commencé). ✅ _boucle #250 (build 1.9.184)._
 - 📝 **#2 approfondi (10) — brouillon d'onboarding** : sauvegarde des saisies si on ferme sans finir + reprise (« Brouillon repris » / « Repartir de zéro »). ✅ _boucle #249 (build 1.9.183)._
