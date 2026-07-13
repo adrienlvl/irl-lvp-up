@@ -1780,6 +1780,29 @@ test('suggestTrainingFocus : groupes reposés + déficit, exclut le récent', ()
   assert.equal(back.sets, 3); assert.equal(back.deficit, 7); assert.equal(back.days, 6);
   assert.deepEqual(L.suggestTrainingFocus(w, 'x'), []);
 });
+test('neglectedZoneReport : zone la moins travaillée sur la fenêtre', () => {
+  // beaucoup de jambes/fessiers, rien pour le haut du corps sur 28 j
+  const w = [
+    { date: '2026-07-10', exercises: [{ name: 'Fentes arrière', completedSets: 4 }, { name: 'Pont fessier', completedSets: 4 }] },
+    { date: '2026-07-06', exercises: [{ name: 'Chaise au mur', completedSets: 4 }, { name: 'Split squat bulgare', completedSets: 4 }] },
+    { date: '2026-07-02', exercises: [{ name: 'Pompes classiques', completedSets: 2 }] }, // un peu de chest/arms/shoulders
+  ];
+  const r = L.neglectedZoneReport(w, '2026-07-13', 28);
+  assert.ok(r, 'rapport présent');
+  // zone du haut du corps jamais travaillée → 0 séries, marquée à rattraper (abs ou dos, tous deux à 0)
+  assert.equal(r.sets, 0);
+  assert.ok(['abs', 'back'].includes(r.zone), 'zone non travaillée renvoyée');
+  assert.equal(r.bySets.back, 0);
+  assert.equal(r.bySets.abs, 0);
+  assert.equal(r.neglected, true);
+  assert.ok(r.emoji && r.label && r.bySets);
+  assert.ok(r.bySets.legs > 0, 'jambes bien travaillées');
+  // fenêtre trop courte (rien dedans) → aucune donnée
+  assert.equal(L.neglectedZoneReport(w, '2026-08-30', 7), null);
+  // aucune séance → null
+  assert.equal(L.neglectedZoneReport([], '2026-07-13'), null);
+  assert.equal(L.neglectedZoneReport(w, 'x'), null);
+});
 test('equipmentOptions : matériels distincts, comptés et triés par fréquence', () => {
   const ex = [
     { name: 'A', kind: 'Poids du corps' }, { name: 'B', kind: 'Poids du corps' },

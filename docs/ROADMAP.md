@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.176 (2026-07-13)
+## 📍 État actuel — build 1.9.177 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **273 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→242) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **274 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→243) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 7 rotations complètes ; 8e rotation en cours (#1→#3) — boucle autonome continue**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 8 rotations complètes — boucle autonome continue**.
 
+- 🩹 **#4 approfondi (8) — zone à rattraper** : carte de bloc signalant le groupe musculaire le moins travaillé sur 28 j (déséquilibre). ✅ _boucle #243 (build 1.9.177)._
 - 🧭 **#3 approfondi (8) — parcours guidés bien-être** : enchaînements de 2 routines en une session (Réveil complet, Prépa séance, Détente du soir). ✅ _boucle #242 (build 1.9.176)._
 - 🎚️ **#2 approfondi (8) — choix de niveau** : débutant/intermédiaire/avancé ajuste le volume (4/5/6 exos par séance muscu) dans tout le générateur. ✅ _boucle #241 (build 1.9.175)._
 - 📱 **#1 approfondi (8) — safe-area insets iPhone** : `viewport-fit=cover` + `env(safe-area-inset-*)` sur bandeaux fixes et contenu (encoche/barre d'accueil), no-op ailleurs. ✅ _boucle #240 (build 1.9.174)._
