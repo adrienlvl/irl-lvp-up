@@ -2484,6 +2484,25 @@ test('surpriseRoutine : pioche une routine valide, déterministe et variée', ()
   const got = new Set(); for (let s = 0; s < 20; s++) got.add(L.surpriseRoutine(null, s));
   assert.ok(got.size >= 2, 'varie selon le seed');
 });
+test('wellnessParcours : enchaînement de 2 routines en une session', () => {
+  assert.ok(Array.isArray(L.WELLNESS_PARCOURS) && L.WELLNESS_PARCOURS.length >= 3);
+  const p = L.wellnessParcours('reveil');
+  assert.equal(p.count, 2);
+  assert.equal(p.routines.length, 2);
+  // minutes = somme des routines composantes
+  const m = L.wellnessRoutine('morning').minutes + L.wellnessRoutine('hips').minutes;
+  assert.equal(p.minutes, m);
+  // exercices = concaténation des mouvements des 2 routines
+  const total = L.wellnessRoutine('morning').exercises.length + L.wellnessRoutine('hips').exercises.length;
+  assert.equal(p.exercises.length, total);
+  assert.ok(p.exercises.every(e => e.unit === 'sec' && e.reps > 0));
+  assert.ok(p.emoji && p.title);
+  // chaque parcours prédéfini est valide
+  L.WELLNESS_PARCOURS.forEach(x => { const pc = L.wellnessParcours(x.key); assert.ok(pc && pc.exercises.length >= 6); });
+  // clé inconnue → null
+  assert.equal(L.wellnessParcours('zzz'), null);
+  assert.equal(L.wellnessParcours(), null);
+});
 test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routines', () => {
   let log = [];
   log = L.logWellnessDone(log, 'hips', '2026-07-13');
