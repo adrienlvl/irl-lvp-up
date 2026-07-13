@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.191 (2026-07-13)
+## 📍 État actuel — build 1.9.192 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **286 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→257) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **287 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→258) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 11 rotations complètes ; 12ᵉ rotation en cours (#1, #2) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 11 rotations complètes ; 12ᵉ rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189` publiées.
 
+- ⏱️ **#3 approfondi (12) — minutes de mobilité hebdo** : chip du temps total de mobilité de la semaine dans le bandeau bien-être (`wellnessMinutesInWindow`). ✅ _boucle #258 (build 1.9.192)._
 - 🎯 **#2 approfondi (12) — suggestion d'objectif à l'onboarding** : hint « Suggéré pour toi » selon IMC + poids cible, applicable en 1 clic (`suggestObjective`). ✅ _boucle #257 (build 1.9.191)._
 - ✨ **#1 approfondi (12) — écran « Nouveautés »** : après une mise à jour auto, liste les features ajoutées depuis la dernière version vue (`whatsNewSince`/`CHANGELOG`). ✅ _boucle #256 (build 1.9.190)._
 - 📈 **#4 approfondi (11) — tendance de tonnage hebdo** : sparkline du tonnage muscu sur 8 semaines + tendance de la semaine (`weeklyTonnageTrend`). ✅ _boucle #255 (build 1.9.189) — clôt la 11ᵉ rotation._

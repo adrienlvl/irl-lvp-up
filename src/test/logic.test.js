@@ -2682,6 +2682,32 @@ test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routi
   assert.equal(L.wellnessCountInWindow(streakLog, '2026-07-06', '2026-07-13'), 3);
   assert.equal(L.wellnessCountInWindow([], '2026-07-06', '2026-07-13'), 0);
 });
+test('wellnessMinutesForKey / wellnessMinutesInWindow : minutes de mobilité', () => {
+  // routine simple → minutes de la routine
+  assert.equal(L.wellnessMinutesForKey('hips'), 6);
+  assert.equal(L.wellnessMinutesForKey('warmup'), 5);
+  assert.equal(L.wellnessMinutesForKey('morning'), 4);
+  assert.equal(L.wellnessMinutesForKey('stretch'), 8);
+  // parcours → minutes cumulées du parcours
+  const rev = L.wellnessParcours('reveil');
+  assert.equal(L.wellnessMinutesForKey('parcours-reveil'), rev.minutes);
+  // clé inconnue → 0
+  assert.equal(L.wellnessMinutesForKey('zzz'), 0);
+  assert.equal(L.wellnessMinutesForKey(''), 0);
+  assert.equal(L.wellnessMinutesForKey(), 0);
+  // somme sur fenêtre
+  const log = [
+    { date: '2026-07-13', key: 'hips' },    // 6
+    { date: '2026-07-13', key: 'warmup' },  // 5
+    { date: '2026-07-12', key: 'morning' }, // 4
+    { date: '2026-07-05', key: 'stretch' }, // 8 (hors semaine)
+    { date: '2026-07-13', key: 'zzz' },     // 0 (inconnue)
+  ];
+  assert.equal(L.wellnessMinutesInWindow(log, '2026-07-06', '2026-07-13'), 15); // 6+5+4
+  assert.equal(L.wellnessMinutesInWindow(log, '2026-07-13', '2026-07-13'), 11); // 6+5
+  assert.equal(L.wellnessMinutesInWindow([], '2026-07-06', '2026-07-13'), 0);
+  assert.equal(L.wellnessMinutesInWindow(null, '2026-07-06', '2026-07-13'), 0);
+});
 test('wellnessGoalProgress : objectif hebdo de routines', () => {
   const g = L.wellnessGoalProgress(2, 3);
   assert.equal(g.done, 2); assert.equal(g.target, 3);
@@ -2909,7 +2935,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.191');
+  assert.equal(L.CHANGELOG[0].v, '1.9.192');
 });
 test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
   // séance ouverte + page visible → ré-acquérir
