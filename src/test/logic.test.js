@@ -1679,6 +1679,39 @@ test('weeklyTonnageTrend : tonnage muscu hebdo + tendance', () => {
   // paramètre weeks personnalisé
   assert.equal(L.weeklyTonnageTrend(w, '2026-07-13', 4).weeks.length, 4);
 });
+test('bestSessionTonnage : meilleure séance par tonnage', () => {
+  // aucune séance chiffrée → null
+  assert.equal(L.bestSessionTonnage([]), null);
+  assert.equal(L.bestSessionTonnage([{ date: '2026-07-13', type: 'run', exercises: [] }]), null);
+  const w = [
+    { date: '2026-06-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] }, // 2500
+    { date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, // 4000 (record)
+    { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }, // 3000 (plus récente)
+  ];
+  const b = L.bestSessionTonnage(w);
+  assert.equal(b.tonnage, 4000);
+  assert.equal(b.date, '2026-06-20');
+  assert.equal(b.count, 3);
+  assert.equal(b.isLatest, false); // le record n'est pas la séance la plus récente
+  // si la dernière séance EST le record → isLatest true
+  const w2 = [
+    { date: '2026-06-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] }, // 2500
+    { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 9 }] }, // 4500 (record + plus récente)
+  ];
+  const b2 = L.bestSessionTonnage(w2);
+  assert.equal(b2.tonnage, 4500);
+  assert.equal(b2.isLatest, true);
+  // égalité de tonnage → garde la plus récente
+  const w3 = [
+    { date: '2026-06-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }, // 3000
+    { date: '2026-06-15', exercises: [{ name: 'Développé', load: 60, reps: 10, sets: 5 }] }, // 3000
+  ];
+  assert.equal(L.bestSessionTonnage(w3).date, '2026-06-15');
+  // séries validées (setLogs) prises en compte
+  const w4 = [{ date: '2026-07-01', exercises: [{ name: 'Squat', setLogs: [{ completed: true, load: 100, reps: 5 }, { completed: true, load: 100, reps: 5 }] }] }];
+  assert.equal(L.bestSessionTonnage(w4).tonnage, 1000);
+  assert.equal(L.bestSessionTonnage(null), null);
+});
 test('bestE1rmByExercise / blockExerciseProgress : progression de force par exercice', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -2935,7 +2968,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.192');
+  assert.equal(L.CHANGELOG[0].v, '1.9.193');
 });
 test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
   // séance ouverte + page visible → ré-acquérir
