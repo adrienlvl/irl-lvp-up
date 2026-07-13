@@ -2882,6 +2882,35 @@ test('installNudge : nudge d’installation PWA contextuel', () => {
   assert.equal(L.installNudge({}, { canPrompt: true }).show, false);
   assert.equal(L.installNudge(null, {}).show, false);
 });
+test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour', () => {
+  // compareVersions
+  assert.equal(L.compareVersions('1.9.190', '1.9.189'), 1);
+  assert.equal(L.compareVersions('1.9.9', '1.9.10'), -1);
+  assert.equal(L.compareVersions('1.10.0', '1.9.99'), 1);
+  assert.equal(L.compareVersions('2.0.0', '2.0.0'), 0);
+  assert.equal(L.compareVersions('1.9', '1.9.0'), 0); // longueurs différentes
+  const log = [
+    { v: '1.9.190', emoji: '✨', text: 'C' },
+    { v: '1.9.189', emoji: '📈', text: 'B' },
+    { v: '1.9.188', emoji: '🧘', text: 'A' },
+  ];
+  // 1re utilisation (pas de lastSeen) → rien (on n'ennuie pas un nouveau)
+  assert.deepEqual(L.whatsNewSince('', log), []);
+  assert.deepEqual(L.whatsNewSince(null, log), []);
+  // après update depuis 1.9.188 → les 2 versions plus récentes, plus récente en tête
+  const seen = L.whatsNewSince('1.9.188', log);
+  assert.equal(seen.length, 2);
+  assert.equal(seen[0].v, '1.9.190');
+  assert.equal(seen[1].v, '1.9.189');
+  // déjà à jour → rien
+  assert.deepEqual(L.whatsNewSince('1.9.190', log), []);
+  // plafond respecté
+  assert.equal(L.whatsNewSince('0.0.0', log, 1).length, 1);
+  // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
+  assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
+  for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
+  assert.equal(L.CHANGELOG[0].v, '1.9.190');
+});
 test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
   // séance ouverte + page visible → ré-acquérir
   assert.equal(L.shouldReacquireWakeLock(true, 'visible'), true);
