@@ -2575,6 +2575,16 @@ test('installNudge : nudge d’installation PWA contextuel', () => {
   assert.equal(L.installNudge({}, { canPrompt: true }).show, false);
   assert.equal(L.installNudge(null, {}).show, false);
 });
+test('shouldReacquireWakeLock : ré-acquisition du verrou d’écran', () => {
+  // séance ouverte + page visible → ré-acquérir
+  assert.equal(L.shouldReacquireWakeLock(true, 'visible'), true);
+  // page cachée → non
+  assert.equal(L.shouldReacquireWakeLock(true, 'hidden'), false);
+  // pas de séance ouverte → non
+  assert.equal(L.shouldReacquireWakeLock(false, 'visible'), false);
+  assert.equal(L.shouldReacquireWakeLock(undefined, 'visible'), false);
+  assert.equal(L.shouldReacquireWakeLock(true, undefined), false);
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');
