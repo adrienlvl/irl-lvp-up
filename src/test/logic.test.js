@@ -2721,6 +2721,10 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(L.onboardingSetup({ slot: 'matin' }).profile.trainingSlot, 'matin');
   assert.equal(L.onboardingSetup({ slot: 'nuit' }).profile.trainingSlot, '', 'créneau inconnu → vide');
   assert.equal(s.profile.trainingSlot, '', 'sans créneau → vide');
+  // niveau : validé, défaut débutant
+  assert.equal(L.onboardingSetup({ level: 'avance' }).profile.level, 'avance');
+  assert.equal(L.onboardingSetup({ level: 'pro' }).profile.level, 'debutant', 'niveau inconnu → débutant');
+  assert.equal(s.profile.level, 'debutant', 'défaut débutant');
   // objectif inconnu → athletique ; endurance → activeProgram run + goal trail
   assert.equal(L.onboardingSetup({ objective: 'zzz' }).fitnessObjective, 'athletique');
   const endu = L.onboardingSetup({ objective: 'endurance', sessions: 9 });
@@ -2734,6 +2738,16 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(bad.profile.age, 30);
   assert.equal(bad.profile.sex, 'homme');
   assert.ok(L.onboardingSetup(null).fitnessObjective === 'athletique');
+});
+test('perSessionForLevel : volume par séance selon le niveau', () => {
+  assert.equal(L.perSessionForLevel('debutant'), 4);
+  assert.equal(L.perSessionForLevel('intermediaire'), 5);
+  assert.equal(L.perSessionForLevel('avance'), 6);
+  assert.equal(L.perSessionForLevel('inconnu'), 5, 'défaut 5');
+  assert.equal(L.perSessionForLevel(undefined), 5);
+  // débutant < intermédiaire < avancé
+  assert.ok(L.perSessionForLevel('debutant') < L.perSessionForLevel('intermediaire'));
+  assert.ok(L.perSessionForLevel('intermediaire') < L.perSessionForLevel('avance'));
 });
 test('sessionTimesForSlot : horaires des séances selon le moment préféré', () => {
   assert.deepEqual(L.sessionTimesForSlot('matin'), { muscu: '07:00', course: '07:30' });
