@@ -2409,6 +2409,27 @@ test('objectiveWelcome : message personnalisé par objectif', () => {
   // clé inconnue → message par défaut (athlétique)
   assert.equal(L.objectiveWelcome('zzz'), L.objectiveWelcome('athletique'));
 });
+test('installNudge : nudge d’installation PWA contextuel', () => {
+  const engaged = { workouts: Array.from({ length: 5 }, (_, i) => ({ id: i })) };
+  // installable + engagé + non installé → affiché
+  const r = L.installNudge(engaged, { standalone: false, canPrompt: true, dismissed: false });
+  assert.equal(r.show, true);
+  assert.equal(r.sessions, 5);
+  assert.ok(/écran d.accueil|installe/i.test(r.message));
+  // déjà installé (standalone) → masqué
+  assert.equal(L.installNudge(engaged, { standalone: true, canPrompt: true }).show, false);
+  // refusé → masqué
+  assert.equal(L.installNudge(engaged, { canPrompt: true, dismissed: true }).show, false);
+  // pas de prompt dispo (iOS/pas installable) → masqué (iOS a son bandeau)
+  assert.equal(L.installNudge(engaged, { canPrompt: false }).show, false);
+  // pas assez engagé (< seuil 3) → masqué
+  assert.equal(L.installNudge({ workouts: [{ id: 1 }, { id: 2 }] }, { canPrompt: true }).show, false);
+  // seuil personnalisable
+  assert.equal(L.installNudge({ workouts: [{ id: 1 }] }, { canPrompt: true, threshold: 1 }).show, true);
+  // état vide → masqué, sans planter
+  assert.equal(L.installNudge({}, { canPrompt: true }).show, false);
+  assert.equal(L.installNudge(null, {}).show, false);
+});
 test('onboardingSetup : patch d’état initial validé/borné', () => {
   const s = L.onboardingSetup({ weight: 82.4, height: 178, age: 29, sex: 'homme', objective: 'seche', sessions: 4, equipment: { kettlebell: true, pullup: false } });
   assert.equal(s.fitnessObjective, 'seche');
