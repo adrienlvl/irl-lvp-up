@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.162 (2026-07-13)
+## 📍 État actuel — build 1.9.163 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **260 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→228) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **261 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→229) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 4 rotations complètes ; 5e rotation entamée (#1)**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 4 rotations complètes ; 5e rotation en cours (#1, #2)**.
 
+- 🕑 **#2 approfondi (5) — onboarding « moment préféré »** : créneau matin/midi/soir qui fixe l'heure des séances programmées (aperçu + agenda). ✅ _boucle #229 (build 1.9.163)._
 - 📤 **#1 approfondi (5) — partage natif du programme** : bouton « Partager » (Web Share sur mobile → feuille OS, repli presse-papier ailleurs). ✅ _boucle #228 (build 1.9.162)._
 - 💪 **#4 approfondi (4) — progression de force par exercice** : la comparaison de blocs affiche le 1RM estimé de chaque exercice-clé du 1ᵉʳ au dernier bloc (ex. Squat 70→88 kg +25%). ✅ _boucle #227 (build 1.9.161)._
 - 🧘 **#3 approfondi (4) — suggestion bien-être contextuelle** : la routine du jour cible la récup selon la dernière séance loggée (course→chevilles, jambes→hanches, haut→épaules, gainage→dos). ✅ _boucle #226 (build 1.9.160)._

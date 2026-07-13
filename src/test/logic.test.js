@@ -2535,6 +2535,10 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.deepEqual(L.onboardingSetup({ objective: 'seche', days: [0, 5, 2, 2] }).profile.availableDays, [2, 5, 0]);
   assert.deepEqual(s.profile.availableDays, [1, 3, 5], 'défaut sans jours fournis');
   assert.deepEqual(L.onboardingSetup({ days: [9, -1] }).profile.availableDays, [1, 3, 5], 'jours invalides → défaut');
+  // créneau préféré : validé, sinon ''
+  assert.equal(L.onboardingSetup({ slot: 'matin' }).profile.trainingSlot, 'matin');
+  assert.equal(L.onboardingSetup({ slot: 'nuit' }).profile.trainingSlot, '', 'créneau inconnu → vide');
+  assert.equal(s.profile.trainingSlot, '', 'sans créneau → vide');
   // objectif inconnu → athletique ; endurance → activeProgram run + goal trail
   assert.equal(L.onboardingSetup({ objective: 'zzz' }).fitnessObjective, 'athletique');
   const endu = L.onboardingSetup({ objective: 'endurance', sessions: 9 });
@@ -2548,6 +2552,17 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(bad.profile.age, 30);
   assert.equal(bad.profile.sex, 'homme');
   assert.ok(L.onboardingSetup(null).fitnessObjective === 'athletique');
+});
+test('sessionTimesForSlot : horaires des séances selon le moment préféré', () => {
+  assert.deepEqual(L.sessionTimesForSlot('matin'), { muscu: '07:00', course: '07:30' });
+  assert.deepEqual(L.sessionTimesForSlot('midi'), { muscu: '12:15', course: '12:00' });
+  assert.deepEqual(L.sessionTimesForSlot('soir'), { muscu: '18:00', course: '18:30' });
+  // clé inconnue / vide → comportement historique (muscu soir, course matin)
+  assert.deepEqual(L.sessionTimesForSlot(''), { muscu: '18:00', course: '07:30' });
+  assert.deepEqual(L.sessionTimesForSlot('nuit'), { muscu: '18:00', course: '07:30' });
+  assert.deepEqual(L.sessionTimesForSlot(undefined), { muscu: '18:00', course: '07:30' });
+  // format HH:MM valide
+  Object.keys(L.TRAINING_SLOTS).forEach(k => { const t = L.sessionTimesForSlot(k); assert.ok(/^\d{2}:\d{2}$/.test(t.muscu) && /^\d{2}:\d{2}$/.test(t.course)); });
 });
 test('objectiveProgramText : export texte lisible du programme', () => {
   const ex = [{ name: 'Pompes classiques', kind: 'Poids du corps', sets: 3, reps: 10 }, { name: 'Montées de genoux', kind: 'Poids du corps', sets: 3, reps: 20 }];
