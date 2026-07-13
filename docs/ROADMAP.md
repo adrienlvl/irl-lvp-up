@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.159 (2026-07-13)
+## 📍 État actuel — build 1.9.160 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **257 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→225) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **259 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→226) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 3 rotations complètes ; 4e rotation en cours (#1, #2)**.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 3 rotations complètes ; 4e rotation en cours (#1→#3)**.
 
+- 🧘 **#3 approfondi (4) — suggestion bien-être contextuelle** : la routine du jour cible la récup selon la dernière séance loggée (course→chevilles, jambes→hanches, haut→épaules, gainage→dos). ✅ _boucle #226 (build 1.9.160)._
 - 🗓️ **#2 approfondi (4) — onboarding « mes jours dispo »** : sélecteur de jours d'entraînement qui replace le programme généré sur ces jours (aperçu + agenda), réparti/espacé intelligemment. ✅ _boucle #225 (build 1.9.159)._
 - 📲 **#1 approfondi (4) — nudge d'installation contextuel** : carte tableau de bord proposée seulement après engagement (≥3 séances) si l'app est installable et non installée, avec vrai prompt navigateur ; iOS garde son bandeau. ✅ _boucle #224 (build 1.9.158)._
 - 📊 **#4 approfondi (3) — comparaison de blocs** : carte « Ma progression sur N blocs » (dès 2 blocs terminés) comparant tonnage/sem. et séances/sem. du 1ᵉʳ au dernier bloc, avec tendance 📈/➡️/📉. ✅ _boucle #223 (build 1.9.157)._

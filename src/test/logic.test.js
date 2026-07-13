@@ -2411,6 +2411,38 @@ test('suggestedRoutine : routine selon forme + charge', () => {
   // la clé suggérée correspond toujours à une vraie routine
   assert.ok(L.wellnessRoutine(L.suggestedRoutine('deload', 40).key));
 });
+test('workoutDominantZone : zone la plus travaillée d’une séance', () => {
+  assert.equal(L.workoutDominantZone({ exercises: [{ name: 'Chaise au mur' }, { name: 'Élévations mollets' }, { name: 'Relevés tibiaux au mur' }] }), 'legs');
+  // accepte des noms bruts (chaînes)
+  assert.equal(L.workoutDominantZone({ exercises: ['Pompes classiques', 'Pompes diamants'] }), 'chest');
+  assert.equal(L.workoutDominantZone({ exercises: [{ name: 'Gainage planche' }, { name: 'Hollow hold' }] }), 'abs');
+  assert.equal(L.workoutDominantZone({ exercises: [{ name: 'Inconnu xyz' }] }), null);
+  assert.equal(L.workoutDominantZone({ exercises: [] }), null);
+  assert.equal(L.workoutDominantZone(null), null);
+});
+test('contextualWellnessRoutine : suggestion selon la dernière séance', () => {
+  // course récente → chevilles
+  const run = { workouts: [{ date: '2026-07-13', type: 'run' }] };
+  assert.equal(L.contextualWellnessRoutine(run, '2026-07-13', 'maintain', 60).key, 'ankles');
+  // séance jambes hier → hanches
+  const legs = { workouts: [{ date: '2026-07-12', type: 'strength', exercises: [{ name: 'Split squat bulgare' }, { name: 'Fentes arrière' }] }] };
+  assert.equal(L.contextualWellnessRoutine(legs, '2026-07-13', 'maintain', 60).key, 'hips');
+  // haut du corps → épaules
+  const upper = { workouts: [{ date: '2026-07-13', type: 'strength', exercises: [{ name: 'Pompes classiques' }, { name: 'Pike push-up' }] }] };
+  assert.equal(L.contextualWellnessRoutine(upper, '2026-07-13', 'maintain', 60).key, 'shoulders');
+  // gainage → bas du dos
+  const abs = { workouts: [{ date: '2026-07-13', type: 'strength', exercises: [{ name: 'Gainage planche' }, { name: 'Hollow hold' }] }] };
+  assert.equal(L.contextualWellnessRoutine(abs, '2026-07-13', 'maintain', 60).key, 'backpain');
+  // séance trop ancienne (> 1 j) → retombe sur suggestedRoutine
+  const old = { workouts: [{ date: '2026-07-01', type: 'run' }] };
+  assert.equal(L.contextualWellnessRoutine(old, '2026-07-13', 'maintain', 60).key, 'hips');
+  // aucune séance → suggestedRoutine (forme basse → cooldown)
+  assert.equal(L.contextualWellnessRoutine({ workouts: [] }, '2026-07-13', 'maintain', 40).key, 'cooldown');
+  // état invalide → ne plante pas, retombe sur suggestedRoutine
+  assert.ok(L.wellnessRoutine(L.contextualWellnessRoutine(null, '2026-07-13', 'push', 85).key));
+  // la clé pointe toujours vers une vraie routine
+  assert.ok(L.wellnessRoutine(L.contextualWellnessRoutine(legs, '2026-07-13', 'maintain', 60).key).exercises.length);
+});
 test('starterChecklist : premiers pas cochés selon l’état réel', () => {
   const empty = L.starterChecklist({}, '2026-07-13');
   assert.equal(empty.total, 6);

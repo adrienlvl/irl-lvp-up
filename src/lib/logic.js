@@ -1906,6 +1906,42 @@ function suggestedRoutine(loadStatus, readinessScore) {
   if (rs != null && rs >= 75) return { key: 'warmup', tone: 'ready', reason: 'Bonne forme : un échauffement dynamique et tu es prêt à pousser.' };
   return { key: 'hips', tone: 'mobility', reason: 'Un peu de mobilité entretient tes articulations entre les séances.' };
 }
+// Zone dominante d'une séance de muscu à partir des zones de ses exercices (noms ou objets {name}).
+// Renvoie la zone la plus fréquente, ou null si aucune zone connue. Pur + testé.
+function workoutDominantZone(workout) {
+  const list = workout && Array.isArray(workout.exercises) ? workout.exercises : [];
+  const tally = {};
+  list.forEach(ex => {
+    const name = typeof ex === 'string' ? ex : (ex && ex.name);
+    (exerciseZones(name) || []).forEach(z => { tally[z] = (tally[z] || 0) + 1; });
+  });
+  const entries = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+  return entries.length ? entries[0][0] : null;
+}
+// Suggestion de routine bien-être CONTEXTUELLE : si une séance a été loggée aujourd'hui ou hier,
+// cible la récup selon ce qui a été travaillé (course → chevilles, jambes → hanches, haut du corps
+// → épaules, gainage → bas du dos). Sinon retombe sur suggestedRoutine(charge, forme). Renvoie
+// { key, tone, reason }. Pur + testé.
+function contextualWellnessRoutine(state, todayKey, loadStatus, readinessScore) {
+  const s = state || {};
+  const workouts = Array.isArray(s.workouts) ? s.workouts : [];
+  const last = workouts[workouts.length - 1];
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
+  const l = last && /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(last.date || ''));
+  if (last && t && l) {
+    const today = new Date(+t[1], +t[2] - 1, +t[3]);
+    const done = new Date(+l[1], +l[2] - 1, +l[3]);
+    const days = Math.round((today - done) / 86400000);
+    if (days >= 0 && days <= 1) {
+      if (last.type === 'run') return { key: 'ankles', tone: 'recover', reason: 'Après ta course : mobilise chevilles et mollets pour bien récupérer.' };
+      const zone = workoutDominantZone(last);
+      if (zone === 'legs' || zone === 'glutes') return { key: 'hips', tone: 'recover', reason: 'Grosse séance jambes : un peu de mobilité hanches pour récupérer.' };
+      if (zone === 'back' || zone === 'chest' || zone === 'shoulders' || zone === 'arms') return { key: 'shoulders', tone: 'recover', reason: 'Après le haut du corps : ouvre les épaules pour récupérer.' };
+      if (zone === 'abs' || zone === 'core') return { key: 'backpain', tone: 'recover', reason: 'Après le gainage : détends le bas du dos.' };
+    }
+  }
+  return suggestedRoutine(loadStatus, readinessScore);
+}
 // Routine « surprends-moi » : pioche une clé de routine bien-être (seed déterministe si fourni,
 // sinon aléatoire), en excluant éventuellement une clé pour varier de la suggestion du jour.
 // Renvoie une clé de WELLNESS_ROUTINES. Pur + testé.
@@ -3143,5 +3179,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, missedSessions, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, programWeekSummary, objectiveProgramText, onboardingSetup, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockWindowStats, blockComparison, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, habitStreak, habitBestStreak, habitWeekMap, habitsForDay, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyStats, keyDateMarkers, upcomingKeyDates, nextTrainingSession, missedSessions, RACE_LADDER, intermediateGoals, proteinTarget, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, zoneFreshness, suggestTrainingFocus, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, programWeekSummary, objectiveProgramText, onboardingSetup, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, workoutDominantZone, contextualWellnessRoutine, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockWindowStats, blockComparison, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, sleepDebtHours, personalRecords, newRecords, weightTrend, measurementDelta, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, trailReadiness, agendaMatch };
 }
