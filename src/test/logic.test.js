@@ -3131,7 +3131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.206');
+  assert.equal(L.CHANGELOG[0].v, '1.9.207');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3260,6 +3260,11 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal('distance' in L.onboardingSetup({ distance: 0 }).goals, false, '0 → absent');
   assert.equal('distance' in L.onboardingSetup({ distance: 999 }).goals, false, 'hors bornes → absent');
   assert.equal('distance' in s.goals, false, 'non fourni → absent');
+  // pseudo du joueur : trimé, plafonné à 24 caractères, '' si absent/non-string
+  assert.equal(L.onboardingSetup({ name: '  Adrien  ' }).profile.name, 'Adrien');
+  assert.equal(L.onboardingSetup({ name: 'x'.repeat(40) }).profile.name.length, 24);
+  assert.equal(L.onboardingSetup({ name: 42 }).profile.name, '');
+  assert.equal(s.profile.name, '', 'non fourni → vide');
   // niveau d'activité : validé (5 clés), sinon '' (repli auto selon séances)
   assert.equal(L.onboardingSetup({ activity: 'actif' }).profile.activityLevel, 'actif');
   assert.equal(L.onboardingSetup({ activity: 'pro' }).profile.activityLevel, '', 'clé inconnue → vide');

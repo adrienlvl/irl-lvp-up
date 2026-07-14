@@ -1746,6 +1746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.207', emoji: '🙂', text: 'Onboarding : ton prénom/pseudo affiché sur ta carte joueur.' },
   { v: '1.9.206', emoji: '📤', text: 'Bouton « Partager l\'app » pour inviter un ami.' },
   { v: '1.9.205', emoji: '📅', text: 'Coaching : mes jours d\'entraînement + jour fort de la semaine.' },
   { v: '1.9.204', emoji: '⚡', text: 'Bien-être : routine express au hasard selon le temps dispo.' },
@@ -1910,6 +1911,7 @@ function onboardingSetup(inputs) {
     trainingSlot: TRAINING_SLOTS[i.slot] ? i.slot : '',
     level: (i.level === 'debutant' || i.level === 'intermediaire' || i.level === 'avance') ? i.level : 'debutant',
     activityLevel: (['sedentaire', 'leger', 'modere', 'actif', 'tres'].indexOf(i.activity) !== -1) ? i.activity : '',
+    name: (typeof i.name === 'string' ? i.name.trim().slice(0, 24) : ''),
     equipment: { handles: !!eq.handles, vest: !!eq.vest, kettlebell: !!eq.kettlebell, pullup: !!eq.pullup },
   };
   const w = Number(i.weight); if (w >= 30 && w <= 300) profile.weight = Math.round(w * 10) / 10;
