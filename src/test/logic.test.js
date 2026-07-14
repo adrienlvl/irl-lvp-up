@@ -1167,6 +1167,32 @@ test('missedSessions : séances sport prévues récentes non faites', () => {
   assert.deepEqual(L.missedSessions(agenda, workouts, 'pas-une-date'), []);
 });
 
+test('overdueStudy : révisions passées jamais validées (rattrapage)', () => {
+  const today = '2026-07-15';
+  const agenda = [
+    { kind: 'study', date: '2026-07-13', title: 'Compta chap. 3', completed: false }, // en retard (2 j)
+    { kind: 'study', date: '2026-07-10', title: 'Droit fiscal', completed: false },   // en retard (5 j)
+    { kind: 'study', date: '2026-07-12', title: 'Éco', completed: true },              // faite → ignorée
+    { kind: 'study', date: '2026-07-20', title: 'À venir', completed: false },         // future → ignorée
+    { kind: 'sport', date: '2026-07-11', title: 'Muscu', completed: false },           // pas study → ignorée
+    { kind: 'study', date: '2026-05-01', title: 'Trop vieille', completed: false },    // hors fenêtre 21 j
+  ];
+  const r = L.overdueStudy(agenda, today);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].title, 'Compta chap. 3'); // plus récente en tête
+  assert.equal(r[0].daysLate, 2);
+  assert.equal(r[1].title, 'Droit fiscal');
+  assert.equal(r[1].daysLate, 5);
+  // cap respecté
+  assert.equal(L.overdueStudy(agenda, today, { cap: 1 }).length, 1);
+  // fenêtre élargie → la vieille révision remonte
+  assert.equal(L.overdueStudy(agenda, today, { days: 120 }).length, 3);
+  // entrées invalides
+  assert.deepEqual(L.overdueStudy([], today), []);
+  assert.deepEqual(L.overdueStudy(agenda, 'pas-une-date'), []);
+  assert.deepEqual(L.overdueStudy(null, today), []);
+});
+
 test('intermediateGoals : ultra 170km/2ans → paliers croissants échelonnés', () => {
   const now = new Date('2026-07-06T12:00:00');
   const ms = L.intermediateGoals({ type: 'ultra160', distanceKm: 170, date: '2028-07-01' }, now);
@@ -3484,7 +3510,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.228');
+  assert.equal(L.CHANGELOG[0].v, '1.9.229');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
