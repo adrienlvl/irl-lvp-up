@@ -16,6 +16,7 @@
     { "src": "assets/irl-lvp-up-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ],
   "shortcuts": [
+    { "name": "Ma journée", "short_name": "Aujourd'hui", "url": "./index.html?go=today" },
     { "name": "Mon entraînement", "short_name": "Séance", "url": "./index.html?go=athlete" },
     { "name": "Coach Poids", "short_name": "Coach", "url": "./index.html?go=coach" },
     { "name": "Mon agenda", "short_name": "Agenda", "url": "./index.html?go=agenda" },

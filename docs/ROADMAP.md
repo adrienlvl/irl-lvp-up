@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.209 (2026-07-13)
+## 📍 État actuel — build 1.9.210 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **299 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→275) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **299 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→276) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 16 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.209` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 16 rotations complètes ; 17ᵉ rotation en cours (#1) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.209` publiées.
 
+- 📋 **#1 approfondi (17) — raccourci « Ma journée »** : 6ᵉ shortcut manifest (`?go=today`) vers le plan du jour (`LAUNCH_TARGETS`). ✅ _boucle #276 (build 1.9.210)._
 - ⚖️ **#4 approfondi (16) — équilibre course/muscu** : barre course vs muscu de la semaine + label (bon équilibre / plutôt course / plutôt muscu) (`weekTrainingBalance`). ✅ _boucle #275 (build 1.9.209) — clôt la 16ᵉ rotation._
 - 🗓️ **#3 approfondi (16) — record de routines par semaine** : chip « record sem. N » (meilleure semaine bien-être all-time) + célébration si battu cette semaine (`bestWellnessWeek`). ✅ _boucle #274 (build 1.9.208)._
 - 🙂 **#2 approfondi (16) — prénom/pseudo du joueur** : champ à l'onboarding affiché « 👋 {pseudo} » sur la carte joueur (`profile.name`). ✅ _boucle #273 (build 1.9.207)._

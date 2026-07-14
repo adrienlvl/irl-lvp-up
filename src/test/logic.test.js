@@ -3188,7 +3188,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.209');
+  assert.equal(L.CHANGELOG[0].v, '1.9.210');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3231,6 +3231,7 @@ test('shareAppPayload : message d’invitation à partager', () => {
 });
 test('launchTarget : cible de lancement PWA depuis ?go=', () => {
   assert.equal(L.launchTarget('?go=wellness'), 'wellness');
+  assert.equal(L.launchTarget('?go=today'), 'today');
   assert.equal(L.launchTarget('?go=athlete'), 'athlete');
   assert.equal(L.launchTarget('go=coach'), 'coach'); // sans le ?
   assert.equal(L.launchTarget('?foo=1&go=nutrition'), 'nutrition');

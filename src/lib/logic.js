@@ -1746,6 +1746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.210', emoji: '📋', text: 'Raccourci « Ma journée » sur l\'icône installée.' },
   { v: '1.9.209', emoji: '⚖️', text: 'Coaching : équilibre course/muscu de la semaine.' },
   { v: '1.9.208', emoji: '🗓️', text: 'Bien-être : record de routines sur une semaine.' },
   { v: '1.9.207', emoji: '🙂', text: 'Onboarding : ton prénom/pseudo affiché sur ta carte joueur.' },
@@ -1825,7 +1826,7 @@ function shareAppPayload(url) {
   return payload;
 }
 // Cibles de lancement PWA autorisées (raccourcis manifest « ?go=... » — appui long sur l'icône).
-const LAUNCH_TARGETS = ['athlete', 'coach', 'nutrition', 'agenda', 'wellness'];
+const LAUNCH_TARGETS = ['today', 'athlete', 'coach', 'nutrition', 'agenda', 'wellness'];
 // Cible de lancement depuis la query string : renvoie une clé parmi LAUNCH_TARGETS, ou null si absente
 // ou inconnue. Robuste aux entrées malformées. Pur + testé.
 function launchTarget(search) {
