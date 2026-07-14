@@ -3461,7 +3461,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.226');
+  assert.equal(L.CHANGELOG[0].v, '1.9.227');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3982,6 +3982,24 @@ test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => 
   assert.equal(L.measurementDelta([{ date: '2026-06-01', waist: 0 }], 'waist'), null);
   assert.equal(L.measurementDelta('nope', 'waist'), null);
 });
+
+test('measurementRecentDelta : évolution sur la fenêtre glissante', () => {
+  const m = [
+    { date: '2026-04-01', waist: 90 },
+    { date: '2026-06-01', waist: 88 },  // ~30 j avant le dernier (2026-07-01)
+    { date: '2026-07-01', waist: 85 },
+  ];
+  const r = L.measurementRecentDelta(m, 'waist', 30);
+  // point le plus proche de 30 j avant 2026-07-01 = 2026-06-01 (30 j) plutôt que 2026-04-01 (91 j)
+  assert.equal(r.latest, 85); assert.equal(r.past, 88); assert.equal(r.delta, -3); assert.equal(r.spanDays, 30);
+  // fenêtre plus large → prend le point le plus proche de 90 j = 2026-04-01
+  const wide = L.measurementRecentDelta(m, 'waist', 90);
+  assert.equal(wide.past, 90); assert.equal(wide.delta, -5); assert.equal(wide.spanDays, 91);
+  // < 2 points → null
+  assert.equal(L.measurementRecentDelta([{ date: '2026-07-01', waist: 85 }], 'waist', 30), null);
+  assert.equal(L.measurementRecentDelta([], 'waist', 30), null);
+});
+
 test('photoComparePair : avant/après + poids proche', () => {
   const photos = [
     { id: 2, date: '2026-06-15', file: 'b.jpg' },
