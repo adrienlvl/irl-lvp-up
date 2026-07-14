@@ -1003,6 +1003,42 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('exerciseAlternatives : équivalents même zone, matériel dispo, sans doublon', () => {
+  // On s'appuie sur la VRAIE table EXERCISE_ZONES plutôt que d'inventer une table parallèle
+  // qui divergerait de la réalité : on vérifie des invariants.
+  const noms = Object.keys(L.EXERCISE_ZONES);
+  const cible = noms.find(n => L.exerciseZones(n).includes('back')) || noms[0];
+  const zonesCible = L.exerciseZones(cible);
+  const lib = noms.map(n => ({ name: n }));   // pas de `kind` → aucun matériel requis
+  const alts = L.exerciseAlternatives(cible, lib, {}, [], 4);
+
+  assert.ok(alts.length > 0, 'au moins un équivalent');
+  assert.ok(alts.length <= 4, 'cap respecté');
+  assert.ok(!alts.some(a => a.name === cible), 'jamais l’exercice lui-même');
+  alts.forEach(a => {
+    assert.ok(a.overlap > 0);
+    assert.ok(a.zones.some(z => zonesCible.includes(z)), `${a.name} partage une zone avec ${cible}`);
+  });
+  // tri par recouvrement décroissant (le plus proche d'abord)
+  for (let i = 1; i < alts.length; i++) assert.ok(alts[i - 1].overlap >= alts[i].overlap);
+
+  // exclusion : un exercice déjà dans la séance n'est pas reproposé
+  const dejaLa = alts[0].name;
+  assert.ok(!L.exerciseAlternatives(cible, lib, {}, [dejaLa], 4).some(a => a.name === dejaLa));
+
+  // matériel : `kind` doit être la clé EXACTE de EQUIP_KIND_REQ (libellé FR capitalisé),
+  // sinon exerciseAvailable considère qu'aucun matériel n'est requis.
+  const voisin = alts[0].name;   // partage déjà une zone avec la cible
+  const libKb = [{ name: voisin, kind: 'Kettlebell' }];
+  assert.equal(L.exerciseAlternatives(cible, libKb, { kettlebell: false }, [], 4).length, 0, 'sans kettlebell → écarté');
+  assert.equal(L.exerciseAlternatives(cible, libKb, { kettlebell: true }, [], 4).length, 1, 'avec kettlebell → proposé');
+
+  // exercice inconnu / bibliothèque vide → []
+  assert.deepEqual(L.exerciseAlternatives('Exercice inexistant', lib, {}, [], 4), []);
+  assert.deepEqual(L.exerciseAlternatives(cible, [], {}, [], 4), []);
+  assert.deepEqual(L.exerciseAlternatives(cible, null, {}, [], 4), []);
+});
+
 test('liveSetRecord : record détecté dès la validation de la série', () => {
   const prior = { 'Développé couché': { load: 40, reps: 10 }, 'Tractions': { load: 0, reps: 8 } };
   // record de CHARGE
@@ -3852,7 +3888,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.239');
+  assert.equal(L.CHANGELOG[0].v, '1.9.240');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
