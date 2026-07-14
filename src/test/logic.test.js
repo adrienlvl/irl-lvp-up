@@ -1003,6 +1003,33 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('recentFocusOutcomes : « ce qui a avancé » des blocs de focus', () => {
+  const today = '2026-07-10';
+  const reviews = [
+    { id: 1, date: '2026-07-08', outcome: 'Plan de la présentation prêt', next: 'x' },
+    { id: 2, date: '2026-07-10', outcome: '  Chapitre 2 relu  ', next: '' },   // AUJOURD'HUI → inclus (trim)
+    { id: 3, date: '2026-07-10', outcome: 'Exercices corrigés', next: '' },     // 2e bloc le MÊME jour → inclus
+    { id: 4, date: '2026-07-09', outcome: '   ', next: 'juste une action' },    // outcome vide → exclu
+    { id: 5, date: '2026-07-09', next: 'sans outcome' },                        // pas d'outcome → exclu
+    { id: 6, date: '2026-01-01', outcome: 'Trop ancien' },                      // hors fenêtre 30 j
+    { id: 7, date: 'bad', outcome: 'Date invalide' },
+  ];
+  const r = L.recentFocusOutcomes(reviews, today);
+  assert.equal(r.length, 3, 'les deux blocs du jour + celui du 08');
+  // à date égale, l'id le plus grand d'abord (bloc le plus récent)
+  assert.equal(r[0].outcome, 'Exercices corrigés'); assert.equal(r[0].daysAgo, 0);
+  assert.equal(r[1].outcome, 'Chapitre 2 relu');    assert.equal(r[1].daysAgo, 0);
+  assert.equal(r[2].outcome, 'Plan de la présentation prêt'); assert.equal(r[2].daysAgo, 2);
+  // cap
+  assert.equal(L.recentFocusOutcomes(reviews, today, { cap: 2 }).length, 2);
+  // fenêtre élargie → le vieux remonte
+  assert.equal(L.recentFocusOutcomes(reviews, today, { days: 365 }).length, 4);
+  // entrées invalides
+  assert.deepEqual(L.recentFocusOutcomes([], today), []);
+  assert.deepEqual(L.recentFocusOutcomes(reviews, 'pas-une-date'), []);
+  assert.deepEqual(L.recentFocusOutcomes(null, today), []);
+});
+
 test('recentLessons : leçons passées du rituel du soir', () => {
   const today = '2026-07-10';
   const refl = [
@@ -3571,7 +3598,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.232');
+  assert.equal(L.CHANGELOG[0].v, '1.9.233');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

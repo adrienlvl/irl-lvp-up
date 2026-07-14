@@ -6,9 +6,9 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.232 (2026-07-14)
+## 📍 État actuel — build 1.9.233 (2026-07-14)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **322 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→298) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **323 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→299) :
 
 > ✅ **Les 4 caps d'Adrien (#1→#4) traités + 18 rotations complètes ; désormais amélioration continue « liberté totale » sur tous domaines — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.217` publiées.
 
