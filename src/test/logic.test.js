@@ -825,6 +825,14 @@ test('monthlyRecapText : texte partageable', () => {
   assert.match(txt, /20 jours actifs/);
   assert.equal(L.monthlyRecapText(null), '');
 });
+
+test('shareableMonth : objet Web Share du bilan mensuel', () => {
+  const recap = { monthKey: '2026-07', sessions: 12, minutes: 600, km: 45, wellness: 8, focusMin: 200, studyDone: 6, studyPlanned: 8, activeDays: 20, sleepAvg: 7.4 };
+  const s = L.shareableMonth(recap);
+  assert.match(s.title, /Mon bilan de juillet 2026/);
+  assert.equal(s.text, L.monthlyRecapText(recap));
+  assert.equal(L.shareableMonth(null), null);
+});
 test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   const state = {
     workouts: [
@@ -3409,7 +3417,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.223');
+  assert.equal(L.CHANGELOG[0].v, '1.9.224');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

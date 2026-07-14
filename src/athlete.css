@@ -16,7 +16,7 @@
 .monthly-recap .mr-cell{display:flex;align-items:center;gap:6px;font-size:.8rem;background:var(--input-bg);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
 .monthly-recap .mr-cell b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 .monthly-recap .mr-emoji{font-size:.95rem;line-height:1}
-#copyMonthlyRecap[hidden]{display:none}
+#copyMonthlyRecap[hidden],#shareMonthlyRecap[hidden]{display:none}
 .wi-item{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);border-left:3px solid var(--muted);background:var(--surface-2)}
 .wi-item span{font-size:1rem;line-height:1.2}
 .wi-item b{font-weight:600;font-size:.85rem;line-height:1.35}
