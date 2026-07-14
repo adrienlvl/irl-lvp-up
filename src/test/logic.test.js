@@ -1190,6 +1190,23 @@ test('proteinTarget : g/kg selon objectif', () => {
   assert.ok(L.proteinTarget(undefined, 'force').gramsPerDay > 0); // défaut poids
 });
 
+test('proteinSnackSuggestion : collation pour combler le restant', () => {
+  // écart 30 g → plus petite collation qui couvre : blanc de poulet (120 g), 30 g
+  const r = L.proteinSnackSuggestion(120, 150);
+  assert.equal(r.gap, 30);
+  assert.equal(r.snackProtein, 30);
+  assert.match(r.snack, /poulet/i);
+  // écart 10 g → fromage blanc (12 g)
+  assert.equal(L.proteinSnackSuggestion(140, 150).snackProtein, 12);
+  // écart énorme → la plus grosse collation dispo (45 g)
+  assert.equal(L.proteinSnackSuggestion(0, 200).snackProtein, 45);
+  // objectif atteint (écart ≤ 5 g) → null
+  assert.equal(L.proteinSnackSuggestion(148, 150), null);
+  assert.equal(L.proteinSnackSuggestion(160, 150), null);
+  // cible inconnue → null
+  assert.equal(L.proteinSnackSuggestion(50, 0), null);
+});
+
 test('generateMeals : compose depuis le frigo, totaux cohérents, signale les manques', () => {
   const pantry = [
     { n: 'Poulet, blanc, cuit', cat: 'P', kcal: 148, p: 30, c: 0, f: 3 },
@@ -3323,7 +3340,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.220');
+  assert.equal(L.CHANGELOG[0].v, '1.9.221');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
