@@ -1746,6 +1746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.214', emoji: '📳', text: 'Vibrations sur les paliers bien-être et quêtes bouclées.' },
   { v: '1.9.213', emoji: '🏃', text: 'Coaching : course de la semaine vs objectif + progression.' },
   { v: '1.9.212', emoji: '📤', text: 'Bien-être : partage de ton bilan (série, minutes, paliers).' },
   { v: '1.9.211', emoji: '✅', text: 'Onboarding : une habitude de départ selon ton objectif.' },
@@ -1860,6 +1861,8 @@ const VIBRATION_PATTERNS = {
   setDone: [40],
   record: [60, 40, 60, 40, 140],
   levelUp: [80, 50, 80, 50, 220],
+  badge: [50, 40, 90, 40, 160],
+  questDone: [30, 30, 60],
 };
 function vibrationPattern(event) {
   const p = VIBRATION_PATTERNS[event];

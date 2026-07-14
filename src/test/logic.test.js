@@ -3224,7 +3224,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.213');
+  assert.equal(L.CHANGELOG[0].v, '1.9.214');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3317,6 +3317,9 @@ test('vibrationPattern : motifs haptiques par événement', () => {
   assert.deepEqual(L.vibrationPattern('setDone'), [40]);
   assert.ok(Array.isArray(L.vibrationPattern('record')) && L.vibrationPattern('record').length >= 3);
   assert.ok(Array.isArray(L.vibrationPattern('levelUp')) && L.vibrationPattern('levelUp').length >= 3);
+  // motifs enrichis : palier bien-être + quête bouclée
+  assert.ok(Array.isArray(L.vibrationPattern('badge')) && L.vibrationPattern('badge').length >= 3);
+  assert.ok(Array.isArray(L.vibrationPattern('questDone')) && L.vibrationPattern('questDone').length >= 1);
   // événement inconnu → null
   assert.equal(L.vibrationPattern('zzz'), null);
   assert.equal(L.vibrationPattern(), null);
