@@ -2969,6 +2969,30 @@ test('shareableWellness : partage du bilan bien-être', () => {
   assert.ok(s2 && /au total/.test(s2.text));
   assert.equal(L.shareableWellness(null, '2026-07-13'), null);
 });
+test('wellnessFamilyBreakdown : répartition des routines par famille', () => {
+  assert.deepEqual(L.wellnessFamilyBreakdown([], '2026-07-06', '2026-07-13'), []);
+  const log = [
+    { date: '2026-07-13', key: 'hips' },    // Mobilité
+    { date: '2026-07-12', key: 'neck' },    // Mobilité
+    { date: '2026-07-11', key: 'stretch' }, // Étirement
+    { date: '2026-07-10', key: 'warmup' },  // Échauffement
+    { date: '2026-07-13', key: 'parcours-reveil' }, // ignoré (parcours)
+    { date: '2026-06-01', key: 'hips' },    // hors fenêtre
+  ];
+  const b = L.wellnessFamilyBreakdown(log, '2026-07-06', '2026-07-13');
+  // Mobilité 2 en tête, puis Échauffement/Étirement à 1 (ordre alpha)
+  assert.equal(b[0].family, 'Mobilité');
+  assert.equal(b[0].count, 2);
+  assert.ok(b[0].emoji);
+  const mob = b.find(x => x.family === 'Mobilité'), etir = b.find(x => x.family === 'Étirement'), ech = b.find(x => x.family === 'Échauffement');
+  assert.ok(mob && etir && ech);
+  assert.equal(etir.count, 1); assert.equal(ech.count, 1);
+  // total des comptes = routines connues dans la fenêtre (4)
+  assert.equal(b.reduce((s, x) => s + x.count, 0), 4);
+  // clés inconnues ignorées
+  assert.deepEqual(L.wellnessFamilyBreakdown([{ date: '2026-07-13', key: 'zzz' }], '2026-07-06', '2026-07-13'), []);
+  assert.deepEqual(L.wellnessFamilyBreakdown(null, '2026-07-06', '2026-07-13'), []);
+});
 test('wellnessGoalProgress : objectif hebdo de routines', () => {
   const g = L.wellnessGoalProgress(2, 3);
   assert.equal(g.done, 2); assert.equal(g.target, 3);
@@ -3224,7 +3248,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.215');
+  assert.equal(L.CHANGELOG[0].v, '1.9.216');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

@@ -177,6 +177,10 @@
 .wtf-chip{background:var(--surface-2,#111728);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
 .wtf-chip:hover{border-color:var(--accent)}
 .wtf-chip.wtf-on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:800}
+.wellness-families{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0 2px}
+.wellness-families .wf-label{font-size:.74rem;color:var(--muted);font-weight:700}
+.wf-chip{font-size:.78rem;color:var(--text);padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2,#111728)}
+.wf-chip b{color:var(--accent)}
 .wellness-express{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px}
 .wellness-express .wx-label{font-size:.74rem;color:var(--muted);font-weight:700}
 .wx-chip{background:var(--surface-2,#111728);border:1px solid var(--line);border-left:3px solid var(--purple,#a78bfa);color:var(--text);border-radius:999px;padding:5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;transition:border-color .15s,transform .15s}
