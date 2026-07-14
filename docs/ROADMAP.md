@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.216 (2026-07-13)
+## 📍 État actuel — build 1.9.217 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **303 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→282) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **304 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→283) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 17 rotations complètes ; 18ᵉ rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.213` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 18 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.217` publiées.
 
+- 📚 **#4 approfondi (18) — blocs par objectif** : historique des blocs terminés regroupés par objectif (blocs/séances/tonnage) (`blocksByObjective`). ✅ _boucle #283 (build 1.9.217) — clôt la 18ᵉ rotation._
 - 🤸 **#3 approfondi (18) — répartition des routines par famille** : ventilation hebdo échauffement/mobilité/étirement/détente (`wellnessFamilyBreakdown`). ✅ _boucle #282 (build 1.9.216)._
 - 🩹 **#2 approfondi (18) — note blessures/limitations** : champ à l'onboarding rappelé en bannière avant l'entraînement (`profile.limitations`). ✅ _boucle #281 (build 1.9.215)._
 - 📳 **#1 approfondi (18) — retour haptique enrichi** : vibrations sur paliers bien-être + quêtes bouclées (`VIBRATION_PATTERNS`). ✅ _boucle #280 (build 1.9.214)._

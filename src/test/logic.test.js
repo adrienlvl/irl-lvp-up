@@ -1681,6 +1681,33 @@ test('blockWindowStats / blockComparison : progression 1er → dernier bloc', ()
   ], workouts);
   assert.equal(down.trend, 'down');
 });
+test('blocksByObjective : répartition des blocs terminés par objectif', () => {
+  const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] });
+  const workouts = [
+    wo('2026-05-06', 20, 10), wo('2026-05-20', 20, 10),            // bloc seche : 2 séances, 400 kg
+    wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10), wo('2026-06-20', 30, 10), // bloc muscle 1 : 3 séances, 900 kg
+    wo('2026-07-06', 40, 10), wo('2026-07-13', 40, 10),            // bloc muscle 2 : 2 séances, 800 kg
+  ];
+  const history = [
+    { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+    { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
+    { objective: 'muscle', start: '2026-07-06', end: '2026-08-02', weeks: 4 },
+  ];
+  const r = L.blocksByObjective(history, workouts);
+  assert.equal(r.length, 2);
+  // muscle en tête (2 blocs) devant seche (1)
+  assert.equal(r[0].objective, 'muscle');
+  assert.equal(r[0].blocks, 2);
+  assert.equal(r[0].tonnage, 1700); // 900 + 800
+  assert.equal(r[0].sessions, 5);
+  assert.equal(r[1].objective, 'seche');
+  assert.equal(r[1].blocks, 1);
+  assert.equal(r[1].tonnage, 400);
+  // historique vide / invalide → []
+  assert.deepEqual(L.blocksByObjective([], workouts), []);
+  assert.deepEqual(L.blocksByObjective([{ objective: 'muscle', start: 'x', end: 'y' }], workouts), []);
+  assert.deepEqual(L.blocksByObjective(null, workouts), []);
+});
 test('weeklyTonnageTrend : tonnage muscu hebdo + tendance', () => {
   // aucune séance chiffrée → null
   assert.equal(L.weeklyTonnageTrend([], '2026-07-13', 8), null);
@@ -3248,7 +3275,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.216');
+  assert.equal(L.CHANGELOG[0].v, '1.9.217');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
