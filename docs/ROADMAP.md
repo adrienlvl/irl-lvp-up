@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.212 (2026-07-13)
+## 📍 État actuel — build 1.9.213 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **301 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→278) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **302 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→279) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 16 rotations complètes ; 17ᵉ rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.209` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 17 rotations complètes — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.213` publiées.
 
+- 🏃 **#4 approfondi (17) — course hebdo vs objectif** : carte de progression course de la semaine + tendance (ramp) (`runWeekGoal`). ✅ _boucle #279 (build 1.9.213) — clôt la 17ᵉ rotation._
 - 📤 **#3 approfondi (17) — partage du bilan bien-être** : Web Share du récap (série, routines/minutes de la semaine, total, paliers) (`shareableWellness`). ✅ _boucle #278 (build 1.9.212)._
 - ✅ **#2 approfondi (17) — habitude de départ à l'onboarding** : case (adaptée à l'objectif) qui crée une habitude quotidienne au démarrage (`starterHabitFor`). ✅ _boucle #277 (build 1.9.211)._
 - 📋 **#1 approfondi (17) — raccourci « Ma journée »** : 6ᵉ shortcut manifest (`?go=today`) vers le plan du jour (`LAUNCH_TARGETS`). ✅ _boucle #276 (build 1.9.210)._

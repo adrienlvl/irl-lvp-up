@@ -2429,6 +2429,26 @@ test('weeklyKmRamp : progression du kilométrage semaine sur semaine', () => {
   assert.equal(L.weeklyKmRamp([], '2026-07-10'), null);
   assert.equal(L.weeklyKmRamp(w, 'x'), null);
 });
+test('runWeekGoal : progression course hebdo vs objectif', () => {
+  // pas d'objectif → null
+  assert.equal(L.runWeekGoal([{ type: 'run', date: '2026-07-13', distance: 8 }], '2026-07-13', 0), null);
+  assert.equal(L.runWeekGoal([], '2026-07-13'), null);
+  // 2026-07-13 = lundi ; sortie de 8 km ce jour, objectif 20 km
+  const w = [{ type: 'run', date: '2026-07-13', distance: 8 }, { type: 'run', date: '2026-07-06', distance: 15 }];
+  const g = L.runWeekGoal(w, '2026-07-13', 20);
+  assert.equal(g.km, 8, 'la sortie de la semaine précédente est exclue');
+  assert.equal(g.goalKm, 20);
+  assert.equal(g.pct, 40);
+  assert.equal(g.remaining, 12);
+  assert.equal(g.reached, false);
+  // objectif atteint / dépassé → pct plafonné 100, remaining 0
+  const done = L.runWeekGoal([{ type: 'run', date: '2026-07-13', distance: 25 }], '2026-07-13', 20);
+  assert.equal(done.reached, true);
+  assert.equal(done.pct, 100);
+  assert.equal(done.remaining, 0);
+  // todayKey invalide → null
+  assert.equal(L.runWeekGoal(w, 'x', 20), null);
+});
 
 test('runPace : allure min:sec par km', () => {
   assert.equal(L.runPace(10, 50).label, '5:00', '10 km en 50 min → 5:00/km');
@@ -3204,7 +3224,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.212');
+  assert.equal(L.CHANGELOG[0].v, '1.9.213');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

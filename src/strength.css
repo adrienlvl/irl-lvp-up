@@ -67,6 +67,16 @@
 .wb-run{background:var(--blue,#60a5fa)}
 .wb-str{background:var(--accent)}
 .week-balance small{color:var(--muted);font-size:.76rem}
+.run-week-goal{margin:0 0 12px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--blue,#60a5fa);background:var(--surface-2,#111728);display:flex;flex-direction:column;gap:6px}
+.run-week-goal.rwg-done{border-left-color:var(--accent)}
+.rwg-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rwg-head b{font-size:.86rem}
+.rwg-head span{font-size:.82rem;color:var(--text);font-weight:700}
+.rwg-bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.rwg-bar i{display:block;height:100%;border-radius:999px;background:var(--blue,#60a5fa)}
+.run-week-goal.rwg-done .rwg-bar i{background:var(--accent)}
+.run-week-goal small{color:var(--muted);font-size:.76rem}
+.rwg-ramp.rwg-high{color:var(--pink,#fb7185)}
 .bc-grid{display:grid;grid-template-columns:1fr auto 1fr auto;gap:4px 10px;align-items:baseline;font-size:.82rem}
 .bc-grid span{color:var(--muted)}
 .bc-grid b{font-size:.95rem;color:var(--text);text-align:right}
