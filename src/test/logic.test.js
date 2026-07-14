@@ -641,6 +641,29 @@ test('habitsForDay : filtre par jour de semaine, statut fait + série', () => {
   assert.deepEqual(mon.map(h => h.name).sort(), ['Eau', 'Muscu']);
 });
 
+test('habitsAtRisk : séries en jeu aujourd’hui (prévues, non faites, série ≥ min)', () => {
+  const habits = [
+    // série de 3 (05→07), prévue tous les jours, PAS faite le 08 → en jeu
+    { id: 1, name: 'Lecture', log: ['2026-07-05', '2026-07-06', '2026-07-07'] },
+    // série de 5, mais DÉJÀ faite le 08 → pas en jeu
+    { id: 2, name: 'Eau', log: ['2026-07-04', '2026-07-05', '2026-07-06', '2026-07-07', '2026-07-08'] },
+    // prévue, non faite, mais série de 0 (aucun historique) → sous le seuil
+    { id: 3, name: 'Nouvelle', log: [] },
+    // série de 2, non faite le 08, mais prévue lun/mer seulement (08 = mercredi) → en jeu
+    { id: 4, name: 'Muscu', weekdays: [1, 3], log: ['2026-07-01', '2026-07-06'] },
+  ];
+  const risk = L.habitsAtRisk(habits, '2026-07-08'); // mercredi
+  assert.deepEqual(risk.map(h => h.name), ['Lecture', 'Muscu'], 'triées par série décroissante');
+  assert.equal(risk[0].streak, 3);
+  assert.equal(risk[1].streak, 2);
+  // seuil relevé → seule la plus longue série reste
+  assert.deepEqual(L.habitsAtRisk(habits, '2026-07-08', 3).map(h => h.name), ['Lecture']);
+  // tout est fait / rien de prévu / clé invalide → []
+  assert.deepEqual(L.habitsAtRisk([{ id: 9, name: 'Ok', log: ['2026-07-07', '2026-07-08'] }], '2026-07-08'), []);
+  assert.deepEqual(L.habitsAtRisk(habits, 'bad'), []);
+  assert.deepEqual(L.habitsAtRisk(null, '2026-07-08'), []);
+});
+
 test('todayItems : les anniversaires du jour apparaissent (non validables)', () => {
   const state = { birthdays: [{ id: 1, name: 'Maman', day: 6, month: 7, year: 1963 }] };
   const items = L.todayItems(state, '2026-07-06');
@@ -3461,7 +3484,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.227');
+  assert.equal(L.CHANGELOG[0].v, '1.9.228');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
