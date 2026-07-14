@@ -776,6 +776,55 @@ test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions',
   assert.equal(r.studyPlanned, 2);
   assert.equal(r.studyDone, 1);
 });
+
+test('monthLabelFr : étiquette lisible du mois', () => {
+  assert.equal(L.monthLabelFr('2026-07'), 'juillet 2026');
+  assert.equal(L.monthLabelFr('2026-01'), 'janvier 2026');
+  assert.equal(L.monthLabelFr('2026-13'), '');
+  assert.equal(L.monthLabelFr('bad'), '');
+});
+
+test('monthlyRecap : agrège le mois calendaire + jours actifs', () => {
+  const state = {
+    workouts: [
+      { date: '2026-07-03', type: 'run', duration: 40, distance: 8 },
+      { date: '2026-07-03', type: 'strength', duration: 50 }, // même jour → 1 jour actif
+      { date: '2026-07-18', type: 'run', duration: 30, distance: 5 },
+      { date: '2026-06-30', type: 'run', duration: 20, distance: 4 } // autre mois → exclu
+    ],
+    focusSessions: [{ date: '2026-07-05', minutes: 25 }],
+    wellnessDone: [{ date: '2026-07-05', key: 'a' }, { date: '2026-07-12', key: 'b' }],
+    recovery: [{ date: '2026-07-03', sleep: 8 }, { date: '2026-07-18', sleep: 7 }],
+    agenda: [
+      { date: '2026-07-10', kind: 'study', completed: true },
+      { date: '2026-07-11', kind: 'study', completed: false }
+    ]
+  };
+  const r = L.monthlyRecap(state, '2026-07');
+  assert.equal(r.sessions, 3);          // 3 séances de juillet
+  assert.equal(r.minutes, 120);
+  assert.equal(r.km, 13);               // 8 + 5
+  assert.equal(r.focusMin, 25);
+  assert.equal(r.wellness, 2);
+  assert.equal(r.studyDone, 1);
+  assert.equal(r.studyPlanned, 2);
+  assert.equal(r.sleepAvg, 7.5);        // (8+7)/2
+  // jours actifs distincts : 07-03, 07-18, 07-05, 07-12, 07-10 = 5
+  assert.equal(r.activeDays, 5);
+  // mois vide / invalide → null
+  assert.equal(L.monthlyRecap(state, '2020-01'), null);
+  assert.equal(L.monthlyRecap(state, 'bad'), null);
+});
+
+test('monthlyRecapText : texte partageable', () => {
+  const txt = L.monthlyRecapText({ monthKey: '2026-07', sessions: 12, minutes: 600, km: 45, wellness: 8, focusMin: 200, studyDone: 6, studyPlanned: 8, activeDays: 20, sleepAvg: 7.4 });
+  assert.match(txt, /Bilan de juillet 2026/);
+  assert.match(txt, /12 séances · 600 min · 45 km/);
+  assert.match(txt, /8 séances bien-être/);
+  assert.match(txt, /6\/8 révisions/);
+  assert.match(txt, /20 jours actifs/);
+  assert.equal(L.monthlyRecapText(null), '');
+});
 test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   const state = {
     workouts: [
@@ -3360,7 +3409,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.222');
+  assert.equal(L.CHANGELOG[0].v, '1.9.223');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
