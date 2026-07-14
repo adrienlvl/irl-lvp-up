@@ -213,6 +213,9 @@ details.calendar-setting[open]{padding-bottom:14px}
 .exam-countdown{margin:8px 0 4px;font-size:.85rem;font-weight:800;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:9px 12px}
 .exam-countdown.exam-soon{border-left-color:#f59e0b;color:#f59e0b}
 .study-progress{margin:2px 0 6px;font-size:.78rem;color:var(--muted);font-weight:650}
+.study-pacing{margin:2px 0 8px;font-size:.8rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--blue,#60a5fa);border-radius:9px;padding:8px 12px;line-height:1.4}
+.study-pacing.sp-tight{border-left-color:#f59e0b}
+.study-pacing.sp-done{border-left-color:var(--accent)}
 /* D2 — récap anniversaires à venir (agenda) */
 .birthday-upcoming{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:2px 0 12px;padding:10px 14px;background:color-mix(in srgb,#d9a441 8%,var(--surface-2));border:1px solid #d9a441;border-radius:12px;font-size:.82rem}
 .birthday-upcoming[hidden]{display:none}

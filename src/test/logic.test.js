@@ -977,6 +977,36 @@ test('examCountdown : J-XX vers la date d’examen', () => {
   assert.equal(L.examCountdown({ date: '' }, '2026-07-10'), null, 'pas de date → null');
   assert.equal(L.examCountdown(null, '2026-07-10'), null);
 });
+test('studyPacing : rythme de révision vers l’examen', () => {
+  const exam = { title: 'BTS CG', date: '2026-08-10' }; // J-28 depuis le 13/07
+  // 5 révisions planifiées : 2 faites, 3 à venir → 3 restantes sur 4 semaines → 1/sem → tranquille
+  const agenda = [
+    { kind: 'study', date: '2026-07-06', completed: true }, { kind: 'study', date: '2026-07-09', completed: true },
+    { kind: 'study', date: '2026-07-16', completed: false }, { kind: 'study', date: '2026-07-20', completed: false }, { kind: 'study', date: '2026-07-25', completed: false },
+    { kind: 'sport', date: '2026-07-16' }, // ignoré (pas study)
+  ];
+  const p = L.studyPacing(agenda, exam, '2026-07-13');
+  assert.equal(p.total, 5);
+  assert.equal(p.done, 2);
+  assert.equal(p.remaining, 3);
+  assert.equal(p.daysLeft, 28);
+  assert.equal(p.perWeek, 1);
+  assert.equal(p.status, 'ahead');
+  // beaucoup de révisions, peu de jours → rythme serré
+  const many = Array.from({ length: 20 }, (_, i) => ({ kind: 'study', date: '2026-07-2' + (i % 9 + 1), completed: false }));
+  const tight = L.studyPacing(many, { date: '2026-07-27' }, '2026-07-13'); // J-14
+  assert.equal(tight.status, 'tight');
+  assert.ok(tight.perWeek >= 5);
+  // toutes faites → status 'done'
+  const allDone = L.studyPacing([{ kind: 'study', date: '2026-07-06', completed: true }], exam, '2026-07-13');
+  assert.equal(allDone.status, 'done');
+  assert.equal(allDone.remaining, 0);
+  // pas d'examen ou pas de révision → null
+  assert.equal(L.studyPacing(agenda, null, '2026-07-13'), null);
+  assert.equal(L.studyPacing([], exam, '2026-07-13'), null);
+  // examen passé → null
+  assert.equal(L.studyPacing(agenda, { date: '2026-07-01' }, '2026-07-13'), null);
+});
 
 test('nextTrainingSession : prochaine séance à venir, tri date puis heure', () => {
   const plans = [
@@ -3275,7 +3305,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.217');
+  assert.equal(L.CHANGELOG[0].v, '1.9.218');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
