@@ -1003,6 +1003,61 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('weightTargetAdvice : réalisme de la cible et cohérence avec l’objectif sportif', () => {
+  // Profil réel d'Adrien : 81 kg, 174 cm
+  const base = { weight: 81, height: 174, age: 30, sex: 'homme', sessionsPerWeek: 4 };
+  const av = (t, obj) => L.weightTargetAdvice({ ...base, targetWeight: t, fitnessObjective: obj });
+
+  // cible raisonnable (75 kg → IMC ~24,8)
+  const ok = av(75, 'athletique');
+  assert.equal(ok.direction, 'perte');
+  assert.equal(ok.deltaKg, 6);
+  assert.equal(ok.level, 'ok', 'rien d’alarmant');
+  assert.ok(ok.weeks > 0 && ok.ratePerWeek > 0);
+  assert.ok(ok.notes.some(n => /protéines/i.test(n.text)), 'conseil de préservation du muscle');
+
+  // cible dangereusement basse : 55 kg à 174 cm → IMC 18,2
+  const bas = av(55, 'athletique');
+  assert.equal(bas.level, 'stop');
+  assert.ok(bas.targetBmi < 18.5);
+  assert.ok(bas.notes.some(n => n.tone === 'stop' && /insuffisance pondérale/i.test(n.text)));
+  assert.ok(bas.notes.some(n => /professionnel de santé/i.test(n.text)), 'renvoie vers un professionnel');
+
+  // LE CAS D'ADRIEN : objectif « prendre du muscle » MAIS cible = grosse perte → contradiction
+  const contra = av(70, 'muscle');
+  assert.equal(contra.level, 'stop');
+  assert.ok(contra.notes.some(n => n.tone === 'stop' && /[Cc]ontradiction/.test(n.text)));
+  assert.ok(contra.notes.some(n => /séquence|recomposition/i.test(n.text)), 'propose une porte de sortie');
+
+  // objectif sèche mais cible en prise → contradiction inverse
+  assert.equal(av(88, 'seche').level, 'stop');
+
+  // perte importante avec objectif endurance → avertissement sur les performances
+  const endur = av(70, 'endurance');   // 11 kg = 13,6 % du poids
+  assert.equal(endur.level, 'warn');
+  assert.ok(endur.notes.some(n => /performances/i.test(n.text)));
+
+  // cible = poids actuel → recomposition
+  const maint = av(81, 'athletique');
+  assert.equal(maint.direction, 'maintien');
+  assert.equal(maint.weeks, 0);
+  assert.ok(maint.notes.some(n => /recomposition/i.test(n.text)));
+
+  // prise de masse cohérente avec l'objectif muscle
+  const prise = av(85, 'muscle');
+  assert.equal(prise.direction, 'prise');
+  assert.equal(prise.level, 'ok');
+
+  // fourchette de référence (IMC 20–24,5 à 174 cm)
+  assert.ok(ok.suggested.minKg > 59 && ok.suggested.minKg < 62, `min ${ok.suggested.minKg}`);
+  assert.ok(ok.suggested.maxKg > 73 && ok.suggested.maxKg < 76, `max ${ok.suggested.maxKg}`);
+
+  // entrées incomplètes → null (on ne devine pas)
+  assert.equal(L.weightTargetAdvice({ weight: 81, height: 174 }), null, 'sans cible');
+  assert.equal(L.weightTargetAdvice({ weight: 81, targetWeight: 75 }), null, 'sans taille');
+  assert.equal(L.weightTargetAdvice(null), null);
+});
+
 test('splitDuration / combineDuration : saisie d’une durée en heures + minutes', () => {
   assert.deepEqual(L.splitDuration(45), { h: 0, m: 45 });
   assert.deepEqual(L.splitDuration(90), { h: 1, m: 30 }, '1 h 30');
@@ -4084,7 +4139,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.245');
+  assert.equal(L.CHANGELOG[0].v, '1.9.246');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
