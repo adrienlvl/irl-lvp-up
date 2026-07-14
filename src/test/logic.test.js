@@ -1003,6 +1003,46 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('lastExerciseSession : les séries réellement loguées au dernier passage', () => {
+  const today = '2026-07-10';
+  const workouts = [
+    { date: '2026-07-01', exercises: [{ name: 'Développé couché', setLogs: [{ load: 35, reps: 10, completed: true }] }] },
+    { date: '2026-07-06', exercises: [
+      { name: 'Squat', setLogs: [{ load: 60, reps: 8, completed: true }] },
+      { name: 'Développé couché', setLogs: [
+        { load: 40, reps: 10, completed: true },
+        { load: 40, reps: 10, completed: true },
+        { load: 40, reps: 8, completed: true },
+        { load: 0, reps: 0, completed: false },   // série non effectuée → ignorée
+      ] },
+    ] },
+  ];
+  const r = L.lastExerciseSession(workouts, 'Développé couché', today);
+  assert.equal(r.date, '2026-07-06', 'la séance la plus récente, pas la première trouvée');
+  assert.equal(r.daysAgo, 4);
+  assert.equal(r.sets.length, 3, 'la série à 0 rep est ignorée');
+  assert.deepEqual(r.sets[0], { load: 40, reps: 10 });
+  assert.deepEqual(r.topSet, { load: 40, reps: 10 });
+  assert.equal(r.totalReps, 28);
+  assert.equal(r.tonnage, 40 * 10 + 40 * 10 + 40 * 8); // 1120
+  // autre exercice de la même séance
+  assert.equal(L.lastExerciseSession(workouts, 'Squat', today).topSet.load, 60);
+  // repli : ancienne séance sans setLogs → reconstruit depuis {load, reps, sets}
+  const legacy = [{ date: '2026-07-05', exercises: [{ name: 'Tractions', load: 0, reps: 6, sets: 3 }] }];
+  const lg = L.lastExerciseSession(legacy, 'Tractions', today);
+  assert.equal(lg.sets.length, 3);
+  assert.equal(lg.totalReps, 18);
+  assert.equal(lg.tonnage, 0, 'poids du corps → tonnage nul');
+  // repli sur l'ancien format plat (w.exercise)
+  const flat = [{ date: '2026-07-04', exercise: 'Rowing', load: 30, reps: 12, sets: 2 }];
+  assert.equal(L.lastExerciseSession(flat, 'Rowing', today).tonnage, 720);
+  // exercice jamais fait / entrées invalides → null
+  assert.equal(L.lastExerciseSession(workouts, 'Soulevé de terre', today), null);
+  assert.equal(L.lastExerciseSession([], 'Squat', today), null);
+  assert.equal(L.lastExerciseSession(workouts, '', today), null);
+  assert.equal(L.lastExerciseSession(null, 'Squat', today), null);
+});
+
 test('logLifeStep : journalise le pas du jour avant son écrasement', () => {
   let log = [];
   log = L.logLifeStep(log, { date: '2026-07-08', text: 'Appeler mamie', done: true });
@@ -3745,7 +3785,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.236');
+  assert.equal(L.CHANGELOG[0].v, '1.9.237');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
