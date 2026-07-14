@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.247');
+  assert.equal(L.CHANGELOG[0].v, '1.9.248');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4913,4 +4913,44 @@ test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () 
   assert.equal(z.driving, 0, 'distance nulle → 0');
   const noDrive = L.travelModes(50000, 0); // repli voiture 50 km/h
   assert.equal(noDrive.driving, 60, 'sans durée OSRM → 50 km à 50 km/h = 60 min');
+});
+
+test('scheduleConflicts : chevauchements réels seulement', () => {
+  const agenda = [
+    { id: 'a', title: 'Muscu',   kind: 'sport',  date: '2026-07-20', time: '18:00', durationMin: 60 },
+    { id: 'b', title: 'Révision', kind: 'study', date: '2026-07-20', time: '19:00', durationMin: 45 },
+    { id: 'c', title: 'Off',      kind: 'sport', date: '2026-07-21', time: '18:00', durationMin: 60 },
+    { id: 'd', title: 'Journée',  kind: 'other', date: '2026-07-20', allDay: true },
+    { id: 'e', title: 'Sans heure', kind: 'other', date: '2026-07-20' },
+  ];
+  // chevauchement franc (18:30 tombe dans 18:00–19:00)
+  const c1 = L.scheduleConflicts(agenda, { date: '2026-07-20', time: '18:30', durationMin: 30 });
+  assert.deepEqual(c1.map(x => x.id), ['a']);
+
+  // contact bord à bord : 19:00 démarre quand Muscu finit → PAS un conflit
+  const c2 = L.scheduleConflicts(agenda, { date: '2026-07-20', time: '19:00', durationMin: 30 });
+  assert.deepEqual(c2.map(x => x.id), ['b'], 'seule la révision de 19:00 chevauche, pas la muscu qui se termine');
+
+  // englobe les deux
+  const c3 = L.scheduleConflicts(agenda, { date: '2026-07-20', time: '17:30', durationMin: 180 });
+  assert.deepEqual(c3.map(x => x.id), ['a', 'b'], 'triés par heure');
+
+  // autre jour, allDay et sans heure ne bloquent rien
+  assert.deepEqual(L.scheduleConflicts(agenda, { date: '2026-07-22', time: '18:00', durationMin: 60 }), []);
+
+  // on ne se compare jamais à soi-même (édition d'un item existant)
+  assert.deepEqual(L.scheduleConflicts(agenda, { id: 'a', date: '2026-07-20', time: '18:00', durationMin: 60 }), []);
+
+  // candidat sans heure : rien à comparer
+  assert.deepEqual(L.scheduleConflicts(agenda, { date: '2026-07-20', durationMin: 60 }), []);
+});
+
+test('timeToMinutes / minutesToTime : aller-retour et rejets', () => {
+  assert.equal(L.timeToMinutes('07:05'), 425);
+  assert.equal(L.timeToMinutes('00:00'), 0);
+  assert.equal(L.timeToMinutes('24:00'), null, 'heure hors plage rejetée');
+  assert.equal(L.timeToMinutes('7h05'), null);
+  assert.equal(L.timeToMinutes(''), null);
+  assert.equal(L.minutesToTime(425), '07:05');
+  assert.equal(L.minutesToTime(0), '00:00');
 });

@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.247 (2026-07-14)
+## 📍 État actuel — build 1.9.248 (2026-07-14)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **341 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→**313**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **343 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→**314**) :
+
+- 🎯 **Demande d'Adrien — la cible de poids se modifie DANS le plan** : le champ vivait dans « Objectifs hebdomadaires » (onglet Séance) alors que le plan qui le consomme est sur l'onglet Progrès — et le message d'aide de l'app pointait vers un « panneau Poids » inexistant. Champ ajouté dans le panneau du plan (enregistrement direct), synchronisé dans les deux sens, message corrigé. Plus détection de chevauchement de séances (`scheduleConflicts`). ✅ _boucle #314 (build 1.9.248)._
 
 > ✅ **Les 4 caps d'Adrien (#1→#4) traités + 18 rotations complètes ; désormais amélioration continue « liberté totale » sur tous domaines — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.217` publiées.
 
