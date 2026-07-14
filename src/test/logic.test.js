@@ -895,6 +895,24 @@ test('dailyStreak : jours calendaires consécutifs, grâce aujourd’hui, cassé
   assert.equal(L.dailyStreak(['2026-07-01'], today), 0, 'rien de récent → 0');
   assert.equal(L.dailyStreak(['2026-07-10'], 'pas-une-date'), 0);
 });
+test('completeDaysStreak : série de journées complètes (≥ seuil de domaines)', () => {
+  const today = '2026-07-10';
+  const days = [
+    { date: '2026-07-10', count: 5 }, { date: '2026-07-09', count: 4 }, { date: '2026-07-08', count: 6 }, // 3 jours complets d'affilée
+    { date: '2026-07-07', count: 2 }, // trou (sous le seuil 4)
+    { date: '2026-07-06', count: 5 },
+  ];
+  assert.equal(L.completeDaysStreak(days, 4, today), 3);
+  // seuil plus élevé → série plus courte (seul le 08 a ≥6, mais pas consécutif avec aujourd'hui)
+  assert.equal(L.completeDaysStreak(days, 6, today), 0, 'aujourd’hui < 6 et 08 non contigu');
+  // seuil par défaut = 4
+  assert.equal(L.completeDaysStreak(days, null, today), 3);
+  // grâce : aujourd'hui incomplet mais hier + avant-hier complets → 2
+  const grace = [{ date: '2026-07-10', count: 1 }, { date: '2026-07-09', count: 5 }, { date: '2026-07-08', count: 4 }];
+  assert.equal(L.completeDaysStreak(grace, 4, today), 2);
+  assert.equal(L.completeDaysStreak([], 4, today), 0);
+  assert.equal(L.completeDaysStreak(null, 4, today), 0);
+});
 
 test('weeklyWorkoutStreak : semaines consécutives avec séance, grâce semaine en cours', () => {
   // aujourd'hui = vendredi 10/07/2026 (semaine lundi 06/07)
@@ -3305,7 +3323,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.218');
+  assert.equal(L.CHANGELOG[0].v, '1.9.219');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
