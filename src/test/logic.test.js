@@ -1003,6 +1003,57 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('focusTimer : piloté par l’horloge, survit au rechargement et à l’arrière-plan', () => {
+  const T0 = 1800000000000;
+  const t = L.focusTimerStart(25, T0, 'Réviser la TVA');
+  assert.equal(t.durationMin, 25);
+  assert.equal(t.startedAt, T0);
+  assert.equal(t.endsAt, T0 + 25 * 60000);
+  assert.equal(t.paused, false);
+  assert.equal(t.task, 'Réviser la TVA');
+  assert.equal(L.focusTimerStart(0, T0).durationMin, 25, 'défaut');
+  assert.equal(L.focusTimerStart(999, T0).durationMin, 180, 'plafond');
+
+  // LE POINT CLÉ : le restant se calcule depuis l'HORLOGE, pas depuis un nombre de ticks.
+  // 10 min réelles écoulées → il reste 15 min, même si l'app n'a jamais « tické »
+  // (onglet en arrière-plan, app fermée…). L'ancien minuteur dérivait précisément là.
+  const apres10 = L.focusTimerState(t, T0 + 10 * 60000);
+  assert.equal(apres10.remainingSec, 15 * 60);
+  assert.equal(apres10.elapsedSec, 10 * 60);
+  assert.equal(apres10.done, false);
+  assert.equal(apres10.task, 'Réviser la TVA');
+
+  // le bloc arrive à terme même si l'app était fermée pendant tout ce temps
+  assert.equal(L.focusTimerState(t, T0 + 25 * 60000).done, true);
+  const depasse = L.focusTimerState(t, T0 + 3 * 3600000);
+  assert.equal(depasse.remainingSec, 0, 'jamais négatif');
+  assert.equal(depasse.done, true);
+
+  // PAUSE : fige le restant ; le temps réel qui passe ne l'entame plus
+  const p = L.focusTimerPause(t, T0 + 10 * 60000);
+  assert.equal(p.paused, true);
+  assert.equal(p.pausedSec, 15 * 60);
+  const enPause = L.focusTimerState(p, T0 + 40 * 60000);   // 30 min plus tard
+  assert.equal(enPause.remainingSec, 15 * 60, 'la pause ne consomme pas de temps');
+  assert.equal(enPause.done, false, 'un minuteur en pause n’est jamais « terminé »');
+
+  // REPRISE : l'horodatage de fin repart du restant figé
+  const r = L.focusTimerResume(p, T0 + 40 * 60000);
+  assert.equal(r.paused, false);
+  assert.equal(r.endsAt, T0 + 40 * 60000 + 15 * 60000);
+  assert.equal(L.focusTimerState(r, T0 + 45 * 60000).remainingSec, 10 * 60);
+
+  // pause/reprise idempotentes
+  assert.equal(L.focusTimerPause(p, T0).paused, true, 'pause d’un minuteur déjà en pause');
+  assert.equal(L.focusTimerResume(t, T0).paused, false, 'reprise d’un minuteur qui tourne');
+
+  // entrées invalides
+  assert.equal(L.focusTimerState(null, T0), null);
+  assert.equal(L.focusTimerState([], T0), null);
+  assert.equal(L.focusTimerState({ durationMin: 25 }, T0), null, 'sans startedAt → null');
+  assert.equal(L.focusTimerState({ startedAt: T0, durationMin: 0 }, T0), null);
+});
+
 test('guidedSnapshot / resumableGuided : la séance en cours survit à une fermeture', () => {
   const T0 = 1800000000000;
   const workout = {
@@ -3931,7 +3982,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.241');
+  assert.equal(L.CHANGELOG[0].v, '1.9.242');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
