@@ -3131,7 +3131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.205');
+  assert.equal(L.CHANGELOG[0].v, '1.9.206');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3157,6 +3157,20 @@ test('membershipInfo : ancienneté et paliers de fidélité', () => {
   assert.equal(L.membershipInfo('', '2026-07-13'), null);
   assert.equal(L.membershipInfo('2026-07-13', 'x'), null);
   assert.equal(L.membershipInfo(null, null), null);
+});
+test('shareAppPayload : message d’invitation à partager', () => {
+  // URL http/https → incluse
+  const p = L.shareAppPayload('https://adrienlvl.github.io/irl-lvp-up/');
+  assert.ok(p.title && p.text);
+  assert.equal(p.url, 'https://adrienlvl.github.io/irl-lvp-up/');
+  assert.match(p.text, /IRL LVP UP|RPG de vie/);
+  // URL non http (file://, vide) → pas de champ url
+  assert.equal('url' in L.shareAppPayload('file:///C:/app/index.html'), false);
+  assert.equal('url' in L.shareAppPayload(''), false);
+  assert.equal('url' in L.shareAppPayload(), false);
+  // toujours un title + text exploitables
+  const bare = L.shareAppPayload();
+  assert.ok(bare.title.length > 3 && bare.text.length > 20);
 });
 test('launchTarget : cible de lancement PWA depuis ?go=', () => {
   assert.equal(L.launchTarget('?go=wellness'), 'wellness');
