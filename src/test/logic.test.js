@@ -1819,6 +1819,39 @@ test('trainingByWeekday : répartition et jour fort', () => {
   // todayKey invalide → pas de jour fort
   assert.equal(L.trainingByWeekday(w, 'x', 56).bestDay, null);
 });
+test('weekTrainingBalance : équilibre course/muscu', () => {
+  assert.equal(L.weekTrainingBalance([], '2026-07-13', 7), null);
+  // 3 muscu + 2 course cette semaine → bon équilibre
+  const w = [
+    { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] },
+    { date: '2026-07-12', type: 'strength', exercises: [{ name: 'Dev', load: 60, reps: 8, sets: 4 }] },
+    { date: '2026-07-11', exercises: [{ name: 'Tractions', reps: 8, sets: 4 }] },
+    { date: '2026-07-13', type: 'run' },
+    { date: '2026-07-10', type: 'run' },
+  ];
+  const b = L.weekTrainingBalance(w, '2026-07-13', 7);
+  assert.equal(b.strength, 3);
+  assert.equal(b.runs, 2);
+  assert.equal(b.total, 5);
+  assert.equal(b.dominant, 'strength');
+  assert.equal(b.label, 'Bon équilibre'); // écart 1
+  // que de la course
+  const onlyRun = L.weekTrainingBalance([{ date: '2026-07-13', type: 'run' }, { date: '2026-07-12', type: 'run' }], '2026-07-13', 7);
+  assert.equal(onlyRun.label, 'Que de la course');
+  assert.equal(onlyRun.dominant, 'run');
+  // que de la muscu
+  assert.equal(L.weekTrainingBalance([{ date: '2026-07-13', exercises: [{ name: 'Squat', load: 80, reps: 5, sets: 3 }] }], '2026-07-13', 7).label, 'Que de la muscu');
+  // déséquilibre net → plutôt muscu
+  const tilt = L.weekTrainingBalance([
+    { date: '2026-07-13', exercises: [{ name: 'a', load: 1, reps: 1, sets: 1 }] }, { date: '2026-07-12', exercises: [{ name: 'b', load: 1, reps: 1, sets: 1 }] }, { date: '2026-07-11', exercises: [{ name: 'c', load: 1, reps: 1, sets: 1 }] }, { date: '2026-07-10', exercises: [{ name: 'd', load: 1, reps: 1, sets: 1 }] },
+    { date: '2026-07-13', type: 'run' },
+  ], '2026-07-13', 7);
+  assert.equal(tilt.label, 'Plutôt muscu');
+  // hors fenêtre exclu
+  assert.equal(L.weekTrainingBalance([{ date: '2026-06-01', type: 'run' }, { date: '2026-07-13', type: 'run' }], '2026-07-13', 7).total, 1);
+  // todayKey invalide → null
+  assert.equal(L.weekTrainingBalance(w, 'x', 7), null);
+});
 test('bestE1rmByExercise / blockExerciseProgress : progression de force par exercice', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -3155,7 +3188,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.208');
+  assert.equal(L.CHANGELOG[0].v, '1.9.209');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
