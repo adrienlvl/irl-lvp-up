@@ -466,7 +466,46 @@ $('#nextSessionLine').onclick=()=>{const el=$('#plannedList');el?.scrollIntoView
 $('#addPlan').onclick=()=>{const date=$('#planDate').value,time=$('#planTime').value||'18:00',type=$('#planType').value;if(!date)return;const id=Date.now();state.plans.push({id,date,time,type});state.agenda.push(normalizeAgendaItem({id,title:`Séance · ${type}`,date,time,kind:'sport',planId:id}));save();renderGrowth();renderCommandCenter();renderDailyCompass();renderTrainingCompanion();};
 $('#availabilityDays').onchange=()=>{state.profile={...state.profile,availableDays:[...document.querySelectorAll('#availabilityDays input:checked')].map(input=>Number(input.value))};save();renderWeeklyPlanner();};$('#generateWeekPlan').onclick=generateAutomaticWeek;
 $('#plannedList').onclick=e=>{const control=e.target.closest('[data-start-plan],[data-light-plan],[data-mobility-plan],[data-postpone-plan]');if(!control)return;const id=Number(control.dataset.startPlan||control.dataset.lightPlan||control.dataset.mobilityPlan||control.dataset.postponePlan),plan=state.plans.find(p=>p.id===id);if(!plan)return;if(control.dataset.postponePlan!==undefined){const tomorrow=dateKey(new Date(Date.now()+864e5));state.plans=state.plans.map(p=>p.id===id?{...p,date:tomorrow}:p);state.agenda=state.agenda.map(a=>a.planId===id?{...a,date:tomorrow}:a);save();renderGrowth();renderCommandCenter();renderDailyCompass();renderTrainingCompanion();return;}if(control.dataset.mobilityPlan!==undefined){const lightPlan={...plan,type:'Mobilité / repos'};startPlannedWorkout(lightPlan);setDurationFields(20);$('#workoutEffort').value=1;$('#workoutNotes').value+=' · Version mobilité / récupération.';return;}startPlannedWorkout(plan);if(control.dataset.lightPlan!==undefined){setDurationFields(20);$('#workoutEffort').value=1;$('#workoutNotes').value+=' · Version courte : privilégier l’essentiel.';}};
-$('#progressPhoto').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>3*1024*1024){alert('Choisis une photo de moins de 3 Mo.');return;}const reader=new FileReader();reader.onload=async()=>{const id=Date.now();let entry={id,date:localDate(),data:reader.result};if(window.desktop?.savePhoto){try{const saved=await window.desktop.savePhoto({id,data:reader.result});if(saved?.file)entry={id:saved.id,date:localDate(),file:saved.file};}catch{}}state.photos.push(entry);const dropped=state.photos.slice(0,Math.max(0,state.photos.length-12));state.photos=state.photos.slice(-12);dropped.forEach(p=>{if(p.file)window.desktop?.deletePhoto?.(p.file);});save();renderGrowth();};reader.readAsDataURL(file);};
+// Redimensionne + recompresse une photo avant de la stocker. Deux garde-fous :
+//  - on n'agrandit jamais (fitDimensions s'en charge) ;
+//  - si le résultat est PLUS LOURD que l'original (ex. petite PNG → JPEG), on garde l'original.
+// Toute erreur (image illisible, canvas indisponible) retombe sur l'original : on ne perd jamais
+// la photo d'Adrien à cause d'une optimisation.
+const PHOTO_MAX_SIDE=1280, PHOTO_QUALITY=0.72;
+function compressPhoto(dataUrl,maxSide=PHOTO_MAX_SIDE,quality=PHOTO_QUALITY){
+  return new Promise(resolve=>{
+    try{
+      const img=new Image();
+      img.onload=()=>{try{
+        const d=fitDimensions(img.naturalWidth||img.width,img.naturalHeight||img.height,maxSide);
+        if(!d){resolve(dataUrl);return;}
+        const c=document.createElement('canvas');c.width=d.width;c.height=d.height;
+        const ctx=c.getContext('2d');if(!ctx){resolve(dataUrl);return;}
+        ctx.drawImage(img,0,0,d.width,d.height);
+        const out=c.toDataURL('image/jpeg',quality);
+        resolve(dataUrlBytes(out)>0&&dataUrlBytes(out)<dataUrlBytes(dataUrl)?out:dataUrl);
+      }catch(_){resolve(dataUrl);}};
+      img.onerror=()=>resolve(dataUrl);
+      img.src=dataUrl;
+    }catch(_){resolve(dataUrl);}
+  });
+}
+// Recompresse UNE FOIS les photos déjà stockées et trop lourdes (celles importées avant ce
+// correctif). Différé après le démarrage pour ne pas ralentir l'ouverture de l'app.
+async function optimizeStoredPhotos(){
+  if(typeof dataUrlBytes!=='function'||!Array.isArray(state.photos))return;
+  const gros=state.photos.filter(p=>p&&p.data&&dataUrlBytes(p.data)>250*1024);
+  if(!gros.length)return;
+  let gagne=0;
+  for(const p of gros){
+    const avant=dataUrlBytes(p.data);
+    const out=await compressPhoto(p.data);
+    const apres=dataUrlBytes(out);
+    if(apres>0&&apres<avant){p.data=out;gagne+=avant-apres;}
+  }
+  if(gagne>0){save();renderGrowth();const st=$('#localBackupStatus');if(st)st.textContent=`✓ Photos optimisées : ${(gagne/1048576).toFixed(1)} Mo libérés dans le stockage local.`;}
+}
+$('#progressPhoto').onchange=e=>{const file=e.target.files[0];if(!file)return;if(file.size>3*1024*1024){alert('Choisis une photo de moins de 3 Mo.');return;}const reader=new FileReader();reader.onload=async()=>{const id=Date.now();const compressee=await compressPhoto(reader.result);let entry={id,date:localDate(),data:compressee};if(window.desktop?.savePhoto){try{const saved=await window.desktop.savePhoto({id,data:compressee});if(saved?.file)entry={id:saved.id,date:localDate(),file:saved.file};}catch{}}state.photos.push(entry);const dropped=state.photos.slice(0,Math.max(0,state.photos.length-12));state.photos=state.photos.slice(-12);dropped.forEach(p=>{if(p.file)window.desktop?.deletePhoto?.(p.file);});save();renderGrowth();};reader.readAsDataURL(file);};
 $('#saveLifeGoals').onclick=()=>{state.lifeGoals=[$('#lifeGoalOne').value.trim(),$('#lifeGoalTwo').value.trim(),$('#lifeGoalThree').value.trim()];save();renderCommandCenter();renderDailyCompass();};
 $('#saveDailyLifeStep').onclick=()=>{const text=$('#dailyLifeStepInput').value.trim();state.dailyLifeStep={date:localDate(),text,done:false};save();renderCommandCenter();renderDailyCompass();};$('#completeDailyLifeStep').onclick=()=>{if(!state.dailyLifeStep?.text||state.dailyLifeStep.done)return;state.dailyLifeStep={...state.dailyLifeStep,date:localDate(),done:true};state.xp+=10;state.life+=1;save();renderDashboardCore();renderCommandCenter();};
 let _onbFinishing=false;
@@ -621,7 +660,7 @@ const athleteSubnav=document.querySelector('.athlete-subnav');if(athleteSubnav)a
 assignAthleteTabs();showAthleteTab(athleteTab);
 // Écouteur attaché UNE SEULE FOIS (l'attacher dans une fonction de rendu les empilerait).
 $('#targetWeight')?.addEventListener('input',renderTargetAdvice);
-render();renderWhatsNew();restoreFocusTimer();showPage('dashboard');setupCollapsibles();setupComfort();setupDesktopReminders();setupCalendarSync();setupTravelStart();offerLocalBackupRestore().then(migratePhotosToDisk);
+render();renderWhatsNew();restoreFocusTimer();showPage('dashboard');setupCollapsibles();setupComfort();setupDesktopReminders();setupCalendarSync();setupTravelStart();offerLocalBackupRestore().then(migratePhotosToDisk).then(()=>setTimeout(optimizeStoredPhotos,1200));
 $('#installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;const b=$('#installBtn');deferredInstall.prompt();try{await deferredInstall.userChoice;}catch(_){}deferredInstall=null;if(b)b.hidden=true;});
 $('#pwaReloadBtn')?.addEventListener('click',()=>location.reload());updateOnlineStatus();
 (function(){try{var standalone=(navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);var dismissed=false;try{dismissed=localStorage.getItem('irl-ios-hint')==='1';}catch(_){}if(!dismissed&&typeof isIosInstallable==='function'&&isIosInstallable(navigator.userAgent,standalone)){var h=$('#iosInstallHint');if(h){h.hidden=false;var b=$('#iosHintDismiss');if(b)b.onclick=function(){h.hidden=true;try{localStorage.setItem('irl-ios-hint','1');}catch(_){}};}}}catch(_){}})();

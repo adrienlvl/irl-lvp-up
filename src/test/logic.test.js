@@ -1003,6 +1003,44 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('fitDimensions : redimensionne sans déformer et sans jamais agrandir', () => {
+  // photo iPhone typique (portrait 3024×4032) → grand côté ramené à 1280
+  const p = L.fitDimensions(3024, 4032, 1280);
+  assert.equal(p.height, 1280, 'le grand côté est borné');
+  assert.equal(p.width, 960, 'ratio 3:4 conservé');
+  // paysage
+  const l = L.fitDimensions(4032, 3024, 1280);
+  assert.equal(l.width, 1280);
+  assert.equal(l.height, 960);
+  // carré
+  assert.deepEqual(L.fitDimensions(2000, 2000, 1280), { width: 1280, height: 1280 });
+  // JAMAIS d'agrandissement : une image déjà petite reste telle quelle
+  assert.deepEqual(L.fitDimensions(800, 600, 1280), { width: 800, height: 600 });
+  assert.deepEqual(L.fitDimensions(1280, 720, 1280), { width: 1280, height: 720 }, 'pile à la limite');
+  // ratio extrême : la dimension mineure ne tombe jamais à 0
+  const fin = L.fitDimensions(5000, 3, 1280);
+  assert.equal(fin.width, 1280);
+  assert.ok(fin.height >= 1, 'au moins 1 px');
+  // entrées invalides
+  assert.equal(L.fitDimensions(0, 100, 1280), null);
+  assert.equal(L.fitDimensions(100, 0, 1280), null);
+  assert.equal(L.fitDimensions('x', 'y', 1280), null);
+});
+
+test('dataUrlBytes : poids réel d’une data URL base64', () => {
+  assert.equal(L.dataUrlBytes('data:image/jpeg;base64,AAAA'), 3);
+  assert.equal(L.dataUrlBytes('data:image/jpeg;base64,AAA='), 2, 'padding décompté');
+  assert.equal(L.dataUrlBytes('data:image/jpeg;base64,AA=='), 1);
+  // ordre de grandeur : le base64 gonfle d'environ 1/3
+  const octets = L.dataUrlBytes('data:image/jpeg;base64,' + 'A'.repeat(800 * 1024));
+  assert.ok(octets > 590 * 1024 && octets < 620 * 1024, `${octets} octets`);
+  // entrées non conformes → 0, jamais une exception
+  assert.equal(L.dataUrlBytes('pas une data url'), 0);
+  assert.equal(L.dataUrlBytes('data:image/jpeg;base64,'), 0);
+  assert.equal(L.dataUrlBytes(null), 0);
+  assert.equal(L.dataUrlBytes(undefined), 0);
+});
+
 test('weightTargetAdvice : réalisme de la cible et cohérence avec l’objectif sportif', () => {
   // Profil réel d'Adrien : 81 kg, 174 cm
   const base = { weight: 81, height: 174, age: 30, sex: 'homme', sessionsPerWeek: 4 };
@@ -4139,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.246');
+  assert.equal(L.CHANGELOG[0].v, '1.9.247');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
