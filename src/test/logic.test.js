@@ -3323,7 +3323,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.219');
+  assert.equal(L.CHANGELOG[0].v, '1.9.220');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3925,6 +3925,26 @@ test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () 
   assert.equal(r.target, 7.5);
   assert.equal(L.sleepDebtHours([], 7.5, '2026-07-06', '2026-07-10').debt, 0);
   assert.equal(L.sleepDebtHours('x', 7.5, '2026-07-06', '2026-07-10').nights, 0);
+});
+test('weeklySleepStats : moyenne, nuits, plus courte nuit, statut', () => {
+  const rec = [
+    { date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5.5 },
+    { date: '2026-07-09', sleep: 0 },  // ignoré
+    { date: '2026-06-01', sleep: 9 },  // hors fenêtre
+  ];
+  const r = L.weeklySleepStats(rec, '2026-07-06', '2026-07-10');
+  assert.equal(r.nights, 3);
+  assert.equal(r.avg, 6.5);      // (6+8+5.5)/3
+  assert.equal(r.min, 5.5);
+  assert.equal(r.status, 'court'); // < 7
+  // sommeil correct → 'ok'
+  assert.equal(L.weeklySleepStats([{ date: '2026-07-08', sleep: 7.5 }, { date: '2026-07-09', sleep: 8 }], '2026-07-06', '2026-07-10').status, 'ok');
+  // bon sommeil → 'bon'
+  assert.equal(L.weeklySleepStats([{ date: '2026-07-08', sleep: 9 }], '2026-07-06', '2026-07-10').status, 'bon');
+  // aucune nuit chiffrée → null
+  assert.equal(L.weeklySleepStats([{ date: '2026-07-08', sleep: 0 }], '2026-07-06', '2026-07-10'), null);
+  assert.equal(L.weeklySleepStats([], '2026-07-06', '2026-07-10'), null);
+  assert.equal(L.weeklySleepStats(null, '2026-07-06', '2026-07-10'), null);
 });
 
 test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {
