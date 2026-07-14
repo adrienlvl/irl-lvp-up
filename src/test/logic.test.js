@@ -3188,7 +3188,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.210');
+  assert.equal(L.CHANGELOG[0].v, '1.9.211');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3439,6 +3439,20 @@ test('suggestObjective : suggestion d’objectif selon le profil', () => {
   assert.equal(L.suggestObjective(null), null);
   // toujours un label lisible
   assert.ok(/gras|muscle|athlétique/i.test(L.suggestObjective({ weight: 72, height: 178 }).label));
+});
+test('starterHabitFor : habitude de départ selon l’objectif', () => {
+  const seche = L.starterHabitFor('seche');
+  assert.match(seche.name, /eau/i);
+  assert.deepEqual(seche.weekdays, [0, 1, 2, 3, 4, 5, 6]);
+  assert.ok(seche.xp >= 1 && seche.xp <= 50);
+  assert.match(L.starterHabitFor('muscle').name, /prot/i);
+  assert.match(L.starterHabitFor('endurance').name, /étirement/i);
+  // objectif inconnu → habitude du corps athlétique
+  assert.equal(L.starterHabitFor('zzz').name, L.STARTER_HABITS.athletique.name);
+  assert.equal(L.starterHabitFor().name, L.STARTER_HABITS.athletique.name);
+  // normalisable en vraie habitude
+  const h = L.normalizeHabit(L.starterHabitFor('forme'));
+  assert.ok(h.name && Array.isArray(h.weekdays) && h.weekdays.length === 7);
 });
 test('sanitizeOnboardingDraft : brouillon d’onboarding validé', () => {
   const d = L.sanitizeOnboardingDraft({ objective: 'seche', weight: '82.4', height: '178', age: '29', sex: 'femme', level: 'avance', sessions: '4', slot: 'matin', days: [5, 2, 2, 9] });

@@ -14,6 +14,7 @@
 .onb-draft-note{margin:10px 0;padding:8px 12px;border-radius:10px;border:1px solid var(--line);border-left:3px solid var(--purple,#a78bfa);background:rgba(167,139,250,.1);font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .onb-draft-note button{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font-size:.76rem;font-weight:600;cursor:pointer}
 .onb-draft-note button:hover{border-color:var(--accent);color:var(--text)}
+.onb-starter-habit{display:flex;align-items:center;gap:9px;margin:14px 0 2px;font-size:.85rem;color:var(--text)}
 .onb-meter{margin:12px 0 4px}
 .onb-calories{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 2px}
 .onb-calories span{flex:1 1 140px;background:var(--surface-2,#111728);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:8px 11px;font-size:.8rem;color:var(--muted)}
