@@ -1003,6 +1003,39 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('recentLessons : leçons passées du rituel du soir', () => {
+  const today = '2026-07-10';
+  const refl = [
+    { date: '2026-07-08', win: 'Séance faite', lesson: 'Commencer tôt évite la fatigue' },
+    { date: '2026-07-09', win: 'Chapitre fini', lesson: '  Couper les notifs marche  ' }, // trim
+    { date: '2026-07-10', lesson: 'Leçon du jour' },      // aujourd'hui → exclue
+    { date: '2026-07-07', win: 'Victoire sans leçon' },   // pas de lesson → exclue
+    { date: '2026-07-06', lesson: '   ' },                // vide après trim → exclue
+  ];
+  const r = L.recentLessons(refl, today);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].lesson, 'Couper les notifs marche'); // 09 avant 08
+  assert.equal(r[0].daysAgo, 1);
+  assert.equal(r[1].lesson, 'Commencer tôt évite la fatigue');
+  assert.equal(r[1].daysAgo, 2);
+  // win et lesson sont indépendants : le 07 a une victoire mais pas de leçon
+  assert.equal(L.recentWins(refl, today).length, 3);
+  assert.deepEqual(L.recentLessons(null, today), []);
+  assert.deepEqual(L.recentLessons(refl, 'pas-une-date'), []);
+});
+
+test('recentReflectionNotes : helper générique sur n’importe quel champ texte', () => {
+  const today = '2026-07-10';
+  const refl = [{ date: '2026-07-09', tomorrow: 'Réviser le chap. 4' }, { date: '2026-07-08', tomorrow: '' }];
+  const r = L.recentReflectionNotes(refl, 'tomorrow', today);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].text, 'Réviser le chap. 4');
+  assert.equal(r[0].daysAgo, 1);
+  // champ absent / vide → []
+  assert.deepEqual(L.recentReflectionNotes(refl, '', today), []);
+  assert.deepEqual(L.recentReflectionNotes(refl, 'inexistant', today), []);
+});
+
 test('completeDaysStreak : série de journées complètes (≥ seuil de domaines)', () => {
   const today = '2026-07-10';
   const days = [
@@ -3538,7 +3571,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.230');
+  assert.equal(L.CHANGELOG[0].v, '1.9.231');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
