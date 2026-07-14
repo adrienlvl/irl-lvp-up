@@ -954,6 +954,26 @@ test('upcomingKeyDates : examen + course triés dans l’horizon', () => {
   assert.deepEqual(L.upcomingKeyDates(null, null, '2026-07-10', 60), []);
 });
 
+test('upcomingPriorityItems : échéances agenda prioritaires à venir', () => {
+  const agenda = [
+    { kind: 'study', priority: 'high', date: '2026-07-20', title: 'Rendu dossier CG', completed: false },
+    { kind: 'life', priority: 'high', date: '2026-07-13', title: 'Contrôle blanc', completed: false },
+    { kind: 'study', priority: 'high', date: '2026-07-18', title: 'Fait', completed: true }, // fait → exclu
+    { kind: 'sport', priority: 'normal', date: '2026-07-14', title: 'Séance', completed: false }, // pas high → exclu
+    { kind: 'life', priority: 'high', date: '2026-07-05', title: 'Passé', completed: false }, // passé → exclu
+    { kind: 'life', priority: 'high', date: '2026-12-01', title: 'Trop loin', completed: false }, // hors horizon → exclu
+  ];
+  const r = L.upcomingPriorityItems(agenda, '2026-07-10', 30, 3);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].title, 'Contrôle blanc'); assert.equal(r[0].daysLeft, 3); // plus proche
+  assert.equal(r[1].title, 'Rendu dossier CG'); assert.equal(r[1].daysLeft, 10);
+  // limite respectée
+  assert.equal(L.upcomingPriorityItems(agenda, '2026-07-10', 365, 1).length, 1);
+  // entrées invalides
+  assert.deepEqual(L.upcomingPriorityItems(null, '2026-07-10', 30, 3), []);
+  assert.deepEqual(L.upcomingPriorityItems(agenda, 'x', 30, 3), []);
+});
+
 test('keyDateMarkers : examen et course sur un jour donné', () => {
   const exam = { title: 'BTS CG', date: '2026-05-15' }, race = { date: '2026-06-01' };
   assert.deepEqual(L.keyDateMarkers(exam, race, '2026-05-15'), [{ kind: 'exam', label: 'BTS CG' }]);
@@ -3340,7 +3360,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.221');
+  assert.equal(L.CHANGELOG[0].v, '1.9.222');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
