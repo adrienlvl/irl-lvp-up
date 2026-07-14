@@ -1284,6 +1284,24 @@ test('proteinSnackSuggestion : collation pour combler le restant', () => {
   assert.equal(L.proteinSnackSuggestion(50, 0), null);
 });
 
+test('nutritionCsv : export CSV du journal nutrition', () => {
+  const nut = [
+    { date: '2026-07-08', protein: 130, water: 7, fruit: true },
+    { date: '2026-07-06', protein: 150, water: 8, fruit: false },
+    { date: 'bad', protein: 99, water: 9, fruit: true },          // date invalide → exclue
+    { date: '2026-07-06', protein: 160, water: 6, fruit: true }   // même date → dernière conservée
+  ];
+  const csv = L.nutritionCsv(nut);
+  const lines = csv.split('\n');
+  assert.equal(lines[0], 'date,proteines_g,eau_verres,fruits_legumes');
+  assert.equal(lines[1], '2026-07-06,160,6,oui'); // dédupliqué (dernière) + trié en tête
+  assert.equal(lines[2], '2026-07-08,130,7,oui');
+  assert.equal(lines.length, 3);
+  // vide → juste l'en-tête
+  assert.equal(L.nutritionCsv([]), 'date,proteines_g,eau_verres,fruits_legumes');
+  assert.equal(L.nutritionCsv(null), 'date,proteines_g,eau_verres,fruits_legumes');
+});
+
 test('generateMeals : compose depuis le frigo, totaux cohérents, signale les manques', () => {
   const pantry = [
     { n: 'Poulet, blanc, cuit', cat: 'P', kcal: 148, p: 30, c: 0, f: 3 },
@@ -3443,7 +3461,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.225');
+  assert.equal(L.CHANGELOG[0].v, '1.9.226');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
