@@ -975,6 +975,34 @@ test('dailyStreak : jours calendaires consécutifs, grâce aujourd’hui, cassé
   assert.equal(L.dailyStreak(['2026-07-01'], today), 0, 'rien de récent → 0');
   assert.equal(L.dailyStreak(['2026-07-10'], 'pas-une-date'), 0);
 });
+
+test('recentWins : victoires passées du rituel du soir, plus récentes d’abord', () => {
+  const today = '2026-07-10';
+  const refl = [
+    { date: '2026-07-08', win: 'Séance malgré la fatigue', lesson: 'x' },
+    { date: '2026-07-09', win: '  Fini le chapitre 3  ' },              // trim
+    { date: '2026-07-10', win: 'Victoire du jour' },                     // aujourd'hui → exclue
+    { date: '2026-07-07', win: '   ' },                                  // vide après trim → exclue
+    { date: '2026-07-06', lesson: 'sans victoire' },                     // pas de win → exclue
+    { date: '2026-01-01', win: 'Trop ancienne' },                        // hors fenêtre 90 j
+    { date: 'bad', win: 'Date invalide' },                               // exclue
+  ];
+  const r = L.recentWins(refl, today);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].win, 'Fini le chapitre 3');   // 09 avant 08
+  assert.equal(r[0].daysAgo, 1);
+  assert.equal(r[1].win, 'Séance malgré la fatigue');
+  assert.equal(r[1].daysAgo, 2);
+  // cap
+  assert.equal(L.recentWins(refl, today, { cap: 1 }).length, 1);
+  // fenêtre élargie → la vieille victoire remonte
+  assert.equal(L.recentWins(refl, today, { days: 365 }).length, 3);
+  // entrées invalides
+  assert.deepEqual(L.recentWins([], today), []);
+  assert.deepEqual(L.recentWins(refl, 'pas-une-date'), []);
+  assert.deepEqual(L.recentWins(null, today), []);
+});
+
 test('completeDaysStreak : série de journées complètes (≥ seuil de domaines)', () => {
   const today = '2026-07-10';
   const days = [
@@ -3510,7 +3538,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.229');
+  assert.equal(L.CHANGELOG[0].v, '1.9.230');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
