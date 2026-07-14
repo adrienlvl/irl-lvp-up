@@ -1003,6 +1003,44 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('liveSetRecord : record détecté dès la validation de la série', () => {
+  const prior = { 'Développé couché': { load: 40, reps: 10 }, 'Tractions': { load: 0, reps: 8 } };
+  // record de CHARGE
+  assert.deepEqual(
+    L.liveSetRecord(prior, 'Développé couché', { load: 42.5, reps: 8 }, []),
+    { type: 'load', value: 42.5, previous: 40 }
+  );
+  // record de REPS (même charge)
+  assert.deepEqual(
+    L.liveSetRecord(prior, 'Développé couché', { load: 40, reps: 11 }, []),
+    { type: 'reps', value: 11, previous: 10 }
+  );
+  // poids du corps : seules les reps comptent
+  assert.deepEqual(L.liveSetRecord(prior, 'Tractions', { load: 0, reps: 9 }, []), { type: 'reps', value: 9, previous: 8 });
+  assert.equal(L.liveSetRecord(prior, 'Tractions', { load: 0, reps: 8 }, []), null, 'égaler n’est pas battre');
+  // série en dessous → rien
+  assert.equal(L.liveSetRecord(prior, 'Développé couché', { load: 40, reps: 10 }, []), null);
+  // PAS DE DOUBLON : le record a déjà été battu à une série précédente de la même séance
+  assert.equal(
+    L.liveSetRecord(prior, 'Développé couché', { load: 42.5, reps: 8 }, [{ load: 42.5, reps: 8, completed: true }]),
+    null,
+    'record déjà annoncé à la série précédente'
+  );
+  // …mais on annonce si on fait ENCORE mieux dans la même séance
+  assert.deepEqual(
+    L.liveSetRecord(prior, 'Développé couché', { load: 45, reps: 6 }, [{ load: 42.5, reps: 8, completed: true }]),
+    { type: 'load', value: 45, previous: 40 }
+  );
+  // PAS DE FANFARE AU PREMIER PASSAGE : aucun antécédent → rien à battre
+  assert.equal(L.liveSetRecord(prior, 'Soulevé de terre', { load: 100, reps: 5 }, []), null);
+  assert.equal(L.liveSetRecord({ 'Squat': { load: 0, reps: 0 } }, 'Squat', { load: 60, reps: 8 }, []), null);
+  // une série à 0 rep n'est pas une série
+  assert.equal(L.liveSetRecord(prior, 'Développé couché', { load: 60, reps: 0 }, []), null);
+  // entrées invalides
+  assert.equal(L.liveSetRecord(null, 'Développé couché', { load: 50, reps: 10 }, []), null);
+  assert.equal(L.liveSetRecord(prior, '', { load: 50, reps: 10 }, []), null);
+});
+
 test('adjustGuidedSets : ajouter/retirer une série pendant la séance', () => {
   // ajout simple
   assert.deepEqual(L.adjustGuidedSets({ sets: 3, setLogs: [] }, 1), { sets: 4, changed: true, reason: 'added' });
@@ -3814,7 +3852,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.238');
+  assert.equal(L.CHANGELOG[0].v, '1.9.239');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
