@@ -1003,6 +1003,32 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('splitDuration / combineDuration : saisie d’une durée en heures + minutes', () => {
+  assert.deepEqual(L.splitDuration(45), { h: 0, m: 45 });
+  assert.deepEqual(L.splitDuration(90), { h: 1, m: 30 }, '1 h 30');
+  assert.deepEqual(L.splitDuration(60), { h: 1, m: 0 });
+  assert.deepEqual(L.splitDuration(0), { h: 0, m: 0 });
+  assert.deepEqual(L.splitDuration(-10), { h: 0, m: 0 }, 'négatif → 0');
+  assert.deepEqual(L.splitDuration('x'), { h: 0, m: 0 });
+
+  assert.equal(L.combineDuration(1, 30), 90);
+  assert.equal(L.combineDuration(0, 45), 45);
+  assert.equal(L.combineDuration(2, 0), 120, 'heures seules');
+  assert.equal(L.combineDuration('', 45), 45, 'champ heures vide');
+  assert.equal(L.combineDuration(1, ''), 60, 'champ minutes vide');
+  // on ne « corrige » pas l'utilisateur en silence : 1 h + 90 min = 150 min
+  assert.equal(L.combineDuration(1, 90), 150);
+  assert.equal(L.combineDuration(20, 0), 600, 'plafond 10 h');
+  assert.equal(L.combineDuration(3, 0, 120), 120, 'plafond personnalisé');
+  assert.equal(L.combineDuration(-1, -5), 0, 'négatifs → 0');
+
+  // aller-retour : découper puis recomposer redonne la valeur d'origine (le modèle reste en minutes)
+  [0, 1, 45, 60, 90, 135, 599].forEach(t => {
+    const d = L.splitDuration(t);
+    assert.equal(L.combineDuration(d.h, d.m), t, `aller-retour ${t} min`);
+  });
+});
+
 test('guidedSnapshot : l’instantané est une COPIE, il n’aliase pas la séance vivante', () => {
   // Piège trouvé en vérifiant #310 : si l'instantané garde la référence de `workout.exercises`,
   // il mute en même temps que la séance. Toute comparaison « avant/après » compare alors l'objet
@@ -4058,7 +4084,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.244');
+  assert.equal(L.CHANGELOG[0].v, '1.9.245');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
