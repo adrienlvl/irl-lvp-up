@@ -12,6 +12,20 @@
 .energy-trend small{font-size:.72rem;color:var(--muted);white-space:nowrap}
 .energy-trend small.et-up{color:#4ade80}
 .energy-trend small.et-down{color:#f59e0b}
+.intention-follow{display:grid;gap:7px;margin:10px 0 0;padding:11px 13px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid #818cf8;border-radius:10px}
+.intention-follow.if-high{border-left-color:#4ade80}
+.intention-follow.if-low{border-left-color:#f59e0b}
+.intention-follow .if-head{font-size:.82rem;color:var(--text)}
+.intention-follow .if-head span{color:var(--muted);font-size:.75rem}
+.intention-follow .if-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:baseline}
+.intention-follow .if-mark{font-weight:800;color:var(--muted)}
+.intention-follow .if-item.kept .if-mark{color:#4ade80}
+.intention-follow .if-txt{display:grid;gap:2px;min-width:0}
+.intention-follow .if-txt b{font-size:.79rem;font-weight:650;color:var(--text);line-height:1.35}
+.intention-follow .if-txt em{font-style:normal;font-size:.73rem;color:#4ade80}
+.intention-follow .if-txt em.if-none{color:var(--muted)}
+.intention-follow .if-item small{color:var(--muted);font-size:.68rem;white-space:nowrap}
+.intention-follow .if-note{color:var(--muted);font-size:.68rem}
 .onb-welcome{margin:10px 0 0;padding:9px 12px;border-radius:10px;background:rgba(171,255,85,.08);border:1px solid rgba(171,255,85,.28);color:var(--text);font-size:.85rem;line-height:1.4}
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}

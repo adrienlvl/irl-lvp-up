@@ -1003,6 +1003,44 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('intentionFollowThrough : intention du matin → victoire du soir', () => {
+  const today = '2026-07-10';
+  const rituals = [
+    { date: '2026-07-09', intention: 'Finir le chapitre 3' },   // tenue (victoire ce jour-là)
+    { date: '2026-07-08', intention: 'Sortie longue' },         // tenue
+    { date: '2026-07-07', intention: 'Réviser la TVA' },        // NON tenue (pas de victoire)
+    { date: '2026-07-10', intention: 'Intention du jour' },     // AUJOURD'HUI → exclu (soir pas écrit)
+    { date: '2026-07-06', intention: '   ' },                   // vide → exclue
+    { date: '2026-06-01', intention: 'Trop ancienne' },         // hors fenêtre 14 j
+  ];
+  const reflections = [
+    { date: '2026-07-09', win: 'Chapitre 3 bouclé' },
+    { date: '2026-07-08', win: '18 km' },
+    { date: '2026-07-07', win: '   ' },                          // victoire vide → ne compte pas
+    { date: '2026-07-05', win: 'Victoire sans intention' },      // pas d'intention ce jour → ignorée
+  ];
+  const r = L.intentionFollowThrough(rituals, reflections, today);
+  assert.equal(r.total, 3, 'aujourd’hui exclu, vide exclue, hors fenêtre exclue');
+  assert.equal(r.kept, 2);
+  assert.equal(r.rate, 67);                                      // 2/3
+  assert.equal(r.pairs[0].date, '2026-07-09');                   // plus récent d’abord
+  assert.equal(r.pairs[0].intention, 'Finir le chapitre 3');
+  assert.equal(r.pairs[0].win, 'Chapitre 3 bouclé');
+  assert.equal(r.pairs[0].kept, true);
+  assert.equal(r.pairs[2].kept, false);                          // le 07 : intention sans victoire
+  assert.equal(r.pairs[2].win, null);
+  // le jour courant n'est jamais compté, même avec une victoire déjà écrite
+  const withToday = L.intentionFollowThrough(rituals, [...reflections, { date: '2026-07-10', win: 'Déjà gagné' }], today);
+  assert.equal(withToday.total, 3, 'le jour courant reste exclu du taux');
+  // cap sur les paires affichées, mais le taux porte sur tout
+  const capped = L.intentionFollowThrough(rituals, reflections, today, { cap: 1 });
+  assert.equal(capped.pairs.length, 1); assert.equal(capped.total, 3);
+  // aucune intention exploitable → null
+  assert.equal(L.intentionFollowThrough([], reflections, today), null);
+  assert.equal(L.intentionFollowThrough(rituals, reflections, 'pas-une-date'), null);
+  assert.equal(L.intentionFollowThrough(null, null, today), null);
+});
+
 test('recentFocusOutcomes : « ce qui a avancé » des blocs de focus', () => {
   const today = '2026-07-10';
   const reviews = [
@@ -3598,7 +3636,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.233');
+  assert.equal(L.CHANGELOG[0].v, '1.9.234');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
