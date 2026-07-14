@@ -3224,7 +3224,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.214');
+  assert.equal(L.CHANGELOG[0].v, '1.9.215');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -3362,6 +3362,11 @@ test('onboardingSetup : patch d’état initial validé/borné', () => {
   assert.equal(L.onboardingSetup({ name: 'x'.repeat(40) }).profile.name.length, 24);
   assert.equal(L.onboardingSetup({ name: 42 }).profile.name, '');
   assert.equal(s.profile.name, '', 'non fourni → vide');
+  // note blessures/limitations : trimée, plafonnée à 140 caractères, '' sinon
+  assert.equal(L.onboardingSetup({ limitations: '  genou droit fragile  ' }).profile.limitations, 'genou droit fragile');
+  assert.equal(L.onboardingSetup({ limitations: 'z'.repeat(200) }).profile.limitations.length, 140);
+  assert.equal(L.onboardingSetup({ limitations: 7 }).profile.limitations, '');
+  assert.equal(s.profile.limitations, '', 'non fourni → vide');
   // niveau d'activité : validé (5 clés), sinon '' (repli auto selon séances)
   assert.equal(L.onboardingSetup({ activity: 'actif' }).profile.activityLevel, 'actif');
   assert.equal(L.onboardingSetup({ activity: 'pro' }).profile.activityLevel, '', 'clé inconnue → vide');

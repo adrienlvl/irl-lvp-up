@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.214 (2026-07-13)
+## 📍 État actuel — build 1.9.215 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **302 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→280) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **302 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→281) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 17 rotations complètes ; 18ᵉ rotation en cours (#1) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.213` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 17 rotations complètes ; 18ᵉ rotation en cours (#1, #2) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`→`v1.9.213` publiées.
 
+- 🩹 **#2 approfondi (18) — note blessures/limitations** : champ à l'onboarding rappelé en bannière avant l'entraînement (`profile.limitations`). ✅ _boucle #281 (build 1.9.215)._
 - 📳 **#1 approfondi (18) — retour haptique enrichi** : vibrations sur paliers bien-être + quêtes bouclées (`VIBRATION_PATTERNS`). ✅ _boucle #280 (build 1.9.214)._
 - 🏃 **#4 approfondi (17) — course hebdo vs objectif** : carte de progression course de la semaine + tendance (ramp) (`runWeekGoal`). ✅ _boucle #279 (build 1.9.213) — clôt la 17ᵉ rotation._
 - 📤 **#3 approfondi (17) — partage du bilan bien-être** : Web Share du récap (série, routines/minutes de la semaine, total, paliers) (`shareableWellness`). ✅ _boucle #278 (build 1.9.212)._

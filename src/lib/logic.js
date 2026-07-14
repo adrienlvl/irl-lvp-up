@@ -1746,6 +1746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.215', emoji: '🩹', text: 'Onboarding : note blessures/limitations rappelée avant l\'entraînement.' },
   { v: '1.9.214', emoji: '📳', text: 'Vibrations sur les paliers bien-être et quêtes bouclées.' },
   { v: '1.9.213', emoji: '🏃', text: 'Coaching : course de la semaine vs objectif + progression.' },
   { v: '1.9.212', emoji: '📤', text: 'Bien-être : partage de ton bilan (série, minutes, paliers).' },
@@ -1921,6 +1922,7 @@ function onboardingSetup(inputs) {
     level: (i.level === 'debutant' || i.level === 'intermediaire' || i.level === 'avance') ? i.level : 'debutant',
     activityLevel: (['sedentaire', 'leger', 'modere', 'actif', 'tres'].indexOf(i.activity) !== -1) ? i.activity : '',
     name: (typeof i.name === 'string' ? i.name.trim().slice(0, 24) : ''),
+    limitations: (typeof i.limitations === 'string' ? i.limitations.trim().slice(0, 140) : ''),
     equipment: { handles: !!eq.handles, vest: !!eq.vest, kettlebell: !!eq.kettlebell, pullup: !!eq.pullup },
   };
   const w = Number(i.weight); if (w >= 30 && w <= 300) profile.weight = Math.round(w * 10) / 10;
