@@ -1003,6 +1003,35 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('adjustGuidedSets : ajouter/retirer une série pendant la séance', () => {
+  // ajout simple
+  assert.deepEqual(L.adjustGuidedSets({ sets: 3, setLogs: [] }, 1), { sets: 4, changed: true, reason: 'added' });
+  // retrait simple (dernière série non validée)
+  assert.deepEqual(
+    L.adjustGuidedSets({ sets: 3, setLogs: [{ completed: true }, { completed: true }, { completed: false }] }, -1),
+    { sets: 2, changed: true, reason: 'removed' }
+  );
+  // REFUS de retirer une série déjà validée : on ne jette pas du travail fait en silence
+  assert.deepEqual(
+    L.adjustGuidedSets({ sets: 3, setLogs: [{ completed: true }, { completed: true }, { completed: true }] }, -1),
+    { sets: 3, changed: false, reason: 'completed' }
+  );
+  // bornes
+  assert.deepEqual(L.adjustGuidedSets({ sets: 1, setLogs: [] }, -1), { sets: 1, changed: false, reason: 'min' });
+  assert.deepEqual(L.adjustGuidedSets({ sets: 8, setLogs: [] }, 1), { sets: 8, changed: false, reason: 'max' });
+  // bornes personnalisables
+  assert.deepEqual(L.adjustGuidedSets({ sets: 5, setLogs: [] }, 1, { max: 5 }), { sets: 5, changed: false, reason: 'max' });
+  assert.deepEqual(L.adjustGuidedSets({ sets: 2, setLogs: [] }, -1, { min: 2 }), { sets: 2, changed: false, reason: 'min' });
+  // delta nul
+  assert.equal(L.adjustGuidedSets({ sets: 3 }, 0).reason, 'noop');
+  // sets absent → traité comme 1
+  assert.equal(L.adjustGuidedSets({ setLogs: [] }, 1).sets, 2);
+  // sets hors bornes dans l'entrée → ramené dans les bornes avant ajustement
+  assert.equal(L.adjustGuidedSets({ sets: 99, setLogs: [] }, 1).reason, 'max');
+  // exercice invalide → null
+  assert.equal(L.adjustGuidedSets(null, 1), null);
+});
+
 test('lastExerciseSession : les séries réellement loguées au dernier passage', () => {
   const today = '2026-07-10';
   const workouts = [
@@ -3785,7 +3814,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.237');
+  assert.equal(L.CHANGELOG[0].v, '1.9.238');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
