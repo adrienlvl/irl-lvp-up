@@ -2619,6 +2619,32 @@ test('runWeekGoal : progression course hebdo vs objectif', () => {
   assert.equal(L.runWeekGoal(w, 'x', 20), null);
 });
 
+test('focusWeekGoal : objectif hebdo de minutes de focus', () => {
+  // 2026-07-15 = mercredi ; lundi = 2026-07-13
+  const fs = [
+    { date: '2026-07-13', minutes: 25 },
+    { date: '2026-07-14', minutes: 50 },
+    { date: '2026-07-06', minutes: 40 }, // semaine précédente → exclu
+    { date: 'bad', minutes: 30 }         // date invalide → exclu
+  ];
+  const g = L.focusWeekGoal(fs, '2026-07-15', 120);
+  assert.equal(g.done, 75);
+  assert.equal(g.target, 120);
+  assert.equal(g.sessions, 2);
+  assert.equal(g.pct, Math.round(75 / 120 * 100)); // 63
+  assert.equal(g.remaining, 45);
+  assert.equal(g.status, 'onTrack'); // pct >= 60
+  // atteint → done, pct plafonné 100
+  const done = L.focusWeekGoal([{ date: '2026-07-13', minutes: 130 }], '2026-07-15', 120);
+  assert.equal(done.status, 'done'); assert.equal(done.pct, 100); assert.equal(done.remaining, 0);
+  // en retard
+  assert.equal(L.focusWeekGoal([{ date: '2026-07-13', minutes: 20 }], '2026-07-15', 120).status, 'behind');
+  // cible par défaut si absente
+  assert.equal(L.focusWeekGoal([], '2026-07-15').target, L.FOCUS_WEEK_TARGET_MIN);
+  // clé invalide → null
+  assert.equal(L.focusWeekGoal(fs, 'x', 120), null);
+});
+
 test('runPace : allure min:sec par km', () => {
   assert.equal(L.runPace(10, 50).label, '5:00', '10 km en 50 min → 5:00/km');
   assert.equal(L.runPace(10, 50).secPerKm, 300);
@@ -3417,7 +3443,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.224');
+  assert.equal(L.CHANGELOG[0].v, '1.9.225');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
