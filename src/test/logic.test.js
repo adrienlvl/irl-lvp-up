@@ -1003,6 +1003,52 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('guidedSnapshot : l’instantané est une COPIE, il n’aliase pas la séance vivante', () => {
+  // Piège trouvé en vérifiant #310 : si l'instantané garde la référence de `workout.exercises`,
+  // il mute en même temps que la séance. Toute comparaison « avant/après » compare alors l'objet
+  // avec lui-même → elle ne voit jamais aucun changement, et la sauvegarde est sautée.
+  const workout = { title: 'S', exercises: [{ name: 'Squat', setLogs: [{ load: 60, reps: 8, completed: false }] }] };
+  const snap = L.guidedSnapshot(workout, 0, 1800000000000);
+  assert.notEqual(snap.exercises, workout.exercises, 'pas la même référence de tableau');
+  assert.notEqual(snap.exercises[0].setLogs, workout.exercises[0].setLogs, 'ni des séries');
+
+  // muter la séance vivante ne doit PAS modifier l'instantané
+  workout.exercises[0].setLogs[0].load = 62.5;
+  assert.equal(snap.exercises[0].setLogs[0].load, 60, 'l’instantané est figé');
+
+  // et la comparaison voit donc bien le changement
+  const snap2 = L.guidedSnapshot(workout, 0, 1800000000001);
+  assert.equal(L.guidedSnapshotEquals(snap, snap2), false, 'le changement est détecté');
+});
+
+test('guidedSnapshotEquals : évite de réécrire le state quand rien n’a changé', () => {
+  const base = () => ({
+    index: 0,
+    exercises: [{ name: 'Squat', setLogs: [{ load: 60, reps: 8, completed: true }, { load: 60, reps: 0, completed: false }] }],
+    rest: { total: 90, endsAt: 1800000000000 },
+  });
+  assert.equal(L.guidedSnapshotEquals(base(), base()), true, 'identiques');
+  // `savedAt` change à CHAQUE instantané : ce n'est pas un changement métier, il ne doit pas
+  // déclencher d'écriture — sinon le garde-fou ne servirait à rien.
+  assert.equal(L.guidedSnapshotEquals({ ...base(), savedAt: 1 }, { ...base(), savedAt: 999 }), true);
+
+  // toute vraie modification est bien détectée
+  const chg = (f) => { const s = base(); f(s); return L.guidedSnapshotEquals(base(), s); };
+  assert.equal(chg(s => { s.index = 1; }), false, 'exercice courant');
+  assert.equal(chg(s => { s.exercises[0].setLogs[1].load = 62.5; }), false, 'charge saisie');
+  assert.equal(chg(s => { s.exercises[0].setLogs[1].reps = 8; }), false, 'reps saisies');
+  assert.equal(chg(s => { s.exercises[0].setLogs[1].completed = true; }), false, 'série validée');
+  assert.equal(chg(s => { s.exercises[0].setLogs.push({ load: 0, reps: 0 }); }), false, 'série ajoutée');
+  assert.equal(chg(s => { s.exercises[0].name = 'Fentes'; }), false, 'exercice remplacé');
+  assert.equal(chg(s => { s.rest = null; }), false, 'repos terminé');
+  assert.equal(chg(s => { s.rest.endsAt += 1000; }), false, 'repos réajusté');
+  assert.equal(chg(s => { s.exercises.push({ name: 'X', setLogs: [] }); }), false, 'exercice ajouté');
+
+  assert.equal(L.guidedSnapshotEquals(null, null), true);
+  assert.equal(L.guidedSnapshotEquals(null, base()), false);
+  assert.equal(L.guidedSnapshotEquals(base(), null), false);
+});
+
 test('restStart / restState : le repos suit l’horloge, pas les ticks', () => {
   const T0 = 1800000000000;
   const r = L.restStart(90, T0);
@@ -4012,7 +4058,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.243');
+  assert.equal(L.CHANGELOG[0].v, '1.9.244');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
