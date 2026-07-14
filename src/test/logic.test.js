@@ -1003,6 +1003,36 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('restStart / restState : le repos suit l’horloge, pas les ticks', () => {
+  const T0 = 1800000000000;
+  const r = L.restStart(90, T0);
+  assert.equal(r.total, 90);
+  assert.equal(r.endsAt, T0 + 90000);
+  assert.equal(L.restStart(0, T0).total, 1, 'plancher');
+  assert.equal(L.restStart(9999, T0).total, 600, 'plafond');
+
+  // LE POINT CLÉ : 30 s réelles écoulées → il reste 60 s, même sans qu'aucun tick n'ait eu lieu
+  // (écran éteint, app en arrière-plan). L'ancien décompte, lui, se figeait.
+  const s30 = L.restState(r, T0 + 30000);
+  assert.equal(s30.remainingSec, 60);
+  assert.equal(s30.done, false);
+  assert.equal(s30.total, 90);
+  assert.equal(s30.pct, L.restBarPct(60, 90), 'la barre de progression reste cohérente');
+
+  // le repos est terminé même si l'écran est resté éteint tout du long
+  assert.equal(L.restState(r, T0 + 90000).done, true);
+  const long = L.restState(r, T0 + 10 * 60000);
+  assert.equal(long.remainingSec, 0, 'jamais négatif');
+  assert.equal(long.done, true);
+  assert.equal(long.pct, 0);
+
+  // entrées invalides
+  assert.equal(L.restState(null, T0), null);
+  assert.equal(L.restState([], T0), null);
+  assert.equal(L.restState({ total: 90 }, T0), null, 'sans endsAt → null');
+  assert.equal(L.restState({ endsAt: T0 + 1000 }, T0), null, 'sans total → null');
+});
+
 test('focusTimer : piloté par l’horloge, survit au rechargement et à l’arrière-plan', () => {
   const T0 = 1800000000000;
   const t = L.focusTimerStart(25, T0, 'Réviser la TVA');
@@ -3982,7 +4012,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.242');
+  assert.equal(L.CHANGELOG[0].v, '1.9.243');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
