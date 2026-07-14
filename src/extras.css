@@ -8,7 +8,13 @@
 .guided-progression-hint{margin:11px 0 0!important;padding:9px 11px;border-radius:9px;background:rgba(94,234,212,.08);border:1px solid rgba(94,234,212,.18);color:#c7f9f1!important;font-size:.76rem!important;line-height:1.42}.guided-progression-hint.cautious{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.24);color:#fde68a!important}
 
 /* ===== general-plus.css (fusionné 2026-07-06, ordre préservé) ===== */
-.daily-life-step{display:grid;gap:8px;margin-top:15px;padding-top:14px;border-top:1px solid var(--line)}.daily-life-step label{display:grid;gap:5px;color:var(--muted);font-size:.72rem}.daily-life-step input{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}.daily-life-step>div{display:flex;gap:8px;flex-wrap:wrap}.daily-life-step small,.nutrition-week-status{color:var(--muted);font-size:.74rem;line-height:1.42;margin:0}.daily-life-step.done small{color:#d9fbb5}.nutrition-week-status{padding:9px 11px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line)}@media(max-width:500px){.daily-life-step>div button{flex:1}}
+.daily-life-step{display:grid;gap:8px;margin-top:15px;padding-top:14px;border-top:1px solid var(--line)}
+.life-step-stats{display:grid;gap:5px;margin-top:6px;padding:9px 12px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px}
+.life-step-stats.lss-low{border-left-color:var(--line)}
+.life-step-stats.lss-high{border-left-color:#4ade80}
+.life-step-stats .lss-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:.82rem;color:var(--text)}
+.life-step-stats .lss-head small{color:var(--muted);font-size:.72rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.life-step-stats .lss-last{color:var(--muted);font-size:.72rem;line-height:1.4}.daily-life-step label{display:grid;gap:5px;color:var(--muted);font-size:.72rem}.daily-life-step input{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}.daily-life-step>div{display:flex;gap:8px;flex-wrap:wrap}.daily-life-step small,.nutrition-week-status{color:var(--muted);font-size:.74rem;line-height:1.42;margin:0}.daily-life-step.done small{color:#d9fbb5}.nutrition-week-status{padding:9px 11px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line)}@media(max-width:500px){.daily-life-step>div button{flex:1}}
 
 
 /* ===== charts (Vague 4.1, 2026-07-06) ===== */
