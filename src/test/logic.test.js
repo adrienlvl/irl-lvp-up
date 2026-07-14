@@ -1003,6 +1003,49 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('guidedSnapshot / resumableGuided : la séance en cours survit à une fermeture', () => {
+  const T0 = 1800000000000;
+  const workout = {
+    title: 'Bas du corps', why: 'jambes', duration: 40,
+    exercises: [
+      { name: 'Squat', sets: 3, setLogs: [{ load: 60, reps: 8, completed: true }, { load: 60, reps: 8, completed: true }, { load: 0, reps: 0, completed: false }] },
+      { name: 'Fentes', sets: 3, setLogs: [] },
+    ],
+  };
+  const snap = L.guidedSnapshot(workout, 0, T0);
+  assert.equal(snap.title, 'Bas du corps');
+  assert.equal(snap.index, 0);
+  assert.equal(snap.savedAt, T0);
+  assert.equal(snap.exercises.length, 2);
+  // index borné à la plage réelle
+  assert.equal(L.guidedSnapshot(workout, 99, T0).index, 1);
+  assert.equal(L.guidedSnapshot(workout, -5, T0).index, 0);
+  // séance vide/invalide → null
+  assert.equal(L.guidedSnapshot({ exercises: [] }, 0, T0), null);
+  assert.equal(L.guidedSnapshot(null, 0, T0), null);
+
+  // reprenable juste après
+  const r = L.resumableGuided(snap, T0 + 12 * 60000);
+  assert.equal(r.done, 2, '2 séries validées');
+  assert.equal(r.total, 3, 'séries loguées');
+  assert.equal(r.ageMin, 12);
+  assert.equal(r.session.title, 'Bas du corps');
+
+  // trop ancienne (> 12 h par défaut) → séance oubliée, pas une reprise
+  assert.equal(L.resumableGuided(snap, T0 + 13 * 3600000), null);
+  assert.ok(L.resumableGuided(snap, T0 + 13 * 3600000, 24), 'fenêtre élargie → reprenable');
+
+  // AUCUNE série validée → rien à sauver, on ne propose pas de reprise
+  const vierge = L.guidedSnapshot({ title: 'X', exercises: [{ name: 'Squat', setLogs: [{ load: 60, reps: 8, completed: false }] }] }, 0, T0);
+  assert.equal(L.resumableGuided(vierge, T0 + 60000), null);
+
+  // horodatage absent / futur / entrées invalides → null
+  assert.equal(L.resumableGuided({ ...snap, savedAt: 0 }, T0), null);
+  assert.equal(L.resumableGuided(snap, T0 - 60000), null, 'sauvegardée dans le futur → refusée');
+  assert.equal(L.resumableGuided(null, T0), null);
+  assert.equal(L.resumableGuided([], T0), null);
+});
+
 test('exerciseAlternatives : équivalents même zone, matériel dispo, sans doublon', () => {
   // On s'appuie sur la VRAIE table EXERCISE_ZONES plutôt que d'inventer une table parallèle
   // qui divergerait de la réalité : on vérifie des invariants.
@@ -3888,7 +3931,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.240');
+  assert.equal(L.CHANGELOG[0].v, '1.9.241');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
