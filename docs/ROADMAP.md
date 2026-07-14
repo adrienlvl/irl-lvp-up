@@ -6,12 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.207 (2026-07-13)
+## 📍 État actuel — build 1.9.208 (2026-07-13)
 
-App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **297 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→273) :
+App **desktop (Electron) + PWA mobile prête à déployer**, hors accès réseau **opt-in**. **298 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→274) :
 
-> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 15 rotations complètes ; 16ᵉ rotation en cours (#1, #2) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193`/`v1.9.197`/`v1.9.201`/`v1.9.205` publiées.
+> ✅ **Les 4 caps d'Adrien (#1→#4) traités + 15 rotations complètes ; 16ᵉ rotation en cours (#1, #2, #3) — boucle autonome continue**. **Publication option B ACTIVE + AUTO-PUBLISH** (`releaseType:release`) : release GitHub Actions par tag `v*` (`GITHUB_TOKEN` intégré) ; **1ʳᵉ release `v1.9.185` ✅ verte**, `v1.9.187`/`v1.9.189`/`v1.9.193`/`v1.9.197`/`v1.9.201`/`v1.9.205` publiées.
 
+- 🗓️ **#3 approfondi (16) — record de routines par semaine** : chip « record sem. N » (meilleure semaine bien-être all-time) + célébration si battu cette semaine (`bestWellnessWeek`). ✅ _boucle #274 (build 1.9.208)._
 - 🙂 **#2 approfondi (16) — prénom/pseudo du joueur** : champ à l'onboarding affiché « 👋 {pseudo} » sur la carte joueur (`profile.name`). ✅ _boucle #273 (build 1.9.207)._
 - 📤 **#1 approfondi (16) — bouton « Partager l'app »** : Web Share d'une invitation (repli presse-papier), lien PWA/GitHub Pages (`shareAppPayload`). ✅ _boucle #272 (build 1.9.206)._
 - 📅 **#4 approfondi (15) — mes jours d'entraînement** : mini-graphe des séances par jour de la semaine (8 sem.) + jour fort (`trainingByWeekday`). ✅ _boucle #271 (build 1.9.205) — clôt la 15ᵉ rotation._

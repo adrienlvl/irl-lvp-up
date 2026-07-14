@@ -2876,6 +2876,30 @@ test('wellnessMinutesForKey / wellnessMinutesInWindow : minutes de mobilité', (
   assert.equal(L.wellnessMinutesInWindow([], '2026-07-06', '2026-07-13'), 0);
   assert.equal(L.wellnessMinutesInWindow(null, '2026-07-06', '2026-07-13'), 0);
 });
+test('bestWellnessWeek : record de routines par semaine', () => {
+  assert.equal(L.bestWellnessWeek([], '2026-07-13'), null);
+  // semaine du 06-07 = 3 routines ; semaine courante 13-07 = 1 → record = 06-07
+  const log = [
+    { date: '2026-07-06', key: 'hips' }, { date: '2026-07-07', key: 'neck' }, { date: '2026-07-08', key: 'warmup' }, // sem. 06-07
+    { date: '2026-07-13', key: 'morning' }, // sem. 13-07 (courante)
+  ];
+  const b = L.bestWellnessWeek(log, '2026-07-13');
+  assert.equal(b.weekStart, '2026-07-06');
+  assert.equal(b.count, 3);
+  assert.equal(b.isCurrent, false);
+  // si la semaine courante est le record → isCurrent true
+  const log2 = [
+    { date: '2026-07-06', key: 'hips' },
+    { date: '2026-07-13', key: 'neck' }, { date: '2026-07-14', key: 'warmup' }, { date: '2026-07-15', key: 'morning' }, // 3 cette semaine
+  ];
+  const b2 = L.bestWellnessWeek(log2, '2026-07-13');
+  assert.equal(b2.weekStart, '2026-07-13');
+  assert.equal(b2.count, 3);
+  assert.equal(b2.isCurrent, true);
+  // dates invalides ignorées
+  assert.equal(L.bestWellnessWeek([{ date: 'x', key: 'a' }], '2026-07-13'), null);
+  assert.equal(L.bestWellnessWeek(null, '2026-07-13'), null);
+});
 test('wellnessGoalProgress : objectif hebdo de routines', () => {
   const g = L.wellnessGoalProgress(2, 3);
   assert.equal(g.done, 2); assert.equal(g.target, 3);
@@ -3131,7 +3155,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.207');
+  assert.equal(L.CHANGELOG[0].v, '1.9.208');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
