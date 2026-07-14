@@ -5,6 +5,13 @@
 .recent-wins .rw-item b{font-size:.8rem;font-weight:600;color:var(--text);line-height:1.4}
 .recent-wins .rw-item small{color:var(--muted);font-size:.7rem;white-space:nowrap}
 .recent-lessons{border-left-color:#60a5fa;margin-top:8px}
+.energy-trend{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:12px 0 0;padding:9px 12px;font-size:.82rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid #818cf8;border-radius:10px}
+.energy-trend.et-low{border-left-color:#f59e0b}
+.energy-trend.et-high{border-left-color:#4ade80}
+.energy-trend b{font-variant-numeric:tabular-nums}
+.energy-trend small{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.energy-trend small.et-up{color:#4ade80}
+.energy-trend small.et-down{color:#f59e0b}
 .onb-welcome{margin:10px 0 0;padding:9px 12px;border-radius:10px;background:rgba(171,255,85,.08);border:1px solid rgba(171,255,85,.28);color:var(--text);font-size:.85rem;line-height:1.4}
 .onb-welcome:empty{display:none}
 .onb-wide{grid-column:1/-1}

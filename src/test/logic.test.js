@@ -3571,7 +3571,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.231');
+  assert.equal(L.CHANGELOG[0].v, '1.9.232');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4174,6 +4174,38 @@ test('readinessTrend : série de forme des derniers check-ins + delta', () => {
   assert.deepEqual(L.readinessTrend([rec[2], rec[0]], 8).points.map(p => p.date), ['2026-07-06', '2026-07-10']);
   assert.equal(L.readinessTrend([rec[0]], 8), null, '< 2 check-ins → null');
   assert.equal(L.readinessTrend([], 8), null);
+});
+
+test('morningEnergyTrend : moyenne d’énergie récente vs fenêtre précédente', () => {
+  const today = '2026-07-14';
+  // fenêtre récente (08→14) : 3, 3, 2 → moy 2,7 ; fenêtre précédente (01→07) : 4, 4 → moy 4
+  const rituals = [
+    { date: '2026-07-14', energy: 2 },
+    { date: '2026-07-12', energy: 3 },
+    { date: '2026-07-09', energy: 3 },
+    { date: '2026-07-05', energy: 4 },
+    { date: '2026-07-02', energy: 4 },
+    { date: '2026-06-01', energy: 5 }, // hors des deux fenêtres
+    { date: '2026-07-11', energy: 0 }, // énergie 0 → ignorée
+  ];
+  const t = L.morningEnergyTrend(rituals, today, 7);
+  assert.equal(t.count, 3);
+  assert.equal(t.avg, 2.7);      // (3+3+2)/3
+  assert.equal(t.prevAvg, 4);    // (4+4)/2
+  assert.equal(t.delta, -1.3);
+  assert.equal(t.dir, 'down');
+  assert.equal(t.level, 'low');  // < 3
+  assert.equal(t.days, 7);
+  // dédup par date (dernière valeur conservée)
+  const dup = L.morningEnergyTrend([{ date: '2026-07-14', energy: 2 }, { date: '2026-07-14', energy: 5 }, { date: '2026-07-13', energy: 5 }], today, 7);
+  assert.equal(dup.count, 2); assert.equal(dup.avg, 5);
+  // pas de fenêtre précédente → delta 0, dir flat
+  const noPrev = L.morningEnergyTrend([{ date: '2026-07-13', energy: 4 }, { date: '2026-07-14', energy: 4 }], today, 7);
+  assert.equal(noPrev.prevAvg, null); assert.equal(noPrev.delta, 0); assert.equal(noPrev.dir, 'flat'); assert.equal(noPrev.level, 'high');
+  // < 2 matins notés dans la fenêtre récente → null
+  assert.equal(L.morningEnergyTrend([{ date: '2026-07-14', energy: 3 }], today, 7), null);
+  assert.equal(L.morningEnergyTrend([], today, 7), null);
+  assert.equal(L.morningEnergyTrend(rituals, 'pas-une-date', 7), null);
 });
 
 test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () => {
