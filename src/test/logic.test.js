@@ -2933,6 +2933,22 @@ test('bestWellnessWeek : record de routines par semaine', () => {
   assert.equal(L.bestWellnessWeek([{ date: 'x', key: 'a' }], '2026-07-13'), null);
   assert.equal(L.bestWellnessWeek(null, '2026-07-13'), null);
 });
+test('shareableWellness : partage du bilan bien-être', () => {
+  assert.equal(L.shareableWellness([], '2026-07-13'), null);
+  const log = [
+    { date: '2026-07-11', key: 'hips' }, { date: '2026-07-12', key: 'neck' }, { date: '2026-07-13', key: 'warmup' },
+  ];
+  const s = L.shareableWellness(log, '2026-07-13');
+  assert.ok(s && s.title && s.text);
+  assert.match(s.title, /bilan bien-être/i);
+  assert.match(s.text, /3 routines au total/);
+  assert.match(s.text, /de suite/); // streak 3 jours
+  assert.match(s.text, /min de mobilité/);
+  // todayKey invalide → au moins le total, sans planter
+  const s2 = L.shareableWellness(log, 'x');
+  assert.ok(s2 && /au total/.test(s2.text));
+  assert.equal(L.shareableWellness(null, '2026-07-13'), null);
+});
 test('wellnessGoalProgress : objectif hebdo de routines', () => {
   const g = L.wellnessGoalProgress(2, 3);
   assert.equal(g.done, 2); assert.equal(g.target, 3);
@@ -3188,7 +3204,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.211');
+  assert.equal(L.CHANGELOG[0].v, '1.9.212');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
