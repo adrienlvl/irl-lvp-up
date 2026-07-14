@@ -1003,6 +1003,59 @@ test('recentWins : victoires passées du rituel du soir, plus récentes d’abor
   assert.deepEqual(L.recentWins(null, today), []);
 });
 
+test('logQuestDay : journalise une journée de quêtes avant la remise à zéro', () => {
+  let log = [];
+  log = L.logQuestDay(log, '2026-07-08', 3, 3);
+  log = L.logQuestDay(log, '2026-07-09', 1, 4);
+  assert.deepEqual(log, [{ date: '2026-07-08', done: 3, total: 3 }, { date: '2026-07-09', done: 1, total: 4 }]);
+  // idempotent : réécrit l'entrée d'une date déjà journalisée
+  log = L.logQuestDay(log, '2026-07-09', 4, 4);
+  assert.equal(log.length, 2);
+  assert.deepEqual(log[1], { date: '2026-07-09', done: 4, total: 4 });
+  // toujours trié par date, même si journalisé dans le désordre
+  log = L.logQuestDay(log, '2026-07-07', 2, 2);
+  assert.deepEqual(log.map(e => e.date), ['2026-07-07', '2026-07-08', '2026-07-09']);
+  // aucune quête ce jour-là → rien à journaliser
+  assert.equal(L.logQuestDay([], '2026-07-10', 0, 0).length, 0);
+  // done borné à total, valeurs négatives ramenées à 0
+  assert.deepEqual(L.logQuestDay([], '2026-07-10', 9, 3)[0], { date: '2026-07-10', done: 3, total: 3 });
+  assert.deepEqual(L.logQuestDay([], '2026-07-10', -5, 3)[0], { date: '2026-07-10', done: 0, total: 3 });
+  // date invalide → journal inchangé
+  assert.deepEqual(L.logQuestDay([{ date: '2026-07-08', done: 1, total: 2 }], 'bad', 1, 2), [{ date: '2026-07-08', done: 1, total: 2 }]);
+  // cap
+  assert.equal(L.logQuestDay(Array.from({ length: 40 }, (_, i) => ({ date: `2026-05-${String(i + 1).padStart(2, '0')}`, done: 1, total: 1 })), '2026-07-10', 1, 1, 30).length, 30);
+});
+
+test('questPerfectStreak : série de journées « toutes quêtes validées »', () => {
+  const today = '2026-07-10';
+  // le journal ne contient QUE les jours passés — l'état du jour est passé à part
+  const log = [
+    { date: '2026-07-07', done: 2, total: 2 },  // parfaite
+    { date: '2026-07-08', done: 3, total: 3 },  // parfaite
+    { date: '2026-07-09', done: 3, total: 3 },  // parfaite
+    { date: '2026-07-06', done: 1, total: 4 },  // imparfaite → casse la série avant
+    { date: '2026-07-05', done: 0, total: 0 },  // aucune quête → ignorée
+  ];
+  // aujourd'hui : 4/4 validées → la série inclut aujourd'hui = 4
+  const withToday = L.questPerfectStreak(log, today, 4, 4);
+  assert.equal(withToday.streak, 4, '07, 08, 09 + aujourd’hui');
+  assert.equal(withToday.perfectDays, 4);
+  assert.equal(withToday.loggedDays, 5); // 4 jours à quêtes dans le log + aujourd'hui
+  assert.equal(withToday.rate, 80);
+  // aujourd'hui incomplet → grâce de dailyStreak : la série repart d'hier = 3
+  const partial = L.questPerfectStreak(log, today, 2, 4);
+  assert.equal(partial.streak, 3);
+  assert.equal(partial.perfectDays, 3);
+  // aucune quête aujourd'hui → le jour ne compte pas dans loggedDays
+  assert.equal(L.questPerfectStreak(log, today, 0, 0).loggedDays, 4);
+  // une entrée du log portant la date du jour est ignorée au profit de l'état live
+  const dupToday = L.questPerfectStreak([...log, { date: today, done: 0, total: 4 }], today, 4, 4);
+  assert.equal(dupToday.streak, 4, 'l’état live du jour prime sur une entrée de journal du même jour');
+  // journal vide
+  assert.deepEqual(L.questPerfectStreak([], today, 0, 0), { streak: 0, perfectDays: 0, loggedDays: 0, rate: 0 });
+  assert.equal(L.questPerfectStreak(null, today, 0, 0).streak, 0);
+});
+
 test('intentionFollowThrough : intention du matin → victoire du soir', () => {
   const today = '2026-07-10';
   const rituals = [
@@ -3636,7 +3689,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.234');
+  assert.equal(L.CHANGELOG[0].v, '1.9.235');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
