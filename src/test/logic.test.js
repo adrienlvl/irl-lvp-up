@@ -491,6 +491,29 @@ test('habitWeekMap : 7 derniers jours (ancien→récent) avec prévu/fait', () =
   assert.deepEqual(L.habitWeekMap({ id: 3 }, 'pas-une-date'), []);
 });
 
+test('habitsWeekPulse : agrégat hebdo de toutes les habitudes', () => {
+  // 2 habitudes quotidiennes sur la semaine se terminant le 10/07 (14 occurrences prévues) :
+  //  - A faite 08 + 10 (2), B faite 10 (1) → 3 tenues / 14 prévues
+  const p = L.habitsWeekPulse([
+    { id: 1, weekdays: [], log: ['2026-07-08', '2026-07-10'] },
+    { id: 2, weekdays: [], log: ['2026-07-10'] }
+  ], '2026-07-10');
+  assert.equal(p.scheduled, 14);
+  assert.equal(p.done, 3);
+  assert.equal(p.rate, 21, 'round(3/14*100)=21');
+  assert.equal(p.days.length, 7);
+  assert.equal(p.days[6].done, 2, 'le 10/07 : A et B faites');
+  assert.equal(p.days[6].scheduled, 2);
+  // habitude programmée lun/mer/ven : ne compte que ses jours
+  const only = L.habitsWeekPulse([{ id: 3, weekdays: [1, 3, 5], log: ['2026-07-10'] }], '2026-07-10');
+  assert.equal(only.scheduled, 3, 'lun/mer/ven sur la semaine');
+  assert.equal(only.done, 1);
+  // aucune habitude / occurrences → null
+  assert.equal(L.habitsWeekPulse([], '2026-07-10'), null);
+  assert.equal(L.habitsWeekPulse(null, '2026-07-10'), null);
+  assert.equal(L.habitsWeekPulse([{ id: 4, weekdays: [1, 3, 5], log: [] }], 'bad-date'), null, 'date invalide → null');
+});
+
 test('todosForDay : entrée non-tableau tolérée → vide', () => {
   const r = L.todosForDay(null, '2026-07-07');
   assert.deepEqual(r.active, []);
@@ -4240,7 +4263,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.278');
+  assert.equal(L.CHANGELOG[0].v, '1.9.279');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

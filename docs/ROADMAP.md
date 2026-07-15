@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.278 (2026-07-15)
+## 📍 État actuel — build 1.9.279 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **363 tests + smoke** verts (harness durci, dont garde-fou CSS + 30 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**344**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **364 tests + smoke** verts (harness durci, dont garde-fou CSS + 31 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**345**) :
 
+- 📅 **Pouls hebdo habitudes** : `habitsWeekPulse` agrège toutes les habitudes sur 7 j (prévu vs tenu, %) + frise de pastilles sous la liste — vue d'ensemble d'un coup d'œil. Vérifié en navigateur. ✅ _boucle #345 (build 1.9.279)._
 - 🧹 **Reset filtres bibliothèque** : `activeExerciseFilters` affiche les filtres actifs (recherche/matériel/objectif/favoris/nouveaux) et un bouton « ✕ Réinitialiser » réaffiche tout en un clic — plus de cul-de-sac « aucun résultat ». Vérifié en navigateur. ✅ _boucle #344 (build 1.9.278)._
 - 💧 **Rythme d'hydratation** : `hydrationPace` répartit l'objectif d'eau sur la journée (8 h→22 h) et signale sous la barre si tu es dans les temps ou en retard — jamais de rappel avant le coucher. Vérifié en navigateur. ✅ _boucle #343 (build 1.9.277)._
 - ⬆️ **Mises à jour à la demande** (demandé par Adrien) : panneau « Mises à jour » dans les Réglages (desktop) — vérifier maintenant + installer sans attendre le redémarrage. Bandeau popup conservé au démarrage pour les MAJ dispo ; états recherche/à jour seulement dans Réglages. Vérifié en navigateur. ✅ _boucle #342 (build 1.9.276)._

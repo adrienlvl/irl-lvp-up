@@ -284,6 +284,16 @@ details.calendar-setting[open]{padding-bottom:14px}
 .hw-dot.hw-off{opacity:.4}
 .hw-dot.hw-today{outline:2px solid color-mix(in srgb,var(--accent) 60%,transparent);outline-offset:1px}
 .habit-item.offday{opacity:.55}
+.habit-week-pulse{margin:10px 0 2px;padding:9px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.habit-week-pulse .hwp-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:.78rem;color:var(--muted)}
+.habit-week-pulse .hwp-rate{font-weight:800;font-size:.86rem}
+.habit-week-pulse .hwp-good{color:#4ade80}.habit-week-pulse .hwp-mid{color:#facc15}.habit-week-pulse .hwp-low{color:#f87171}
+.habit-week-pulse .hwp-dots{display:flex;gap:5px;margin-top:7px}
+.hwp-dot{flex:1;height:8px;border-radius:3px;background:var(--input-bg);border:1px solid var(--line);box-sizing:border-box}
+.hwp-dot.hwp-full{background:#4ade80;border-color:#4ade80}
+.hwp-dot.hwp-part{background:color-mix(in srgb,#4ade80 45%,var(--input-bg));border-color:color-mix(in srgb,#4ade80 45%,var(--line))}
+.hwp-dot.hwp-miss{background:transparent;border-color:color-mix(in srgb,#ef4444 50%,var(--line))}
+.hwp-dot.hwp-off{opacity:.35}
 .habit-check.off{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;color:var(--muted)}
 
 /* Révisions par matière : voir d'un coup d'œil laquelle est en retard (BTS = plusieurs matières). */
