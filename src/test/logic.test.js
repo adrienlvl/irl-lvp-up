@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.258');
+  assert.equal(L.CHANGELOG[0].v, '1.9.259');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5164,4 +5164,24 @@ test('proteinStreak : jours consécutifs à la cible protéines', () => {
   // cible absente / date invalide
   assert.deepEqual(L.proteinStreak(nut, 0, '2026-07-15'), { current: 0, best: 0 });
   assert.deepEqual(L.proteinStreak(nut, T, 'nope'), { current: 0, best: 0 });
+});
+
+test('habitConsistency : régularité DEPUIS le début (fenêtre bornée à la 1re date loggée)', () => {
+  // habitude quotidienne ; 1re date loggée = 08/07 → fenêtre bornée à [08..15] = 8 jours prévus
+  const log = ['2026-07-15', '2026-07-14', '2026-07-12', '2026-07-10', '2026-07-08']; // 5 tenus / 8 prévus
+  const h = { name: 'Lecture', weekdays: [], log };
+  const r = L.habitConsistency(h, '2026-07-15', 10);
+  assert.deepEqual([r.done, r.scheduled, r.rate], [5, 8, 63]); // 5/8 = 63 %, jours avant le 08 non comptés
+  // habitude planifiée lun(1)/mer(3)/ven(5), 1re date = 10/07 → fenêtre [10..15]
+  const h2 = { name: 'Sport', weekdays: [1, 3, 5], log: ['2026-07-15', '2026-07-13', '2026-07-10'] };
+  const r2 = L.habitConsistency(h2, '2026-07-15', 14);
+  // prévus (lun/mer/ven) dans [10..15] : 10(V), 13(L), 15(M) = 3, tous tenus
+  assert.deepEqual([r2.done, r2.scheduled, r2.rate], [3, 3, 100]);
+  // habitude créée aujourd'hui (1 occurrence) → fenêtre 1 jour, pas de taux ridicule
+  const r3 = L.habitConsistency({ name: 'Neuve', weekdays: [], log: ['2026-07-15'] }, '2026-07-15', 30);
+  assert.deepEqual([r3.done, r3.scheduled, r3.rate], [1, 1, 100]);
+  // aucun historique → null
+  assert.equal(L.habitConsistency({ name: 'X', weekdays: [], log: [] }, '2026-07-15', 30), null);
+  // date invalide → null
+  assert.equal(L.habitConsistency(h, 'nope', 30), null);
 });

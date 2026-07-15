@@ -281,3 +281,9 @@ details.calendar-setting[open]{padding-bottom:14px}
 /* Série « objectif protéines » : la nutrition entre dans le jeu des séries de l'app. */
 .protein-streak{margin-top:6px;font-size:.86rem;color:var(--text);padding:7px 11px;border-radius:8px;background:color-mix(in srgb,#fb7185 10%,transparent);border:1px solid color-mix(in srgb,#fb7185 30%,transparent)}
 .protein-streak small{color:var(--muted)}
+
+/* Régularité 30 j par habitude : vue long terme (couleur selon le taux). */
+.habit-rate{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none}
+.habit-rate.hr-good{background:color-mix(in srgb,#22c55e 16%,transparent);color:#16a34a}
+.habit-rate.hr-mid{background:color-mix(in srgb,#f0b429 16%,transparent);color:#b7791f}
+.habit-rate.hr-low{background:color-mix(in srgb,#ef4444 16%,transparent);color:#dc2626}

@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.258 (2026-07-15)
+## 📍 État actuel — build 1.9.259 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **351 tests + smoke** verts (harness durci, dont garde-fou CSS + 9 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**324**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **352 tests + smoke** verts (harness durci, dont garde-fou CSS + 10 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**325**) :
+
+- 📊 **Habitudes — régularité sur 30 j** : `habitConsistency` affiche un taux (vert/orange/rouge) par habitude, complétant la série court terme. Fenêtre bornée à la 1re date loggée (pas de « 3 % » sur une habitude naissante). Vérifié en navigateur. ✅ _boucle #325 (build 1.9.259)._
 
 - 🔥 **Série « objectif protéines »** : `proteinStreak` — jours consécutifs à la cible + record. La nutrition rejoint le système de séries de l'app (jusque-là seule sans). Vérifié en navigateur. ✅ _boucle #324 (build 1.9.258) — ouvre la rotation 29._
 
