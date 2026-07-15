@@ -42,3 +42,10 @@
   background: color-mix(in srgb, var(--accent, #6ee7b7) 8%, transparent);
   font-size: 1.05rem; font-weight: 700;
 }
+
+/* Renvoi vers le foyer unique de la cible de poids (panneau « Mon plan »). La cible ne vit plus
+   dans « Objectifs hebdomadaires » : ce rappel évite de la chercher. */
+.goal-target-hint{grid-column:1/-1;margin:4px 0 0;font-size:.82rem;color:var(--muted);line-height:1.45}
+.link-button{background:none;border:0;padding:0;font:inherit;color:var(--accent,#6ee7b7);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.link-button:hover{opacity:.85}
+.link-button:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px;border-radius:3px}

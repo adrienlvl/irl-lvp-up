@@ -2105,6 +2105,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.252', emoji: '🎯', text: 'Poids cible rassemblé à un seul endroit : le panneau « Mon plan ». Un doute en moins, un renvoi depuis les objectifs.' },
   { v: '1.9.251', emoji: '📋', text: '« Prochaine séance » et « Planifier la suite » affichent enfin les séances de ton programme, pas seulement les créneaux ajoutés à la main.' },
   { v: '1.9.250', emoji: '♻️', text: 'Nouveau programme : les séances de l’ancien à venir sont enlevées — fini les jours à deux séances. Passé et RDV perso conservés.' },
   { v: '1.9.249', emoji: '🗓️', text: 'Conflit d’horaire : l’app te propose maintenant le prochain créneau libre au lieu de juste dire non.' },

@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.251 (2026-07-15)
+## 📍 État actuel — build 1.9.252 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **346 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→**317**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **346 tests + smoke** verts (harness durci, dont garde-fou CSS + 4 gardes smoke rendus bloquants au #318). Livré au-delà de la roadmap initiale (boucles #36→**318**) :
+
+- 🎯 **Poids cible unifié dans « Mon plan »** (suite audit onglets) : doublon `#targetWeight` retiré de « Objectifs hebdomadaires », foyer unique dans le panneau du plan (`#coachTarget`, enregistrement direct) + renvoi de découvrabilité. `#saveGoals` préserve désormais la cible. Vérifié en navigateur. ✅ _boucle #318 (build 1.9.252)._ Restent ouvertes : regroupement 3 zones de l'onglet Athlète (A) et « Base d'endurance » conditionnelle (C).
 
 - 📋 **« Prochaine séance » et « Planifier la suite » voient enfin le programme** : ces widgets ne lisaient que `state.plans` → les séances des générateurs de programme (dans `state.agenda`) étaient invisibles après l'onboarding. Vue unifiée `upcomingSessions` (fusion plans + agenda, dédup `planId`), démarrage guidé + report des séances de programme. Vérifié en navigateur. ✅ _boucle #317 (build 1.9.251)._
 - ♻️ **Demande d'Adrien — un nouveau programme enlève l'ancien** : `scheduleObjectiveProgram` ne purgeait rien → deux programmes coexistaient, d'où des jours à 2 séances. Purge des séances de programme à partir du lundi de départ (`pruneProgramSessionsFrom`), historique et RDV perso conservés. Piège trouvé en navigateur : les séances de programme sont identifiées par `refId` (source recodée `manual` par normalizeAgendaItem), pas par source. ✅ _boucle #316 (build 1.9.250) — ouvre la rotation 27._

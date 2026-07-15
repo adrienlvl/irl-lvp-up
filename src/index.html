@@ -122,8 +122,8 @@
           <div class="goal-form">
             <label>Séances / semaine<input id="sessionsGoal" type="number" min="1" max="14" value="4" /></label>
             <label>Course / semaine (km)<input id="distanceGoal" type="number" min="0" max="500" step="0.5" value="10" /></label>
-            <label>Poids cible (kg)<input id="targetWeight" type="number" min="30" max="300" step="0.1" placeholder="Ex. 75" /></label><div id="targetAdvice" class="target-advice" hidden></div>
             <button id="saveGoals" class="secondary-button">Sauvegarder</button>
+            <p class="goal-target-hint">🎯 Ton <b>poids cible</b> et son plan (calories, macros, échéance) se règlent dans <button type="button" id="goToPlanFromGoals" class="link-button">« Mon plan pour atteindre ma cible »</button> — onglet Progrès.</p>
           </div>
           <div class="progress-stack">
             <div><div class="label-row"><span id="sessionsProgressText">0 / 4 séances</span><span id="sessionsPercent">0%</span></div><div class="xp-track"><div id="sessionsProgress" class="xp-fill blue"></div></div></div>
