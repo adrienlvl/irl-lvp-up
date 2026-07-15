@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.249');
+  assert.equal(L.CHANGELOG[0].v, '1.9.250');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4976,4 +4976,30 @@ test('nextFreeSlot : premier créneau qui accueille la durée', () => {
   // entrées invalides
   assert.equal(L.nextFreeSlot(agenda, { date: 'nope', after: '18:00', durationMin: 30 }), null);
   assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '', durationMin: 30 }), null);
+});
+
+test('pruneProgramSessionsFrom : purge le programme à venir, garde histoire et manuel', () => {
+  // NB : les vraies séances de programme ont source:'manual' (recodée par normalizeAgendaItem) mais
+  // un refId préfixé « objprog- » — c'est LUI qui les identifie, pas la source.
+  const agenda = [
+    { id: 1, title: 'Ancienne muscu passée', source: 'manual', refId: 'objprog-muscu-haut-1-2026-07-06', date: '2026-07-06', completed: true },
+    { id: 2, title: 'Ancienne muscu faite', source: 'manual', refId: 'objprog-muscu-haut-1-2026-07-20', date: '2026-07-20', completed: true },
+    { id: 3, title: 'Ancienne muscu à venir', source: 'manual', refId: 'objprog-muscu-haut-1-2026-07-20', date: '2026-07-20', completed: false },
+    { id: 4, title: 'Ancienne course à venir', source: 'manual', refId: 'objprog-course-tempo-3-2026-07-27', date: '2026-07-27', completed: false },
+    { id: 5, title: 'RDV perso (VRAI manuel, sans refId)', source: 'manual', date: '2026-07-27', completed: false },
+    { id: 6, title: 'Séance cette semaine', source: 'manual', refId: 'objprog-muscu-haut-1-2026-07-16', date: '2026-07-16', completed: false },
+  ];
+  // nouveau programme démarre le lundi 2026-07-20
+  const r = L.pruneProgramSessionsFrom(agenda, '2026-07-20');
+  const ids = r.agenda.map(a => a.id).sort((a, b) => a - b);
+  // retirés : #3 et #4 (refId objprog, à venir, non faits, >= 20/07). #5 (VRAI manuel) NE DOIT PAS partir.
+  assert.deepEqual(ids, [1, 2, 5, 6], 'garde passé, coché, VRAI manuel et cette semaine');
+  assert.equal(r.removed, 2);
+  // un item source:'objprog' brut (si AGENDA_SOURCES l'accepte un jour) est aussi reconnu
+  assert.equal(L.pruneProgramSessionsFrom([{ id: 9, source: 'objprog', date: '2026-07-21', completed: false }], '2026-07-20').removed, 1);
+  // pas de date de départ valide → ne touche à rien
+  assert.equal(L.pruneProgramSessionsFrom(agenda, '').removed, 0);
+  assert.equal(L.pruneProgramSessionsFrom(agenda, 'nope').agenda.length, agenda.length);
+  // agenda vide / non tableau
+  assert.deepEqual(L.pruneProgramSessionsFrom(null, '2026-07-20'), { agenda: [], removed: 0 });
 });
