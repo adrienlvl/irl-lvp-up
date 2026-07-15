@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.274 (2026-07-15)
+## 📍 État actuel — build 1.9.275 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **360 tests + smoke** verts (harness durci, dont garde-fou CSS + 26 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**340**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **361 tests + smoke** verts (harness durci, dont garde-fou CSS + 27 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**341**) :
 
+- 🚶 **Progression poids** (polish coach, retour Adrien) : barre en tête du plan montrant `weightGoalProgress` — % parcouru entre point de départ (1re pesée) et cible, kilos faits/restants. Bornée [0..100]. Vérifié en navigateur. ✅ _boucle #341 (build 1.9.275)._
 - 🔧 **Fix stepper poids** (signalé par Adrien) : décimale de la cible enfin visible en entier sur tous les écrans (`3.2ch → 6ch` + media query ≤360px) ; flèches natives des `input[type=number]` retirées globalement. Vérifié en navigateur (320/375/1000px). ✅ _boucle #340 (build 1.9.274)._
 - 🌅 **Aperçu de demain** : « Ma journée » affiche sous le résumé ce que réserve le lendemain (nb de blocs, première chose horodatée, anniversaires) via `tomorrowPreview` — masqué si demain est vide. Pour préparer sa journée dès le soir. Vérifié en navigateur. ✅ _boucle #339 (build 1.9.273)._
 - ☕ **Pause de focus (Pomodoro complet)** : à la fin de chaque bloc, `breakSuggestion` propose une pause proportionnelle (≈ 1/5 du bloc, 5–20 min) et une vraie pause longue tous les 4 blocs — affichée en tête du dialogue de bilan. Vérifié en navigateur. ✅ _boucle #338 (build 1.9.272)._

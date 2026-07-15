@@ -4227,7 +4227,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.274');
+  assert.equal(L.CHANGELOG[0].v, '1.9.275');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5297,6 +5297,42 @@ test('weightMilestones : paliers intermédiaires, dernier = cible exacte', () =>
   // déjà à la cible / entrées invalides → []
   assert.deepEqual(L.weightMilestones({ current: 75, target: 75, ratePerWeek: 0.5, todayKey: '2026-07-15' }), []);
   assert.deepEqual(L.weightMilestones({ current: 81, target: 75, ratePerWeek: 0, todayKey: '2026-07-15' }), []);
+});
+
+test('weightGoalProgress : progression globale départ → cible', () => {
+  // Perte : départ 84, actuel 81, cible 78 → 3 kg faits sur 6 = 50 %
+  const p = L.weightGoalProgress([
+    { date: '2026-06-01', value: 84 },
+    { date: '2026-06-20', value: 82 },
+    { date: '2026-07-10', value: 81 }
+  ], 78);
+  assert.equal(p.direction, 'perte');
+  assert.equal(p.totalKg, 6);
+  assert.equal(p.doneKg, 3);
+  assert.equal(p.remainingKg, 3);
+  assert.equal(p.pct, 50);
+  assert.equal(p.start, 84);
+  assert.equal(p.current, 81);
+  // Prise : départ 70, actuel 73, cible 76 → 3 sur 6 = 50 %
+  const up = L.weightGoalProgress([{ date: '2026-06-01', value: 70 }, { date: '2026-07-10', value: 73 }], 76);
+  assert.equal(up.direction, 'prise');
+  assert.equal(up.pct, 50);
+  // mauvais sens (on grossit alors qu'on veut perdre) → 0 %, jamais négatif
+  const wrong = L.weightGoalProgress([{ date: '2026-06-01', value: 80 }, { date: '2026-07-10', value: 82 }], 75);
+  assert.equal(wrong.doneKg, 0);
+  assert.equal(wrong.pct, 0);
+  // dépassement de la cible → borné à 100 %
+  const over = L.weightGoalProgress([{ date: '2026-06-01', value: 80 }, { date: '2026-07-10', value: 74 }], 75);
+  assert.equal(over.pct, 100);
+  assert.equal(over.doneKg, over.totalKg);
+  // aucune pesée → utilise le poids de repli (départ = actuel → pas encore de progrès)
+  const fb = L.weightGoalProgress([], 75, 80);
+  assert.equal(fb.start, 80);
+  assert.equal(fb.current, 80);
+  assert.equal(fb.pct, 0);
+  // pas de cible / départ = cible → null
+  assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 80 }], 0), null);
+  assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 75 }], 75, 75), null);
 });
 
 test('trackingCadenceAdvice : conseils de fréquence selon le sens', () => {
