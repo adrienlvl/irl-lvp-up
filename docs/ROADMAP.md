@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.272 (2026-07-15)
+## 📍 État actuel — build 1.9.273 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **359 tests + smoke** verts (harness durci, dont garde-fou CSS + 24 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**338**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **360 tests + smoke** verts (harness durci, dont garde-fou CSS + 25 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**339**) :
 
+- 🌅 **Aperçu de demain** : « Ma journée » affiche sous le résumé ce que réserve le lendemain (nb de blocs, première chose horodatée, anniversaires) via `tomorrowPreview` — masqué si demain est vide. Pour préparer sa journée dès le soir. Vérifié en navigateur. ✅ _boucle #339 (build 1.9.273)._
 - ☕ **Pause de focus (Pomodoro complet)** : à la fin de chaque bloc, `breakSuggestion` propose une pause proportionnelle (≈ 1/5 du bloc, 5–20 min) et une vraie pause longue tous les 4 blocs — affichée en tête du dialogue de bilan. Vérifié en navigateur. ✅ _boucle #338 (build 1.9.272)._
 - 🛟 **Rappel de sauvegarde** (suite du #336) : `state.lastBackup` enregistré à l'export ; `attentionDigest` nudge « Sauvegarde tes données (il y a N j / jamais) » si données présentes + ≥ 14 j sans backup, route vers Réglages, disparaît après export. Vérifié en navigateur. ✅ _boucle #337 (build 1.9.271)._
 

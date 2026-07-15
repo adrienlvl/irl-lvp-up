@@ -183,6 +183,33 @@ test('todayItems : filtre par date, trie par heure, classe les types', () => {
   assert.equal(items[2].type, 'study');
 });
 
+test('tomorrowPreview : résume le lendemain (premier créneau, total, anniv)', () => {
+  const state = {
+    agenda: [
+      { id: 1, title: 'Réunion', date: '2026-07-07', time: '14:00', kind: 'life' },
+      { id: 2, title: 'Sport', date: '2026-07-07', time: '09:00', kind: 'sport' },
+      { id: 3, title: 'Admin', date: '2026-07-07', allDay: true, kind: 'life' },
+      { id: 4, title: 'Aujourd’hui', date: '2026-07-06', time: '10:00', kind: 'life' }
+    ],
+    birthdays: [{ id: 5, name: 'Léa', day: 7, month: 7, year: 1990 }]
+  };
+  const p = L.tomorrowPreview(state, '2026-07-06');
+  assert.ok(p, 'un aperçu existe');
+  assert.equal(p.dateKey, '2026-07-07');
+  assert.equal(p.total, 3, '3 blocs à faire (anniversaire exclu du total)');
+  assert.equal(p.timedCount, 2);
+  assert.equal(p.allDayCount, 1);
+  assert.equal(p.birthdays, 1);
+  assert.equal(p.first.time, '09:00', 'première chose = le créneau le plus tôt');
+  assert.equal(p.first.title, 'Sport');
+  // passage de mois : 2026-07-31 → 2026-08-01
+  assert.equal(L.tomorrowPreview({ agenda: [{ id: 1, title: 'x', date: '2026-08-01', time: '10:00', kind: 'life' }] }, '2026-07-31').dateKey, '2026-08-01');
+  // rien demain → null (pas d'encart inutile)
+  assert.equal(L.tomorrowPreview({ agenda: [{ id: 1, title: 'x', date: '2026-07-06', time: '10:00', kind: 'life' }] }, '2026-07-06'), null);
+  assert.equal(L.tomorrowPreview({}, '2026-07-06'), null, 'agenda vide → null');
+  assert.equal(L.tomorrowPreview({ agenda: [] }, 'bad'), null, 'date invalide → null');
+});
+
 test('todayItems : inclut les plans orphelins (sans entrée agenda)', () => {
   const state = { agenda: [], plans: [{ id: 7, date: '2026-07-06', time: '18:00', type: 'Course' }] };
   const items = L.todayItems(state, '2026-07-06');
@@ -4200,7 +4227,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.272');
+  assert.equal(L.CHANGELOG[0].v, '1.9.273');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
