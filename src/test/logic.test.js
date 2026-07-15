@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.253');
+  assert.equal(L.CHANGELOG[0].v, '1.9.254');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5052,4 +5052,29 @@ test('showsEnduranceBase : « Base d’endurance » seulement pour un profil end
   assert.equal(L.showsEnduranceBase({ goal: 'force', fitnessObjective: 'muscle', raceGoalDate: '' }), false);
   // entrée vide
   assert.equal(L.showsEnduranceBase(), false);
+});
+
+test('studyBySubject : répartition par matière + priorité de révision', () => {
+  const agenda = [
+    { kind: 'study', title: 'Compta', date: '2026-07-10', completed: true },
+    { kind: 'study', title: 'Compta', date: '2026-07-12', completed: true },
+    { kind: 'study', title: 'Compta', date: '2026-07-20', completed: false }, // à venir
+    { kind: 'study', title: 'Droit',  date: '2026-07-08', completed: false },  // en retard
+    { kind: 'study', title: 'Droit',  date: '2026-07-09', completed: false },  // en retard
+    { kind: 'study', title: 'Droit',  date: '2026-07-22', completed: false },  // à venir
+    { kind: 'study', title: 'Éco',    date: '2026-07-11', completed: true },
+    { kind: 'sport', title: 'Muscu',  date: '2026-07-10', completed: true },   // ignoré (pas study)
+  ];
+  const r = L.studyBySubject(agenda, '2026-07-15');
+  // Droit d'abord (2 en retard), puis Compta (retard 0, doneRate 67), puis Éco (100%)
+  assert.deepEqual(r.map(s => s.subject), ['Droit', 'Compta', 'Éco']);
+  const droit = r.find(s => s.subject === 'Droit');
+  assert.deepEqual([droit.total, droit.done, droit.upcoming, droit.overdue], [3, 0, 1, 2]);
+  const compta = r.find(s => s.subject === 'Compta');
+  assert.deepEqual([compta.total, compta.done, compta.upcoming, compta.overdue, compta.doneRate], [3, 2, 1, 0, 67]);
+  assert.equal(r.find(s => s.subject === 'Éco').doneRate, 100);
+  // sans titre → « Révision »
+  assert.equal(L.studyBySubject([{ kind: 'study', title: '', date: '2026-07-20' }], '2026-07-15')[0].subject, 'Révision');
+  // agenda vide
+  assert.deepEqual(L.studyBySubject([], '2026-07-15'), []);
 });

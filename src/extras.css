@@ -266,3 +266,14 @@ details.calendar-setting[open]{padding-bottom:14px}
 .hw-dot.hw-today{outline:2px solid color-mix(in srgb,var(--accent) 60%,transparent);outline-offset:1px}
 .habit-item.offday{opacity:.55}
 .habit-check.off{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;color:var(--muted)}
+
+/* Révisions par matière : voir d'un coup d'œil laquelle est en retard (BTS = plusieurs matières). */
+.study-subjects{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.study-subjects .ss-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.study-subjects .ss-prio{font-size:.86rem;color:var(--text)}
+.study-subjects .ss-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sub-chip{font-size:.76rem;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--input-bg);color:var(--text)}
+.sub-chip em{font-style:normal;font-size:.68rem;opacity:.85}
+.sub-chip.sub-good{border-color:color-mix(in srgb,#22c55e 45%,transparent);background:color-mix(in srgb,#22c55e 12%,transparent)}
+.sub-chip.sub-mid{border-color:color-mix(in srgb,#f0b429 45%,transparent);background:color-mix(in srgb,#f0b429 12%,transparent)}
+.sub-chip.sub-late{border-color:color-mix(in srgb,#ef4444 50%,transparent);background:color-mix(in srgb,#ef4444 14%,transparent)}
