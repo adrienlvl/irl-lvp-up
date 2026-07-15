@@ -2282,6 +2282,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.287', emoji: '🎉', text: 'Quêtes : valider ta dernière quête du jour déclenche une petite célébration « Journée parfaite ! » (avec ta série en cours) — le moment est enfin fêté, pas juste comptabilisé.' },
   { v: '1.9.286', emoji: '📚', text: 'Accueil : « Prochaine révision » — comme pour ta prochaine séance de sport, ta prochaine révision planifiée s’affiche dans « Ma journée » (matière + quand), et un clic ouvre l’agenda au bon jour.' },
   { v: '1.9.285', emoji: '↩️', text: 'Agenda : reporter un événement à demain propose maintenant « Annuler » — un clic de travers ne t’oblige plus à retrouver l’événement et à corriger la date à la main.' },
   { v: '1.9.284', emoji: '😴', text: 'Sommeil : une mini-courbe des dernières nuits apparaît dans le bilan récupération (avec la moyenne) — tu vois d’un coup d’œil si ton sommeil progresse ou se dégrade, au-delà du seul chiffre du jour.' },
