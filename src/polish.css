@@ -31,3 +31,13 @@ section.mission-control.collapsed > *:not(.mission-heading){display:none!importa
 .athlete-subnav button:hover{color:var(--text)}
 .athlete-subnav button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .atab-hidden{display:none!important}
+
+/* Focus par tâche : où est passé le temps de concentration sur 7 jours (barres). */
+.focus-by-task{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.focus-by-task .fbt-label{font-size:.74rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.fbt-row{display:flex;flex-direction:column;gap:3px}
+.fbt-head{display:flex;justify-content:space-between;gap:8px;font-size:.84rem}
+.fbt-task{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fbt-min{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.fbt-bar{height:6px;border-radius:999px;background:var(--input-bg);overflow:hidden}
+.fbt-bar i{display:block;height:100%;border-radius:999px;background:var(--accent,#6ee7b7)}

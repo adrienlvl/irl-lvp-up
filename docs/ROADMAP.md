@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.256 (2026-07-15)
+## 📍 État actuel — build 1.9.257 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **349 tests + smoke** verts (harness durci, dont garde-fou CSS + 7 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**322**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **350 tests + smoke** verts (harness durci, dont garde-fou CSS + 8 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**323**) :
+
+- 🧠 **Focus par tâche** : `focusByTask` répartit ton temps de concentration des 7 derniers jours par tâche (barres proportionnelles) — voir sur quoi tu te concentres vraiment. Affiché si ≥ 2 tâches. Vérifié en navigateur. ✅ _boucle #323 (build 1.9.257) — clôt la rotation 28._
 
 - 🧭 **Digest « À rattraper » — navigation corrigée** (relecture de #321) : révisions/examen renvoyaient vers le dashboard alors qu'ils vivent dans la page calendrier ; corrigé (ouvre l'overlay calendrier), + bascule sous-onglet Séance pour forme/séances, + défilement jusqu'au panneau. Vérifié en navigateur. ✅ _boucle #322 (build 1.9.256)._
 

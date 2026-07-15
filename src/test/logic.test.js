@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.256');
+  assert.equal(L.CHANGELOG[0].v, '1.9.257');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5112,4 +5112,28 @@ test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravit�
   assert.deepEqual(L.attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [] }, today), []);
   // date invalide → []
   assert.deepEqual(L.attentionDigest(state, 'nope'), []);
+});
+
+test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', () => {
+  const sessions = [
+    { date: '2026-07-15', minutes: 50, task: 'Réviser compta' },
+    { date: '2026-07-14', minutes: 25, task: 'Réviser compta' },
+    { date: '2026-07-13', minutes: 40, task: 'Projet perso' },
+    { date: '2026-07-12', minutes: 30, task: 'Réviser compta' },
+    { date: '2026-07-01', minutes: 90, task: 'Vieux (hors fenêtre)' }, // > 7 j → exclu
+    { date: '2026-07-14', minutes: 0,  task: 'Zéro minute' },          // 0 min → ignoré
+    { date: '2026-07-14', minutes: 20, task: '' },                     // titre vide → 'Sans titre'
+  ];
+  const r = L.focusByTask(sessions, '2026-07-15', { days: 7 });
+  assert.equal(r.total, 50 + 25 + 40 + 30 + 20); // 165, hors vieux et zéro
+  // trié par minutes : compta (105) > projet (40) > sans titre (20)
+  assert.deepEqual(r.tasks.map(t => t.task), ['Réviser compta', 'Projet perso', 'Sans titre']);
+  assert.equal(r.tasks[0].minutes, 105);
+  assert.equal(r.tasks[0].sessions, 3);
+  assert.equal(r.tasks[0].pct, Math.round(105 / 165 * 100)); // 64
+  // cap
+  assert.equal(L.focusByTask(sessions, '2026-07-15', { days: 7, cap: 1 }).tasks.length, 1);
+  // date invalide / vide
+  assert.deepEqual(L.focusByTask(sessions, 'nope'), { total: 0, tasks: [] });
+  assert.deepEqual(L.focusByTask([], '2026-07-15'), { total: 0, tasks: [] });
 });
