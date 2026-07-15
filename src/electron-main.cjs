@@ -39,6 +39,8 @@ function initAutoUpdate() {
   try {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.on('checking-for-update', () => sendUpdate({ state: 'checking' }));
+    autoUpdater.on('update-not-available', info => sendUpdate({ state: 'none', version: info && info.version }));
     autoUpdater.on('update-available', info => sendUpdate({ state: 'available', version: info && info.version }));
     autoUpdater.on('download-progress', p => sendUpdate({ state: 'downloading', percent: Math.round((p && p.percent) || 0) }));
     autoUpdater.on('update-downloaded', info => sendUpdate({ state: 'ready', version: info && info.version }));
@@ -50,7 +52,9 @@ function initAutoUpdate() {
   } catch (_) {}
 }
 ipcMain.handle('update:install', () => { app.isQuitting = true; try { autoUpdater && autoUpdater.quitAndInstall(); } catch (_) {} });
-ipcMain.handle('update:check', () => { try { if (autoUpdater && app.isPackaged) autoUpdater.checkForUpdates().catch(() => {}); } catch (_) {} });
+// Renvoie true si une vérification a réellement pu être lancée (build empaqueté + updater dispo) :
+// le renderer sait alors s'il doit attendre un statut ou afficher « indisponible ici » (dev/web).
+ipcMain.handle('update:check', () => { try { if (autoUpdater && app.isPackaged) { autoUpdater.checkForUpdates().catch(() => {}); return true; } } catch (_) {} return false; });
 /* ---- Vague S.8 : abonnement calendrier par URL (.ics/webcal) ----
    Réseau UNIQUEMENT ici (process principal) ; le renderer reste verrouillé (CSP self,
    navigation bloquée). HTTPS only + hôte public (anti-SSRF via L.normalizeCalendarUrl),

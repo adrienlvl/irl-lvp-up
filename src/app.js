@@ -731,8 +731,36 @@ function setupComfort(){
   applyDensity();
   const top=$('#backToTop');
   if(top){const onScroll=()=>{top.hidden=(window.scrollY||document.documentElement.scrollTop||0)<600;};window.addEventListener('scroll',onScroll,{passive:true});onScroll();top.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});}
-  // Mise à jour automatique : bannière discrète pilotée par le process principal.
-  if(window.desktop&&window.desktop.onUpdateStatus){const banner=$('#updateBanner'),txt=$('#updateBannerText'),inst=$('#updateInstallBtn');window.desktop.onUpdateStatus(s=>{if(!s||!banner)return;if(s.state==='available'){banner.hidden=false;inst.hidden=true;txt.textContent=`Mise à jour v${s.version||''} disponible — téléchargement en cours…`;}else if(s.state==='downloading'){banner.hidden=false;inst.hidden=true;txt.textContent=`Téléchargement de la mise à jour… ${s.percent||0} %`;}else if(s.state==='ready'){banner.hidden=false;inst.hidden=false;txt.textContent=`Mise à jour v${s.version||''} prête à installer.`;}});if(inst)inst.onclick=()=>window.desktop.installUpdate();const dis=$('#updateDismissBtn');if(dis)dis.onclick=()=>{banner.hidden=true;};}
+  // Mise à jour : bandeau discret (popup) piloté par le process principal + panneau « Mises à jour »
+  // dans les Réglages pour vérifier/installer à la demande, sans attendre le prochain démarrage.
+  // Le BANDEAU n'apparaît que pour une MAJ réellement disponible (comportement d'origine, y compris au
+  // démarrage) ; les états « recherche » / « à jour » ne s'affichent QUE dans les Réglages (pas de popup).
+  if(window.desktop&&window.desktop.onUpdateStatus){
+    const banner=$('#updateBanner'),txt=$('#updateBannerText'),inst=$('#updateInstallBtn');
+    const sec=$('#updateSettings'),verEl=$('#updateCurrentVersion'),checkBtn=$('#updateCheckBtn'),stEl=$('#updateCheckStatus'),setInst=$('#updateSettingsInstall');
+    if(sec)sec.hidden=false;
+    if(verEl&&window.desktop.getVersion)window.desktop.getVersion().then(v=>{verEl.textContent='Version '+(v||'—');}).catch(()=>{});
+    const setSt=(msg,kind)=>{if(stEl){stEl.textContent=msg;stEl.className='settings-note upd-st upd-st-'+(kind||'info');}};
+    window.desktop.onUpdateStatus(s=>{
+      if(!s)return;
+      if(banner&&txt){
+        if(s.state==='available'){banner.hidden=false;if(inst)inst.hidden=true;txt.textContent=`Mise à jour v${s.version||''} disponible — téléchargement en cours…`;}
+        else if(s.state==='downloading'){banner.hidden=false;if(inst)inst.hidden=true;txt.textContent=`Téléchargement de la mise à jour… ${s.percent||0} %`;}
+        else if(s.state==='ready'){banner.hidden=false;if(inst)inst.hidden=false;txt.textContent=`Mise à jour v${s.version||''} prête à installer.`;}
+      }
+      if(s.state==='checking')setSt('🔎 Recherche d’une mise à jour…','info');
+      else if(s.state==='none')setSt('✅ Ton application est à jour.','ok');
+      else if(s.state==='available')setSt(`⬇️ Mise à jour v${s.version||''} trouvée — téléchargement…`,'info');
+      else if(s.state==='downloading')setSt(`⬇️ Téléchargement… ${s.percent||0} %`,'info');
+      else if(s.state==='ready'){setSt(`✅ Mise à jour v${s.version||''} prête. Clique « Installer et redémarrer ».`,'ok');if(setInst)setInst.hidden=false;}
+      else if(s.state==='error')setSt('⚠️ Vérification impossible (hors ligne ?). Réessaie plus tard.','warn');
+      if(checkBtn&&s.state!=='checking')checkBtn.disabled=false;
+    });
+    if(inst)inst.onclick=()=>window.desktop.installUpdate();
+    if(setInst)setInst.onclick=()=>window.desktop.installUpdate();
+    const dis=$('#updateDismissBtn');if(dis)dis.onclick=()=>{banner.hidden=true;};
+    if(checkBtn)checkBtn.onclick=async()=>{checkBtn.disabled=true;setSt('🔎 Recherche d’une mise à jour…','info');let ok=true;try{ok=await window.desktop.checkForUpdate();}catch(_){ok=false;}if(ok===false){setSt('ℹ️ Les mises à jour s’installent automatiquement — la vérification manuelle n’est dispo que dans l’app installée.','info');checkBtn.disabled=false;}};
+  }
 }
 const ATHLETE_TABS={'athlete-companion':'seance','trail-panel':'seance','goal-panel':'seance','profile-panel':'seance','workout-panel':'seance','program-panel':'seance','objective-program-panel':'seance','wellness-panel':'seance','planning-panel':'seance','history-panel':'progres','photo-panel':'progres','measurements-panel':'progres','weekly-review-panel':'progres','personal-trends':'progres','charts-panel':'progres'};
 let athleteTab='seance';try{athleteTab=localStorage.getItem('irl-athlete-tab')||'seance';}catch(_){}if(athleteTab!=='seance'&&athleteTab!=='progres')athleteTab='seance';

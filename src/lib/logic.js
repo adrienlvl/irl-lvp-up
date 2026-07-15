@@ -2216,6 +2216,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.276', emoji: '⬆️', text: 'Réglages → « Mises à jour » : vérifie les mises à jour à la demande et installe-les sans attendre le prochain démarrage (l’app continue aussi de vérifier automatiquement à l’ouverture et en tâche de fond).' },
   { v: '1.9.275', emoji: '🚶', text: 'Coach poids : une barre de progression globale montre d’un coup d’œil où tu en es entre ton point de départ et ta cible — pourcentage parcouru, kilos faits et kilos restants.' },
   { v: '1.9.274', emoji: '🔧', text: 'Coach poids : le sélecteur de cible affiche enfin la décimale en entier sur tous les écrans (« 88,5 » n’est plus rognée), et les petites flèches disgracieuses des champs numériques ont disparu partout dans l’app.' },
   { v: '1.9.273', emoji: '🌅', text: 'Aperçu de demain : « Ma journée » affiche maintenant ce que réserve le lendemain (nombre de blocs, première chose au programme) — pour préparer ta journée dès le soir.' },
