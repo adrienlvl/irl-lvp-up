@@ -328,6 +328,23 @@ app.whenReady().then(async () => {
         agendaUx: !!document.getElementById('weekQuickAdd') && !!document.getElementById('agendaFilters') && !!document.getElementById('importIcsWeek') && document.querySelectorAll('#agendaFilters [data-filter]').length === 5,
         agendaSearch: typeof agendaMatch === 'function' && !!document.getElementById('agendaSearch'),
         agendaDay: typeof renderDayView === 'function' && typeof renderAgenda === 'function' && !!document.getElementById('dayView') && document.querySelectorAll('#agendaViewSwitch [data-view]').length === 2,
+        agendaPostponeUndo: typeof renderDayView === 'function' && typeof showUndoToast === 'function' && typeof normalizeAgendaItem === 'function' && (() => {
+          const savedAg = state.agenda;
+          const key = (typeof dateKey === 'function' && typeof dayCursor !== 'undefined') ? dateKey(dayCursor) : null;
+          if (!key) { state.agenda = savedAg; return false; }
+          state.agenda = [normalizeAgendaItem({ id: 7777, title: 'Test report', date: key, time: '10:00', kind: 'life' })];
+          renderDayView();
+          const btn = document.querySelector('#dayView [data-day-postpone="7777"]');
+          let moved = false, restored = false;
+          if (btn) {
+            btn.click();
+            const a1 = state.agenda.find(a => a.id === 7777); moved = !!a1 && a1.date > key;
+            const undo = document.querySelector('#undoToast .ut-undo');
+            if (undo) { undo.click(); const a2 = state.agenda.find(a => a.id === 7777); restored = !!a2 && a2.date === key; }
+          }
+          state.agenda = savedAg; renderDayView();
+          return !!btn && moved && restored;
+        })(),
         dayGrid: typeof dayColumns === 'function' && typeof endTimeOf === 'function',
         dayPlanned: typeof dayPlannedMinutes === 'function' && dayPlannedMinutes([{ time: '09:00', durationMin: 60 }, { time: '14:00', durationMin: 90 }]) === 150,
         dayCopy: typeof dayPlanText === 'function' && dayPlanText([{ time: '09:00', title: 'X', completed: true }]) === '- 09:00 X ✓',
@@ -519,7 +536,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.284'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.285'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -640,6 +657,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaUx) errors.push('UX agenda absente (weekQuickAdd/agendaFilters 5 filtres/importIcsWeek)');
     if (!checks.agendaSearch) errors.push('Recherche agenda absente (agendaMatch/agendaSearch)');
     if (!checks.agendaDay) errors.push('Vue Jour absente (renderDayView/renderAgenda/dayView/agendaViewSwitch 2 vues)');
+    if (!checks.agendaPostponeUndo) errors.push('Annulation report jour KO (postpone → demain sans undo restaurant la date)');
     if (!checks.dayGrid) errors.push('Grille horaire absente (dayColumns/endTimeOf)');
     if (!checks.agendaDetails) errors.push('Détails événement absents (departureInfo/location/travel/notes)');
     if (!checks.agendaEdit) errors.push('Ajout rapide/édition détaillés absents (weekQuickLocation/Travel/Notes/Estimate/agendaEditForm/editAgendaNotes)');

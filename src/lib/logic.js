@@ -2257,6 +2257,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.285', emoji: '↩️', text: 'Agenda : reporter un événement à demain propose maintenant « Annuler » — un clic de travers ne t’oblige plus à retrouver l’événement et à corriger la date à la main.' },
   { v: '1.9.284', emoji: '😴', text: 'Sommeil : une mini-courbe des dernières nuits apparaît dans le bilan récupération (avec la moyenne) — tu vois d’un coup d’œil si ton sommeil progresse ou se dégrade, au-delà du seul chiffre du jour.' },
   { v: '1.9.283', emoji: '📉', text: 'Mensurations : une mini-courbe de ton tour de taille apparaît sous tes mesures — l’évolution devient visible d’un coup d’œil (utile pour suivre la recomposition, là où la balance seule ne dit pas tout).' },
   { v: '1.9.282', emoji: '📏', text: 'Mensurations : une seule entrée par jour (comme la pesée). Corriger une mesure ou compléter un champ plus tard dans la journée met à jour ta ligne du jour au lieu de créer un doublon — et ne perd pas les autres tours déjà notés.' },
