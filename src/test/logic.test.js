@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.255');
+  assert.equal(L.CHANGELOG[0].v, '1.9.256');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5102,6 +5102,10 @@ test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravit�
   if (rs && rs.score < 50) assert.ok(keys.includes('readiness'));
   // chaque item a le format attendu
   assert.ok(d.every(i => i.key && i.emoji && i.text && i.page && (i.sev === 'high' || i.sev === 'med')));
+  // navigation : révisions/examen → page calendrier (là où ils vivent) ; séance → athlète
+  assert.equal(d.find(i => i.key === 'exam').page, 'calendar');
+  assert.equal(d.find(i => i.key === 'study').page, 'calendar');
+  assert.equal(d.find(i => i.key === 'sport').page, 'athlete');
   // cap
   assert.equal(L.attentionDigest(state, today, { cap: 2 }).length, 2);
   // rien d’urgent → []

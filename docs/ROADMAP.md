@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.255 (2026-07-15)
+## 📍 État actuel — build 1.9.256 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **349 tests + smoke** verts (harness durci, dont garde-fou CSS + 7 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**321**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **349 tests + smoke** verts (harness durci, dont garde-fou CSS + 7 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**322**) :
+
+- 🧭 **Digest « À rattraper » — navigation corrigée** (relecture de #321) : révisions/examen renvoyaient vers le dashboard alors qu'ils vivent dans la page calendrier ; corrigé (ouvre l'overlay calendrier), + bascule sous-onglet Séance pour forme/séances, + défilement jusqu'au panneau. Vérifié en navigateur. ✅ _boucle #322 (build 1.9.256)._
 
 - 🎯 **Digest « À rattraper » sur l'accueil** : `attentionDigest` agrège à travers les domaines ce qui a besoin d'attention (forme basse, examen imminent, révisions en retard, séances manquées, habitudes à risque), trié par gravité, cliquable vers l'onglet concerné. Vérifié en navigateur. ✅ _boucle #321 (build 1.9.255)._
 - 📚 **Révisions par matière** : `studyBySubject` regroupe les séances de révision par titre (matière) et pointe la plus en retard à prioriser — utile pour un BTS multi-matières. Affiché si ≥ 2 matières. Vérifié en navigateur. ✅ _boucle #320 (build 1.9.254) — ouvre la rotation 28._

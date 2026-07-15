@@ -2129,6 +2129,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.256', emoji: '🧭', text: 'Bloc « À rattraper » : chaque ligne t’emmène pile au bon endroit (calendrier pour les révisions, onglet Séance pour la forme) et déroule jusqu’au panneau.' },
   { v: '1.9.255', emoji: '🎯', text: 'Nouveau bloc « À rattraper » sur l’accueil : révisions en retard, séances manquées, forme basse… tout ce qui a besoin d’attention, en un endroit.' },
   { v: '1.9.254', emoji: '📚', text: 'Révisions par matière : vois d’un coup d’œil laquelle est en retard (Compta, Droit…) et laquelle prioriser.' },
   { v: '1.9.253', emoji: '🧭', text: 'Onglet Athlète rangé en 3 zones (Faire maintenant · Mon entraînement · Récupération). « Base d’endurance » ne s’affiche que si tu vises l’endurance.' },
@@ -4005,9 +4006,9 @@ function attentionDigest(state, todayKey, opts) {
   const rs = readinessScore(rec.find(r => r && r.date === todayKey) || rec[rec.length - 1] || null);
   if (rs && rs.score < 50) items.push({ key: 'readiness', emoji: '😴', text: `Forme basse (${rs.score}/100) — allège aujourd'hui`, page: 'athlete', sev: 'high' });
   const er = examReminderDue(s.examGoal, todayKey);
-  if (er) items.push({ key: 'exam', emoji: '📚', text: er.replace(/^📚\s*/, ''), page: 'dashboard', sev: 'high' });
+  if (er) items.push({ key: 'exam', emoji: '📚', text: er.replace(/^📚\s*/, ''), page: 'calendar', sev: 'high' });
   const od = overdueStudy(s.agenda, todayKey);
-  if (od.length) items.push({ key: 'study', emoji: '📕', text: `${od.length} révision${od.length > 1 ? 's' : ''} en retard`, page: 'dashboard', sev: 'med' });
+  if (od.length) items.push({ key: 'study', emoji: '📕', text: `${od.length} révision${od.length > 1 ? 's' : ''} en retard`, page: 'calendar', sev: 'med' });
   const ms = missedSessions(s.agenda, s.workouts, todayKey);
   if (ms.length) items.push({ key: 'sport', emoji: '🏋️', text: `${ms.length} séance${ms.length > 1 ? 's' : ''} non faite${ms.length > 1 ? 's' : ''} récemment`, page: 'athlete', sev: 'med' });
   const hr = habitsAtRisk(s.habits, todayKey);
