@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.252');
+  assert.equal(L.CHANGELOG[0].v, '1.9.253');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5036,4 +5036,20 @@ test('upcomingSessions : fusionne plans + séances de programme, sans doublon', 
   assert.deepEqual(L.upcomingSessions(plans, agenda, 'nope'), []);
   // limit
   assert.equal(L.upcomingSessions(plans, agenda, '2026-07-20', { limit: 1 }).length, 1);
+});
+
+test('showsEnduranceBase : « Base d’endurance » seulement pour un profil endurance', () => {
+  // profil force / muscle → masqué
+  assert.equal(L.showsEnduranceBase({ goal: 'force', fitnessObjective: 'muscle' }), false);
+  assert.equal(L.showsEnduranceBase({ goal: 'recomposition', fitnessObjective: 'seche' }), false);
+  assert.equal(L.showsEnduranceBase({ goal: 'recomposition', fitnessObjective: 'athletique' }), false, 'athletique par défaut ne suffit pas');
+  // objectif profil trail → affiché
+  assert.equal(L.showsEnduranceBase({ goal: 'trail', fitnessObjective: 'muscle' }), true);
+  // objectif sportif endurance → affiché
+  assert.equal(L.showsEnduranceBase({ goal: 'force', fitnessObjective: 'endurance' }), true);
+  // une course programmée → affiché quel que soit l’objectif
+  assert.equal(L.showsEnduranceBase({ goal: 'force', fitnessObjective: 'muscle', raceGoalDate: '2026-10-01' }), true);
+  assert.equal(L.showsEnduranceBase({ goal: 'force', fitnessObjective: 'muscle', raceGoalDate: '' }), false);
+  // entrée vide
+  assert.equal(L.showsEnduranceBase(), false);
 });

@@ -6,9 +6,12 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.252 (2026-07-15)
+## 📍 État actuel — build 1.9.253 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **346 tests + smoke** verts (harness durci, dont garde-fou CSS + 4 gardes smoke rendus bloquants au #318). Livré au-delà de la roadmap initiale (boucles #36→**318**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **347 tests + smoke** verts (harness durci, dont garde-fou CSS + 5 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**319**) :
+
+- 🧭 **Onglet Athlète rangé en 3 zones + « Base d'endurance » conditionnelle** (audit onglets A+C) : sous-onglet Séance en zones intitulées (Faire maintenant · Mon entraînement · Récupération & mobilité) via `organizeAthleteZones` (réordonne les conteneurs, pas les panneaux — grilles responsive intactes) ; panneau trail masqué (`showsEnduranceBase`) hors profil endurance/trail/course. Vérifié en navigateur. ✅ _boucle #319 (build 1.9.253) — clôt la rotation 27._
+- 🎯 **Poids cible unifié dans « Mon plan »** (audit onglets B) : doublon `#targetWeight` retiré de « Objectifs hebdomadaires », foyer unique (`#coachTarget`) + renvoi ; `#saveGoals` préserve la cible ; 4 gardes smoke rendus bloquants. ✅ _boucle #318 (build 1.9.252)._
 
 - 🎯 **Poids cible unifié dans « Mon plan »** (suite audit onglets) : doublon `#targetWeight` retiré de « Objectifs hebdomadaires », foyer unique dans le panneau du plan (`#coachTarget`, enregistrement direct) + renvoi de découvrabilité. `#saveGoals` préserve désormais la cible. Vérifié en navigateur. ✅ _boucle #318 (build 1.9.252)._ Restent ouvertes : regroupement 3 zones de l'onglet Athlète (A) et « Base d'endurance » conditionnelle (C).
 

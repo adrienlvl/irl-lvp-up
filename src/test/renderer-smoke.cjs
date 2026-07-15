@@ -210,6 +210,31 @@ app.whenReady().then(async () => {
           const u = upcomingSessions(plans, agenda, '2026-07-20');
           return u.length === 2 && u[0].origin === 'plan' && u[1].origin === 'agenda' && u[1].id === 10;
         })(),
+        athleteZones: typeof organizeAthleteZones === 'function' && typeof showsEnduranceBase === 'function' && (() => {
+          // 3 zones intitulées en tête du sous-onglet Séance. Les panneaux vivent groupés dans des
+          // conteneurs .training-grid : on range au niveau conteneur, pas panneau. On vérifie donc
+          // l'intertitre qui PRÉCÈDE chaque conteneur clé, pas un ordre d'indices rigide.
+          const zones = [...document.querySelectorAll('main.app-shell > section.atab-zone')];
+          if (zones.length !== 3) return false;
+          if (zones.map(z => z.querySelector('.azh-t') && z.querySelector('.azh-t').textContent).join('|') !== 'Faire maintenant|Mon entraînement|Récupération & mobilité') return false;
+          if (!zones.every(z => z.dataset.atab === 'seance')) return false;
+          // Intertitre précédant le conteneur direct qui abrite un panneau donné.
+          const zoneTitreDe = cls => {
+            const p = document.querySelector('.' + cls);
+            if (!p) return null;
+            let sec = p.closest('main.app-shell > section') || p;
+            while (sec && !(sec.classList && sec.classList.contains('atab-zone'))) sec = sec.previousElementSibling;
+            return sec ? (sec.querySelector('.azh-t') && sec.querySelector('.azh-t').textContent) : null;
+          };
+          if (zoneTitreDe('athlete-companion') !== 'Faire maintenant') return false;
+          if (zoneTitreDe('planning-panel') !== 'Faire maintenant') return false;
+          if (zoneTitreDe('wellness-panel') !== 'Récupération & mobilité') return false;
+          if (zoneTitreDe('objective-program-panel') !== 'Mon entraînement') return false;
+          // « Base d'endurance » masquée/affichée selon l'objectif courant (C).
+          const trail = document.querySelector('.trail-panel');
+          const attendu = !showsEnduranceBase({ goal: state.profile.goal, fitnessObjective: state.fitnessObjective, raceGoalDate: state.raceGoal && state.raceGoal.date });
+          return !!trail && trail.classList.contains('endurance-hidden') === attendu;
+        })(),
         nutritionCsv: typeof nutritionCsv === 'function' && !!document.getElementById('exportNutritionCsv') && (() => { const csv = nutritionCsv([{ date: '2026-07-06', protein: 150, water: 8, fruit: false }, { date: '2026-07-08', protein: 130, water: 7, fruit: true }]); const lines = csv.split(String.fromCharCode(10)); return lines.length === 3 && lines[0] === 'date,proteines_g,eau_verres,fruits_legumes' && lines[1] === '2026-07-06,150,8,non' && lines[2] === '2026-07-08,130,7,oui'; })(),
         s8Travel: typeof isAllowedTravelUrl === 'function' && typeof travelModes === 'function' && !!document.getElementById('calendarAgendaEstimate') && !!document.getElementById('travelStartForm') && !!document.getElementById('travelHome') && !!document.getElementById('travelMode'),
         goalsZones: typeof goalMatch === 'function' && typeof goalRank === 'function' && Array.isArray(TRAINING_GOALS) && document.querySelectorAll('#exerciseGoal option').length === 8,
@@ -283,7 +308,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.252'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.253'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -382,6 +407,7 @@ app.whenReady().then(async () => {
     if (!checks.coachTargetEditable) errors.push('Poids cible non unifié dans « Mon plan » (#coachTarget absent/ne sauvegarde pas, ou #targetWeight pas retiré)');
     if (!checks.programReset) errors.push('Purge programme KO (pruneProgramSessionsFrom)');
     if (!checks.plannedMergesProgram) errors.push('Fusion séances programme KO (upcomingSessions)');
+    if (!checks.athleteZones) errors.push('Zones onglet Athlète KO (organizeAthleteZones / 3 intertitres / ordre / trail conditionnel)');
     if (!checks.s8Travel) errors.push('Trajet auto S.8 absent (isAllowedTravelUrl/travelModes/calendarAgendaEstimate/travelStartForm/travelHome/travelMode)');
     if (!checks.goalsZones) errors.push('Objectifs par zone absents (goalMatch/goalRank/TRAINING_GOALS/#exerciseGoal 8 options)');
     if (!checks.animEngine) errors.push('Moteur d’animation absent (buildAnimatedArt/EXERCISE_ANIM/frame-a/frame-b)');

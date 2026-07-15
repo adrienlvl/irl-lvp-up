@@ -49,3 +49,12 @@
 .link-button{background:none;border:0;padding:0;font:inherit;color:var(--accent,#6ee7b7);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .link-button:hover{opacity:.85}
 .link-button:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px;border-radius:3px}
+
+/* Intertitres de zone du sous-onglet Séance (Faire maintenant / Mon programme / Endurance & mobilité).
+   Léger séparateur, pas une carte : on structure sans alourdir. */
+.atab-zone{display:flex;align-items:center;gap:9px;margin:22px 2px 2px;padding:0;background:none;border:0;border-top:1px solid var(--line);padding-top:14px}
+.atab-zone:first-of-type{border-top:0;padding-top:2px;margin-top:8px}
+.atab-zone .azh-em{font-size:1.05rem;line-height:1}
+.atab-zone .azh-t{font-size:.74rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+/* « Base d'endurance » masquée pour un profil non-endurance (voir showsEnduranceBase). */
+.trail-panel.endurance-hidden{display:none !important}
