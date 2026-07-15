@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.259 (2026-07-15)
+## 📍 État actuel — build 1.9.260 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **352 tests + smoke** verts (harness durci, dont garde-fou CSS + 10 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**325**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **353 tests + smoke** verts (harness durci, dont garde-fou CSS + 11 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**326**) :
+
+- ✏️ **Habitudes modifiables** (nom + jours) sans supprimer/recréer : édition inline, `applyHabitEdit` préserve id/log/xp → série et historique intacts. Vérifié en navigateur. ✅ _boucle #326 (build 1.9.260)._
 
 - 📊 **Habitudes — régularité sur 30 j** : `habitConsistency` affiche un taux (vert/orange/rouge) par habitude, complétant la série court terme. Fenêtre bornée à la 1re date loggée (pas de « 3 % » sur une habitude naissante). Vérifié en navigateur. ✅ _boucle #325 (build 1.9.259)._
 

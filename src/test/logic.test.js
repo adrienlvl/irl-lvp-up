@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.259');
+  assert.equal(L.CHANGELOG[0].v, '1.9.260');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5184,4 +5184,26 @@ test('habitConsistency : régularité DEPUIS le début (fenêtre bornée à la 1
   assert.equal(L.habitConsistency({ name: 'X', weekdays: [], log: [] }, '2026-07-15', 30), null);
   // date invalide → null
   assert.equal(L.habitConsistency(h, 'nope', 30), null);
+});
+
+test('applyHabitEdit : modifie nom/jours en préservant id, log, xp, série', () => {
+  const h = { id: 42, name: 'Lecture', xp: 15, weekdays: [1, 3, 5], log: ['2026-07-14', '2026-07-15'], createdAt: 1000 };
+  // renomme + change les jours
+  const r = L.applyHabitEdit(h, { name: '  Lecture du soir  ', weekdays: [1, 2, 3, 4, 5] });
+  assert.equal(r.name, 'Lecture du soir');       // trim
+  assert.deepEqual(r.weekdays, [1, 2, 3, 4, 5]);
+  assert.equal(r.id, 42);                          // id préservé
+  assert.deepEqual(r.log, ['2026-07-14', '2026-07-15']); // historique préservé → série intacte
+  assert.equal(r.xp, 15);                          // xp préservé
+  assert.equal(r.createdAt, 1000);
+  // 7 jours cochés → [] (tous les jours)
+  assert.deepEqual(L.applyHabitEdit(h, { weekdays: [0, 1, 2, 3, 4, 5, 6] }).weekdays, []);
+  // nom vide → garde l'ancien ; jours vides → garde les anciens
+  const r2 = L.applyHabitEdit(h, { name: '   ', weekdays: [] });
+  assert.equal(r2.name, 'Lecture');
+  assert.deepEqual(r2.weekdays, [1, 3, 5]);
+  // patch absent → habitude inchangée (normalisée)
+  assert.equal(L.applyHabitEdit(h).name, 'Lecture');
+  // dédoublonne et trie les jours
+  assert.deepEqual(L.applyHabitEdit(h, { weekdays: [5, 1, 5, 3] }).weekdays, [1, 3, 5]);
 });

@@ -336,7 +336,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.259'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.260'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -381,6 +381,16 @@ app.whenReady().then(async () => {
         habitConsistency: typeof habitConsistency === 'function' && (() => {
           const r = habitConsistency({ name: 'Lecture', weekdays: [], log: ['2026-07-15', '2026-07-14', '2026-07-12', '2026-07-10', '2026-07-08'] }, '2026-07-15', 10);
           return r && r.done === 5 && r.scheduled === 8 && r.rate === 63 && habitConsistency({ name: 'X', weekdays: [], log: [] }, '2026-07-15', 30) === null;
+        })(),
+        habitEdit: typeof applyHabitEdit === 'function' && !!document.getElementById('habitList') && (() => {
+          const pure = applyHabitEdit({ id: 5, name: 'X', xp: 10, weekdays: [1, 3], log: ['2026-07-15'] }, { name: 'Y', weekdays: [1, 2, 3] });
+          if (!(pure.name === 'Y' && pure.id === 5 && pure.log.length === 1 && pure.weekdays.join(',') === '1,2,3')) return false;
+          const saved = state.habits;
+          state.habits = [{ id: 999, name: 'Test', xp: 10, weekdays: [], log: [] }];
+          renderHabits();
+          const ok = !!document.querySelector('#habitList [data-habit-edit="999"]');
+          state.habits = saved; renderHabits();
+          return ok;
         })(),
         habitsAtRisk: typeof habitsAtRisk === 'function' && !!document.getElementById('habitsAtRisk') && (() => { const r = habitsAtRisk([{ id: 1, name: 'Lecture', log: ['2026-07-05', '2026-07-06', '2026-07-07'] }, { id: 2, name: 'Eau', log: ['2026-07-07', '2026-07-08'] }], '2026-07-08'); return r.length === 1 && r[0].name === 'Lecture' && r[0].streak === 3 && habitsAtRisk(null, '2026-07-08').length === 0; })(),
         recDone: typeof completeRecurringOn === 'function' && (L => { const r = normalizeRecurring({ id: 1, doneLog: ['2026-07-07'] }); return r.doneLog.length === 1; })(),
@@ -445,6 +455,7 @@ app.whenReady().then(async () => {
     if (!checks.focusByTask) errors.push('Focus par tâche KO (focusByTask / #focusByTask)');
     if (!checks.proteinStreak) errors.push('Série protéines KO (proteinStreak / #proteinStreak)');
     if (!checks.habitConsistency) errors.push('Régularité habitude 30 j KO (habitConsistency)');
+    if (!checks.habitEdit) errors.push('Édition habitude KO (applyHabitEdit / bouton data-habit-edit)');
     if (!checks.s8Travel) errors.push('Trajet auto S.8 absent (isAllowedTravelUrl/travelModes/calendarAgendaEstimate/travelStartForm/travelHome/travelMode)');
     if (!checks.goalsZones) errors.push('Objectifs par zone absents (goalMatch/goalRank/TRAINING_GOALS/#exerciseGoal 8 options)');
     if (!checks.animEngine) errors.push('Moteur d’animation absent (buildAnimatedArt/EXERCISE_ANIM/frame-a/frame-b)');
