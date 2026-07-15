@@ -4288,7 +4288,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.288');
+  assert.equal(L.CHANGELOG[0].v, '1.9.289');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4923,6 +4923,23 @@ test('morningEnergyTrend : moyenne d’énergie récente vs fenêtre précédent
   assert.equal(L.morningEnergyTrend([{ date: '2026-07-14', energy: 3 }], today, 7), null);
   assert.equal(L.morningEnergyTrend([], today, 7), null);
   assert.equal(L.morningEnergyTrend(rituals, 'pas-une-date', 7), null);
+});
+
+test('morningStreak : check-ins consécutifs finissant aujourd’hui ou hier', () => {
+  // 12, 13, 14 d'affilée, aujourd'hui = 14 → 3
+  const r = [{ date: '2026-07-12' }, { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-10' }];
+  assert.equal(L.morningStreak(r, '2026-07-14'), 3);
+  // aujourd'hui pas encore fait mais hier oui → la série tient (tolérance d'un jour)
+  assert.equal(L.morningStreak(r, '2026-07-15'), 3);
+  // ni aujourd'hui ni hier → 0
+  assert.equal(L.morningStreak(r, '2026-07-16'), 0);
+  // un seul jour (aujourd'hui) → 1
+  assert.equal(L.morningStreak([{ date: '2026-07-14' }], '2026-07-14'), 1);
+  // dédoublonnage par date
+  assert.equal(L.morningStreak([{ date: '2026-07-14' }, { date: '2026-07-14' }, { date: '2026-07-13' }], '2026-07-14'), 2);
+  // vide / date invalide → 0
+  assert.equal(L.morningStreak([], '2026-07-14'), 0);
+  assert.equal(L.morningStreak(r, 'nope'), 0);
 });
 
 test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () => {
