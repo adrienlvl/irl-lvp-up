@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.267');
+  assert.equal(L.CHANGELOG[0].v, '1.9.268');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5262,4 +5262,22 @@ test('upsertWeight : une pesée par jour (remplace), triée, sans mutation', () 
   assert.deepEqual(L.upsertWeight(base, 20, '2026-07-15'), base);
   assert.deepEqual(L.upsertWeight(base, 500, '2026-07-15'), base);
   assert.deepEqual(L.upsertWeight(base, 80, 'nope'), base);
+});
+
+test('dailyGreeting : salutation personnalisée selon l’heure', () => {
+  assert.equal(L.dailyGreeting({ name: 'Adrien', hour: 8 }).hello, 'Bonjour Adrien');
+  assert.equal(L.dailyGreeting({ name: 'Adrien', hour: 14 }).hello, 'Bon après-midi Adrien');
+  assert.equal(L.dailyGreeting({ name: 'Adrien', hour: 20 }).hello, 'Bonsoir Adrien');
+  assert.equal(L.dailyGreeting({ name: 'Adrien', hour: 2 }).hello, 'Encore debout Adrien');
+  // sans nom → pas de prénom collé
+  assert.equal(L.dailyGreeting({ hour: 8 }).hello, 'Bonjour');
+  // ne garde que le prénom (1er mot), tronqué
+  assert.equal(L.dailyGreeting({ name: '  Adrien Dupont ', hour: 8 }).hello, 'Bonjour Adrien');
+  // chaque tranche a un nudge non vide
+  [8, 14, 20, 2].forEach(h => assert.ok(L.dailyGreeting({ hour: h }).nudge.length > 3));
+  // heure absente → midi (après-midi)
+  assert.equal(L.dailyGreeting({}).hello, 'Bon après-midi');
+  // bornes
+  assert.equal(L.dailyGreeting({ hour: 5 }).hello, 'Bonjour');
+  assert.equal(L.dailyGreeting({ hour: 23 }).hello, 'Encore debout');
 });
