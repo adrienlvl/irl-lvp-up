@@ -4263,7 +4263,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.282');
+  assert.equal(L.CHANGELOG[0].v, '1.9.283');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5444,6 +5444,26 @@ test('upsertMeasurement : une mensuration par jour, fusion des champs, sans muta
   assert.deepEqual(L.upsertMeasurement(base, { waist: 0, chest: 0, arm: 0 }, '2026-07-15'), base);
   assert.deepEqual(L.upsertMeasurement(base, { waist: 5 }, '2026-07-15'), base, 'sous la borne → inchangé');
   assert.deepEqual(L.upsertMeasurement(base, { waist: 85 }, 'nope'), base);
+});
+
+test('measurementSeries : série datée d’un champ, triée, plafonnée', () => {
+  const m = [
+    { date: '2026-05-01', waist: 88, chest: 102 },
+    { date: '2026-06-01', waist: 86 },
+    { date: '2026-07-01', waist: 84, chest: 100 },
+    { date: '2026-04-01', waist: 90 }
+  ];
+  const s = L.measurementSeries(m, 'waist', 8);
+  assert.deepEqual(s.map(p => p.value), [90, 88, 86, 84], 'trié du plus ancien au plus récent');
+  assert.equal(s[0].date, '2026-04-01');
+  // plafonné aux N derniers
+  assert.equal(L.measurementSeries(m, 'waist', 2).length, 2);
+  assert.deepEqual(L.measurementSeries(m, 'waist', 2).map(p => p.value), [86, 84], 'garde les plus récents');
+  // ignore les valeurs manquantes du champ
+  assert.equal(L.measurementSeries(m, 'chest', 8).length, 2);
+  // rien / champ absent → []
+  assert.deepEqual(L.measurementSeries([], 'waist', 8), []);
+  assert.deepEqual(L.measurementSeries([{ date: 'bad', waist: 80 }], 'waist', 8), []);
 });
 
 test('dailyGreeting : salutation personnalisée selon l’heure', () => {
