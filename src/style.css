@@ -13,6 +13,9 @@
 .starter-card{border-left:3px solid var(--accent)}
 .install-card{border-left:3px solid var(--purple,#a78bfa);display:flex;flex-direction:column;gap:12px}
 .whatsnew-card{border-left:3px solid var(--accent);display:flex;flex-direction:column;gap:12px}
+/* `display:flex` ci-dessus écrasait l'attribut `hidden` (règle d'auteur > UA), donc « Super,
+   compris » ne masquait pas la carte. On rend `hidden` prioritaire. */
+.whatsnew-card[hidden]{display:none}
 .wn-head{display:flex;align-items:flex-start;gap:12px}
 .wn-emoji{font-size:1.7rem;line-height:1}
 .wn-head b{font-size:.98rem;display:block}

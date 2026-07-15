@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.261');
+  assert.equal(L.CHANGELOG[0].v, '1.9.262');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5206,4 +5206,40 @@ test('applyHabitEdit : modifie nom/jours en préservant id, log, xp, série', ()
   assert.equal(L.applyHabitEdit(h).name, 'Lecture');
   // dédoublonne et trie les jours
   assert.deepEqual(L.applyHabitEdit(h, { weekdays: [5, 1, 5, 3] }).weekdays, [1, 3, 5]);
+});
+
+test('weightMilestones : paliers intermédiaires, dernier = cible exacte', () => {
+  // 81 → 75 kg (perte 6 kg) à 0,5 kg/sem → 12 semaines ; paliers toutes les 2 sem
+  const ms = L.weightMilestones({ current: 81, target: 75, ratePerWeek: 0.5, todayKey: '2026-07-15', everyWeeks: 2, maxSteps: 8 });
+  assert.ok(ms.length >= 3);
+  // premier palier à S+2 : 81 - 0,5*2 = 80
+  assert.equal(ms[0].weeksFromNow, 2);
+  assert.equal(ms[0].weight, 80);
+  // dernier palier = cible exacte, remaining 0
+  const last = ms[ms.length - 1];
+  assert.equal(last.weight, 75);
+  assert.equal(last.remaining, 0);
+  assert.equal(last.weeksFromNow, 12);
+  // les poids décroissent vers la cible
+  for (let i = 1; i < ms.length; i++) assert.ok(ms[i].weight <= ms[i - 1].weight);
+  // prise de poids (81 → 85)
+  const up = L.weightMilestones({ current: 81, target: 85, ratePerWeek: 0.25, todayKey: '2026-07-15', everyWeeks: 2 });
+  assert.equal(up[up.length - 1].weight, 85);
+  assert.ok(up[0].weight > 81);
+  // maxSteps borne le nombre de paliers (+ le final)
+  const many = L.weightMilestones({ current: 90, target: 70, ratePerWeek: 0.25, todayKey: '2026-07-15', everyWeeks: 1, maxSteps: 5 });
+  assert.ok(many.length <= 5);
+  assert.equal(many[many.length - 1].weight, 70);
+  // déjà à la cible / entrées invalides → []
+  assert.deepEqual(L.weightMilestones({ current: 75, target: 75, ratePerWeek: 0.5, todayKey: '2026-07-15' }), []);
+  assert.deepEqual(L.weightMilestones({ current: 81, target: 75, ratePerWeek: 0, todayKey: '2026-07-15' }), []);
+});
+
+test('trackingCadenceAdvice : conseils de fréquence selon le sens', () => {
+  const perte = L.trackingCadenceAdvice('perte');
+  assert.ok(/2 à 3/.test(perte.weighIn) && /2 semaines/.test(perte.measure));
+  const maintien = L.trackingCadenceAdvice('maintien');
+  assert.ok(/1×\/semaine/.test(maintien.weighIn) && /mois/.test(maintien.measure));
+  // prise = même cadence active que perte
+  assert.equal(L.trackingCadenceAdvice('prise').measure, perte.measure);
 });

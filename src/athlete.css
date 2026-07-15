@@ -58,3 +58,18 @@
 .atab-zone .azh-t{font-size:.74rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 /* « Base d'endurance » masquée pour un profil non-endurance (voir showsEnduranceBase). */
 .trail-panel.endurance-hidden{display:none !important}
+
+/* Paliers de poids intermédiaires : des caps courts vers la cible, plus motivants qu'un objectif lointain. */
+.cw-milestones{margin-top:12px;background:var(--input-bg);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.cw-ms-head{font-size:.74rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cw-ms-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.cw-ms-item{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.cw-ms-item:last-child{border-bottom:0}
+.cw-ms-dot{font-size:.8rem;width:1.2em;text-align:center}
+.cw-ms-w{font-variant-numeric:tabular-nums}
+.cw-ms-d{color:var(--muted);font-size:.82rem;text-align:right}
+.cw-ms-final{margin-top:2px}
+.cw-ms-final .cw-ms-w{color:var(--accent,#6ee7b7)}
+/* Conseils de fréquence de suivi (pesée / mensurations). */
+.cw-cadence{margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:.83rem;color:var(--ink-soft,var(--text))}
+.cw-cadence>div{padding-left:2px}
