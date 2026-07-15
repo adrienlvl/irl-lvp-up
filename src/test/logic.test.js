@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.270');
+  assert.equal(L.CHANGELOG[0].v, '1.9.271');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5112,6 +5112,14 @@ test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravit�
   assert.ok(b && b.page === 'agenda' && b.sev === 'high' && /Léa/.test(b.text) && /demain/.test(b.text));
   // anniversaire lointain (dans 40 j) → pas d'item
   assert.ok(!L.attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [], birthdays: [{ id: 2, name: 'Max', day: 24, month: 8 }] }, today).some(i => i.key === 'birthday'));
+  // rappel de sauvegarde : données présentes + jamais sauvegardé → item 'backup' vers settings
+  const withData = { recovery: [], agenda: [], workouts: [], habits: [{ id: 1, name: 'X', log: [] }], birthdays: [] };
+  assert.ok(L.attentionDigest({ ...withData, lastBackup: '' }, today).some(i => i.key === 'backup' && i.page === 'settings' && /jamais/.test(i.text)));
+  assert.ok(L.attentionDigest({ ...withData, lastBackup: '2026-06-25' }, today).some(i => i.key === 'backup' && /20 j/.test(i.text)));
+  // sauvegardé récemment → pas de nudge
+  assert.ok(!L.attentionDigest({ ...withData, lastBackup: '2026-07-14' }, today).some(i => i.key === 'backup'));
+  // aucune donnée (nouveau venu) → pas de nudge même sans sauvegarde
+  assert.ok(!L.attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [], birthdays: [], lastBackup: '' }, today).some(i => i.key === 'backup'));
   // cap
   assert.equal(L.attentionDigest(state, today, { cap: 2 }).length, 2);
   // rien d’urgent → []

@@ -2191,6 +2191,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.271', emoji: '🛟', text: 'Rappel de sauvegarde : « À rattraper » te signale quand tu n’as pas exporté tes données depuis longtemps (ou jamais) — il disparaît dès que c’est fait.' },
   { v: '1.9.270', emoji: '💾', text: 'Sauvegarde sur mobile : « Exporter » télécharge un fichier de tes données, « Importer » le recharge — ta sécurité contre une perte (surtout sur iPhone). Marche enfin hors app installée.' },
   { v: '1.9.269', emoji: '🎂', text: 'Un anniversaire dans un jour ou deux apparaît maintenant dans « À rattraper » sur l’accueil — tu ne l’oublieras plus.' },
   { v: '1.9.268', emoji: '👋', text: 'L’accueil te salue par ton prénom selon le moment de la journée (bonjour / bonsoir…) avec un petit mot adapté.' },
@@ -4092,6 +4093,14 @@ function attentionDigest(state, todayKey, opts) {
   // Anniversaire imminent (≤ 2 j) : à ne pas oublier. Il vit sinon enfoui dans l'overlay Agenda.
   const bd = (typeof upcomingBirthdays === 'function') ? upcomingBirthdays(s.birthdays, todayKey, { withinDays: 2, max: 1 })[0] : null;
   if (bd) { const w = bd.daysUntil === 0 ? "aujourd'hui" : bd.daysUntil === 1 ? 'demain' : `dans ${bd.daysUntil} j`; items.push({ key: 'birthday', emoji: '🎂', text: `Anniversaire de ${bd.name} ${w}`, page: 'agenda', sev: bd.daysUntil <= 1 ? 'high' : 'med' }); }
+  // Rappel de sauvegarde : la sauvegarde est manuelle et le localStorage peut être évincé (iOS). On
+  // nudge si l'utilisateur a des données à protéger ET n'a pas sauvegardé depuis ≥ 14 jours (ou jamais).
+  const hasData = (Array.isArray(s.weights) && s.weights.length) || (Array.isArray(s.workouts) && s.workouts.length >= 3) || (Array.isArray(s.habits) && s.habits.length >= 1) || (Array.isArray(s.agenda) && s.agenda.length >= 3);
+  if (hasData) {
+    const lb = String(s.lastBackup || '');
+    const since = /^\d{4}-\d{2}-\d{2}$/.test(lb) ? Math.round((new Date(todayKey + 'T12:00:00') - new Date(lb + 'T12:00:00')) / 864e5) : null;
+    if (since === null || since >= 14) items.push({ key: 'backup', emoji: '💾', text: since === null ? 'Sauvegarde tes données (jamais fait)' : `Sauvegarde tes données (dernière il y a ${since} j)`, page: 'settings', sev: 'med' });
+  }
   const rank = { high: 0, med: 1 };
   items.sort((a, b) => rank[a.sev] - rank[b.sev]);
   return items.slice(0, cap);
