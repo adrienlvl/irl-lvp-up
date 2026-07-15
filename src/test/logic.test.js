@@ -3023,6 +3023,19 @@ test('equipmentOptions : matériels distincts, comptés et triés par fréquence
   assert.deepEqual(L.equipmentOptions([]), []);
   assert.deepEqual(L.equipmentOptions('nope'), []);
 });
+
+test('activeExerciseFilters : étiquettes des filtres non-défaut', () => {
+  assert.deepEqual(L.activeExerciseFilters({}), []);
+  assert.deepEqual(L.activeExerciseFilters({ family: 'all', equip: 'all', goal: 'all', term: '', favOnly: false, newOnly: false }), [], 'tous par défaut → []');
+  const a = L.activeExerciseFilters({ goal: 'arms', favOnly: true, term: '  curl  ' });
+  assert.equal(a.length, 3);
+  assert.ok(a.some(x => /curl/.test(x)), 'la recherche apparaît (casse/espaces conservés hors trim)');
+  assert.ok(a.some(x => /Bras/.test(x)), 'objectif traduit');
+  assert.ok(a.some(x => /Favoris/.test(x)));
+  assert.deepEqual(L.activeExerciseFilters({ family: 'trail', equip: 'Kettlebell', newOnly: true }), ['Trail', '🧰 Kettlebell', '🆕 Nouveaux']);
+  assert.equal(L.activeExerciseFilters(null).length, 0, 'entrée nulle → []');
+  assert.equal(L.activeExerciseFilters({ term: '   ' }).length, 0, 'recherche vide (espaces) ignorée');
+});
 test('toggleFavorite : ajoute/retire un nom, sans muter, ignore vides', () => {
   const a = L.toggleFavorite([], 'Squat');
   assert.deepEqual(a, ['Squat'], 'ajout');
@@ -4227,7 +4240,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.277');
+  assert.equal(L.CHANGELOG[0].v, '1.9.278');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
