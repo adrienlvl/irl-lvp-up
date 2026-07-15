@@ -113,6 +113,8 @@
 .upcoming-deadlines{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
 .deadline-chip{font-size:.74rem;font-weight:700;border-radius:999px;padding:4px 10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text)}
 .deadline-chip.exam{border-left:3px solid #a855f7}.deadline-chip.race{border-left:3px solid #38bdf8}.deadline-chip.prio{border-left:3px solid #ef4444}
+.next-study{border-left-color:#a78bfa!important;margin-top:8px}
+.next-study b{color:#a78bfa}
 .my-day-tomorrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:8px 0 2px;padding:8px 11px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid #f59e0b;border-radius:9px}
 .my-day-tomorrow .mdt-label{font-size:.72rem;font-weight:750;color:var(--text);white-space:nowrap}
 .my-day-tomorrow .mdt-body{font-size:.76rem;color:var(--muted);line-height:1.4}

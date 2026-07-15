@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.285 (2026-07-16)
+## 📍 État actuel — build 1.9.286 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **368 tests + smoke** verts (harness durci, dont garde-fou CSS + 37 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**351**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **369 tests + smoke** verts (harness durci, dont garde-fou CSS + 38 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**352**) :
 
+- 📚 **Prochaine révision** (besoin BTS d'Adrien) : `nextStudySession` affiche dans « Ma journée » la prochaine révision planifiée (matière + quand), cliquable → agenda au bon jour. Miroir de « Prochaine séance ». Vérifié en navigateur. ✅ _boucle #352 (build 1.9.286)._
 - ↩️ **Annuler le report agenda** : « → demain » affiche un toast « Annuler » (`showUndoToast`) qui restaure la date — plus de mis-tap à corriger à la main. Vérifié en navigateur. ✅ _boucle #351 (build 1.9.285)._
 - 😴 **Courbe sommeil** : `sleepSeries` + `sparkLineSvg` → mini-courbe des dernières nuits (+ moyenne) dans le bilan récupération. Voir si le sommeil progresse au-delà du chiffre du jour. Vérifié en navigateur. ✅ _boucle #350 (build 1.9.284)._
 - 📉 **Courbe tour de taille** : `measurementSeries` + `sparkLineSvg` (normalisée min→max, contrairement aux barres depuis 0) → mini-courbe de tendance sous les mesures. Sert le suivi de recomposition. Vérifié en navigateur. ✅ _boucle #349 (build 1.9.283)._

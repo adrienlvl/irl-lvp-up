@@ -1888,6 +1888,31 @@ test('nextTrainingSession : prochaine séance à venir, tri date puis heure', ()
   assert.equal(L.nextTrainingSession([{ id: 7, date: '2026-07-01', time: '10:00' }], '2026-07-10', 0), null);
   assert.equal(L.nextTrainingSession('pas-un-tableau', '2026-07-10', 0), null);
 });
+
+test('nextStudySession : prochaine révision non faite, tri date/heure', () => {
+  const ag = [
+    { id: 1, kind: 'study', title: 'Compta', date: '2026-07-12', time: '17:30' },
+    { id: 2, kind: 'study', title: 'Droit', date: '2026-07-11', time: '18:00' },
+    { id: 3, kind: 'sport', title: 'Muscu', date: '2026-07-11', time: '08:00' }, // pas study
+    { id: 4, kind: 'study', title: 'Éco', date: '2026-07-11', time: '09:00', completed: true }, // faite → ignorée
+    { id: 5, kind: 'study', title: 'Passée', date: '2026-07-05', time: '10:00' }
+  ];
+  const r = L.nextStudySession(ag, '2026-07-10', 12 * 60);
+  assert.equal(r.title, 'Droit', 'la plus proche non faite = 11/07');
+  assert.equal(r.id, 2);
+  assert.equal(r.daysLeft, 1);
+  // même jour : révision dont l'heure est passée ignorée
+  const today = [
+    { id: 6, kind: 'study', title: 'Matin', date: '2026-07-10', time: '08:00' },
+    { id: 7, kind: 'study', title: 'Ce soir', date: '2026-07-10', time: '20:00' }
+  ];
+  const r2 = L.nextStudySession(today, '2026-07-10', 12 * 60);
+  assert.equal(r2.title, 'Ce soir');
+  assert.equal(r2.daysLeft, 0);
+  // aucune révision future → null
+  assert.equal(L.nextStudySession([{ id: 8, kind: 'study', date: '2026-07-01' }], '2026-07-10', 0), null);
+  assert.equal(L.nextStudySession('x', '2026-07-10', 0), null);
+});
 test('missedSessions : séances sport prévues récentes non faites', () => {
   const today = '2026-07-15';
   const agenda = [
@@ -4263,7 +4288,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.285');
+  assert.equal(L.CHANGELOG[0].v, '1.9.286');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
