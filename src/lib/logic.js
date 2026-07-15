@@ -2216,6 +2216,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.274', emoji: '🔧', text: 'Coach poids : le sélecteur de cible affiche enfin la décimale en entier sur tous les écrans (« 88,5 » n’est plus rognée), et les petites flèches disgracieuses des champs numériques ont disparu partout dans l’app.' },
   { v: '1.9.273', emoji: '🌅', text: 'Aperçu de demain : « Ma journée » affiche maintenant ce que réserve le lendemain (nombre de blocs, première chose au programme) — pour préparer ta journée dès le soir.' },
   { v: '1.9.272', emoji: '☕', text: 'Chaque bloc de focus terminé te propose maintenant une pause adaptée (≈ 5 min après 25, plus après un long bloc), et une vraie coupure tous les 4 blocs — le rythme travail/pause complet.' },
   { v: '1.9.271', emoji: '🛟', text: 'Rappel de sauvegarde : « À rattraper » te signale quand tu n’as pas exporté tes données depuis longtemps (ou jamais) — il disparaît dès que c’est fait.' },

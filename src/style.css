@@ -16,6 +16,10 @@
 /* `display:flex` ci-dessus écrasait l'attribut `hidden` (règle d'auteur > UA), donc « Super,
    compris » ne masquait pas la carte. On rend `hidden` prioritaire. */
 .whatsnew-card[hidden]{display:none}
+/* Flèches natives des champs numériques (spinner haut/bas) : moches et inutiles puisque la saisie se
+   fait au clavier ou via nos boutons +/−. On les retire sur TOUTES les fenêtres de l'app. */
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .wn-head{display:flex;align-items:flex-start;gap:12px}
 .wn-emoji{font-size:1.7rem;line-height:1}
 .wn-head b{font-size:.98rem;display:block}

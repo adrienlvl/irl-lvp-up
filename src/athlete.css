@@ -49,15 +49,23 @@
 .weight-stepper .ws-btn:active { transform: scale(.94); }
 .weight-stepper .ws-btn:focus-visible { outline: 2px solid var(--accent, #6ee7b7); outline-offset: 2px; }
 .ws-field {
-  display: flex; align-items: baseline; gap: 4px; min-width: 118px; justify-content: center;
+  display: flex; align-items: baseline; gap: 4px; min-width: 132px; justify-content: center;
   border: 2px solid var(--accent, #6ee7b7); border-radius: 14px; padding: 8px 12px;
   background: color-mix(in srgb, var(--accent, #6ee7b7) 8%, transparent);
 }
 .ws-field input {
-  width: 3.2ch; border: 0; background: none; color: var(--text); text-align: right;
-  font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; padding: 0; -moz-appearance: textfield;
+  width: 6ch; border: 0; background: none; color: var(--text); text-align: right;
+  font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; padding: 0; -moz-appearance: textfield; appearance: textfield;
 }
 .ws-field input::-webkit-outer-spin-button, .ws-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* Très petits écrans : on rétrécit la police (pas la largeur en ch) pour que « 100,5 kg » tienne
+   toujours en entier, boutons +/− compris. */
+@media (max-width: 360px) {
+  .weight-stepper { gap: 8px; }
+  .weight-stepper .ws-btn { width: 42px; height: 42px; font-size: 1.35rem; }
+  .ws-field { min-width: 0; padding: 8px 10px; }
+  .ws-field input { font-size: 1.6rem; }
+}
 .ws-field input:focus { outline: none; }
 .ws-field .ws-unit { font-size: 1rem; font-weight: 700; color: var(--muted); }
 
