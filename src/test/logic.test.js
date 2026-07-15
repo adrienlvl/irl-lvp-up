@@ -1249,6 +1249,29 @@ test('focusTimer : piloté par l’horloge, survit au rechargement et à l’arr
   assert.equal(L.focusTimerState({ startedAt: T0, durationMin: 0 }, T0), null);
 });
 
+test('breakSuggestion : pause proportionnelle + pause longue tous les 4 blocs', () => {
+  // pause courte ~1/5 du bloc, bornée 5–20
+  assert.equal(L.breakSuggestion(25, 1).breakMin, 5, '25 min → 5 min de pause');
+  assert.equal(L.breakSuggestion(50, 2).breakMin, 10, '50 min → 10 min');
+  assert.equal(L.breakSuggestion(90, 3).breakMin, 18, '90 min → 18 min (borné 20)');
+  assert.equal(L.breakSuggestion(25, 1).long, false);
+  // 4e bloc → pause longue, bornée 15–25
+  const b4 = L.breakSuggestion(25, 4);
+  assert.equal(b4.long, true, '4e bloc → pause longue');
+  assert.equal(b4.breakMin, 15, 'pause longue plancher 15 min');
+  assert.equal(L.breakSuggestion(90, 4).breakMin, 25, 'pause longue plafonnée à 25 min');
+  assert.equal(L.breakSuggestion(50, 8).long, true, '8e bloc → encore une pause longue');
+  assert.equal(L.breakSuggestion(50, 5).long, false, '5e bloc → pause courte');
+  assert.match(b4.note, /coupure/i, 'la pause longue invite à décrocher');
+  assert.match(L.breakSuggestion(90, 1).note, /hydrat/i, 'bloc long → rappel hydratation');
+  // entrées invalides / robustesse
+  assert.equal(L.breakSuggestion(0, 1), null, 'durée nulle → null');
+  assert.equal(L.breakSuggestion(-5, 1), null);
+  assert.equal(L.breakSuggestion('x', 1), null);
+  assert.equal(L.breakSuggestion(25, 0).long, false, 'blocs=0 traité comme 1er bloc');
+  assert.equal(L.breakSuggestion(25).breakMin, 5, 'blocs absent → 1er bloc');
+});
+
 test('guidedSnapshot / resumableGuided : la séance en cours survit à une fermeture', () => {
   const T0 = 1800000000000;
   const workout = {
@@ -4177,7 +4200,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.271');
+  assert.equal(L.CHANGELOG[0].v, '1.9.272');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
