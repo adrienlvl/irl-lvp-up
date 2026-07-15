@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.260 (2026-07-15)
+## 📍 État actuel — build 1.9.261 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **353 tests + smoke** verts (harness durci, dont garde-fou CSS + 11 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**326**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **353 tests + smoke** verts (harness durci, dont garde-fou CSS + 12 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**327**) :
+
+- ↩️ **« Annuler » après suppression d'une habitude** : toast réutilisable (`showUndoToast`) qui restaure l'habitude à sa place avec son historique — filet contre les suppressions accidentelles. Vérifié en navigateur. ✅ _boucle #327 (build 1.9.261) — clôt la rotation 29._
 
 - ✏️ **Habitudes modifiables** (nom + jours) sans supprimer/recréer : édition inline, `applyHabitEdit` préserve id/log/xp → série et historique intacts. Vérifié en navigateur. ✅ _boucle #326 (build 1.9.260)._
 

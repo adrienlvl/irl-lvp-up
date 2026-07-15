@@ -2176,6 +2176,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.261', emoji: '↩️', text: 'Supprimé une habitude par erreur ? Un bouton « Annuler » apparaît quelques secondes pour la récupérer avec toute son histoire.' },
   { v: '1.9.260', emoji: '✏️', text: 'Habitudes modifiables : renomme ou change les jours d’une habitude sans la supprimer — ta série et ton historique restent intacts.' },
   { v: '1.9.259', emoji: '📊', text: 'Habitudes : un taux de régularité sur 30 jours par habitude (vert/orange/rouge) — vois laquelle tu tiens vraiment sur la durée.' },
   { v: '1.9.258', emoji: '🔥', text: 'Série protéines : tes jours consécutifs à ta cible, avec ton record — la nutrition entre dans le jeu des séries.' },
