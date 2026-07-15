@@ -2257,6 +2257,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.281', emoji: '♿', text: 'Accessibilité : l’onglet de navigation actif est désormais annoncé aux lecteurs d’écran (aria-current) — sur la barre principale comme sur le sous-menu Athlète.' },
   { v: '1.9.280', emoji: '🛡️', text: 'Import de sauvegarde plus sûr : restaurer un fichier de sauvegarde automatique (format enveloppé) ne risque plus d’effacer tes données — l’app reconnaît les deux formats de fichier.' },
   { v: '1.9.279', emoji: '📅', text: 'Habitudes : un « pouls » hebdomadaire résume toutes tes habitudes d’un coup d’œil — combien de rituels prévus tu as tenus cette semaine (%), avec une frise des 7 derniers jours.' },
   { v: '1.9.278', emoji: '🧹', text: 'Bibliothèque d’exercices : quand des filtres sont actifs (recherche, matériel, objectif, favoris…), un bandeau les affiche et un bouton « ✕ Réinitialiser » réaffiche tout en un clic — fini de rester bloqué sur « aucun résultat ».' },
