@@ -263,6 +263,18 @@ app.whenReady().then(async () => {
           showPage('dashboard'); const horsDash = cw.classList.contains('app-page-hidden');
           return surPoids && horsAthlete && horsDash;
         })(),
+        escapeOverlay: !!document.getElementById('weekPage') && !!document.getElementById('calendarPage') && (() => {
+          const wp = document.getElementById('weekPage'), cp = document.getElementById('calendarPage');
+          const wpH = wp.hidden, cpH = cp.hidden;
+          wp.hidden = false;
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          const wpFerme = wp.hidden === true;
+          cp.hidden = false;
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          const cpFerme = cp.hidden === true;
+          wp.hidden = wpH; cp.hidden = cpH;
+          return wpFerme && cpFerme;
+        })(),
         photoCompress: typeof fitDimensions === 'function' && typeof dataUrlBytes === 'function' && typeof compressPhoto === 'function' && typeof optimizeStoredPhotos === 'function' && (() => { const p = fitDimensions(3024, 4032, 1280); if (!p || p.height !== 1280 || p.width !== 960) return false; const petit = fitDimensions(800, 600, 1280); if (petit.width !== 800 || petit.height !== 600) return false; if (fitDimensions(0, 100, 1280) !== null) return false; return dataUrlBytes('data:image/jpeg;base64,AAAA') === 3 && dataUrlBytes('pas une data url') === 0 && dataUrlBytes(null) === 0; })(),
         targetAdvice: typeof weightTargetAdvice === 'function' && !!document.getElementById('coachTargetAdvice') && (() => { const base = { weight: 81, height: 174, age: 30, sex: 'homme' }; const ok = weightTargetAdvice({ ...base, targetWeight: 75, fitnessObjective: 'athletique' }); if (!ok || ok.level !== 'ok' || ok.direction !== 'perte') return false; const bas = weightTargetAdvice({ ...base, targetWeight: 55, fitnessObjective: 'athletique' }); if (bas.level !== 'stop' || bas.targetBmi >= 18.5) return false; const contra = weightTargetAdvice({ ...base, targetWeight: 70, fitnessObjective: 'muscle' }); if (contra.level !== 'stop') return false; const maint = weightTargetAdvice({ ...base, targetWeight: 81, fitnessObjective: 'athletique' }); return maint.direction === 'maintien' && weightTargetAdvice({ weight: 81, height: 174 }) === null; })(),
         durationSplit: typeof splitDuration === 'function' && typeof combineDuration === 'function' && !!document.getElementById('workoutHours') && !!document.getElementById('workoutDuration') && (() => { const d = splitDuration(90); return d.h === 1 && d.m === 30 && combineDuration(1, 30) === 90 && combineDuration(2, 0) === 120 && combineDuration('', 45) === 45 && combineDuration(20, 0) === 600; })(),
@@ -389,7 +401,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.265'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.266'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -525,6 +537,7 @@ app.whenReady().then(async () => {
     if (!checks.weightMilestones) errors.push('Paliers de poids KO (weightMilestones / trackingCadenceAdvice)');
     if (!checks.whatsNewDismiss) errors.push('Fermeture Nouveautés KO (.whatsnew-card[hidden] ne masque pas)');
     if (!checks.poidsTab) errors.push('Onglet Poids KO (pageGroups.poids / bouton nav / coach-weight-panel mal isolé)');
+    if (!checks.escapeOverlay) errors.push('Échap ne ferme pas les overlays (handler keydown Escape)');
     if (!checks.weightStepper) errors.push('Sélecteur de poids KO (boutons ±0,5 / #coachTarget n\'enregistre pas)');
     if (!checks.coachLogWeight) errors.push('Saisie rapide poids (onglet Poids) KO (#coachLogWeight / #coachLastWeigh)');
     if (!checks.s8Travel) errors.push('Trajet auto S.8 absent (isAllowedTravelUrl/travelModes/calendarAgendaEstimate/travelStartForm/travelHome/travelMode)');

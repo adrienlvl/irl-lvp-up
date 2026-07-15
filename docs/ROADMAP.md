@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.265 (2026-07-15)
+## 📍 État actuel — build 1.9.266 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **355 tests + smoke** verts (harness durci, dont garde-fou CSS + 18 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**331**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **355 tests + smoke** verts (harness durci, dont garde-fou CSS + 19 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**332**) :
+
+- ⎋ **Échap ferme les overlays plein écran** (a11y) : Agenda semaine / calendrier / ultra se ferment au clavier ; annule aussi une édition d'habitude ; laisse les `<dialog>` natifs gérer Échap eux-mêmes. Vérifié en navigateur. ✅ _boucle #332 (build 1.9.266) — ouvre la rotation 31._
 
 - 📅 **Onglet Poids autonome — saisie du poids du jour sur place** : champ rapide en tête (une pesée/jour, remplace), « dernière pesée + rappel ⏰ », plan qui se recalcule aussitôt. L'onglet Poids couvre désormais tout le cycle (logger → cible/paliers → plan). Vérifié en navigateur. ✅ _boucle #331 (build 1.9.265) — clôt la rotation 30._
 
