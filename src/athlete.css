@@ -91,3 +91,11 @@
 /* Conseils de fréquence de suivi (pesée / mensurations). */
 .cw-cadence{margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:.83rem;color:var(--ink-soft,var(--text))}
 .cw-cadence>div{padding-left:2px}
+
+/* Saisie rapide du poids du jour, en tête de l'onglet Poids (logger là où on suit son plan). */
+.cw-logweight{margin:2px 0 14px;padding:12px 14px;border-radius:12px;background:var(--input-bg);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cw-lw-label{font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.cw-lw-row{display:flex;gap:8px}
+.cw-lw-row input{flex:1;min-width:0;background:var(--surface,var(--input-bg));color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:1rem}
+.cw-lw-row button{flex:none;white-space:nowrap}
+.cw-lw-last{color:var(--muted);font-size:.8rem}

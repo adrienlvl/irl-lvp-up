@@ -184,6 +184,20 @@ app.whenReady().then(async () => {
           return ms.length >= 3 && ms[0].weeksFromNow === 2 && ms[0].weight === 80 && last.weight === 75 && last.remaining === 0
             && trackingCadenceAdvice('perte').weighIn.length > 10 && weightMilestones({ current: 75, target: 75, ratePerWeek: 0.5, todayKey: '2026-07-15' }).length === 0;
         })(),
+        coachLogWeight: !!document.getElementById('coachWeightToday') && !!document.getElementById('coachLogWeight') && !!document.getElementById('coachLastWeigh') && (() => {
+          const savedW = state.weights;
+          state.weights = [];
+          const today = (typeof localDate === 'function') ? localDate() : new Date().toISOString().slice(0, 10);
+          const inp = document.getElementById('coachWeightToday');
+          inp.value = '77.3';
+          document.getElementById('coachLogWeight').click();
+          const enregistre = state.weights.some(w => w.date === today && w.value === 77.3);
+          inp.value = '77.8'; document.getElementById('coachLogWeight').click(); // même jour → remplace
+          const remplace = state.weights.filter(w => w.date === today).length === 1 && state.weights.find(w => w.date === today).value === 77.8;
+          const dernier = /Dernière pesée/.test(document.getElementById('coachLastWeigh').textContent);
+          state.weights = savedW; if (typeof renderCoachWeight === 'function') renderCoachWeight();
+          return enregistre && remplace && dernier;
+        })(),
         weightStepper: !!document.querySelector('[data-target-step="0.5"]') && !!document.querySelector('[data-target-step="-0.5"]') && !!document.getElementById('coachTarget') && (() => {
           const inp = document.getElementById('coachTarget');
           const savedGoals = JSON.parse(JSON.stringify(state.goals));
@@ -375,7 +389,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.264'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.265'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -512,6 +526,7 @@ app.whenReady().then(async () => {
     if (!checks.whatsNewDismiss) errors.push('Fermeture Nouveautés KO (.whatsnew-card[hidden] ne masque pas)');
     if (!checks.poidsTab) errors.push('Onglet Poids KO (pageGroups.poids / bouton nav / coach-weight-panel mal isolé)');
     if (!checks.weightStepper) errors.push('Sélecteur de poids KO (boutons ±0,5 / #coachTarget n\'enregistre pas)');
+    if (!checks.coachLogWeight) errors.push('Saisie rapide poids (onglet Poids) KO (#coachLogWeight / #coachLastWeigh)');
     if (!checks.s8Travel) errors.push('Trajet auto S.8 absent (isAllowedTravelUrl/travelModes/calendarAgendaEstimate/travelStartForm/travelHome/travelMode)');
     if (!checks.goalsZones) errors.push('Objectifs par zone absents (goalMatch/goalRank/TRAINING_GOALS/#exerciseGoal 8 options)');
     if (!checks.animEngine) errors.push('Moteur d’animation absent (buildAnimatedArt/EXERCISE_ANIM/frame-a/frame-b)');

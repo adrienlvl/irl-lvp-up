@@ -2176,6 +2176,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.265', emoji: '📅', text: 'Onglet Poids : enregistre ton poids du jour directement là, vois ta dernière pesée (avec rappel), et ton plan se met à jour aussitôt.' },
   { v: '1.9.264', emoji: '🎚️', text: 'Nouveau sélecteur de poids cible : gros affichage et boutons − / + (0,5 kg) pour ajuster au pouce, sans taper.' },
   { v: '1.9.263', emoji: '⚖️', text: 'Le Coach Poids a désormais son propre onglet « Poids » dans la barre du haut — cible, paliers et plan réunis, plus besoin de fouiller dans Athlète.' },
   { v: '1.9.262', emoji: '🪜', text: 'Coach poids : des paliers intermédiaires vers ta cible (le poids à viser chaque semaine ou deux) + conseils de fréquence de pesée et mensurations. Et la carte « Nouveautés » se ferme bien désormais.' },
