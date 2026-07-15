@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.269');
+  assert.equal(L.CHANGELOG[0].v, '1.9.270');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5286,4 +5286,10 @@ test('dailyGreeting : salutation personnalisée selon l’heure', () => {
   // bornes
   assert.equal(L.dailyGreeting({ hour: 5 }).hello, 'Bonjour');
   assert.equal(L.dailyGreeting({ hour: 23 }).hello, 'Encore debout');
+});
+
+test('backupFilename : nom de sauvegarde daté', () => {
+  assert.equal(L.backupFilename('2026-07-15'), 'irl-lvp-up-sauvegarde-2026-07-15.json');
+  assert.equal(L.backupFilename('nope'), 'irl-lvp-up-sauvegarde-export.json');
+  assert.equal(L.backupFilename(), 'irl-lvp-up-sauvegarde-export.json');
 });

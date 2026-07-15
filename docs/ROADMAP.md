@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.269 (2026-07-15)
+## 📍 État actuel — build 1.9.270 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **357 tests + smoke** verts (harness durci, dont garde-fou CSS + 21 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**335**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **358 tests + smoke** verts (harness durci, dont garde-fou CSS + 22 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**336**) :
+
+- 💾 **Sauvegarde/restauration des données sur PWA** (data-safety, essentiel iOS) : export = téléchargement d'un fichier JSON daté (`backupFilename`), import = sélecteur de fichier + `FileReader` (mêmes garde-fous que le desktop). Round-trip vérifié en navigateur. ✅ _boucle #336 (build 1.9.270) — ouvre la rotation 32._
 
 - 🎂 **Anniversaire imminent dans « À rattraper »** : `attentionDigest` remonte un anniversaire à ≤ 2 jours sur l'accueil (sinon enfoui dans l'Agenda), clic → Agenda. Vérifié en navigateur. ✅ _boucle #335 (build 1.9.269) — clôt la rotation 31._
 
