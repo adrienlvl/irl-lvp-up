@@ -6,9 +6,13 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.289 (2026-07-16)
+## 🚀 VERSION 2.0.0 (2026-07-16) — jalon coupé (boucle #356)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **370 tests + smoke** verts (harness durci, dont garde-fou CSS + 41 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**355**) :
+Toutes les vagues de la roadmap sont **terminées** ; la 2.0 acte la maturité de l'app (décision d'Adrien après une passe QA : rendu des 7 pages sans erreur, 370 tests + smoke verts). Détail : **[docs/recaps/356-version-2.0.md](recaps/356-version-2.0.md)**. La boucle autonome continue ensuite en **2.0.x** (polish/qualité + retours). Reste hors boucle (actions d'Adrien) : 📸 scan frigo (IA/réseau), ⌚ sync Strava/Garmin/Polar (OAuth).
+
+## 📍 État actuel — build 2.0.0 (2026-07-16)
+
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **370 tests + smoke** verts (harness durci, dont garde-fou CSS + 41 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**356**) :
 
 - ☀️ **Série check-in matinal** : `morningStreak` — badge « 🔥 N jours de check-in d'affilée » dans le rituel du matin (tolérance d'un jour manqué). Encourage la keystone habit. Vérifié en navigateur. ✅ _boucle #355 (build 1.9.289)._
 - 🧯 **Assainissement scalaires** (robustesse) : `normalizeState` borne désormais compteurs (XP/série/…) et réglages (`goals.*`, `wellnessWeeklyGoal`) — un import corrompu ne peut plus produire de NaN/valeur absurde. Vérifié via smoke bloquant. ✅ _boucle #354 (build 1.9.288)._

@@ -2282,6 +2282,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.0', emoji: '🚀', text: 'Bienvenue en version 2.0 ! Ton app de vie est désormais complète : agenda + planning de révision BTS, coach poids sur mesure, entraînement guidé (47 exercices animés), suivi poids / mesures / sommeil en courbes, hydratation, nutrition, focus, habitudes et quêtes — 100 % local, sauvegardable, installable sur PC et iPhone. Place au polish et à tes retours. Merci d’être passé de la v1 à la v2 avec moi. 💚' },
   { v: '1.9.289', emoji: '☀️', text: 'Rituel du matin : une série « 🔥 N jours de check-in d’affilée » s’affiche quand tu poses ton cap plusieurs matins de suite — un petit encouragement pour le rituel qui lance ta journée (tolérance d’un jour manqué).' },
   { v: '1.9.288', emoji: '🧯', text: 'Robustesse : au chargement, l’app assainit ses compteurs et réglages (XP, série, objectifs de séances/km, cible poids, objectif routines) — une sauvegarde importée bancale ne peut plus produire de valeur absurde qui casserait ton niveau ou tes barres.' },
   { v: '1.9.287', emoji: '🎉', text: 'Quêtes : valider ta dernière quête du jour déclenche une petite célébration « Journée parfaite ! » (avec ta série en cours) — le moment est enfin fêté, pas juste comptabilisé.' },
