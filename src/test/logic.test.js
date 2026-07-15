@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.254');
+  assert.equal(L.CHANGELOG[0].v, '1.9.255');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5077,4 +5077,35 @@ test('studyBySubject : répartition par matière + priorité de révision', () =
   assert.equal(L.studyBySubject([{ kind: 'study', title: '', date: '2026-07-20' }], '2026-07-15')[0].subject, 'Révision');
   // agenda vide
   assert.deepEqual(L.studyBySubject([], '2026-07-15'), []);
+});
+
+test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravité', () => {
+  const today = '2026-07-15';
+  const state = {
+    recovery: [{ date: today, sleep: 4, fatigue: 5, soreness: 5 }], // forme basse
+    examGoal: { title: 'BTS', date: '2026-07-22' },                  // J-7 → rappel (high)
+    agenda: [
+      { kind: 'study', title: 'Droit', date: '2026-07-10', completed: false }, // révision en retard (med)
+      { kind: 'sport', title: 'Muscu', date: '2026-07-12', completed: false }, // séance manquée (med)
+    ],
+    workouts: [],
+    habits: [],
+  };
+  const d = L.attentionDigest(state, today);
+  const keys = d.map(i => i.key);
+  assert.ok(keys.includes('exam') && keys.includes('study') && keys.includes('sport'));
+  // les items 'high' (exam, éventuellement readiness) passent avant les 'med'
+  assert.ok(keys.indexOf('exam') < keys.indexOf('study'), 'high avant med');
+  assert.ok(keys.indexOf('exam') < keys.indexOf('sport'));
+  // cohérence readiness : présent ssi le score est bas
+  const rs = L.readinessScore({ date: today, sleep: 4, fatigue: 5, soreness: 5 });
+  if (rs && rs.score < 50) assert.ok(keys.includes('readiness'));
+  // chaque item a le format attendu
+  assert.ok(d.every(i => i.key && i.emoji && i.text && i.page && (i.sev === 'high' || i.sev === 'med')));
+  // cap
+  assert.equal(L.attentionDigest(state, today, { cap: 2 }).length, 2);
+  // rien d’urgent → []
+  assert.deepEqual(L.attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [] }, today), []);
+  // date invalide → []
+  assert.deepEqual(L.attentionDigest(state, 'nope'), []);
 });

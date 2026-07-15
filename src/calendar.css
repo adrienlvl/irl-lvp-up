@@ -1,1 +1,12 @@
 .command-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.life-goals{display:grid;gap:7px;margin:14px 0}.life-goals input,.agenda-form input,.agenda-form select{background:var(--input-bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px}.focus-presets{display:flex;gap:8px;margin:16px 0}.day-compass-panel{margin-top:16px;background:linear-gradient(135deg,rgba(94,234,212,.08),var(--card) 40%)}.agenda-form{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto auto;gap:8px}@media(max-width:700px){.command-grid{grid-template-columns:1fr}.agenda-form{grid-template-columns:1fr 1fr}}
+
+/* Digest « À rattraper » (tableau de bord) : ce qui a besoin d'attention, agrégé, cliquable. */
+.attention-list{display:flex;flex-direction:column;gap:7px}
+.att-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--input-bg);color:var(--text);cursor:pointer;font:inherit}
+.att-item:hover{border-color:var(--accent,#6ee7b7)}
+.att-item:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px}
+.att-item .att-emo{font-size:1.15rem;line-height:1;flex:none}
+.att-item .att-text{flex:1;min-width:0;font-size:.9rem}
+.att-item .att-go{color:var(--muted);flex:none}
+.att-item.att-high{border-left:3px solid #ef4444}
+.att-item.att-med{border-left:3px solid #f0b429}
