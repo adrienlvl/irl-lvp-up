@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.263 (2026-07-15)
+## 📍 État actuel — build 1.9.264 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **355 tests + smoke** verts (harness durci, dont garde-fou CSS + 15 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**329**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **355 tests + smoke** verts (harness durci, dont garde-fou CSS + 17 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**330**) :
+
+- 🎚️ **Sélecteur de poids cible façon stepper** (demande d'Adrien, cap 2.0) : gros affichage + boutons − / + (0,5 kg), part du poids actuel si vide, enregistrement direct conservé. Vérifié en navigateur. ✅ _boucle #330 (build 1.9.264)._ **Les 3 demandes coach poids d'Adrien sont faites** (paliers #328, onglet dédié #329, sélecteur #330).
 
 - ⚖️ **Coach Poids en onglet dédié** (demande d'Adrien, cap 2.0) : nouvel onglet nav « Poids » (`pageGroups.poids`), retiré des sous-onglets Athlète, avec cible + paliers + plan. Vérifié en navigateur. ✅ _boucle #329 (build 1.9.263)._ Reste : sélecteur de poids plus joli.
 

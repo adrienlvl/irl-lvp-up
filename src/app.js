@@ -760,6 +760,10 @@ $('#attentionDigest')?.addEventListener('click',e=>{const b=e.target.closest('[d
 // soumis au bouton « Enregistrer » avec les autres objectifs — d'où le save() seulement ici.
 $('#coachTarget')?.addEventListener('input',()=>renderTargetAdvice('coach'));
 $('#coachTarget')?.addEventListener('change',e=>{const v=e.target.value;state.goals.targetWeight=v===''?'':String(Math.min(300,Math.max(30,Number(v)||0)));if(state.goals.targetWeight==='0')state.goals.targetWeight='';e.target.value=state.goals.targetWeight;save();renderAthlete();renderTargetAdvice('coach');flashToast(state.goals.targetWeight?`🎯 Cible enregistrée : ${state.goals.targetWeight} kg`:'Cible de poids effacée');});
+// Boutons −/+ du sélecteur de poids : ajustent la cible par pas de 0,5 kg (arrondi à 0,5), puis
+// déclenchent le 'change' pour réutiliser l'enregistrement + le toast + la synchro existants. Si le
+// champ est vide, on part du poids actuel comme base sensée.
+document.querySelectorAll('[data-target-step]').forEach(b=>b.addEventListener('click',()=>{const inp=$('#coachTarget');if(!inp)return;const step=Number(b.dataset.targetStep)||0;let base=Number(inp.value);if(!(base>0))base=Number(state.weights.at(-1)?.value)||Number(state.profile.weight)||70;const v=Math.min(300,Math.max(30,Math.round((base+step)*2)/2));inp.value=v;renderTargetAdvice('coach');inp.dispatchEvent(new Event('change',{bubbles:true}));}));
 render();renderWhatsNew();restoreFocusTimer();showPage('dashboard');setupCollapsibles();setupComfort();setupDesktopReminders();setupCalendarSync();setupTravelStart();offerLocalBackupRestore().then(migratePhotosToDisk).then(()=>setTimeout(optimizeStoredPhotos,1200));
 $('#installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;const b=$('#installBtn');deferredInstall.prompt();try{await deferredInstall.userChoice;}catch(_){}deferredInstall=null;if(b)b.hidden=true;});
 $('#pwaReloadBtn')?.addEventListener('click',()=>location.reload());updateOnlineStatus();
