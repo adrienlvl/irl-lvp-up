@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.248');
+  assert.equal(L.CHANGELOG[0].v, '1.9.249');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4953,4 +4953,27 @@ test('timeToMinutes / minutesToTime : aller-retour et rejets', () => {
   assert.equal(L.timeToMinutes(''), null);
   assert.equal(L.minutesToTime(425), '07:05');
   assert.equal(L.minutesToTime(0), '00:00');
+});
+
+test('nextFreeSlot : premier créneau qui accueille la durée', () => {
+  const agenda = [
+    { id: 'a', title: 'Muscu', date: '2026-07-20', time: '18:00', durationMin: 60 },
+    { id: 'b', title: 'Révision', date: '2026-07-20', time: '19:30', durationMin: 30 },
+    { id: 'j', title: 'Journée', date: '2026-07-20', allDay: true },
+  ];
+  // 18:30 est pris → on tombe à la fin de Muscu (19:00), qui tient 30 min avant Révision (19:30)
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '18:30', durationMin: 30 }), '19:00');
+  // même départ mais durée 45 : 19:00–19:45 chevauche Révision → pousse à 20:00
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '18:30', durationMin: 45 }), '20:00');
+  // contact bord à bord autorisé : 19:00 juste après Muscu n'est pas bloqué
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '19:00', durationMin: 30 }), '19:00');
+  // créneau déjà libre : renvoie l'heure demandée telle quelle
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '07:00', durationMin: 60 }), '07:00');
+  // rien ne rentre avant la fin de journée
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '21:40', durationMin: 60, dayEnd: '22:00' }), null);
+  // on peut s'exclure soi-même (édition d'un créneau existant)
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '18:00', durationMin: 60, excludeId: 'a' }), '18:00');
+  // entrées invalides
+  assert.equal(L.nextFreeSlot(agenda, { date: 'nope', after: '18:00', durationMin: 30 }), null);
+  assert.equal(L.nextFreeSlot(agenda, { date: '2026-07-20', after: '', durationMin: 30 }), null);
 });

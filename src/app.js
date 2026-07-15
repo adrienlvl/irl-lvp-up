@@ -476,7 +476,14 @@ function confirmerSiConflit(candidat,libelle){
   const c=scheduleConflicts(state.agenda,candidat);
   if(!c.length)return true;
   const liste=c.map(x=>`• ${x.time}–${x.endTime} · ${x.title}`).join('\n');
-  return confirm(`⚠️ Chevauchement le ${candidat.date.split('-').reverse().join('/')} :\n\n${liste}\n\nAjouter quand même « ${libelle} » à ${candidat.time} ?`);
+  // On ne dit pas seulement « c'est pris » : on dit OÙ ça rentre. Utile pour décider entre
+  // « tant pis, je superpose » et « ah, 19:00 est libre, je décale ».
+  let suggestion='';
+  if(typeof nextFreeSlot==='function'){
+    const libre=nextFreeSlot(state.agenda,{date:candidat.date,after:candidat.time,durationMin:candidat.durationMin,excludeId:candidat.id});
+    if(libre&&libre!==candidat.time)suggestion=`\n\n💡 Prochain créneau libre : ${libre}.`;
+  }
+  return confirm(`⚠️ Chevauchement le ${candidat.date.split('-').reverse().join('/')} :\n\n${liste}${suggestion}\n\nAjouter quand même « ${libelle} » à ${candidat.time} ?`);
 }
 $('#addPlan').onclick=()=>{const date=$('#planDate').value,time=$('#planTime').value||'18:00',type=$('#planType').value;if(!date)return;
   const dureeType={Musculation:45,Course:45,'Sortie longue':90,'Fractionné':40,Renforcement:35,'Mobilité / repos':20};
