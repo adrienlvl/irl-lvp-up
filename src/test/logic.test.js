@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.257');
+  assert.equal(L.CHANGELOG[0].v, '1.9.258');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5136,4 +5136,32 @@ test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', 
   // date invalide / vide
   assert.deepEqual(L.focusByTask(sessions, 'nope'), { total: 0, tasks: [] });
   assert.deepEqual(L.focusByTask([], '2026-07-15'), { total: 0, tasks: [] });
+});
+
+test('proteinStreak : jours consécutifs à la cible protéines', () => {
+  const T = 120;
+  // série en cours finissant aujourd'hui (15) : 13,14,15 atteints ; 12 raté
+  const nut = [
+    { date: '2026-07-11', protein: 130 },
+    { date: '2026-07-12', protein: 80 },   // raté → coupe
+    { date: '2026-07-13', protein: 120 },
+    { date: '2026-07-14', protein: 140 },
+    { date: '2026-07-15', protein: 125 },
+  ];
+  const r = L.proteinStreak(nut, T, '2026-07-15');
+  assert.equal(r.current, 3, '13-14-15 consécutifs');
+  assert.equal(r.best, 3);
+  // aujourd'hui pas encore atteint → ne coupe pas, compte depuis hier
+  const r2 = L.proteinStreak([{ date: '2026-07-13', protein: 130 }, { date: '2026-07-14', protein: 130 }, { date: '2026-07-15', protein: 50 }], T, '2026-07-15');
+  assert.equal(r2.current, 2, 'aujourd’hui raté n’entame pas : 13-14 comptent');
+  // record > courant : longue série passée puis coupée, petite série actuelle
+  const r3 = L.proteinStreak([
+    { date: '2026-07-01', protein: 130 }, { date: '2026-07-02', protein: 130 }, { date: '2026-07-03', protein: 130 }, { date: '2026-07-04', protein: 130 },
+    { date: '2026-07-14', protein: 130 }, { date: '2026-07-15', protein: 130 },
+  ], T, '2026-07-15');
+  assert.equal(r3.current, 2);
+  assert.equal(r3.best, 4);
+  // cible absente / date invalide
+  assert.deepEqual(L.proteinStreak(nut, 0, '2026-07-15'), { current: 0, best: 0 });
+  assert.deepEqual(L.proteinStreak(nut, T, 'nope'), { current: 0, best: 0 });
 });

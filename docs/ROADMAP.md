@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.257 (2026-07-15)
+## 📍 État actuel — build 1.9.258 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **350 tests + smoke** verts (harness durci, dont garde-fou CSS + 8 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**323**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **351 tests + smoke** verts (harness durci, dont garde-fou CSS + 9 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**324**) :
+
+- 🔥 **Série « objectif protéines »** : `proteinStreak` — jours consécutifs à la cible + record. La nutrition rejoint le système de séries de l'app (jusque-là seule sans). Vérifié en navigateur. ✅ _boucle #324 (build 1.9.258) — ouvre la rotation 29._
 
 - 🧠 **Focus par tâche** : `focusByTask` répartit ton temps de concentration des 7 derniers jours par tâche (barres proportionnelles) — voir sur quoi tu te concentres vraiment. Affiché si ≥ 2 tâches. Vérifié en navigateur. ✅ _boucle #323 (build 1.9.257) — clôt la rotation 28._
 
