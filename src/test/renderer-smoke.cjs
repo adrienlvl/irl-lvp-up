@@ -58,6 +58,14 @@ app.whenReady().then(async () => {
       return {
         logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function' && typeof normalizeAgendaItem === 'function',
         normalize: typeof normalizeState === 'function',
+        normalizeHardening: typeof normalizeState === 'function' && (() => {
+          const bad = normalizeState({ xp: '-50', streak: 'abc', health: -3, focus: NaN, life: 2.7, timerRuns: '9', goals: { sessions: '0', distance: -5, targetWeight: '999' }, wellnessWeeklyGoal: 99 });
+          const okBad = bad.xp === 0 && bad.streak === 0 && bad.health === 0 && bad.focus === 0 && bad.life === 3 && bad.timerRuns === 9
+            && bad.goals.sessions >= 1 && bad.goals.sessions <= 14 && bad.goals.distance === 0 && bad.goals.targetWeight === '' && bad.wellnessWeeklyGoal === 14;
+          const good = normalizeState({ xp: 500, streak: 12, goals: { sessions: 3, distance: 10.4, targetWeight: 85 }, wellnessWeeklyGoal: 5 });
+          const okGood = good.xp === 500 && good.streak === 12 && good.goals.sessions === 3 && good.goals.distance === 10.4 && good.goals.targetWeight === 85 && good.wellnessWeeklyGoal === 5;
+          return okBad && okGood;
+        })(),
         photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
         photoCompare: typeof photoComparePair === 'function' && !!document.getElementById('photoCompare') && (() => { const c = photoComparePair([{ date: '2026-05-01', file: 'a' }, { date: '2026-07-10', file: 'b' }], [{ date: '2026-05-02', value: 84 }, { date: '2026-07-09', value: 79 }]); return c && c.before.date === '2026-05-01' && c.after.date === '2026-07-10' && c.weightDelta === -5 && photoComparePair([{ date: '2026-05-01' }]) === null; })(),
         studyPlanner: !!document.getElementById('studyPlanForm') && typeof planStudySessions === 'function' && typeof buildIcs === 'function',
@@ -551,7 +559,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.287'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.288'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -653,6 +661,7 @@ app.whenReady().then(async () => {
     console.log('CHECKS ' + JSON.stringify(checks));
     if (!checks.logicLoaded) errors.push('lib/logic.js non chargé (localDate/pct/computeStreak absents)');
     if (!checks.normalize) errors.push('normalizeState absente');
+    if (!checks.normalizeHardening) errors.push('Assainissement scalaires normalizeState KO (compteurs/goals/wellnessWeeklyGoal non bornés)');
     if (!checks.photosApi) errors.push('API photos absente (loadGalleryPhotos/migratePhotosToDisk/desktop.savePhoto)');
     if (!checks.studyPlanner) errors.push('Planificateur de révision absent (studyPlanForm/planStudySessions/buildIcs)');
     if (!checks.myDay) errors.push('Vue Ma journée absente ou non rendue (myDayList/todayItems/myDaySummary)');

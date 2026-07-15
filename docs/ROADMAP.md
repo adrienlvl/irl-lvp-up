@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.287 (2026-07-16)
+## 📍 État actuel — build 1.9.288 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **369 tests + smoke** verts (harness durci, dont garde-fou CSS + 39 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**353**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **369 tests + smoke** verts (harness durci, dont garde-fou CSS + 40 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**354**) :
 
+- 🧯 **Assainissement scalaires** (robustesse) : `normalizeState` borne désormais compteurs (XP/série/…) et réglages (`goals.*`, `wellnessWeeklyGoal`) — un import corrompu ne peut plus produire de NaN/valeur absurde. Vérifié via smoke bloquant. ✅ _boucle #354 (build 1.9.288)._
 - 🎉 **Célébration journée parfaite** : valider la dernière quête du jour déclenche un toast « Journée parfaite ! » (+ série), via `showFlashToast`/`celebrateQuestsIfPerfect`. Le moment est fêté, plus juste compté. Vérifié en navigateur. ✅ _boucle #353 (build 1.9.287)._
 - 📚 **Prochaine révision** (besoin BTS d'Adrien) : `nextStudySession` affiche dans « Ma journée » la prochaine révision planifiée (matière + quand), cliquable → agenda au bon jour. Miroir de « Prochaine séance ». Vérifié en navigateur. ✅ _boucle #352 (build 1.9.286)._
 - ↩️ **Annuler le report agenda** : « → demain » affiche un toast « Annuler » (`showUndoToast`) qui restaure la date — plus de mis-tap à corriger à la main. Vérifié en navigateur. ✅ _boucle #351 (build 1.9.285)._
