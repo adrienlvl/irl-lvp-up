@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.268 (2026-07-15)
+## 📍 État actuel — build 1.9.269 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **357 tests + smoke** verts (harness durci, dont garde-fou CSS + 21 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**334**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **357 tests + smoke** verts (harness durci, dont garde-fou CSS + 21 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**335**) :
+
+- 🎂 **Anniversaire imminent dans « À rattraper »** : `attentionDigest` remonte un anniversaire à ≤ 2 jours sur l'accueil (sinon enfoui dans l'Agenda), clic → Agenda. Vérifié en navigateur. ✅ _boucle #335 (build 1.9.269) — clôt la rotation 31._
 
 - 👋 **Accueil personnalisé selon l'heure** (polish) : `dailyGreeting` salue par le prénom (Bonjour / Bonsoir…) avec un mot de contexte adapté au moment. Vérifié en navigateur. ✅ _boucle #334 (build 1.9.268)._
 

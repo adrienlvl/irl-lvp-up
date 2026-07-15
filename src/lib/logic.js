@@ -2191,6 +2191,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '1.9.269', emoji: '🎂', text: 'Un anniversaire dans un jour ou deux apparaît maintenant dans « À rattraper » sur l’accueil — tu ne l’oublieras plus.' },
   { v: '1.9.268', emoji: '👋', text: 'L’accueil te salue par ton prénom selon le moment de la journée (bonjour / bonsoir…) avec un petit mot adapté.' },
   { v: '1.9.267', emoji: '⚖️', text: 'Poids : une seule pesée par jour (une nouvelle saisie remplace celle du jour), où que tu l’enregistres — pour des tendances et un plan justes.' },
   { v: '1.9.266', emoji: '⎋', text: 'La touche Échap ferme maintenant l’agenda et le calendrier ouverts (plus besoin de viser le bouton ×).' },
@@ -4087,6 +4088,9 @@ function attentionDigest(state, todayKey, opts) {
   if (ms.length) items.push({ key: 'sport', emoji: '🏋️', text: `${ms.length} séance${ms.length > 1 ? 's' : ''} non faite${ms.length > 1 ? 's' : ''} récemment`, page: 'athlete', sev: 'med' });
   const hr = habitsAtRisk(s.habits, todayKey);
   if (hr.length) items.push({ key: 'habits', emoji: '🔥', text: `${hr.length} habitude${hr.length > 1 ? 's' : ''} à relancer avant de perdre la série`, page: 'dashboard', sev: 'med' });
+  // Anniversaire imminent (≤ 2 j) : à ne pas oublier. Il vit sinon enfoui dans l'overlay Agenda.
+  const bd = (typeof upcomingBirthdays === 'function') ? upcomingBirthdays(s.birthdays, todayKey, { withinDays: 2, max: 1 })[0] : null;
+  if (bd) { const w = bd.daysUntil === 0 ? "aujourd'hui" : bd.daysUntil === 1 ? 'demain' : `dans ${bd.daysUntil} j`; items.push({ key: 'birthday', emoji: '🎂', text: `Anniversaire de ${bd.name} ${w}`, page: 'agenda', sev: bd.daysUntil <= 1 ? 'high' : 'med' }); }
   const rank = { high: 0, med: 1 };
   items.sort((a, b) => rank[a.sev] - rank[b.sev]);
   return items.slice(0, cap);
