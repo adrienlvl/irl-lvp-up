@@ -4263,7 +4263,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.283');
+  assert.equal(L.CHANGELOG[0].v, '1.9.284');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4935,6 +4935,24 @@ test('weeklySleepStats : moyenne, nuits, plus courte nuit, statut', () => {
   assert.equal(L.weeklySleepStats([{ date: '2026-07-08', sleep: 0 }], '2026-07-06', '2026-07-10'), null);
   assert.equal(L.weeklySleepStats([], '2026-07-06', '2026-07-10'), null);
   assert.equal(L.weeklySleepStats(null, '2026-07-06', '2026-07-10'), null);
+});
+
+test('sleepSeries : nuits chiffrées récentes, triées, plafonnées, une/jour', () => {
+  const rec = [
+    { date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 },
+    { date: '2026-07-08', sleep: 5.5 }, { date: '2026-07-09', sleep: 0 }, // 0 ignoré
+    { date: '2026-07-05', sleep: 7 },
+    { date: '2026-07-07', sleep: 7.5 } // même date → dernier gagne
+  ];
+  const s = L.sleepSeries(rec, 10);
+  assert.deepEqual(s.map(p => p.date), ['2026-07-05', '2026-07-06', '2026-07-07', '2026-07-08'], 'trié, sans doublon, 0 exclu');
+  assert.equal(s[2].value, 7.5, 'dernier check-in du 07 conservé');
+  // plafonné aux N dernières nuits
+  assert.equal(L.sleepSeries(rec, 2).length, 2);
+  assert.deepEqual(L.sleepSeries(rec, 2).map(p => p.date), ['2026-07-07', '2026-07-08']);
+  // rien / dates invalides → []
+  assert.deepEqual(L.sleepSeries([], 10), []);
+  assert.deepEqual(L.sleepSeries([{ date: 'x', sleep: 7 }], 10), []);
 });
 
 test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {
