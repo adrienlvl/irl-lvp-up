@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.250');
+  assert.equal(L.CHANGELOG[0].v, '1.9.251');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5002,4 +5002,38 @@ test('pruneProgramSessionsFrom : purge le programme à venir, garde histoire et 
   assert.equal(L.pruneProgramSessionsFrom(agenda, 'nope').agenda.length, agenda.length);
   // agenda vide / non tableau
   assert.deepEqual(L.pruneProgramSessionsFrom(null, '2026-07-20'), { agenda: [], removed: 0 });
+});
+
+test('upcomingSessions : fusionne plans + séances de programme, sans doublon', () => {
+  const plans = [
+    { id: 1, date: '2026-07-20', time: '18:00', type: 'Musculation' },
+    { id: 2, date: '2026-07-10', time: '18:00', type: 'Passée' },          // avant aujourd'hui → exclu
+    { id: 3, date: '2026-07-22', time: '09:00', type: 'Auto', auto: true, completed: true }, // fait → exclu
+  ];
+  const agenda = [
+    { id: 10, kind: 'sport', date: '2026-07-21', time: '18:00', title: '🏋️ Haut · S1 · 45 min', workout: ['Développé'], completed: false },
+    { id: 11, kind: 'sport', date: '2026-07-23', time: '07:30', title: '🏃 Tempo · 40 min', completed: false },
+    { id: 12, kind: 'sport', date: '2026-07-24', time: '18:00', title: 'Liée à un plan', planId: 99, completed: false }, // planId → exclu (doublon)
+    { id: 13, kind: 'life',  date: '2026-07-21', time: '12:00', title: 'RDV', completed: false },  // pas sport → exclu
+    { id: 14, kind: 'sport', date: '2026-07-25', allDay: true, title: 'Journée sport', completed: false }, // allDay → exclu
+    { id: 15, kind: 'sport', date: '2026-07-19', time: '18:00', title: 'Programme passé', completed: false }, // avant aujourd'hui → exclu
+  ];
+  const r = L.upcomingSessions(plans, agenda, '2026-07-20');
+  assert.deepEqual(r.map(s => s.id), [1, 10, 11], 'plan du 20, agenda du 21 puis 23, triés; exclus: passés/faits/planId/life/allDay');
+  assert.equal(r[0].origin, 'plan');
+  assert.equal(r[1].origin, 'agenda');
+  assert.deepEqual(r[1].workout, ['Développé']);
+  assert.equal(r[0].daysLeft, 0);
+  assert.equal(r[1].daysLeft, 1);
+  // nowMinutes : une séance du jour déjà passée est écartée (pour « prochaine séance »)
+  const today = [
+    { id: 20, date: '2026-07-20', time: '08:00', type: 'Tôt' },
+    { id: 21, date: '2026-07-20', time: '20:00', type: 'Tard' },
+  ];
+  const next = L.upcomingSessions(today, [], '2026-07-20', { nowMinutes: 12 * 60, limit: 1 });
+  assert.deepEqual(next.map(s => s.id), [21], '08:00 est passée à midi, 20:00 est la prochaine');
+  // todayKey invalide → []
+  assert.deepEqual(L.upcomingSessions(plans, agenda, 'nope'), []);
+  // limit
+  assert.equal(L.upcomingSessions(plans, agenda, '2026-07-20', { limit: 1 }).length, 1);
 });

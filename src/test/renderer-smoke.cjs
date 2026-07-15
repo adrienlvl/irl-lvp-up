@@ -199,6 +199,17 @@ app.whenReady().then(async () => {
           const r = pruneProgramSessionsFrom(ag, '2026-07-20');
           return r.removed === 1 && r.agenda.map(a => a.id).join(',') === '1,3,4';
         })(),
+        plannedMergesProgram: typeof upcomingSessions === 'function' && !!document.getElementById('plannedList') && (() => {
+          // « Planifier la suite » doit voir les séances de programme (agenda, sans planId), pas
+          // seulement state.plans — sinon invisibles après l'onboarding.
+          const plans = [{ id: 1, date: '2026-07-20', time: '18:00', type: 'Musculation' }];
+          const agenda = [
+            { id: 10, kind: 'sport', date: '2026-07-21', time: '18:00', title: '🏋️ Haut · 45 min', workout: ['Développé'], completed: false },
+            { id: 11, kind: 'sport', date: '2026-07-22', time: '18:00', title: 'Liée plan', planId: 5, completed: false }, // doublon → exclu
+          ];
+          const u = upcomingSessions(plans, agenda, '2026-07-20');
+          return u.length === 2 && u[0].origin === 'plan' && u[1].origin === 'agenda' && u[1].id === 10;
+        })(),
         nutritionCsv: typeof nutritionCsv === 'function' && !!document.getElementById('exportNutritionCsv') && (() => { const csv = nutritionCsv([{ date: '2026-07-06', protein: 150, water: 8, fruit: false }, { date: '2026-07-08', protein: 130, water: 7, fruit: true }]); const lines = csv.split(String.fromCharCode(10)); return lines.length === 3 && lines[0] === 'date,proteines_g,eau_verres,fruits_legumes' && lines[1] === '2026-07-06,150,8,non' && lines[2] === '2026-07-08,130,7,oui'; })(),
         s8Travel: typeof isAllowedTravelUrl === 'function' && typeof travelModes === 'function' && !!document.getElementById('calendarAgendaEstimate') && !!document.getElementById('travelStartForm') && !!document.getElementById('travelHome') && !!document.getElementById('travelMode'),
         goalsZones: typeof goalMatch === 'function' && typeof goalRank === 'function' && Array.isArray(TRAINING_GOALS) && document.querySelectorAll('#exerciseGoal option').length === 8,
@@ -273,7 +284,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return enregistre && synchro && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.250'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.251'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),

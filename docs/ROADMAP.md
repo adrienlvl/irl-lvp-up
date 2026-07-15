@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.250 (2026-07-15)
+## 📍 État actuel — build 1.9.251 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **345 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→**316**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **346 tests + smoke** verts (harness durci, dont garde-fou CSS). Livré au-delà de la roadmap initiale (boucles #36→**317**) :
 
+- 📋 **« Prochaine séance » et « Planifier la suite » voient enfin le programme** : ces widgets ne lisaient que `state.plans` → les séances des générateurs de programme (dans `state.agenda`) étaient invisibles après l'onboarding. Vue unifiée `upcomingSessions` (fusion plans + agenda, dédup `planId`), démarrage guidé + report des séances de programme. Vérifié en navigateur. ✅ _boucle #317 (build 1.9.251)._
 - ♻️ **Demande d'Adrien — un nouveau programme enlève l'ancien** : `scheduleObjectiveProgram` ne purgeait rien → deux programmes coexistaient, d'où des jours à 2 séances. Purge des séances de programme à partir du lundi de départ (`pruneProgramSessionsFrom`), historique et RDV perso conservés. Piège trouvé en navigateur : les séances de programme sont identifiées par `refId` (source recodée `manual` par normalizeAgendaItem), pas par source. ✅ _boucle #316 (build 1.9.250) — ouvre la rotation 27._
 - 🗓️ **Conflit d'horaire → prochain créneau libre proposé** : l'avertissement de chevauchement ne dit plus seulement « c'est pris », il indique où la séance rentre (`nextFreeSlot`). Vérifié en navigateur. ✅ _boucle #315 (build 1.9.249) — clôt la rotation 26._
 - 🎯 **Demande d'Adrien — la cible de poids se modifie DANS le plan** : le champ vivait dans « Objectifs hebdomadaires » (onglet Séance) alors que le plan qui le consomme est sur l'onglet Progrès — et le message d'aide de l'app pointait vers un « panneau Poids » inexistant. Champ ajouté dans le panneau du plan (enregistrement direct), synchronisé dans les deux sens, message corrigé. Plus détection de chevauchement de séances (`scheduleConflicts`). ✅ _boucle #314 (build 1.9.248)._
