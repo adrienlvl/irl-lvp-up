@@ -4263,7 +4263,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.279');
+  assert.equal(L.CHANGELOG[0].v, '1.9.280');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5445,4 +5445,21 @@ test('backupFilename : nom de sauvegarde daté', () => {
   assert.equal(L.backupFilename('2026-07-15'), 'irl-lvp-up-sauvegarde-2026-07-15.json');
   assert.equal(L.backupFilename('nope'), 'irl-lvp-up-sauvegarde-export.json');
   assert.equal(L.backupFilename(), 'irl-lvp-up-sauvegarde-export.json');
+});
+
+test('unwrapBackup : déballe le format enveloppé, laisse l’état brut intact', () => {
+  const raw = { xp: 100, workouts: [{ id: 1 }], profile: { weight: 80 } };
+  // état brut (export direct) → renvoyé tel quel
+  assert.strictEqual(L.unwrapBackup(raw), raw);
+  // format enveloppé (auto-backup desktop) → on récupère l'état intérieur
+  const wrapped = { version: 4, savedAt: '2026-07-15T10:00:00Z', state: raw };
+  assert.strictEqual(L.unwrapBackup(wrapped), raw, 'renvoie parsed.state');
+  assert.equal(L.unwrapBackup(wrapped).xp, 100);
+  // garde-fous : state absent/nul/non-objet/tableau → on ne déballe pas
+  const noState = { version: 4 };
+  assert.strictEqual(L.unwrapBackup(noState), noState, 'pas de .state → objet inchangé');
+  assert.deepEqual(L.unwrapBackup({ state: null }), { state: null }, '.state null → inchangé');
+  assert.deepEqual(L.unwrapBackup({ state: [1, 2] }), { state: [1, 2] }, '.state tableau → inchangé');
+  assert.equal(L.unwrapBackup(null), null);
+  assert.deepEqual(L.unwrapBackup([1, 2]), [1, 2], 'tableau brut → inchangé');
 });

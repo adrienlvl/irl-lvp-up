@@ -350,6 +350,11 @@ app.whenReady().then(async () => {
         durationSplit: typeof splitDuration === 'function' && typeof combineDuration === 'function' && !!document.getElementById('workoutHours') && !!document.getElementById('workoutDuration') && (() => { const d = splitDuration(90); return d.h === 1 && d.m === 30 && combineDuration(1, 30) === 90 && combineDuration(2, 0) === 120 && combineDuration('', 45) === 45 && combineDuration(20, 0) === 600; })(),
         dataIo: !!document.getElementById('exportDataBtn') && !!document.getElementById('importDataBtn') && !!document.getElementById('dataIoStatus'),
         backupFilename: typeof backupFilename === 'function' && backupFilename('2026-07-15') === 'irl-lvp-up-sauvegarde-2026-07-15.json' && /export/.test(backupFilename('x')),
+        unwrapBackup: typeof unwrapBackup === 'function' && (() => {
+          const raw = { xp: 5, workouts: [] };
+          return unwrapBackup(raw) === raw && unwrapBackup({ version: 4, state: raw }) === raw
+            && unwrapBackup({ version: 4 }).version === 4 && unwrapBackup(null) === null;
+        })(),
         programReset: typeof pruneProgramSessionsFrom === 'function' && (() => {
           // Démarrer un nouveau programme doit purger les séances du précédent à partir du lundi de
           // départ, sans toucher au passé/coché ni au manuel — sinon jours à 2 séances.
@@ -483,7 +488,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.279'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '1.9.280'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -635,6 +640,7 @@ app.whenReady().then(async () => {
     if (!checks.escapeOverlay) errors.push('Échap ne ferme pas les overlays (handler keydown Escape)');
     if (!checks.dailyGreeting) errors.push('Salutation d\'accueil KO (dailyGreeting / #dailyMessage sans 👋)');
     if (!checks.backupFilename) errors.push('Sauvegarde PWA KO (backupFilename)');
+    if (!checks.unwrapBackup) errors.push('Déballage sauvegarde KO (unwrapBackup — risque de perte de données à l\'import)');
     if (!checks.weightStepper) errors.push('Sélecteur de poids KO (boutons ±0,5 / #coachTarget n\'enregistre pas)');
     if (!checks.coachLogWeight) errors.push('Saisie rapide poids (onglet Poids) KO (#coachLogWeight / #coachLastWeigh)');
     if (!checks.weightUpsertShared) errors.push('Dédup pesée/jour KO (upsertWeight non partagé par #addWeightButton)');
