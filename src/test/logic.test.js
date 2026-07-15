@@ -4227,7 +4227,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.276');
+  assert.equal(L.CHANGELOG[0].v, '1.9.277');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -4943,6 +4943,29 @@ test('waterStatus : verres, litres, %, objectif', () => {
   assert.ok(full.done && full.pct === 100, 'objectif atteint');
   assert.equal(L.waterStatus({}, '2026-07-10', 8).count, 0, 'aucun jour → 0');
   assert.equal(L.waterStatus({ '2026-07-10': 99 }, '2026-07-10', 8).pct, 100, '% plafonné');
+});
+test('hydrationPace : rythme d’hydratation dans la journée', () => {
+  // Objectif 8, fenêtre 8h→22h (14h). À 15h (mi-journée), attendu ≈ 4 verres.
+  assert.equal(L.hydrationPace(4, 8, 15).expected, 4);
+  assert.equal(L.hydrationPace(4, 8, 15).status, 'ontrack', 'pile sur le rythme');
+  assert.equal(L.hydrationPace(5, 8, 15).status, 'ontrack', 'en avance = ontrack');
+  const behind = L.hydrationPace(1, 8, 15);
+  assert.equal(behind.status, 'behind');
+  assert.match(behind.nudge, /retard/i);
+  assert.equal(behind.remaining, 7);
+  // objectif atteint → done quelle que soit l’heure (dans la fenêtre)
+  assert.equal(L.hydrationPace(8, 8, 12).status, 'done');
+  assert.equal(L.hydrationPace(9, 8, 12).status, 'done');
+  // début de journée : attendu 0 → jamais en retard
+  assert.equal(L.hydrationPace(0, 8, 8).expected, 0);
+  assert.equal(L.hydrationPace(0, 8, 8).status, 'ontrack');
+  // fin de journée : attendu = objectif complet
+  assert.equal(L.hydrationPace(3, 8, 21).expected, 7);
+  // hors fenêtre (trop tôt / trop tard) → null (pas de pression avant le coucher)
+  assert.equal(L.hydrationPace(2, 8, 7), null);
+  assert.equal(L.hydrationPace(2, 8, 22), null);
+  assert.equal(L.hydrationPace(2, 8, 23), null);
+  assert.equal(L.hydrationPace(2, 8, 'x'), null, 'heure invalide → null');
 });
 test('buildTrainingWeek : mode « même jour » attache les runs aux jours de muscu', () => {
   const p = L.buildTrainingWeek(['arms', 'legs'], 3, 2, true);
