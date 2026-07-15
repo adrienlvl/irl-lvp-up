@@ -6,9 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.266 (2026-07-15)
+## 📍 État actuel — build 1.9.267 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **355 tests + smoke** verts (harness durci, dont garde-fou CSS + 19 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**332**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **356 tests + smoke** verts (harness durci, dont garde-fou CSS + 20 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**333**) :
+
+- ⚖️ **Une pesée par jour, partout** (robustesse) : fonction partagée `upsertWeight` (remplace la pesée du jour, borne, arrondit, trie) utilisée par les 2 points de saisie (Athlète + Poids) — plus de doublons qui faussaient tendances et plan. ✅ _boucle #333 (build 1.9.267)._
 
 - ⎋ **Échap ferme les overlays plein écran** (a11y) : Agenda semaine / calendrier / ultra se ferment au clavier ; annule aussi une édition d'habitude ; laisse les `<dialog>` natifs gérer Échap eux-mêmes. Vérifié en navigateur. ✅ _boucle #332 (build 1.9.266) — ouvre la rotation 31._
 

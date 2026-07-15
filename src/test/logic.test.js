@@ -4177,7 +4177,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.266');
+  assert.equal(L.CHANGELOG[0].v, '1.9.267');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5242,4 +5242,24 @@ test('trackingCadenceAdvice : conseils de fréquence selon le sens', () => {
   assert.ok(/1×\/semaine/.test(maintien.weighIn) && /mois/.test(maintien.measure));
   // prise = même cadence active que perte
   assert.equal(L.trackingCadenceAdvice('prise').measure, perte.measure);
+});
+
+test('upsertWeight : une pesée par jour (remplace), triée, sans mutation', () => {
+  const base = [{ id: 1, value: 80, date: '2026-07-10' }, { id: 2, value: 79.5, date: '2026-07-12' }];
+  // nouvelle date → ajout, trié
+  const r1 = L.upsertWeight(base, 78.4, '2026-07-15');
+  assert.deepEqual(r1.map(w => w.date), ['2026-07-10', '2026-07-12', '2026-07-15']);
+  assert.equal(r1.at(-1).value, 78.4);
+  assert.equal(base.length, 2, 'entrée non mutée');
+  // même date → remplace (pas de doublon)
+  const r2 = L.upsertWeight(base, 79.8, '2026-07-12');
+  assert.equal(r2.filter(w => w.date === '2026-07-12').length, 1);
+  assert.equal(r2.find(w => w.date === '2026-07-12').value, 79.8);
+  assert.equal(r2.length, 2);
+  // arrondi 0,1 + tri
+  assert.equal(L.upsertWeight([], 77.36, '2026-07-15')[0].value, 77.4);
+  // bornes / date invalide → inchangé
+  assert.deepEqual(L.upsertWeight(base, 20, '2026-07-15'), base);
+  assert.deepEqual(L.upsertWeight(base, 500, '2026-07-15'), base);
+  assert.deepEqual(L.upsertWeight(base, 80, 'nope'), base);
 });
