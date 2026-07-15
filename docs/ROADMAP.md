@@ -6,10 +6,11 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 ---
 
-## 📍 État actuel — build 1.9.281 (2026-07-15)
+## 📍 État actuel — build 1.9.282 (2026-07-15)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **365 tests + smoke** verts (harness durci, dont garde-fou CSS + 33 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**347**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **366 tests + smoke** verts (harness durci, dont garde-fou CSS + 34 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**348**) :
 
+- 📏 **Mensurations 1/jour** : `upsertMeasurement` (pendant d'`upsertWeight`) — re-saisir le même jour met à jour la ligne (fusion des champs, id conservé) au lieu de dupliquer la date. Vérifié en navigateur. ✅ _boucle #348 (build 1.9.282)._
 - ♿ **A11y navigation** : `showPage`/`showAthleteTab` posent `aria-current` sur l'onglet actif (barre principale + sous-menu Athlète) → l'emplacement courant est annoncé aux lecteurs d'écran. Vérifié en navigateur. ✅ _boucle #347 (build 1.9.281)._
 - 🛡️ **Import robuste (data-safety)** : `unwrapBackup` déballe le format enveloppé `{version,savedAt,state}` des sauvegardes automatiques → restaurer un fichier d'historique n'efface plus les données (bug de perte totale corrigé). Appliqué aux 3 points d'import. Vérifié en navigateur (avant : 0 / après : intact). ✅ _boucle #346 (build 1.9.280)._
 - 📅 **Pouls hebdo habitudes** : `habitsWeekPulse` agrège toutes les habitudes sur 7 j (prévu vs tenu, %) + frise de pastilles sous la liste — vue d'ensemble d'un coup d'œil. Vérifié en navigateur. ✅ _boucle #345 (build 1.9.279)._

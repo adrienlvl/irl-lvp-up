@@ -4263,7 +4263,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '1.9.281');
+  assert.equal(L.CHANGELOG[0].v, '1.9.282');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5421,6 +5421,29 @@ test('upsertWeight : une pesée par jour (remplace), triée, sans mutation', () 
   assert.deepEqual(L.upsertWeight(base, 20, '2026-07-15'), base);
   assert.deepEqual(L.upsertWeight(base, 500, '2026-07-15'), base);
   assert.deepEqual(L.upsertWeight(base, 80, 'nope'), base);
+});
+
+test('upsertMeasurement : une mensuration par jour, fusion des champs, sans mutation', () => {
+  const base = [{ id: 1, waist: 84, chest: 100, arm: 36, date: '2026-07-10' }];
+  // nouvelle date → ajout trié
+  const r1 = L.upsertMeasurement(base, { waist: 83, chest: 99, arm: 36 }, '2026-07-15');
+  assert.deepEqual(r1.map(m => m.date), ['2026-07-10', '2026-07-15']);
+  assert.equal(r1.at(-1).waist, 83);
+  assert.equal(base.length, 1, 'entrée non mutée');
+  // même date, seul le tour de taille renseigné → FUSION (poitrine/bras du jour conservés), id conservé
+  const withDay = [{ id: 9, waist: 84, chest: 100, arm: 36, date: '2026-07-15' }];
+  const r2 = L.upsertMeasurement(withDay, { waist: 82.5, chest: 0, arm: 0 }, '2026-07-15');
+  assert.equal(r2.filter(m => m.date === '2026-07-15').length, 1, 'pas de doublon de date');
+  assert.equal(r2[0].waist, 82.5, 'taille mise à jour');
+  assert.equal(r2[0].chest, 100, 'poitrine conservée');
+  assert.equal(r2[0].arm, 36, 'bras conservé');
+  assert.equal(r2[0].id, 9, 'id du jour conservé (mise à jour)');
+  // arrondi 0,1
+  assert.equal(L.upsertMeasurement([], { waist: 81.36 }, '2026-07-15')[0].waist, 81.4);
+  // aucun champ valide / bornes / date invalide → inchangé
+  assert.deepEqual(L.upsertMeasurement(base, { waist: 0, chest: 0, arm: 0 }, '2026-07-15'), base);
+  assert.deepEqual(L.upsertMeasurement(base, { waist: 5 }, '2026-07-15'), base, 'sous la borne → inchangé');
+  assert.deepEqual(L.upsertMeasurement(base, { waist: 85 }, 'nope'), base);
 });
 
 test('dailyGreeting : salutation personnalisée selon l’heure', () => {
