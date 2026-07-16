@@ -1119,6 +1119,10 @@ test('todayItems : les anniversaires du jour apparaissent (non validables)', () 
   assert.match(b.title, /Maman/);
   assert.match(b.title, /63 ans/);
   assert.equal(b.allDay, true);
+  // Accord singulier : premier anniversaire (âge 1) → « 1 an », pas « 1 ans ».
+  const bebe = L.todayItems({ birthdays: [{ id: 2, name: 'Bébé', day: 6, month: 7, year: 2025 }] }, '2026-07-06').find(i => i.type === 'birthday');
+  assert.match(bebe.title, /\(1 an\)/);
+  assert.ok(!/1 ans/.test(bebe.title), 'pas d’accord fautif « 1 ans »');
 });
 
 test('prescriptionFor : repos par défaut selon la famille', () => {
@@ -3350,6 +3354,15 @@ test('blockProgressText / shareableBlockProgress : progression de bloc partageab
   const share = L.shareableBlockProgress(history, workouts);
   assert.ok(share && share.title && share.text === txt);
   assert.match(share.title, /progression/i);
+  // Accord singulier : un bloc avec une seule séance loggée → « 1 séance », pas « 1 séances ».
+  const solo = [
+    { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
+    { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
+  ];
+  const soloWo = [wo('2026-05-06', 'Squat', 60, 5), wo('2026-06-03', 'Squat', 75, 5)];
+  const soloTxt = L.blockProgressText(solo, soloWo);
+  assert.match(soloTxt, /1er bloc : 1 séance ·/);
+  assert.ok(!/1 séances/.test(soloTxt), 'pas d’accord fautif « 1 séances »');
   // < 2 blocs → '' / null
   assert.equal(L.blockProgressText(history.slice(0, 1), workouts), '');
   assert.equal(L.shareableBlockProgress(history.slice(0, 1), workouts), null);
@@ -4759,7 +4772,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.33');
+  assert.equal(L.CHANGELOG[0].v, '2.0.34');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

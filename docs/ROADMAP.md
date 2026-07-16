@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.33 (2026-07-17)
+## 📍 État actuel — build 2.0.34 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**393**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**394**) :
+
+- ✍️ **Polish : deux accords pluriels fautifs corrigés au singulier** (2.0.34) : un tout premier
+  anniversaire s'affiche désormais « (1 an) » et non « (1 ans) » dans « Ma journée » (`todayItems`),
+  et le partage de progression sur les blocs de muscu écrit « 1 séance » plutôt que « 1 séances »
+  quand un bloc n'en compte qu'une (`blockProgressText`). Deux « s » codés en dur qui échappaient à
+  la règle française (`n > 1 ? 's'`) appliquée partout ailleurs. +2 assertions dans des tests
+  existants (cas `age === 1` / `sessions === 1`, tous deux prouvés fautifs avant correctif). Logique
+  pure, zéro nouveau rendu, zéro régression. (`docs/recaps/394-accords-pluriels-1an-1seance.md`). ✅ _boucle #394._
 
 - 🗓️ **Robustesse : `normalizeAgendaItem` valide enfin la date et l'heure d'un événement** (2.0.33) :
   seul normalizer à ne jamais vérifier le format de `date`/`time` (ses sœurs `normalizeTodo` /

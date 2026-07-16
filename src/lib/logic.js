@@ -1099,7 +1099,7 @@ function todayItems(state, date) {
   const seen = new Set(items.filter(i => i.planId).map(i => i.planId));
   plans.filter(p => !seen.has(p.id)).forEach(p => items.push({ id: p.id, time: p.time || '', title: `Séance · ${p.type}`, kind: 'sport', priority: 'normal', allDay: false, completed: false, planId: p.id, type: 'plan' }));
   // Anniversaires (récurrents chaque année, non validables)
-  birthdaysForDay(s.birthdays, date).forEach(b => items.push({ id: 'bday-' + b.id, time: '', title: `🎂 ${b.name}${b.age != null ? ` (${b.age} ans)` : ''}`, kind: 'birthday', priority: 'normal', allDay: true, completed: false, planId: null, type: 'birthday' }));
+  birthdaysForDay(s.birthdays, date).forEach(b => items.push({ id: 'bday-' + b.id, time: '', title: `🎂 ${b.name}${b.age != null ? ` (${b.age} an${b.age > 1 ? 's' : ''})` : ''}`, kind: 'birthday', priority: 'normal', allDay: true, completed: false, planId: null, type: 'birthday' }));
   // Événements récurrents : occurrence du jour, validable (doneLog par date)
   (Array.isArray(s.recurring) ? s.recurring : []).map(normalizeRecurring).forEach(r => {
     if (recurringOccurs(r, date)) items.push({ id: 'rec-' + r.id, time: r.time || '', title: r.title, kind: r.kind, priority: r.priority, allDay: !r.time, completed: r.doneLog.includes(date), planId: null, type: 'recurring', recId: r.id, recurring: true });
@@ -2600,6 +2600,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.34', emoji: '✍️', text: 'Petits accords corrigés : un tout premier anniversaire s’affiche désormais « (1 an) » et non « (1 ans) » dans « Ma journée », et le partage de progression sur les blocs de muscu écrit « 1 séance » plutôt que « 1 séances » quand un bloc n’en compte qu’une. Rien d’autre ne change — juste le pluriel qui suit enfin la règle partout ailleurs dans l’app.' },
   { v: '2.0.33', emoji: '🗓️', text: 'Agenda plus robuste : un événement dont la date ou l’heure serait mal formée (date impossible venue d’un fichier calendrier .ics abîmé, ou heure incohérente d’un import) n’est plus enregistré tel quel — la valeur invalide est neutralisée au lieu de planter dans une case introuvable. Comme partout ailleurs dans l’app, seule une date AAAA-MM-JJ et une heure HH:MM valides sont conservées. Aucune saisie normale n’est affectée (les champs date/heure produisent déjà ce format).' },
   { v: '2.0.32', emoji: '🌙', text: 'Onglet Sommeil, demande d’Adrien (étape 2/2) : le « Bilan sommeil » juge maintenant la régularité par l’heure de COUCHER (dès 3 nuits renseignées) plutôt que par la durée de nuit. Une durée qui varie peut cacher un coucher parfaitement stable (juste un réveil différent) — et à l’inverse, un coucher qui saute d’une heure à l’autre peut passer inaperçu si la durée moyenne reste stable, alors que c’est justement ce qui dérègle le rythme. Sans heure de coucher saisie, le bilan retombe comme avant sur la durée. Verdict plus juste, sans rien changer d’autre au plan de recalage.' },
   { v: '2.0.31', emoji: '💼', text: 'Correction demandée : dans le suivi d’alternance, marquer une candidature « postulé » (ou tout autre changement de statut) est maintenant pris en compte de façon fiable — deux bugs corrigés. D’une part, une synchronisation Google Sheets (auto ou ré-import) en retard sur l’app ne peut plus écraser un statut déjà avancé (ex. « postulé » ou « refusé ») pour le remettre à un stade antérieur — seule une vraie progression est appliquée. D’autre part, changer un statut via le menu déroulant met désormais aussi à jour la carte « Le focus du moment » à l’instant, sans attendre un rendu complet suivant.' },
@@ -3868,8 +3869,8 @@ function blockProgressText(history, workouts) {
   const sign = n => (n > 0 ? '+' : '') + n;
   const lines = [`${arrow} Ma progression sur ${cmp.blocks} blocs`];
   lines.push(`Tonnage/sem. : ${sign(cmp.tonnagePct)} % · Séances/sem. : ${sign(cmp.sessionsPerWeekDelta)}`);
-  lines.push(`1er bloc : ${cmp.first.sessions} séances · ${Math.round(cmp.first.tonnage)} kg`);
-  lines.push(`Dernier : ${cmp.last.sessions} séances · ${Math.round(cmp.last.tonnage)} kg`);
+  lines.push(`1er bloc : ${cmp.first.sessions} séance${cmp.first.sessions > 1 ? 's' : ''} · ${Math.round(cmp.first.tonnage)} kg`);
+  lines.push(`Dernier : ${cmp.last.sessions} séance${cmp.last.sessions > 1 ? 's' : ''} · ${Math.round(cmp.last.tonnage)} kg`);
   const ex = blockExerciseProgress(history, workouts, { limit: 3 });
   if (ex.length) {
     lines.push('');
