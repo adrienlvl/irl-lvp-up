@@ -4471,7 +4471,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.21');
+  assert.equal(L.CHANGELOG[0].v, '2.0.22');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5362,6 +5362,48 @@ test('sleepCoachInsight : bilan qualité + régularité (1re étape du coach som
 
   assert.equal(L.sleepCoachInsight([], '2026-07-10'), null, 'aucune nuit sur 7 j → null');
   assert.equal(L.sleepCoachInsight(jagged, 'invalide'), null);
+});
+
+test('bedtimeAnchor : minutes depuis midi, coucher soir→matin monotone croissant', () => {
+  assert.equal(L.bedtimeAnchor('12:00'), 0);
+  assert.equal(L.bedtimeAnchor('20:00'), 480);
+  assert.equal(L.bedtimeAnchor('23:30'), 690);
+  assert.equal(L.bedtimeAnchor('00:00'), 720);
+  assert.equal(L.bedtimeAnchor('06:00'), 1080);
+  // 6 h du matin est bien « plus tard » (ancre plus grande) que 23 h — c'est tout l'intérêt
+  assert.ok(L.bedtimeAnchor('06:00') > L.bedtimeAnchor('23:00'));
+  assert.equal(L.bedtimeAnchor(''), null);
+  assert.equal(L.bedtimeAnchor('25:00'), null);
+  assert.equal(L.bedtimeAnchor(null), null);
+});
+
+test('bedtimeFromAnchor : inverse exact de bedtimeAnchor', () => {
+  ['23:30', '06:00', '00:00', '20:15', '12:00'].forEach(t => {
+    assert.equal(L.bedtimeFromAnchor(L.bedtimeAnchor(t)), t);
+  });
+  assert.equal(L.bedtimeFromAnchor(1080), '06:00');
+  assert.equal(L.bedtimeFromAnchor(-1), '11:59', 'valeur négative normalisée');
+  assert.equal(L.bedtimeFromAnchor(1440), '12:00', 'plafond modulo 1440');
+});
+
+test('recentBedtimeAnchor : médiane des couchers récents, résiste à une nuit isolée', () => {
+  const rec = [
+    { date: '2026-07-06', sleep: 6, bedtime: '05:00' },
+    { date: '2026-07-07', sleep: 6, bedtime: '05:30' },
+    { date: '2026-07-08', sleep: 6, bedtime: '06:00' },
+    { date: '2026-07-09', sleep: 7 },                    // sans heure → ignorée
+    { date: '2026-07-10', sleep: 6, bedtime: '05:15' },
+  ];
+  const r = L.recentBedtimeAnchor(rec, '2026-07-10', 5);
+  assert.equal(r.nights, 4);
+  assert.equal(r.time, '05:23', 'médiane de 05:00/05:15/05:30/06:00');
+  // médiane robuste : une seule nuit décalée (12:00) ne tire pas tout le point d'ancrage
+  const withOutlier = rec.concat([{ date: '2026-07-11', sleep: 2, bedtime: '12:00' }]);
+  assert.equal(L.recentBedtimeAnchor(withOutlier, '2026-07-11', 5).time, '05:15');
+  assert.equal(L.recentBedtimeAnchor([], '2026-07-10', 5), null, 'aucune heure → null');
+  assert.equal(L.recentBedtimeAnchor([{ date: '2026-07-06', sleep: 6 }], '2026-07-10', 5), null);
+  // n'utilise pas les nuits postérieures à todayKey
+  assert.equal(L.recentBedtimeAnchor(rec, '2026-07-07', 5).nights, 2);
 });
 
 test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {
