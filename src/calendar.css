@@ -10,3 +10,18 @@
 .att-item .att-go{color:var(--muted);flex:none}
 .att-item.att-high{border-left:3px solid #ef4444}
 .att-item.att-med{border-left:3px solid #f0b429}
+
+/* Coaching adaptatif : carte « Le focus du moment » (proactif, une priorité du jour). */
+.coach-panel{background:linear-gradient(135deg,rgba(94,234,212,.10),var(--card) 45%)}
+.coach-focus{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:13px 14px;border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--accent,#6ee7b7);background:var(--input-bg);color:var(--text);cursor:pointer;font:inherit}
+.coach-focus:hover{border-color:var(--accent,#6ee7b7)}
+.coach-focus:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px}
+.coach-focus.coach-rebuild{border-left-color:#f0b429}
+.coach-focus.coach-revive{border-left-color:#8b5cf6}
+.coach-focus.coach-reinforce{border-left-color:#22c55e}
+.coach-focus .coach-emo{font-size:1.5rem;line-height:1;flex:none}
+.coach-focus .coach-body{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.coach-focus .coach-headline{font-size:.98rem;font-weight:700}
+.coach-focus .coach-insight{font-size:.85rem;color:var(--muted);line-height:1.35}
+.coach-focus .coach-action{font-size:.85rem;margin-top:3px;color:var(--accent,#6ee7b7);font-weight:600}
+.coach-focus .coach-go{color:var(--muted);flex:none;align-self:center;font-size:1.1rem}

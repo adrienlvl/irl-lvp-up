@@ -10,10 +10,24 @@ Légende : 🟥 P0 (fondations, bloquant) · 🟧 P1 (haute valeur) · 🟨 P2 (
 
 Toutes les vagues de la roadmap sont **terminées** ; la 2.0 acte la maturité de l'app (décision d'Adrien après une passe QA : rendu des 7 pages sans erreur, 370 tests + smoke verts). Détail : **[docs/recaps/356-version-2.0.md](recaps/356-version-2.0.md)**. La boucle autonome continue ensuite en **2.0.x** (polish/qualité + retours). Reste hors boucle (actions d'Adrien) : 📸 scan frigo (IA/réseau), ⌚ sync Strava/Garmin/Polar (OAuth).
 
-## 📍 État actuel — build 2.0.2 (2026-07-16)
+## 🧭 CAP 3.0 — ordre validé par Adrien (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **375 tests + smoke** verts (harness durci, dont garde-fou CSS + 42 gardes smoke bloquants). Cap **3.0** validé par Adrien — voir **[docs/AUDIT-ET-ROADMAP-3.0.md](AUDIT-ET-ROADMAP-3.0.md)** (ordre : Coaching adaptatif → Sync → Fondations → Sécurité/public → Planning multi-échéances études → Scans ; sync chiffrée dès le départ). **Boucle EN PAUSE** — Adrien décide de la suite (3.0). Livré au-delà de la roadmap initiale (boucles #36→**358**) :
+Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AUDIT-ET-ROADMAP-3.0.md](AUDIT-ET-ROADMAP-3.0.md)**) :
 
+1. 🤖 **Coaching adaptatif** _(← en cours)_ — logique locale, forte valeur, zéro risque infra.
+2. 🧱 **Fondations techniques** (IndexedDB, archi) — prérequis de la sync.
+3. 🔒 **Sécurité & prêt pour le public** — socle sécu (chiffrement, CSP, audit) **avant** d'ouvrir la moindre surface réseau (App Store iOS + Google Play + site web ; aucune fuite de donnée critique).
+4. ☁️ **Sync multi-appareils** — chiffrée de bout en bout dès le jour 1.
+5. 🎓 **Planning multi-échéances (études)** — généralisable.
+6. 📷 **Scan frigo / assiette** — en dernier.
+
+> Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
+
+## 📍 État actuel — build 2.0.3 (2026-07-16)
+
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **376 tests + smoke** verts (harness durci, dont garde-fou CSS + 43 gardes smoke bloquants). Livré au-delà de la roadmap initiale (boucles #36→**359**) :
+
+- 🧭 **Coaching adaptatif — « Le focus du moment »** (3.0 · Vague 1, tranche 1) : carte proactive sur l'accueil qui lit la dynamique des deux dernières semaines (entraînement, focus, sommeil, nutrition) et propose UNE priorité du jour, avec un ton adaptatif — relancer un pilier qui s'essouffle (`rebuild`), reprendre ce qui dort (`revive`), ou renforcer ce qui monte (`reinforce`). `adaptiveCoachFocus` pur + testé. Vérifié en navigateur. ✅ _boucle #359 (build 2.0.3)._
 - 💼 **Module « Recherche d'alternance »** (demande d'Adrien, **terminé**) : onglet dédié pour pousser à postuler chaque jour — compte à rebours avant août, objectif hebdo, série de jours, suivi/pipeline, relances, « J'ai postulé » (+XP), **nudge accueil** « Postule aujourd'hui » et **import CSV** du Google Sheets. `applicationStats`/`alternanceDeadline`/`parseApplicationsCsv` purs + testés. Vérifié en navigateur. ✅ _boucles #357-358 (builds 2.0.1-2.0.2)._
 
 - ☀️ **Série check-in matinal** : `morningStreak` — badge « 🔥 N jours de check-in d'affilée » dans le rituel du matin (tolérance d'un jour manqué). Encourage la keystone habit. Vérifié en navigateur. ✅ _boucle #355 (build 1.9.289)._

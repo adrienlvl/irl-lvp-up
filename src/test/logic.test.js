@@ -4360,7 +4360,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.2');
+  assert.equal(L.CHANGELOG[0].v, '2.0.3');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5367,6 +5367,59 @@ test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravit�
   assert.deepEqual(L.attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [] }, today), []);
   // date invalide → []
   assert.deepEqual(L.attentionDigest(state, 'nope'), []);
+});
+
+test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/ton', () => {
+  const today = '2026-07-16';
+  // Fenêtre récente = jours 0..6 (16→10 juil) ; fenêtre précédente = jours 7..13 (09→03 juil).
+
+  // Aucune donnée / date invalide → null (l'onboarding couvre le nouveau venu).
+  assert.equal(L.adaptiveCoachFocus({}, 'nope'), null);
+  assert.equal(L.adaptiveCoachFocus({ workouts: [], focusSessions: [], recovery: [], nutrition: [] }, today), null);
+
+  // rebuild : pilier solide (4 j la semaine passée) qui recule à 1 j → priorité haute, ton « rebuild ».
+  const slip = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-09' },
+    { date: '2026-07-11' },
+  ] }, today);
+  assert.equal(slip.pillar, 'sport');
+  assert.equal(slip.tone, 'rebuild');
+  assert.equal(slip.prevDays, 4);
+  assert.equal(slip.recentDays, 1);
+  assert.equal(slip.page, 'athlete');
+  assert.match(slip.headline, /essouffle/);
+  assert.ok(slip.action && slip.action.length);
+
+  // revive : pilier connu mais dormant depuis > 2 semaines → ton « revive ».
+  const rev = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, today);
+  assert.equal(rev.pillar, 'focus');
+  assert.equal(rev.tone, 'revive');
+  assert.equal(rev.recentDays, 0);
+  assert.equal(rev.prevDays, 0);
+  assert.ok(rev.lastActiveDays >= 14);
+  assert.match(rev.headline, /Reprends/);
+
+  // reinforce : rien à corriger, une dynamique en hausse → ton « reinforce ».
+  const up = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-05' }, { date: '2026-07-16' }, { date: '2026-07-14' }, { date: '2026-07-12' },
+  ] }, today);
+  assert.equal(up.pillar, 'sport');
+  assert.equal(up.tone, 'reinforce');
+  assert.equal(up.trend, 'up');
+  assert.equal(up.recentDays, 3);
+  assert.match(up.headline, /monte en régime/);
+
+  // priorité : un pilier qui décroche l'emporte sur un autre en hausse.
+  const mixed = L.adaptiveCoachFocus({
+    workouts: [{ date: '2026-07-05' }, { date: '2026-07-16' }, { date: '2026-07-14' }, { date: '2026-07-12' }],
+    recovery: [{ date: '2026-07-03', sleep: 7 }, { date: '2026-07-05', sleep: 7 }, { date: '2026-07-07', sleep: 7 }, { date: '2026-07-09', sleep: 7 }, { date: '2026-07-11', sleep: 7 }],
+  }, today);
+  assert.equal(mixed.pillar, 'sommeil');
+  assert.equal(mixed.tone, 'rebuild');
+
+  // activité « vide » (protéines/eau/fruit à 0) ne compte pas ; dates futures ignorées.
+  assert.equal(L.adaptiveCoachFocus({ nutrition: [{ date: '2026-07-15', protein: 0, water: 0, fruit: false }] }, today), null);
+  assert.equal(L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-20' }] }, today), null);
 });
 
 test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', () => {
