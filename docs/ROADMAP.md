@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.34 (2026-07-17)
+## 📍 État actuel — build 2.0.35 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**394**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**395**) :
+
+- 🔎 **Recherche d'agenda insensible aux accents** (2.0.35) : `agendaMatch` (barre de recherche
+  libre de l'agenda, câblée à la vue semaine et à la vue jour) repliait la casse mais pas les
+  accents. Dans une app FR, taper « kine » / « reunion » / « chateau » (sans accent, réflexe
+  courant) ne retrouvait pas « Kiné » / « Réunion » / « Château ». Correctif : réutilisation de
+  l'idiome de repli d'accents déjà présent 6× ailleurs dans `logic.js`
+  (`normalize('NFD').replace(/[̀-ͯ]/g,'')`) sur requête **et** foin — on élargit ce qui matche
+  sans jamais rétrécir (« kiné » avec accent fonctionne toujours). +4 assertions (bloc
+  `agendaMatch` existant, 3 échouaient avant) + check smoke `agendaSearch` renforcé (exécute
+  désormais des cas accentués). Logique pure, zéro régression.
+  (`docs/recaps/395-agenda-search-accents.md`). ✅ _boucle #395._
 
 - ✍️ **Polish : deux accords pluriels fautifs corrigés au singulier** (2.0.34) : un tout premier
   anniversaire s'affiche désormais « (1 an) » et non « (1 ans) » dans « Ma journée » (`todayItems`),

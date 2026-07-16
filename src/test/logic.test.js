@@ -3586,7 +3586,7 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   const clamp = L.buildTrainingWeek(['legs'], 6, 5);
   assert.ok(clamp.strengthDays + clamp.runs <= 6, 'au moins 1 jour de repos');
 });
-test('agendaMatch : recherche titre/lieu/notes, insensible à la casse', () => {
+test('agendaMatch : recherche titre/lieu/notes, insensible à la casse et aux accents', () => {
   const it = { title: 'RDV Kiné', location: 'Cabinet Lorient', notes: 'ordonnance' };
   assert.equal(L.agendaMatch(it, ''), true, 'requête vide → tout passe');
   assert.equal(L.agendaMatch(it, 'kiné'), true, 'titre');
@@ -3594,6 +3594,11 @@ test('agendaMatch : recherche titre/lieu/notes, insensible à la casse', () => {
   assert.equal(L.agendaMatch(it, 'ordonnance'), true, 'notes');
   assert.equal(L.agendaMatch(it, 'dentiste'), false, 'sans correspondance');
   assert.equal(L.agendaMatch(null, 'x'), false, 'item nul → false');
+  // Repli d'accents : taper sans accent (réflexe FR courant) trouve quand même.
+  assert.equal(L.agendaMatch(it, 'kine'), true, 'requête sans accent → titre accentué trouvé');
+  assert.equal(L.agendaMatch({ title: 'Réunion équipe' }, 'reunion equipe'), true, 'plusieurs accents');
+  assert.equal(L.agendaMatch({ notes: 'Château' }, 'CHATEAU'), true, 'accent + casse dans les notes');
+  assert.equal(L.agendaMatch(it, 'kinésithérapie'), false, 'requête plus longue que le foin → toujours false');
 });
 test('dayColumns : chevauchements côte à côte, indépendants sur 1 colonne', () => {
   // deux qui se chevauchent + un séparé
@@ -4772,7 +4777,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.34');
+  assert.equal(L.CHANGELOG[0].v, '2.0.35');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
