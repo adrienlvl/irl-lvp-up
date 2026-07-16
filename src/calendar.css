@@ -17,6 +17,8 @@
 .coach-focus:hover{border-color:var(--accent,#6ee7b7)}
 .coach-focus:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px}
 .coach-focus.coach-urgent{border-left-color:#ef4444}
+.coach-follow{display:block;margin-top:9px;color:var(--muted);font-size:.76rem}
+.coach-follow[hidden]{display:none}
 .coach-focus.coach-rebuild{border-left-color:#f0b429}
 .coach-focus.coach-revive{border-left-color:#8b5cf6}
 .coach-focus.coach-reinforce{border-left-color:#22c55e}

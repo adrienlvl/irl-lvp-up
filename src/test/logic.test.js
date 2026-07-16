@@ -4453,7 +4453,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.9');
+  assert.equal(L.CHANGELOG[0].v, '2.0.10');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5558,6 +5558,32 @@ test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 j
   // L'alternance ne tourne JAMAIS, même après 3 jours.
   const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-10' }], coachLog: [{ date: '2026-07-13', pillar: 'alternance' }, { date: '2026-07-14', pillar: 'alternance' }, { date: '2026-07-15', pillar: 'alternance' }] }, today);
   assert.equal(alt.pillar, 'alternance');
+});
+
+test('coachFollowThrough : mesure si les conseils du coach sont suivis', () => {
+  const today = '2026-07-16';
+  const st = {
+    coachLog: [
+      { date: '2026-07-13', pillar: 'sommeil' },   // suivi (nuit notée le 13)
+      { date: '2026-07-14', pillar: 'sport' },     // PAS suivi (séance le 15, pas le 14)
+      { date: '2026-07-15', pillar: 'focus' },     // suivi (session le 15)
+      { date: today, pillar: 'sport' },            // aujourd'hui : jour non fini → exclu
+    ],
+    recovery: [{ date: '2026-07-13', sleep: 7 }],
+    workouts: [{ date: '2026-07-15' }],
+    focusSessions: [{ date: '2026-07-15', minutes: 25 }],
+  };
+  const r = L.coachFollowThrough(st, today);
+  assert.equal(r.total, 3, 'le jour en cours ne compte pas');
+  assert.equal(r.followed, 2);
+  assert.equal(r.rate, 67);
+  // hors fenêtre 7 jours → aucun jour évaluable → null
+  assert.equal(L.coachFollowThrough({ coachLog: [{ date: '2026-07-06', pillar: 'sport' }], workouts: [{ date: '2026-07-06' }] }, today), null);
+  // aucun journal → null ; état vide → null
+  assert.equal(L.coachFollowThrough({}, today), null);
+  // conseil alternance suivi = candidature datée du même jour
+  const alt = L.coachFollowThrough({ coachLog: [{ date: '2026-07-15', pillar: 'alternance' }], applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-15' }] }, today);
+  assert.equal(alt.followed, 1); assert.equal(alt.total, 1);
 });
 
 test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', () => {
