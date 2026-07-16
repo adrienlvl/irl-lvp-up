@@ -4471,7 +4471,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.20');
+  assert.equal(L.CHANGELOG[0].v, '2.0.21');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5300,6 +5300,68 @@ test('sleepSeries : nuits chiffrées récentes, triées, plafonnées, une/jour',
   // rien / dates invalides → []
   assert.deepEqual(L.sleepSeries([], 10), []);
   assert.deepEqual(L.sleepSeries([{ date: 'x', sleep: 7 }], 10), []);
+});
+
+test('sleepRegularity : écart-type des nuits, irrégularité détectée', () => {
+  assert.equal(L.sleepRegularity([{ date: '2026-07-08', sleep: 6 }], 14), null, 'moins de 3 nuits → null');
+  const stable = [{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 6 }, { date: '2026-07-08', sleep: 6 }, { date: '2026-07-09', sleep: 6 }];
+  const rs = L.sleepRegularity(stable, 14);
+  assert.equal(rs.nights, 4);
+  assert.equal(rs.avg, 6);
+  assert.equal(rs.stdev, 0, 'nuits identiques → écart-type nul');
+  const jagged = [
+    { date: '2026-07-04', sleep: 5 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 5 },
+    { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 5 },
+  ];
+  const rj = L.sleepRegularity(jagged, 14);
+  assert.equal(rj.stdev, 1.5, 'alternance 5/8 h → forte variabilité');
+  assert.equal(L.sleepRegularity(jagged, 3).nights, 3, 'plafonné aux N dernières nuits');
+  assert.equal(L.sleepRegularity([], 14), null);
+  assert.equal(L.sleepRegularity([{ date: 'x', sleep: 7 }, { date: 'y', sleep: 7 }], 14), null, 'dates invalides ignorées');
+});
+
+test('sleepCoachInsight : bilan qualité + régularité (1re étape du coach sommeil)', () => {
+  const jagged = [
+    { date: '2026-07-04', sleep: 5 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 5 },
+    { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 5 },
+  ];
+  const urgent = L.sleepCoachInsight(jagged, '2026-07-10');
+  assert.equal(urgent.avg, 6.3);
+  assert.equal(urgent.nights, 7);
+  assert.equal(urgent.debt, 10);
+  assert.equal(urgent.stdev, 1.5);
+  assert.equal(urgent.irregular, true);
+  assert.equal(urgent.tone, 'urgent');
+  assert.match(urgent.verdict, /court et irrégulier/);
+
+  const stableShort = [
+    { date: '2026-07-04', sleep: 6 }, { date: '2026-07-05', sleep: 6 }, { date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 6 },
+    { date: '2026-07-08', sleep: 6 }, { date: '2026-07-09', sleep: 6 }, { date: '2026-07-10', sleep: 6 },
+  ];
+  const attn1 = L.sleepCoachInsight(stableShort, '2026-07-10');
+  assert.equal(attn1.tone, 'attention');
+  assert.equal(attn1.irregular, false);
+  assert.match(attn1.verdict, /Sommeil court/);
+
+  const jaggedOk = [
+    { date: '2026-07-04', sleep: 6.5 }, { date: '2026-07-05', sleep: 9.5 }, { date: '2026-07-06', sleep: 6.5 },
+    { date: '2026-07-07', sleep: 9.5 }, { date: '2026-07-08', sleep: 6.5 }, { date: '2026-07-09', sleep: 9.5 }, { date: '2026-07-10', sleep: 6.5 },
+  ];
+  const attn2 = L.sleepCoachInsight(jaggedOk, '2026-07-10');
+  assert.equal(attn2.tone, 'attention');
+  assert.equal(attn2.irregular, true);
+  assert.match(attn2.verdict, /rythme irrégulier/);
+
+  const stableOk = [
+    { date: '2026-07-04', sleep: 8 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 8 }, { date: '2026-07-07', sleep: 8 },
+    { date: '2026-07-08', sleep: 8 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 8 },
+  ];
+  const ok = L.sleepCoachInsight(stableOk, '2026-07-10');
+  assert.equal(ok.tone, 'ok');
+  assert.match(ok.verdict, /Sommeil solide/);
+
+  assert.equal(L.sleepCoachInsight([], '2026-07-10'), null, 'aucune nuit sur 7 j → null');
+  assert.equal(L.sleepCoachInsight(jagged, 'invalide'), null);
 });
 
 test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {
