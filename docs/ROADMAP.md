@@ -25,8 +25,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.28 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **419 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**386**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **422 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**387**) :
 
+- 🧪 **Couverture : `mealMacro`** (sans bump — tests + export) : la brique atomique qui met les
+  macros d'un aliment à l'échelle de la portion (valeurs pour 100 g → portion réelle), appelée à
+  chaque assiette par `generateMeals`, était la **seule fonction pure de `logic.js` sans aucune
+  référence dans les tests** — et pas même exportée. **+3 blocs** (419 → 422) verrouillent son
+  contrat : mise à l'échelle par 100 g + arrondi, **proportionnalité** (doubler la portion double
+  kcal/protéines), et **garde anti-NaN** (champ manquant ou `null` → 0, jamais un `NaN` qui
+  polluerait le total du repas). Domaine varié (nutrition) après plusieurs itérations calendrier/ICS.
+  Zéro changement de comportement. (`docs/recaps/387-meal-macro-couverture.md`). ✅ _boucle #387._
 - 🧪 **Couverture : `icsEscape` + aller-retour ICS** (sans bump — tests seuls) : l'échappement des
   valeurs TEXT iCalendar à l'**export** `.ics` (via `buildIcs`) était la dernière fonction pure
   substantielle de ce chemin sans test direct — complément de l'import couvert en #381/#385. Fonction

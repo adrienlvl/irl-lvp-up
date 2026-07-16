@@ -2491,6 +2491,38 @@ test('generateMeals : ancre (« envie de ») force l’aliment', () => {
   assert.ok(meals[0].items.some(it => /boeuf/i.test(it.name)), 'le boeuf est ancré');
 });
 
+test('mealMacro : macros mises à l’échelle de la portion (par 100 g), arrondies', () => {
+  const poulet = { n: 'Poulet, blanc, cuit', cat: 'P', kcal: 148, p: 30, c: 0, f: 3 };
+  // 100 g → valeurs brutes du frigo (échelle neutre), champs conservés
+  assert.deepEqual(L.mealMacro(poulet, 100), { name: 'Poulet, blanc, cuit', grams: 100, kcal: 148, p: 30 });
+  // 130 g → kcal 148*1,3=192,4→192 ; p 30*1,3=39
+  assert.deepEqual(L.mealMacro(poulet, 130), { name: 'Poulet, blanc, cuit', grams: 130, kcal: 192, p: 39 });
+  // arrondi honnête d’une valeur fractionnaire : 2,7 g/100 g × 130 g = 3,51 → 4
+  assert.equal(L.mealMacro({ n: 'Riz', kcal: 130, p: 2.7 }, 130).p, 4);
+  assert.equal(L.mealMacro({ n: 'Riz', kcal: 130, p: 2.7 }, 130).kcal, 169);
+});
+
+test('mealMacro : proportionnalité — doubler la portion double kcal et protéines', () => {
+  const f = { n: 'Steak haché 5%', kcal: 137, p: 21 };
+  const a = L.mealMacro(f, 100), b = L.mealMacro(f, 200);
+  assert.equal(b.kcal, a.kcal * 2);
+  assert.equal(b.p, a.p * 2);
+  assert.equal(L.mealMacro(f, 0).kcal, 0, 'portion nulle → 0 kcal');
+  assert.equal(L.mealMacro(f, 0).p, 0);
+});
+
+test('mealMacro : champ manquant ou null → 0, jamais NaN', () => {
+  // aliment sans kcal ni protéines (frigo incomplet) : pas de NaN qui polluerait le total du repas
+  const m = L.mealMacro({ n: 'Aliment sans macros', cat: 'L' }, 170);
+  assert.equal(m.kcal, 0);
+  assert.equal(m.p, 0);
+  assert.ok(!Number.isNaN(m.kcal) && !Number.isNaN(m.p));
+  // valeurs explicitement null (données hostiles) traitées comme 0
+  const n = L.mealMacro({ n: 'X', kcal: null, p: null }, 150);
+  assert.equal(n.kcal, 0);
+  assert.equal(n.p, 0);
+});
+
 test('buildShoppingList : ne liste que les catégories manquantes de l’envie', () => {
   // frigo avec seulement une protéine → il manque féculent + légume (+ laitier en équilibré)
   const items = L.buildShoppingList([{ n: 'Poulet, blanc, cuit', cat: 'P' }], { style: 'equilibre', count: 3 });
