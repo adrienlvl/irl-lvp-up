@@ -54,8 +54,8 @@ app.whenReady().then(async () => {
   try {
     await win.loadFile(path.join(__dirname, '..', 'index.html'));
     await new Promise(r => setTimeout(r, 900)); // laisse app.js finir (onboarding, restore...)
-    const checks = await win.webContents.executeJavaScript(`(function(){
-      return {
+    const checks = await win.webContents.executeJavaScript(`(async function(){
+      const checks = {
         logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function' && typeof normalizeAgendaItem === 'function',
         normalize: typeof normalizeState === 'function',
         normalizeHardening: typeof normalizeState === 'function' && (() => {
@@ -563,7 +563,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.11'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.12'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -749,6 +749,16 @@ app.whenReady().then(async () => {
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''
       };
+      // Miroir IndexedDB (async, BLOQUANT) : écriture + relecture d'une sonde, puis on remet le vrai état.
+      checks.idbMirror = await (async () => {
+        if (typeof idbMirrorState !== 'function' || typeof idbReadState !== 'function' || typeof restoreFromIdbIfEmpty !== 'function' || typeof scheduleIdbMirror !== 'function') return false;
+        const ok = await idbMirrorState('{"probe":"smoke"}');
+        if (!ok) return false;
+        const back = await idbReadState();
+        await idbMirrorState(JSON.stringify(state)); // remet le miroir sur l'état réel
+        return typeof back === 'string' && back.indexOf('probe') !== -1;
+      })();
+      return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
     if (!checks.logicLoaded) errors.push('lib/logic.js non chargé (localDate/pct/computeStreak absents)');
@@ -834,6 +844,7 @@ app.whenReady().then(async () => {
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
     if (!checks.altHideRejected) errors.push('Masquage des refusées KO (altRejectedToggle/hideRejected/rendu liste)');
+    if (!checks.idbMirror) errors.push('Miroir IndexedDB KO (idbMirrorState/idbReadState : écriture/relecture)');
     if (!checks.comfort) errors.push('Confort absent (backToTop/densityToggle/appVersion)');
     if (!checks.autoUpdate) errors.push('Auto-update absent (desktop.installUpdate/onUpdateStatus/updateBanner)');
     if (!checks.updateSilent) errors.push('MAJ silencieuse KO (applyUpdateStatus : pop-up pendant le téléchargement, ou absente quand prête)');

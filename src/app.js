@@ -29,7 +29,7 @@ function normalizeState(input){const next={...structuredClone(defaults),...(inpu
   next.goals.targetWeight=(Number(next.goals.targetWeight)>=30&&Number(next.goals.targetWeight)<=300)?Math.round(Number(next.goals.targetWeight)*10)/10:'';
   next.wellnessWeeklyGoal=Math.max(1,Math.min(14,Math.round(Number(next.wellnessWeeklyGoal)||3)));
   return next;}
-let savedStateRaw=localStorage.getItem('irl-level-up');let savedState={};try{savedState=JSON.parse(savedStateRaw||'{}');}catch{localStorage.removeItem('irl-level-up');savedStateRaw=null;}let state=normalizeState(savedState),automaticBackupReady=Boolean(savedStateRaw);
+let savedStateRaw=localStorage.getItem('irl-level-up');let savedState={};try{savedState=JSON.parse(savedStateRaw||'{}');}catch{localStorage.removeItem('irl-level-up');savedStateRaw=null;}let state=normalizeState(savedState),automaticBackupReady=Boolean(savedStateRaw);const bootWasEmpty=!savedStateRaw;
 const $ = s => document.querySelector(s); const categoryLabel = { health: 'Santé', focus: 'Focus', life: 'Équilibre' };
 const titles = ['Débutant audacieux', 'Aventurier régulier', 'Héros en devenir', 'Maître de la discipline', 'Légende IRL'];
 const challenges = [['Sortir prendre l’air', '10 minutes de marche sans téléphone.'], ['Ranger le terrain', 'Remets une petite zone de ton espace à zéro.'], ['Mini-boss physique', 'Fais 10 squats, 10 pompes ou 30 secondes de gainage.'], ['Pause cerveau', 'Respire lentement pendant 2 minutes.']];
@@ -51,7 +51,34 @@ function resetDailyContent(){const d=localDate();if(state.dailyDate===d)return;
   // Idem pour le « pas du jour » : c'est un objet unique, l'écraser le perdait définitivement.
   if(typeof logLifeStep==='function'&&state.dailyLifeStep?.text){state.lifeStepLog=logLifeStep(state.lifeStepLog,state.dailyLifeStep);}
   state.quests.forEach(q=>q.done=false);state.challengeDone=false;state.dailyLifeStep={date:d,text:'',done:false};state.dailyDate=d;}
-let localBackupTimer, storageWarned=false; function save() { try { localStorage.setItem('irl-level-up', JSON.stringify(state)); storageWarned=false; } catch(err) { if(!storageWarned){ storageWarned=true; const status=$('#localBackupStatus'); if(status) status.textContent='⚠ Stockage local saturé : exporte une sauvegarde ou réduis les photos. Les copies disque continuent.'; } } if(!automaticBackupReady)return;clearTimeout(localBackupTimer); localBackupTimer=setTimeout(()=>{const backup=window.desktop?.saveLocalBackup?.(state);if(backup)backup.then(ok=>{const status=$('#localBackupStatus');if(status&&ok)status.textContent='✓ Copie locale à jour · instantané + 14 copies quotidiennes.';}).catch(()=>{});},450); }
+let localBackupTimer, storageWarned=false; function save() { try { localStorage.setItem('irl-level-up', JSON.stringify(state)); storageWarned=false; } catch(err) { if(!storageWarned){ storageWarned=true; const status=$('#localBackupStatus'); if(status) status.textContent='⚠ Stockage local saturé : exporte une sauvegarde ou réduis les photos. Les copies disque continuent.'; } } scheduleIdbMirror();if(!automaticBackupReady)return;clearTimeout(localBackupTimer); localBackupTimer=setTimeout(()=>{const backup=window.desktop?.saveLocalBackup?.(state);if(backup)backup.then(ok=>{const status=$('#localBackupStatus');if(status&&ok)status.textContent='✓ Copie locale à jour · instantané + 14 copies quotidiennes.';}).catch(()=>{});},450); }
+// ---- Miroir IndexedDB de l'état (3.0 · Fondations, tranche 1) ----
+// localStorage reste LA source de vérité — IndexedDB n'est qu'une copie de secours résiliente :
+// l'éviction PWA (iOS) ou un nettoyage navigateur vide localStorage plus volontiers qu'IndexedDB,
+// et navigator.storage.persist() renforce le tout. AUCUNE migration : sans IDB, tout marche comme avant.
+function idbOpen(){return new Promise(res=>{try{const rq=indexedDB.open('irl-lvp-up',1);rq.onupgradeneeded=()=>{try{rq.result.createObjectStore('state');}catch(_){}};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(_){res(null);}});}
+function idbMirrorState(json){return idbOpen().then(db=>new Promise(res=>{if(!db)return res(false);try{const tx=db.transaction('state','readwrite');tx.objectStore('state').put({json,at:Date.now()},'state');tx.oncomplete=()=>{db.close();res(true);};tx.onerror=()=>{db.close();res(false);};}catch(_){try{db.close();}catch(_){}res(false);}}));}
+function idbReadState(){return idbOpen().then(db=>new Promise(res=>{if(!db)return res(null);try{const tx=db.transaction('state','readonly');const rq=tx.objectStore('state').get('state');rq.onsuccess=()=>{const v=rq.result;db.close();res(v&&typeof v.json==='string'?v.json:null);};rq.onerror=()=>{db.close();res(null);};}catch(_){try{db.close();}catch(_){}res(null);}}));}
+let idbMirrorTimer=null,idbMirrorAllowed=false; // VERROU : aucun miroir tant que la décision de restauration n'est pas prise (sinon l'état vide du boot écraserait la sauvegarde)
+function scheduleIdbMirror(){if(!idbMirrorAllowed)return;clearTimeout(idbMirrorTimer);idbMirrorTimer=setTimeout(()=>{try{idbMirrorState(JSON.stringify(state));}catch(_){}},800);}
+// Récupération : si localStorage était VIDE au chargement (bootWasEmpty = probable éviction/nettoyage)
+// et que le miroir contient de vraies données, on restaure — PWA seulement, le desktop a ses
+// sauvegardes disque. NB : ne pas tester automaticBackupReady ici, offerLocalBackupRestore le
+// repasse à true au boot (bug attrapé en vérification #368).
+function restoreFromIdbIfEmpty(){
+  if(window.desktop)return Promise.resolve(false);
+  const fresh=bootWasEmpty&&state.workouts.length===0&&state.applications.length===0&&!state.onboardingDone;
+  if(!fresh)return Promise.resolve(false);
+  return idbReadState().then(json=>{
+    if(!json)return false;
+    let parsed=null;try{parsed=JSON.parse(json);}catch(_){return false;}
+    const cand=normalizeState(parsed);
+    if(cand.xp===0&&cand.workouts.length===0&&cand.applications.length===0&&!cand.onboardingDone)return false; // rien d'utile à restaurer
+    state=cand;automaticBackupReady=true;save();render();
+    if(typeof flashToast==='function')flashToast('🛟 Données restaurées depuis la copie de secours interne.',5000);
+    return true;
+  }).catch(()=>false);
+}
 function award(xp, category) { state.xp += xp; state[category] += 1; save(); renderDashboardCore(); }
 let toastTimer=null;
 function flashToast(msg, ms){let el=document.getElementById('appToast');if(!el){el=document.createElement('div');el.id='appToast';el.className='app-toast';el.setAttribute('role','status');el.title='Cliquer pour fermer';el.onclick=()=>{el.classList.remove('show');clearTimeout(toastTimer);};document.body.appendChild(el);}el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),ms||2800);}
@@ -905,6 +932,11 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(document.q
 // Saisie rapide du poids du jour depuis l'onglet Poids (une pesée/jour : on remplace celle du jour).
 $('#coachLogWeight')?.addEventListener('click',()=>{const inp=$('#coachWeightToday');const v=Number(inp?.value);if(!(v>=30&&v<=300)){inp?.focus();return;}const val=Math.round(v*10)/10;state.weights=(typeof upsertWeight==='function')?upsertWeight(state.weights,v,localDate()):state.weights;if(inp)inp.value='';save();renderCoachWeight();if(typeof renderWeight==='function')renderWeight();flashToast(`⚖️ Poids du jour enregistré : ${String(val).replace('.',',')} kg`);});
 render();renderWhatsNew();restoreFocusTimer();showPage('dashboard');setupCollapsibles();setupComfort();setupDesktopReminders();setupCalendarSync();setupSheetSync();setupTravelStart();offerLocalBackupRestore().then(migratePhotosToDisk).then(()=>setTimeout(optimizeStoredPhotos,1200));
+// Fondations : persistance renforcée (best-effort), puis récupération éventuelle ; le miroir ne
+// démarre QU'APRÈS la décision de restauration (verrou idbMirrorAllowed), sinon l'état vide du boot
+// écraserait la copie de secours avant qu'elle ait servi.
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(_){}
+restoreFromIdbIfEmpty().catch(()=>false).then(()=>{idbMirrorAllowed=true;scheduleIdbMirror();});
 $('#installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;const b=$('#installBtn');deferredInstall.prompt();try{await deferredInstall.userChoice;}catch(_){}deferredInstall=null;if(b)b.hidden=true;});
 $('#pwaReloadBtn')?.addEventListener('click',()=>location.reload());updateOnlineStatus();
 (function(){try{var standalone=(navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);var dismissed=false;try{dismissed=localStorage.getItem('irl-ios-hint')==='1';}catch(_){}if(!dismissed&&typeof isIosInstallable==='function'&&isIosInstallable(navigator.userAgent,standalone)){var h=$('#iosInstallHint');if(h){h.hidden=false;var b=$('#iosHintDismiss');if(b)b.onclick=function(){h.hidden=true;try{localStorage.setItem('irl-ios-hint','1');}catch(_){}};}}}catch(_){}})();
