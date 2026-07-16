@@ -668,6 +668,19 @@ test('parseCsv : guillemets, séparateurs mixtes, sauts de ligne échappés, CRL
   assert.deepEqual(L.parseCsv(null), []);
 });
 
+test('parseCsv : cellule multi-ligne en CRLF ne laisse pas de \\r parasite dans la valeur', () => {
+  // Cellule entre guillemets dont le saut de ligne interne est encodé en CRLF (RFC 4180, Excel) :
+  // le \r isolé est retiré comme hors-champ, seul le \n reste comme vrai saut de ligne interne.
+  assert.deepEqual(L.parseCsv('"ligne1\r\nligne2",x'), [['ligne1\nligne2', 'x']]);
+  // \r isolé (sans \n) à l'intérieur d'un champ : ignoré aussi, jamais stocké.
+  assert.deepEqual(L.parseCsv('"a\rb"'), [['ab']]);
+  // Aucune valeur produite ne contient de retour chariot (invariant anti-\r).
+  const cells = L.parseCsv('"note\r\nsuite","autre\r"').flat();
+  assert.ok(cells.every(c => !c.includes('\r')), 'aucun \\r ne subsiste dans une cellule');
+  // Séparation de lignes en CRLF hors guillemets : inchangée (pas de ligne fantôme, pas de \r).
+  assert.deepEqual(L.parseCsv('a,b\r\nc,d'), [['a', 'b'], ['c', 'd']]);
+});
+
 test('parseAlternanceTargets : filtre score + géo sur un CSV type La Bonne Alternance', () => {
   const csv = [
     'Entreprise,Ville,Statut,Score /10,Notes',
@@ -4708,7 +4721,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.29');
+  assert.equal(L.CHANGELOG[0].v, '2.0.30');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

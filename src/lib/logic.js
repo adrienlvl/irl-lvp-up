@@ -223,12 +223,15 @@ function applicationStats(applications, todayKey, opts) {
     pendingRelances
   };
 }
-// Parseur CSV minimal mais correct (gère les guillemets, virgules et sauts de ligne échappés). Pur.
+// Parseur CSV minimal mais correct (gère les guillemets, virgules et sauts de ligne échappés). Un
+// « \r » isolé est ignoré même À L'INTÉRIEUR d'un champ entre guillemets (cohérent avec le hors-champ)
+// : une cellule multi-ligne exportée en CRLF (RFC 4180, Excel) ne laisse plus traîner de retour
+// chariot parasite dans la valeur — seul le « \n » reste comme vrai saut de ligne interne. Pur.
 function parseCsv(text) {
   const s = String(text || ''); const rows = []; let row = [], cell = '', q = false;
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
-    if (q) { if (c === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    if (q) { if (c === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else q = false; } else if (c !== '\r') cell += c; }
     else if (c === '"') q = true;
     else if (c === ',' || c === ';' || c === '\t') { row.push(cell); cell = ''; }
     else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
@@ -2589,6 +2592,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.30', emoji: '💼', text: 'Import de candidatures plus propre : une cellule sur plusieurs lignes (une note collée depuis Excel ou un tableur, où le saut de ligne interne était encodé en CRLF) ne laisse plus traîner de retour chariot parasite dans le texte importé. Les vrais sauts de ligne à l’intérieur d’une cellule sont préservés — seul le caractère invisible en trop est retiré.' },
   { v: '2.0.29', emoji: '♿', text: 'Accessibilité : les boutons-flèches ← / → de navigation du calendrier (vue mois et vue semaine) ont maintenant un intitulé clair pour les lecteurs d’écran (« Mois précédent », « Mois suivant », « Semaine précédente », « Semaine suivante »), là où ils n’étaient annoncés que « flèche gauche/droite ». Une info-bulle apparaît aussi au survol. Rien ne change à l’écran.' },
   { v: '2.0.28', emoji: '🎂', text: 'Anniversaires du 29 février enfin fêtés les bonnes années : jusqu’ici, une personne née un 29 février disparaissait du calendrier les années non bissextiles (et la liste « À venir » affichait une date impossible, le 29 février d’une année sans 29 février). Désormais son anniversaire est fêté le 1er mars ces années-là — visible dans le calendrier, avec une date réelle dans « À venir ». Les années bissextiles, c’est toujours le 29 février.' },
   { v: '2.0.27', emoji: '📲', text: 'Aide d’installation sur iPad : sur iPadOS récent, Safari se fait passer pour un Mac (l’UA ne contient plus « iPad »), si bien que le rappel « Ajoute l’app à l’écran d’accueil » ne s’affichait jamais sur iPad. L’app reconnaît maintenant l’iPad à son écran tactile et propose l’aide comme sur iPhone. Aucun impact sur les vrais Mac de bureau (pas tactiles).' },

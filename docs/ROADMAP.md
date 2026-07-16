@@ -23,9 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.29 (2026-07-16)
+## 📍 État actuel — build 2.0.30 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **424 tests + smoke** verts (harness durci, dont garde-fou CSS + 53 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**389**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **425 tests + smoke** verts (harness durci, dont garde-fou CSS + 53 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**390**) :
+
+- 💼 **Robustesse : `parseCsv` ne laisse plus de `\r` parasite dans une cellule multi-ligne** (2.0.30) :
+  le retour chariot était ignoré hors guillemets mais **conservé à l'intérieur** d'un champ entre
+  guillemets — si bien qu'une cellule sur plusieurs lignes encodée en **CRLF** (RFC 4180, Excel,
+  copier-coller de tableur, que l'import manuel accepte) ressortait avec un `\r` invisible dans la
+  valeur, stocké tel quel dans la note d'une candidature (chemin alternance). Le `\r` isolé est
+  désormais ignoré **dans les deux contextes** (le vrai `\n` interne reste) : la donnée importée est
+  plus propre, aucune entrée bien formée n'est affectée. +1 test (424 → 425). Même famille que le
+  durcissement d'import #386. **Variation de type** (robustesse). (`docs/recaps/390-parsecsv-cr-multiligne.md`). ✅ _boucle #390._
 
 - 🧪 **Couverture : `priorityRank`** (sans bump — tests seuls) : un balayage exhaustif des 355
   fonctions `function` de `logic.js` n'en laissait plus **qu'une** sans aucun test direct — le
