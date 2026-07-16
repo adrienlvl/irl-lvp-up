@@ -92,6 +92,39 @@ ipcMain.handle('calendar:fetch', (_e, url) => fetchIcs(String(url || '')));
 ipcMain.handle('calendar:subs:get', () => readCalendarSubs());
 ipcMain.handle('calendar:subs:save', (_e, list) => writeCalendarSubs(list));
 
+/* ---- Sync auto Google Sheets (CSV publié) : même modèle que fetchIcs ----
+   Réseau UNIQUEMENT ici. HTTPS + docs.google.com (garde-fou L.normalizeSheetCsvUrl) ; les
+   redirections ne sont suivies que vers docs.google.com / *.googleusercontent.com
+   (L.isAllowedSheetHost). Contenu parsé côté renderer par parseApplicationsCsv (défensif). */
+function fetchSheetCsv(rawUrl, redirectsLeft, preValidated) {
+  return new Promise(resolve => {
+    let url;
+    if (preValidated) { url = rawUrl; }
+    else { url = L.normalizeSheetCsvUrl(rawUrl); if (!url) return resolve({ ok: false, error: 'URL refusée (CSV publié docs.google.com en HTTPS requis).' }); }
+    if (redirectsLeft == null) redirectsLeft = 4;
+    let settled = false; const done = r => { if (!settled) { settled = true; resolve(r); } };
+    let req;
+    try {
+      req = https.get(url, { timeout: 10000, headers: { 'User-Agent': 'IRL-LVP-UP', 'Accept': 'text/csv, text/plain, */*' } }, res => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          res.resume();
+          if (redirectsLeft <= 0) return done({ ok: false, error: 'Trop de redirections.' });
+          let next; try { next = new URL(res.headers.location, url); } catch { return done({ ok: false, error: 'Redirection invalide.' }); }
+          if (next.protocol !== 'https:' || !L.isAllowedSheetHost(next.hostname)) return done({ ok: false, error: 'Redirection non autorisée (onglet non publié ?).' });
+          return fetchSheetCsv(next.toString(), redirectsLeft - 1, true).then(done);
+        }
+        if (res.statusCode !== 200) { res.resume(); return done({ ok: false, error: `Réponse ${res.statusCode} (onglet publié en CSV ?).` }); }
+        let data = '', size = 0; res.setEncoding('utf8');
+        res.on('data', c => { size += Buffer.byteLength(c); if (size > 5 * 1024 * 1024) { req.destroy(); return done({ ok: false, error: 'Fichier trop volumineux (max 5 Mo).' }); } data += c; });
+        res.on('end', () => { const head = data.slice(0, 200).trim().toLowerCase(); if (head.startsWith('<!doctype') || head.startsWith('<html')) return done({ ok: false, error: 'Réponse HTML — l’onglet n’est pas publié en CSV (ou accès refusé).' }); done({ ok: true, text: data }); });
+      });
+    } catch (e) { return done({ ok: false, error: 'Réseau : ' + String(e && e.message || e) }); }
+    req.on('timeout', () => { req.destroy(); done({ ok: false, error: 'Délai dépassé (10 s).' }); });
+    req.on('error', err => done({ ok: false, error: 'Réseau : ' + String(err && err.message || err) }));
+  });
+}
+ipcMain.handle('sheet:fetch', (_e, url) => fetchSheetCsv(String(url || '')));
+
 /* ---- Vague S.8 : trajet auto (géocodage Nominatim + itinéraire OSRM, sans clé) ----
    Même modèle que fetchIcs : réseau UNIQUEMENT ici, HTTPS, hôtes ALLOWLISTÉS
    (L.isAllowedTravelUrl → nominatim.openstreetmap.org + router.project-osrm.org),

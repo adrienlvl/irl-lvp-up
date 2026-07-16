@@ -505,6 +505,64 @@ test('parseApplicationsCsv : import CSV (colonnes, statuts FR, dates, guillemets
   assert.deepEqual(L.parseApplicationsCsv('\n\n'), []);
 });
 
+test('normalizeSheetCsvUrl : n’accepte QUE le CSV publié docs.google.com', () => {
+  // published-to-web CSV
+  assert.equal(L.normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/e/2PACX-abc/pub?gid=0&single=true&output=csv'), 'https://docs.google.com/spreadsheets/d/e/2PACX-abc/pub?gid=0&single=true&output=csv');
+  // export?format=csv
+  assert.ok(L.normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/ABC123/export?format=csv&gid=42'));
+  // gviz CSV
+  assert.ok(L.normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/ABC123/gviz/tq?tqx=out:csv&sheet=Cibles'));
+  // ajoute https:// si absent
+  assert.ok(L.normalizeSheetCsvUrl('docs.google.com/spreadsheets/d/e/x/pub?output=csv'));
+  // REFUS : autre hôte, http, hôte privé, pas de CSV, pas une feuille
+  assert.equal(L.normalizeSheetCsvUrl('https://evil.com/spreadsheets/d/x/pub?output=csv'), '');
+  assert.equal(L.normalizeSheetCsvUrl('http://docs.google.com/spreadsheets/d/x/pub?output=csv'), '');
+  assert.equal(L.normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/x/edit#gid=0'), '', 'pas un export CSV');
+  assert.equal(L.normalizeSheetCsvUrl('https://docs.google.com/document/d/x/pub?output=csv'), '', 'pas /spreadsheets/');
+  assert.equal(L.normalizeSheetCsvUrl(''), '');
+  // hôtes de redirection autorisés (docs + googleusercontent), rien d'autre
+  assert.ok(L.isAllowedSheetHost('docs.google.com'));
+  assert.ok(L.isAllowedSheetHost('doc-0s-abc.googleusercontent.com'));
+  assert.equal(L.isAllowedSheetHost('evil.com'), false);
+  assert.equal(L.isAllowedSheetHost('127.0.0.1'), false);
+});
+
+test('mergeApplications : fusion idempotente, sans doublon ni régression', () => {
+  const existing = [
+    { id: 1, company: 'Cabinet Léa', role: 'Compta', status: 'entretien', date: '2026-07-10', createdAt: 100 },
+    { id: 2, company: 'Locale SARL', role: '', status: 'postule', date: '2026-07-05', createdAt: 90 },
+  ];
+  // « Cibles » liste Cabinet Léa en « à postuler » (ne doit PAS régresser l'entretien) + une nouvelle cible
+  const incoming = [
+    { company: 'cabinet léa', role: 'Compta', status: 'a_postuler', date: '' },
+    { company: 'Nouvelle Cible', role: 'Alternant', status: 'a_postuler', date: '' },
+  ];
+  const m1 = L.mergeApplications(existing, incoming);
+  assert.equal(m1.applications.length, 3, 'la nouvelle cible est ajoutée, pas de doublon pour Cabinet Léa');
+  assert.equal(m1.added, 1);
+  const lea = m1.applications.find(a => a.id === 1);
+  assert.equal(lea.status, 'entretien', 'un suivi avancé n’est jamais remis à « à postuler »');
+  assert.equal(m1.applications.find(a => a.company === 'Nouvelle Cible').status, 'a_postuler');
+  // Locale SARL non listée dans l'import → conservée (local-only)
+  assert.ok(m1.applications.some(a => a.id === 2));
+  // idempotence : refusionner le même import ne change plus rien
+  const m2 = L.mergeApplications(m1.applications, incoming);
+  assert.equal(m2.added, 0); assert.equal(m2.updated, 0);
+  // le Suivi fait avancer un statut : postulé → entretien met bien à jour
+  const m3 = L.mergeApplications(existing, [{ company: 'Locale SARL', status: 'entretien', date: '2026-07-12' }]);
+  assert.equal(m3.updated, 1);
+  assert.equal(m3.applications.find(a => a.id === 2).status, 'entretien');
+  // clé par ENTREPRISE seule : « Cibles » (avec poste) + « Suivi » (sans poste) pour la même boîte
+  // fusionnent en UNE entrée (le poste de Cibles est conservé, le statut de Suivi appliqué).
+  const two = L.mergeApplications([], [
+    { company: 'Cabinet Alpha', role: 'Alternance CG', status: 'a_postuler' },
+    { company: 'Cabinet Alpha', role: '', status: 'entretien', date: '2026-07-10' },
+  ]);
+  assert.equal(two.applications.length, 1, 'une seule entrée pour Cabinet Alpha');
+  assert.equal(two.applications[0].role, 'Alternance CG', 'le poste de Cibles est conservé');
+  assert.equal(two.applications[0].status, 'entretien', 'le statut avancé de Suivi est appliqué');
+});
+
 test('attentionDigest : n’émet plus le nudge alternance (déplacé vers le coach adaptatif)', () => {
   const today = '2026-07-16';
   const base = { recovery: [], agenda: [], workouts: [], habits: [] };
@@ -4352,7 +4410,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.5');
+  assert.equal(L.CHANGELOG[0].v, '2.0.6');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

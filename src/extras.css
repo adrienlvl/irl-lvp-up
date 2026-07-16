@@ -366,6 +366,17 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-form{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0 4px}
 .alt-form input{flex:1 1 150px;min-width:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:.9rem}
 .alt-form button{flex:none;white-space:nowrap}
+.alt-sync{margin:14px 0 4px;padding:12px 13px;background:rgba(94,234,212,.06);border:1px solid var(--line);border-radius:11px}
+.alt-sync .subhead{margin:0 0 8px}
+.alt-sync-form{display:flex;gap:8px;flex-wrap:wrap}
+.alt-sync-form input{flex:1 1 220px;min-width:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:.84rem}
+.alt-sync-form button{flex:none;white-space:nowrap}
+.alt-sync-list{display:grid;gap:6px;margin:8px 0}
+.alt-sync-item{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
+.alt-sync-item .ass-url{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;color:var(--muted)}
+.alt-sync-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.alt-sync-actions .primary-button{padding:8px 13px;font-size:.82rem}
+.alt-sync #altSheetStatus{color:var(--muted)}
 .alt-relances{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 4px;padding:9px 11px;background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.3);border-left:3px solid #818cf8;border-radius:10px}
 .alt-rel-label{font-size:.76rem;font-weight:650;color:var(--text)}
 .alt-rel-chip{font-size:.74rem;font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
