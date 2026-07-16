@@ -9,6 +9,8 @@
 
 ## À traiter
 
+- Regarde l’onglet Alternance, quand je met que j’ai postulé, que j’ai abandonné pour une société, ça ne prend pas en compte et ça ne rafraichi pas automatiquement, si tu peux regarder ça et l’améliorer. Après essaye d’améliorer aussi l’onglet Sommeil ! _(ajouté le 2026-07-16 23:54 via le terminal)_
+
 ## En cours
 
 ## Terminé
