@@ -280,10 +280,15 @@ function jobStatusFromText(t) {
   return 'a_postuler';
 }
 // Extrait une date ISO d'un texte (ISO ou JJ/MM/AAAA). '' sinon. Pur.
+// Borne mois 1-12 / jour 1-31 : une cellule aberrante (ex. « 13/45/2026 ») ne pollue plus la date
+// d'une candidature — elle est ignorée ('') au lieu d'être stockée telle quelle. Si le motif ISO
+// trouvé est hors bornes, on retombe sur le motif JJ/MM/AAAA (une vraie date peut suivre du bruit).
 function jobDateFromText(t) {
-  const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(String(t || '')); if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  const fr = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(t || '')); if (fr) return `${fr[3]}-${String(fr[2]).padStart(2, '0')}-${String(fr[1]).padStart(2, '0')}`;
-  return '';
+  const s = String(t || '');
+  const pad = (y, mo, d) => { const M = Number(mo), D = Number(d); return (M >= 1 && M <= 12 && D >= 1 && D <= 31) ? `${y}-${String(M).padStart(2, '0')}-${String(D).padStart(2, '0')}` : ''; };
+  const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(s); const isoDate = iso ? pad(iso[1], iso[2], iso[3]) : '';
+  if (isoDate) return isoDate;
+  const fr = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s); return fr ? pad(fr[3], fr[2], fr[1]) : '';
 }
 
 // Parse un CSV de CIBLES type La Bonne Alternance (colonnes « Entreprise », « Ville » = "Ville (NN)",
@@ -2571,6 +2576,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.26', emoji: '💼', text: 'Import des candidatures d’alternance plus robuste : une date de cellule aberrante (ex. « 13/45/2026 » ou un mois/jour hors bornes) est désormais ignorée au lieu d’être stockée telle quelle sur la candidature. Les vraies dates (AAAA-MM-JJ ou JJ/MM/AAAA, même noyées dans du texte) restent lues comme avant — plus de date fantôme qui fausse le tri du suivi.' },
   { v: '2.0.25', emoji: '📅', text: 'Correctif d’import calendrier (.ics) : un titre d’événement contenant un vrai « \\n » (backslash + lettre n, ex. un chemin de fichier) n’ajoute plus de retour à la ligne parasite. Le déséchappement iCalendar est désormais fait en une seule passe, propre — les séquences « \\, », « \\; » et « \\\\ » restent gérées comme avant.' },
   { v: '2.0.24', emoji: '🌙', text: 'Coach sommeil (4/4) — le coach RPG est complet. Ton plan de recalage affiche maintenant des conseils du soir calés sur ton coucher cible (dernier café, dîner, écrans, routine calme, lumière du matin), suit ton adhérence (« Nuits dans le plan : 4/5 · 🔥 3 d’affilée ») et te récompense en XP quand tu notes un coucher qui tient la cible du jour (+15, +25 si tu atteins l’objectif). Encouragements bienveillants quand tu dévies, sans culpabilité. Le système sommeil demandé est bouclé : bilan → capture → plan → coach.' },
   { v: '2.0.23', emoji: '🌙', text: 'Coach sommeil (3/4) : le plan de recalage progressif est là. Fixe ton coucher visé (ex. 23:30) dans la Récupération, et l’app te donne CHAQUE SOIR l’heure de coucher cible — on avance de ~20-30 min tous les 1-2 jours, en douceur, depuis ton rythme réel (≈ 6 h). Le plan s’adapte si tu dévies : en retard, il ne réclame qu’un pas depuis là où tu en es (l’arrivée recule honnêtement) ; en avance, il te laisse tranquille. Barre de progression + date d’arrivée estimée à l’objectif.' },

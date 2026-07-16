@@ -23,10 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.25 (2026-07-16)
+## 📍 État actuel — build 2.0.26 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **404 tests + smoke** verts (harness durci, dont garde-fou CSS + 51 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**380**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **409 tests + smoke** verts (harness durci, dont garde-fou CSS + 51 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**380**) :
 
+- 💼 **Import alternance : date de candidature bornée** (2.0.26) : `jobDateFromText` (extraction de
+  date à l'import CSV + sync Google Sheets, jusque-là non testée) recrachait toute date plausible —
+  une cellule aberrante (`13/45/2026`, `2026-25-99`) stockait une **date fantôme** qui faussait le
+  tri du suivi. Bornée mois 1-12 / jour 1-31 (aberrant → `''`), avec fallback ISO→FR ; cas nominaux
+  strictement inchangés. Fonction couverte + `parseCsv` (fondation de la sync) testé. Chemin
+  Alternance sacré durci sans rien casser (`docs/recaps/382-job-date-bornee.md`). ✅ _boucle #382._
 - 📅 **Robustesse import ICS : déséchappement corrigé** (2.0.25) : `unescapeIcs` (import `.ics`,
   jusque-là non testé) faisait des `.replace()` séquentiels — un titre d'événement avec un vrai
   `\n` (backslash + lettre n, ex. un chemin de fichier) ajoutait un retour à la ligne parasite.

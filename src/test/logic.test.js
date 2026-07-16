@@ -544,6 +544,38 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
+test('jobDateFromText : lit ISO/JJ-MM-AAAA, borne mois/jour, ignore les dates aberrantes', () => {
+  // Cas nominaux (inchangés)
+  assert.equal(L.jobDateFromText('2026-07-16'), '2026-07-16');
+  assert.equal(L.jobDateFromText('16/07/2026'), '2026-07-16');
+  assert.equal(L.jobDateFromText('1/2/2026'), '2026-02-01', 'zéro-padding jour/mois');
+  assert.equal(L.jobDateFromText('le 05/03/2026 confirmé'), '2026-03-05', 'date noyée dans du texte');
+  assert.equal(L.jobDateFromText('2026-07-16T10:30'), '2026-07-16', 'datetime → date');
+  // Vide / absent
+  assert.equal(L.jobDateFromText(''), '');
+  assert.equal(L.jobDateFromText(null), '');
+  assert.equal(L.jobDateFromText('pas de date'), '');
+  // Bornes : mois 1-12, jour 1-31 → aberrant ignoré (plus de date fantôme dans le suivi)
+  assert.equal(L.jobDateFromText('13/45/2026'), '', 'jour 13 mois 45 → hors bornes');
+  assert.equal(L.jobDateFromText('2026-25-99'), '', 'ISO mois 25 jour 99 → hors bornes');
+  assert.equal(L.jobDateFromText('00/00/2026'), '', 'mois/jour 0 → hors bornes');
+  // Un motif ISO hors bornes ne masque pas une vraie date JJ/MM/AAAA qui suit
+  assert.equal(L.jobDateFromText('ref 2026-13-01 puis 05/03/2026'), '2026-03-05', 'fallback ISO→FR');
+});
+
+test('parseCsv : guillemets, séparateurs mixtes, sauts de ligne échappés, CRLF', () => {
+  // Guillemets doublés + virgule interne + point-virgule séparateur
+  assert.deepEqual(L.parseCsv('a;"b,c";"d""e"'), [['a', 'b,c', 'd"e']]);
+  // Saut de ligne littéral à l'intérieur d'un champ entre guillemets
+  assert.deepEqual(L.parseCsv('"li1\nli2",x'), [['li1\nli2', 'x']]);
+  // Tabulation comme séparateur, CRLF entre lignes, champ vide final conservé
+  assert.deepEqual(L.parseCsv('a\tb\r\nc,'), [['a', 'b'], ['c', '']]);
+  // Un \n final ne crée pas de ligne fantôme
+  assert.deepEqual(L.parseCsv('a\nb\n'), [['a'], ['b']]);
+  assert.deepEqual(L.parseCsv(''), []);
+  assert.deepEqual(L.parseCsv(null), []);
+});
+
 test('parseAlternanceTargets : filtre score + géo sur un CSV type La Bonne Alternance', () => {
   const csv = [
     'Entreprise,Ville,Statut,Score /10,Notes',
@@ -4498,7 +4530,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.25');
+  assert.equal(L.CHANGELOG[0].v, '2.0.26');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
