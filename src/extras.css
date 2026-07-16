@@ -389,6 +389,11 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-rejected-toggle{margin-top:12px;background:none;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font:inherit;font-size:.8rem;padding:7px 11px;cursor:pointer}
 .alt-rejected-toggle:hover{border-color:var(--accent,#6ee7b7);color:var(--text)}
 .alt-rejected-toggle[hidden]{display:none}
+.alt-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.alt-filter-row[hidden]{display:none}
+.alt-filter-row input{flex:1 1 200px;min-width:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:.86rem}
+.alt-filter-row select{flex:none;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:.84rem}
+.alt-filter-row #altFilterCount{flex:none;color:var(--muted)}
 .alt-list{display:grid;gap:8px;margin-top:14px}
 .alt-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:11px;padding:10px 12px}
 .alt-item-main{flex:1 1 140px;min-width:0}

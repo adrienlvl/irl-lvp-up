@@ -4453,7 +4453,29 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.15');
+  assert.equal(L.CHANGELOG[0].v, '2.0.16');
+});
+
+test('filterApplications : recherche insensible aux accents + filtre statut', () => {
+  const apps = [
+    { company: 'Cabinet Léa', role: 'Compta', source: 'Lorient (56)', notes: '', status: 'postule' },
+    { company: 'FIDUCIAL', role: 'Alternant', source: 'Vannes (56)', notes: 'top cabinet', status: 'a_postuler' },
+    { company: 'Gamma SARL', role: '', source: 'Rennes (35)', notes: '', status: 'refus' },
+  ];
+  // accents/casse ignorés (léa ↔ LEA)
+  assert.equal(L.filterApplications(apps, { query: 'LEA' }).length, 1);
+  assert.equal(L.filterApplications(apps, { query: 'léa' })[0].company, 'Cabinet Léa');
+  // cherche aussi dans poste / source / notes
+  assert.equal(L.filterApplications(apps, { query: 'vannes' })[0].company, 'FIDUCIAL');
+  assert.equal(L.filterApplications(apps, { query: 'top cab' })[0].company, 'FIDUCIAL');
+  // filtre statut seul, et combiné avec la recherche
+  assert.equal(L.filterApplications(apps, { status: 'refus' })[0].company, 'Gamma SARL');
+  assert.equal(L.filterApplications(apps, { query: 'cabinet', status: 'a_postuler' })[0].company, 'FIDUCIAL');
+  assert.equal(L.filterApplications(apps, { query: 'cabinet', status: 'refus' }).length, 0);
+  // sans filtre → tout ; entrées cassées ignorées
+  assert.equal(L.filterApplications(apps, {}).length, 3);
+  assert.equal(L.filterApplications([null, apps[0]], { query: 'léa' }).length, 1);
+  assert.deepEqual(L.filterApplications('junk', { query: 'x' }), []);
 });
 
 test('describeBackup : aperçu d’une sauvegarde avant import', () => {
