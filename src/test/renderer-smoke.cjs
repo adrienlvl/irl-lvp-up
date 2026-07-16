@@ -563,7 +563,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.3'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.4'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -648,7 +648,7 @@ app.whenReady().then(async () => {
           if (!(s.sent === 2 && s.appliedToday === true && s.entretiens === 1 && alternanceDeadline('2026-07-16').date === '2026-08-01')) return false;
           const csv = parseApplicationsCsv('Entreprise,Statut,Date\\nAcme,Postulé,16/07/2026\\n');
           if (!(csv.length === 1 && csv[0].company === 'Acme' && csv[0].status === 'postule' && csv[0].date === '2026-07-16')) return false;
-          if (attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [], applications: [{ id: 1, status: 'postule', date: '2026-07-14' }] }, '2026-07-16').filter(i => i.key === 'alternance').length !== 1) return false;
+          if (attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [], applications: [{ id: 1, status: 'postule', date: '2026-07-14' }] }, '2026-07-16').filter(i => i.key === 'alternance').length !== 0) return false;
           const saved = state.applications;
           state.applications = [normalizeApplication({ id: 999, company: 'SmokeCorp', status: 'a_postuler', date: '' })];
           renderAlternance();
@@ -666,15 +666,16 @@ app.whenReady().then(async () => {
           if (!(f && f.pillar === 'sport' && f.tone === 'rebuild' && f.page === 'athlete' && /essouffle/.test(f.headline))) return false;
           if (adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, '2026-07-16').tone !== 'revive') return false;
           if (adaptiveCoachFocus({ workouts: [], focusSessions: [], recovery: [], nutrition: [] }, '2026-07-16') !== null) return false;
+          if (adaptiveCoachFocus({ applications: [{ id: 1, status: 'postule', date: '2026-07-14' }] }, '2026-07-16').pillar !== 'alternance') return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
-          const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition };
+          const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };
           state.workouts = [{ date: iso(3) }, { date: iso(5) }, { date: iso(7) }, { date: iso(9) }, { date: iso(11) }];
-          state.focusSessions = []; state.recovery = []; state.nutrition = [];
+          state.focusSessions = []; state.recovery = []; state.nutrition = []; state.applications = [];
           renderCoachFocus();
           const panel = document.getElementById('coachFocusPanel'), btn = document.getElementById('coachFocus');
           const shown = !!panel && !panel.hidden && !!btn && btn.dataset.coachPage === 'athlete' && /essouffle/.test(btn.textContent);
-          state.workouts = saved.w; state.focusSessions = saved.f; state.recovery = saved.r; state.nutrition = saved.n;
+          state.workouts = saved.w; state.focusSessions = saved.f; state.recovery = saved.r; state.nutrition = saved.n; state.applications = saved.a;
           renderCoachFocus();
           return !!shown;
         })(),

@@ -2391,6 +2391,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.4', emoji: '💼', text: 'Ton coach met désormais la recherche d’alternance en priorité n°1 : tant que tu n’as pas postulé du jour et pas décroché ta place, « Le focus du moment » affiche « Postule aujourd’hui pour ton alternance » avec le compte à rebours avant août, ton avancement de la semaine et ta série — le vrai coup de pouce pour candidater chaque jour. Une fois ta candidature du jour envoyée, le coach passe au reste.' },
   { v: '2.0.3', emoji: '🧭', text: 'Nouveau — ton coach adaptatif : sur l’accueil, une carte « Le focus du moment » lit ta dynamique des deux dernières semaines (entraînement, focus, sommeil, nutrition) et te propose UNE priorité du jour, avec un ton qui s’adapte : relancer un pilier qui s’essouffle, reprendre ce qui dort, ou renforcer ce qui monte. Un clic t’emmène au bon endroit.' },
   { v: '2.0.2', emoji: '📌', text: 'Recherche d’alternance : un rappel « Postule aujourd’hui » remonte dès l’accueil (dans « À rattraper ») tant que tu n’as pas postulé — et tu peux importer tes candidatures depuis un fichier CSV (export de ton Google Sheets).' },
   { v: '2.0.1', emoji: '💼', text: 'Nouveau : onglet « Recherche d’alternance » — pensé pour te pousser à postuler CHAQUE jour. Compte à rebours avant août, objectif de candidatures par semaine, série de jours d’affilée, suivi complet (à postuler → postulé → entretien → accepté) et rappels de relance. Clique « J’ai postulé » et gagne de l’XP.' },
@@ -4345,13 +4346,8 @@ function attentionDigest(state, todayKey, opts) {
     const since = /^\d{4}-\d{2}-\d{2}$/.test(lb) ? Math.round((new Date(todayKey + 'T12:00:00') - new Date(lb + 'T12:00:00')) / 864e5) : null;
     if (since === null || since >= 14) items.push({ key: 'backup', emoji: '💾', text: since === null ? 'Sauvegarde tes données (jamais fait)' : `Sauvegarde tes données (dernière il y a ${since} j)`, page: 'settings', sev: 'med' });
   }
-  // Recherche d'alternance : s'il a commencé (≥ 1 candidature) et pas encore postulé aujourd'hui, on le
-  // pousse dès l'accueil — c'est SA priorité (échéance août). On arrête dès qu'une alternance est acceptée.
-  const apps = Array.isArray(s.applications) ? s.applications : [];
-  if (apps.length >= 1 && !apps.some(a => a && a.status === 'accepte')) {
-    const appliedToday = apps.some(a => a && a.date === todayKey && /^\d{4}-\d{2}-\d{2}$/.test(String(a.date)));
-    if (!appliedToday) items.push({ key: 'alternance', emoji: '💼', text: 'Postule aujourd’hui — une candidature suffit à avancer', page: 'alternance', sev: 'high' });
-  }
+  // NB : la relance « Postule aujourd'hui » n'est plus ici — elle est devenue le focus PRIORITAIRE du
+  // coach adaptatif (adaptiveCoachFocus), avec compte à rebours + avancement hebdo, plus motivant.
   const rank = { high: 0, med: 1 };
   items.sort((a, b) => rank[a.sev] - rank[b.sev]);
   return items.slice(0, cap);
@@ -4380,6 +4376,32 @@ function adaptiveCoachFocus(state, todayKey) {
     const n = Math.round((t0 - new Date(d + 'T12:00:00').getTime()) / dayMs);
     return n < 0 ? null : n;
   };
+
+  // Alternance : PRIORITÉ ABSOLUE. C'est le n°1 réel d'Adrien, avec une échéance dure (1er août).
+  // Tant qu'il cherche (≥ 1 candidature, aucune acceptée) et qu'il n'a pas postulé AUJOURD'HUI, ce
+  // focus prime sur tous les piliers de momentum — le but affiché est de le pousser à postuler chaque
+  // jour avant l'échéance. Une fois sa candidature du jour envoyée, le coach repasse au reste.
+  const apps = Array.isArray(s.applications) ? s.applications : [];
+  if (apps.length >= 1 && typeof applicationStats === 'function') {
+    const st = applicationStats(apps, todayKey, { weekGoal: Number(s.jobSearchGoal) || 5 });
+    if (st.accepted === 0 && !st.appliedToday) {
+      const dl = (typeof alternanceDeadline === 'function') ? alternanceDeadline(todayKey) : null;
+      const parts = [];
+      if (dl && dl.daysLeft != null) parts.push('plus que ' + dl.daysLeft + ' j avant août');
+      parts.push(st.weekCount + '/' + st.weekGoal + ' candidature' + (st.weekGoal > 1 ? 's' : '') + ' cette semaine');
+      if (st.streak > 0) parts.push('🔥 ' + st.streak + ' j de suite');
+      const insight = parts.join(' · ');
+      return {
+        pillar: 'alternance', label: 'Alternance', emoji: '💼', page: 'alternance',
+        trend: 'deadline', tone: 'urgent',
+        recentDays: st.weekCount, prevDays: 0, lastActiveDays: null,
+        headline: 'Postule aujourd’hui pour ton alternance',
+        insight: insight.charAt(0).toUpperCase() + insight.slice(1) + '.',
+        action: 'Ajoute une candidature — une seule suffit à avancer.',
+      };
+    }
+  }
+
   const PILLARS = [
     { pillar: 'sport', label: 'Entraînement', emoji: '🏋️', page: 'athlete', list: s.workouts, active: () => true, action: 'Programme une séance courte aujourd’hui, même 20 min.' },
     { pillar: 'focus', label: 'Focus', emoji: '🧠', page: 'focus', list: s.focusSessions, active: e => (Number(e.minutes) || 0) > 0, action: 'Lance une session de focus de 25 min maintenant.' },

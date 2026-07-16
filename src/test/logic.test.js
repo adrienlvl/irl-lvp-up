@@ -505,20 +505,12 @@ test('parseApplicationsCsv : import CSV (colonnes, statuts FR, dates, guillemets
   assert.deepEqual(L.parseApplicationsCsv('\n\n'), []);
 });
 
-test('attentionDigest : nudge alternance (postuler aujourd’hui) si commencé et pas fait', () => {
+test('attentionDigest : n’émet plus le nudge alternance (déplacé vers le coach adaptatif)', () => {
   const today = '2026-07-16';
   const base = { recovery: [], agenda: [], workouts: [], habits: [] };
-  // a des candidatures mais pas postulé aujourd'hui → nudge
-  const d1 = L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-14' }] }, today);
-  assert.ok(d1.some(i => i.key === 'alternance' && i.page === 'alternance' && i.sev === 'high'), 'nudge présent');
-  // postulé aujourd'hui → pas de nudge
-  const d2 = L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'postule', date: today }] }, today);
-  assert.ok(!d2.some(i => i.key === 'alternance'), 'a postulé aujourd’hui → pas de nudge');
-  // alternance acceptée → on arrête de pousser
-  const d3 = L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'accepte', date: '2026-07-01' }] }, today);
-  assert.ok(!d3.some(i => i.key === 'alternance'), 'acceptée → plus de nudge');
-  // aucune candidature → pas de nudge
-  assert.ok(!L.attentionDigest({ ...base, applications: [] }, today).some(i => i.key === 'alternance'));
+  // même avec des candidatures et pas postulé aujourd'hui, le digest ne porte plus l'alternance :
+  // c'est désormais le focus prioritaire du coach (adaptiveCoachFocus).
+  assert.ok(!L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-14' }] }, today).some(i => i.key === 'alternance'));
 });
 
 test('habitStreak : un jour programmé manqué casse la série, les jours non programmés non', () => {
@@ -4360,7 +4352,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.3');
+  assert.equal(L.CHANGELOG[0].v, '2.0.4');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5420,6 +5412,18 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   // activité « vide » (protéines/eau/fruit à 0) ne compte pas ; dates futures ignorées.
   assert.equal(L.adaptiveCoachFocus({ nutrition: [{ date: '2026-07-15', protein: 0, water: 0, fruit: false }] }, today), null);
   assert.equal(L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-20' }] }, today), null);
+
+  // alternance : priorité ABSOLUE tant qu'il cherche et n'a pas postulé aujourd'hui — prime sur les piliers.
+  const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-14' }], workouts: [{ date: '2026-07-16' }] }, today);
+  assert.equal(alt.pillar, 'alternance');
+  assert.equal(alt.tone, 'urgent');
+  assert.equal(alt.page, 'alternance');
+  assert.match(alt.insight, /avant août/);
+  assert.match(alt.insight, /cette semaine/);
+  // postulé aujourd'hui → le coach repasse aux piliers (plus d'alternance)
+  assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: today }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');
+  // alternance décrochée → plus de pression alternance
+  assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'accepte', date: '2026-07-01' }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');
 });
 
 test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', () => {
