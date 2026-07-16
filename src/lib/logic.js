@@ -230,17 +230,100 @@ function parseApplicationsCsv(text) {
   const hasHeader = iCompany >= 0 || iRole >= 0 || iStatus >= 0 || iDate >= 0;
   const ci = iCompany >= 0 ? iCompany : 0;
   const body = hasHeader ? rows.slice(1) : rows;
-  const statusOf = t => { const x = norm(t); if (/a postuler|a envoyer|a faire|todo/.test(x)) return 'a_postuler'; if (/relanc/.test(x)) return 'relance'; if (/entretien|entrevue/.test(x)) return 'entretien'; if (/accept|retenu|pris|embauch/.test(x)) return 'accepte'; if (/refus|negati|decline/.test(x)) return 'refus'; if (/postule|envoye|candidat|attente|en cours/.test(x)) return 'postule'; return 'a_postuler'; };
-  const dateOf = t => { const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(String(t || '')); if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`; const fr = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(t || '')); if (fr) return `${fr[3]}-${String(fr[2]).padStart(2, '0')}-${String(fr[1]).padStart(2, '0')}`; return ''; };
   const out = [];
   for (const r of body) {
     const company = String(r[ci] || '').trim();
     if (!company) continue;
-    const status = iStatus >= 0 ? statusOf(r[iStatus]) : 'a_postuler';
-    let date = iDate >= 0 ? dateOf(r[iDate]) : '';
+    const status = iStatus >= 0 ? jobStatusFromText(r[iStatus]) : 'a_postuler';
+    let date = iDate >= 0 ? jobDateFromText(r[iDate]) : '';
     out.push({ company: company.slice(0, 80), role: iRole >= 0 ? String(r[iRole] || '').trim().slice(0, 80) : '', status, date, source: iSource >= 0 ? String(r[iSource] || '').trim().slice(0, 60) : '', notes: iNotes >= 0 ? String(r[iNotes] || '').trim().slice(0, 300) : '' });
   }
   return out;
+}
+
+// Mappe un libellé de statut FR libre → l'une des 6 étapes du pipeline. Partagé par tous les imports
+// (manuel + sync). « à contacter » (marqueur de prospection La Bonne Alternance) → à postuler ;
+// « confirmé » = candidature confirmée envoyée (PAS accepté). Pur.
+function jobStatusFromText(t) {
+  const x = String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  if (/a postuler|a envoyer|a faire|a contacter|a verifier|trouver le contact|todo|prospect/.test(x)) return 'a_postuler';
+  if (/relanc/.test(x)) return 'relance';
+  if (/entretien|entrevue/.test(x)) return 'entretien';
+  if (/accept|retenu|pris|embauch/.test(x)) return 'accepte';
+  if (/refus|negati|decline|abandonn|ecart|sans suite/.test(x)) return 'refus';
+  if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)) return 'postule';
+  return 'a_postuler';
+}
+// Extrait une date ISO d'un texte (ISO ou JJ/MM/AAAA). '' sinon. Pur.
+function jobDateFromText(t) {
+  const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(String(t || '')); if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const fr = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(t || '')); if (fr) return `${fr[3]}-${String(fr[2]).padStart(2, '0')}-${String(fr[1]).padStart(2, '0')}`;
+  return '';
+}
+
+// Parse un CSV de CIBLES type La Bonne Alternance (colonnes « Entreprise », « Ville » = "Ville (NN)",
+// « Score /10 », « Statut »…) en le FILTRANT — l'onglet fait ~15 000 lignes, on ne garde que les
+// bonnes cibles proches. opts : { minScore, depts:[..], townDepts:{dept:[villes]}, max }.
+//   - minScore : ne garde que Score/10 >= minScore (scores hors 0–10 = ligne écartée)
+//   - depts : départements entièrement retenus (ex. ['35','56'])
+//   - townDepts : pour un département partiel, villes autorisées (ex. { '22': ['loudeac'] })
+//   - max : plafond de sécurité (défaut 800) pour ne jamais inonder le suivi
+// Renvoie des candidatures normalisables (à postuler pour « à contacter »). Pur + testé.
+function parseAlternanceTargets(text, opts) {
+  const o = opts || {};
+  const minScore = Number(o.minScore) || 0;
+  const allowDepts = Array.isArray(o.depts) ? o.depts.map(String) : [];
+  const townDepts = (o.townDepts && typeof o.townDepts === 'object') ? o.townDepts : {};
+  const max = Math.max(1, Math.round(Number(o.max) || 800));
+  const rows = parseCsv(text).filter(r => r.some(c => String(c || '').trim() !== ''));
+  if (rows.length < 2) return [];
+  const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const header = rows[0].map(norm);
+  const find = (...keys) => { for (const k of keys) { const i = header.findIndex(h => h.includes(k)); if (i >= 0) return i; } return -1; };
+  const iCompany = find('entreprise', 'company', 'societe', 'employeur');
+  if (iCompany < 0) return [];
+  const iVille = find('ville', 'commune', 'localite');
+  const iScore = header.findIndex(h => h.includes('score') && h.includes('10'));
+  const iStatus = find('statut', 'status', 'etat');
+  const iRole = find('poste', 'intitule', 'metier');
+  const iNotes = find('pourquoi', 'note', 'commentaire', 'contexte');
+  const deptOf = v => { const m = String(v || '').match(/\((\d{2})\)/); return m ? m[1] : ''; };
+  const scoreOf = v => { const m = String(v || '').replace(',', '.').match(/^\s*(\d+(?:\.\d+)?)/); const n = m ? parseFloat(m[1]) : NaN; return (n >= 0 && n <= 10) ? n : NaN; };
+  const geoOk = ville => {
+    if (!allowDepts.length && !Object.keys(townDepts).length) return true;
+    const d = deptOf(ville);
+    if (allowDepts.includes(d)) return true;
+    if (townDepts[d]) return townDepts[d].some(t => norm(ville).includes(norm(t)));
+    return false;
+  };
+  const out = [];
+  for (const r of rows.slice(1)) {
+    const company = String(r[iCompany] || '').trim();
+    if (!company) continue;
+    if (minScore > 0 && iScore >= 0) { const sc = scoreOf(r[iScore]); if (!(sc >= minScore)) continue; }
+    const ville = iVille >= 0 ? String(r[iVille] || '').trim() : '';
+    if (!geoOk(ville)) continue;
+    out.push({
+      company: company.slice(0, 80),
+      role: iRole >= 0 ? String(r[iRole] || '').trim().slice(0, 80) : '',
+      status: iStatus >= 0 ? jobStatusFromText(r[iStatus]) : 'a_postuler',
+      date: '',
+      source: ville.slice(0, 60),
+      notes: iNotes >= 0 ? String(r[iNotes] || '').trim().slice(0, 300) : ''
+    });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+// Routeur d'import d'un CSV Sheets : détecte un onglet de CIBLES type La Bonne Alternance (présence
+// d'une colonne « Score …/10 » + une colonne « Ville ») → applique le filtre `parseAlternanceTargets`
+// (opts) ; sinon c'est un onglet de suivi simple → `parseApplicationsCsv` (tout gardé). Pur + testé.
+function parseSheetApplications(text, opts) {
+  const rows = parseCsv(text);
+  const header = (rows[0] || []).map(h => String(h || '').toLowerCase());
+  const looksLikeTargets = header.some(h => h.includes('score') && h.includes('10')) && header.some(h => /ville|commune|localite/.test(h));
+  return looksLikeTargets ? parseAlternanceTargets(text, opts) : parseApplicationsCsv(text);
 }
 
 // ---- Anniversaires : personnes connues, récurrents chaque année dans l'agenda ----
@@ -2451,6 +2534,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.7', emoji: '🎯', text: 'Sync alternance plus maligne : ton grand onglet « Cibles » (des milliers d’entreprises) est filtré automatiquement pour ne garder que les bonnes cibles — note ≥ 6/10 et proches de toi (Morbihan, Ille-et-Vilaine, et Loudéac en Côtes-d’Armor). Fini la liste noyée : tu récupères une shortlist d’entreprises à qui postuler, pas 15 000 lignes.' },
   { v: '2.0.6', emoji: '📄', text: 'Sync auto de ton Google Sheets d’alternance : publie tes onglets « Cibles » et « Suivi Existant » en CSV (Fichier → Partager → Publier sur le web → CSV), colle les liens dans l’onglet Alternance, et l’app récupère tes candidatures toute seule — au démarrage et régulièrement. Fusion intelligente (pas de doublon, un suivi déjà avancé n’est jamais remis en arrière). 100 % local et sécurisé : seul ce que tu publies est lu.' },
   { v: '2.0.5', emoji: '🔄', text: 'Mises à jour façon appli mobile : la nouvelle version se télécharge toute seule, en silence, en arrière-plan — plus aucune manip. Quand elle est prête, une petite pop-up « Version prête 🎉 » apparaît en bas : tu cliques « Redémarrer & installer », ou tu ne fais rien et elle se pose à la prochaine fermeture de l’app.' },
   { v: '2.0.4', emoji: '💼', text: 'Ton coach met désormais la recherche d’alternance en priorité n°1 : tant que tu n’as pas postulé du jour et pas décroché ta place, « Le focus du moment » affiche « Postule aujourd’hui pour ton alternance » avec le compte à rebours avant août, ton avancement de la semaine et ta série — le vrai coup de pouce pour candidater chaque jour. Une fois ta candidature du jour envoyée, le coach passe au reste.' },
@@ -5951,5 +6035,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, alternanceDeadline, applicationStats, parseCsv, parseApplicationsCsv, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, personalRecords, newRecords, weightTrend, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, alternanceDeadline, applicationStats, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, personalRecords, newRecords, weightTrend, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

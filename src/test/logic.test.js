@@ -505,6 +505,49 @@ test('parseApplicationsCsv : import CSV (colonnes, statuts FR, dates, guillemets
   assert.deepEqual(L.parseApplicationsCsv('\n\n'), []);
 });
 
+test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)', () => {
+  assert.equal(L.jobStatusFromText('À contacter'), 'a_postuler', 'prospect non contacté → à postuler');
+  assert.equal(L.jobStatusFromText('Postulé (spontanée LBA)'), 'postule');
+  assert.equal(L.jobStatusFromText('Confirmé reçu'), 'postule', 'confirmé ≠ accepté (pas décroché)');
+  assert.equal(L.jobStatusFromText('J’ai reçu une réponse négative'), 'refus');
+  assert.equal(L.jobStatusFromText('Abandonné'), 'refus');
+  assert.equal(L.jobStatusFromText('Écartée'), 'refus');
+  assert.equal(L.jobStatusFromText('Entretien'), 'entretien');
+  assert.equal(L.jobStatusFromText('Retenu / embauché'), 'accepte');
+  assert.equal(L.jobStatusFromText(''), 'a_postuler');
+});
+
+test('parseAlternanceTargets : filtre score + géo sur un CSV type La Bonne Alternance', () => {
+  const csv = [
+    'Entreprise,Ville,Statut,Score /10,Notes',
+    'FIDUCIAL Lorient,Lorient (56),À contacter,8,cabinet',
+    'Petit Cabinet,Vannes (56),À contacter,4,',            // score trop bas → écarté
+    'KPMG Rennes,Rennes (35),Postulé,7,',                  // 35 gardé
+    'Cabinet Nantes,Nantes (44),À contacter,9,',           // hors zone → écarté
+    'Cible Loudéac,Loudeac (22),À contacter,7,',           // 22 Loudéac → gardé
+    'Cible Saint-Brieuc,Saint-Brieuc (22),À contacter,9,', // 22 hors Loudéac → écarté
+  ].join('\n') + '\n';
+  const opts = { minScore: 6, depts: ['35', '56'], townDepts: { '22': ['loudeac'] }, max: 800 };
+  const t = L.parseAlternanceTargets(csv, opts);
+  const names = t.map(a => a.company).sort();
+  assert.deepEqual(names, ['Cible Loudéac', 'FIDUCIAL Lorient', 'KPMG Rennes'], 'score>=6 + géo 56/35/22-Loudéac');
+  assert.equal(t.find(a => a.company === 'FIDUCIAL Lorient').status, 'a_postuler');
+  assert.equal(t.find(a => a.company === 'KPMG Rennes').status, 'postule');
+  assert.equal(t.find(a => a.company === 'FIDUCIAL Lorient').source, 'Lorient (56)', 'la ville sert de source');
+  // plafond de sécurité
+  assert.equal(L.parseAlternanceTargets(csv, { ...opts, max: 1 }).length, 1);
+  // sans filtre géo/score → tout gardé (6 lignes)
+  assert.equal(L.parseAlternanceTargets(csv, {}).length, 6);
+});
+
+test('parseSheetApplications : route Cibles (filtré) vs suivi simple (non filtré)', () => {
+  const cibles = 'Entreprise,Ville,Statut,Score /10\nA,Lorient (56),À contacter,8\nB,Nantes (44),À contacter,9\n';
+  const suivi = 'Entreprise,Statut,Date\nA,Postulé,2026-07-10\nB,Entretien,2026-07-11\n';
+  const opts = { minScore: 6, depts: ['56'], townDepts: {}, max: 800 };
+  assert.equal(L.parseSheetApplications(cibles, opts).length, 1, 'Cibles → filtré (B en 44 écarté)');
+  assert.equal(L.parseSheetApplications(suivi, opts).length, 2, 'suivi simple → tout gardé');
+});
+
 test('normalizeSheetCsvUrl : n’accepte QUE le CSV publié docs.google.com', () => {
   // published-to-web CSV
   assert.equal(L.normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/e/2PACX-abc/pub?gid=0&single=true&output=csv'), 'https://docs.google.com/spreadsheets/d/e/2PACX-abc/pub?gid=0&single=true&output=csv');
@@ -4410,7 +4453,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.6');
+  assert.equal(L.CHANGELOG[0].v, '2.0.7');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
