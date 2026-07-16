@@ -216,13 +216,36 @@ app.whenReady().then(async () => {
           return s.length === 3 && s[0].value === 6 && s[2].value === 5.5
             && /<path/.test(sparkLineSvg(s.map(p => ({ label: p.date, value: p.value })))) && sleepSeries([], 10).length === 0;
         })(),
-        sleepCoach: typeof sleepCoachInsight === 'function' && typeof sleepRegularity === 'function' && !!document.getElementById('sleepCoach') && (() => {
+        sleepCoach: typeof sleepCoachInsight === 'function' && typeof sleepRegularity === 'function' && typeof bedtimeRegularity === 'function' && !!document.getElementById('sleepCoach') && (() => {
           const jagged = [
             { date: '2026-07-04', sleep: 5 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 5 },
             { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 5 },
           ];
           const r = sleepCoachInsight(jagged, '2026-07-10');
-          return r && r.tone === 'urgent' && r.irregular === true && r.stdev === 1.5 && sleepCoachInsight([], '2026-07-10') === null;
+          if (!r || r.tone !== 'urgent' || r.irregular !== true || r.stdev !== 1.5 || sleepCoachInsight([], '2026-07-10') !== null) return false;
+          // Durée stable (7 h chaque nuit) mais coucher qui alterne 22h/1h : la durée seule ne verrait rien,
+          // le coucher doit démasquer l'irrégularité (régression du bilan sommeil, étape 2/2 de la demande).
+          const stableDurationJaggedBedtime = [
+            { date: '2026-07-04', sleep: 7, bedtime: '22:00' }, { date: '2026-07-05', sleep: 7, bedtime: '01:00' },
+            { date: '2026-07-06', sleep: 7, bedtime: '22:00' }, { date: '2026-07-07', sleep: 7, bedtime: '01:00' },
+            { date: '2026-07-08', sleep: 7, bedtime: '22:00' }, { date: '2026-07-09', sleep: 7, bedtime: '01:00' },
+            { date: '2026-07-10', sleep: 7, bedtime: '22:00' },
+          ];
+          const rb = sleepCoachInsight(stableDurationJaggedBedtime, '2026-07-10');
+          return !!rb && rb.irregular === true && rb.bedtimeStdevMin != null && rb.tone === 'attention' && /coucher irrégulier/.test(rb.verdict);
+        })(),
+        sleepBedtimeRegularity: typeof bedtimeRegularity === 'function' && typeof sleepCoachInsight === 'function' && !!document.getElementById('sleepCoach') && (() => {
+          // Coucher fixe chaque soir malgré une durée qui alterne 5 h/8 h : le vrai souci n'est QUE
+          // la durée courte, pas un rythme décousu — la régularité du coucher doit primer sur celle
+          // de la durée dès que 3 nuits de coucher sont saisies (sinon repli sur la durée, testé plus haut).
+          const stableBedtimeJaggedSleep = [
+            { date: '2026-07-04', sleep: 5, bedtime: '23:00' }, { date: '2026-07-05', sleep: 8, bedtime: '23:00' }, { date: '2026-07-06', sleep: 5, bedtime: '23:00' },
+            { date: '2026-07-07', sleep: 8, bedtime: '23:00' }, { date: '2026-07-08', sleep: 5, bedtime: '23:00' }, { date: '2026-07-09', sleep: 8, bedtime: '23:00' }, { date: '2026-07-10', sleep: 5, bedtime: '23:00' },
+          ];
+          const r1 = sleepCoachInsight(stableBedtimeJaggedSleep, '2026-07-10');
+          if (!r1 || r1.bedtimeStdevMin !== 0 || r1.irregular !== false || r1.tone !== 'attention') return false;
+          const br = bedtimeRegularity(stableBedtimeJaggedSleep, 14);
+          return br && br.nights === 7 && br.stdevMin === 0 && bedtimeRegularity([], 14) === null;
         })(),
         sleepBedtime: typeof bedtimeAnchor === 'function' && typeof recentBedtimeAnchor === 'function' && !!document.getElementById('bedtimeInput') && (() => {
           if (bedtimeAnchor('06:00') <= bedtimeAnchor('23:00')) return false;
@@ -598,7 +621,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.31'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.32'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -974,7 +997,8 @@ app.whenReady().then(async () => {
     if (!checks.measureUpsert) errors.push('Mensuration/jour KO (upsertMeasurement : doublon de date ou fusion des champs cassée)');
     if (!checks.measureSpark) errors.push('Sparkline mensurations KO (measurementSeries / sparkLineSvg / #measurementsSpark)');
     if (!checks.sleepSpark) errors.push('Sparkline sommeil KO (sleepSeries / sparkLineSvg / #sleepSpark)');
-    if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / #sleepCoach)');
+    if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / bedtimeRegularity / #sleepCoach)');
+    if (!checks.sleepBedtimeRegularity) errors.push('Régularité du coucher KO (bedtimeRegularity ne prime plus sur la durée dans sleepCoachInsight)');
     if (!checks.sleepBedtime) errors.push('Capture heure de coucher KO (bedtimeAnchor / recentBedtimeAnchor / #bedtimeInput)');
     if (!checks.sleepReschedule) errors.push('Plan de recalage sommeil KO (sleepPlanDay / startSleepPlan / normalizeSleepPlan / #sleepPlan)');
     if (!checks.sleepRpg) errors.push('Coach sommeil RPG KO (sleepEveningTips / sleepPlanAdherence / sleepBedtimeReward)');

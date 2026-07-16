@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.31 (2026-07-17)
+## 📍 État actuel — build 2.0.32 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **426 tests + smoke** verts (harness durci, dont garde-fou CSS + 54 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**391**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **428 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**392**) :
+
+- 🌙 **Demande d'Adrien : l'onglet Sommeil, étape 2/2** (2.0.32) : le « Bilan sommeil » juge
+  désormais la régularité par l'heure de **coucher** (dès 3 nuits renseignées) plutôt que par la
+  durée de nuit — le signal qui compte vraiment pour un rythme circadien. Un coucher fixe chaque
+  soir avec une durée qui varie n'est **pas** un problème de rythme (juste un manque de sommeil,
+  ancien bilan le classait pourtant « urgent ») ; à l'inverse une durée stable avec un coucher qui
+  saute d'une heure à l'autre **est** le vrai problème (ancien bilan disait « régulier », signal
+  manqué). Nouvelle fonction pure `bedtimeRegularity`, repli sur l'ancien calcul par durée si pas
+  assez de couchers saisis. +2 tests, +1 check smoke bloquant (`sleepBedtimeRegularity`). Zéro
+  nouvelle saisie, zéro suppression, zéro régression. (`docs/recaps/392-sleep-bedtime-regularity.md`). ✅ _boucle #392._
 
 - 💼 **Demande d'Adrien : le statut « postulé »/« refusé » (abandonné) de l'onglet Alternance est
   pris en compte de façon fiable** (2.0.31, étape 1/2 de la demande — `docs/DEMANDES.md`) : deux bugs

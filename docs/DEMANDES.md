@@ -11,7 +11,10 @@
 
 ## En cours
 
-- **Alternance : le statut posé n'était pas pris en compte + amélioration de l'onglet Sommeil.**
+## Terminé
+
+- **Alternance : le statut posé n'était pas pris en compte + amélioration de l'onglet Sommeil.** ✅
+  Terminé le 2026-07-17 (builds 2.0.31 → 2.0.32, boucles #391 → #392).
   _(ajoutée le 2026-07-16 23:54 via le terminal)_ Adrien : « Regarde l'onglet Alternance, quand je
   met que j'ai postulé, que j'ai abandonné pour une société, ça ne prend pas en compte et ça ne
   rafraîchi pas automatiquement, si tu peux regarder ça et l'améliorer. Après essaye d'améliorer
@@ -20,11 +23,12 @@
         statut déjà avancé (postulé/refusé) au lieu de se limiter au cas « à postuler » ; le menu
         déroulant de statut ne rafraîchissait pas la carte « Le focus du moment » tout de suite.
         Build 2.0.31, boucle #391. Détail : `docs/recaps/391-alternance-refresh-statut.md`.
-  - [ ] 2. Onglet Sommeil : améliorations à identifier (relire le module existant — bilan, plan de
-        recalage, coach — livré boucles #377→#380 — et voir ce qui manque réellement) — prochaine
-        itération.
-
-## Terminé
+  - [x] 2. Onglet Sommeil : le « Bilan sommeil » juge maintenant la régularité par l'heure de
+        **coucher** (dès 3 nuits renseignées) plutôt que par la durée de nuit — c'est le signal qui
+        compte vraiment pour un rythme circadien, et l'ancien calcul par durée pouvait aussi bien
+        rater une vraie irrégularité de coucher que crier « urgent » à tort quand le coucher était
+        en fait déjà stable. Build 2.0.32, boucle #392. Détail :
+        `docs/recaps/392-sleep-bedtime-regularity.md`.
 
 - **Système sommeil : évaluation + coach de recalage du rythme.** ✅ Terminé le
   2026-07-16 (builds 2.0.21 → 2.0.24, boucles #377 → #380). Récap complet :

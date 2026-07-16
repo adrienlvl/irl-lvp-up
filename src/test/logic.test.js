@@ -4744,7 +4744,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.31');
+  assert.equal(L.CHANGELOG[0].v, '2.0.32');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5593,6 +5593,24 @@ test('sleepRegularity : écart-type des nuits, irrégularité détectée', () =>
   assert.equal(L.sleepRegularity([{ date: 'x', sleep: 7 }, { date: 'y', sleep: 7 }], 14), null, 'dates invalides ignorées');
 });
 
+test('bedtimeRegularity : écart-type (min) des heures de coucher, pas de la durée', () => {
+  assert.equal(L.bedtimeRegularity([{ date: '2026-07-08', bedtime: '23:00' }], 14), null, 'moins de 3 nuits → null');
+  const stable = [{ date: '2026-07-06', bedtime: '23:00' }, { date: '2026-07-07', bedtime: '23:00' }, { date: '2026-07-08', bedtime: '23:00' }];
+  const rs = L.bedtimeRegularity(stable, 14);
+  assert.equal(rs.nights, 3);
+  assert.equal(rs.avgTime, '23:00');
+  assert.equal(rs.stdevMin, 0, 'coucher identique chaque soir → écart-type nul');
+  const jagged = [
+    { date: '2026-07-04', bedtime: '22:00' }, { date: '2026-07-05', bedtime: '01:00' }, { date: '2026-07-06', bedtime: '22:00' },
+    { date: '2026-07-07', bedtime: '01:00' }, { date: '2026-07-08', bedtime: '22:00' }, { date: '2026-07-09', bedtime: '01:00' }, { date: '2026-07-10', bedtime: '22:00' },
+  ];
+  const rj = L.bedtimeRegularity(jagged, 14);
+  assert.equal(rj.avgTime, '23:17');
+  assert.equal(rj.stdevMin, 89, 'coucher qui alterne 22h/1h → forte variabilité');
+  assert.equal(L.bedtimeRegularity([], 14), null);
+  assert.equal(L.bedtimeRegularity([{ date: '2026-07-08', sleep: 6 }, { date: '2026-07-09', sleep: 6 }, { date: '2026-07-10', sleep: 6 }], 14), null, 'sans heure de coucher saisie → null');
+});
+
 test('sleepCoachInsight : bilan qualité + régularité (1re étape du coach sommeil)', () => {
   const jagged = [
     { date: '2026-07-04', sleep: 5 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 5 },
@@ -5635,6 +5653,35 @@ test('sleepCoachInsight : bilan qualité + régularité (1re étape du coach som
 
   assert.equal(L.sleepCoachInsight([], '2026-07-10'), null, 'aucune nuit sur 7 j → null');
   assert.equal(L.sleepCoachInsight(jagged, 'invalide'), null);
+});
+
+test('sleepCoachInsight : la régularité du COUCHER prime sur celle de la durée dès 3 nuits saisies', () => {
+  // Même durées jour/nuit que le cas "urgent" ci-dessus (5/8 h en alternance), mais coucher fixe
+  // chaque soir : le vrai problème n'est QUE la durée courte, pas un rythme décousu — le coucher
+  // stable désamorce le tone 'urgent' (qui, avant ce correctif, se basait uniquement sur la durée).
+  const stableBedtimeShortSleep = [
+    { date: '2026-07-04', sleep: 5, bedtime: '23:00' }, { date: '2026-07-05', sleep: 8, bedtime: '23:00' }, { date: '2026-07-06', sleep: 5, bedtime: '23:00' },
+    { date: '2026-07-07', sleep: 8, bedtime: '23:00' }, { date: '2026-07-08', sleep: 5, bedtime: '23:00' }, { date: '2026-07-09', sleep: 8, bedtime: '23:00' }, { date: '2026-07-10', sleep: 5, bedtime: '23:00' },
+  ];
+  const r1 = L.sleepCoachInsight(stableBedtimeShortSleep, '2026-07-10');
+  assert.equal(r1.bedtimeStdevMin, 0);
+  assert.equal(r1.irregular, false, 'coucher stable → plus jugé irrégulier même si la durée varie');
+  assert.equal(r1.tone, 'attention', 'court mais pas irrégulier → attention, pas urgent');
+  assert.match(r1.verdict, /Sommeil court/);
+  assert.doesNotMatch(r1.verdict, /irrégulier/);
+
+  // Durée stable et suffisante (8 h chaque nuit) mais coucher qui saute d'une heure à l'autre : le
+  // vrai problème circadien est là, invisible pour l'ancienne logique basée sur la durée seule.
+  const stableDurationJaggedBedtime = [
+    { date: '2026-07-04', sleep: 8, bedtime: '22:00' }, { date: '2026-07-05', sleep: 8, bedtime: '02:00' }, { date: '2026-07-06', sleep: 8, bedtime: '23:30' }, { date: '2026-07-07', sleep: 8, bedtime: '01:00' },
+    { date: '2026-07-08', sleep: 8, bedtime: '22:30' }, { date: '2026-07-09', sleep: 8, bedtime: '00:30' }, { date: '2026-07-10', sleep: 8, bedtime: '23:00' },
+  ];
+  const r2 = L.sleepCoachInsight(stableDurationJaggedBedtime, '2026-07-10');
+  assert.equal(r2.stdev, 0, 'durée parfaitement stable');
+  assert.equal(r2.bedtimeStdevMin, 80);
+  assert.equal(r2.irregular, true, 'coucher irrégulier détecté malgré une durée stable');
+  assert.equal(r2.tone, 'attention');
+  assert.match(r2.verdict, /coucher irrégulier/);
 });
 
 test('bedtimeAnchor : minutes depuis midi, coucher soir→matin monotone croissant', () => {
