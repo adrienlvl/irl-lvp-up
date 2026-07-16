@@ -4453,7 +4453,31 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.14');
+  assert.equal(L.CHANGELOG[0].v, '2.0.15');
+});
+
+test('describeBackup : aperçu d’une sauvegarde avant import', () => {
+  const d = L.describeBackup({ workouts: [{ date: '2026-01-02' }, { date: '2026-01-03' }], applications: [{ date: '2026-01-05' }], agenda: [], xp: '150', habits: [{}, {}] });
+  assert.equal(d.workouts, 2); assert.equal(d.applications, 1); assert.equal(d.habits, 2);
+  assert.equal(d.xp, 150); assert.equal(d.lastDate, '2026-01-05'); assert.equal(d.total, 5);
+  // entrées inconnues/invalides → zéros, jamais de crash
+  assert.equal(L.describeBackup(null).total, 0);
+  assert.equal(L.describeBackup('junk').total, 0);
+  assert.equal(L.describeBackup({ workouts: 'pas un tableau', xp: -5 }).xp, 0);
+});
+
+test('backupImportWarnings : alerte avant un import régressif', () => {
+  const rich = { workouts: Array.from({ length: 10 }, (_, i) => ({ date: '2026-07-0' + ((i % 9) + 1) })), applications: [{ date: '2026-07-10' }, { date: '2026-07-12' }] };
+  // sauvegarde vide → VIDE signalée
+  assert.ok(L.backupImportWarnings(rich, {}).some(w => /VIDE/.test(w)));
+  // bien moins fournie → signalée avec les comptes
+  const small = { workouts: [{ date: '2026-06-01' }] };
+  const w2 = L.backupImportWarnings(rich, small);
+  assert.ok(w2.some(w => /beaucoup moins/.test(w)));
+  assert.ok(w2.some(w => /Candidatures : 0 .* 2/.test(w)));
+  assert.ok(w2.some(w => /plus ancienne/.test(w)));
+  // sauvegarde plus riche → aucun avertissement
+  assert.deepEqual(L.backupImportWarnings(small, rich), []);
 });
 
 test('formatBytes : o/Ko/Mo/Go et entrées invalides', () => {

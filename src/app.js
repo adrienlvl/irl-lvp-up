@@ -835,11 +835,27 @@ $('#exportDataBtn')?.addEventListener('click',async()=>{const st=$('#dataIoStatu
   // iOS où le localStorage peut être évincé — c'est le seul moyen de sauvegarder/transférer.
   if(!window.desktop?.exportData){try{const blob=new Blob([JSON.stringify(state)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(typeof backupFilename==='function')?backupFilename(localDate()):'irl-lvp-up-sauvegarde.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);state.lastBackup=localDate();save();renderAttention&&renderAttention();if(st)st.textContent='✓ Sauvegarde téléchargée (fichier JSON à garder au sûr).';}catch{if(st)st.textContent='⚠ Export impossible.';}return;}
   try{const r=await window.desktop.exportData(JSON.stringify(state));if(r&&r.ok){state.lastBackup=localDate();save();renderAttention&&renderAttention();}if(st)st.textContent=r&&r.ok?`✓ Sauvegarde exportée : ${r.path}`:(r&&r.canceled?'':'⚠ '+((r&&r.error)||'échec'));}catch{if(st)st.textContent='⚠ Export impossible.';}});
+// Préflight d'import : montre CE QUE contient la sauvegarde et alerte si elle est probablement
+// régressive (vide, bien moins fournie, moins de candidatures, plus ancienne) AVANT d'écraser
+// l'état. Renvoie l'état normalisé prêt à appliquer, ou null si Adrien refuse.
+function confirmBackupImport(parsed){
+  const inc=unwrapBackup(parsed);
+  const d=(typeof describeBackup==='function')?describeBackup(inc):null;
+  const warns=(typeof backupImportWarnings==='function')?backupImportWarnings(state,inc):[];
+  let msg='Remplacer toutes tes données actuelles par cette sauvegarde ?';
+  if(d){
+    msg=`Cette sauvegarde contient : ${d.workouts} séance${d.workouts>1?'s':''}, ${d.applications} candidature${d.applications>1?'s':''}, ${d.agenda} évènement${d.agenda>1?'s':''} d'agenda, ${d.habits} habitude${d.habits>1?'s':''}, ${d.xp} XP${d.lastDate?` · dernière activité le ${d.lastDate.split('-').reverse().join('/')}`:''}.`;
+    if(warns.length)msg+=`\n\n⚠️ ATTENTION :\n${warns.map(x=>'• '+x).join('\n')}`;
+    msg+='\n\nRemplacer toutes tes données actuelles par cette sauvegarde ?';
+  }
+  if(!confirm(msg))return null;
+  return normalizeState(inc);
+}
 $('#importDataBtn')?.addEventListener('click',async()=>{const st=$('#dataIoStatus');
   // Fallback PWA/navigateur : sélecteur de fichier + lecture JSON (mêmes garde-fous que le desktop :
   // JSON validé, confirmation, normalizeState assainit tout).
-  if(!window.desktop?.importData){let fi=document.getElementById('importDataFile');if(!fi){fi=document.createElement('input');fi.type='file';fi.id='importDataFile';fi.accept='application/json,.json';fi.hidden=true;document.body.appendChild(fi);fi.addEventListener('change',()=>{const file=fi.files&&fi.files[0];fi.value='';if(!file)return;if(file.size>8*1024*1024){if(st)st.textContent='⚠ Fichier trop volumineux (max 8 Mo).';return;}const reader=new FileReader();reader.onload=()=>{let parsed;try{parsed=JSON.parse(reader.result);}catch{if(st)st.textContent='⚠ Fichier illisible (JSON invalide).';return;}if(!confirm('Remplacer toutes tes données actuelles par cette sauvegarde ?'))return;state=normalizeState(unwrapBackup(parsed));save();render();if(st)st.textContent='✓ Données restaurées depuis la sauvegarde.';};reader.readAsText(file);});}fi.click();return;}
-  try{const r=await window.desktop.importData();if(!r||!r.ok){if(st&&r&&!r.canceled)st.textContent='⚠ '+((r&&r.error)||'échec');return;}let parsed;try{parsed=JSON.parse(r.text);}catch{if(st)st.textContent='⚠ Fichier illisible (JSON invalide).';return;}if(!confirm('Remplacer toutes tes données actuelles par cette sauvegarde ? (une copie de sécurité automatique existe déjà sur cet appareil.)'))return;state=normalizeState(unwrapBackup(parsed));save();render();if(st)st.textContent='✓ Données restaurées depuis la sauvegarde.';}catch{if(st)st.textContent='⚠ Import impossible.';}});
+  if(!window.desktop?.importData){let fi=document.getElementById('importDataFile');if(!fi){fi=document.createElement('input');fi.type='file';fi.id='importDataFile';fi.accept='application/json,.json';fi.hidden=true;document.body.appendChild(fi);fi.addEventListener('change',()=>{const file=fi.files&&fi.files[0];fi.value='';if(!file)return;if(file.size>8*1024*1024){if(st)st.textContent='⚠ Fichier trop volumineux (max 8 Mo).';return;}const reader=new FileReader();reader.onload=()=>{let parsed;try{parsed=JSON.parse(reader.result);}catch{if(st)st.textContent='⚠ Fichier illisible (JSON invalide).';return;}const next=confirmBackupImport(parsed);if(!next)return;state=next;save();render();if(st)st.textContent='✓ Données restaurées depuis la sauvegarde.';};reader.readAsText(file);});}fi.click();return;}
+  try{const r=await window.desktop.importData();if(!r||!r.ok){if(st&&r&&!r.canceled)st.textContent='⚠ '+((r&&r.error)||'échec');return;}let parsed;try{parsed=JSON.parse(r.text);}catch{if(st)st.textContent='⚠ Fichier illisible (JSON invalide).';return;}const next=confirmBackupImport(parsed);if(!next)return;state=next;save();render();if(st)st.textContent='✓ Données restaurées depuis la sauvegarde.';}catch{if(st)st.textContent='⚠ Import impossible.';}});
 let focusDuration=25, interval;
 // Le minuteur n'est plus un compteur en mémoire décrémenté à chaque tick (qui dérivait dès que
 // l'onglet passait en arrière-plan, et disparaissait au rechargement) : il est piloté par
