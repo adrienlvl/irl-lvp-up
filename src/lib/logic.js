@@ -2534,6 +2534,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.11', emoji: '🎯', text: 'Le coach connaît maintenant tes objectifs : quand il te parle d’entraînement ou de focus, il compte par rapport à TON objectif de la semaine (« 1/4 séances sur ton objectif », « 25/120 min de focus ») au lieu d’un simple compteur. Un conseil ancré dans ce que TU t’es fixé, pas dans une moyenne générique.' },
   { v: '2.0.10', emoji: '📈', text: 'Le coach mesure maintenant si ses conseils te servent : sous « Le focus du moment », une petite ligne t’indique combien de ses conseils tu as suivis sur les 7 derniers jours (« Conseils suivis : 4/6 »). Suivre un conseil = avoir bougé sur ce pilier le jour même. Honnête dans les deux sens : ça félicite quand tu suis, ça encourage sans culpabiliser quand tu décroches.' },
   { v: '2.0.9', emoji: '🧠', text: 'Ton coach a maintenant de la mémoire : s’il t’a proposé le même focus trois jours de suite sans que ça bouge, il change d’angle — deuxième priorité, ou renfort de ce qui marche — au lieu de répéter la même chose. Un coach qui radote finit ignoré ; celui-là varie pour garder ton attention. (La priorité alternance, elle, ne lâche jamais.)' },
   { v: '2.0.8', emoji: '🗂️', text: 'Suivi d’alternance plus lisible : les candidatures refusées sont désormais masquées par défaut — tu ne vois que ce sur quoi tu peux encore avancer. Un bouton « Afficher » les rappelle à l’écran quand tu veux (elles restent comptées dans tes stats). Elles ne sont pas supprimées, sinon la sync les réimporterait depuis ton Sheets.' },
@@ -4640,6 +4641,25 @@ function adaptiveCoachFocus(state, todayKey) {
     headline = `Ton ${L} monte en régime`;
     insight = `${jour(chosen.recentDays)} cette semaine, en hausse. Garde le rythme.`;
     action = 'Encore un jour actif aujourd’hui pour ancrer l’habitude.';
+  }
+  // Objectifs PERSO : quand le pilier choisi a un objectif hebdo défini, le coach parle en fonction
+  // de LUI (« 1/4 séances sur ton objectif ») — plus crédible qu'un compteur générique. Semaine
+  // CALENDAIRE (lundi → aujourd'hui), distincte de la fenêtre glissante 7 j de la dynamique.
+  {
+    const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
+    const monday = dateKey(mondayOf(new Date(+tm[1], +tm[2] - 1, +tm[3])));
+    if (chosen.pillar === 'sport') {
+      const g = Math.round(Number(s.goals && s.goals.sessions) || 0);
+      if (g >= 1) {
+        const wc = new Set((Array.isArray(s.workouts) ? s.workouts : [])
+          .filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')) && w.date >= monday && w.date <= todayKey)
+          .map(w => w.date)).size;
+        insight += wc >= g ? ` Objectif hebdo déjà tenu : ${wc}/${g} séance${g > 1 ? 's' : ''} 💪` : ` Objectif hebdo : ${wc}/${g} séance${g > 1 ? 's' : ''}.`;
+      }
+    } else if (chosen.pillar === 'focus' && typeof focusWeekGoal === 'function') {
+      const fw = focusWeekGoal(s.focusSessions, todayKey);
+      if (fw) insight += fw.status === 'done' ? ` Objectif hebdo atteint : ${fw.done}/${fw.target} min 💪` : ` Objectif hebdo : ${fw.done}/${fw.target} min de focus.`;
+    }
   }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {

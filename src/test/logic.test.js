@@ -4453,7 +4453,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.10');
+  assert.equal(L.CHANGELOG[0].v, '2.0.11');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5558,6 +5558,22 @@ test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 j
   // L'alternance ne tourne JAMAIS, même après 3 jours.
   const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-10' }], coachLog: [{ date: '2026-07-13', pillar: 'alternance' }, { date: '2026-07-14', pillar: 'alternance' }, { date: '2026-07-15', pillar: 'alternance' }] }, today);
   assert.equal(alt.pillar, 'alternance');
+});
+
+test('adaptiveCoachFocus : parle en fonction des objectifs perso (hebdo calendaire)', () => {
+  const today = '2026-07-16'; // jeudi → lundi de la semaine = 2026-07-13
+  // sport en décrochage (3 j la semaine passée, 1 cette semaine) + objectif 4 séances/sem
+  const sport = { workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }], goals: { sessions: 4 } };
+  const f1 = L.adaptiveCoachFocus(sport, today);
+  assert.equal(f1.pillar, 'sport');
+  assert.match(f1.insight, /Objectif hebdo : 1\/4 séances\./, 'séances de la semaine calendaire vs objectif perso');
+  // sans objectif défini → pas de ligne objectif
+  assert.ok(!/Objectif hebdo/.test(L.adaptiveCoachFocus({ workouts: sport.workouts }, today).insight));
+  // focus en décrochage → objectif minutes (25 min faites cette semaine / cible 120)
+  const focus = { focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-07', minutes: 30 }, { date: '2026-07-14', minutes: 25 }] };
+  const f2 = L.adaptiveCoachFocus(focus, today);
+  assert.equal(f2.pillar, 'focus');
+  assert.match(f2.insight, /Objectif hebdo : 25\/120 min de focus\./);
 });
 
 test('coachFollowThrough : mesure si les conseils du coach sont suivis', () => {

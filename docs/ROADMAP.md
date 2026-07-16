@@ -23,10 +23,11 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.10 (2026-07-16)
+## 📍 État actuel — build 2.0.11 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **383 tests + smoke** verts (harness durci, dont garde-fou CSS + 47 gardes smoke bloquants). Releases desktop **espacées** (~1/jour max hors session active ; electron-updater saute à la dernière) ; dernière Release publiée : `v2.0.8`. Livré au-delà de la roadmap initiale (boucles #36→**366**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **384 tests + smoke** verts (harness durci, dont garde-fou CSS + 47 gardes smoke bloquants). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 « Coaching adaptatif » fonctionnellement complète** — prochaine vague : **Fondations techniques** (IndexedDB, archi). Livré au-delà de la roadmap initiale (boucles #36→**367**) :
 
+- 🎯 **Coach adaptatif : objectifs perso** (2.0.11, 3.0 · Vague 1) : l'insight du pilier choisi compte par rapport à l'objectif hebdo d'Adrien (« Objectif hebdo : 1/4 séances », « 25/120 min de focus »), semaine calendaire. ✅ _boucle #367._
 - 📈 **Coach adaptatif : taux de suivi des conseils** (2.0.10, 3.0 · Vague 1) : sous la carte du coach, « Conseils suivis : 3/4 sur 7 jours » — un conseil est suivi si le pilier a bougé le jour même. `coachFollowThrough` pur + testé. La boucle du coach est fermée : il observe, priorise, se souvient, s'évalue. ✅ _boucle #366._
 - 🧠 **Coach adaptatif : mémoire anti-radotage** (2.0.9, 3.0 · Vague 1) : le coach journalise son focus quotidien (`state.coachLog`) et, après **3 jours du même pilier sans amélioration**, change d'angle (2ᵉ priorité ou renfort de ce qui marche) au lieu de répéter — « On varie les angles aujourd'hui. » L'alternance, priorité absolue, ne tourne jamais. Pur + testé, vérifié en navigateur. ✅ _boucle #365._
 
