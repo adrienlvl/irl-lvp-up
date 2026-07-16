@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.30 (2026-07-17)
+## 📍 État actuel — build 2.0.31 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **425 tests + smoke** verts (harness durci, dont garde-fou CSS + 53 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**390**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **426 tests + smoke** verts (harness durci, dont garde-fou CSS + 54 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**391**) :
+
+- 💼 **Demande d'Adrien : le statut « postulé »/« refusé » (abandonné) de l'onglet Alternance est
+  pris en compte de façon fiable** (2.0.31, étape 1/2 de la demande — `docs/DEMANDES.md`) : deux bugs
+  corrigés. `mergeApplications` ne protégeait qu'une régression vers « à postuler » — une
+  synchronisation Google Sheets en retard pouvait écraser un statut plus avancé (ex. « postulé »
+  remis à « à contacter ») ; la protection est généralisée à tout le pipeline (rang dans
+  `JOB_STATUSES`, seule une vraie progression s'applique). Et le menu déroulant de statut ne
+  rafraîchissait pas la carte « Le focus du moment » tout de suite (seul le bouton dédié « J'ai
+  postulé » le faisait) — corrigé. +2 tests, +1 check smoke bloquant (`altStatusRefresh`). Zéro
+  suppression, zéro régression. (`docs/recaps/391-alternance-refresh-statut.md`). ✅ _boucle #391._
 
 - 💼 **Robustesse : `parseCsv` ne laisse plus de `\r` parasite dans une cellule multi-ligne** (2.0.30) :
   le retour chariot était ignoré hors guillemets mais **conservé à l'intérieur** d'un champ entre

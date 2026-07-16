@@ -770,6 +770,29 @@ test('mergeApplications : fusion idempotente, sans doublon ni régression', () =
   assert.equal(two.applications[0].status, 'entretien', 'le statut avancé de Suivi est appliqué');
 });
 
+test('mergeApplications : une source en retard ne fait pas régresser un statut avancé (pas seulement depuis « à postuler »)', () => {
+  // Adrien marque « postulé » (ou « refusé/abandonné ») dans l'app ; une source restée en retard
+  // (sync auto ou ré-import du même fichier) ne doit jamais défaire ce suivi.
+  const existing = [
+    { id: 1, company: 'Refusée SAS', status: 'refus', date: '2026-07-10', createdAt: 1 },
+    { id: 2, company: 'Acceptée SARL', status: 'accepte', date: '2026-07-05', createdAt: 2 },
+  ];
+  const stale = [
+    { company: 'Refusée SAS', status: 'postule', date: '2026-07-01' },
+    { company: 'Acceptée SARL', status: 'entretien', date: '2026-07-01' },
+  ];
+  const m = L.mergeApplications(existing, stale);
+  assert.equal(m.applications.find(a => a.id === 1).status, 'refus', 'un refus n’est jamais remis à « postulé »');
+  assert.equal(m.applications.find(a => a.id === 2).status, 'accepte', 'une acceptation n’est jamais remise à « entretien »');
+  // à l'inverse, une vraie progression (ex. le Suivi note un refus après un entretien) s'applique bien
+  const forward = L.mergeApplications(
+    [{ id: 3, company: 'En cours EURL', status: 'entretien', date: '2026-07-01', createdAt: 3 }],
+    [{ company: 'En cours EURL', status: 'refus', date: '2026-07-15' }]
+  );
+  assert.equal(forward.applications[0].status, 'refus');
+  assert.equal(forward.updated, 1);
+});
+
 test('attentionDigest : n’émet plus le nudge alternance (déplacé vers le coach adaptatif)', () => {
   const today = '2026-07-16';
   const base = { recovery: [], agenda: [], workouts: [], habits: [] };
@@ -4721,7 +4744,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.30');
+  assert.equal(L.CHANGELOG[0].v, '2.0.31');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

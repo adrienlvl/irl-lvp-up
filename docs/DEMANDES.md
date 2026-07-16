@@ -9,9 +9,20 @@
 
 ## À traiter
 
-- Regarde l’onglet Alternance, quand je met que j’ai postulé, que j’ai abandonné pour une société, ça ne prend pas en compte et ça ne rafraichi pas automatiquement, si tu peux regarder ça et l’améliorer. Après essaye d’améliorer aussi l’onglet Sommeil ! _(ajouté le 2026-07-16 23:54 via le terminal)_
-
 ## En cours
+
+- **Alternance : le statut posé n'était pas pris en compte + amélioration de l'onglet Sommeil.**
+  _(ajoutée le 2026-07-16 23:54 via le terminal)_ Adrien : « Regarde l'onglet Alternance, quand je
+  met que j'ai postulé, que j'ai abandonné pour une société, ça ne prend pas en compte et ça ne
+  rafraîchi pas automatiquement, si tu peux regarder ça et l'améliorer. Après essaye d'améliorer
+  aussi l'onglet Sommeil ! »
+  - [x] 1. Alternance : deux bugs corrigés — une synchro Google Sheets en retard pouvait écraser un
+        statut déjà avancé (postulé/refusé) au lieu de se limiter au cas « à postuler » ; le menu
+        déroulant de statut ne rafraîchissait pas la carte « Le focus du moment » tout de suite.
+        Build 2.0.31, boucle #391. Détail : `docs/recaps/391-alternance-refresh-statut.md`.
+  - [ ] 2. Onglet Sommeil : améliorations à identifier (relire le module existant — bilan, plan de
+        recalage, coach — livré boucles #377→#380 — et voir ce qui manque réellement) — prochaine
+        itération.
 
 ## Terminé
 

@@ -924,11 +924,14 @@ function normalizeSheetCsvUrl(input) {
 // « Cibles » (avec poste, « à postuler ») et « Suivi Existant » (sans poste, statut avancé) au lieu
 // d'en faire deux entrées. Nouveauté → ajoutée ; correspondance → mise à jour des champs depuis la
 // source (le poste n'est écrasé que s'il est fourni), SANS jamais régresser un suivi déjà avancé
-// vers « à postuler ». Conserve id et createdAt existants. Renvoie { applications, added, updated }.
-// Pur + testé.
+// (statut plus loin dans le pipeline `JOB_STATUSES`) — pas seulement depuis « à postuler » : un
+// import/sync dont la source est en retard (ex. la feuille Google Sheets pas encore mise à jour)
+// ne doit jamais écraser un statut que l'app a fait avancer depuis (postulé, entretien, refusé…).
+// Conserve id et createdAt existants. Renvoie { applications, added, updated }. Pur + testé.
 function mergeApplications(existing, incoming) {
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   const keyOf = a => norm(a.company);
+  const rankOf = s => { const i = JOB_STATUSES.indexOf(s); return i < 0 ? 0 : i; };
   const out = (Array.isArray(existing) ? existing : []).map(normalizeApplication);
   const byKey = new Map();
   out.forEach(a => { const k = keyOf(a); if (!byKey.has(k)) byKey.set(k, a); });
@@ -939,7 +942,7 @@ function mergeApplications(existing, incoming) {
     const cur = byKey.get(k);
     if (!cur) { out.push(inc); byKey.set(k, inc); added++; return; }
     let changed = false;
-    const nextStatus = (cur.status !== 'a_postuler' && inc.status === 'a_postuler') ? cur.status : inc.status;
+    const nextStatus = rankOf(inc.status) < rankOf(cur.status) ? cur.status : inc.status;
     if (cur.status !== nextStatus) { cur.status = nextStatus; changed = true; }
     if (inc.date && cur.date !== inc.date) { cur.date = inc.date; changed = true; }
     if (inc.source && cur.source !== inc.source) { cur.source = inc.source; changed = true; }
@@ -2592,6 +2595,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.31', emoji: '💼', text: 'Correction demandée : dans le suivi d’alternance, marquer une candidature « postulé » (ou tout autre changement de statut) est maintenant pris en compte de façon fiable — deux bugs corrigés. D’une part, une synchronisation Google Sheets (auto ou ré-import) en retard sur l’app ne peut plus écraser un statut déjà avancé (ex. « postulé » ou « refusé ») pour le remettre à un stade antérieur — seule une vraie progression est appliquée. D’autre part, changer un statut via le menu déroulant met désormais aussi à jour la carte « Le focus du moment » à l’instant, sans attendre un rendu complet suivant.' },
   { v: '2.0.30', emoji: '💼', text: 'Import de candidatures plus propre : une cellule sur plusieurs lignes (une note collée depuis Excel ou un tableur, où le saut de ligne interne était encodé en CRLF) ne laisse plus traîner de retour chariot parasite dans le texte importé. Les vrais sauts de ligne à l’intérieur d’une cellule sont préservés — seul le caractère invisible en trop est retiré.' },
   { v: '2.0.29', emoji: '♿', text: 'Accessibilité : les boutons-flèches ← / → de navigation du calendrier (vue mois et vue semaine) ont maintenant un intitulé clair pour les lecteurs d’écran (« Mois précédent », « Mois suivant », « Semaine précédente », « Semaine suivante »), là où ils n’étaient annoncés que « flèche gauche/droite ». Une info-bulle apparaît aussi au survol. Rien ne change à l’écran.' },
   { v: '2.0.28', emoji: '🎂', text: 'Anniversaires du 29 février enfin fêtés les bonnes années : jusqu’ici, une personne née un 29 février disparaissait du calendrier les années non bissextiles (et la liste « À venir » affichait une date impossible, le 29 février d’une année sans 29 février). Désormais son anniversaire est fêté le 1er mars ces années-là — visible dans le calendrier, avec une date réelle dans « À venir ». Les années bissextiles, c’est toujours le 29 février.' },
