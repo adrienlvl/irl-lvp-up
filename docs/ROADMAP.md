@@ -23,10 +23,11 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.12 (2026-07-16)
+## 📍 État actuel — build 2.0.13 (2026-07-16)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **384 tests + smoke** verts (harness durci, dont garde-fou CSS + 48 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**368**) :
 
+- 🗓️ **Fondations : instantanés quotidiens du miroir** (2.0.13, 3.0 · Vague 2 t.2) : le miroir garde 7 jours d'instantanés (`snap:AAAA-MM-JJ`, élagage auto) ; la restauration essaie copie principale puis instantanés du plus récent au plus ancien — une copie corrompue ne bloque plus rien. Scénario corruption vérifié de bout en bout. ✅ _boucle #369._
 - 🛟 **Fondations : miroir IndexedDB + récupération auto** (2.0.12, 3.0 · Vague 2 t.1) : chaque sauvegarde alimente un miroir IndexedDB (débounce, verrou anti-écrasement au boot) ; si localStorage est vidé (éviction/nettoyage), la PWA **restaure automatiquement** les données au lancement (toast 🛟). `navigator.storage.persist()` demandé. Aucune migration — localStorage reste la source de vérité. Scénario d'éviction vérifié de bout en bout. ✅ _boucle #368._
 
 - 🎯 **Coach adaptatif : objectifs perso** (2.0.11, 3.0 · Vague 1) : l'insight du pilier choisi compte par rapport à l'objectif hebdo d'Adrien (« Objectif hebdo : 1/4 séances », « 25/120 min de focus »), semaine calendaire. ✅ _boucle #367._

@@ -563,7 +563,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.12'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.13'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -749,14 +749,27 @@ app.whenReady().then(async () => {
         exercises: document.querySelectorAll('#exerciseCards .exercise-card').length,
         levelSet: (document.querySelector('#xpLabel')||{}).textContent || ''
       };
-      // Miroir IndexedDB (async, BLOQUANT) : écriture + relecture d'une sonde, puis on remet le vrai état.
+      // Miroir IndexedDB (async, BLOQUANT) : écriture + relecture d'une sonde, instantanés quotidiens
+      // (snap du jour présent, élagage à 7), puis on remet le vrai état.
       checks.idbMirror = await (async () => {
-        if (typeof idbMirrorState !== 'function' || typeof idbReadState !== 'function' || typeof restoreFromIdbIfEmpty !== 'function' || typeof scheduleIdbMirror !== 'function') return false;
+        if (typeof idbMirrorState !== 'function' || typeof idbReadState !== 'function' || typeof idbReadCandidates !== 'function' || typeof restoreFromIdbIfEmpty !== 'function' || typeof scheduleIdbMirror !== 'function') return false;
         const ok = await idbMirrorState('{"probe":"smoke"}');
         if (!ok) return false;
         const back = await idbReadState();
-        await idbMirrorState(JSON.stringify(state)); // remet le miroir sur l'état réel
-        return typeof back === 'string' && back.indexOf('probe') !== -1;
+        if (!(typeof back === 'string' && back.indexOf('probe') !== -1)) return false;
+        // seed 8 vieux instantanés puis un miroir → l'élagage doit garder <= 7 et conserver celui du jour
+        const dbS = await idbOpen(); if (!dbS) return false;
+        await new Promise(res => { const tx = dbS.transaction('state', 'readwrite'), st = tx.objectStore('state'); for (let i = 1; i <= 8; i++) st.put({ json: '{}', at: 1 }, 'snap:2020-01-0' + i); tx.oncomplete = res; tx.onerror = res; });
+        dbS.close();
+        await idbMirrorState(JSON.stringify(state)); // remet aussi le miroir sur l'état réel
+        const dbK = await idbOpen(); if (!dbK) return false;
+        const keys = await new Promise(res => { const tx = dbK.transaction('state', 'readonly'), rq = tx.objectStore('state').getAllKeys(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => res([]); });
+        dbK.close();
+        const snaps = keys.filter(k => typeof k === 'string' && k.indexOf('snap:') === 0);
+        if (snaps.length > 7 || snaps.indexOf('snap:' + localDate()) === -1) return false;
+        // les candidats de restauration listent la copie principale en premier
+        const cands = await idbReadCandidates();
+        return Array.isArray(cands) && cands.length >= 1 && typeof cands[0] === 'string';
       })();
       return checks;
     })()`);

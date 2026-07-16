@@ -57,7 +57,28 @@ let localBackupTimer, storageWarned=false; function save() { try { localStorage.
 // l'éviction PWA (iOS) ou un nettoyage navigateur vide localStorage plus volontiers qu'IndexedDB,
 // et navigator.storage.persist() renforce le tout. AUCUNE migration : sans IDB, tout marche comme avant.
 function idbOpen(){return new Promise(res=>{try{const rq=indexedDB.open('irl-lvp-up',1);rq.onupgradeneeded=()=>{try{rq.result.createObjectStore('state');}catch(_){}};rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);}catch(_){res(null);}});}
-function idbMirrorState(json){return idbOpen().then(db=>new Promise(res=>{if(!db)return res(false);try{const tx=db.transaction('state','readwrite');tx.objectStore('state').put({json,at:Date.now()},'state');tx.oncomplete=()=>{db.close();res(true);};tx.onerror=()=>{db.close();res(false);};}catch(_){try{db.close();}catch(_){}res(false);}}));}
+function idbMirrorState(json){return idbOpen().then(db=>new Promise(res=>{if(!db)return res(false);try{
+  const tx=db.transaction('state','readwrite'),store=tx.objectStore('state');
+  store.put({json,at:Date.now()},'state');
+  // Instantané QUOTIDIEN (clé snap:AAAA-MM-JJ, écrasé dans la journée) : de vrais points de
+  // restauration — une copie unique peut être écrasée par un état abîmé, 7 jours d'historique non.
+  store.put({json,at:Date.now()},'snap:'+localDate());
+  const kq=store.getAllKeys();
+  kq.onsuccess=()=>{try{const snaps=(kq.result||[]).filter(k=>typeof k==='string'&&k.indexOf('snap:')===0).sort();while(snaps.length>7)store.delete(snaps.shift());}catch(_){}};
+  tx.oncomplete=()=>{db.close();res(true);};tx.onerror=()=>{db.close();res(false);};
+}catch(_){try{db.close();}catch(_){}res(false);}}));}
+// Liste des candidats à la restauration : copie principale d'abord, puis instantanés du plus récent
+// au plus ancien. Renvoie un tableau de JSON (souvent identiques) — le premier valide gagne.
+function idbReadCandidates(){return idbOpen().then(db=>new Promise(res=>{if(!db)return res([]);try{
+  const tx=db.transaction('state','readonly'),store=tx.objectStore('state');
+  const all=store.getAll(),keys=store.getAllKeys();let vals=null,ks=null;
+  const done=()=>{if(!vals||!ks)return;const list=ks.map((k,i)=>({k,v:vals[i]})).filter(x=>x.v&&typeof x.v.json==='string');
+    const main=list.find(x=>x.k==='state');
+    const snaps=list.filter(x=>typeof x.k==='string'&&String(x.k).indexOf('snap:')===0).sort((a,b)=>String(b.k).localeCompare(String(a.k)));
+    db.close();res([main,...snaps].filter(Boolean).map(x=>x.v.json));};
+  all.onsuccess=()=>{vals=all.result||[];done();};keys.onsuccess=()=>{ks=keys.result||[];done();};
+  tx.onerror=()=>{db.close();res([]);};
+}catch(_){try{db.close();}catch(_){}res([]);}}));}
 function idbReadState(){return idbOpen().then(db=>new Promise(res=>{if(!db)return res(null);try{const tx=db.transaction('state','readonly');const rq=tx.objectStore('state').get('state');rq.onsuccess=()=>{const v=rq.result;db.close();res(v&&typeof v.json==='string'?v.json:null);};rq.onerror=()=>{db.close();res(null);};}catch(_){try{db.close();}catch(_){}res(null);}}));}
 let idbMirrorTimer=null,idbMirrorAllowed=false; // VERROU : aucun miroir tant que la décision de restauration n'est pas prise (sinon l'état vide du boot écraserait la sauvegarde)
 function scheduleIdbMirror(){if(!idbMirrorAllowed)return;clearTimeout(idbMirrorTimer);idbMirrorTimer=setTimeout(()=>{try{idbMirrorState(JSON.stringify(state));}catch(_){}},800);}
@@ -69,14 +90,16 @@ function restoreFromIdbIfEmpty(){
   if(window.desktop)return Promise.resolve(false);
   const fresh=bootWasEmpty&&state.workouts.length===0&&state.applications.length===0&&!state.onboardingDone;
   if(!fresh)return Promise.resolve(false);
-  return idbReadState().then(json=>{
-    if(!json)return false;
-    let parsed=null;try{parsed=JSON.parse(json);}catch(_){return false;}
-    const cand=normalizeState(parsed);
-    if(cand.xp===0&&cand.workouts.length===0&&cand.applications.length===0&&!cand.onboardingDone)return false; // rien d'utile à restaurer
-    state=cand;automaticBackupReady=true;save();render();
-    if(typeof flashToast==='function')flashToast('🛟 Données restaurées depuis la copie de secours interne.',5000);
-    return true;
+  return idbReadCandidates().then(cands=>{
+    for(const json of (cands||[])){
+      let parsed=null;try{parsed=JSON.parse(json);}catch(_){continue;} // candidat abîmé → au suivant
+      const cand=normalizeState(parsed);
+      if(cand.xp===0&&cand.workouts.length===0&&cand.applications.length===0&&!cand.onboardingDone)continue; // rien d'utile
+      state=cand;automaticBackupReady=true;save();render();
+      if(typeof flashToast==='function')flashToast('🛟 Données restaurées depuis la copie de secours interne.',5000);
+      return true;
+    }
+    return false;
   }).catch(()=>false);
 }
 function award(xp, category) { state.xp += xp; state[category] += 1; save(); renderDashboardCore(); }
