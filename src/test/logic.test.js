@@ -4471,7 +4471,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.23');
+  assert.equal(L.CHANGELOG[0].v, '2.0.24');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5471,6 +5471,55 @@ test('sleepPlanDay : cible du jour, décalage progressif, adaptation aux écarts
   assert.equal(done.reached, true);
   assert.equal(done.progress, 100);
   assert.equal(done.daysLeft, 0);
+});
+
+test('sleepEveningTips : conseils du soir calés sur le coucher visé', () => {
+  const tips = L.sleepEveningTips('23:30');
+  assert.equal(tips.length, 5);
+  assert.deepEqual(tips.map(t => t.key), ['caffeine', 'meal', 'screens', 'winddown', 'light']);
+  assert.match(tips[0].text, /15:30/, 'caféine coupée 8 h avant');
+  assert.match(tips[1].text, /20:30/, 'dîner 3 h avant');
+  assert.match(tips[2].text, /22:00/, 'écrans 1 h30 avant');
+  // franchit minuit sans casser : cible 00:30 → café à 16:30
+  assert.match(L.sleepEveningTips('00:30')[0].text, /16:30/);
+  assert.equal(L.sleepEveningTips('nope').length, 0);
+  assert.equal(L.sleepEveningTips('').length, 0);
+});
+
+test('sleepPlanAdherence : nuits dans le plan (± marge) + série', () => {
+  const plan = { active: true, targetTime: '23:30', startTime: '06:00', startKey: '2026-07-16', stepMin: 25, stepDays: 1 };
+  const rec = [
+    { date: '2026-07-16', sleep: 6, bedtime: '06:00' }, // idéal 06:00 → tenu
+    { date: '2026-07-17', sleep: 6, bedtime: '05:30' }, // idéal 05:35 → tenu
+    { date: '2026-07-18', sleep: 6, bedtime: '05:40' }, // idéal 05:10, +30 marge = 05:40 → tenu
+  ];
+  const a = L.sleepPlanAdherence(plan, rec, '2026-07-18', 7);
+  assert.equal(a.nights, 3);
+  assert.equal(a.met, 3);
+  assert.equal(a.rate, 100);
+  assert.equal(a.streak, 3);
+  // une nuit franchement en retard casse la série
+  const rec2 = rec.concat([{ date: '2026-07-19', sleep: 5, bedtime: '07:30' }]);
+  const a2 = L.sleepPlanAdherence(plan, rec2, '2026-07-19', 7);
+  assert.equal(a2.met, 3);
+  assert.equal(a2.streak, 0, 'dernière nuit hors plan → série nulle');
+  assert.equal(L.sleepPlanAdherence({ active: false }, rec, '2026-07-18', 7), null);
+  assert.deepEqual(L.sleepPlanAdherence(plan, [], '2026-07-18', 7), { nights: 0, met: 0, rate: 0, streak: 0 });
+});
+
+test('sleepBedtimeReward : XP pour un coucher dans le plan, une fois/jour', () => {
+  const plan = { active: true, targetTime: '23:30', startTime: '06:00', startKey: '2026-07-16', stepMin: 25, stepDays: 1, lastReward: '' };
+  const rec = [{ date: '2026-07-16', sleep: 6, bedtime: '06:00' }, { date: '2026-07-17', sleep: 6, bedtime: '05:30' }, { date: '2026-07-18', sleep: 6, bedtime: '05:40' }];
+  const r = L.sleepBedtimeReward(plan, rec, '2026-07-18', '05:00');
+  assert.ok(r && r.xp === 15 && r.reachedGoal === false, 'cible du jour tenue → +15 XP');
+  assert.equal(L.sleepBedtimeReward(plan, rec, '2026-07-18', '07:00'), null, 'trop tard → pas d’XP');
+  // objectif final atteint → bonus 25
+  const rg = L.sleepBedtimeReward(plan, [{ date: '2026-07-30', sleep: 8, bedtime: '23:20' }], '2026-07-30', '23:15');
+  assert.ok(rg && rg.xp === 25 && rg.reachedGoal === true);
+  // déjà récompensé aujourd'hui → null
+  assert.equal(L.sleepBedtimeReward({ ...plan, lastReward: '2026-07-18' }, rec, '2026-07-18', '05:00'), null);
+  assert.equal(L.sleepBedtimeReward({ active: false }, rec, '2026-07-18', '05:00'), null);
+  assert.equal(L.sleepBedtimeReward(plan, rec, '2026-07-18', 'nope'), null);
 });
 
 test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {

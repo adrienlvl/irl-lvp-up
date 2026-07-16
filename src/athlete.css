@@ -51,7 +51,9 @@
 .sleep-plan .sp-setup input,.sleep-plan .sp-setup select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px}
 .sleep-plan .sp-hint{color:var(--muted);font-size:.72rem;margin:4px 0 0;line-height:1.4}
 .sleep-plan .sp-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.sleep-plan .sp-tips{list-style:none;padding:0;margin:9px 0 0;display:grid;gap:5px}
+.sleep-plan .sp-tips-wrap{margin:8px 0 0}
+.sleep-plan .sp-tips-wrap summary{cursor:pointer;font-size:.76rem;font-weight:650;color:#a78bfa;padding:3px 0}
+.sleep-plan .sp-tips{list-style:none;padding:0;margin:7px 0 0;display:grid;gap:5px}
 .sleep-plan .sp-tips li{font-size:.75rem;color:var(--muted);line-height:1.35;display:flex;gap:7px}
 .sleep-plan .sp-tips li span{flex-shrink:0}
 .sleep-plan .sp-adherence{margin:8px 0 0;font-size:.76rem;color:var(--text);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
