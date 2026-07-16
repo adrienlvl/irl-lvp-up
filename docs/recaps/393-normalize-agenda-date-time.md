@@ -67,5 +67,3 @@ plus de date impossible dans l'agenda), donc entrée CHANGELOG (🗓️) + 2 ass
 **variation de type** après une passe logique (#392), un bugfix (#391), une robustesse de parseur
 (#390), une couverture (#389) et une accessibilité (#388). Aucune Release, zéro dépendance, aucune
 donnée perso, aucune feature retirée. Boucle #393.
-</content>
-</invoke>
