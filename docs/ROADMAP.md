@@ -25,8 +25,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.28 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **412 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**384**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **416 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**385**) :
 
+- 🧪 **Couverture : `parseIcsDateTime`** (sans bump — tests + export) : le cœur du parsing des dates
+  iCalendar à l'import `.ics` (journée entière / heure flottante / instant UTC avec conversion en
+  heure locale, `ms` sortable) était la seule fonction pure substantielle ni exportée ni testée.
+  Exportée + **+4 blocs de tests** (412 → 416), cas limites réels (fuseaux, secondes optionnelles,
+  format compact, invalides), assertions **portables** (le cas `Z` dérive l'attendu du même instant).
+  Aucun changement de comportement. (`docs/recaps/385-parse-ics-datetime-couverture.md`). ✅ _boucle #385._
 - 🎂 **Anniversaires du 29 février fêtés les bonnes années** (2.0.28) : une personne née un 29 février
   **disparaissait du calendrier** les années non bissextiles (`birthdaysForDay` ne matchait que le
   29/02), et la liste « À venir » affichait une **date impossible** (`2027-02-29`) alors que

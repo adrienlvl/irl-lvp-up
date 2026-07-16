@@ -304,6 +304,41 @@ test('parseIcs : entrée vide / sans VEVENT → []', () => {
   assert.deepEqual(L.parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR'), []);
 });
 
+test('parseIcsDateTime : journée entière (date seule) → allDay, time vide, ms minuit UTC', () => {
+  const r = L.parseIcsDateTime('20260716');
+  assert.equal(r.allDay, true);
+  assert.equal(r.date, '2026-07-16');
+  assert.equal(r.time, '');
+  assert.equal(r.ms, Date.UTC(2026, 6, 16)); // indépendant du fuseau
+});
+
+test('parseIcsDateTime : heure flottante (sans Z) → heure locale telle quelle, secondes optionnelles', () => {
+  const r = L.parseIcsDateTime('20260716T093000');
+  assert.equal(r.allDay, false);
+  assert.equal(r.date, '2026-07-16'); // pas de conversion : mur-de-l-horloge conservé
+  assert.equal(r.time, '09:30');
+  assert.equal(r.ms, Date.UTC(2026, 6, 16, 9, 30, 0)); // sortable, indépendant du fuseau du test
+  assert.deepEqual(L.parseIcsDateTime('20260716T0930'), r); // secondes facultatives dans le motif
+});
+
+test('parseIcsDateTime : instant UTC (suffixe Z) → date/heure LOCALES, ms = vrai instant', () => {
+  const r = L.parseIcsDateTime('20260716T120000Z');
+  assert.equal(r.allDay, false);
+  assert.equal(r.ms, Date.UTC(2026, 6, 16, 12, 0, 0)); // instant exact, indépendant du fuseau
+  // date/heure affichées = fuseau local de la machine → on dérive l attendu du meme instant (test portable)
+  const local = new Date(r.ms), pad = n => String(n).padStart(2, '0');
+  assert.equal(r.date, `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`);
+  assert.equal(r.time, `${pad(local.getHours())}:${pad(local.getMinutes())}`);
+});
+
+test('parseIcsDateTime : entrée invalide / vide / null → null, espaces tolérés', () => {
+  assert.equal(L.parseIcsDateTime('garbage'), null);
+  assert.equal(L.parseIcsDateTime(''), null);
+  assert.equal(L.parseIcsDateTime(null), null);
+  assert.equal(L.parseIcsDateTime('2026-07-16'), null); // format iCal compact : les tirets ne matchent pas
+  assert.deepEqual(L.parseIcsDateTime('  20260716T093000  '), L.parseIcsDateTime('20260716T093000')); // trim
+});
+
 test('buildRRuleLine : règle interne → RRULE iCalendar ; invalide → \'\'', () => {
   assert.equal(
     L.buildRRuleLine({ freq: 'weekly', interval: 2, weekdays: [1, 3], startDate: '2026-07-06', until: '2026-12-31' }),
