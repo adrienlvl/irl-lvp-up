@@ -82,6 +82,21 @@ function idbReadCandidates(){return idbOpen().then(db=>new Promise(res=>{if(!db)
 function idbReadState(){return idbOpen().then(db=>new Promise(res=>{if(!db)return res(null);try{const tx=db.transaction('state','readonly');const rq=tx.objectStore('state').get('state');rq.onsuccess=()=>{const v=rq.result;db.close();res(v&&typeof v.json==='string'?v.json:null);};rq.onerror=()=>{db.close();res(null);};}catch(_){try{db.close();}catch(_){}res(null);}}));}
 let idbMirrorTimer=null,idbMirrorAllowed=false; // VERROU : aucun miroir tant que la décision de restauration n'est pas prise (sinon l'état vide du boot écraserait la sauvegarde)
 function scheduleIdbMirror(){if(!idbMirrorAllowed)return;clearTimeout(idbMirrorTimer);idbMirrorTimer=setTimeout(()=>{try{idbMirrorState(JSON.stringify(state));}catch(_){}},800);}
+// Statistiques du miroir (dernière copie + nb d'instantanés) pour le bilan de santé du stockage.
+async function idbMirrorStats(){try{const db=await idbOpen();if(!db)return null;const r=await new Promise(res=>{try{const tx=db.transaction('state','readonly'),store=tx.objectStore('state');const g=store.get('state'),kq=store.getAllKeys();let rec,keys;const done=()=>{if(rec===undefined||keys===undefined)return;res({at:(rec&&rec.at)||null,snapCount:(keys||[]).filter(k=>typeof k==='string'&&k.indexOf('snap:')===0).length});};g.onsuccess=()=>{rec=g.result||null;done();};g.onerror=()=>{rec=null;done();};kq.onsuccess=()=>{keys=kq.result||[];done();};kq.onerror=()=>{keys=[];done();};}catch(_){res(null);}});db.close();return r;}catch(_){return null;}}
+// Bilan de santé du stockage (Réglages → 🩺) : mesures brutes ici, synthèse pure dans logic.js.
+async function renderStorageHealth(){
+  const el=$('#storageHealth');if(el===null)return;
+  let stateBytes=0;try{stateBytes=new Blob([localStorage.getItem('irl-level-up')||'']).size;}catch(_){try{stateBytes=(localStorage.getItem('irl-level-up')||'').length;}catch(_){}}
+  let quota=0,usage=0,persisted=null;
+  try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();quota=e.quota||0;usage=e.usage||0;}}catch(_){}
+  try{if(navigator.storage&&navigator.storage.persisted)persisted=await navigator.storage.persisted();}catch(_){}
+  const m=await idbMirrorStats();
+  const s=(typeof storageHealthSummary==='function')?storageHealthSummary({stateBytes,quota,usage,persisted,mirrorAt:m&&m.at,snapCount:m&&m.snapCount,now:Date.now()}):null;
+  if(!s){el.hidden=true;return;}
+  el.hidden=false;el.className='settings-note storage-health sh-'+s.level;
+  el.innerHTML=s.lines.map(l=>`<span>${escapeHtml(l)}</span>`).join('<br>');
+}
 // Récupération : si localStorage était VIDE au chargement (bootWasEmpty = probable éviction/nettoyage)
 // et que le miroir contient de vraies données, on restaure — PWA seulement, le desktop a ses
 // sauvegardes disque. NB : ne pas tester automaticBackupReady ici, offerLocalBackupRestore le
@@ -959,7 +974,8 @@ render();renderWhatsNew();restoreFocusTimer();showPage('dashboard');setupCollaps
 // démarre QU'APRÈS la décision de restauration (verrou idbMirrorAllowed), sinon l'état vide du boot
 // écraserait la copie de secours avant qu'elle ait servi.
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(_){}
-restoreFromIdbIfEmpty().catch(()=>false).then(()=>{idbMirrorAllowed=true;scheduleIdbMirror();});
+restoreFromIdbIfEmpty().catch(()=>false).then(()=>{idbMirrorAllowed=true;scheduleIdbMirror();setTimeout(()=>{try{renderStorageHealth();}catch(_){}},2200);});
+$('#storageHealthBtn')?.addEventListener('click',()=>renderStorageHealth());
 $('#installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;const b=$('#installBtn');deferredInstall.prompt();try{await deferredInstall.userChoice;}catch(_){}deferredInstall=null;if(b)b.hidden=true;});
 $('#pwaReloadBtn')?.addEventListener('click',()=>location.reload());updateOnlineStatus();
 (function(){try{var standalone=(navigator.standalone===true)||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);var dismissed=false;try{dismissed=localStorage.getItem('irl-ios-hint')==='1';}catch(_){}if(!dismissed&&typeof isIosInstallable==='function'&&isIosInstallable(navigator.userAgent,standalone)){var h=$('#iosInstallHint');if(h){h.hidden=false;var b=$('#iosHintDismiss');if(b)b.onclick=function(){h.hidden=true;try{localStorage.setItem('irl-ios-hint','1');}catch(_){}};}}}catch(_){}})();

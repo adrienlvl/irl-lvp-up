@@ -4453,7 +4453,45 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.13');
+  assert.equal(L.CHANGELOG[0].v, '2.0.14');
+});
+
+test('formatBytes : o/Ko/Mo/Go et entrées invalides', () => {
+  assert.equal(L.formatBytes(0), '0 o');
+  assert.equal(L.formatBytes(512), '512 o');
+  assert.equal(L.formatBytes(2048), '2.0 Ko');
+  assert.equal(L.formatBytes(150 * 1024), '150 Ko');
+  assert.equal(L.formatBytes(2.5 * 1024 * 1024), '2.5 Mo');
+  assert.equal(L.formatBytes(3 * 1024 * 1024 * 1024), '3.00 Go');
+  assert.equal(L.formatBytes(-1), '—');
+  assert.equal(L.formatBytes(NaN), '—');
+  assert.equal(L.formatBytes('abc'), '—');
+});
+
+test('storageHealthSummary : niveaux et lignes du bilan de stockage', () => {
+  const now = 1700000000000;
+  // état léger, miroir frais, persistance accordée → ok
+  const ok = L.storageHealthSummary({ stateBytes: 200 * 1024, quota: 100e6, usage: 10e6, persisted: true, mirrorAt: now - 36e5, snapCount: 3, now });
+  assert.equal(ok.level, 'ok');
+  assert.ok(ok.lines[0].includes('200 Ko'));
+  assert.ok(ok.lines.some(l => l.includes('3 instantanés')));
+  assert.ok(ok.lines.some(l => l.includes('accordée')));
+  // état > 4 Mo → crit
+  assert.equal(L.storageHealthSummary({ stateBytes: 4.5 * 1024 * 1024, now }).level, 'crit');
+  // état > 2,4 Mo → warn
+  assert.equal(L.storageHealthSummary({ stateBytes: 3 * 1024 * 1024, now }).level, 'warn');
+  // quota utilisé à 85 % → warn
+  assert.equal(L.storageHealthSummary({ stateBytes: 1000, quota: 100, usage: 85, now }).level, 'warn');
+  // miroir vieux de 60 h → warn + ligne dédiée
+  const old = L.storageHealthSummary({ stateBytes: 1000, mirrorAt: now - 60 * 36e5, snapCount: 7, now });
+  assert.equal(old.level, 'warn');
+  assert.ok(old.lines.some(l => l.includes('pas été rafraîchi')));
+  // pas de miroir → ligne explicite, pas de crash
+  assert.ok(L.storageHealthSummary({ stateBytes: 1000, now }).lines.some(l => l.includes('pas encore de miroir')));
+  // entrée vide → objet cohérent
+  const empty = L.storageHealthSummary(null);
+  assert.equal(empty.level, 'ok');
+  assert.ok(Array.isArray(empty.lines) && empty.lines.length >= 2);
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
