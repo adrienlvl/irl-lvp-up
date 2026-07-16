@@ -389,6 +389,11 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-rejected-toggle{margin-top:12px;background:none;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font:inherit;font-size:.8rem;padding:7px 11px;cursor:pointer}
 .alt-rejected-toggle:hover{border-color:var(--accent,#6ee7b7);color:var(--text)}
 .alt-rejected-toggle[hidden]{display:none}
+.alt-target{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:rgba(110,231,183,.08);border:1px solid rgba(110,231,183,.35);border-left:3px solid var(--accent,#6ee7b7);border-radius:11px;font-size:.88rem}
+.alt-target-name{font-weight:700}
+.alt-target-score{font-size:.74rem;font-weight:700;color:#0c0f14;background:var(--accent,#6ee7b7);border-radius:999px;padding:2px 8px}
+.alt-target small{color:var(--muted)}
+.alt-target .alt-apply{margin-left:auto}
 .alt-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
 .alt-filter-row[hidden]{display:none}
 .alt-filter-row input{flex:1 1 200px;min-width:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:.86rem}

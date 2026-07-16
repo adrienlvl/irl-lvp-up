@@ -4453,7 +4453,32 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.16');
+  assert.equal(L.CHANGELOG[0].v, '2.0.17');
+});
+
+test('nextAlternanceTarget : la meilleure cible à postuler du jour', () => {
+  const apps = [
+    { id: 1, company: 'Moyenne SARL', status: 'a_postuler', score: 6 },
+    { id: 2, company: 'KPMG Lorient', status: 'a_postuler', score: 8 },
+    { id: 3, company: 'Déjà Postulé', status: 'postule', score: 10, date: '2026-07-10' },
+    { id: 4, company: 'Sans Score', status: 'a_postuler' },
+  ];
+  const t = L.nextAlternanceTarget(apps);
+  assert.equal(t.company, 'KPMG Lorient', 'la mieux notée parmi les À POSTULER (postulé=10 ignoré)');
+  assert.equal(t.score, 8);
+  // égalité de score → ordre alphabétique stable
+  const tie = L.nextAlternanceTarget([{ id: 1, company: 'Zeta', status: 'a_postuler', score: 7 }, { id: 2, company: 'Alpha', status: 'a_postuler', score: 7 }]);
+  assert.equal(tie.company, 'Alpha');
+  // sans score → quand même une cible (les notées passent devant)
+  assert.equal(L.nextAlternanceTarget([{ id: 4, company: 'Sans Score', status: 'a_postuler' }]).company, 'Sans Score');
+  // rien à postuler → null
+  assert.equal(L.nextAlternanceTarget([{ id: 3, company: 'X', status: 'refus' }]), null);
+  assert.equal(L.nextAlternanceTarget([]), null);
+  // le score survit à normalizeApplication et à la fusion
+  assert.equal(L.normalizeApplication({ score: '7' }).score, 7);
+  assert.equal(L.normalizeApplication({ score: 42 }).score, null, 'hors 0-10 → null');
+  const m = L.mergeApplications([{ id: 1, company: 'A', status: 'a_postuler' }], [{ company: 'A', status: 'a_postuler', score: 9 }]);
+  assert.equal(m.applications[0].score, 9);
 });
 
 test('filterApplications : recherche insensible aux accents + filtre statut', () => {
