@@ -2080,7 +2080,7 @@ function weeklySummaryText(sum) {
   lines.push(`🏋️ ${n(s.sessions)} séance${n(s.sessions) > 1 ? 's' : ''} · ${n(s.minutes)} min${n(s.km) ? ` · ${s.km} km` : ''}`);
   if (n(s.focusMin)) lines.push(`🧠 ${n(s.focusMin)} min de focus`);
   if (n(s.apps)) lines.push(`💼 ${n(s.apps)} candidature${n(s.apps) > 1 ? 's' : ''}${n(s.appEntretiens) ? ` · ${n(s.appEntretiens)} entretien${n(s.appEntretiens) > 1 ? 's' : ''} 🎉` : ''}`);
-  if (n(s.studyPlanned)) lines.push(`📚 ${n(s.studyDone)}/${n(s.studyPlanned)} révisions validées`);
+  if (n(s.studyPlanned)) lines.push(`📚 ${n(s.studyDone)}/${n(s.studyPlanned)} révision${n(s.studyPlanned) > 1 ? 's' : ''} validée${n(s.studyPlanned) > 1 ? 's' : ''}`);
   if (n(s.sleepAvg)) lines.push(`😴 ${s.sleepAvg} h de sommeil moyen`);
   return lines.join('\n');
 }
@@ -2140,7 +2140,7 @@ function monthlyRecapText(recap) {
   lines.push(`🏋️ ${n(r.sessions)} séance${n(r.sessions) > 1 ? 's' : ''} · ${n(r.minutes)} min${n(r.km) ? ` · ${r.km} km` : ''}`);
   if (n(r.wellness)) lines.push(`🧘 ${n(r.wellness)} séance${n(r.wellness) > 1 ? 's' : ''} bien-être`);
   if (n(r.focusMin)) lines.push(`🧠 ${n(r.focusMin)} min de focus`);
-  if (n(r.studyPlanned)) lines.push(`📚 ${n(r.studyDone)}/${n(r.studyPlanned)} révisions validées`);
+  if (n(r.studyPlanned)) lines.push(`📚 ${n(r.studyDone)}/${n(r.studyPlanned)} révision${n(r.studyPlanned) > 1 ? 's' : ''} validée${n(r.studyPlanned) > 1 ? 's' : ''}`);
   if (n(r.sleepAvg)) lines.push(`😴 ${r.sleepAvg} h de sommeil moyen`);
   lines.push(`📅 ${n(r.activeDays)} jour${n(r.activeDays) > 1 ? 's' : ''} actif${n(r.activeDays) > 1 ? 's' : ''}`);
   return lines.join('\n');
@@ -2600,6 +2600,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.36', emoji: '✍️', text: 'Bilan partagé plus soigné : quand une seule révision est prévue sur la semaine ou le mois, le texte partageable écrit « 0/1 révision validée » au singulier, au lieu de « 0/1 révisions validées ». Un « s » qui échappait à la règle d’accord suivie partout ailleurs dans ces mêmes bilans (séance, candidature, jour actif…). Rien d’autre ne change.' },
   { v: '2.0.35', emoji: '🔎', text: 'Recherche dans l’agenda insensible aux accents : taper « kine », « reunion » ou « chateau » (sans accent, réflexe courant) retrouve désormais « Kiné », « Réunion » ou « Château ». La barre de recherche ignorait déjà la casse ; elle ignore maintenant aussi les accents, comme les autres recherches libres de l’app. Rien d’autre ne change.' },
   { v: '2.0.34', emoji: '✍️', text: 'Petits accords corrigés : un tout premier anniversaire s’affiche désormais « (1 an) » et non « (1 ans) » dans « Ma journée », et le partage de progression sur les blocs de muscu écrit « 1 séance » plutôt que « 1 séances » quand un bloc n’en compte qu’une. Rien d’autre ne change — juste le pluriel qui suit enfin la règle partout ailleurs dans l’app.' },
   { v: '2.0.33', emoji: '🗓️', text: 'Agenda plus robuste : un événement dont la date ou l’heure serait mal formée (date impossible venue d’un fichier calendrier .ics abîmé, ou heure incohérente d’un import) n’est plus enregistré tel quel — la valeur invalide est neutralisée au lieu de planter dans une case introuvable. Comme partout ailleurs dans l’app, seule une date AAAA-MM-JJ et une heure HH:MM valides sont conservées. Aucune saisie normale n’est affectée (les champs date/heure produisent déjà ce format).' },

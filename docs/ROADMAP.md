@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.35 (2026-07-17)
+## 📍 État actuel — build 2.0.36 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**395**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**396**) :
+
+- ✍️ **Polish : « révision validée » au singulier dans les bilans partagés** (2.0.36) : les textes
+  partageables (Web Share) des bilans hebdo (`weeklySummaryText`) et mensuel (`monthlyRecapText`)
+  codaient « révisions validées » en dur au pluriel, alors qu'ils accordent tout le reste de leurs
+  lignes (séance, candidature, jour actif…). Une semaine/mois avec **une seule révision planifiée**
+  exportait donc « 0/1 révisions validées » au lieu du singulier correct. Accord désormais sur le
+  total planifié (`studyPlanned`) ; pluriel ≥ 2 inchangé. +2 assertions (cas `studyPlanned === 1`,
+  prouvés fautifs avant). Logique pure, zéro nouveau rendu. (`docs/recaps/396-accord-revision-validee-bilan.md`). ✅ _boucle #396._
 
 - 🔎 **Recherche d'agenda insensible aux accents** (2.0.35) : `agendaMatch` (barre de recherche
   libre de l'agenda, câblée à la vue semaine et à la vue jour) repliait la casse mais pas les

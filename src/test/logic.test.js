@@ -1207,8 +1207,12 @@ test('weeklySummaryText : bilan partageable formaté', () => {
   assert.match(txt, /Bilan de la semaine du 06\/07\/2026/);
   assert.match(txt, /3 séances · 150 min · 12 km/);
   assert.match(txt, /75 min de focus/);
-  assert.match(txt, /2\/4 révisions/);
+  assert.match(txt, /2\/4 révisions validées/);
   assert.match(txt, /7\.2 h de sommeil/);
+  // accord au singulier quand une seule révision planifiée (règle FR : 0 et 1 → singulier)
+  const one = L.weeklySummaryText({ studyDone: 0, studyPlanned: 1 });
+  assert.match(one, /0\/1 révision validée/);
+  assert.ok(!/révisions|validées/.test(one), 'pas de pluriel fautif pour studyPlanned = 1');
   // champs absents non affichés
   const min = L.weeklySummaryText({ sessions: 1, minutes: 30 });
   assert.ok(!/focus|révisions|sommeil/.test(min));
@@ -1313,8 +1317,12 @@ test('monthlyRecapText : texte partageable', () => {
   assert.match(txt, /Bilan de juillet 2026/);
   assert.match(txt, /12 séances · 600 min · 45 km/);
   assert.match(txt, /8 séances bien-être/);
-  assert.match(txt, /6\/8 révisions/);
+  assert.match(txt, /6\/8 révisions validées/);
   assert.match(txt, /20 jours actifs/);
+  // accord au singulier quand une seule révision planifiée dans le mois
+  const one = L.monthlyRecapText({ monthKey: '2026-07', sessions: 1, studyDone: 1, studyPlanned: 1 });
+  assert.match(one, /1\/1 révision validée/);
+  assert.ok(!/révisions|validées/.test(one), 'pas de pluriel fautif pour studyPlanned = 1');
   assert.equal(L.monthlyRecapText(null), '');
 });
 
@@ -4777,7 +4785,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.35');
+  assert.equal(L.CHANGELOG[0].v, '2.0.36');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
