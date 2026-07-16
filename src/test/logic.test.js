@@ -4503,6 +4503,30 @@ test('installNudge : nudge d’installation PWA contextuel', () => {
   assert.equal(L.installNudge({}, { canPrompt: true }).show, false);
   assert.equal(L.installNudge(null, {}).show, false);
 });
+test('isIosInstallable : aide d’installation iOS (dont iPad-as-Mac iPadOS 13+)', () => {
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15';
+  const ipadOld = 'Mozilla/5.0 (iPad; CPU OS 12_0 like Mac OS X) AppleWebKit/605.1.15';
+  const ipadNew = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15'; // iPadOS 13+ se fait passer pour un Mac
+  const mac = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15';
+  const android = 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36';
+  // Cas nominaux inchangés
+  assert.equal(L.isIosInstallable(iphone, false), true);
+  assert.equal(L.isIosInstallable(ipadOld, false), true);
+  assert.equal(L.isIosInstallable(android, false), false);
+  // Déjà installé en app (standalone) → pas d’aide
+  assert.equal(L.isIosInstallable(iphone, true), false);
+  // iPad iPadOS 13+ : reconnu via l’écran tactile même si l’UA dit « Macintosh »
+  assert.equal(L.isIosInstallable(ipadNew, false, 5), true);
+  assert.equal(L.isIosInstallable(ipadNew, true, 5), false); // déjà installé
+  // Vrai Mac de bureau (non tactile) → pas d’aide, pas de faux positif
+  assert.equal(L.isIosInstallable(mac, false, 0), false);
+  assert.equal(L.isIosInstallable(mac, false), false); // maxTouchPoints absent → ignoré
+  // Rétrocompat : sans 3ᵉ argument, un « Macintosh » reste non-iOS
+  assert.equal(L.isIosInstallable(ipadNew, false), false);
+  // Entrées vides
+  assert.equal(L.isIosInstallable('', false), false);
+  assert.equal(L.isIosInstallable(null, false), false);
+});
 test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour', () => {
   // compareVersions
   assert.equal(L.compareVersions('1.9.190', '1.9.189'), 1);
@@ -4530,7 +4554,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.26');
+  assert.equal(L.CHANGELOG[0].v, '2.0.27');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -23,10 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.26 (2026-07-16)
+## 📍 État actuel — build 2.0.27 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **409 tests + smoke** verts (harness durci, dont garde-fou CSS + 51 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**380**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **410 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**383**) :
 
+- 📲 **Aide d'installation reconnue sur iPad** (2.0.27) : `isIosInstallable` n'affichait jamais le
+  rappel « Ajoute l'app à l'écran d'accueil » sur iPad — depuis iPadOS 13, Safari annonce un UA
+  « Macintosh » (sans « iPad »), qui échouait au test. On reconnaît désormais l'iPad à son écran
+  tactile (`maxTouchPoints > 1`) ; un vrai Mac de bureau (0) n'est pas affecté, appels hérités
+  rétrocompatibles. Fonction (prétendue « testée », en fait sans test) couverte + check smoke
+  bloquant `iosInstallHint` (`docs/recaps/383-ipad-install-hint.md`). ✅ _boucle #383._
 - 💼 **Import alternance : date de candidature bornée** (2.0.26) : `jobDateFromText` (extraction de
   date à l'import CSV + sync Google Sheets, jusque-là non testée) recrachait toute date plausible —
   une cellule aberrante (`13/45/2026`, `2026-25-99`) stockait une **date fantôme** qui faussait le

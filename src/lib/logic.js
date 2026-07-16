@@ -2557,8 +2557,14 @@ const FITNESS_OBJECTIVES = [
 ];
 // Vrai si on est sur un appareil iOS non encore installé en app (Safari ne propose pas le bouton
 // d'installation → on affiche une aide « Ajouter à l'écran d'accueil »). Pur + testé.
-function isIosInstallable(userAgent, standalone) {
-  return /iphone|ipad|ipod/i.test(String(userAgent || '')) && standalone !== true;
+// iPadOS 13+ : Safari annonce un user-agent « Macintosh » (plus de « iPad ») — on reconnaît alors
+// l'iPad à son écran tactile (maxTouchPoints > 1), sinon l'aide ne s'afficherait jamais sur iPad.
+// Un vrai Mac de bureau a maxTouchPoints 0 → non affecté. maxTouchPoints absent → NaN → ignoré
+// (rétrocompatible avec les appels ne passant pas ce 3ᵉ argument).
+function isIosInstallable(userAgent, standalone, maxTouchPoints) {
+  const ua = String(userAgent || '');
+  const isTouchMac = /macintosh|mac os x/i.test(ua) && Number(maxTouchPoints) > 1;
+  return (/iphone|ipad|ipod/i.test(ua) || isTouchMac) && standalone !== true;
 }
 // Nudge d'installation PWA contextuel : ne propose l'ajout à l'écran d'accueil qu'APRÈS engagement
 // (séances loggées ≥ seuil), quand l'app est installable (canPrompt Android/desktop) mais pas déjà
@@ -2576,6 +2582,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.27', emoji: '📲', text: 'Aide d’installation sur iPad : sur iPadOS récent, Safari se fait passer pour un Mac (l’UA ne contient plus « iPad »), si bien que le rappel « Ajoute l’app à l’écran d’accueil » ne s’affichait jamais sur iPad. L’app reconnaît maintenant l’iPad à son écran tactile et propose l’aide comme sur iPhone. Aucun impact sur les vrais Mac de bureau (pas tactiles).' },
   { v: '2.0.26', emoji: '💼', text: 'Import des candidatures d’alternance plus robuste : une date de cellule aberrante (ex. « 13/45/2026 » ou un mois/jour hors bornes) est désormais ignorée au lieu d’être stockée telle quelle sur la candidature. Les vraies dates (AAAA-MM-JJ ou JJ/MM/AAAA, même noyées dans du texte) restent lues comme avant — plus de date fantôme qui fausse le tri du suivi.' },
   { v: '2.0.25', emoji: '📅', text: 'Correctif d’import calendrier (.ics) : un titre d’événement contenant un vrai « \\n » (backslash + lettre n, ex. un chemin de fichier) n’ajoute plus de retour à la ligne parasite. Le déséchappement iCalendar est désormais fait en une seule passe, propre — les séquences « \\, », « \\; » et « \\\\ » restent gérées comme avant.' },
   { v: '2.0.24', emoji: '🌙', text: 'Coach sommeil (4/4) — le coach RPG est complet. Ton plan de recalage affiche maintenant des conseils du soir calés sur ton coucher cible (dernier café, dîner, écrans, routine calme, lumière du matin), suit ton adhérence (« Nuits dans le plan : 4/5 · 🔥 3 d’affilée ») et te récompense en XP quand tu notes un coucher qui tient la cible du jour (+15, +25 si tu atteins l’objectif). Encouragements bienveillants quand tu dévies, sans culpabilité. Le système sommeil demandé est bouclé : bilan → capture → plan → coach.' },
