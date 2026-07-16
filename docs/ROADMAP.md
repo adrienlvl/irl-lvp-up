@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.32 (2026-07-17)
+## 📍 État actuel — build 2.0.33 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **428 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**392**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**393**) :
+
+- 🗓️ **Robustesse : `normalizeAgendaItem` valide enfin la date et l'heure d'un événement** (2.0.33) :
+  seul normalizer à ne jamais vérifier le format de `date`/`time` (ses sœurs `normalizeTodo` /
+  `normalizeRecurring` le font depuis longtemps), il laissait passer une date **format-valide mais
+  impossible** (`2026-13-99`, issue d'un `.ics` abîmé via `parseIcsDateTime` → `applyImportedIcs`) ou
+  une heure incohérente (`99:99`) — stockées dans l'agenda mais orphelines de toute vue. La date est
+  désormais **bornée** (mois 1-12, jour 1-31, comme `jobDateFromText`) et l'heure validée `HH:MM` ;
+  toute valeur invalide est neutralisée (`''`), défense en profondeur incluse contre le bug amont de
+  `parseIcsDateTime`. Aucune saisie normale n'est affectée. +1 test (428 → 429).
+  (`docs/recaps/393-normalize-agenda-date-time.md`). ✅ _boucle #393._
 
 - 🌙 **Demande d'Adrien : l'onglet Sommeil, étape 2/2** (2.0.32) : le « Bilan sommeil » juge
   désormais la régularité par l'heure de **coucher** (dès 3 nuits renseignées) plutôt que par la

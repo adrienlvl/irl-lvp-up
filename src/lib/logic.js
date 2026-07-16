@@ -667,12 +667,17 @@ function habitsAtRisk(habits, todayKey, minStreak) {
 // Idempotente ; les champs inconnus sont préservés (spread), les invalides corrigés.
 function normalizeAgendaItem(item) {
   const x = item && typeof item === 'object' ? item : {};
+  // Date AAAA-MM-JJ avec bornes réelles (mois 1-12, jour 1-31), comme jobDateFromText : une date
+  // format-valide mais impossible (ex. « 2026-13-99 » venue d'un .ics abîmé via parseIcsDateTime →
+  // applyImportedIcs) est neutralisée plutôt que stockée dans une case introuvable.
+  const dm = typeof x.date === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(x.date) : null;
+  const dateOk = dm && +dm[2] >= 1 && +dm[2] <= 12 && +dm[3] >= 1 && +dm[3] <= 31;
   return {
     ...x,
     id: Number(x.id) || Date.now(),
     title: String(x.title || 'Bloc'),
-    date: typeof x.date === 'string' ? x.date : '',
-    time: typeof x.time === 'string' ? x.time : '',
+    date: dateOk ? x.date : '',
+    time: typeof x.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.time) ? x.time : '',
     durationMin: Math.max(5, Math.min(600, Number(x.durationMin) || 60)),
     kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
     source: AGENDA_SOURCES.includes(x.source) ? x.source : (x.planId ? 'training' : 'manual'),
@@ -2595,6 +2600,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.33', emoji: '🗓️', text: 'Agenda plus robuste : un événement dont la date ou l’heure serait mal formée (date impossible venue d’un fichier calendrier .ics abîmé, ou heure incohérente d’un import) n’est plus enregistré tel quel — la valeur invalide est neutralisée au lieu de planter dans une case introuvable. Comme partout ailleurs dans l’app, seule une date AAAA-MM-JJ et une heure HH:MM valides sont conservées. Aucune saisie normale n’est affectée (les champs date/heure produisent déjà ce format).' },
   { v: '2.0.32', emoji: '🌙', text: 'Onglet Sommeil, demande d’Adrien (étape 2/2) : le « Bilan sommeil » juge maintenant la régularité par l’heure de COUCHER (dès 3 nuits renseignées) plutôt que par la durée de nuit. Une durée qui varie peut cacher un coucher parfaitement stable (juste un réveil différent) — et à l’inverse, un coucher qui saute d’une heure à l’autre peut passer inaperçu si la durée moyenne reste stable, alors que c’est justement ce qui dérègle le rythme. Sans heure de coucher saisie, le bilan retombe comme avant sur la durée. Verdict plus juste, sans rien changer d’autre au plan de recalage.' },
   { v: '2.0.31', emoji: '💼', text: 'Correction demandée : dans le suivi d’alternance, marquer une candidature « postulé » (ou tout autre changement de statut) est maintenant pris en compte de façon fiable — deux bugs corrigés. D’une part, une synchronisation Google Sheets (auto ou ré-import) en retard sur l’app ne peut plus écraser un statut déjà avancé (ex. « postulé » ou « refusé ») pour le remettre à un stade antérieur — seule une vraie progression est appliquée. D’autre part, changer un statut via le menu déroulant met désormais aussi à jour la carte « Le focus du moment » à l’instant, sans attendre un rendu complet suivant.' },
   { v: '2.0.30', emoji: '💼', text: 'Import de candidatures plus propre : une cellule sur plusieurs lignes (une note collée depuis Excel ou un tableur, où le saut de ligne interne était encodé en CRLF) ne laisse plus traîner de retour chariot parasite dans le texte importé. Les vrais sauts de ligne à l’intérieur d’une cellule sont préservés — seul le caractère invisible en trop est retiré.' },

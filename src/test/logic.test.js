@@ -102,6 +102,21 @@ test('normalizeAgendaItem : durationMin bornée [5..600], completed booléen', (
   assert.equal(L.normalizeAgendaItem({ id: 5, completed: 1 }).completed, true);
 });
 
+test('normalizeAgendaItem : date/heure mal formées neutralisées (comme normalizeTodo/normalizeRecurring)', () => {
+  // Date impossible (ex. issue d'un .ics abîmé via parseIcsDateTime → applyImportedIcs → .map(normalizeAgendaItem))
+  assert.equal(L.normalizeAgendaItem({ id: 1, title: 'X', date: '2026-13-99', time: '18:00' }).date, '', 'date hors bornes → vide');
+  assert.equal(L.normalizeAgendaItem({ id: 2, title: 'X', date: 'pas une date', time: '18:00' }).date, '', 'date non reconnue → vide');
+  // Heure incohérente
+  assert.equal(L.normalizeAgendaItem({ id: 3, title: 'X', date: '2026-07-06', time: '99:99' }).time, '', 'heure hors bornes → vide');
+  assert.equal(L.normalizeAgendaItem({ id: 4, title: 'X', date: '2026-07-06', time: '9h30' }).time, '', 'heure non HH:MM → vide');
+  // Les valeurs valides restent intactes, et l'heure vide (all-day / non horodaté) reste valide
+  const ok = L.normalizeAgendaItem({ id: 5, title: 'X', date: '2026-07-06', time: '07:05' });
+  assert.equal(ok.date, '2026-07-06');
+  assert.equal(ok.time, '07:05');
+  assert.equal(L.normalizeAgendaItem({ id: 6, title: 'X', date: '2026-07-06', time: '' }).time, '', 'heure vide (all-day) conservée');
+  assert.equal(L.normalizeAgendaItem({ id: 7, title: 'X', date: '2026-07-06', allDay: true }).date, '2026-07-06');
+});
+
 test('duplicateAgendaItem : nouvel id, repart à faire, détaché de planId/recId', () => {
   const src = { id: 10, title: 'Muscu', date: '2026-07-10', time: '18:00', kind: 'sport', completed: true, planId: 99, recId: 'r5', notes: 'haut du corps' };
   const copy = L.duplicateAgendaItem(src, 20);
@@ -4744,7 +4759,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.32');
+  assert.equal(L.CHANGELOG[0].v, '2.0.33');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
