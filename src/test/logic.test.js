@@ -1015,6 +1015,24 @@ test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions',
   assert.equal(r.studyDone, 1);
 });
 
+test('weeklySummary + weeklySummaryText : les candidatures de la semaine comptent', () => {
+  const state = {
+    applications: [
+      { id: 1, company: 'A', status: 'postule', date: '2026-07-07' },   // dans la semaine
+      { id: 2, company: 'B', status: 'entretien', date: '2026-07-09' }, // dans la semaine + entretien
+      { id: 3, company: 'C', status: 'postule', date: '2026-06-20' },   // hors semaine
+      { id: 4, company: 'D', status: 'a_postuler', date: '' },          // pas encore envoyée
+    ],
+  };
+  const r = L.weeklySummary(state, '2026-07-06');
+  assert.equal(r.apps, 2);
+  assert.equal(r.appEntretiens, 1);
+  const txt = L.weeklySummaryText(r);
+  assert.match(txt, /💼 2 candidatures · 1 entretien 🎉/);
+  // aucune candidature → pas de ligne alternance
+  assert.ok(!/💼/.test(L.weeklySummaryText(L.weeklySummary({}, '2026-07-06'))));
+});
+
 test('monthLabelFr : étiquette lisible du mois', () => {
   assert.equal(L.monthLabelFr('2026-07'), 'juillet 2026');
   assert.equal(L.monthLabelFr('2026-01'), 'janvier 2026');
@@ -4453,7 +4471,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.18');
+  assert.equal(L.CHANGELOG[0].v, '2.0.19');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

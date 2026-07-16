@@ -23,10 +23,11 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.18 (2026-07-16)
+## 📍 État actuel — build 2.0.19 (2026-07-16)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **384 tests + smoke** verts (harness durci, dont garde-fou CSS + 48 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**368**) :
 
+- 🏆 **Bilan hebdo : ligne alternance** (2.0.19) : le bilan de semaine partageable inclut « 💼 x candidatures · y entretiens » (`weeklySummary`/`weeklySummaryText` étendus, purs + testés). ✅ _boucle #375._
 - 🔁 **Alternance : relances en un clic + tri par score** (2.0.18) : chips de relance cliquables (statut « relance » + annulation), meilleures cibles en tête de liste (`compareApplications` pur + testé), score « ⭐ x/10 » affiché sur chaque ligne. ✅ _boucle #374._
 - 🎯 **Alternance : Cible du jour** (2.0.17) : le héros propose LA meilleure cible à postuler (score des Cibles conservé à la sync, `nextAlternanceTarget` pur + testé) avec bouton « J'ai postulé » intégré ; s'efface une fois la candidature du jour envoyée. Chaîne de motivation complète : coach → cible → clic → célébration. ✅ _boucle #373._
 - 🔍 **Alternance : recherche + filtre par statut** (2.0.16) : barre de recherche accent-insensible (entreprise/poste/ville/notes) + filtre statut dès 8 candidatures, compteur « 1 / 500 », filtre « Refusé » réaffiche les masquées. 2 ms sur 500 lignes. `filterApplications` pur + testé. ✅ _boucle #372._

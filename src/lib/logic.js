@@ -2034,10 +2034,15 @@ function weeklySummary(state, mondayKey) {
   const sleepAvg = rec.length ? rec.reduce((a, r) => a + (Number(r.sleep) || 0), 0) / rec.length : 0;
   const study = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.kind === 'study' && inWeek(a.date));
   const studyDone = study.filter(a => a.completed).length;
+  // Recherche d'alternance : candidatures de la semaine (date d'action dans la semaine) et
+  // celles déjà arrivées en entretien/acceptées — la priorité n°1 d'Adrien appartient au bilan.
+  const weekApps = (Array.isArray(s.applications) ? s.applications : []).filter(a => a && a.status !== 'a_postuler' && inWeek(a.date));
   return {
     mondayKey, sessions, minutes, km: Math.round(km * 10) / 10, load,
     focusMin, sleepAvg: Math.round(sleepAvg * 10) / 10,
-    studyPlanned: study.length, studyDone
+    studyPlanned: study.length, studyDone,
+    apps: weekApps.length,
+    appEntretiens: weekApps.filter(a => a.status === 'entretien' || a.status === 'accepte').length
   };
 }
 
@@ -2048,6 +2053,7 @@ function weeklySummaryText(sum) {
   const lines = [`Bilan de la semaine${s.mondayKey ? ' du ' + String(s.mondayKey).split('-').reverse().join('/') : ''} :`];
   lines.push(`🏋️ ${n(s.sessions)} séance${n(s.sessions) > 1 ? 's' : ''} · ${n(s.minutes)} min${n(s.km) ? ` · ${s.km} km` : ''}`);
   if (n(s.focusMin)) lines.push(`🧠 ${n(s.focusMin)} min de focus`);
+  if (n(s.apps)) lines.push(`💼 ${n(s.apps)} candidature${n(s.apps) > 1 ? 's' : ''}${n(s.appEntretiens) ? ` · ${n(s.appEntretiens)} entretien${n(s.appEntretiens) > 1 ? 's' : ''} 🎉` : ''}`);
   if (n(s.studyPlanned)) lines.push(`📚 ${n(s.studyDone)}/${n(s.studyPlanned)} révisions validées`);
   if (n(s.sleepAvg)) lines.push(`😴 ${s.sleepAvg} h de sommeil moyen`);
   return lines.join('\n');
@@ -2562,6 +2568,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.19', emoji: '🏆', text: 'Ton bilan de la semaine (à copier ou partager depuis l’accueil) inclut maintenant ta recherche d’alternance : « 💼 4 candidatures · 1 entretien 🎉 » aux côtés de tes séances, ton focus et ton sommeil. Ta priorité n°1 mérite sa place dans la revue de semaine.' },
   { v: '2.0.18', emoji: '🔁', text: 'Le suivi d’alternance travaille pour toi : les meilleures cibles (score le plus haut) remontent en tête de ta liste « à postuler », le score s’affiche sur chaque ligne, et les relances se traitent en un clic — quand ta relance est envoyée, clique l’entreprise dans le bandeau « Relances à faire » : statut mis à jour, avec annulation possible.' },
   { v: '2.0.17', emoji: '🎯', text: 'Fini l’hésitation devant 400 cibles : chaque jour, l’onglet Alternance te propose LA « Cible du jour » — la mieux notée de ta liste à postuler (score, ville) — avec son bouton « J’ai postulé » direct. Le score de tes Cibles est maintenant conservé à la sync, et une fois ta candidature du jour envoyée, la cible s’efface jusqu’à demain.' },
   { v: '2.0.16', emoji: '🔍', text: 'Ton suivi d’alternance devient navigable : une barre de recherche (entreprise, poste, ville, notes — accents ignorés) et un filtre par statut apparaissent dès que ta liste grandit. Avec des centaines de cibles synchronisées, retrouver une entreprise prend une seconde au lieu d’un long défilement. Filtrer sur « Refusé » les réaffiche le temps de la consultation.' },
