@@ -4453,7 +4453,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.8');
+  assert.equal(L.CHANGELOG[0].v, '2.0.9');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
@@ -5525,6 +5525,39 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: today }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');
   // alternance décrochée → plus de pression alternance
   assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'accepte', date: '2026-07-01' }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');
+});
+
+test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {
+  const today = '2026-07-16';
+  // sommeil = tier 0 (3 j la semaine passée, 1 cette semaine) ; sport = tier 2 (décrochage léger).
+  const base = {
+    recovery: [{ date: '2026-07-04', sleep: 7 }, { date: '2026-07-05', sleep: 7 }, { date: '2026-07-06', sleep: 7 }, { date: '2026-07-14', sleep: 7 }],
+    workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-15' }],
+  };
+  // Sans journal : le sommeil (plus gros décrochage) est le focus.
+  const f0 = L.adaptiveCoachFocus(base, today);
+  assert.equal(f0.pillar, 'sommeil'); assert.ok(!f0.rotated);
+  // 2 jours de suite seulement → pas encore de rotation.
+  const log2 = [{ date: '2026-07-14', pillar: 'sommeil' }, { date: '2026-07-15', pillar: 'sommeil' }];
+  assert.equal(L.adaptiveCoachFocus({ ...base, coachLog: log2 }, today).pillar, 'sommeil');
+  // 3 jours de suite → on passe au 2e pilier à corriger (sport), marqué rotated.
+  const log3 = [{ date: '2026-07-13', pillar: 'sommeil' }, ...log2];
+  const f3 = L.adaptiveCoachFocus({ ...base, coachLog: log3 }, today);
+  assert.equal(f3.pillar, 'sport'); assert.ok(f3.rotated); assert.match(f3.insight, /varie les angles/);
+  // Un jour différent intercalé casse la série → sommeil revient.
+  const logBroken = [{ date: '2026-07-13', pillar: 'sommeil' }, { date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sommeil' }];
+  assert.equal(L.adaptiveCoachFocus({ ...base, coachLog: logBroken }, today).pillar, 'sommeil');
+  // Un seul pilier à corriger → on bascule en renfort du meilleur élan (reinforce).
+  const solo = {
+    recovery: base.recovery,
+    focusSessions: [{ date: '2026-07-14', minutes: 25 }, { date: '2026-07-15', minutes: 25 }],
+    coachLog: log3,
+  };
+  const fs = L.adaptiveCoachFocus(solo, today);
+  assert.equal(fs.pillar, 'focus'); assert.equal(fs.tone, 'reinforce'); assert.ok(fs.rotated);
+  // L'alternance ne tourne JAMAIS, même après 3 jours.
+  const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-10' }], coachLog: [{ date: '2026-07-13', pillar: 'alternance' }, { date: '2026-07-14', pillar: 'alternance' }, { date: '2026-07-15', pillar: 'alternance' }] }, today);
+  assert.equal(alt.pillar, 'alternance');
 });
 
 test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', () => {

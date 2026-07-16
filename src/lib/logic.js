@@ -2534,6 +2534,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.9', emoji: '🧠', text: 'Ton coach a maintenant de la mémoire : s’il t’a proposé le même focus trois jours de suite sans que ça bouge, il change d’angle — deuxième priorité, ou renfort de ce qui marche — au lieu de répéter la même chose. Un coach qui radote finit ignoré ; celui-là varie pour garder ton attention. (La priorité alternance, elle, ne lâche jamais.)' },
   { v: '2.0.8', emoji: '🗂️', text: 'Suivi d’alternance plus lisible : les candidatures refusées sont désormais masquées par défaut — tu ne vois que ce sur quoi tu peux encore avancer. Un bouton « Afficher » les rappelle à l’écran quand tu veux (elles restent comptées dans tes stats). Elles ne sont pas supprimées, sinon la sync les réimporterait depuis ton Sheets.' },
   { v: '2.0.7', emoji: '🎯', text: 'Sync alternance plus maligne : ton grand onglet « Cibles » (des milliers d’entreprises) est filtré automatiquement pour ne garder que les bonnes cibles — note ≥ 6/10 et proches de toi (Morbihan, Ille-et-Vilaine, et Loudéac en Côtes-d’Armor). Fini la liste noyée : tu récupères une shortlist d’entreprises à qui postuler, pas 15 000 lignes.' },
   { v: '2.0.6', emoji: '📄', text: 'Sync auto de ton Google Sheets d’alternance : publie tes onglets « Cibles » et « Suivi Existant » en CSV (Fichier → Partager → Publier sur le web → CSV), colle les liens dans l’onglet Alternance, et l’app récupère tes candidatures toute seule — au démarrage et régulièrement. Fusion intelligente (pas de doublon, un suivi déjà avancé n’est jamais remis en arrière). 100 % local et sécurisé : seul ce que tu publies est lu.' },
@@ -4588,7 +4589,7 @@ function adaptiveCoachFocus(state, todayKey) {
     return 9;
   };
   const fixes = cands.map(c => ({ c, tier: tierOf(c) })).filter(x => x.tier < 9);
-  let chosen, tone;
+  let chosen, tone, rotated = false;
   if (fixes.length) {
     // À tier égal : le plus gros décrochage d'abord ; sinon le plus anciennement actif (dormant).
     fixes.sort((a, b) => a.tier - b.tier
@@ -4596,6 +4597,23 @@ function adaptiveCoachFocus(state, todayKey) {
       || ((b.c.lastActiveDays || 0) - (a.c.lastActiveDays || 0)));
     chosen = fixes[0].c;
     tone = fixes[0].tier === 1 ? 'revive' : 'rebuild';
+    // MÉMOIRE anti-radotage : si ce même pilier « à corriger » a déjà été le focus les 3 derniers
+    // jours (s.coachLog, rempli au rendu — un {date, pillar} par jour) et que rien ne s'est
+    // amélioré, on change d'angle : 2e pilier à corriger s'il existe, sinon on renforce le meilleur
+    // élan. Un coach qui répète mot pour mot finit ignoré ; varier ré-ouvre l'attention.
+    // (Le focus alternance ne passe jamais par ici : priorité absolue, il ne tourne pas.)
+    const log = Array.isArray(s.coachLog) ? s.coachLog : [];
+    const past = log.filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(String(e.date || '')) && e.date < todayKey)
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    let consec = 0;
+    for (const e of past) { if (e.pillar === chosen.pillar) consec++; else break; }
+    if (consec >= 3) {
+      if (fixes.length > 1) { chosen = fixes[1].c; tone = fixes[1].tier === 1 ? 'revive' : 'rebuild'; rotated = true; }
+      else {
+        const pool = cands.filter(c => c.pillar !== chosen.pillar && c.recentDays > 0).sort((a, b) => b.recentDays - a.recentDays);
+        if (pool.length) { chosen = pool[0]; tone = 'reinforce'; rotated = true; }
+      }
+    }
   } else {
     // Rien à corriger : on renforce la meilleure dynamique (hausse d'abord, sinon la plus régulière).
     const rising = cands.filter(c => c.trend === 'up');
@@ -4622,10 +4640,11 @@ function adaptiveCoachFocus(state, todayKey) {
     insight = `${jour(chosen.recentDays)} cette semaine, en hausse. Garde le rythme.`;
     action = 'Encore un jour actif aujourd’hui pour ancrer l’habitude.';
   }
+  if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated,
   };
 }
 

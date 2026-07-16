@@ -23,9 +23,11 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.8 (2026-07-16)
+## 📍 État actuel — build 2.0.9 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **381 tests + smoke** verts (harness durci, dont garde-fou CSS + 47 gardes smoke bloquants). Releases desktop **espacées** (~1/jour max hors session active ; electron-updater saute à la dernière) ; dernière Release publiée : `v2.0.8`. Livré au-delà de la roadmap initiale (boucles #36→**364**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **382 tests + smoke** verts (harness durci, dont garde-fou CSS + 47 gardes smoke bloquants). Releases desktop **espacées** (~1/jour max hors session active ; electron-updater saute à la dernière) ; dernière Release publiée : `v2.0.8`. Livré au-delà de la roadmap initiale (boucles #36→**365**) :
+
+- 🧠 **Coach adaptatif : mémoire anti-radotage** (2.0.9, 3.0 · Vague 1) : le coach journalise son focus quotidien (`state.coachLog`) et, après **3 jours du même pilier sans amélioration**, change d'angle (2ᵉ priorité ou renfort de ce qui marche) au lieu de répéter — « On varie les angles aujourd'hui. » L'alternance, priorité absolue, ne tourne jamais. Pur + testé, vérifié en navigateur. ✅ _boucle #365._
 
 - 🗂️ **Masquage des candidatures refusées** (2.0.8, demande d'Adrien) : le suivi n'affiche que les candidatures actives par défaut ; les refus (souvent nombreux après une sync) sont masqués derrière un bouton « Afficher » — pas supprimés (sinon la sync les réimporterait), donc conservés pour les stats. `state.hideRejected`, filtre au rendu. Vérifié sur les vraies données (214 refus masqués sur 717). ✅ _boucle #364._
 
