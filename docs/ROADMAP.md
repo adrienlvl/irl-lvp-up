@@ -25,8 +25,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.28 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **416 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**385**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **419 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**386**) :
 
+- 🧪 **Couverture : `icsEscape` + aller-retour ICS** (sans bump — tests seuls) : l'échappement des
+  valeurs TEXT iCalendar à l'**export** `.ics` (via `buildIcs`) était la dernière fonction pure
+  substantielle de ce chemin sans test direct — complément de l'import couvert en #381/#385. Fonction
+  **ordre-dépendante** (backslash échappé en premier, sinon double échappement) : rien ne gardait cet
+  ordre contre un futur refactor. **+3 blocs** (416 → 419) : chaque spécial isolé + deux-points intact
+  + bornes ; preuve directe de l'ordre (entrée `\,` → 4 caractères, pas 5) ; **invariant
+  `unescapeIcs(icsEscape(x)) === x`** sur des chaînes piégeuses (dont le backslash+« n » du bug #381) —
+  le contrat du workflow réel « exporter l'agenda puis le ré-importer ». Zéro changement de
+  comportement. (`docs/recaps/386-ics-escape-couverture.md`). ✅ _boucle #386._
 - 🧪 **Couverture : `parseIcsDateTime`** (sans bump — tests + export) : le cœur du parsing des dates
   iCalendar à l'import `.ics` (journée entière / heure flottante / instant UTC avec conversion en
   heure locale, `ms` sortable) était la seule fonction pure substantielle ni exportée ni testée.

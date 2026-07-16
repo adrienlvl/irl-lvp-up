@@ -292,6 +292,42 @@ test('unescapeIcs : backslash échappé suivi d un « n » littéral → « \\n 
   assert.equal(L.unescapeIcs('\\\\,'), '\\,');
 });
 
+test('icsEscape : échappe \\ ; , et sauts de ligne, laisse le reste (export .ics)', () => {
+  // Chaque caractère spécial iCalendar (RFC 5545, valeurs TEXT) est échappé individuellement.
+  assert.equal(L.icsEscape('a\\b'), 'a\\\\b'); // backslash → double backslash
+  assert.equal(L.icsEscape('x;y'), 'x\\;y'); // point-virgule
+  assert.equal(L.icsEscape('x,y'), 'x\\,y'); // virgule
+  assert.equal(L.icsEscape('l1\nl2'), 'l1\\nl2'); // saut de ligne → « \n » (backslash+n)
+  assert.equal(L.icsEscape('l1\r\nl2'), 'l1\\nl2'); // CRLF → un seul « \n »
+  // Le deux-points N a PAS besoin d échappement en TEXT : une heure « 12:30 » reste intacte.
+  assert.equal(L.icsEscape('12:30'), '12:30');
+  assert.equal(L.icsEscape(''), '');
+  assert.equal(L.icsEscape(null), '');
+  assert.equal(L.icsEscape(undefined), '');
+});
+
+test('icsEscape : le backslash est échappé EN PREMIER (sinon double échappement)', () => {
+  // Entrée « \, » = backslash littéral + virgule. L ordre correct (backslash d abord) donne
+  // « \\ » (backslash échappé) + « \, » (virgule échappée) = 4 caractères. Si la virgule était
+  // traitée avant, le backslash qu elle ajoute serait re-échappé → 5 caractères, faux.
+  assert.equal(L.icsEscape('\\,'), '\\\\\\,');
+  assert.equal([...L.icsEscape('\\,')].length, 4, 'exactement 4 caractères, pas de double échappement');
+});
+
+test('icsEscape ↔ unescapeIcs : aller-retour fidèle (export puis ré-import)', () => {
+  // Invariant du workflow réel d Adrien : exporter l agenda en .ics puis le ré-importer
+  // (Google/Apple Calendar) doit préserver le titre exactement. On verrouille le contrat.
+  for (const s of [
+    'Révision; compta, chap.1\nTVA', // les 4 spéciaux d un coup (comme le test buildIcs)
+    'Chemin C:\\next',               // backslash littéral suivi d un « n » (scénario du bug #381)
+    'a;b,c\\d\ne',                   // mélange dense
+    '\\',                            // backslash seul
+    'sans caractère spécial',
+  ]) {
+    assert.equal(L.unescapeIcs(L.icsEscape(s)), s, `aller-retour: ${JSON.stringify(s)}`);
+  }
+});
+
 test('parseIcs : SUMMARY avec backslash littéral échappé ne crée pas de saut de ligne', () => {
   const ics = 'BEGIN:VEVENT\r\nUID:bs\r\nSUMMARY:Chemin C:\\\\ndocs\r\nDTSTART:20260711T100000\r\nEND:VEVENT';
   const ev = L.parseIcs(ics, { baseId: 7 });
