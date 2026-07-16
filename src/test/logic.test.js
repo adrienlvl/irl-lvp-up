@@ -4453,7 +4453,20 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.17');
+  assert.equal(L.CHANGELOG[0].v, '2.0.18');
+});
+
+test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
+  const n = L.normalizeApplication;
+  // à postuler : score décroissant, sans note en queue
+  const aps = [n({ id: 1, company: 'Sans', status: 'a_postuler' }), n({ id: 2, company: 'Top', status: 'a_postuler', score: 9 }), n({ id: 3, company: 'Mid', status: 'a_postuler', score: 6 })].sort(L.compareApplications);
+  assert.deepEqual(aps.map(a => a.company), ['Top', 'Mid', 'Sans']);
+  // postulé : date décroissante d'abord (activité récente), même si le score diffère
+  const post = [n({ id: 1, company: 'Vieille', status: 'postule', date: '2026-06-01', score: 9 }), n({ id: 2, company: 'Récente', status: 'postule', date: '2026-07-10', score: 2 })].sort(L.compareApplications);
+  assert.equal(post[0].company, 'Récente');
+  // l'étape du pipeline prime toujours (à postuler avant postulé)
+  const mix = [n({ id: 1, company: 'P', status: 'postule', date: '2026-07-10' }), n({ id: 2, company: 'A', status: 'a_postuler', score: 1 })].sort(L.compareApplications);
+  assert.equal(mix[0].company, 'A');
 });
 
 test('nextAlternanceTarget : la meilleure cible à postuler du jour', () => {

@@ -379,7 +379,8 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-sync #altSheetStatus{color:var(--muted)}
 .alt-relances{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 4px;padding:9px 11px;background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.3);border-left:3px solid #818cf8;border-radius:10px}
 .alt-rel-label{font-size:.76rem;font-weight:650;color:var(--text)}
-.alt-rel-chip{font-size:.74rem;font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.alt-rel-chip{font-size:.74rem;font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;font-family:inherit;cursor:pointer}
+.alt-rel-chip:hover{border-color:#818cf8;background:rgba(129,140,248,.14)}
 .alt-rel-chip b{color:#818cf8}
 .alt-relances small{flex-basis:100%;color:var(--muted);font-size:.72rem}
 .storage-health{display:block;margin-top:8px;line-height:1.55}

@@ -563,7 +563,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.17'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.18'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -701,6 +701,27 @@ app.whenReady().then(async () => {
           const ok = list.children.length === 1 && !!list.querySelector('[data-sheet-del]') && !btn.hidden;
           state.sheetSyncUrls = saved; renderSheetSync();
           return ok;
+        })(),
+        altRelance: (() => {
+          if (typeof compareApplications !== 'function') return false;
+          const saved = state.applications, savedHide = state.hideRejected;
+          const pad = n => (n < 10 ? '0' + n : '' + n);
+          const d = new Date(); d.setDate(d.getDate() - 10);
+          const old = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+          state.applications = [
+            normalizeApplication({ id: 960, company: 'Relançable', status: 'postule', date: old }),
+            normalizeApplication({ id: 961, company: 'TopScore', status: 'a_postuler', score: 9 }),
+            normalizeApplication({ id: 962, company: 'BasScore', status: 'a_postuler', score: 2 })
+          ];
+          state.hideRejected = true; renderAlternance();
+          const firstRow = document.querySelector('#altList .alt-item');
+          const sortOk = firstRow && /TopScore/.test(firstRow.textContent) && firstRow.textContent.indexOf('9/10') !== -1;
+          const chip = document.querySelector('#altRelances [data-alt-relance]');
+          if (!sortOk || !chip) { state.applications = saved; state.hideRejected = savedHide; renderAlternance(); return false; }
+          chip.click();
+          const done = state.applications.find(a => a.id === 960).status === 'relance';
+          state.applications = saved; state.hideRejected = savedHide; renderAlternance();
+          return done;
         })(),
         altTarget: typeof nextAlternanceTarget === 'function' && (() => {
           const saved = state.applications, savedHide = state.hideRejected;
@@ -916,6 +937,7 @@ app.whenReady().then(async () => {
     if (!checks.altHideRejected) errors.push('Masquage des refusées KO (altRejectedToggle/hideRejected/rendu liste)');
     if (!checks.altFilter) errors.push('Recherche/filtre du suivi alternance KO (filterApplications/altSearch/altStatusFilter)');
     if (!checks.altTarget) errors.push('Cible du jour KO (nextAlternanceTarget/héros/flux J’ai postulé)');
+    if (!checks.altRelance) errors.push('Relances/tri par score KO (compareApplications/chips relance cliquables)');
     if (!checks.idbMirror) errors.push('Miroir IndexedDB KO (idbMirrorState/idbReadState : écriture/relecture)');
     if (!checks.storageHealth) errors.push('Santé du stockage KO (storageHealthSummary/renderStorageHealth/panneau Réglages)');
     if (!checks.importPreflight) errors.push('Préflight d’import KO (describeBackup/backupImportWarnings/confirmBackupImport)');
