@@ -337,3 +337,46 @@ details.calendar-setting[open]{padding-bottom:14px}
 .undo-toast .ut-undo{background:var(--accent,#6ee7b7);color:#04140f;border:0;border-radius:8px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer;flex:none}
 .undo-toast .ut-undo:hover{filter:brightness(1.06)}
 .undo-toast .ut-undo:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+/* ---- Module Recherche d'alternance ---- */
+.alternance-panel .alt-hero{display:grid;gap:10px;margin:14px 0 4px}
+.alt-deadline{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid #818cf8}
+.alt-deadline b{font-size:1.15rem;letter-spacing:-.02em}
+.alt-deadline small{color:var(--muted);font-size:.74rem}
+.alt-deadline.urgent{border-left-color:#f59e0b;background:rgba(245,158,11,.08)}
+.alt-deadline.urgent b{color:#f59e0b}
+.alt-today{padding:10px 13px;border-radius:10px;font-size:.9rem;font-weight:600;background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.3);color:var(--text)}
+.alt-today.done{background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.35);color:#4ade80}
+.alt-weekgoal{padding:11px 13px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
+.awg-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.82rem;font-weight:650}
+.awg-adj{display:flex;align-items:center;gap:9px}
+.awg-adj button{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--input-bg);color:var(--text);font-size:1rem;line-height:1;cursor:pointer}
+.awg-adj b{min-width:2.6rem;text-align:center;font-variant-numeric:tabular-nums}
+.awg-bar{height:9px;border-radius:999px;background:var(--input-bg);border:1px solid var(--line);overflow:hidden;margin:8px 0 6px}
+.awg-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#818cf8,#6ee7b7);transition:width .35s}
+.awg-bar i.awg-done{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.alt-weekgoal small{color:var(--muted);font-size:.74rem}
+.alt-stats{display:flex;flex-wrap:wrap;gap:7px}
+.alt-chip{font-size:.74rem;font-weight:650;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.alt-chip.fire{color:#e5843a;background:rgba(229,132,58,.12);border-color:rgba(229,132,58,.32)}
+.alt-form{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0 4px}
+.alt-form input{flex:1 1 150px;min-width:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:.9rem}
+.alt-form button{flex:none;white-space:nowrap}
+.alt-relances{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 4px;padding:9px 11px;background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.3);border-left:3px solid #818cf8;border-radius:10px}
+.alt-rel-label{font-size:.76rem;font-weight:650;color:var(--text)}
+.alt-rel-chip{font-size:.74rem;font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.alt-rel-chip b{color:#818cf8}
+.alt-relances small{flex-basis:100%;color:var(--muted);font-size:.72rem}
+.alt-list{display:grid;gap:8px;margin-top:14px}
+.alt-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:11px;padding:10px 12px}
+.alt-item-main{flex:1 1 140px;min-width:0}
+.alt-item-main b{display:block;font-size:.92rem}
+.alt-item-main small{display:block;color:var(--muted);font-size:.72rem;margin-top:2px}
+.alt-apply{padding:7px 11px;font-size:.8rem}
+.alt-status{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.8rem}
+.alt-del{background:none;border:0;color:var(--muted);font-size:1.2rem;line-height:1;cursor:pointer;padding:0 4px}
+.alt-del:hover{color:var(--pink,#fb7185)}
+.alt-item.alt-s-postule{border-left-color:#38bdf8}
+.alt-item.alt-s-relance{border-left-color:#818cf8}
+.alt-item.alt-s-entretien{border-left-color:#f59e0b}
+.alt-item.alt-s-accepte{border-left-color:#4ade80}
+.alt-item.alt-s-refus{border-left-color:#fb7185;opacity:.7}

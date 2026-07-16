@@ -449,6 +449,48 @@ test('todosForDay : actives (jour + en retard) triées, faites du jour séparée
   assert.deepEqual(done.map(t => t.id), [4]);
 });
 
+test('normalizeApplication : coercion + statut par défaut', () => {
+  const a = L.normalizeApplication({ id: 1, company: 'Acme SARL', role: 'Compta', status: 'postule', date: '2026-07-16', source: 'LinkedIn' });
+  assert.equal(a.company, 'Acme SARL'); assert.equal(a.status, 'postule'); assert.equal(a.date, '2026-07-16'); assert.equal(a.source, 'LinkedIn');
+  assert.equal(L.normalizeApplication({ status: 'zzz' }).status, 'a_postuler', 'statut inconnu → à postuler');
+  assert.equal(L.normalizeApplication({ date: 'pas-une-date' }).date, '', 'date invalide → vide');
+  assert.equal(L.normalizeApplication(null).company, '');
+});
+
+test('alternanceDeadline : prochain 1er août', () => {
+  assert.deepEqual(L.alternanceDeadline('2026-07-16'), { date: '2026-08-01', daysLeft: 16 });
+  assert.equal(L.alternanceDeadline('2026-08-15').date, '2027-08-01', 'après le 1er août → an prochain');
+  assert.equal(L.alternanceDeadline('2026-08-01').date, '2027-08-01', 'le jour même → an prochain');
+  assert.equal(L.alternanceDeadline('bad'), null);
+});
+
+test('applicationStats : moteur de motivation (aujourd’hui, semaine, série, relances)', () => {
+  const today = '2026-07-16'; // jeudi → lundi = 13/07
+  const apps = [
+    { id: 1, company: 'A', status: 'postule', date: '2026-07-16' },
+    { id: 2, company: 'B', status: 'postule', date: '2026-07-15' },
+    { id: 3, company: 'C', status: 'postule', date: '2026-07-14' },
+    { id: 4, company: 'D', status: 'entretien', date: '2026-07-01' },
+    { id: 5, company: 'E', status: 'postule', date: '2026-07-05' }, // relance : postulé il y a >7 j
+    { id: 6, company: 'F', status: 'a_postuler', date: '' }          // pas encore envoyée
+  ];
+  const s = L.applicationStats(apps, today, { weekGoal: 5, relanceDays: 7 });
+  assert.equal(s.total, 6);
+  assert.equal(s.sent, 5, '5 candidatures envoyées (avec date)');
+  assert.equal(s.appliedToday, true);
+  assert.equal(s.streak, 3, '14, 15, 16 juillet d’affilée');
+  assert.equal(s.weekCount, 3, 'A, B, C dans la semaine (lun 13/07 →)');
+  assert.equal(s.weekGoal, 5); assert.equal(s.weekReached, false);
+  assert.equal(s.entretiens, 1);
+  assert.equal(s.responseRate, 20, '1 réponse (entretien) sur 5 envoyées');
+  assert.deepEqual(s.pendingRelances.map(r => r.company), ['E']);
+  // tolérance : postulé hier mais rien aujourd'hui → série tient
+  assert.equal(L.applicationStats([{ id: 1, status: 'postule', date: '2026-07-15' }], '2026-07-16', {}).streak, 1);
+  // vide → tout à 0
+  const z = L.applicationStats([], today, {});
+  assert.equal(z.total, 0); assert.equal(z.streak, 0); assert.equal(z.appliedToday, false); assert.equal(z.weekReached, false);
+});
+
 test('habitStreak : un jour programmé manqué casse la série, les jours non programmés non', () => {
   // programmée lun/mer/ven, faite lun 6 + mer 8, mardi 7 non programmé ne compte pas
   const h = { id: 1, name: 'X', weekdays: [1, 3, 5], log: ['2026-07-06', '2026-07-08'] };
@@ -4288,7 +4330,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.0');
+  assert.equal(L.CHANGELOG[0].v, '2.0.1');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j

@@ -563,7 +563,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.0'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.1'; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
         bestSession: typeof bestSessionTonnage === 'function' && (() => { const w = [{ date: '2026-06-20', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 8 }] }, { date: '2026-07-01', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const b = bestSessionTonnage(w); return b.tonnage === 4000 && b.date === '2026-06-20' && b.count === 2 && b.isLatest === false && bestSessionTonnage([]) === null; })(),
@@ -643,6 +643,21 @@ app.whenReady().then(async () => {
         icsRrule: typeof parseRRule === 'function' && (parseIcs('BEGIN:VEVENT\\r\\nUID:x\\r\\nSUMMARY:R\\r\\nDTSTART:20260706T090000\\r\\nRRULE:FREQ=WEEKLY;BYDAY=MO\\r\\nEND:VEVENT')[0]||{}).recurrence != null,
         icsExport: typeof buildRRuleLine === 'function' && buildIcs([{ id: 1, title: 'R', time: '09:00', rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } }]).includes('RRULE:FREQ=WEEKLY'),
         todo: typeof todosForDay === 'function' && typeof normalizeTodo === 'function' && !!document.getElementById('todoForm') && !!document.getElementById('todoList') && !!document.getElementById('todoPriorityBtn'),
+        alternance: typeof applicationStats === 'function' && typeof normalizeApplication === 'function' && typeof alternanceDeadline === 'function' && !!document.querySelector('[data-page="alternance"]') && !!document.getElementById('altForm') && !!document.getElementById('altList') && !!document.getElementById('altHero') && typeof pageGroups === 'object' && Array.isArray(pageGroups.alternance) && (() => {
+          const s = applicationStats([{ id: 1, status: 'postule', date: '2026-07-16' }, { id: 2, status: 'entretien', date: '2026-07-01' }], '2026-07-16', { weekGoal: 5 });
+          if (!(s.sent === 2 && s.appliedToday === true && s.entretiens === 1 && alternanceDeadline('2026-07-16').date === '2026-08-01')) return false;
+          const saved = state.applications;
+          state.applications = [normalizeApplication({ id: 999, company: 'SmokeCorp', status: 'a_postuler', date: '' })];
+          renderAlternance();
+          const btn = document.querySelector('#altList [data-alt-apply="999"]');
+          const oh = window.haptic; try { window.haptic = () => {}; } catch (_) {}   // évite navigator.vibrate (bloqué sans geste → warning console)
+          if (btn) btn.click();
+          try { window.haptic = oh; } catch (_) {}
+          const app = state.applications.find(a => a.id === 999);
+          const ok = !!btn && app && app.status === 'postule' && !!app.date;
+          state.applications = saved; renderAlternance();
+          return ok;
+        })(),
         comfort: !!document.getElementById('backToTop') && !!document.getElementById('densityToggle') && !!document.getElementById('appVersion'),
         dialogBackdrop: typeof bindDialogBackdropClose === 'function' && (() => { const d = document.getElementById('questDialog'); if (!d) return false; try { d.showModal(); d.dispatchEvent(new MouseEvent('click', { clientX: 0, clientY: 0, bubbles: true })); const closed = !d.open; if (d.open) d.close(); return closed; } catch (_) { return false; } })(),
         autoUpdate: !!(window.desktop && typeof window.desktop.installUpdate === 'function' && typeof window.desktop.onUpdateStatus === 'function') && !!document.getElementById('updateBanner') && !!document.getElementById('updateInstallBtn'),
@@ -742,6 +757,7 @@ app.whenReady().then(async () => {
     if (!checks.icsRrule) errors.push('Import RRULE KO (parseRRule / parseIcs ne remonte pas recurrence)');
     if (!checks.icsExport) errors.push('Export RRULE KO (buildRRuleLine / buildIcs ne produit pas de RRULE)');
     if (!checks.todo) errors.push('To-Do absente (todosForDay/normalizeTodo/todoForm/todoList/todoPriorityBtn)');
+    if (!checks.alternance) errors.push('Module Alternance KO (applicationStats/normalizeApplication/onglet/flux « J\'ai postulé »)');
     if (!checks.comfort) errors.push('Confort absent (backToTop/densityToggle/appVersion)');
     if (!checks.autoUpdate) errors.push('Auto-update absent (desktop.installUpdate/onUpdateStatus/updateBanner)');
     if (!checks.weekPlanner) errors.push('Planificateur hebdo absent (buildWeekPlan/generateAutomaticWeek/7 cases jours)');
