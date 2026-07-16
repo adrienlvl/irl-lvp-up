@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.28 (2026-07-16)
+## 📍 État actuel — build 2.0.29 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **422 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**387**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **422 tests + smoke** verts (harness durci, dont garde-fou CSS + 53 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**388**) :
+
+- ♿ **Accessibilité : aria-label sur les flèches de navigation du calendrier** (2.0.29) : les 4
+  boutons `←`/`→` (précédent/suivant en vue mois et vue semaine) n'avaient **que le glyphe** comme
+  contenu — un lecteur d'écran annonçait « flèche gauche » sans contexte, seul trou restant dans la
+  convention déjà appliquée à `backToTop`, au stepper de poids et aux 8 `×` des dialogues. Ajout de
+  `aria-label` **+** `title` (« Mois précédent »… « Semaine suivante ») + nouveau check smoke
+  **bloquant** `navArrowsA11y` qui verrouille la convention. Zéro changement visuel. **Variation de
+  type** (accessibilité) après trois boucles de couverture. (`docs/recaps/388-fleches-nav-aria-label.md`). ✅ _boucle #388._
 
 - 🧪 **Couverture : `mealMacro`** (sans bump — tests + export) : la brique atomique qui met les
   macros d'un aliment à l'échelle de la portion (valeurs pour 100 g → portion réelle), appelée à
