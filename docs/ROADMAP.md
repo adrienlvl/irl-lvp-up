@@ -25,7 +25,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.29 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **422 tests + smoke** verts (harness durci, dont garde-fou CSS + 53 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**388**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **424 tests + smoke** verts (harness durci, dont garde-fou CSS + 53 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**389**) :
+
+- 🧪 **Couverture : `priorityRank`** (sans bump — tests seuls) : un balayage exhaustif des 355
+  fonctions `function` de `logic.js` n'en laissait plus **qu'une** sans aucun test direct — le
+  helper `priorityRank`, pourtant clé de tri de l'agenda ET des to-do. **+2 blocs** (422 → 424)
+  verrouillent son contrat : rang aligné sur `AGENDA_PRIORITIES` (prouvé contre la constante), et
+  surtout l'invariant subtil « **priorité inconnue → rang de `normal`** » (repli au milieu, jamais
+  reléguée en bas comme une `low`), testé sur des entrées hostiles (casse, non-string, `NaN`,
+  objets). Désormais **toutes les fonctions pures ont au moins un test**. Zéro changement de
+  comportement. (`docs/recaps/389-priority-rank-couverture.md`). ✅ _boucle #389._
+
 
 - ♿ **Accessibilité : aria-label sur les flèches de navigation du calendrier** (2.0.29) : les 4
   boutons `←`/`→` (précédent/suivant en vue mois et vue semaine) n'avaient **que le glyphe** comme

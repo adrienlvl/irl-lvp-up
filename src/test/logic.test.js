@@ -230,6 +230,27 @@ test('normalizeAgendaItem : priorité par défaut normal, valides gardées, inva
   assert.equal(L.normalizeAgendaItem({ id: 4, priority: 'urgent' }).priority, 'normal');
 });
 
+test('priorityRank : rang aligné sur AGENDA_PRIORITIES (fort → faible)', () => {
+  // Le rang EST l'index dans AGENDA_PRIORITIES : plus petit = plus prioritaire au tri.
+  assert.equal(L.priorityRank('high'), 0);
+  assert.equal(L.priorityRank('normal'), 1);
+  assert.equal(L.priorityRank('low'), 2);
+  // Ordre strict : high avant normal avant low (croissant = du plus fort au plus faible).
+  assert.ok(L.priorityRank('high') < L.priorityRank('normal'));
+  assert.ok(L.priorityRank('normal') < L.priorityRank('low'));
+  // Cohérence avec la source de vérité exportée.
+  L.AGENDA_PRIORITIES.forEach((p, i) => assert.equal(L.priorityRank(p), i));
+});
+
+test('priorityRank : priorité inconnue → rang normal (jamais reléguée en bas)', () => {
+  // indexOf === -1 → 1, le MÊME rang que 'normal' : une entrée à priorité corrompue
+  // se trie comme une normale, pas comme une 'low' rejetée en fin de liste.
+  const attendu = L.priorityRank('normal');
+  ['urgent', 'HIGH', 'Low', '', 'medium', 'p1'].forEach(p => assert.equal(L.priorityRank(p), attendu));
+  // Entrées non-string hostiles : indexOf ne matche pas → même repli sur normal.
+  [undefined, null, 0, 3, NaN, {}, [], ['high'], true].forEach(p => assert.equal(L.priorityRank(p), attendu));
+});
+
 test('todayItems : à heure égale, haute priorité avant basse', () => {
   const state = { agenda: [
     { id: 1, title: 'Basse', date: '2026-07-06', time: '09:00', kind: 'life', priority: 'low' },
