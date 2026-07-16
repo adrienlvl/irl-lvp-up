@@ -23,10 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.27 (2026-07-16)
+## 📍 État actuel — build 2.0.28 (2026-07-16)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **410 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**383**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **412 tests + smoke** verts (harness durci, dont garde-fou CSS + 52 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**384**) :
 
+- 🎂 **Anniversaires du 29 février fêtés les bonnes années** (2.0.28) : une personne née un 29 février
+  **disparaissait du calendrier** les années non bissextiles (`birthdaysForDay` ne matchait que le
+  29/02), et la liste « À venir » affichait une **date impossible** (`2027-02-29`) alors que
+  `daysUntil` était, lui, calculé pour le 1er mars via le rollover JS. Convention désormais cohérente
+  dans les deux fonctions : **29 févr. → 1er mars** les années non bissextiles (29 févr. les
+  bissextiles) ; `upcomingBirthdays` dérive `date` de l'occurrence réelle → plus de date fantôme.
+  Cas nominaux inchangés, règles séculaires couvertes (2000 vs 2100). +2 blocs de tests.
+  (`docs/recaps/384-anniversaire-29-fevrier.md`). ✅ _boucle #384._
 - 📲 **Aide d'installation reconnue sur iPad** (2.0.27) : `isIosInstallable` n'affichait jamais le
   rappel « Ajoute l'app à l'écran d'accueil » sur iPad — depuis iPadOS 13, Safari annonce un UA
   « Macintosh » (sans « iPad »), qui échouait au test. On reconnaît désormais l'iPad à son écran

@@ -374,13 +374,17 @@ function normalizeBirthday(item) {
 
 // Anniversaires tombant un jour donné (clé YYYY-MM-DD) → [{id, name, age|null}].
 // L'âge est celui atteint ce jour-là (année de la date − année de naissance).
+// Les années non bissextiles, un anniversaire du 29 février est fêté le 1er mars
+// (même convention que le rollup de date d'`upcomingBirthdays`).
 function birthdaysForDay(birthdays, dateKey) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || ''));
   if (!m) return [];
   const year = +m[1], month = +m[2], day = +m[3];
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const feb29OnMar1 = !isLeap && month === 3 && day === 1;
   return (Array.isArray(birthdays) ? birthdays : [])
     .map(normalizeBirthday)
-    .filter(b => b.day === day && b.month === month)
+    .filter(b => (b.day === day && b.month === month) || (feb29OnMar1 && b.day === 29 && b.month === 2))
     .map(b => ({ id: b.id, name: b.name, age: b.year ? year - b.year : null }));
 }
 
@@ -403,7 +407,10 @@ function upcomingBirthdays(birthdays, todayKey, opts) {
     if (next < today) { year++; next = new Date(year, b.month - 1, b.day); next.setHours(0, 0, 0, 0); }
     const daysUntil = Math.round((next - today) / 86400000);
     if (daysUntil > withinDays) return;
-    out.push({ id: b.id, name: b.name, date: `${year}-${pad(b.month)}-${pad(b.day)}`, age: b.year ? year - b.year : null, daysUntil });
+    // `date` reflète l'occurrence RÉELLE (le 29 févr. bascule au 1er mars les
+    // années non bissextiles via le rollover de `new Date`) → jamais de date fantôme.
+    const dateStr = `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
+    out.push({ id: b.id, name: b.name, date: dateStr, age: b.year ? year - b.year : null, daysUntil });
   });
   out.sort((a, b) => a.daysUntil - b.daysUntil || String(a.name).localeCompare(b.name));
   return max > 0 ? out.slice(0, max) : out;
@@ -2582,6 +2589,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.28', emoji: '🎂', text: 'Anniversaires du 29 février enfin fêtés les bonnes années : jusqu’ici, une personne née un 29 février disparaissait du calendrier les années non bissextiles (et la liste « À venir » affichait une date impossible, le 29 février d’une année sans 29 février). Désormais son anniversaire est fêté le 1er mars ces années-là — visible dans le calendrier, avec une date réelle dans « À venir ». Les années bissextiles, c’est toujours le 29 février.' },
   { v: '2.0.27', emoji: '📲', text: 'Aide d’installation sur iPad : sur iPadOS récent, Safari se fait passer pour un Mac (l’UA ne contient plus « iPad »), si bien que le rappel « Ajoute l’app à l’écran d’accueil » ne s’affichait jamais sur iPad. L’app reconnaît maintenant l’iPad à son écran tactile et propose l’aide comme sur iPhone. Aucun impact sur les vrais Mac de bureau (pas tactiles).' },
   { v: '2.0.26', emoji: '💼', text: 'Import des candidatures d’alternance plus robuste : une date de cellule aberrante (ex. « 13/45/2026 » ou un mois/jour hors bornes) est désormais ignorée au lieu d’être stockée telle quelle sur la candidature. Les vraies dates (AAAA-MM-JJ ou JJ/MM/AAAA, même noyées dans du texte) restent lues comme avant — plus de date fantôme qui fausse le tri du suivi.' },
   { v: '2.0.25', emoji: '📅', text: 'Correctif d’import calendrier (.ics) : un titre d’événement contenant un vrai « \\n » (backslash + lettre n, ex. un chemin de fichier) n’ajoute plus de retour à la ligne parasite. Le déséchappement iCalendar est désormais fait en une seule passe, propre — les séquences « \\, », « \\; » et « \\\\ » restent gérées comme avant.' },

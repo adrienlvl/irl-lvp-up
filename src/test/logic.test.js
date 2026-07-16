@@ -770,6 +770,36 @@ test('birthdaysForDay : sans année → age null ; date invalide → []', () => 
   assert.deepEqual(L.birthdaysForDay([{ id: 9, name: 'X', day: 3, month: 3 }], 'nope'), []);
 });
 
+test('birthdaysForDay : anniversaire du 29 février fêté le 1er mars les années non bissextiles', () => {
+  const leap = [{ id: 1, name: 'Leap', day: 29, month: 2, year: 2000 }];
+  // 2027 non bissextile : rien le 28, fêté le 1er mars (bug historique : disparaissait)
+  assert.deepEqual(L.birthdaysForDay(leap, '2027-02-28'), []);
+  assert.deepEqual(L.birthdaysForDay(leap, '2027-03-01'), [{ id: 1, name: 'Leap', age: 27 }]);
+  // 2028 bissextile : fêté le 29 février, pas le 1er mars
+  assert.deepEqual(L.birthdaysForDay(leap, '2028-02-29'), [{ id: 1, name: 'Leap', age: 28 }]);
+  assert.deepEqual(L.birthdaysForDay(leap, '2028-03-01'), []);
+  // 2100 non bissextile (divisible par 100 mais pas 400) → 1er mars
+  assert.deepEqual(L.birthdaysForDay(leap, '2100-03-01').map(x => x.name), ['Leap']);
+  // 2000 bissextile (divisible par 400) → 29 février
+  assert.deepEqual(L.birthdaysForDay(leap, '2000-02-29').map(x => x.name), ['Leap']);
+  // un vrai 1er mars et un 29 février cohabitent le 1er mars d'une année non bissextile
+  const both = [{ id: 1, name: 'Leap', day: 29, month: 2 }, { id: 2, name: 'Mars', day: 1, month: 3 }];
+  assert.deepEqual(L.birthdaysForDay(both, '2027-03-01').map(x => x.name), ['Leap', 'Mars']);
+});
+
+test('upcomingBirthdays : le 29 février donne une date réelle (jamais 02-29 en année non bissextile)', () => {
+  const leap = [{ id: 1, name: 'Leap', day: 29, month: 2, year: 2000 }];
+  // année non bissextile : l'occurrence réelle est le 1er mars, cohérente avec daysUntil
+  const nonLeap = L.upcomingBirthdays(leap, '2027-02-25', { withinDays: 30 })[0];
+  assert.equal(nonLeap.date, '2027-03-01');
+  assert.equal(nonLeap.daysUntil, 4);
+  assert.equal(nonLeap.age, 27);
+  // année bissextile : le vrai 29 février
+  const inLeap = L.upcomingBirthdays(leap, '2028-02-25', { withinDays: 30 })[0];
+  assert.equal(inLeap.date, '2028-02-29');
+  assert.equal(inLeap.daysUntil, 4);
+});
+
 test('upcomingBirthdays : prochains anniversaires triés par proximité, horizon + âge', () => {
   const bdays = [
     { id: 1, name: 'Adrien', day: 7, month: 7, year: 1999 },
@@ -4554,7 +4584,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.27');
+  assert.equal(L.CHANGELOG[0].v, '2.0.28');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
