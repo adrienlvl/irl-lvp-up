@@ -272,6 +272,33 @@ test('parseIcs : dépliage des lignes + déséchappement + réimport idempotent'
   assert.equal(merged.filter(a => a.refId === 'ics-x9').length, 1);
 });
 
+test('unescapeIcs : déséchappe \\n \\, \\; \\\\ (cas nominaux)', () => {
+  assert.equal(L.unescapeIcs('a\\nb'), 'a\nb'); // \n → saut de ligne
+  assert.equal(L.unescapeIcs('a\\Nb'), 'a\nb'); // \N (majuscule) aussi
+  assert.equal(L.unescapeIcs('x\\,y'), 'x,y'); // virgule échappée
+  assert.equal(L.unescapeIcs('x\\;y'), 'x;y'); // point-virgule échappé
+  assert.equal(L.unescapeIcs('x\\\\y'), 'x\\y'); // backslash échappé → un backslash
+  assert.equal(L.unescapeIcs(''), '');
+  assert.equal(L.unescapeIcs(null), '');
+});
+
+test('unescapeIcs : backslash échappé suivi d un « n » littéral → « \\n », pas un saut de ligne', () => {
+  // « \\n » = backslash échappé (\\ → \) + « n » littéral. Le résultat correct est
+  // les 2 caractères backslash+n, PAS un retour à la ligne (bug d ordre des replace).
+  assert.equal(L.unescapeIcs('\\\\n'), '\\n');
+  assert.equal([...L.unescapeIcs('\\\\n')].length, 2, 'deux caractères, aucun \\n');
+  assert.ok(!L.unescapeIcs('\\\\n').includes('\n'), 'aucun saut de ligne parasite');
+  // « \\, » = backslash échappé + virgule littérale → backslash + virgule
+  assert.equal(L.unescapeIcs('\\\\,'), '\\,');
+});
+
+test('parseIcs : SUMMARY avec backslash littéral échappé ne crée pas de saut de ligne', () => {
+  const ics = 'BEGIN:VEVENT\r\nUID:bs\r\nSUMMARY:Chemin C:\\\\ndocs\r\nDTSTART:20260711T100000\r\nEND:VEVENT';
+  const ev = L.parseIcs(ics, { baseId: 7 });
+  assert.equal(ev[0].title, 'Chemin C:\\ndocs'); // backslash + n conservés, pas de \n
+  assert.ok(!ev[0].title.includes('\n'));
+});
+
 test('parseIcs : entrée vide / sans VEVENT → []', () => {
   assert.deepEqual(L.parseIcs(''), []);
   assert.deepEqual(L.parseIcs('BEGIN:VCALENDAR\r\nEND:VCALENDAR'), []);
@@ -4471,7 +4498,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.24');
+  assert.equal(L.CHANGELOG[0].v, '2.0.25');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

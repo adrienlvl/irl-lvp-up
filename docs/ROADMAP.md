@@ -23,10 +23,15 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.24 (2026-07-16)
+## 📍 État actuel — build 2.0.25 (2026-07-16)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **404 tests + smoke** verts (harness durci, dont garde-fou CSS + 51 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**380**) :
 
+- 📅 **Robustesse import ICS : déséchappement corrigé** (2.0.25) : `unescapeIcs` (import `.ics`,
+  jusque-là non testé) faisait des `.replace()` séquentiels — un titre d'événement avec un vrai
+  `\n` (backslash + lettre n, ex. un chemin de fichier) ajoutait un retour à la ligne parasite.
+  Réécrit en une passe unique atomique (bug prouvé par test) ; fonction exportée + testée. Aucun
+  autre cas (`\,`, `\;`, `\\`) affecté. ✅ _boucle #381._
 - 😴 **Coach sommeil COMPLET (4/4) : bilan → capture → plan de recalage → coach RPG** (2.0.21-2.0.24, demande d'Adrien — `docs/recaps/380-systeme-sommeil.md`) : système sommeil bout en bout pour ramener Adrien d'un endormissement ~6 h vers un coucher nocturne. (1) « Bilan sommeil » (moyenne/dette/régularité en un verdict, `sleepCoachInsight`) ; (2) capture facultative de l'heure de coucher au check-in (`recovery[].bedtime`, `bedtimeAnchor` gérant le passage de minuit, `recentBedtimeAnchor` médian) ; (3) **plan de recalage progressif** — heure de coucher CIBLE du jour, décalage 20-30 min tous les 1-2 j vers l'objectif, **adaptation aux écarts** (le plan glisse sans culpabilité), progression + arrivée estimée honnête (`startSleepPlan`/`sleepPlanDay`) ; (4) coach RPG — conseils du soir calés sur la cible (`sleepEveningTips`), adhérence + série (`sleepPlanAdherence`), XP au coucher tenu (`sleepBedtimeReward`, +15/+25). Carte « 🌙 Plan de recalage » dans Récupération. ✅ _boucles #377→#380._
 - ♿ **A11y : boutons de fermeture libellés** (2.0.20) : les 8 boutons `×` qui ferment les fenêtres (agenda, quête, séance, séance guidée, revue de focus, fiche exercice, programme, historique) portent `aria-label="Fermer"` — annoncés correctement par les lecteurs d'écran. ✅ _boucle #376._
 - 🏆 **Bilan hebdo : ligne alternance** (2.0.19) : le bilan de semaine partageable inclut « 💼 x candidatures · y entretiens » (`weeklySummary`/`weeklySummaryText` étendus, purs + testés). ✅ _boucle #375._
