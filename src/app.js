@@ -771,26 +771,40 @@ function setupComfort(){
     if(sec)sec.hidden=false;
     if(verEl&&window.desktop.getVersion)window.desktop.getVersion().then(v=>{verEl.textContent='Version '+(v||'—');}).catch(()=>{});
     const setSt=(msg,kind)=>{if(stEl){stEl.textContent=msg;stEl.className='settings-note upd-st upd-st-'+(kind||'info');}};
-    window.desktop.onUpdateStatus(s=>{
-      if(!s)return;
-      if(banner&&txt){
-        if(s.state==='available'){banner.hidden=false;if(inst)inst.hidden=true;txt.textContent=`Mise à jour v${s.version||''} disponible — téléchargement en cours…`;}
-        else if(s.state==='downloading'){banner.hidden=false;if(inst)inst.hidden=true;txt.textContent=`Téléchargement de la mise à jour… ${s.percent||0} %`;}
-        else if(s.state==='ready'){banner.hidden=false;if(inst)inst.hidden=false;txt.textContent=`Mise à jour v${s.version||''} prête à installer.`;}
-      }
-      if(s.state==='checking')setSt('🔎 Recherche d’une mise à jour…','info');
-      else if(s.state==='none')setSt('✅ Ton application est à jour.','ok');
-      else if(s.state==='available')setSt(`⬇️ Mise à jour v${s.version||''} trouvée — téléchargement…`,'info');
-      else if(s.state==='downloading')setSt(`⬇️ Téléchargement… ${s.percent||0} %`,'info');
-      else if(s.state==='ready'){setSt(`✅ Mise à jour v${s.version||''} prête. Clique « Installer et redémarrer ».`,'ok');if(setInst)setInst.hidden=false;}
-      else if(s.state==='error')setSt('⚠️ Vérification impossible (hors ligne ?). Réessaie plus tard.','warn');
-      if(checkBtn&&s.state!=='checking')checkBtn.disabled=false;
-    });
+    window.desktop.onUpdateStatus(applyUpdateStatus);
     if(inst)inst.onclick=()=>window.desktop.installUpdate();
     if(setInst)setInst.onclick=()=>window.desktop.installUpdate();
     const dis=$('#updateDismissBtn');if(dis)dis.onclick=()=>{banner.hidden=true;};
     if(checkBtn)checkBtn.onclick=async()=>{checkBtn.disabled=true;setSt('🔎 Recherche d’une mise à jour…','info');let ok=true;try{ok=await window.desktop.checkForUpdate();}catch(_){ok=false;}if(ok===false){setSt('ℹ️ Les mises à jour s’installent automatiquement — la vérification manuelle n’est dispo que dans l’app installée.','info');checkBtn.disabled=false;}};
   }
+}
+// Statut de mise à jour (piloté par le process principal). Téléchargement SILENCIEUX en fond : la
+// pop-up n'apparaît QUE lorsque la MAJ est PRÊTE (état 'ready'), comme sur mobile — plus de bandeau
+// pendant le téléchargement. Les états checking/available/downloading/none restent visibles seulement
+// dans le panneau Réglages. Fonction de haut niveau (requêtes DOM à chaque appel) pour être testable.
+function applyUpdateStatus(s){
+  if(!s)return;
+  const banner=$('#updateBanner'),txt=$('#updateBannerText'),inst=$('#updateInstallBtn');
+  const stEl=$('#updateCheckStatus'),setInst=$('#updateSettingsInstall'),checkBtn=$('#updateCheckBtn');
+  if(banner&&txt){
+    if(s.state==='ready'){
+      banner.hidden=false;banner.classList.add('update-ready');
+      if(inst)inst.hidden=false;
+      txt.innerHTML=`<b>Version ${escapeHtml(String(s.version||''))} prête 🎉</b><small>Installe-la maintenant, ou elle se posera à la prochaine fermeture.</small>`;
+    } else if(!banner.classList.contains('update-ready')){
+      banner.hidden=true; // silencieux tant que ce n'est pas prêt
+    }
+  }
+  if(stEl){
+    const setSt=(m,k)=>{stEl.textContent=m;stEl.className='settings-note upd-st upd-st-'+(k||'info');};
+    if(s.state==='checking')setSt('🔎 Recherche d’une mise à jour…','info');
+    else if(s.state==='none')setSt('✅ Ton application est à jour.','ok');
+    else if(s.state==='available')setSt(`⬇️ Mise à jour v${s.version||''} trouvée — téléchargement en fond…`,'info');
+    else if(s.state==='downloading')setSt(`⬇️ Téléchargement en fond… ${s.percent||0} %`,'info');
+    else if(s.state==='ready'){setSt(`✅ Mise à jour v${s.version||''} prête. Clique « Redémarrer & installer » — ou ferme l’app, elle s’installera seule.`,'ok');if(setInst)setInst.hidden=false;}
+    else if(s.state==='error')setSt('⚠️ Vérification impossible (hors ligne ?). Réessaie plus tard.','warn');
+  }
+  if(checkBtn&&s.state!=='checking')checkBtn.disabled=false;
 }
 const ATHLETE_TABS={'athlete-companion':'seance','trail-panel':'seance','goal-panel':'seance','profile-panel':'seance','workout-panel':'seance','program-panel':'seance','objective-program-panel':'seance','wellness-panel':'seance','planning-panel':'seance','history-panel':'progres','photo-panel':'progres','measurements-panel':'progres','weekly-review-panel':'progres','personal-trends':'progres','charts-panel':'progres'};
 let athleteTab='seance';try{athleteTab=localStorage.getItem('irl-athlete-tab')||'seance';}catch(_){}if(athleteTab!=='seance'&&athleteTab!=='progres')athleteTab='seance';
