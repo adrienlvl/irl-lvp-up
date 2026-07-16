@@ -491,6 +491,36 @@ test('applicationStats : moteur de motivation (aujourd’hui, semaine, série, r
   assert.equal(z.total, 0); assert.equal(z.streak, 0); assert.equal(z.appliedToday, false); assert.equal(z.weekReached, false);
 });
 
+test('parseApplicationsCsv : import CSV (colonnes, statuts FR, dates, guillemets)', () => {
+  const csv = 'Entreprise,Poste,Statut,Date,Source\nCabinet Léa,Compta,Postulé,16/07/2026,LinkedIn\n"Groupe, Martin",Assistant,Entretien,2026-07-10,Indeed\nExpertise Sud,Alternant,À postuler,,\n';
+  const r = L.parseApplicationsCsv(csv);
+  assert.equal(r.length, 3);
+  assert.equal(r[0].company, 'Cabinet Léa'); assert.equal(r[0].status, 'postule'); assert.equal(r[0].date, '2026-07-16', 'date JJ/MM/AAAA → ISO');
+  assert.equal(r[1].company, 'Groupe, Martin', 'virgule dans un champ entre guillemets'); assert.equal(r[1].status, 'entretien'); assert.equal(r[1].date, '2026-07-10');
+  assert.equal(r[2].status, 'a_postuler', '« À postuler » ≠ « postulé »');
+  // sans en-tête reconnaissable → 1re colonne = entreprise, aucune ligne sautée
+  assert.deepEqual(L.parseApplicationsCsv('Boite A\nBoite B\n').map(a => a.company), ['Boite A', 'Boite B']);
+  // vide / lignes blanches
+  assert.deepEqual(L.parseApplicationsCsv(''), []);
+  assert.deepEqual(L.parseApplicationsCsv('\n\n'), []);
+});
+
+test('attentionDigest : nudge alternance (postuler aujourd’hui) si commencé et pas fait', () => {
+  const today = '2026-07-16';
+  const base = { recovery: [], agenda: [], workouts: [], habits: [] };
+  // a des candidatures mais pas postulé aujourd'hui → nudge
+  const d1 = L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-14' }] }, today);
+  assert.ok(d1.some(i => i.key === 'alternance' && i.page === 'alternance' && i.sev === 'high'), 'nudge présent');
+  // postulé aujourd'hui → pas de nudge
+  const d2 = L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'postule', date: today }] }, today);
+  assert.ok(!d2.some(i => i.key === 'alternance'), 'a postulé aujourd’hui → pas de nudge');
+  // alternance acceptée → on arrête de pousser
+  const d3 = L.attentionDigest({ ...base, applications: [{ id: 1, company: 'A', status: 'accepte', date: '2026-07-01' }] }, today);
+  assert.ok(!d3.some(i => i.key === 'alternance'), 'acceptée → plus de nudge');
+  // aucune candidature → pas de nudge
+  assert.ok(!L.attentionDigest({ ...base, applications: [] }, today).some(i => i.key === 'alternance'));
+});
+
 test('habitStreak : un jour programmé manqué casse la série, les jours non programmés non', () => {
   // programmée lun/mer/ven, faite lun 6 + mer 8, mardi 7 non programmé ne compte pas
   const h = { id: 1, name: 'X', weekdays: [1, 3, 5], log: ['2026-07-06', '2026-07-08'] };
@@ -4330,7 +4360,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.1');
+  assert.equal(L.CHANGELOG[0].v, '2.0.2');
 });
 test('membershipInfo : ancienneté et paliers de fidélité', () => {
   // jour d'install → 0 j, palier Nouveau, prochain = 7 j
