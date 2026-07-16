@@ -2568,6 +2568,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.23', emoji: '🌙', text: 'Coach sommeil (3/4) : le plan de recalage progressif est là. Fixe ton coucher visé (ex. 23:30) dans la Récupération, et l’app te donne CHAQUE SOIR l’heure de coucher cible — on avance de ~20-30 min tous les 1-2 jours, en douceur, depuis ton rythme réel (≈ 6 h). Le plan s’adapte si tu dévies : en retard, il ne réclame qu’un pas depuis là où tu en es (l’arrivée recule honnêtement) ; en avance, il te laisse tranquille. Barre de progression + date d’arrivée estimée à l’objectif.' },
   { v: '2.0.22', emoji: '🌙', text: 'Coach sommeil (2/4) : tu peux maintenant noter ton heure de coucher au check-in récup (champ facultatif, à côté de la durée). C’est ce qui manquait pour un vrai plan de recalage — l’app suit désormais à quelle heure tu te couches vraiment, nuit après nuit, même quand ça traverse minuit (6 h du matin est bien « plus tard » que 23 h). Le plan de décalage progressif arrive à l’étape suivante.' },
   { v: '2.0.21', emoji: '😴', text: 'Premier pas du coach sommeil demandé : la récup affiche un « Bilan sommeil » qui combine moyenne de la semaine, dette et régularité (nuit après nuit) en un seul verdict — repère la différence entre « je dors trop peu » et « je dors assez mais à des heures qui changent tout le temps ». Base du futur plan de recalage progressif vers un coucher plus tôt.' },
   { v: '2.0.20', emoji: '♿', text: 'Les boutons « × » qui ferment les fenêtres (agenda, quête, séance, séance guidée, revue de focus, fiche exercice, programme, historique) ont maintenant un libellé « Fermer » pour les lecteurs d’écran — un simple « × » sans texte n’était pas annoncé comme un bouton de fermeture.' },
@@ -4323,6 +4324,14 @@ function dateAfterWeeks(todayKey, weeks) {
   if (!t || w <= 0) return null;
   const d = new Date(+t[1], +t[2] - 1, +t[3]); d.setDate(d.getDate() + w * 7);
   const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+// Date au format YYYY-MM-DD `days` jours après `todayKey` (days peut être négatif). Null si invalide. Pur + testé.
+function dateAfterDays(todayKey, days) {
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || '')); const n = Math.round(Number(days) || 0);
+  if (!t) return null;
+  const d = new Date(+t[1], +t[2] - 1, +t[3]); d.setDate(d.getDate() + n);
+  const p = k => String(k).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 // Compare la durée réelle mesurée à la durée prévue : 'on' (proche), 'slow' (+30 %), 'fast' (−23 %). Null si invalide. Pur + testé.
@@ -6201,6 +6210,90 @@ function recentBedtimeAnchor(recovery, todayKey, limit) {
   return { anchor: median, time: bedtimeFromAnchor(median), nights: anchors.length };
 }
 
+// Plan de recalage du sommeil — normalisation robuste (import hostile, valeurs absurdes). Le plan
+// décrit un décalage progressif du coucher, du point de départ vers un objectif nocturne. Champs :
+// active (bool), targetTime/startTime ('HH:MM' normalisés), startKey (date de départ), stepMin
+// (10..60, décalage par pas), stepDays (1..3, un pas tous les N jours), lastReward (date du dernier
+// XP sommeil accordé). Un plan n'est actif que si objectif + départ + date de départ sont présents.
+// Pur + testé. Étape 3 du coach de recalage.
+function normalizeSleepPlan(plan) {
+  const p = (plan && typeof plan === 'object' && !Array.isArray(plan)) ? plan : {};
+  const norm = v => { const m = timeToMinutes(v); return m == null ? '' : minutesToTime(m); };
+  const targetTime = norm(p.targetTime), startTime = norm(p.startTime);
+  const startKey = /^\d{4}-\d{2}-\d{2}$/.test(String(p.startKey || '')) ? p.startKey : '';
+  const lastReward = /^\d{4}-\d{2}-\d{2}$/.test(String(p.lastReward || '')) ? p.lastReward : '';
+  const stepMin = Math.max(10, Math.min(60, Math.round(Number(p.stepMin) || 25)));
+  const stepDays = Math.max(1, Math.min(3, Math.round(Number(p.stepDays) || 1)));
+  const active = Boolean(p.active) && !!targetTime && !!startTime && !!startKey;
+  return { active, targetTime, startTime, startKey, stepMin, stepDays, lastReward };
+}
+
+// Démarre un plan de recalage : ancre le point de départ sur le coucher typique récent (médiane des
+// dernières nuits renseignées) — ou sur `opts.startTime` si fourni — vers `targetTime` (objectif
+// nocturne, ex. 23:30). Renvoie un plan normalisé prêt à stocker, ou null si l'objectif est invalide,
+// la date invalide, ou qu'aucune heure de coucher n'a jamais été saisie (impossible d'ancrer le
+// départ honnêtement). Pur + testé.
+function startSleepPlan(recovery, targetTime, todayKey, opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  const tgt = timeToMinutes(targetTime);
+  if (tgt == null || !/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''))) return null;
+  let startTime = timeToMinutes(o.startTime) != null ? minutesToTime(timeToMinutes(o.startTime)) : '';
+  if (!startTime) { const rec = recentBedtimeAnchor(recovery, todayKey, o.window || 5); if (rec) startTime = rec.time; }
+  if (!startTime) return null;
+  return normalizeSleepPlan({
+    active: true, targetTime: minutesToTime(tgt), startTime, startKey: todayKey, lastReward: '',
+    stepMin: o.stepMin != null ? o.stepMin : 25, stepDays: o.stepDays != null ? o.stepDays : 1,
+  });
+}
+
+// Cœur du coach de recalage : à partir du plan (coucher de départ → objectif) et des couchers réels
+// récents, calcule LE coucher cible du jour, la progression, l'écart au plan et une estimation
+// HONNÊTE d'arrivée. Décale ~stepMin plus tôt tous les stepDays jours (planning idéal), MAIS s'adapte
+// si l'utilisateur dévie : on ne demande jamais plus d'un pas au-delà du coucher réel récent — quand
+// Adrien est en retard, le plan glisse et la date d'arrivée recule au lieu d'exiger un saut impossible.
+// Renvoie { targetTime, goalTime, startTime, recentTime, progress, reached, adapted, status,
+// stepsLeft, daysLeft, arrivalKey, stepMin, stepDays, daysElapsed } ou null si plan inactif/invalide.
+// status : 'on' (dans les temps) | 'behind' (en retard, plan relâché) | 'ahead' (en avance). Pur + testé.
+function sleepPlanDay(plan, recovery, todayKey) {
+  const p = normalizeSleepPlan(plan);
+  if (!p.active || !/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''))) return null;
+  const startAnchor = bedtimeAnchor(p.startTime), targetAnchor = bedtimeAnchor(p.targetTime);
+  if (startAnchor == null || targetAnchor == null) return null;
+  const totalShift = startAnchor - targetAnchor;                 // > 0 : il faut avancer (se coucher plus tôt)
+  const daysElapsed = Math.max(0, daysUntil(p.startKey, todayKey) || 0);
+  const scheduledSteps = Math.floor(daysElapsed / p.stepDays);
+  const idealAnchor = Math.max(targetAnchor, startAnchor - scheduledSteps * p.stepMin);
+  const recent = recentBedtimeAnchor(recovery, todayKey, 3);
+  const recentAnchor = recent ? recent.anchor : null;
+  // Cible du jour : la planification idéale, mais jamais plus d'un pas au-delà de la réalité récente.
+  let targetTodayAnchor = idealAnchor, adapted = false;
+  if (recentAnchor != null && totalShift > 0) {
+    const gentle = recentAnchor - p.stepMin;                     // un seul pas depuis le coucher réel
+    if (gentle > idealAnchor) { targetTodayAnchor = Math.min(startAnchor, gentle); adapted = true; }
+  }
+  targetTodayAnchor = Math.max(targetAnchor, Math.min(startAnchor, targetTodayAnchor));
+  const reached = (recentAnchor != null && recentAnchor <= targetAnchor + 15) || (recentAnchor == null && targetTodayAnchor <= targetAnchor + 5);
+  // Progression : part du chemin déjà parcourue (référence = coucher réel, sinon planification idéale).
+  const donePos = recentAnchor != null ? Math.min(startAnchor, recentAnchor) : idealAnchor;
+  const progress = totalShift > 0 ? Math.max(0, Math.min(100, Math.round((startAnchor - donePos) / totalShift * 100))) : 100;
+  // Estimation d'arrivée basée sur la réalité : pas restants depuis le coucher réel récent.
+  const fromAnchor = recentAnchor != null ? recentAnchor : idealAnchor;
+  const remaining = Math.max(0, fromAnchor - targetAnchor);
+  const stepsLeft = Math.ceil(remaining / p.stepMin);
+  const daysLeft = stepsLeft * p.stepDays;
+  const arrivalKey = daysLeft > 0 ? dateAfterDays(todayKey, daysLeft) : todayKey;
+  let status = 'on';
+  if (recentAnchor != null) {
+    if (recentAnchor > idealAnchor + p.stepMin) status = 'behind';
+    else if (recentAnchor < idealAnchor - p.stepMin) status = 'ahead';
+  }
+  return {
+    targetTime: bedtimeFromAnchor(targetTodayAnchor), goalTime: p.targetTime, startTime: p.startTime,
+    recentTime: recent ? recent.time : null, progress, reached, adapted, status,
+    stepsLeft, daysLeft, arrivalKey, stepMin: p.stepMin, stepDays: p.stepDays, daysElapsed,
+  };
+}
+
 // Objectif d'eau du jour : base (défaut 8 verres) + 2 les jours d'entraînement
 // (besoins accrus par la sudation). Borné [1..20]. Pur + testé.
 function waterGoalFor(base, trainedToday) {
@@ -6332,5 +6425,5 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachFollowThrough, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, sleepCoachInsight, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, personalRecords, newRecords, weightTrend, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { localDate, nextThemeMode, resolveTheme, dateKey, weekStart, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, buildIcs, buildRRuleLine, parseIcs, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, loadAdvice, daysUntil, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, cooldownFor, supplementTiming, generateMeals, MEAL_STYLES, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachFollowThrough, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, sleepCoachInsight, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, personalRecords, newRecords, weightTrend, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionText, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

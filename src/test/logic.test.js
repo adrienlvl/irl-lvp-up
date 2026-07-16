@@ -4471,7 +4471,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.22');
+  assert.equal(L.CHANGELOG[0].v, '2.0.23');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5404,6 +5404,73 @@ test('recentBedtimeAnchor : médiane des couchers récents, résiste à une nuit
   assert.equal(L.recentBedtimeAnchor([{ date: '2026-07-06', sleep: 6 }], '2026-07-10', 5), null);
   // n'utilise pas les nuits postérieures à todayKey
   assert.equal(L.recentBedtimeAnchor(rec, '2026-07-07', 5).nights, 2);
+});
+
+test('dateAfterDays : décalage en jours, gère les mois et le négatif', () => {
+  assert.equal(L.dateAfterDays('2026-07-16', 16), '2026-08-01');
+  assert.equal(L.dateAfterDays('2026-07-16', 0), '2026-07-16');
+  assert.equal(L.dateAfterDays('2026-07-16', -1), '2026-07-15');
+  assert.equal(L.dateAfterDays('2026-12-31', 1), '2027-01-01');
+  assert.equal(L.dateAfterDays('invalide', 3), null);
+});
+
+test('normalizeSleepPlan : bornes et activation seulement si objectif + départ + date', () => {
+  const p = L.normalizeSleepPlan({ active: true, targetTime: '23:30', startTime: '6:00', startKey: '2026-07-16', stepMin: 200, stepDays: 9 });
+  assert.equal(p.active, true);
+  assert.equal(p.startTime, '06:00', 'heure normalisée en HH:MM');
+  assert.equal(p.stepMin, 60, 'plafonné à 60');
+  assert.equal(p.stepDays, 3, 'plafonné à 3');
+  assert.equal(L.normalizeSleepPlan({ active: true, targetTime: '23:30' }).active, false, 'sans départ → inactif');
+  assert.equal(L.normalizeSleepPlan(null).active, false);
+  assert.equal(L.normalizeSleepPlan('x').stepMin, 25, 'défaut 25 min');
+});
+
+test('startSleepPlan : ancre sur le coucher réel récent, refuse sans données', () => {
+  const rec = [{ date: '2026-07-15', sleep: 6, bedtime: '06:00' }];
+  const plan = L.startSleepPlan(rec, '23:30', '2026-07-16', {});
+  assert.equal(plan.active, true);
+  assert.equal(plan.startTime, '06:00');
+  assert.equal(plan.targetTime, '23:30');
+  assert.equal(plan.startKey, '2026-07-16');
+  assert.equal(L.startSleepPlan([], '23:30', '2026-07-16', {}), null, 'aucune heure saisie → null');
+  assert.equal(L.startSleepPlan(rec, 'invalide', '2026-07-16', {}), null);
+  // startTime explicite prime sur la médiane
+  assert.equal(L.startSleepPlan(rec, '23:30', '2026-07-16', { startTime: '04:00' }).startTime, '04:00');
+});
+
+test('sleepPlanDay : cible du jour, décalage progressif, adaptation aux écarts, arrivée honnête', () => {
+  const plan = { active: true, targetTime: '23:30', startTime: '06:00', startKey: '2026-07-16', stepMin: 25, stepDays: 1 };
+  assert.equal(L.sleepPlanDay({ active: false }, [], '2026-07-16'), null, 'plan inactif → null');
+
+  // Jour 0, aucune donnée : cible = départ, arrivée estimée dans 16 pas
+  const d0 = L.sleepPlanDay(plan, [], '2026-07-16');
+  assert.equal(d0.targetTime, '06:00');
+  assert.equal(d0.progress, 0);
+  assert.equal(d0.daysLeft, 16);
+  assert.equal(d0.arrivalKey, '2026-08-01');
+  assert.equal(d0.status, 'on');
+
+  // Jour 4, en retard (couche toujours 05:30 alors que l'idéal serait ~04:20) : le plan se relâche,
+  // ne demande qu'un pas depuis la réalité (05:05), et l'arrivée recule
+  const behind = [{ date: '2026-07-18', sleep: 6, bedtime: '05:30' }, { date: '2026-07-19', sleep: 6, bedtime: '05:30' }, { date: '2026-07-20', sleep: 6, bedtime: '05:30' }];
+  const d4 = L.sleepPlanDay(plan, behind, '2026-07-20');
+  assert.equal(d4.targetTime, '05:05', 'un seul pas depuis le coucher réel');
+  assert.equal(d4.adapted, true);
+  assert.equal(d4.status, 'behind');
+  assert.equal(d4.arrivalKey, '2026-08-04', 'arrivée repoussée honnêtement');
+
+  // Jour 4, en avance (déjà à 02:00) : on ne le brusque pas, cible = planification idéale, statut ahead
+  const ahead = [{ date: '2026-07-20', sleep: 7, bedtime: '02:00' }];
+  const da = L.sleepPlanDay(plan, ahead, '2026-07-20');
+  assert.equal(da.status, 'ahead');
+  assert.equal(da.adapted, false);
+  assert.ok(da.progress > 50);
+
+  // Objectif atteint : couche à 23:20 (≤ objectif) → reached, progression 100, 0 jour restant
+  const done = L.sleepPlanDay(plan, [{ date: '2026-07-30', sleep: 8, bedtime: '23:20' }], '2026-07-30');
+  assert.equal(done.reached, true);
+  assert.equal(done.progress, 100);
+  assert.equal(done.daysLeft, 0);
 });
 
 test('daysHittingTarget : jours ≥ cible pour un champ (eau)', () => {
