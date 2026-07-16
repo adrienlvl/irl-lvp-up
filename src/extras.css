@@ -382,6 +382,9 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-rel-chip{font-size:.74rem;font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
 .alt-rel-chip b{color:#818cf8}
 .alt-relances small{flex-basis:100%;color:var(--muted);font-size:.72rem}
+.alt-rejected-toggle{margin-top:12px;background:none;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font:inherit;font-size:.8rem;padding:7px 11px;cursor:pointer}
+.alt-rejected-toggle:hover{border-color:var(--accent,#6ee7b7);color:var(--text)}
+.alt-rejected-toggle[hidden]{display:none}
 .alt-list{display:grid;gap:8px;margin-top:14px}
 .alt-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:11px;padding:10px 12px}
 .alt-item-main{flex:1 1 140px;min-width:0}
