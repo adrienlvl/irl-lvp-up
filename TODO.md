@@ -7,8 +7,8 @@
 
 ## À faire
 
-- Ajouter une ligne « Configuré pour le travail autonome » à la fin du README.md
-
 ## En cours
+
+- Ajouter une ligne « Configuré pour le travail autonome » à la fin du README.md
 
 ## Terminé
