@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.38 (2026-07-17)
+## 📍 État actuel — build 2.0.39 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **430 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**398**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**399**) :
+
+- 🌙 **Bilan hebdo : le sommeil moyen ne compte plus les nuits « 0 h »** (2.0.39) : `weeklySummary`
+  divisait la somme des durées de sommeil par le nombre de check-ins récup, pas par le nombre de
+  nuits **réellement chiffrées**. Un check-in où l'on note seulement fatigue/courbatures (ou juste
+  son coucher) enregistre `sleep:0` (`Number(input.value) || 0`) → moyennée comme une nuit de 0 h.
+  Deux nuits à 8 h + une sans durée saisie donnaient 5,3 h au lieu de 8 h — faussant le PDF hebdo,
+  le bilan partagé, et déclenchant un **faux** nudge « sommeil moyen bas ». Toutes les sœurs
+  (`monthlyRecap`, `weeklySleepStats`, `sleepDebtHours`…) filtraient déjà `sleep > 0` ;
+  `weeklySummary` était le seul outlier. Filtre aligné, +1 test prouvé fautif avant (430 → 431).
+  Logique pure, zéro régression. (`docs/recaps/399-weekly-summary-sleep-avg.md`). ✅ _boucle #399._
 
 - 🛡️ **Robustesse : to-do et récurrence bornent enfin leur date** (2.0.38) : la boucle #393 avait
   borné la date de `normalizeAgendaItem` (mois 1-12, jour 1-31) « comme normalizeTodo/normalizeRecurring »

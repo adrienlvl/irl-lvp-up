@@ -1277,6 +1277,21 @@ test('weeklySummary : agrège séances, km, charge, focus, sommeil, révisions',
   assert.equal(r.studyDone, 1);
 });
 
+test('weeklySummary : une nuit sans sommeil saisi (sleep:0) ne plombe pas la moyenne', () => {
+  // Un check-in récup où l'utilisateur note fatigue/courbatures (ou juste son coucher) sans
+  // renseigner la durée de sommeil enregistre sleep:0 (app.js : Number(input.value) || 0).
+  // Cette nuit ne doit pas être moyennée comme une nuit de 0 h — comme monthlyRecap/weeklySleepStats.
+  const state = {
+    recovery: [
+      { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 },
+      { date: '2026-07-07', sleep: 8, fatigue: 2, soreness: 2 },
+      { date: '2026-07-08', sleep: 0, fatigue: 3, soreness: 2, bedtime: '23:00' } // sommeil non saisi
+    ]
+  };
+  const r = L.weeklySummary(state, '2026-07-06');
+  assert.equal(r.sleepAvg, 8);         // deux nuits à 8 h, pas 16/3 ≈ 5.3
+});
+
 test('weeklySummary + weeklySummaryText : les candidatures de la semaine comptent', () => {
   const state = {
     applications: [
@@ -4813,7 +4828,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.38');
+  assert.equal(L.CHANGELOG[0].v, '2.0.39');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

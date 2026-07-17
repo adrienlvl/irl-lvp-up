@@ -2062,7 +2062,10 @@ function weeklySummary(state, mondayKey) {
   const km = workouts.filter(w => w.type === 'run').reduce((a, w) => a + (Number(w.distance) || 0), 0);
   const load = workouts.reduce((a, w) => a + (Number(w.duration) || 0) * (Number(w.effort) || 2), 0);
   const focusMin = (Array.isArray(s.focusSessions) ? s.focusSessions : []).filter(f => f && inWeek(f.date)).reduce((a, f) => a + (Number(f.minutes) || 0), 0);
-  const rec = (Array.isArray(s.recovery) ? s.recovery : []).filter(r => r && inWeek(r.date));
+  // Sommeil moyen : seules les nuits réellement chiffrées comptent (comme monthlyRecap /
+  // weeklySleepStats). Un check-in récup sans heure de sommeil (fatigue/coucher seuls → sleep:0)
+  // ne doit pas être moyenné comme une nuit de 0 h — sinon fausse moyenne + faux nudge « sommeil bas ».
+  const rec = (Array.isArray(s.recovery) ? s.recovery : []).filter(r => r && inWeek(r.date) && (Number(r.sleep) || 0) > 0);
   const sleepAvg = rec.length ? rec.reduce((a, r) => a + (Number(r.sleep) || 0), 0) / rec.length : 0;
   const study = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.kind === 'study' && inWeek(a.date));
   const studyDone = study.filter(a => a.completed).length;
@@ -2606,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.39', emoji: '🌙', text: 'Bilan hebdo plus juste : le sommeil moyen de la semaine ne compte plus que les nuits vraiment renseignées. Un check-in de récupération où l’on note seulement sa fatigue, ses courbatures (ou juste son heure de coucher) sans saisir la durée de sommeil ne tire plus la moyenne vers le bas comme une nuit de 0 h. Fini le chiffre faussement bas dans le PDF hebdo et le bilan partagé — et le faux conseil « sommeil moyen bas » qui allait avec. C’est déjà ainsi que le bilan mensuel calculait.' },
   { v: '2.0.38', emoji: '🛡️', text: 'Données plus robustes : une tâche à faire ou un bloc récurrent dont la date serait impossible (par exemple « 2026-13-99 » venue d’une sauvegarde abîmée ou modifiée à la main) n’est plus enregistré tel quel — la date invalide est neutralisée au lieu d’orpheliner l’entrée dans une case introuvable (jamais affichée nulle part). C’est le même garde-fou que l’agenda avait déjà reçu, désormais partagé par les to-do et la récurrence. Aucune saisie normale n’est affectée (les champs date produisent déjà une date réelle).' },
   { v: '2.0.37', emoji: '♿', text: 'Accessibilité : la petite case 🔔 qui active le bip de fin de repos (dans la séance guidée) est maintenant correctement nommée pour les lecteurs d’écran (« Bip sonore à la fin du repos ») au lieu d’être annoncée comme une simple « cloche ». Rien ne change visuellement — c’est la même case, juste enfin compréhensible à la voix.' },
   { v: '2.0.36', emoji: '✍️', text: 'Bilan partagé plus soigné : quand une seule révision est prévue sur la semaine ou le mois, le texte partageable écrit « 0/1 révision validée » au singulier, au lieu de « 0/1 révisions validées ». Un « s » qui échappait à la règle d’accord suivie partout ailleurs dans ces mêmes bilans (séance, candidature, jour actif…). Rien d’autre ne change.' },
