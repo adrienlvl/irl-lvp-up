@@ -4874,7 +4874,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.44');
+  assert.equal(L.CHANGELOG[0].v, '2.0.45');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5075,6 +5075,16 @@ test('pendingBadgeCount : actions en attente pour le badge PWA', () => {
   };
   // 2 quêtes non faites + 2 séances sport du jour = 4
   assert.equal(L.pendingBadgeCount(state, '2026-07-13'), 4);
+  // une séance sport du jour DÉJÀ FAITE n'est plus en attente (comme sportToday) → non comptée
+  const doneState = {
+    quests: [{ done: false }],
+    agenda: [
+      { date: '2026-07-13', kind: 'sport', completed: true },  // terminée → ignorée
+      { date: '2026-07-13', kind: 'sport', completed: false }, // à faire → comptée
+    ],
+  };
+  // 1 quête + 1 séance à faire = 2 (avant le correctif : 3, la séance terminée était comptée)
+  assert.equal(L.pendingBadgeCount(doneState, '2026-07-13'), 2);
   // aucune action → 0
   assert.equal(L.pendingBadgeCount({ quests: [{ done: true }], agenda: [] }, '2026-07-13'), 0);
   // borné à 99

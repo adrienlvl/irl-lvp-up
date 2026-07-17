@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.44 (2026-07-17)
+## 📍 État actuel — build 2.0.45 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**404**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**405**) :
+
+- 🔔 **Badge PWA : une séance de sport terminée n'est plus comptée « en attente »** (2.0.45) :
+  `pendingBadgeCount` (`logic.js:2833`) alimente la pastille de l'icône PWA (`setAppBadge` via
+  `app.js:580`). La moitié « quêtes » excluait bien les items faits (`!q.done`), mais la moitié
+  « sport » comptait **toute** séance du jour, terminée ou non — alors que `completed` est un champ
+  normalisé réel (`normalizeAgendaItem`) et que la sœur `sportToday` (`logic.js:96`) filtre bien
+  `!a.completed`. Après avoir **fait** sa séance planifiée, l'utilisateur voyait la pastille rester
+  allumée comme s'il restait une action, jusqu'au lendemain. Filtre `!a.completed` ajouté (aligné sur
+  `sportToday`). +1 cas prouvé fautif avant (431 tests). Logique pure, zéro régression, variation de
+  domaine (badge/notifications). (`docs/recaps/405-pending-badge-completed-session.md`). ✅ _boucle #405._
 
 - 🏃 **Paliers de course : le premier palier n'est plus écrasé** (2.0.44) : `intermediateGoals`
   (`logic.js:1526`) centrait chaque palier sur l'échelle des distances avec `Math.round`, un cran trop

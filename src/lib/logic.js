@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.45', emoji: '🔔', text: 'Badge d’icône PWA plus juste : une fois ta séance de sport du jour terminée, la pastille de notification sur l’icône de l’app ne la compte plus comme une action en attente. Avant, le badge restait allumé après ta séance faite (elle était comptée jusqu’au lendemain) ; il ne reflète désormais que ce qu’il te reste vraiment à faire — quêtes non cochées et séances du jour pas encore faites.' },
   { v: '2.0.44', emoji: '🏃', text: 'Paliers de course plus complets : les objectifs intermédiaires proposés vers ta course (10 km, semi-marathon…) n’écrasent plus le premier palier. Pour un marathon préparé sur ~8 mois, l’app n’affichait par erreur que le semi et perdait le palier 10 km ; elle propose désormais bien la progression complète et croissante. Le calcul qui répartit les paliers sur le temps disponible visait un cran trop haut et faisait fusionner les deux premiers.' },
   { v: '2.0.43', emoji: '⚖️', text: 'Conseil de poids cible plus juste au seuil : quand tu fixes un poids objectif, l’avertissement sur son réalisme (« insuffisance pondérale », « cible reste haute ») se base désormais sur l’IMC réel de la cible, et non sur la valeur affichée arrondie. Une cible à IMC réel 18,46 (affichée 18,5) déclenche bien l’alerte santé « insuffisance pondérale », au lieu d’un simple « cible très basse » ; même logique pour le haut de l’échelle. Le chiffre affiché ne change pas — c’est le prolongement du correctif IMC de la 2.0.40.' },
   { v: '2.0.42', emoji: '🏋️', text: 'Cible de progression plus juste : quand tu logues deux séances le même jour pour un même exercice (par exemple ta vraie séance lourde puis un finisher plus léger), la suggestion de charge se base désormais sur ta MEILLEURE série du jour, plus sur la dernière saisie. Avant, un finisher léger enregistré après ta séance de référence pouvait l’écraser et te faire repartir d’une charge trop basse. C’est la même règle « meilleure série retenue » que l’app applique déjà à l’intérieur d’une même séance.' },
@@ -2829,12 +2830,13 @@ function shouldReacquireWakeLock(dialogOpen, visibilityState) {
   return !!dialogOpen && visibilityState === 'visible';
 }
 // Nombre d'actions en attente aujourd'hui, pour le badge de l'icône PWA (setAppBadge) : quêtes non
-// cochées + séances de sport planifiées ce jour. Borné à 99. Pur + testé.
+// cochées + séances de sport du jour NON faites. Borné à 99. Une séance déjà terminée n'est plus « en
+// attente » (même filtre `!a.completed` que sportToday, ligne 96). Pur + testé.
 function pendingBadgeCount(state, todayKey) {
   const s = state || {};
   const today = String(todayKey || '');
   const quests = Array.isArray(s.quests) ? s.quests.filter(q => q && !q.done).length : 0;
-  const sessions = Array.isArray(s.agenda) ? s.agenda.filter(a => a && a.date === today && a.kind === 'sport').length : 0;
+  const sessions = Array.isArray(s.agenda) ? s.agenda.filter(a => a && a.date === today && a.kind === 'sport' && !a.completed).length : 0;
   return Math.min(99, quests + sessions);
 }
 // Motif de vibration (retour haptique mobile) pour un événement : tableau de durées en ms (compatible
