@@ -2727,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.72', emoji: '📈', text: 'Tendance de forme (onglet Athlète → Récupération, sous ton check-in) : le mini-graphe « Forme · N derniers check-ins » et sa flèche de tendance comptent désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton historique de récupération, ce jour apparaissait DEUX fois dans la courbe : la fenêtre des « 8 derniers » glissait alors sur des saisies au lieu de vrais jours, et la flèche haut/bas (calculée entre le premier et le dernier point) pouvait indiquer une tendance fausse. C’est corrigé (une entrée par date, la plus récente gagne — comme à l’enregistrement, qui remplaçait déjà le check-in du jour). Rien ne change quand chaque journée n’apparaît qu’une fois.' },
   { v: '2.0.71', emoji: '🌱', text: 'Suivi du « pas du jour » (accueil) : le compteur « X/Y · Z % » sous ta série de pas tenus compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de pas, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🌱 … d’affilée) juste à côté ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent (dernier pas gagné pour une date en double, comme à l’enregistrement). Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
   { v: '2.0.70', emoji: '🏅', text: 'Série de « journées parfaites » (quêtes du jour) : le compteur « X/Y jours parfaits · Z % » compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de quêtes, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🏅 … d’affilée) juste à côté, elle, ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent. Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
   { v: '2.0.69', emoji: '📊', text: 'Adhérence de la semaine (Mon plan) : les lignes « Protéines à la cible » et « Hydratation » comptent désormais des JOURS distincts, jamais des saisies. Si une même journée était enregistrée deux fois (import, restauration de sauvegarde, ou double check-in), elle gonflait le compteur — « Hydratation (3 j) » pouvait s’afficher pour 2 vrais jours seulement, et l’objectif se validait à tort. Le sommeil moyen de la semaine ne compte lui aussi qu’une nuit par date. C’est maintenant cohérent avec le panneau Nutrition qui, lui, dédupliquait déjà par date. Rien ne change quand tu n’as qu’une saisie par jour.' },
@@ -6279,8 +6280,16 @@ function readinessScore(recovery) {
 // + delta entre le premier et le dernier de la fenêtre. Null si < 2 check-ins. Pur + testé.
 function readinessTrend(recoveryList, limit) {
   const lim = Math.max(2, Math.min(30, Math.round(Number(limit) || 8)));
-  const pts = (Array.isArray(recoveryList) ? recoveryList : [])
-    .filter(r => r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.date || '')))
+  // Déduplique par date (Map, dernier gagné) — cohérent avec l'écriture (saveRecovery filtre la date
+  // avant push) et avec les sœurs (weeklySleepStats/sleepSeries/sleepRegularity/sleepDebtHours, qui
+  // agrègent toutes par date). Sans dédup, un doublon de date (import/restauration/legacy) comptait
+  // DEUX points pour un même jour : la fenêtre `slice(-lim)` glissait sur des SAISIES au lieu de
+  // JOURS, et delta/latest/direction se faussaient (même famille que #436/#437/#438).
+  const byDate = new Map();
+  (Array.isArray(recoveryList) ? recoveryList : []).forEach(r => {
+    if (r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))) byDate.set(r.date, r);
+  });
+  const pts = [...byDate.values()]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-lim)
     .map(r => { const rs = readinessScore(r); return { date: r.date, score: rs ? rs.score : 0 }; });

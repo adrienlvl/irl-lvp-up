@@ -5244,7 +5244,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.71');
+  assert.equal(L.CHANGELOG[0].v, '2.0.72');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6082,6 +6082,24 @@ test('readinessTrend : série de forme des derniers check-ins + delta', () => {
   assert.deepEqual(L.readinessTrend([rec[2], rec[0]], 8).points.map(p => p.date), ['2026-07-06', '2026-07-10']);
   assert.equal(L.readinessTrend([rec[0]], 8), null, '< 2 check-ins → null');
   assert.equal(L.readinessTrend([], 8), null);
+  // date en double (import/restauration/legacy) → un seul POINT par jour, dernier gagné
+  const dup = L.readinessTrend([
+    { date: '2026-07-06', sleep: 5, fatigue: 4, soreness: 4 }, // 40
+    { date: '2026-07-06', sleep: 8, fatigue: 1, soreness: 1 }, // 100 (dernier gagné)
+    { date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+  ], 8);
+  assert.equal(dup.points.length, 2, 'deux jours distincts, pas trois saisies');
+  assert.deepEqual(dup.points.map(p => p.score), [100, 100], 'dernier check-in du 06 gagne (100)');
+  assert.equal(dup.delta, 0, 'delta = jours distincts (100 - 100), pas 100 - 40');
+  assert.equal(dup.latest, 100);
+  // la fenêtre slice(-lim) compte des JOURS, pas des saisies : 2 doublons + 2 jours, lim=2 → 2 jours
+  const win = L.readinessTrend([
+    { date: '2026-07-01', sleep: 8, fatigue: 1, soreness: 1 },
+    { date: '2026-07-01', sleep: 8, fatigue: 1, soreness: 1 },
+    { date: '2026-07-02', sleep: 5, fatigue: 4, soreness: 4 },
+    { date: '2026-07-03', sleep: 8, fatigue: 1, soreness: 1 },
+  ], 2);
+  assert.deepEqual(win.points.map(p => p.date), ['2026-07-02', '2026-07-03'], 'lim=2 → 2 derniers jours');
 });
 
 test('morningEnergyTrend : moyenne d’énergie récente vs fenêtre précédente', () => {

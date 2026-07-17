@@ -23,9 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.71 (2026-07-18)
+## 📍 État actuel — build 2.0.72 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 65 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**438**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 65 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**439**) :
+
+- 📈 **Tendance de forme : agréger des JOURS distincts, pas des saisies** (2.0.72) :
+  `readinessTrend` (`logic.js:6280`) alimente le mini-graphe « Forme · N derniers check-ins » +
+  flèche (`app.js:320`). Seule sœur asymétrique : filtrait/triait/`slice(-lim)` **sans dédup par
+  date**, alors que `weeklySleepStats`/`sleepSeries`/`sleepRegularity`/`sleepDebtHours` dédupliquent
+  toutes. L'écriture dédup pourtant déjà (`saveRecovery` `app.js:686` filtre la date avant `push`) →
+  doublon possible seulement par import/restauration/legacy (porte #436/#437/#438). Sur une date en
+  double : deux points pour un jour → `slice(-lim)` glissait sur des saisies, `delta`/`direction`/
+  `latest` faussés. Correctif = dédup `Map` (dernier gagné) avant tri/slice, rétro-compatible. +2 cas
+  de test + check smoke `readinessTrend` étendu **et promu bloquant** (442 tests). Piste #2 de la
+  mémoire d'audit. Correctness/robustesse (§4.4/§4.2), domaine Athlète / Récupération.
+  (`docs/recaps/439-readiness-trend-distinct-days.md`). ✅ _boucle #439._
 
 - 🌱 **Pas du jour : le suivi compte des JOURS distincts, pas des saisies** (2.0.71) :
   `lifeStepStats` (`logic.js:1363`) alimente « 🌱 X jours d'affilée · doneDays/loggedDays · R % »
