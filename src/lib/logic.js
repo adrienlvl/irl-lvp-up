@@ -2668,6 +2668,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.61', emoji: '🎖️', text: 'Trophées : le badge « Cible atteinte » se fie enfin à ton poids le plus RÉCENT, pas au dernier de la liste. Après une restauration de sauvegarde ou un import, tes pesées ne sont pas toujours rangées dans l’ordre : le badge pouvait alors comparer un vieux poids et rester verrouillé alors que ta dernière pesée touchait la cible (ou, à l’inverse, se débloquer à tort). Il prend désormais la pesée la plus récente par date, comme le reste de l’app. Rien ne change quand tes poids sont déjà dans l’ordre.' },
   { v: '2.0.60', emoji: '📊', text: 'Habitudes : la régularité (le badge « 📊 % ») ne te pénalise plus pour la case du jour pas encore cochée. Une habitude jeune et parfaite pouvait afficher « 🔥 4 » (série intacte) juste à côté de « 📊 80 % » en pleine journée, uniquement parce qu’aujourd’hui n’était pas encore fait — deux chiffres qui se contredisent. La régularité tolère désormais le jour en cours exactement comme la série : tant que la journée n’est pas finie, il ne compte pas comme un raté. Un vrai jour manqué dans le passé, lui, compte toujours.' },
   { v: '2.0.59', emoji: '🍽️', text: 'Coach poids : quand ta perte stagne et que ta cible calorique est déjà proche du plancher (1200 kcal/jour), le conseil de baisse dit enfin la vérité. Il annonçait toujours « baisse d’environ 125 kcal/jour » alors que la « Nouvelle cible » ne pouvait pas descendre sous 1200 — la vraie baisse était parfois de 50 kcal seulement, un conseil qui se contredisait lui-même. Le montant annoncé correspond maintenant exactement à la baisse réelle, et une fois au plancher le coach t’oriente vers le cardio plutôt qu’une baisse impossible. Rien ne change quand la marge est large, ni pour une prise de poids.' },
   { v: '2.0.58', emoji: '📅', text: 'Agenda : un rendez-vous récurrent importé « qui se répète N fois » (fichier .ics d’un agenda Google ou Apple) s’arrête enfin après ses N occurrences. Ces séries finies sont encodées avec un « COUNT » (répéter 4 fois, 10 fois…) que l’import ignorait : le rendez-vous se répétait alors À L’INFINI dans l’agenda. Il est maintenant borné à la bonne dernière date (calculée exactement, même quand des mois n’ont pas le jour visé — ex. un 31 — ou pour un 29 février). Rien ne change pour une récurrence sans fin ou déjà bornée par une date de fin.' },
@@ -5569,7 +5570,16 @@ function computeAchievements(state) {
   const runKmTotal = workouts.filter(w => w && w.type === 'run').reduce((a, w) => a + (Number(w.distance) || 0), 0);
   const totalTonnage = lifetimeTonnage(workouts);
   const goals = s.goals && typeof s.goals === 'object' ? s.goals : {};
-  const targetW = Number(goals.targetWeight) || 0, curW = weights.length ? Number(weights[weights.length - 1].value) || 0 : 0;
+  const targetW = Number(goals.targetWeight) || 0;
+  // Poids « actuel » = le plus RÉCENT par date, pas le dernier élément du tableau : `weights`
+  // n'est pas garanti trié (restauration/import legacy ne repasse pas tous par upsertWeight), et
+  // les fonctions sœurs (weightGoalProgress) trient déjà défensivement. Repli chaîne vide pour les
+  // entrées legacy sans date → tri stable, ordre du tableau préservé (rétro-compatible).
+  const latestWeight = weights
+    .filter(w => w && Number(w.value) > 0)
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+    .pop();
+  const curW = latestWeight ? Number(latestWeight.value) || 0 : 0;
   const weightGoalHit = targetW > 0 && curW > 0 && Math.abs(curW - targetW) <= 0.5;
   const strengthNames = new Set(workouts.filter(w => w && w.type === 'strength').flatMap(w => Array.isArray(w.exercises) ? w.exercises.map(e => e && e.name) : []).filter(Boolean));
   const defs = [

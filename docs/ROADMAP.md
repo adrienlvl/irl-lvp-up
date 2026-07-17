@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.60 (2026-07-17)
+## 📍 État actuel — build 2.0.61 (2026-07-17)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**426**) :
+
+- 🎖️ **Trophées : le badge « Cible atteinte » se fie au poids le plus récent** (2.0.61) :
+  `computeAchievements` (`logic.js:5559`) lisait le poids courant comme le **dernier élément** du tableau
+  (`weights[length-1]`) au lieu du plus récent par date — alors que la fonction sœur `weightGoalProgress`
+  (`logic.js:5394`) et `app.js` trient déjà défensivement. Sur un tableau `weights` non trié (restauration
+  de sauvegarde / import legacy), le badge `weight-goal` restait **verrouillé** alors que la dernière pesée
+  touchait la cible (ou se débloquait à tort). Corrigé : pesée la plus récente par date, repli chaîne vide
+  pour les entrées legacy sans date (tri stable → rétro-compatible). +3 assertions pures + check smoke
+  `achievements` étendu (437 tests). Cohérence/correctness (§4.4), domaine achievements/RPG.
+  (`docs/recaps/428-achievement-weight-goal-latest.md`). ✅ _boucle #428._
 
 - 📊 **Habitudes : la régularité ne pénalise plus le jour courant pas encore fait** (2.0.60) :
   le panneau affiche côte à côte la série (`🔥`, `habitStreak`, tolère le jour en cours) et le badge de

@@ -5089,7 +5089,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.60');
+  assert.equal(L.CHANGELOG[0].v, '2.0.61');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5787,6 +5787,17 @@ test('computeAchievements : badges débloqués selon l’état', () => {
   assert.equal(bon('objective-set'), true);
   assert.equal(bon('weight-goal'), true, '72 = cible 72');
   assert.equal(bon('tonnage-10t'), false, '1 séance légère < 10 t');
+  // weight-goal : le poids « actuel » = le plus RÉCENT par date, pas le dernier élément du tableau
+  const wg = s => L.computeAchievements(s).badges.find(b => b.id === 'weight-goal').unlocked;
+  assert.equal(
+    wg({ weights: [{ value: 75, date: '2026-07-17' }, { value: 80, date: '2026-01-01' }], goals: { targetWeight: 75 } }),
+    true, 'tableau non trié : le poids le plus récent (75) atteint la cible');
+  assert.equal(
+    wg({ weights: [{ value: 80, date: '2026-07-17' }, { value: 75, date: '2026-01-01' }], goals: { targetWeight: 75 } }),
+    false, 'symétrique : un ancien poids-cible en dernière position ne débloque pas');
+  assert.equal(
+    wg({ weights: [{ value: 72 }], goals: { targetWeight: 72 } }),
+    true, 'legacy sans date : compatibilité conservée');
   // robustesse
   assert.equal(L.computeAchievements(null).unlocked, 0);
 });
