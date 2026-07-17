@@ -3303,6 +3303,17 @@ test('bestTonnageWeek : record hebdo de tonnage', () => {
   // séances sans tonnage (course) ignorées
   assert.equal(L.bestTonnageWeek([{ date: '2026-07-13', type: 'run', exercises: [] }], '2026-07-13'), null);
   assert.equal(L.bestTonnageWeek(null, '2026-07-13'), null);
+  // égalité APRÈS arrondi mais bruts distincts : la semaine antérieure (113,0 kg) garde le record
+  // face à la plus récente (112,5 kg) — le départage « plus récente » ne doit pas jouer quand les
+  // bruts diffèrent (jumeau de bestSessionTonnage #406). Avant correctif : renvoyait la semaine du 13.
+  const wHalf = [
+    { date: '2026-07-06', exercises: [{ name: 'Bench', load: 100, reps: 1, sets: 1 }, { name: 'Curl', load: 13, reps: 1, sets: 1 }] },   // 113,0 (lun, antérieure)
+    { date: '2026-07-13', exercises: [{ name: 'Bench', load: 100, reps: 1, sets: 1 }, { name: 'Curl', load: 12.5, reps: 1, sets: 1 }] }, // 112,5 (lun suivant, plus récente)
+  ];
+  const bHalf = L.bestTonnageWeek(wHalf, '2026-07-13');
+  assert.equal(bHalf.weekStart, '2026-07-06');
+  assert.equal(bHalf.tonnage, 113);
+  assert.equal(bHalf.isCurrent, false);
 });
 test('trainingConsistency : régularité des séances', () => {
   // moins de 3 séances → null
@@ -4885,7 +4896,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.47');
+  assert.equal(L.CHANGELOG[0].v, '2.0.48');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

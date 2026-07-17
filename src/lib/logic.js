@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.48', emoji: '🗓️', text: 'Record hebdomadaire de tonnage muscu plus juste : quand deux semaines ont un total très proche dont l’une en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg), l’app garde bien la semaine qui a réellement soulevé le plus. Avant, le tonnage était comparé arrondi : une semaine antérieure à 113,0 kg et une plus récente à 112,5 kg tombaient toutes deux sur « 113 », et la règle « à égalité, garde la plus récente » donnait le record à la mauvaise semaine (mauvaise date, et « Record hebdo battu cette semaine ! » possible à tort). C’est le même correctif que pour le record de séance (2.0.46), appliqué cette fois au record de la semaine.' },
   { v: '2.0.47', emoji: '🎯', text: 'Objectif suggéré à l’inscription plus juste au seuil : la suggestion d’objectif physique (perte de gras / prise de muscle / corps athlétique) se base désormais sur ton IMC réel, et non sur la valeur affichée arrondie. Un IMC réel de 24,98 (arrondi 25,0) reste « dans la norme » et propose un corps athlétique, au lieu de partir d’emblée sur une perte de gras ; à l’autre bout, un IMC 18,48 (arrondi 18,5) oriente bien vers la prise de muscle. Le chiffre affiché ne change pas — c’est la même règle IMC réel que pour le conseil de poids et le bilan corporel.' },
   { v: '2.0.46', emoji: '🏆', text: 'Record de séance muscu plus juste : quand ta séance du jour égale ton meilleur tonnage historique avec un total en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg et un nombre de reps impair), l’app affiche enfin « Nouveau record séance ! » à la bonne date. Avant, le record était comparé à sa valeur arrondie : un tonnage réel de 187,5 kg, arrondi à 188, ne se reconnaissait plus lui-même, si bien qu’une séance récente à égalité était ignorée (mauvaise date affichée, célébration manquée). Le chiffre affiché ne change pas — c’est la même règle « à égalité, garde la plus récente » que pour le record hebdo.' },
   { v: '2.0.45', emoji: '🔔', text: 'Badge d’icône PWA plus juste : une fois ta séance de sport du jour terminée, la pastille de notification sur l’icône de l’app ne la compte plus comme une action en attente. Avant, le badge restait allumé après ta séance faite (elle était comptée jusqu’au lendemain) ; il ne reflète désormais que ce qu’il te reste vraiment à faire — quêtes non cochées et séances du jour pas encore faites.' },
@@ -3769,11 +3770,14 @@ function bestTonnageWeek(workouts, todayKey) {
   if (!entries.length) return null;
   let best = null;
   entries.forEach(([wk, v]) => {
-    const ton = Math.round(v.tonnage);
-    if (!best || ton > best.tonnage || (ton === best.tonnage && wk > best.weekStart)) best = { weekStart: wk, tonnage: ton, sessions: v.sessions };
+    // Égalité jugée sur le tonnage BRUT, pas sur l'arrondi : deux semaines aux bruts distincts qui
+    // tombent dans le même seau d'arrondi (ex. 113,0 vs 112,5 → 113) ne sont PAS à égalité, sinon le
+    // départage « garde la plus récente » vole le record à la semaine antérieure réellement plus
+    // élevée. Jumeau de bestSessionTonnage (#406) : on n'arrondit qu'à l'affichage.
+    if (!best || v.tonnage > best.tonnage || (v.tonnage === best.tonnage && wk > best.weekStart)) best = { weekStart: wk, tonnage: v.tonnage, sessions: v.sessions };
   });
   const curWeek = /^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || '')) ? dateKey(mondayOf(new Date(String(todayKey) + 'T12:00:00'))) : null;
-  return { weekStart: best.weekStart, tonnage: best.tonnage, sessions: best.sessions, isCurrent: curWeek != null && best.weekStart === curWeek };
+  return { weekStart: best.weekStart, tonnage: Math.round(best.tonnage), sessions: best.sessions, isCurrent: curWeek != null && best.weekStart === curWeek };
 }
 // Régularité d'entraînement sur une fenêtre de N jours (défaut 28) : à partir des dates de séances
 // (muscu OU course, dédupliquées), mesure l'écart moyen entre séances et un score de régularité 0-100

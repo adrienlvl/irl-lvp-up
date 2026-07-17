@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.47 (2026-07-17)
+## 📍 État actuel — build 2.0.48 (2026-07-17)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**407**) :
+
+- 🗓️ **Record hebdo de tonnage : l'égalité se juge sur le brut, pas l'arrondi** (2.0.48) :
+  `bestTonnageWeek` (`logic.js:3759`) élit le record hebdomadaire de tonnage muscu (« à égalité, garde la
+  plus récente »). Elle accumulait le tonnage brut par semaine mais **arrondissait avant de comparer** :
+  deux semaines aux bruts distincts tombant dans le même seau d'arrondi (113,0 vs 112,5 → 113) étaient
+  jugées à égalité, si bien que la plus récente (112,5, pourtant inférieure) volait le record à
+  l'antérieure (113,0) → **mauvaise date affichée** et **« Record hebdo battu cette semaine ! » possible à
+  tort** dans `renderTonnageTrend` (`app.js:498`). Jumeau exact de `bestSessionTonnage` (#406) — dont le
+  recap affirmait à tort que cette sœur était déjà correcte. Corrigé en comparant sur le brut et
+  n'arrondissant qu'à l'affichage. +1 cas prouvé fautif avant (431 tests). Logique pure, zéro régression,
+  clôt la famille « égalité de tonnage jugée sur l'arrondi ». (`docs/recaps/408-best-tonnage-week-demi-kilo.md`). ✅ _boucle #408._
 
 - 🎯 **Objectif suggéré à l'inscription : la catégorie OMS jugée sur l'IMC réel, pas l'arrondi** (2.0.47) :
   `suggestObjective` (`logic.js:2923`) propose un objectif physique à l'onboarding — sans poids cible,
