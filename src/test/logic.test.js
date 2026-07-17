@@ -6711,6 +6711,25 @@ test('habitConsistency : régularité DEPUIS le début (fenêtre bornée à la 1
   assert.equal(L.habitConsistency({ name: 'X', weekdays: [], log: [] }, '2026-07-15', 30), null);
   // date invalide → null
   assert.equal(L.habitConsistency(h, 'nope', 30), null);
+  // plafond `days` = contrainte bornante : historique de 21 j mais fenêtre 7 j → on ne compte
+  // QUE les 7 derniers jours (pas jusqu'à la 1re date loggée). Aucun test ci-dessus n'exerçait
+  // ce cas — tous avaient la 1re date DANS la fenêtre, donc `win` n'y était jamais ce qui borne.
+  const longLog = [];
+  for (let d = 25; d <= 30; d++) longLog.push('2026-06-' + d);          // 25→30 juin
+  for (let d = 1; d <= 15; d++) longLog.push('2026-07-' + String(d).padStart(2, '0')); // 1→15 juil
+  const hLong = { name: 'Longue', weekdays: [], log: longLog };
+  const rLong = L.habitConsistency(hLong, '2026-07-15', 7);
+  assert.deepEqual([rLong.done, rLong.scheduled, rLong.rate], [7, 7, 100]); // 7 prévus / 7 tenus, plafonné à 7 j
+  // même fenêtre de 7 j mais un trou DEDANS (12/07 manquant) → 6 / 7 = 86 %
+  const hHole = { name: 'Trou', weekdays: [], log: longLog.filter(k => k !== '2026-07-12') };
+  const rHole = L.habitConsistency(hHole, '2026-07-15', 7);
+  assert.deepEqual([rHole.done, rHole.scheduled, rHole.rate], [6, 7, 86]);
+  // habitude planifiée lun/mer/ven avec un jour PRÉVU manqué → prévus dans [10..15] :
+  // ven 10 / lun 13 / mer 15 = 3 ; tenus : ven 10 + mer 15 = 2 (lun 13 manqué) → 67 %.
+  // Cas d'un taux < 100 sous weekdays, absent des assertions ci-dessus (elles n'avaient que du 100 %).
+  const hMiss = { name: 'Sport', weekdays: [1, 3, 5], log: ['2026-07-15', '2026-07-10'] };
+  const rMiss = L.habitConsistency(hMiss, '2026-07-15', 14);
+  assert.deepEqual([rMiss.done, rMiss.scheduled, rMiss.rate], [2, 3, 67]);
 });
 
 test('applyHabitEdit : modifie nom/jours en préservant id, log, xp, série', () => {
