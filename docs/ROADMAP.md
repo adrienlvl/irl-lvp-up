@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.48 (2026-07-17)
+## 📍 État actuel — build 2.0.49 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**407**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**409**) :
+
+- 💼 **Alternance : « non retenu » (refus standard) n'est plus lu comme « accepté »** (2.0.49) :
+  `jobStatusFromText` (`logic.js:284`), partagée par tous les imports Alternance (saisie,
+  `parseApplicationsCsv`, sync Google Sheets), testait la règle `accepte` (sous-motif nu `retenu`)
+  **avant** `refus` et ignorait la négation. La formulation la plus courante d'un refus —
+  « Non retenu », « Candidature non retenue », « Pas retenu » — contient `retenu` et était donc
+  classée `accepte` : un **refus importé en offre décrochée**, faussant le funnel, `applicationStats`
+  (accepted, responseRate) et « Le focus du moment ». Corrigé par une règle de rejet nié
+  (`\b(non|pas)\b[\s\S]{0,12}retenu` → `refus`) placée avant `accepte` ; « Retenu / embauché » reste
+  bien `accepte`. +5 cas de statut (4 fautifs prouvés avant). Logique pure, module sacré fiabilisé
+  sans rien casser, variété de domaine (parseur de statut). (`docs/recaps/409-job-status-non-retenu-refus.md`). ✅ _boucle #409._
 
 - 🗓️ **Record hebdo de tonnage : l'égalité se juge sur le brut, pas l'arrondi** (2.0.48) :
   `bestTonnageWeek` (`logic.js:3759`) élit le record hebdomadaire de tonnage muscu (« à égalité, garde la

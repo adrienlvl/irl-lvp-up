@@ -286,6 +286,12 @@ function jobStatusFromText(t) {
   if (/a postuler|a envoyer|a faire|a contacter|a verifier|trouver le contact|todo|prospect/.test(x)) return 'a_postuler';
   if (/relanc/.test(x)) return 'relance';
   if (/entretien|entrevue/.test(x)) return 'entretien';
+  // Rejet formulé par la NÉGATION d'un mot positif (« non retenu », « candidature non retenue »,
+  // « pas (été) retenu(e) ») : la tournure standard d'un refus d'alternance. À tester AVANT `accepte`,
+  // sinon son sous-motif « retenu » l'emporterait et inverserait le refus en offre acceptée — ce qui
+  // corromprait le funnel et `applicationStats` (accepted, responseRate). La négation peut être suivie
+  // de quelques mots (« pas été retenu ») : on tolère un court intervalle avant « retenu ».
+  if (/\b(non|pas)\b[\s\S]{0,12}retenu/.test(x)) return 'refus';
   if (/accept|retenu|pris|embauch/.test(x)) return 'accepte';
   if (/refus|negati|decline|abandonn|ecart|sans suite/.test(x)) return 'refus';
   if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)) return 'postule';
@@ -2609,6 +2615,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.49', emoji: '💼', text: 'Suivi Alternance plus fiable à l’import : un statut « non retenu » (la formulation la plus courante d’un refus) n’est plus classé par erreur comme candidature « acceptée ». Quand tu importes ou synchronises un tableur de candidatures, une ligne « Non retenu », « Candidature non retenue » ou « Pas retenu » atterrit désormais bien dans « Refus » — avant, le mot « retenu » l’emportait et l’inversait en offre décrochée, faussant le funnel, le taux de réponse et « Le focus du moment ». Une vraie réponse positive (« Retenu », « embauché ») reste bien comptée comme acceptée.' },
   { v: '2.0.48', emoji: '🗓️', text: 'Record hebdomadaire de tonnage muscu plus juste : quand deux semaines ont un total très proche dont l’une en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg), l’app garde bien la semaine qui a réellement soulevé le plus. Avant, le tonnage était comparé arrondi : une semaine antérieure à 113,0 kg et une plus récente à 112,5 kg tombaient toutes deux sur « 113 », et la règle « à égalité, garde la plus récente » donnait le record à la mauvaise semaine (mauvaise date, et « Record hebdo battu cette semaine ! » possible à tort). C’est le même correctif que pour le record de séance (2.0.46), appliqué cette fois au record de la semaine.' },
   { v: '2.0.47', emoji: '🎯', text: 'Objectif suggéré à l’inscription plus juste au seuil : la suggestion d’objectif physique (perte de gras / prise de muscle / corps athlétique) se base désormais sur ton IMC réel, et non sur la valeur affichée arrondie. Un IMC réel de 24,98 (arrondi 25,0) reste « dans la norme » et propose un corps athlétique, au lieu de partir d’emblée sur une perte de gras ; à l’autre bout, un IMC 18,48 (arrondi 18,5) oriente bien vers la prise de muscle. Le chiffre affiché ne change pas — c’est la même règle IMC réel que pour le conseil de poids et le bilan corporel.' },
   { v: '2.0.46', emoji: '🏆', text: 'Record de séance muscu plus juste : quand ta séance du jour égale ton meilleur tonnage historique avec un total en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg et un nombre de reps impair), l’app affiche enfin « Nouveau record séance ! » à la bonne date. Avant, le record était comparé à sa valeur arrondie : un tonnage réel de 187,5 kg, arrondi à 188, ne se reconnaissait plus lui-même, si bien qu’une séance récente à égalité était ignorée (mauvaise date affichée, célébration manquée). Le chiffre affiché ne change pas — c’est la même règle « à égalité, garde la plus récente » que pour le record hebdo.' },

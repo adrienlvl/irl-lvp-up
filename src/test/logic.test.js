@@ -665,6 +665,13 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText('Écartée'), 'refus');
   assert.equal(L.jobStatusFromText('Entretien'), 'entretien');
   assert.equal(L.jobStatusFromText('Retenu / embauché'), 'accepte');
+  // Rejet nié : la tournure standard « non retenu » NE doit PAS être lue comme « retenu / accepté »
+  // (le sous-motif « retenu » ne doit pas l'emporter, sinon un refus s'affiche en offre décrochée).
+  assert.equal(L.jobStatusFromText('Non retenu'), 'refus', 'non retenu = refus, pas accepté');
+  assert.equal(L.jobStatusFromText('Candidature non retenue'), 'refus');
+  assert.equal(L.jobStatusFromText('Profil non retenu'), 'refus');
+  assert.equal(L.jobStatusFromText('Vous n’avez pas été retenu'), 'refus', 'pas (été) retenu = refus');
+  assert.equal(L.jobStatusFromText('Vous êtes retenu'), 'accepte', 'retenu positif reste accepté');
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
@@ -4896,7 +4903,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.48');
+  assert.equal(L.CHANGELOG[0].v, '2.0.49');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
