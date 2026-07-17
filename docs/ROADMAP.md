@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.42 (2026-07-17)
+## 📍 État actuel — build 2.0.43 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**402**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**403**) :
+
+- ⚖️ **Conseil poids cible : la catégorie OMS jugée sur l'IMC réel, pas l'arrondi** (2.0.43) :
+  frère resté à la traîne du #400. `weightTargetAdvice` (`logic.js:4960`) arrondissait l'IMC de la
+  cible **puis** comparait cette valeur affichée aux seuils OMS. Une cible à IMC réel 18,46 (affichée
+  18,5) tombait en `warn` « cible très basse » au lieu du `stop` « insuffisance pondérale —
+  professionnel de santé » (`18,5 < 18,5` faux) ; symétriquement 27,03 (affichée 27,0) ratait
+  l'avertissement « cible reste haute ». `weightTargetAdvice` alimente le coach poids/nutrition
+  (`app.js`, `#coachTargetAdvice`) → alerte santé manquée pile au seuil. Catégorie désormais jugée
+  sur l'IMC réel (`rawBmi`), affichage arrondi (`targetBmi`) inchangé. +2 assertions de seuil
+  prouvées fautives avant (431 tests). Logique pure, zéro régression, dernier point de la famille
+  « catégorie IMC jugée sur l'arrondi ». (`docs/recaps/403-weight-target-advice-imc-reel.md`). ✅ _boucle #403._
 
 - 🏋️ **Progression : à date égale, la référence est la meilleure série, pas la dernière loguée** (2.0.42) :
   `progressionSuggestion` (`logic.js:5894`) retenait, à date égale, la **dernière** entrée itérée

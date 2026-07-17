@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.43', emoji: '⚖️', text: 'Conseil de poids cible plus juste au seuil : quand tu fixes un poids objectif, l’avertissement sur son réalisme (« insuffisance pondérale », « cible reste haute ») se base désormais sur l’IMC réel de la cible, et non sur la valeur affichée arrondie. Une cible à IMC réel 18,46 (affichée 18,5) déclenche bien l’alerte santé « insuffisance pondérale », au lieu d’un simple « cible très basse » ; même logique pour le haut de l’échelle. Le chiffre affiché ne change pas — c’est le prolongement du correctif IMC de la 2.0.40.' },
   { v: '2.0.42', emoji: '🏋️', text: 'Cible de progression plus juste : quand tu logues deux séances le même jour pour un même exercice (par exemple ta vraie séance lourde puis un finisher plus léger), la suggestion de charge se base désormais sur ta MEILLEURE série du jour, plus sur la dernière saisie. Avant, un finisher léger enregistré après ta séance de référence pouvait l’écraser et te faire repartir d’une charge trop basse. C’est la même règle « meilleure série retenue » que l’app applique déjà à l’intérieur d’une même séance.' },
   { v: '2.0.41', emoji: '🧘', text: 'Coach récupération réparé : la routine bien-être suggérée après une séance (chevilles après une course, hanches après les jambes, épaules après le haut du corps, bas du dos après le gainage) se base enfin sur ta séance la plus RÉCENTE. Elle regardait par erreur la toute première séance jamais enregistrée — donc, dès que tu avais plus d’une séance, ce conseil ciblé ne se déclenchait quasiment jamais et tu tombais sur la mobilité générique. Il redevient vivant.' },
   { v: '2.0.40', emoji: '⚖️', text: 'Indice de masse corporelle (IMC) plus juste : la catégorie OMS (maigreur, corpulence normale, surpoids, obésité) est désormais déterminée sur l’IMC réel, et non sur la valeur affichée arrondie à une décimale. Un IMC de 18,478 s’affichait « 18,5 » et basculait à tort en « corpulence normale » alors qu’il relève de la maigreur ; de même un 24,95 arrondi à « 25,0 » n’est plus classé « surpoids ». Le chiffre affiché ne change pas — seule la catégorie collée dessus devient correcte au seuil.' },
@@ -4963,7 +4964,8 @@ function weightTargetAdvice(opts) {
   if (!(weight > 0) || !(target > 0) || !(height > 0)) return null;
 
   const m = height / 100;
-  const targetBmi = Math.round(target / (m * m) * 10) / 10;
+  const rawBmi = target / (m * m);                 // IMC réel de la cible (catégorie OMS jugée dessus)
+  const targetBmi = Math.round(rawBmi * 10) / 10;  // valeur AFFICHÉE (arrondie)
   const deltaKg = Math.round((weight - target) * 10) / 10;      // + = perdre
   const absKg = Math.abs(deltaKg);
   const deltaPct = Math.round(absKg / weight * 1000) / 10;
@@ -4984,12 +4986,12 @@ function weightTargetAdvice(opts) {
   const notes = [];
   const num = n => String(n).replace('.', ',');
 
-  // 1) La cible elle-même est-elle saine ?
-  if (targetBmi < 18.5) {
+  // 1) La cible elle-même est-elle saine ? (catégorie jugée sur l'IMC RÉEL, pas l'affiché arrondi)
+  if (rawBmi < 18.5) {
     notes.push({ tone: 'stop', text: `Cette cible te mettrait en insuffisance pondérale (IMC ${num(targetBmi)}). Vise plutôt ${num(suggested.minKg)} kg minimum, et parles-en à un professionnel de santé avant d’aller plus bas.` });
-  } else if (targetBmi < 20) {
+  } else if (rawBmi < 20) {
     notes.push({ tone: 'warn', text: `Cible très basse (IMC ${num(targetBmi)}) : tenable pour certains athlètes, mais la récupération, le sommeil et la force en pâtissent souvent.` });
-  } else if (targetBmi > 27 && !(String(o.fitnessObjective || '') === 'muscle' && direction === 'prise')) {
+  } else if (rawBmi > 27 && !(String(o.fitnessObjective || '') === 'muscle' && direction === 'prise')) {
     // L'IMC ne distingue pas le muscle du gras : on ne le brandit PAS contre quelqu'un qui prend
     // délibérément du muscle — ce serait un conseil stupide pour un pratiquant de force.
     notes.push({ tone: 'warn', text: `Cette cible reste haute (IMC ${num(targetBmi)}). Attention : l’IMC ne distingue pas le muscle du gras — si tu es très musclé, ce chiffre veut peu dire. Fie-toi plutôt à tes mensurations.` });

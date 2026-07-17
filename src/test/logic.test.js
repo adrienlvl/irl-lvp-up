@@ -1581,6 +1581,21 @@ test('weightTargetAdvice : réalisme de la cible et cohérence avec l’objectif
   assert.ok(bas.notes.some(n => n.tone === 'stop' && /insuffisance pondérale/i.test(n.text)));
   assert.ok(bas.notes.some(n => /professionnel de santé/i.test(n.text)), 'renvoie vers un professionnel');
 
+  // SEUIL BAS : catégorie OMS jugée sur l'IMC RÉEL, pas la valeur affichée arrondie (cf. #400 pour bmiInfo).
+  // 55,9 kg à 174 cm → IMC réel 18,464 (< 18,5 → insuffisance pondérale) mais arrondi à 18,5.
+  // Avant : 18,5 < 18,5 faux → simple « warn » (cible très basse), la note « stop » n'était jamais émise.
+  const seuilBas = av(55.9, 'athletique');
+  assert.equal(seuilBas.targetBmi, 18.5, 'affichage arrondi inchangé');
+  assert.equal(seuilBas.level, 'stop', 'IMC réel 18,46 < 18,5 → insuffisance pondérale');
+  assert.ok(seuilBas.notes.some(n => n.tone === 'stop' && /insuffisance pondérale/i.test(n.text)));
+
+  // SEUIL HAUT : idem sur > 27. 81,83 kg à 174 cm → IMC réel 27,027 (> 27) mais arrondi à 27,0.
+  // Avant : 27,0 > 27 faux → l'avertissement « cible reste haute » sautait.
+  const seuilHaut = av(81.83, 'athletique');
+  assert.equal(seuilHaut.targetBmi, 27, 'affichage arrondi inchangé');
+  assert.equal(seuilHaut.level, 'warn', 'IMC réel 27,03 > 27 → avertissement cible haute');
+  assert.ok(seuilHaut.notes.some(n => /reste haute/i.test(n.text)));
+
   // LE CAS D'ADRIEN : objectif « prendre du muscle » MAIS cible = grosse perte → contradiction
   const contra = av(70, 'muscle');
   assert.equal(contra.level, 'stop');
@@ -4853,7 +4868,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.42');
+  assert.equal(L.CHANGELOG[0].v, '2.0.43');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
