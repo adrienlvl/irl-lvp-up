@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.47', emoji: '🎯', text: 'Objectif suggéré à l’inscription plus juste au seuil : la suggestion d’objectif physique (perte de gras / prise de muscle / corps athlétique) se base désormais sur ton IMC réel, et non sur la valeur affichée arrondie. Un IMC réel de 24,98 (arrondi 25,0) reste « dans la norme » et propose un corps athlétique, au lieu de partir d’emblée sur une perte de gras ; à l’autre bout, un IMC 18,48 (arrondi 18,5) oriente bien vers la prise de muscle. Le chiffre affiché ne change pas — c’est la même règle IMC réel que pour le conseil de poids et le bilan corporel.' },
   { v: '2.0.46', emoji: '🏆', text: 'Record de séance muscu plus juste : quand ta séance du jour égale ton meilleur tonnage historique avec un total en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg et un nombre de reps impair), l’app affiche enfin « Nouveau record séance ! » à la bonne date. Avant, le record était comparé à sa valeur arrondie : un tonnage réel de 187,5 kg, arrondi à 188, ne se reconnaissait plus lui-même, si bien qu’une séance récente à égalité était ignorée (mauvaise date affichée, célébration manquée). Le chiffre affiché ne change pas — c’est la même règle « à égalité, garde la plus récente » que pour le record hebdo.' },
   { v: '2.0.45', emoji: '🔔', text: 'Badge d’icône PWA plus juste : une fois ta séance de sport du jour terminée, la pastille de notification sur l’icône de l’app ne la compte plus comme une action en attente. Avant, le badge restait allumé après ta séance faite (elle était comptée jusqu’au lendemain) ; il ne reflète désormais que ce qu’il te reste vraiment à faire — quêtes non cochées et séances du jour pas encore faites.' },
   { v: '2.0.44', emoji: '🏃', text: 'Paliers de course plus complets : les objectifs intermédiaires proposés vers ta course (10 km, semi-marathon…) n’écrasent plus le premier palier. Pour un marathon préparé sur ~8 mois, l’app n’affichait par erreur que le semi et perdait le palier 10 km ; elle propose désormais bien la progression complète et croissante. Le calcul qui répartit les paliers sur le temps disponible visait un cran trop haut et faisait fusionner les deux premiers.' },
@@ -2930,9 +2931,10 @@ function suggestObjective(inputs) {
     if (tw - w >= 3) return { key: 'muscle', label: 'Prise de muscle', reason: `Objectif ${r1(tw)} kg (+${r1(tw - w)} kg) : cap sur la prise de muscle.` };
   }
   if (validW && h >= 100 && h <= 250) {
-    const bmi = r1(w / ((h / 100) ** 2));
-    if (bmi >= 25) return { key: 'seche', label: 'Perte de gras', reason: `IMC ${String(bmi).replace('.', ',')} : un objectif perte de gras est un bon point de départ.` };
-    if (bmi < 18.5) return { key: 'muscle', label: 'Prise de muscle', reason: `IMC ${String(bmi).replace('.', ',')} : viser la prise de muscle te construit une base solide.` };
+    const rawBmi = w / ((h / 100) ** 2);   // IMC réel : catégorie OMS jugée dessus (cf. bmiInfo/weightTargetAdvice)
+    const bmi = r1(rawBmi);                 // valeur AFFICHÉE (arrondie) : un IMC 24,98 reste « dans la norme »
+    if (rawBmi >= 25) return { key: 'seche', label: 'Perte de gras', reason: `IMC ${String(bmi).replace('.', ',')} : un objectif perte de gras est un bon point de départ.` };
+    if (rawBmi < 18.5) return { key: 'muscle', label: 'Prise de muscle', reason: `IMC ${String(bmi).replace('.', ',')} : viser la prise de muscle te construit une base solide.` };
     return { key: 'athletique', label: 'Corps athlétique', reason: `IMC ${String(bmi).replace('.', ',')}, dans la norme : un corps athlétique équilibre force et cardio.` };
   }
   return null;

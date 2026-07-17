@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.46 (2026-07-17)
+## 📍 État actuel — build 2.0.47 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**406**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**407**) :
+
+- 🎯 **Objectif suggéré à l'inscription : la catégorie OMS jugée sur l'IMC réel, pas l'arrondi** (2.0.47) :
+  `suggestObjective` (`logic.js:2923`) propose un objectif physique à l'onboarding — sans poids cible,
+  elle bascule sur l'IMC (≥25 → perte de gras, <18,5 → prise de muscle, sinon athlétique). Elle
+  arrondissait l'IMC à 0,1 **puis** comparait cet affichage aux seuils OMS. Un IMC réel 24,98 (arrondi
+  25,0) tombait à tort en « perte de gras » au lieu de « corps athlétique » (dans la norme) ;
+  symétriquement 18,48 (arrondi 18,5) ratait « prise de muscle ». Même faute que `bmiInfo` (#400) et
+  `weightTargetAdvice` (#403) documentent contre. Corrigé : catégorie jugée sur l'IMC réel (`rawBmi`),
+  affichage arrondi inchangé. +2 cas de seuil prouvés fautifs avant (431 tests). Logique pure, zéro
+  régression, dernier point de la famille « catégorie IMC jugée sur l'arrondi ».
+  (`docs/recaps/407-suggest-objective-imc-reel.md`). ✅ _boucle #407._
 
 - 🏆 **Record de séance : l'égalité de tonnage se juge sur le brut, pas l'arrondi** (2.0.46) :
   `bestSessionTonnage` (`logic.js:3739`) stockait le tonnage record **déjà arrondi** puis comparait la

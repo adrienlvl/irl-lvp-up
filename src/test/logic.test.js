@@ -4885,7 +4885,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.46');
+  assert.equal(L.CHANGELOG[0].v, '2.0.47');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5270,6 +5270,15 @@ test('suggestObjective : suggestion d’objectif selon le profil', () => {
   assert.equal(L.suggestObjective({ weight: 95, height: 178 }).key, 'seche');
   assert.equal(L.suggestObjective({ weight: 52, height: 180 }).key, 'muscle');
   assert.equal(L.suggestObjective({ weight: 72, height: 178 }).key, 'athletique');
+  // catégorie OMS jugée sur l'IMC RÉEL, pas l'arrondi (cf. bmiInfo #400 / weightTargetAdvice #403) :
+  // 72,2/1,70² = 24,98 (arrondi 25,0) reste « dans la norme » → athletique, pas seche
+  const norm = L.suggestObjective({ weight: 72.2, height: 170 });
+  assert.equal(norm.key, 'athletique');
+  assert.match(norm.reason, /IMC 25,/); // l'affichage arrondi (25) reste inchangé
+  // 53,4/1,70² = 18,48 (arrondi 18,5) reste « maigreur » → muscle, pas athletique
+  const lean = L.suggestObjective({ weight: 53.4, height: 170 });
+  assert.equal(lean.key, 'muscle');
+  assert.match(lean.reason, /18,5/);
   // info insuffisante → null
   assert.equal(L.suggestObjective({ weight: 80 }), null);
   assert.equal(L.suggestObjective({}), null);
