@@ -4029,6 +4029,19 @@ test('personalRecords : meilleure charge et meilleures reps par exercice', () =>
   assert.equal(r['Goblet squat kettlebell'].date, '2026-06-08', 'date du record de charge');
   assert.equal(r['Tractions'].reps, 10, 'record reps (via setLogs) = 10');
   assert.deepEqual(L.personalRecords([]), {}, 'vide → {}');
+  // Forme legacy mono-exercice (`w.exercise` sans tableau `exercises`) : le record doit compter,
+  // comme dans toutes les sœurs — sinon un best all-time d'une vieille séance est volé.
+  const legacy = [
+    { date: '2026-05-01', exercise: 'Développé couché', load: 80, reps: 5 },
+    { date: '2026-05-08', exercise: 'Développé couché', load: 85, reps: 4 },
+    { date: '2026-05-15', exercises: [{ name: 'Développé couché', load: 82, reps: 6 }] }
+  ];
+  const rl = L.personalRecords(legacy);
+  assert.equal(rl['Développé couché'].load, 85, 'record charge legacy = 85 kg (séance mono-exercice comptée)');
+  assert.equal(rl['Développé couché'].reps, 6, 'meilleures reps = 6 (mix legacy + moderne)');
+  // La date suit la DERNIÈRE amélioration (charge ou reps) : ici les reps montent à 6 le 05-15.
+  assert.equal(rl['Développé couché'].date, '2026-05-15', 'date = dernière amélioration (reps)');
+  // Sans le repli legacy, la charge tomberait à 82 (seule la séance moderne compterait) : preuve du fix.
 });
 test('newRecords : détecte les records battus entre deux instantanés', () => {
   const before = { Tractions: { load: 0, reps: 10 }, 'Goblet squat': { load: 20, reps: 8 } };
@@ -5244,7 +5257,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.72');
+  assert.equal(L.CHANGELOG[0].v, '2.0.73');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

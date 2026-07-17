@@ -2727,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.73', emoji: '🏆', text: 'Records perso (musculation) : les records tenus dans une vieille séance ne sont plus « volés ». Si une sauvegarde restaurée ou un import contenait une séance à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée), le meilleur poids/reps de cet exercice était ignoré au moment de comparer tes records — une charge INFÉRIEURE pouvait alors déclencher à tort un « 🎉 Nouveau record ». Ces vieilles séances comptent désormais dans tes records, exactement comme partout ailleurs dans l’app. Rien ne change pour tes séances normales.' },
   { v: '2.0.72', emoji: '📈', text: 'Tendance de forme (onglet Athlète → Récupération, sous ton check-in) : le mini-graphe « Forme · N derniers check-ins » et sa flèche de tendance comptent désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton historique de récupération, ce jour apparaissait DEUX fois dans la courbe : la fenêtre des « 8 derniers » glissait alors sur des saisies au lieu de vrais jours, et la flèche haut/bas (calculée entre le premier et le dernier point) pouvait indiquer une tendance fausse. C’est corrigé (une entrée par date, la plus récente gagne — comme à l’enregistrement, qui remplaçait déjà le check-in du jour). Rien ne change quand chaque journée n’apparaît qu’une fois.' },
   { v: '2.0.71', emoji: '🌱', text: 'Suivi du « pas du jour » (accueil) : le compteur « X/Y · Z % » sous ta série de pas tenus compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de pas, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🌱 … d’affilée) juste à côté ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent (dernier pas gagné pour une date en double, comme à l’enregistrement). Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
   { v: '2.0.70', emoji: '🏅', text: 'Série de « journées parfaites » (quêtes du jour) : le compteur « X/Y jours parfaits · Z % » compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de quêtes, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🏅 … d’affilée) juste à côté, elle, ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent. Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
@@ -4105,8 +4106,14 @@ function buildZonePlan(zone, weeks, perWeek) {
 function personalRecords(workouts) {
   const rec = {};
   (Array.isArray(workouts) ? workouts : []).forEach(w => {
-    if (!w || !Array.isArray(w.exercises)) return;
-    w.exercises.forEach(ex => {
+    if (!w) return;
+    // Comme ses sœurs (`bestE1rmByExercise`, `workoutsTable`…), tolère la forme legacy
+    // mono-exercice `w.exercise` : sinon un record posé dans une vieille séance importée était
+    // silencieusement ignoré (vol de record → faux « record battu » sur une charge inférieure).
+    const exos = Array.isArray(w.exercises) && w.exercises.length
+      ? w.exercises
+      : (w.exercise ? [{ name: w.exercise, load: w.load, reps: w.reps }] : []);
+    exos.forEach(ex => {
       if (!ex || !ex.name) return;
       let load = Number(ex.load) || 0, reps = Number(ex.reps) || 0;
       if (Array.isArray(ex.setLogs)) ex.setLogs.forEach(s => { load = Math.max(load, Number(s && s.load) || 0); reps = Math.max(reps, Number(s && s.reps) || 0); });

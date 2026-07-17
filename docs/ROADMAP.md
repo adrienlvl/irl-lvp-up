@@ -23,9 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.72 (2026-07-18)
+## 📍 État actuel — build 2.0.73 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 65 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**439**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 65 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**440**) :
+
+- 🏆 **Records perso : compter les séances au format legacy `w.exercise`** (2.0.73) :
+  `personalRecords` (`logic.js:4105`) alimente les toasts « 🎉 Nouveau record » (`newRecords` au
+  save `app.js:641`), le bilan guidé et `liveSetRecord`. Sa garde `if (!Array.isArray(w.exercises))
+  return` ignorait la forme legacy mono-exercice `w.exercise`, que TOUTES ses sœurs gèrent
+  (`bestE1rmByExercise`, `workoutsTable`…). Un record all-time posé dans une vieille séance importée
+  était **volé** → une charge inférieure au vrai record pouvait déclencher à tort « record battu ».
+  Correctif = repli legacy avant la boucle (`exos = … : (w.exercise ? [{name,load,reps}] : [])`),
+  rétro-compatible. +1 bloc de test (mix 2 séances legacy + 1 moderne → charge legacy comptée).
+  Piste #3 de la mémoire d'audit (famille #425). Correctness/robustesse (§4.4/§4.2), domaine Athlète.
+  (`docs/recaps/440-personal-records-legacy.md`). ✅ _boucle #440._
+
 
 - 📈 **Tendance de forme : agréger des JOURS distincts, pas des saisies** (2.0.72) :
   `readinessTrend` (`logic.js:6280`) alimente le mini-graphe « Forme · N derniers check-ins » +
