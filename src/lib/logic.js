@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.41', emoji: '🧘', text: 'Coach récupération réparé : la routine bien-être suggérée après une séance (chevilles après une course, hanches après les jambes, épaules après le haut du corps, bas du dos après le gainage) se base enfin sur ta séance la plus RÉCENTE. Elle regardait par erreur la toute première séance jamais enregistrée — donc, dès que tu avais plus d’une séance, ce conseil ciblé ne se déclenchait quasiment jamais et tu tombais sur la mobilité générique. Il redevient vivant.' },
   { v: '2.0.40', emoji: '⚖️', text: 'Indice de masse corporelle (IMC) plus juste : la catégorie OMS (maigreur, corpulence normale, surpoids, obésité) est désormais déterminée sur l’IMC réel, et non sur la valeur affichée arrondie à une décimale. Un IMC de 18,478 s’affichait « 18,5 » et basculait à tort en « corpulence normale » alors qu’il relève de la maigreur ; de même un 24,95 arrondi à « 25,0 » n’est plus classé « surpoids ». Le chiffre affiché ne change pas — seule la catégorie collée dessus devient correcte au seuil.' },
   { v: '2.0.39', emoji: '🌙', text: 'Bilan hebdo plus juste : le sommeil moyen de la semaine ne compte plus que les nuits vraiment renseignées. Un check-in de récupération où l’on note seulement sa fatigue, ses courbatures (ou juste son heure de coucher) sans saisir la durée de sommeil ne tire plus la moyenne vers le bas comme une nuit de 0 h. Fini le chiffre faussement bas dans le PDF hebdo et le bilan partagé — et le faux conseil « sommeil moyen bas » qui allait avec. C’est déjà ainsi que le bilan mensuel calculait.' },
   { v: '2.0.38', emoji: '🛡️', text: 'Données plus robustes : une tâche à faire ou un bloc récurrent dont la date serait impossible (par exemple « 2026-13-99 » venue d’une sauvegarde abîmée ou modifiée à la main) n’est plus enregistré tel quel — la date invalide est neutralisée au lieu d’orpheliner l’entrée dans une case introuvable (jamais affichée nulle part). C’est le même garde-fou que l’agenda avait déjà reçu, désormais partagé par les to-do et la récurrence. Aucune saisie normale n’est affectée (les champs date produisent déjà une date réelle).' },
@@ -3224,7 +3225,10 @@ function workoutDominantZone(workout) {
 function contextualWellnessRoutine(state, todayKey, loadStatus, readinessScore) {
   const s = state || {};
   const workouts = Array.isArray(s.workouts) ? s.workouts : [];
-  const last = workouts[workouts.length - 1];
+  // La séance la PLUS RÉCENTE par date (le stockage réel est newest-first via unshift,
+  // donc workouts[length-1] était la plus ANCIENNE → contexte quasi toujours ignoré). Pur.
+  const dated = workouts.filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')));
+  const last = dated.reduce((a, b) => (a && String(a.date) >= String(b.date) ? a : b), null);
   const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
   const l = last && /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(last.date || ''));
   if (last && t && l) {

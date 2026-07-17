@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.40 (2026-07-17)
+## 📍 État actuel — build 2.0.41 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**400**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**401**) :
+
+- 🧘 **Coach récupération : la routine contextuelle lit enfin la séance la plus récente** (2.0.41) :
+  `contextualWellnessRoutine` (`logic.js:3224`) suggère une routine ciblée selon la dernière séance
+  (course → chevilles, jambes → hanches, haut du corps → épaules, gainage → bas du dos). Elle lisait
+  `workouts[workouts.length - 1]` — mais le stockage est **newest-first** (`app.js:641` fait
+  `unshift`), donc c'était la **toute première séance jamais loggée**. Dès qu'Adrien a plus d'une
+  séance, elle était presque toujours à `> 1 j` → conseil ciblé **jamais** déclenché, repli
+  systématique sur la mobilité générique (feature morte). Corrigé : on prend la séance de **date la
+  plus récente** (`reduce`), robuste à l'ordre du tableau. +2 assertions (cas multi-séances prouvé
+  fautif avant : `'hips'` au lieu de `'ankles'`). Logique pure, zéro régression, 431 tests.
+  (`docs/recaps/401-contextual-wellness-last-workout.md`). ✅ _boucle #401._
 
 - ⚖️ **IMC : la catégorie OMS jugée sur l'IMC réel, pas la valeur arrondie** (2.0.40) : `bmiInfo`
   (`logic.js:4354`) arrondissait l'IMC à une décimale **puis** en déduisait la catégorie OMS à partir

@@ -4729,6 +4729,19 @@ test('contextualWellnessRoutine : suggestion selon la dernière séance', () => 
   // séance trop ancienne (> 1 j) → retombe sur suggestedRoutine
   const old = { workouts: [{ date: '2026-07-01', type: 'run' }] };
   assert.equal(L.contextualWellnessRoutine(old, '2026-07-13', 'maintain', 60).key, 'hips');
+  // plusieurs séances : c'est la PLUS RÉCENTE par date qui compte (le stockage réel est
+  // newest-first via unshift ; l'ancien code lisait workouts[length-1] = la plus ANCIENNE).
+  const multi = { workouts: [
+    { date: '2026-07-13', type: 'run' },
+    { date: '2026-07-05', type: 'strength', exercises: [{ name: 'Split squat bulgare' }] }
+  ] };
+  assert.equal(L.contextualWellnessRoutine(multi, '2026-07-13', 'maintain', 60).key, 'ankles');
+  // robustesse : indépendant de l'ordre du tableau (on prend la date la plus récente)
+  const multiRev = { workouts: [
+    { date: '2026-07-05', type: 'strength', exercises: [{ name: 'Split squat bulgare' }] },
+    { date: '2026-07-13', type: 'run' }
+  ] };
+  assert.equal(L.contextualWellnessRoutine(multiRev, '2026-07-13', 'maintain', 60).key, 'ankles');
   // aucune séance → suggestedRoutine (forme basse → cooldown)
   assert.equal(L.contextualWellnessRoutine({ workouts: [] }, '2026-07-13', 'maintain', 40).key, 'cooldown');
   // état invalide → ne plante pas, retombe sur suggestedRoutine
@@ -4833,7 +4846,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.40');
+  assert.equal(L.CHANGELOG[0].v, '2.0.41');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
