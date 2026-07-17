@@ -1358,12 +1358,19 @@ function logLifeStep(log, step, cap) {
 // et dernier pas tenu. Comme pour les quêtes, le journal ne contient que les jours PASSÉS (l'entrée
 // du jour n'est écrite qu'à la bascule suivante) : l'état du jour est donc passé à part, sinon la
 // série serait perpétuellement en retard d'un jour. Réutilise `dailyStreak` (grâce du jour en cours).
+// On DÉDUPLIQUE par date (une entrée/jour, dernier gagné — comme `logLifeStep` à l'écriture) : sur un
+// journal importé/restauré avec une date en double, `doneDays`/`loggedDays`/`rate` comptaient les
+// ENTRÉES (`.length`), pas les JOURS distincts, alors que `streak` (via le `Set` de `dailyStreak`) ne
+// compte déjà que des jours distincts — même bandeau, deux comptes contradictoires (cf. #437).
 // Renvoie { streak, doneDays, loggedDays, rate, lastDone } ; `lastDone` = {date, text, daysAgo} ou null.
 // Pur + testé.
 function lifeStepStats(log, todayKey, todayStep) {
   const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
-  const entries = (Array.isArray(log) ? log : [])
-    .filter(e => e && isKey(e.date) && String(e.text || '').trim() && e.date !== todayKey);
+  const byDate = new Map();
+  (Array.isArray(log) ? log : []).forEach(e => {
+    if (e && isKey(e.date) && String(e.text || '').trim() && e.date !== todayKey) byDate.set(e.date, e);
+  });
+  const entries = [...byDate.values()];
   const t = todayStep && typeof todayStep === 'object' ? todayStep : null;
   const todayText = t ? String(t.text || '').trim() : '';
   const todayCounts = !!todayText && isKey(todayKey);
@@ -2720,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.71', emoji: '🌱', text: 'Suivi du « pas du jour » (accueil) : le compteur « X/Y · Z % » sous ta série de pas tenus compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de pas, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🌱 … d’affilée) juste à côté ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent (dernier pas gagné pour une date en double, comme à l’enregistrement). Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
   { v: '2.0.70', emoji: '🏅', text: 'Série de « journées parfaites » (quêtes du jour) : le compteur « X/Y jours parfaits · Z % » compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de quêtes, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🏅 … d’affilée) juste à côté, elle, ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent. Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
   { v: '2.0.69', emoji: '📊', text: 'Adhérence de la semaine (Mon plan) : les lignes « Protéines à la cible » et « Hydratation » comptent désormais des JOURS distincts, jamais des saisies. Si une même journée était enregistrée deux fois (import, restauration de sauvegarde, ou double check-in), elle gonflait le compteur — « Hydratation (3 j) » pouvait s’afficher pour 2 vrais jours seulement, et l’objectif se validait à tort. Le sommeil moyen de la semaine ne compte lui aussi qu’une nuit par date. C’est maintenant cohérent avec le panneau Nutrition qui, lui, dédupliquait déjà par date. Rien ne change quand tu n’as qu’une saisie par jour.' },
   { v: '2.0.68', emoji: '🏋️', text: 'Équilibre poussée/tirage (onglet Athlète) : un exercice qui travaille à la fois le dos ET les épaules — comme la suspension à la barre ou la marche du fermier — ne fausse plus ton ratio. Jusqu’ici ses séries étaient comptées DEUX fois, une fois en poussée et une fois en tirage : une séance de pur gainage dos/épaules pouvait donc s’afficher « push/pull équilibré » alors que tu n’avais fait ni pompes ni tractions. Ces exercices comptent désormais une seule fois, du côté de leur muscle principal (le dos → tirage). Rien ne change pour tes exercices classiques (pompes, développés, tractions, rowing).' },

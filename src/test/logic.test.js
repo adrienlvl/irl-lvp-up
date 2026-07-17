@@ -2186,6 +2186,25 @@ test('lifeStepStats : série et taux de suivi des pas du jour', () => {
   const longPast = L.lifeStepStats([{ date: '2026-07-09', text: longText, done: true }], today, null);
   assert.equal(longPast.lastDone.text.length, 140, 'le pas passé est tronqué à 140 comme celui du jour');
   assert.equal(longPast.lastDone.text, 'z'.repeat(140), 'trim appliqué avant la troncature (pas d’espaces de tête/queue)');
+  // date EN DOUBLE (import/restauration : lifeStepLog n'est pas dédupliqué par normalizeState) →
+  // on compte des JOURS distincts, pas des entrées ; dernier gagné, comme logLifeStep à l'écriture.
+  const dupLog = [
+    { date: '2026-07-07', text: 'Appeler', done: true },
+    { date: '2026-07-08', text: 'Ranger', done: true },
+    { date: '2026-07-08', text: 'Ranger (réécrit)', done: false },  // 08 réécrit NON tenu → dernier gagne
+    { date: '2026-07-09', text: 'Trier', done: true },
+  ];
+  const dup = L.lifeStepStats(dupLog, today, null);
+  assert.equal(dup.loggedDays, 3, '3 jours distincts, pas 4 entrées');
+  assert.equal(dup.doneDays, 2, 'le 08 (dernier = non tenu) ne compte plus comme tenu');
+  assert.equal(dup.rate, 67, '2/3 arrondi, pas 3/4=75 ni 2/4=50');
+  assert.equal(dup.streak, 1, 'série cassée au 08 non tenu (dernier gagné) : seul le 09 tient');
+  // même date, dernier TENU → le jour compte une seule fois (ni doublé, ni perdu)
+  const dupDone = L.lifeStepStats(
+    [{ date: '2026-07-09', text: 'Trier', done: false }, { date: '2026-07-09', text: 'Trier', done: true }],
+    today, null);
+  assert.equal(dupDone.loggedDays, 1);
+  assert.equal(dupDone.doneDays, 1);
 });
 
 test('logQuestDay : journalise une journée de quêtes avant la remise à zéro', () => {
@@ -5225,7 +5244,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.70');
+  assert.equal(L.CHANGELOG[0].v, '2.0.71');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
