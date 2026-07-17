@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.40', emoji: '⚖️', text: 'Indice de masse corporelle (IMC) plus juste : la catégorie OMS (maigreur, corpulence normale, surpoids, obésité) est désormais déterminée sur l’IMC réel, et non sur la valeur affichée arrondie à une décimale. Un IMC de 18,478 s’affichait « 18,5 » et basculait à tort en « corpulence normale » alors qu’il relève de la maigreur ; de même un 24,95 arrondi à « 25,0 » n’est plus classé « surpoids ». Le chiffre affiché ne change pas — seule la catégorie collée dessus devient correcte au seuil.' },
   { v: '2.0.39', emoji: '🌙', text: 'Bilan hebdo plus juste : le sommeil moyen de la semaine ne compte plus que les nuits vraiment renseignées. Un check-in de récupération où l’on note seulement sa fatigue, ses courbatures (ou juste son heure de coucher) sans saisir la durée de sommeil ne tire plus la moyenne vers le bas comme une nuit de 0 h. Fini le chiffre faussement bas dans le PDF hebdo et le bilan partagé — et le faux conseil « sommeil moyen bas » qui allait avec. C’est déjà ainsi que le bilan mensuel calculait.' },
   { v: '2.0.38', emoji: '🛡️', text: 'Données plus robustes : une tâche à faire ou un bloc récurrent dont la date serait impossible (par exemple « 2026-13-99 » venue d’une sauvegarde abîmée ou modifiée à la main) n’est plus enregistré tel quel — la date invalide est neutralisée au lieu d’orpheliner l’entrée dans une case introuvable (jamais affichée nulle part). C’est le même garde-fou que l’agenda avait déjà reçu, désormais partagé par les to-do et la récurrence. Aucune saisie normale n’est affectée (les champs date produisent déjà une date réelle).' },
   { v: '2.0.37', emoji: '♿', text: 'Accessibilité : la petite case 🔔 qui active le bip de fin de repos (dans la séance guidée) est maintenant correctement nommée pour les lecteurs d’écran (« Bip sonore à la fin du repos ») au lieu d’être annoncée comme une simple « cloche ». Rien ne change visuellement — c’est la même case, juste enfin compréhensible à la voix.' },
@@ -4354,8 +4355,11 @@ function strengthRecords(workouts) {
 function bmiInfo(weightKg, heightCm) {
   const w = Number(weightKg), h = Number(heightCm);
   if (!(w > 0) || !(h > 0)) return null;
-  const bmi = Math.round(w / ((h / 100) ** 2) * 10) / 10;
-  const category = bmi < 18.5 ? 'maigreur' : bmi < 25 ? 'corpulence normale' : bmi < 30 ? 'surpoids' : 'obésité';
+  const raw = w / ((h / 100) ** 2);
+  const bmi = Math.round(raw * 10) / 10;
+  // Catégorie OMS jugée sur l'IMC RÉEL, pas sur la valeur affichée arrondie :
+  // un IMC 18,478 (arrondi 18,5) reste « maigreur », pas « corpulence normale ».
+  const category = raw < 18.5 ? 'maigreur' : raw < 25 ? 'corpulence normale' : raw < 30 ? 'surpoids' : 'obésité';
   return { bmi, category };
 }
 // Métabolisme de base (kcal/j) — formule de Mifflin-St Jeor. sex : 'femme' sinon homme.

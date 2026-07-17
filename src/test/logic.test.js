@@ -4172,6 +4172,11 @@ test('bmiInfo : IMC + catégorie OMS', () => {
   assert.equal(L.bmiInfo(105, 180).category, 'obésité', 'IMC ≥ 30');
   assert.equal(L.bmiInfo(0, 180), null);
   assert.equal(L.bmiInfo(80, 0), null);
+  // Catégorie jugée sur l'IMC RÉEL, pas la valeur affichée arrondie :
+  // 53,4 kg / 1,70 m → IMC 18,478 (arrondi 18,5) reste « maigreur ».
+  assert.deepEqual(L.bmiInfo(53.4, 170), { bmi: 18.5, category: 'maigreur' }, 'arrondi 18,5 mais IMC réel < 18,5');
+  // Symétrique haut de fourchette : 80,85 kg / 1,80 m → IMC 24,954 (arrondi 25,0) reste « corpulence normale ».
+  assert.deepEqual(L.bmiInfo(80.85, 180), { bmi: 25, category: 'corpulence normale' }, 'arrondi 25,0 mais IMC réel < 25');
 });
 test('activityFactor : palier selon séances/semaine', () => {
   assert.equal(L.activityFactor(0), 1.2);
@@ -4828,7 +4833,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.39');
+  assert.equal(L.CHANGELOG[0].v, '2.0.40');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

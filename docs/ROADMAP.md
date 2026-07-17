@@ -23,9 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.39 (2026-07-17)
+## 📍 État actuel — build 2.0.40 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**399**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**400**) :
+
+- ⚖️ **IMC : la catégorie OMS jugée sur l'IMC réel, pas la valeur arrondie** (2.0.40) : `bmiInfo`
+  (`logic.js:4354`) arrondissait l'IMC à une décimale **puis** en déduisait la catégorie OMS à partir
+  de cette valeur affichée. Un IMC réel 18,478 arrondissait à 18,5 → classé « corpulence normale »
+  au lieu de « maigreur » ; symétriquement 24,954 → 25,0 basculait en « surpoids ». `bmiInfo` alimente
+  le rendu du coach nutrition/poids (`app.js:265`) → catégorie fausse au seuil, incohérente avec le
+  chiffre affiché lui-même, pour une app santé. Catégorie désormais jugée sur l'IMC réel (`raw`),
+  affichage arrondi inchangé. +2 assertions prouvées fautives avant (bloc `bmiInfo`, 431 tests).
+  Logique pure, zéro régression. (`docs/recaps/400-bmi-categorie-imc-reel.md`). ✅ _boucle #400._
 
 - 🌙 **Bilan hebdo : le sommeil moyen ne compte plus les nuits « 0 h »** (2.0.39) : `weeklySummary`
   divisait la somme des durées de sommeil par le nombre de check-ins récup, pas par le nombre de
