@@ -23,9 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.69 (2026-07-18)
+## 📍 État actuel — build 2.0.70 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 63 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**436**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 64 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**437**) :
+
+- 🏅 **Journées parfaites (quêtes) : compter des JOURS distincts, pas des saisies** (2.0.70) :
+  `questPerfectStreak` (`logic.js:1411`) alimente « 🏅 X journées parfaites d'affilée · Y/Z jours · R % »
+  (`app.js:488`). `streak` passe par `dailyStreak`, qui **déduplique par date** (`Set`) ; mais
+  `perfectDays`/`loggedDays`/`rate` comptaient les **entrées** (`.length`) — sur une date en double, le
+  **même bandeau** affichait deux comptes contradictoires (série = jours distincts, « Y/Z » = saisies).
+  `logQuestDay` déduplique pourtant à l'écriture, mais `questLog` n'est **pas** normalisé (import/
+  restauration → doublon possible, même porte que #428/#431/#436). Correctif = dédup par date (Map,
+  dernier gagné, cohérent avec `logQuestDay`), rétro-compatible (sans doublon : identique). +2 cas de
+  test (date en double → perfectDays/loggedDays comptent des jours) + check smoke `questStreak` étendu
+  **et promu bloquant** (442 tests). Correctness/robustesse (§4.4/§4.2), domaine Quêtes / RPG.
+  (`docs/recaps/437-quest-perfect-streak-distinct-days.md`). ✅ _boucle #437._
 
 - 📊 **Adhérence hebdo : compter des JOURS distincts, pas des saisies** (2.0.69) :
   `weeklyAdherence` (`logic.js:5327`) comptait les lignes « Protéines à la cible (X **j**) » et

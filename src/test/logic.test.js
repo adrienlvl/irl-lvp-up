@@ -2239,6 +2239,29 @@ test('questPerfectStreak : série de journées « toutes quêtes validées »', 
   // journal vide
   assert.deepEqual(L.questPerfectStreak([], today, 0, 0), { streak: 0, perfectDays: 0, loggedDays: 0, rate: 0 });
   assert.equal(L.questPerfectStreak(null, today, 0, 0).streak, 0);
+  // date EN DOUBLE (import/restauration : questLog n'est pas dédupliqué par normalizeState) → on
+  // compte des JOURS distincts, pas des entrées. Le 08 apparaît deux fois, dernier gagné (imparfait).
+  const dupDay = [
+    { date: '2026-07-07', done: 2, total: 2 },  // parfaite
+    { date: '2026-07-08', done: 3, total: 3 },  // parfaite…
+    { date: '2026-07-08', done: 1, total: 3 },  // …mais réécrite imparfaite (dernier gagne)
+    { date: '2026-07-06', done: 4, total: 4 },  // parfaite
+  ];
+  const dup = L.questPerfectStreak(dupDay, today, 4, 4);
+  // AVANT le correctif : perfectDays 4, loggedDays 5 (le 08 compté deux fois), rate 80.
+  assert.equal(dup.loggedDays, 4, '3 jours distincts au journal + aujourd’hui');
+  assert.equal(dup.perfectDays, 3, '07, 06 + aujourd’hui (le 08 est imparfait au dernier log)');
+  assert.equal(dup.rate, 75);
+  // doublon d'un jour PARFAIT : ni perfectDays ni loggedDays ne doivent doubler ce jour
+  const dupPerfect = [
+    { date: '2026-07-08', done: 3, total: 3 },
+    { date: '2026-07-08', done: 3, total: 3 },  // même jour, parfait deux fois
+    { date: '2026-07-06', done: 1, total: 4 },  // imparfaite
+  ];
+  const dp = L.questPerfectStreak(dupPerfect, today, 0, 0);
+  assert.equal(dp.loggedDays, 2, '2 jours distincts (08, 06)');
+  assert.equal(dp.perfectDays, 1, 'seul le 08, compté une fois');
+  assert.equal(dp.rate, 50);
 });
 
 test('intentionFollowThrough : intention du matin → victoire du soir', () => {
@@ -5202,7 +5225,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.69');
+  assert.equal(L.CHANGELOG[0].v, '2.0.70');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
