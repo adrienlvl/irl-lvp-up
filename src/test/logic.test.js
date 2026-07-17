@@ -5838,6 +5838,35 @@ test('morningEnergyTrend : moyenne d’énergie récente vs fenêtre précédent
   assert.equal(L.morningEnergyTrend([{ date: '2026-07-14', energy: 3 }], today, 7), null);
   assert.equal(L.morningEnergyTrend([], today, 7), null);
   assert.equal(L.morningEnergyTrend(rituals, 'pas-une-date', 7), null);
+  // énergie qui remonte → dir 'up' + niveau 'ok' (branches jamais exercées) :
+  // récente (08→14) 4,4,3 → 3,7 ; précédente (01→07) 3,3 → 3 ; delta +0,7 ≥ 0,3 → 'up' ; 3,7 ∈ [3,4[ → 'ok'
+  const up = L.morningEnergyTrend([
+    { date: '2026-07-14', energy: 4 }, { date: '2026-07-13', energy: 4 }, { date: '2026-07-12', energy: 3 },
+    { date: '2026-07-05', energy: 3 }, { date: '2026-07-02', energy: 3 }], today, 7);
+  assert.equal(up.avg, 3.7); assert.equal(up.prevAvg, 3); assert.equal(up.delta, 0.7);
+  assert.equal(up.dir, 'up'); assert.equal(up.level, 'ok'); assert.equal(up.count, 3);
+  // bornes exactes de dir : delta pile +0,3 → 'up', pile -0,3 → 'down', +0,2 → 'flat'
+  const d03up = L.morningEnergyTrend([
+    { date: '2026-07-14', energy: 4 }, { date: '2026-07-13', energy: 3 }, { date: '2026-07-12', energy: 3 },
+    { date: '2026-07-05', energy: 3 }, { date: '2026-07-02', energy: 3 }], today, 7);
+  assert.equal(d03up.delta, 0.3); assert.equal(d03up.dir, 'up');
+  const d03dn = L.morningEnergyTrend([
+    { date: '2026-07-14', energy: 3 }, { date: '2026-07-13', energy: 3 },
+    { date: '2026-07-05', energy: 4 }, { date: '2026-07-04', energy: 3 }, { date: '2026-07-02', energy: 3 }], today, 7);
+  assert.equal(d03dn.delta, -0.3); assert.equal(d03dn.dir, 'down');
+  const d02 = L.morningEnergyTrend([
+    { date: '2026-07-14', energy: 4 }, { date: '2026-07-13', energy: 3 }, { date: '2026-07-12', energy: 3 },
+    { date: '2026-07-11', energy: 3 }, { date: '2026-07-10', energy: 3 },
+    { date: '2026-07-05', energy: 3 }, { date: '2026-07-02', energy: 3 }], today, 7);
+  assert.equal(d02.delta, 0.2); assert.equal(d02.dir, 'flat');
+  // bornes exactes de level : avg pile 3 → 'ok', avg pile 4 → 'high'
+  const okEdge = L.morningEnergyTrend([{ date: '2026-07-14', energy: 3 }, { date: '2026-07-13', energy: 3 }], today, 7);
+  assert.equal(okEdge.avg, 3); assert.equal(okEdge.level, 'ok');
+  const hiEdge = L.morningEnergyTrend([{ date: '2026-07-14', energy: 4 }, { date: '2026-07-13', energy: 4 }], today, 7);
+  assert.equal(hiEdge.avg, 4); assert.equal(hiEdge.level, 'high');
+  // fenêtre bornée : windowDays 100 → 60, 1 → 2 (clamp jamais testé)
+  assert.equal(L.morningEnergyTrend([{ date: '2026-07-14', energy: 3 }, { date: '2026-07-13', energy: 3 }], today, 100).days, 60);
+  assert.equal(L.morningEnergyTrend([{ date: '2026-07-14', energy: 3 }, { date: '2026-07-13', energy: 3 }], today, 1).days, 2);
 });
 
 test('morningStreak : check-ins consécutifs finissant aujourd’hui ou hier', () => {

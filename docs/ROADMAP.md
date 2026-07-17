@@ -25,7 +25,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.56 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**421**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**422**) :
+
+- 🌅 **Couverture : `morningEnergyTrend` — tendance « à la hausse » et bornes verrouillées** (tests seuls, pas de bump) :
+  la tendance d'énergie du matin (`logic.js:6182`) renvoie `dir` (`up`/`down`/`flat`) et `level`
+  (`high`/`ok`/`low`). Le test existant n'exerçait que `down`+`low` et `flat`+`high` : le signal
+  **positif `up`** et le niveau courant **`ok`** n'étaient jamais testés, ni les bornes exactes des
+  seuils (delta ±0,3 vs 0,2 ; avg 3 vs 4), ni le clamp de fenêtre (2..60). Cinq cas figés après
+  exécution sur le code réel (hausse+ok, bornes de `dir` et de `level`, `windowDays` 100→60 et 1→2).
+  Aucun `logic.js` touché ; assertions ajoutées au `test()` existant → compte inchangé (434). Domaine
+  humeur/énergie, couverture. (`docs/recaps/422-morning-energy-trend-coverage.md`). ✅ _boucle #422._
 
 - 🌱 **Pas de vie : le « Dernier tenu » d'un pas passé enfin tronqué comme celui du jour** (2.0.56) :
   `lifeStepStats` (`logic.js:1293`) renvoie `lastDone`, affiché en « Dernier tenu : « … » » (`app.js:454`).
