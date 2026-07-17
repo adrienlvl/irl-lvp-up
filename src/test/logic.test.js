@@ -5202,7 +5202,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.68');
+  assert.equal(L.CHANGELOG[0].v, '2.0.69');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5787,6 +5787,32 @@ test('weeklyAdherence : score d’adhérence hebdo sur données réelles', () =>
   const few = L.weeklyAdherence(st, '2026-07-06', '2026-07-12', { proteinTargetG: 140, sessionTarget: 5 });
   assert.equal(few.items.find(i => i.key === 'sessions').done, false);
   assert.equal(L.weeklyAdherence({}, '2026-07-06', '2026-07-12', {}).score, 0, 'état vide → 0');
+});
+test('weeklyAdherence : compte des JOURS distincts, pas des entrées (dates en double)', () => {
+  // 3 entrées nutrition mais seulement 2 JOURS distincts à la cible (le 08 saisi deux fois) ;
+  // 3 entrées recovery mais 2 nuits distinctes. Reproduit un import/restauration/double check-in.
+  const st = {
+    nutrition: [
+      { date: '2026-07-07', protein: 150, water: 8 },
+      { date: '2026-07-08', protein: 150, water: 8 },
+      { date: '2026-07-08', protein: 150, water: 8 }, // doublon même date
+    ],
+    recovery: [
+      { date: '2026-07-08', sleep: 8 },
+      { date: '2026-07-08', sleep: 8 }, // doublon même date
+      { date: '2026-07-09', sleep: 6 },
+    ],
+  };
+  const r = L.weeklyAdherence(st, '2026-07-06', '2026-07-12', { proteinTargetG: 140, minProteinDays: 3, minWaterDays: 3 });
+  const prot = r.items.find(i => i.key === 'protein');
+  const water = r.items.find(i => i.key === 'water');
+  // AVANT le correctif : 3 entrées comptées → « (3 j) » et done:true (à tort).
+  // APRÈS : 2 jours distincts → « (2 j) » et done:false (< 3 requis).
+  assert.match(prot.label, /\(2 j\)/); assert.equal(prot.done, false, '2 jours < 3 requis');
+  assert.match(water.label, /\(2 j\)/); assert.equal(water.done, false);
+  // sommeil : moyenne sur JOURS distincts (8 le 08, 6 le 09) = 7, pas (8+8+6)/3 ≈ 7,3.
+  const sleep = r.items.find(i => i.key === 'sleep');
+  assert.match(sleep.label, /moy\. 7\)/);
 });
 test('upsertAdherenceSnapshot : historique hebdo (maj/ajout, tri, cap)', () => {
   let h = L.upsertAdherenceSnapshot([], '2026-07-06', 80);

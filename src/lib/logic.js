@@ -2714,6 +2714,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.69', emoji: '📊', text: 'Adhérence de la semaine (Mon plan) : les lignes « Protéines à la cible » et « Hydratation » comptent désormais des JOURS distincts, jamais des saisies. Si une même journée était enregistrée deux fois (import, restauration de sauvegarde, ou double check-in), elle gonflait le compteur — « Hydratation (3 j) » pouvait s’afficher pour 2 vrais jours seulement, et l’objectif se validait à tort. Le sommeil moyen de la semaine ne compte lui aussi qu’une nuit par date. C’est maintenant cohérent avec le panneau Nutrition qui, lui, dédupliquait déjà par date. Rien ne change quand tu n’as qu’une saisie par jour.' },
   { v: '2.0.68', emoji: '🏋️', text: 'Équilibre poussée/tirage (onglet Athlète) : un exercice qui travaille à la fois le dos ET les épaules — comme la suspension à la barre ou la marche du fermier — ne fausse plus ton ratio. Jusqu’ici ses séries étaient comptées DEUX fois, une fois en poussée et une fois en tirage : une séance de pur gainage dos/épaules pouvait donc s’afficher « push/pull équilibré » alors que tu n’avais fait ni pompes ni tractions. Ces exercices comptent désormais une seule fois, du côté de leur muscle principal (le dos → tirage). Rien ne change pour tes exercices classiques (pompes, développés, tractions, rowing).' },
   { v: '2.0.67', emoji: '♿', text: 'Accessibilité : le bouton boussole « 🧭 » de l’ajout rapide dans « Ma semaine » (qui estime ton temps de trajet) a désormais un nom accessible. Il n’affichait qu’une icône sans texte : sur iPhone, VoiceOver l’annonçait comme un simple « emoji boussole », sans dire à quoi il sert. Il est maintenant lu « Estimer le trajet depuis mon point de départ », comme ses deux jumeaux ailleurs dans l’app qui affichent, eux, « 🧭 Estimer ». Rien ne change visuellement.' },
   { v: '2.0.66', emoji: '🧘', text: 'Records de régularité : une date impossible ne gonfle plus tes records de série (bien-être et protéines). Si une sauvegarde restaurée ou un import contenait une date qui n’existe pas au calendrier (par ex. un 31 avril), elle « débordait » sur le jour suivant et fabriquait une paire de jours consécutifs fantôme — ton record de série bien-être ou protéines pouvait alors afficher un chiffre jamais atteint, alors que ta série EN COURS, elle, l’ignorait déjà (les deux se contredisaient). Une telle date est désormais ignorée de la même façon partout. Rien ne change pour tes vraies dates.' },
@@ -5333,11 +5334,19 @@ function weeklyAdherence(state, mondayKey, todayKey, opts) {
   const workouts = arr('workouts').filter(w => w && inWeek(w.date)).length;
   const protTgt = Number(o.proteinTargetG) || 0, waterGoal = Number(o.waterGoal) || 8, sleepTarget = Number(o.sleepTarget) || 7;
   const minProt = o.minProteinDays || 3, minWater = o.minWaterDays || 3;
-  const nut = arr('nutrition').filter(n => n && inWeek(n.date));
-  const protDays = protTgt > 0 ? nut.filter(n => (Number(n.protein) || 0) >= protTgt).length : 0;
-  const waterDays = nut.filter(n => (Number(n.water) || 0) >= waterGoal).length;
-  const rec = arr('recovery').filter(r => r && inWeek(r.date) && Number(r.sleep) > 0);
-  const sleepAvg = rec.length ? rec.reduce((a, r) => a + Number(r.sleep), 0) / rec.length : 0;
+  // protéines/eau/sommeil : compter des JOURS DISTINCTS (le libellé dit « j » et le seuil est
+  // minProteinDays/minWaterDays), jamais des ENTRÉES — une date en double (import/restauration/legacy,
+  // ou double check-in) ne doit pas gonfler le compte. Symétrie avec daysHittingTarget/weeklySleepStats.
+  const protDays = proteinDaysOnTarget(arr('nutrition'), protTgt, mondayKey, todayKey);
+  const waterDays = daysHittingTarget(arr('nutrition'), 'water', waterGoal, mondayKey, todayKey);
+  const sleepByDate = {};
+  arr('recovery').forEach(r => {
+    if (!r || !inWeek(r.date)) return;
+    const v = Number(r.sleep) || 0;
+    if (v > 0) sleepByDate[r.date] = v; // une valeur par date (dernier check-in), comme weeklySleepStats
+  });
+  const sleepVals = Object.values(sleepByDate);
+  const sleepAvg = sleepVals.length ? sleepVals.reduce((a, v) => a + v, 0) / sleepVals.length : 0;
   const weighed = arr('weights').some(w => w && inWeek(w.date));
   const items = [
     { key: 'sessions', label: `Séances (${workouts}/${sessionTarget})`, done: workouts >= sessionTarget },

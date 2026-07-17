@@ -23,9 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.68 (2026-07-18)
+## 📍 État actuel — build 2.0.69 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **441 tests + smoke** verts (harness durci, dont garde-fou CSS + 62 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**435**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 63 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**436**) :
+
+- 📊 **Adhérence hebdo : compter des JOURS distincts, pas des saisies** (2.0.69) :
+  `weeklyAdherence` (`logic.js:5327`) comptait les lignes « Protéines à la cible (X **j**) » et
+  « Hydratation (X j) » par `.length` sur les **entrées**, alors que le libellé dit « j » et que le
+  seuil est `minProteinDays`/`minWaterDays` (des **jours**). Une date en double (import/restauration/
+  legacy, ou `bumpWater`/`bumpProtein` d'`app.js`) comptait double : « Hydratation (3 j) » pouvait
+  s'afficher pour **2 vrais jours** et l'objectif se validait à tort ; `sleepAvg` moyennait aussi les
+  entrées, pas les nuits distinctes. Le panneau **Nutrition** dédupliquait pourtant déjà par date
+  (`daysHittingTarget`/`proteinDaysOnTarget`), tout comme `weeklySleepStats`/`sleepDebtHours` pour le
+  sommeil : `weeklyAdherence` était le **seul asymétrique** (deux nombres « j » contradictoires).
+  Correctif = **délégation aux sœurs déjà testées** + dédup sommeil par date (garde `v > 0`), zéro
+  choix de design, rétro-compatible. +bloc pur `weeklyAdherence` (date en double → 2 j) + check smoke
+  `coachAdherence` étendu **et promu bloquant** (442 tests). Correctness/robustesse (§4.4/§4.2),
+  domaines Nutrition + Hydratation + Sommeil. (`docs/recaps/436-weekly-adherence-distinct-days.md`). ✅ _boucle #436._
 
 - 🏋️ **Équilibre poussée/tirage : un exercice dos+épaules ne compte plus des deux côtés** (2.0.68) :
   `muscleBalance` (`logic.js:2427`) additionnait poussée (pecs+épaules) vs tirage (dos) par **deux `if`
