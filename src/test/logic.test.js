@@ -684,6 +684,20 @@ test('applicationStats : moteur de motivation (aujourd’hui, semaine, série, r
   assert.deepEqual(s.pendingRelances.map(r => r.company), ['E']);
   // tolérance : postulé hier mais rien aujourd'hui → série tient
   assert.equal(L.applicationStats([{ id: 1, status: 'postule', date: '2026-07-15' }], '2026-07-16', {}).streak, 1);
+  // « à postuler » AVEC une date (deadline/repérage, produit par l'import CSV) ne compte PAS comme envoyée :
+  // ne gonfle ni le total envoyé, ni aujourd'hui, ni la semaine, ni la série.
+  const notSent = L.applicationStats([{ id: 1, company: 'Cible', status: 'a_postuler', date: '2026-07-16' }], '2026-07-16', {});
+  assert.equal(notSent.sent, 0, 'à postuler datée → 0 envoyée');
+  assert.equal(notSent.appliedToday, false, 'à postuler datée aujourd’hui → pas « postulé aujourd’hui »');
+  assert.equal(notSent.weekCount, 0, 'à postuler datée → hors compteur hebdo');
+  assert.equal(notSent.streak, 0, 'à postuler datée → aucune série');
+  // mixte : seules les vraies candidatures envoyées comptent
+  const mixte = L.applicationStats([
+    { id: 1, company: 'X', status: 'postule', date: '2026-07-16' },
+    { id: 2, company: 'Y', status: 'a_postuler', date: '2026-07-16' }
+  ], '2026-07-16', {});
+  assert.equal(mixte.sent, 1, 'seule la candidature postulée compte comme envoyée');
+  assert.equal(mixte.appliedToday, true, 'la vraie candidature du jour tient « postulé aujourd’hui »');
   // vide → tout à 0
   const z = L.applicationStats([], today, {});
   assert.equal(z.total, 0); assert.equal(z.streak, 0); assert.equal(z.appliedToday, false); assert.equal(z.weekReached, false);
@@ -5089,7 +5103,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.61');
+  assert.equal(L.CHANGELOG[0].v, '2.0.62');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

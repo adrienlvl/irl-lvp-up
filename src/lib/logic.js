@@ -207,7 +207,7 @@ function applicationStats(applications, todayKey, opts) {
   const list = (Array.isArray(applications) ? applications : []).map(normalizeApplication);
   const byStatus = {}; JOB_STATUSES.forEach(s => { byStatus[s] = 0; });
   list.forEach(a => { byStatus[a.status]++; });
-  const sent = list.filter(a => isKey(a.date));
+  const sent = list.filter(a => a.status !== 'a_postuler' && isKey(a.date));
   const appliedToday = isKey(todayKey) && sent.some(a => a.date === todayKey);
   let monday = '';
   const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
@@ -2668,6 +2668,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.62', emoji: '💼', text: 'Alternance : une cible encore « à postuler » n’est plus comptée comme une candidature ENVOYÉE, même quand elle porte une date. En important ton tableur de suivi (Google Sheets), une ligne « à postuler » avec une date de repérage ou une deadline gonflait à tort ta série (« 🔥 »), ton compteur du jour (« postulé aujourd’hui ✓ ») et ton total de la semaine — alors que tu n’avais rien envoyé. Le moteur de motivation ne compte désormais que les candidatures réellement postulées. Rien ne change quand tes « à postuler » n’ont pas de date, ni pour tes vraies candidatures.' },
   { v: '2.0.61', emoji: '🎖️', text: 'Trophées : le badge « Cible atteinte » se fie enfin à ton poids le plus RÉCENT, pas au dernier de la liste. Après une restauration de sauvegarde ou un import, tes pesées ne sont pas toujours rangées dans l’ordre : le badge pouvait alors comparer un vieux poids et rester verrouillé alors que ta dernière pesée touchait la cible (ou, à l’inverse, se débloquer à tort). Il prend désormais la pesée la plus récente par date, comme le reste de l’app. Rien ne change quand tes poids sont déjà dans l’ordre.' },
   { v: '2.0.60', emoji: '📊', text: 'Habitudes : la régularité (le badge « 📊 % ») ne te pénalise plus pour la case du jour pas encore cochée. Une habitude jeune et parfaite pouvait afficher « 🔥 4 » (série intacte) juste à côté de « 📊 80 % » en pleine journée, uniquement parce qu’aujourd’hui n’était pas encore fait — deux chiffres qui se contredisent. La régularité tolère désormais le jour en cours exactement comme la série : tant que la journée n’est pas finie, il ne compte pas comme un raté. Un vrai jour manqué dans le passé, lui, compte toujours.' },
   { v: '2.0.59', emoji: '🍽️', text: 'Coach poids : quand ta perte stagne et que ta cible calorique est déjà proche du plancher (1200 kcal/jour), le conseil de baisse dit enfin la vérité. Il annonçait toujours « baisse d’environ 125 kcal/jour » alors que la « Nouvelle cible » ne pouvait pas descendre sous 1200 — la vraie baisse était parfois de 50 kcal seulement, un conseil qui se contredisait lui-même. Le montant annoncé correspond maintenant exactement à la baisse réelle, et une fois au plancher le coach t’oriente vers le cardio plutôt qu’une baisse impossible. Rien ne change quand la marge est large, ni pour une prise de poids.' },
