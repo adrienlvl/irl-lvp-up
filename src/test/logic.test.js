@@ -2453,6 +2453,12 @@ test('intermediateGoals : ultra 170km/2ans → paliers croissants échelonnés',
   // dates croissantes et dans le futur, avant la course
   for (let i = 1; i < ms.length; i++) assert.ok(ms[i].date > ms[i - 1].date, 'dates croissantes');
   assert.ok(ms[0].date > '2026-07-06' && ms[ms.length - 1].date < '2028-07-01');
+  // marathon ~38 sem → 2 paliers [10 km, semi], sans écraser le premier.
+  // Avant le correctif (Math.round), les deux paliers tombaient sur l'index 1
+  // (semi) et le dédoublonnage n'en laissait qu'UN → le palier 10 km était perdu.
+  const mara = L.intermediateGoals({ type: 'marathon', distanceKm: 42, date: '2027-04-01' }, now);
+  assert.equal(mara.length, 2, 'marathon ~8 mois → 2 paliers (pas 1)');
+  assert.deepEqual(mara.map(m => m.distanceKm), [10, 21], 'paliers 10 km puis semi, croissants');
 });
 
 test('intermediateGoals : objectif proche ou petit → pas de paliers', () => {
@@ -4868,7 +4874,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.43');
+  assert.equal(L.CHANGELOG[0].v, '2.0.44');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

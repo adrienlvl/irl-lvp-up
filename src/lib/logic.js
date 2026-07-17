@@ -1535,7 +1535,7 @@ function intermediateGoals(goal, now) {
   const start = 0.30, end = 0.82;
   const out = [];
   for (let i = 0; i < count; i++) {
-    const idx = Math.min(rungs.length - 1, Math.max(0, Math.round((i + 0.5) / count * rungs.length)));
+    const idx = Math.min(rungs.length - 1, Math.max(0, Math.floor((i + 0.5) / count * rungs.length)));
     const rung = rungs[idx];
     const frac = count === 1 ? 0.5 : start + (end - start) * (i / (count - 1));
     const wk = Math.round(weeksLeft * frac);
@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.44', emoji: '🏃', text: 'Paliers de course plus complets : les objectifs intermédiaires proposés vers ta course (10 km, semi-marathon…) n’écrasent plus le premier palier. Pour un marathon préparé sur ~8 mois, l’app n’affichait par erreur que le semi et perdait le palier 10 km ; elle propose désormais bien la progression complète et croissante. Le calcul qui répartit les paliers sur le temps disponible visait un cran trop haut et faisait fusionner les deux premiers.' },
   { v: '2.0.43', emoji: '⚖️', text: 'Conseil de poids cible plus juste au seuil : quand tu fixes un poids objectif, l’avertissement sur son réalisme (« insuffisance pondérale », « cible reste haute ») se base désormais sur l’IMC réel de la cible, et non sur la valeur affichée arrondie. Une cible à IMC réel 18,46 (affichée 18,5) déclenche bien l’alerte santé « insuffisance pondérale », au lieu d’un simple « cible très basse » ; même logique pour le haut de l’échelle. Le chiffre affiché ne change pas — c’est le prolongement du correctif IMC de la 2.0.40.' },
   { v: '2.0.42', emoji: '🏋️', text: 'Cible de progression plus juste : quand tu logues deux séances le même jour pour un même exercice (par exemple ta vraie séance lourde puis un finisher plus léger), la suggestion de charge se base désormais sur ta MEILLEURE série du jour, plus sur la dernière saisie. Avant, un finisher léger enregistré après ta séance de référence pouvait l’écraser et te faire repartir d’une charge trop basse. C’est la même règle « meilleure série retenue » que l’app applique déjà à l’intérieur d’une même séance.' },
   { v: '2.0.41', emoji: '🧘', text: 'Coach récupération réparé : la routine bien-être suggérée après une séance (chevilles après une course, hanches après les jambes, épaules après le haut du corps, bas du dos après le gainage) se base enfin sur ta séance la plus RÉCENTE. Elle regardait par erreur la toute première séance jamais enregistrée — donc, dès que tu avais plus d’une séance, ce conseil ciblé ne se déclenchait quasiment jamais et tu tombais sur la mobilité générique. Il redevient vivant.' },
