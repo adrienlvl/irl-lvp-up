@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.56 (2026-07-17)
+## 📍 État actuel — build 2.0.57 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**422**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **435 tests + smoke** verts (harness durci, dont garde-fou CSS + 57 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**423**) :
+
+- 🎂 **Anniversaires : l'âge accordé au singulier (« 1 an », plus « 1 ans »)** (2.0.57) :
+  l'âge s'affiche à trois endroits, mais seul `todayItems` (`logic.js:1132`, « Ma journée ») l'accordait
+  correctement ; le bandeau « 🎂 À venir » (`app.js:469`) et le calendrier mensuel (`app.js:474`) écrivaient
+  **toujours** « ans » → un premier anniversaire (âge 1) donnait « (1 **ans**) ». Nouveau helper pur
+  `ageLabel(age)` (0/1 → « an », ≥2 → « ans », âge inconnu → vide, tolère chaîne numérique) réutilisé aux
+  **trois** points (DRY). Test pur + check smoke bloquant `ageLabel`. +1 test (435). Domaine
+  Anniversaires/Agenda, polish UX (§4.4). (`docs/recaps/423-anniversaire-age-singulier.md`). ✅ _boucle #423._
 
 - 🌅 **Couverture : `morningEnergyTrend` — tendance « à la hausse » et bornes verrouillées** (tests seuls, pas de bump) :
   la tendance d'énergie du matin (`logic.js:6182`) renvoie `dir` (`up`/`down`/`flat`) et `level`

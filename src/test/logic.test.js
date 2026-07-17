@@ -987,6 +987,18 @@ test('birthdaysForDay : anniversaire du 29 février fêté le 1er mars les anné
   assert.deepEqual(L.birthdaysForDay(both, '2027-03-01').map(x => x.name), ['Leap', 'Mars']);
 });
 
+test('ageLabel : singulier/pluriel français corrects, âge inconnu → vide', () => {
+  assert.equal(L.ageLabel(1), '1 an');       // 1 → singulier
+  assert.equal(L.ageLabel(0), '0 an');       // 0 → singulier (règle française)
+  assert.equal(L.ageLabel(2), '2 ans');      // ≥ 2 → pluriel
+  assert.equal(L.ageLabel(27), '27 ans');
+  assert.equal(L.ageLabel(null), '');        // âge inconnu (anniversaire sans année)
+  assert.equal(L.ageLabel(undefined), '');
+  assert.equal(L.ageLabel(NaN), '');
+  assert.equal(L.ageLabel('abc'), '');       // non chiffrable → vide, pas « NaN an »
+  assert.equal(L.ageLabel('3'), '3 ans');    // chaîne numérique tolérée
+});
+
 test('upcomingBirthdays : le 29 février donne une date réelle (jamais 02-29 en année non bissextile)', () => {
   const leap = [{ id: 1, name: 'Leap', day: 29, month: 2, year: 2000 }];
   // année non bissextile : l'occurrence réelle est le 1er mars, cohérente avec daysUntil
@@ -5005,7 +5017,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.56');
+  assert.equal(L.CHANGELOG[0].v, '2.0.57');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
