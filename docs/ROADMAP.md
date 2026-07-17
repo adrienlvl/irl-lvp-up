@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.41 (2026-07-17)
+## 📍 État actuel — build 2.0.42 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**401**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**402**) :
+
+- 🏋️ **Progression : à date égale, la référence est la meilleure série, pas la dernière loguée** (2.0.42) :
+  `progressionSuggestion` (`logic.js:5894`) retenait, à date égale, la **dernière** entrée itérée
+  (`w.date >= best.date`) au lieu de la **meilleure série** — alors que l'idiome des `setLogs` juste
+  au-dessus et le test s3 disent « meilleure série retenue ». Deux séances le même jour pour un même
+  exercice (vraie séance lourde `100×5` puis finisher léger `40×15` logué après) → référence `40×15`
+  au lieu de `100×5`, donc « Cible du jour » (`app.js:305`/`:337`) calculée sur une charge trop basse.
+  Départage désormais l'égalité de date par la meilleure série (même comparaison que les `setLogs`),
+  alignant l'outlier sur `estimatedOneRmSeries` qui agrège déjà par `Math.max`. +1 cas prouvé fautif
+  avant (431 tests). Logique pure, zéro régression. (`docs/recaps/402-progression-tie-break-meilleure-serie.md`). ✅ _boucle #402._
 
 - 🧘 **Coach récupération : la routine contextuelle lit enfin la séance la plus récente** (2.0.41) :
   `contextualWellnessRoutine` (`logic.js:3224`) suggère une routine ciblée selon la dernière séance

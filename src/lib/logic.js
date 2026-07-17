@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.42', emoji: '🏋️', text: 'Cible de progression plus juste : quand tu logues deux séances le même jour pour un même exercice (par exemple ta vraie séance lourde puis un finisher plus léger), la suggestion de charge se base désormais sur ta MEILLEURE série du jour, plus sur la dernière saisie. Avant, un finisher léger enregistré après ta séance de référence pouvait l’écraser et te faire repartir d’une charge trop basse. C’est la même règle « meilleure série retenue » que l’app applique déjà à l’intérieur d’une même séance.' },
   { v: '2.0.41', emoji: '🧘', text: 'Coach récupération réparé : la routine bien-être suggérée après une séance (chevilles après une course, hanches après les jambes, épaules après le haut du corps, bas du dos après le gainage) se base enfin sur ta séance la plus RÉCENTE. Elle regardait par erreur la toute première séance jamais enregistrée — donc, dès que tu avais plus d’une séance, ce conseil ciblé ne se déclenchait quasiment jamais et tu tombais sur la mobilité générique. Il redevient vivant.' },
   { v: '2.0.40', emoji: '⚖️', text: 'Indice de masse corporelle (IMC) plus juste : la catégorie OMS (maigreur, corpulence normale, surpoids, obésité) est désormais déterminée sur l’IMC réel, et non sur la valeur affichée arrondie à une décimale. Un IMC de 18,478 s’affichait « 18,5 » et basculait à tort en « corpulence normale » alors qu’il relève de la maigreur ; de même un 24,95 arrondi à « 25,0 » n’est plus classé « surpoids ». Le chiffre affiché ne change pas — seule la catégorie collée dessus devient correcte au seuil.' },
   { v: '2.0.39', emoji: '🌙', text: 'Bilan hebdo plus juste : le sommeil moyen de la semaine ne compte plus que les nuits vraiment renseignées. Un check-in de récupération où l’on note seulement sa fatigue, ses courbatures (ou juste son heure de coucher) sans saisir la durée de sommeil ne tire plus la moyenne vers le bas comme une nuit de 0 h. Fini le chiffre faussement bas dans le PDF hebdo et le bilan partagé — et le faux conseil « sommeil moyen bas » qui allait avec. C’est déjà ainsi que le bilan mensuel calculait.' },
@@ -5891,7 +5892,10 @@ function progressionSuggestion(workouts, name, opts) {
         });
       }
       if (!(load > 0) || !(reps > 0)) return;
-      if (!best || w.date >= best.date) best = { date: w.date, load, reps };
+      // Date la plus récente = référence de progression ; à date égale, on garde la MEILLEURE
+      // série (charge la plus lourde, puis reps), même idiome que les setLogs ci-dessus — sinon
+      // un finisher léger logué après la vraie séance lourde du jour écrasait la référence.
+      if (!best || w.date > best.date || (w.date === best.date && (load > best.load || (load === best.load && reps > best.reps)))) best = { date: w.date, load, reps };
     });
   });
   if (!best) return null;

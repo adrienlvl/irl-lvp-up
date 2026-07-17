@@ -4112,6 +4112,13 @@ test('progressionSuggestion : double progression (+reps puis +charge)', () => {
   // setLogs : meilleure série retenue (charge la plus lourde)
   const s3 = L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Squat', setLogs: [{ load: 50, reps: 5 }, { load: 60, reps: 12 }] }] }], 'Squat', { minReps: 8, maxReps: 12, increment: 5 });
   assert.equal(s3.lastLoad, 60); assert.equal(s3.action, 'weight'); assert.equal(s3.nextLoad, 65);
+  // deux séances le MÊME jour : la meilleure série (charge la plus lourde) est la référence,
+  // pas la dernière loguée (ex. un finisher léger après la vraie séance lourde)
+  const sTie = L.progressionSuggestion([
+    { date: '2026-06-08', exercises: [{ name: 'Squat', load: 100, reps: 5 }] },
+    { date: '2026-06-08', exercises: [{ name: 'Squat', load: 40, reps: 15 }] },
+  ], 'Squat', { minReps: 8, maxReps: 12, increment: 5 });
+  assert.equal(sTie.lastLoad, 100); assert.equal(sTie.lastReps, 5); assert.equal(sTie.action, 'reps'); assert.equal(sTie.nextLoad, 100);
   // pas de charge → null ; nom absent → null
   assert.equal(L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Gainage', reps: 60 }] }], 'Gainage'), null);
   assert.equal(L.progressionSuggestion(w, 'Inconnu'), null);
@@ -4846,7 +4853,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.41');
+  assert.equal(L.CHANGELOG[0].v, '2.0.42');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
