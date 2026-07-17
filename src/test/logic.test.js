@@ -565,6 +565,23 @@ test('normalizeTodo : défauts, texte borné, priorité validée', () => {
   assert.equal(L.normalizeTodo({ id: 6, priority: 'nawak' }).priority, 'normal');
   assert.equal(L.normalizeTodo({ id: 7, date: 'pas-une-date' }).date, '');
   assert.equal(L.normalizeTodo({ id: 8, text: 'x'.repeat(300) }).text.length, 200);
+  // Date format-valide mais IMPOSSIBLE (backup abîmé / édité à la main) → neutralisée, sinon la
+  // tâche est orpheline dans todosForDay (t.date > tout jour réel → jamais active ni « faite »).
+  assert.equal(L.normalizeTodo({ id: 9, text: 'x', date: '2026-13-99' }).date, '', 'date impossible → vide');
+  assert.equal(L.normalizeTodo({ id: 10, text: 'x', date: '2026-00-10' }).date, '', 'mois 00 → vide');
+  assert.equal(L.normalizeTodo({ id: 11, text: 'x', done: true, doneAt: '2026-13-99' }).doneAt, null, 'doneAt impossible → null');
+});
+
+test('isBoundedDateKey : accepte une date réelle, rejette format-valide mais impossible', () => {
+  assert.equal(L.isBoundedDateKey('2026-07-17'), true);
+  assert.equal(L.isBoundedDateKey('2024-02-29'), true, 'bornes larges mois 1-12 / jour 1-31 (comme jobDateFromText)');
+  assert.equal(L.isBoundedDateKey('2026-13-99'), false, 'mois 13 / jour 99');
+  assert.equal(L.isBoundedDateKey('2026-00-10'), false, 'mois 00');
+  assert.equal(L.isBoundedDateKey('2026-07-00'), false, 'jour 00');
+  assert.equal(L.isBoundedDateKey('pas-une-date'), false);
+  assert.equal(L.isBoundedDateKey(''), false);
+  assert.equal(L.isBoundedDateKey(20260717), false, 'non-string → false');
+  assert.equal(L.isBoundedDateKey(null), false);
 });
 
 test('todosForDay : actives (jour + en retard) triées, faites du jour séparées', () => {
@@ -974,6 +991,11 @@ test('normalizeRecurring : défauts, freq/interval validés, weekdays filtrés',
   assert.deepEqual(r.rule.weekdays, [1, 3], '9 hors 0..6 filtré');
   assert.equal(L.normalizeRecurring({ rule: { freq: 'nawak' } }).rule.freq, 'weekly');
   assert.equal(L.normalizeRecurring({ rule: { interval: 999 } }).rule.interval, 52);
+  // startDate/until format-valides mais IMPOSSIBLES → neutralisés : sinon recurrenceMatches construit
+  // un new Date(2026, 12, 99) qui déborde silencieusement vers un jour réel FAUX (mauvaises occurrences).
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-13-99' } }).rule.startDate, '', 'startDate impossible → vide');
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-07-06', until: '2026-99-99' } }).rule.until, '', 'until impossible → vide');
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-07-06' } }).rule.startDate, '2026-07-06', 'startDate réel conservé');
 });
 
 test('recurrenceMatches : quotidien avec intervalle + borne de début', () => {
@@ -1353,6 +1375,12 @@ test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   assert.ok(ins.some(i => /km/.test(i.text)));
   // sommeil 5 h → alerte
   assert.ok(ins.some(i => /[Ss]ommeil/.test(i.text) && i.tone === 'warn'));
+  // accord au singulier quand l'objectif hebdo est d'UNE seule séance (valeur réelle : app.js clampe à Math.max(1,…))
+  const goal1done = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'strength', duration: 50, effort: 3 }], goals: { sessions: 1 } }, '2026-07-06', '2026-07-11');
+  assert.ok(goal1done.some(i => i.tone === 'good' && /1\/1 séance — objectif atteint/.test(i.text)), '1/1 séance au singulier (objectif atteint)');
+  assert.ok(!goal1done.some(i => /\/1 séances/.test(i.text)), 'pas de pluriel fautif quand objectif = 1');
+  const goal1none = L.weeklyInsights({ workouts: [], goals: { sessions: 1 } }, '2026-07-06', '2026-07-11');
+  assert.ok(goal1none.some(i => i.tone === 'warn' && /0\/1 séance — encore 1 /.test(i.text)), '0/1 séance au singulier (encore)');
   // état vide → un message d'amorce
   const empty = L.weeklyInsights({}, '2026-07-06', '2026-07-11');
   assert.equal(empty.length, 1);
@@ -4785,7 +4813,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.37');
+  assert.equal(L.CHANGELOG[0].v, '2.0.38');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

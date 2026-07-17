@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.37 (2026-07-17)
+## 📍 État actuel — build 2.0.38 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**397**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **430 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**398**) :
+
+- 🛡️ **Robustesse : to-do et récurrence bornent enfin leur date** (2.0.38) : la boucle #393 avait
+  borné la date de `normalizeAgendaItem` (mois 1-12, jour 1-31) « comme normalizeTodo/normalizeRecurring »
+  — sauf que ces deux sœurs ne validaient que le **format**, pas les bornes. Une date impossible
+  (`2026-13-99`, d'un backup abîmé/édité) y passait : côté **to-do** elle orphelinait la tâche
+  (invisible dans `todosForDay`, `t.date > tout jour réel`), côté **récurrence** pire encore
+  (`new Date(2026,12,99)` déborde vers un jour réel FAUX → mauvaises occurrences). Idiome de #393
+  extrait en helper partagé `isBoundedDateKey` et appliqué aux **3** normalizers — ce qui **retire**
+  la duplication au lieu d'en ajouter. +1 bloc de tests (429 → 430) + assertions. Logique pure, zéro
+  régression, promesse du test #393 enfin tenue. (`docs/recaps/398-normalize-todo-recurring-date-bornee.md`). ✅ _boucle #398._
 
 - ♿ **A11y : la case du bip de fin de repos enfin nommée** (2.0.37) : dans la séance guidée, la
   checkbox 🔔 (bip sonore à la fin du repos) n'avait pour nom accessible que l'emoji — un lecteur
