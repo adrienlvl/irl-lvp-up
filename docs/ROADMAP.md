@@ -23,9 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.52 (2026-07-17)
+## 📍 État actuel — build 2.0.53 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**413**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**414**) :
+
+- 🗓️ **Import .ics — une date/heure calendairement impossible n'est plus importée** (2.0.53) :
+  `parseIcsDateTime` (`logic.js:838`) lit une date iCalendar compacte (`YYYYMMDD[Thhmmss[Z]]`) à
+  l'import de calendrier. Son motif capte chaque champ en `\d{2}` → il tolérait mois/jour hors bornes
+  (`13`, `99`) et jours débordant leur mois (30 févr., 31 nov.). Seule la branche `Z` passait par
+  `Date` (et **roulait** silencieusement une date invalide vers un autre jour) ; les branches journée
+  entière/heure flottante renvoyaient `${Y}-${Mo}-${D}` **tel quel**. Un événement d'un `.ics` abîmé
+  était donc stocké avec une date introuvable (« 2026-13-99 », orpheline de toute vue) ou glissé vers
+  un jour faux — le **bug amont** que #393 ne neutralisait qu'en aval. Corrigé par aller-retour sur
+  `Date` (idiome de `jobDateFromText` #411) + bornes d'heure → date/heure impossible = `null`, et
+  `parseIcs` ignore alors l'événement. +2 blocs de tests (6 cas fautifs prouvés avant, 434 tests).
+  Logique pure, zéro régression, variété (robustesse de parseur, domaine import calendrier).
+  (`docs/recaps/414-parse-ics-datetime-calendrier-valide.md`). ✅ _boucle #414._
 
 - 🌙 **Sommeil — le plan de recalage ne se contredit plus à l'arrivée** (2.0.52) :
   `sleepPlanDay` (`logic.js:6387`) fêtait « 🎉 Objectif atteint » (marge de tolérance ±15 min) tout en

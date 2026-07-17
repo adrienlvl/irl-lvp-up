@@ -411,6 +411,29 @@ test('parseIcsDateTime : entrée invalide / vide / null → null, espaces tolér
   assert.deepEqual(L.parseIcsDateTime('  20260716T093000  '), L.parseIcsDateTime('20260716T093000')); // trim
 });
 
+test('parseIcsDateTime : date/heure calendairement impossible (.ics abîmé) → null, pas de rollover', () => {
+  // Le motif \d{2} tolère mois/jour hors bornes et jours qui débordent le mois : tous rejetés.
+  assert.equal(L.parseIcsDateTime('20261399'), null);          // mois 13, jour 99
+  assert.equal(L.parseIcsDateTime('20260230'), null);          // 30 février n'existe pas
+  assert.equal(L.parseIcsDateTime('20261131'), null);          // novembre a 30 jours
+  assert.equal(L.parseIcsDateTime('20250229'), null);          // 2025 non bissextile
+  assert.equal(L.parseIcsDateTime('20260101T256099'), null);   // heure 25:60 hors bornes
+  assert.equal(L.parseIcsDateTime('20260230T120000Z'), null);  // branche Z : plus de rollover vers le 2 mars
+  // Gardes positives : une vraie date/heure reste lue à l'identique.
+  assert.equal(L.parseIcsDateTime('20240229').date, '2024-02-29'); // 2024 bissextile
+  assert.equal(L.parseIcsDateTime('20261231T235900').time, '23:59'); // bornes hautes valides
+});
+
+test('parseIcs : un VEVENT à date impossible est ignoré (aucun événement fantôme)', () => {
+  const ics = 'BEGIN:VEVENT\r\nUID:bad\r\nSUMMARY:Date abimee\r\nDTSTART:20260230\r\nEND:VEVENT';
+  assert.deepEqual(L.parseIcs(ics), []);
+  // Un DTEND impossible ne casse pas un DTSTART valide : durée par défaut (60 min).
+  const ics2 = 'BEGIN:VEVENT\r\nUID:e1\r\nSUMMARY:Fin abimee\r\nDTSTART:20260716T090000\r\nDTEND:20260230T100000\r\nEND:VEVENT';
+  const ev = L.parseIcs(ics2, { baseId: 1 })[0];
+  assert.equal(ev.date, '2026-07-16');
+  assert.equal(ev.durationMin, 60);
+});
+
 test('buildRRuleLine : règle interne → RRULE iCalendar ; invalide → \'\'', () => {
   assert.equal(
     L.buildRRuleLine({ freq: 'weekly', interval: 2, weekdays: [1, 3], startDate: '2026-07-06', until: '2026-12-31' }),
@@ -2870,6 +2893,19 @@ test('haversineKm : Lorient→Rennes ~ 130 km, null si invalide', () => {
   const km = L.haversineKm({ lat: 47.748, lon: -3.366 }, { lat: 48.117, lon: -1.677 });
   assert.ok(km > 110 && km < 150, 'ordre de grandeur plausible : ' + km);
   assert.equal(L.haversineKm({ lat: 1 }, { lat: 2, lon: 3 }), null, 'coord manquante → null');
+  // Cas limites (couverture) :
+  const same = { lat: 47.748, lon: -3.366 };
+  assert.equal(L.haversineKm(same, same), 0, 'points identiques → 0 exact');
+  assert.equal(L.haversineKm(null, same), null, 'premier point absent → null');
+  assert.equal(L.haversineKm(same, null), null, 'second point absent → null');
+  assert.equal(L.haversineKm({ lat: 'abc', lon: 1 }, same), null, 'lat non numérique → null');
+  // coords en chaînes numériques acceptées via Number()
+  const asStr = L.haversineKm({ lat: '47.748', lon: '-3.366' }, { lat: '48.117', lon: '-1.677' });
+  const asNum = L.haversineKm({ lat: 47.748, lon: -3.366 }, { lat: 48.117, lon: -1.677 });
+  assert.equal(asStr, asNum, 'coords en chaînes numériques ⇒ même distance que les nombres');
+  // symétrie a→b === b→a
+  const ba = L.haversineKm({ lat: 48.117, lon: -1.677 }, { lat: 47.748, lon: -3.366 });
+  assert.equal(km, ba, 'distance symétrique (a→b === b→a)');
 });
 // --- Objectifs physiques par zone ---
 test('objectifs par zone : couverture complète et cohérente', () => {
@@ -4913,7 +4949,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.52');
+  assert.equal(L.CHANGELOG[0].v, '2.0.53');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6183,6 +6219,23 @@ test('travelModes : voiture = durée OSRM, vélo/marche depuis la distance', () 
   assert.equal(z.driving, 0, 'distance nulle → 0');
   const noDrive = L.travelModes(50000, 0); // repli voiture 50 km/h
   assert.equal(noDrive.driving, 60, 'sans durée OSRM → 50 km à 50 km/h = 60 min');
+  // Cas limites (couverture) :
+  // borne basse : dès qu'il y a une distance, vélo/marche valent au moins 1 min
+  const tiny = L.travelModes(200, 0); // 0,2 km
+  assert.equal(tiny.distanceKm, 0.2, 'distance arrondie au dixième');
+  assert.equal(tiny.cycling, 1, 'très courte distance → vélo plancher à 1 min');
+  assert.equal(tiny.walking, 2, 'marche 0,2 km ≈ 2,4 min → 2 min');
+  assert.equal(tiny.driving, 1, 'repli voiture plancher à 1 min sur courte distance');
+  // arrondi de distanceKm au dixième
+  assert.equal(L.travelModes(12340, 600).distanceKm, 12.3, '12 340 m → 12,3 km');
+  // distance négative ramenée à 0 → modes distance nuls
+  const neg = L.travelModes(-500, 0);
+  assert.equal(neg.distanceKm, 0, 'distance négative → 0');
+  assert.equal(neg.cycling, 0, 'distance négative → vélo 0');
+  assert.equal(neg.walking, 0, 'distance négative → marche 0');
+  // entrées non numériques → tout à 0
+  const junk = L.travelModes('x', 'y');
+  assert.deepEqual(junk, { distanceKm: 0, driving: 0, cycling: 0, walking: 0 }, 'entrées invalides → 0 partout');
 });
 
 test('scheduleConflicts : chevauchements réels seulement', () => {

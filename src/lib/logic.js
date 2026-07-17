@@ -839,13 +839,22 @@ function parseIcsDateTime(value) {
   const m = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/.exec(String(value || '').trim());
   if (!m) return null;
   const [, Y, Mo, D, h, mi, s, z] = m;
+  const y = +Y, mo = +Mo, d = +D;
+  // Le motif tolère mois/jour hors bornes (13, 99) et 30 févr. / 31 nov. : on valide la
+  // validité CALENDAIRE par aller-retour sur Date (comme jobDateFromText). Une date
+  // impossible venue d'un .ics abîmé → null (l'événement est ignoré par parseIcs) plutôt
+  // que stockée telle quelle (« 2026-13-99 ») ou silencieusement roulée vers un jour faux.
+  const probe = new Date(y, mo - 1, d);
+  if (probe.getFullYear() !== y || probe.getMonth() !== mo - 1 || probe.getDate() !== d) return null;
   const pad = n => String(n).padStart(2, '0');
-  if (h === undefined) return { date: `${Y}-${Mo}-${D}`, time: '', allDay: true, ms: Date.UTC(+Y, +Mo - 1, +D) };
+  if (h === undefined) return { date: `${Y}-${Mo}-${D}`, time: '', allDay: true, ms: Date.UTC(y, mo - 1, d) };
+  // Heure hors bornes (ex. « 25:60 ») → invalide, même logique défensive.
+  if (+h > 23 || +mi > 59 || (s !== undefined && +s > 60)) return null;
   if (z === 'Z') {
-    const d = new Date(Date.UTC(+Y, +Mo - 1, +D, +h, +mi, +(s || 0)));
-    return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, allDay: false, ms: d.getTime() };
+    const dt = new Date(Date.UTC(y, mo - 1, d, +h, +mi, +(s || 0)));
+    return { date: `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`, time: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`, allDay: false, ms: dt.getTime() };
   }
-  return { date: `${Y}-${Mo}-${D}`, time: `${h}:${mi}`, allDay: false, ms: Date.UTC(+Y, +Mo - 1, +D, +h, +mi, +(s || 0)) };
+  return { date: `${Y}-${Mo}-${D}`, time: `${h}:${mi}`, allDay: false, ms: Date.UTC(y, mo - 1, d, +h, +mi, +(s || 0)) };
 }
 
 // Importe un fichier .ics (export/abonnement Google Agenda ou Apple Calendrier)
@@ -2624,6 +2633,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.53', emoji: '🗓️', text: 'Import de calendrier (.ics) plus robuste aux dates abîmées : un événement dont la date est calendairement impossible — « 30 février », « 31 novembre », ou une date carrément aberrante d’un fichier corrompu — est désormais ignoré à l’import au lieu d’être stocké avec une date qui n’existe pas (et qui rendait l’événement introuvable dans l’agenda, ou glissait silencieusement vers un autre jour). Les vraies dates, y compris le 29 février des années bissextiles, restent bien importées ; une heure impossible (« 25:60 ») est traitée de la même façon.' },
   { v: '2.0.52', emoji: '🌙', text: 'Plan de recalage du sommeil : plus de message contradictoire quand tu te couches juste après ta cible. Si ton coucher réel tombe dans la marge de tolérance (jusqu’à 15 min après l’objectif — un vrai succès), l’app fête « 🎉 Objectif atteint » ET affiche désormais une barre pleine avec « arrivée aujourd’hui ». Avant, elle célébrait l’objectif tout en indiquant en même temps une barre à 97 % et « arrivée estimée dans 1 jour » — trois verdicts qui se contredisaient. Aucun changement quand l’objectif n’est pas encore atteint.' },
   { v: '2.0.51', emoji: '♿', text: 'Accessibilité : deux menus déroulants de filtre annoncent enfin leur rôle aux lecteurs d’écran. Le filtre « famille » de la bibliothèque d’exercices (page Athlète) et le sélecteur « Autour de ta séance » des compléments n’avaient aucun nom accessible — un lecteur d’écran les annonçait comme « liste déroulante » sans dire à quoi ils servent (leurs voisins immédiats, eux, étaient déjà nommés). Chacun porte désormais un libellé explicite. Aucun changement visuel.' },
   { v: '2.0.50', emoji: '💼', text: 'Import de candidatures plus robuste aux dates impossibles : quand un tableur (export ou saisie) contient une date de calendrier inexistante — « 30/02/2026 » ou « 31/11/2026 » (novembre n’a que 30 jours) —, l’app l’ignore désormais au lieu de la stocker telle quelle. Avant, elle passait le filtre (mois et jour dans les bornes) et s’affichait « postulé le 30/02/2026 », une date qui n’existe pas et que d’autres calculs interprétaient comme le 2 mars. Les vraies dates, y compris le 29 février des années bissextiles, restent bien lues.' },
