@@ -2935,6 +2935,44 @@ test('mergePlannedEvents : idempotent, préserve completed et id, garde le reste
   assert.ok(again.some(e => e.title === 'Muscu'), 'événement manuel intact');
 });
 
+test('mergeRecurring : ré-sync préserve doneLog/skipLog/paused/id, rafraîchit la règle', () => {
+  // 1er import d'un abonnement calendrier : un récurrent hebdo.
+  const imported = { id: 500, title: 'Standup', time: '09:00', kind: 'life', priority: 'normal',
+    rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06', until: '' }, refId: 'ics-standup-42' };
+  let recurring = L.mergeRecurring([], [imported]);
+  assert.equal(recurring.length, 1);
+  const first = recurring[0];
+  assert.equal(first.refId, 'ics-standup-42');
+  // L'utilisateur coche une occurrence, en saute une autre, met en pause.
+  recurring = recurring.map(r => r.refId === 'ics-standup-42'
+    ? { ...r, doneLog: ['2026-07-06'], skipLog: ['2026-07-13'], paused: true } : r);
+  // Re-sync du MÊME abonnement (même refId), l'export a un id neuf et une heure mise à jour.
+  const resynced = { id: 999, title: 'Standup équipe', time: '09:30', kind: 'life', priority: 'normal',
+    rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06', until: '' }, refId: 'ics-standup-42' };
+  const after = L.mergeRecurring(recurring, [resynced]);
+  assert.equal(after.length, 1, 'pas de doublon après re-sync');
+  const kept = after.find(r => r.refId === 'ics-standup-42');
+  assert.deepEqual(kept.doneLog, ['2026-07-06'], 'historique de complétion préservé');
+  assert.deepEqual(kept.skipLog, ['2026-07-13'], 'jours sautés préservés');
+  assert.equal(kept.paused, true, 'état paused préservé');
+  assert.equal(kept.id, first.id, 'id stable préservé (pas celui du nouvel import)');
+  assert.equal(kept.title, 'Standup équipe', 'titre rafraîchi depuis le calendrier');
+  assert.equal(kept.time, '09:30', 'heure rafraîchie depuis le calendrier');
+});
+
+test('mergeRecurring : garde les autres récurrents, tolère entrées non-tableau', () => {
+  const manual = L.normalizeRecurring({ id: 1, title: 'Manuel', rule: { freq: 'daily', startDate: '2026-07-01' } });
+  const subA = L.normalizeRecurring({ id: 2, title: 'A', refId: 'ics-a', rule: { freq: 'daily', startDate: '2026-07-01' } });
+  const imported = { id: 300, title: 'B', refId: 'ics-b', rule: { freq: 'daily', startDate: '2026-07-01' } };
+  const after = L.mergeRecurring([manual, subA], [imported]);
+  assert.equal(after.length, 3, 'manuel + abonnement A intacts + B ajouté');
+  assert.ok(after.some(r => r.title === 'Manuel'), 'récurrent manuel (sans refId) intact');
+  assert.ok(after.some(r => r.refId === 'ics-a'), 'autre abonnement intact');
+  assert.deepEqual(L.mergeRecurring(null, null), []);
+  assert.deepEqual(L.mergeRecurring(null, [imported]).map(r => r.refId), ['ics-b']);
+  assert.deepEqual(L.mergeRecurring([manual], null), [manual]);
+});
+
 // --- Vague S.8 : trajet auto (allowlist + builders + calcul) ---
 test('isAllowedTravelUrl : seuls Nominatim/OSRM en https, hôtes publics', () => {
   assert.ok(L.isAllowedTravelUrl('https://nominatim.openstreetmap.org/search?q=x'), 'nominatim ok');
@@ -5103,7 +5141,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.62');
+  assert.equal(L.CHANGELOG[0].v, '2.0.63');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

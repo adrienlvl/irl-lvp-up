@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.62 (2026-07-17)
+## 📍 État actuel — build 2.0.63 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**429**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**430**) :
+
+- 🔁 **Calendrier : re-synchroniser un abonnement ne réinitialise plus les récurrents** (2.0.63) :
+  `applyImportedIcs` (`app.js:854`) reconstruisait chaque événement **récurrent** à neuf à chaque re-sync
+  (`syncCalendarSubs`), au lieu d'emprunter le mécanisme préservateur des ponctuels (`mergePlannedEvents`) :
+  `doneLog`/`skipLog` repassaient à `[]`, la pause sautait, l'`id` changeait — cases cochées et jours sautés
+  perdus à chaque synchro. Nouvelle fonction pure sœur `mergeRecurring` (`logic.js`) : un récurrent connu
+  (même `refId`) garde `id`/`doneLog`/`skipLog`/`paused` ; seuls titre, heure, type et règle (le calendrier
+  fait foi) sont rafraîchis. +2 blocs de tests purs + check smoke `icsRecurringMerge` bloquant (439 tests).
+  Robustesse / idempotence des fusions (§4.2), domaine Calendrier/ICS.
+  (`docs/recaps/430-recurring-resync-preserve.md`). ✅ _boucle #430._
 
 - 💼 **Alternance : une cible « à postuler » datée n'est plus comptée comme envoyée** (2.0.62) :
   `applicationStats` (`logic.js:202`) calculait `sent` (candidatures envoyées) par la **seule présence
