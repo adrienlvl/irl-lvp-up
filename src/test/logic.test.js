@@ -2087,6 +2087,12 @@ test('lifeStepStats : série et taux de suivi des pas du jour', () => {
   const empty = L.lifeStepStats([], today, null);
   assert.deepEqual(empty, { streak: 0, doneDays: 0, loggedDays: 0, rate: 0, lastDone: null });
   assert.equal(L.lifeStepStats(null, today, null).streak, 0);
+  // le texte du DERNIER pas passé est normalisé comme celui du jour : trim + troncature à 140,
+  // sans quoi un pas passé très long s'affichait en entier alors que celui du jour était tronqué
+  const longText = '  ' + 'z'.repeat(200) + '  ';
+  const longPast = L.lifeStepStats([{ date: '2026-07-09', text: longText, done: true }], today, null);
+  assert.equal(longPast.lastDone.text.length, 140, 'le pas passé est tronqué à 140 comme celui du jour');
+  assert.equal(longPast.lastDone.text, 'z'.repeat(140), 'trim appliqué avant la troncature (pas d’espaces de tête/queue)');
 });
 
 test('logQuestDay : journalise une journée de quêtes avant la remise à zéro', () => {
@@ -4999,7 +5005,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.55');
+  assert.equal(L.CHANGELOG[0].v, '2.0.56');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

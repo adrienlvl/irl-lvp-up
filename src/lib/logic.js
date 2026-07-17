@@ -1305,7 +1305,7 @@ function lifeStepStats(log, todayKey, todayStep) {
   const lastPast = past[0] || null;
   const lastDone = (todayCounts && t.done)
     ? { date: todayKey, text: todayText.slice(0, 140), daysAgo: 0 }
-    : (lastPast ? { date: lastPast.date, text: lastPast.text, daysAgo: daysUntil(lastPast.date, todayKey) } : null);
+    : (lastPast ? { date: lastPast.date, text: String(lastPast.text || '').trim().slice(0, 140), daysAgo: daysUntil(lastPast.date, todayKey) } : null);
   return {
     streak: dailyStreak(doneDates, todayKey),
     doneDays,
@@ -2637,6 +2637,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.56', emoji: '🌱', text: 'Petit détail d’affichage du « pas de vie » : le rappel « Dernier tenu : … » n’affiche plus un texte à rallonge pour un pas passé. Ton pas du jour était déjà raccourci à 140 caractères dans ce rappel, mais un pas tenu un jour précédent, lui, s’affichait en entier — un texte très long pouvait alors déborder la petite ligne. Les deux sont désormais traités pareil (raccourcis à 140 caractères, espaces de tête et de queue nettoyés). Rien ne change pour un pas court.' },
   { v: '2.0.55', emoji: '🏃', text: 'Ta plus longue sortie course (bilan endurance sur 28 j) s’affiche enfin à la bonne date quand deux sorties sont très proches. Avant, la distance de la plus longue sortie était comparée arrondie au dixième : deux sorties à 12,34 km et 12,32 km tombaient toutes deux sur « 12,3 », si bien que la plus récente (pourtant un poil plus courte) volait le record à la vraie plus longue — mauvaise date affichée. Le record est désormais jugé sur la distance réelle et n’est arrondi qu’à l’affichage. C’est le même correctif que pour les records de séance et de semaine muscu (2.0.46 / 2.0.48), appliqué cette fois à la course.' },
   { v: '2.0.54', emoji: '⚖️', text: 'Ajustement calorique : la stagnation de poids est enfin détectée même si tu te pèses tous les jours. Le conseil « ton poids stagne, baisse ~125 kcal (ou ajoute du cardio) » se déclenche quand ton poids ne bouge plus sur au moins 14 jours — mais l’app ne regardait en fait que tes 4 dernières pesées : en te pesant quotidiennement, ces 4 mesures ne couvraient que ~3 jours, donc le plateau n’était jamais repéré, même après des semaines sans changement. La fenêtre est désormais calée sur les ~14 derniers jours quelle que soit ta fréquence de pesée. Rien ne change pour une pesée espacée.' },
   { v: '2.0.53', emoji: '🗓️', text: 'Import de calendrier (.ics) plus robuste aux dates abîmées : un événement dont la date est calendairement impossible — « 30 février », « 31 novembre », ou une date carrément aberrante d’un fichier corrompu — est désormais ignoré à l’import au lieu d’être stocké avec une date qui n’existe pas (et qui rendait l’événement introuvable dans l’agenda, ou glissait silencieusement vers un autre jour). Les vraies dates, y compris le 29 février des années bissextiles, restent bien importées ; une heure impossible (« 25:60 ») est traitée de la même façon.' },

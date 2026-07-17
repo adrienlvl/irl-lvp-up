@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.55 (2026-07-17)
+## 📍 État actuel — build 2.0.56 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**420**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**421**) :
+
+- 🌱 **Pas de vie : le « Dernier tenu » d'un pas passé enfin tronqué comme celui du jour** (2.0.56) :
+  `lifeStepStats` (`logic.js:1293`) renvoie `lastDone`, affiché en « Dernier tenu : « … » » (`app.js:454`).
+  Le texte du pas **du jour** était nettoyé (`trim`) puis tronqué à 140 caractères, mais le pas **passé**
+  était renvoyé **brut** — un texte à rallonge d'un jour précédent s'affichait en entier et pouvait déborder
+  la petite ligne. Aligné sur la même normalisation (`trim` + `slice(0,140)`) ; conservateur pour un texte
+  court. +2 assertions au test existant, compte inchangé (434). Domaine journal/RPG, micro-fix d'affichage.
+  (`docs/recaps/421-life-step-last-done-troncature.md`). ✅ _boucle #421._
 
 - 🔁 **Couverture : `habitConsistency` — le plafond de fenêtre `days` verrouillé** (tests seuls, pas de bump) :
   le taux de régularité d'une habitude (`logic.js:594`) borne sa fenêtre par DEUX contraintes — le plafond
