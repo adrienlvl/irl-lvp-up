@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.36 (2026-07-17)
+## 📍 État actuel — build 2.0.37 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 55 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**396**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **429 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**397**) :
+
+- ♿ **A11y : la case du bip de fin de repos enfin nommée** (2.0.37) : dans la séance guidée, la
+  checkbox 🔔 (bip sonore à la fin du repos) n'avait pour nom accessible que l'emoji — un lecteur
+  d'écran annonçait « cloche, case à cocher ». Le `title` était posé sur le `<label>`, pas sur le
+  control, donc jamais utilisé comme nom. `aria-label="Bip sonore à la fin du repos"` ajouté **sur
+  l'input** ; annoncé correctement désormais. Seul trou a11y icône-seule restant (balayage exhaustif
+  index.html + app.js). Nouveau check smoke **bloquant** `restSoundA11y`. Zéro changement visuel,
+  variation de type après une série robustesse/polish. (`docs/recaps/397-rest-sound-toggle-aria-label.md`). ✅ _boucle #397._
 
 - ✍️ **Polish : « révision validée » au singulier dans les bilans partagés** (2.0.36) : les textes
   partageables (Web Share) des bilans hebdo (`weeklySummaryText`) et mensuel (`monthlyRecapText`)
