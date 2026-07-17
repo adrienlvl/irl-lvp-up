@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.50 (2026-07-17)
+## 📍 État actuel — build 2.0.51 (2026-07-17)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**411**) :
+
+- ♿ **Accessibilité : deux menus déroulants de filtre annoncent enfin leur rôle** (2.0.51) :
+  `#exerciseFamily` (filtre « famille » de la bibliothèque d'exercices, page Athlète) et `#suppKind`
+  (sélecteur « Autour de ta séance » des compléments) n'avaient **aucun nom accessible** — ni `<label>`
+  enveloppant, ni `aria-label`, ni `title` — alors que tous les autres `<select>` de la page sont bien
+  labellisés (et que les deux **voisins immédiats** d'`exerciseFamily`, `exerciseEquipment` et
+  `exerciseGoal`, portaient déjà un `title`). Un lecteur d'écran (VoiceOver iOS, NVDA) les annonçait
+  « liste déroulante » sans dire à quoi ils servent. Ajout d'un `aria-label` explicite sur chacun +
+  check smoke **bloquant** `filterSelectsA11y`. Aucun changement visuel. Rendu + a11y (§4.3), variété
+  de type et de domaine. (`docs/recaps/412-a11y-filtres-select-nom-accessible.md`). ✅ _boucle #412._
 
 - 💼 **Import Alternance : une date de calendrier inexistante n'est plus stockée** (2.0.50) :
   `jobDateFromText` (`logic.js:304`), partagée par tous les imports (saisie, `parseApplicationsCsv`,
