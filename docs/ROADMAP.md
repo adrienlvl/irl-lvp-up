@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.66 (2026-07-18)
+## 📍 État actuel — build 2.0.67 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **441 tests + smoke** verts (harness durci, dont garde-fou CSS + 60 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**433**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **441 tests + smoke** verts (harness durci, dont garde-fou CSS + 61 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**434**) :
+
+- ♿ **Accessibilité : le bouton boussole « 🧭 » de « Ma semaine » a enfin un nom accessible** (2.0.67) :
+  `#weekQuickEstimate` (`index.html:240`, estime le temps de trajet) n'affichait qu'une icône sans
+  texte ni `aria-label` — sur l'iPhone d'Adrien, VoiceOver l'annonçait « boussole, bouton » sans dire
+  à quoi il sert (le `title` n'est pas annoncé de façon fiable au tactile), alors que ses **deux
+  jumeaux** faisant la même action affichent « 🧭 Estimer ». Audit complet des boutons : c'était le
+  **seul** bouton icône-seule sans nom accessible (tous les autres, dont ceux générés par `app.js`,
+  en avaient déjà un). `aria-label` ajouté, aligné sur le motif existant, **zéro changement visuel**.
+  +check smoke `iconButtonsA11y` bloquant (441 tests). Accessibilité (§4.3), domaine Agenda / Ma semaine.
+  (`docs/recaps/434-icon-button-aria-label.md`). ✅ _boucle #434._
 
 - 🧘 **Records de série : une date impossible ne gonfle plus le record (bien-être & protéines)** (2.0.66) :
   `wellnessBestStreak` (`logic.js:3384`) et le `best` de `proteinStreak` (`logic.js:6201`) filtraient par
