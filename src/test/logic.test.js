@@ -3776,6 +3776,18 @@ test('muscleBalance : équilibre poussée (pecs+épaules) / tirage (dos) sur 28 
   assert.equal(bal.zone, 'balanced'); assert.equal(bal.ratio, 1);
   assert.equal(L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Gainage planche', sets: 3 }] }], '2026-07-10'), null, 'ni poussée ni tirage → null');
   assert.equal(L.muscleBalance(w, 'x'), null);
+  // Double comptage : un exercice à la fois dos ET épaules (back+shoulders) ne doit compter ses
+  // séries qu'UNE fois, du côté de sa zone principale (back = tirage). Avant le fix il gonflait les
+  // deux plateaux → push=4/pull=4/ratio=1/zone='balanced' (isométrie lue « équilibrée » à tort).
+  const hang = L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Suspension barre', sets: 4 }] }], '2026-07-10');
+  assert.equal(hang.push, 0, 'suspension barre = tirage seul (pas de poussée)');
+  assert.equal(hang.pull, 4); assert.equal(hang.ratio, 0, 'push 0 / pull 4 → ratio 0'); assert.equal(hang.zone, 'no-push');
+  const carry = L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Marche fermier kettlebell', sets: 3 }] }], '2026-07-10');
+  assert.equal(carry.push, 0, 'marche fermier (back+abs+shoulders) → zone principale back = tirage');
+  assert.equal(carry.pull, 3); assert.equal(carry.zone, 'no-push');
+  // Mélange réel : suspension barre (tirage) + vraie poussée → chacun compté une fois, équilibré.
+  const mix = L.muscleBalance([{ date: '2026-07-08', exercises: [{ name: 'Suspension barre', sets: 4 }, { name: 'Pompes classiques', sets: 4 }] }], '2026-07-10');
+  assert.equal(mix.push, 4); assert.equal(mix.pull, 4); assert.equal(mix.zone, 'balanced');
 });
 test('pushPullAdvice : conseil d’équilibre poussée/tirage', () => {
   // push-heavy (8/3) → avertissement, ajoute du tirage
@@ -5190,7 +5202,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.67');
+  assert.equal(L.CHANGELOG[0].v, '2.0.68');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

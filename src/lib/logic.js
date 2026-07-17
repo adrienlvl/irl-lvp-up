@@ -2441,8 +2441,15 @@ function muscleBalance(workouts, todayKey, days) {
       const sets = Number(ex.completedSets) > 0 ? Number(ex.completedSets) : (Number(ex.sets) || 0);
       if (sets <= 0) return;
       const zones = exerciseZones(ex.name);
-      if (zones.includes('chest') || zones.includes('shoulders')) push += sets;
-      if (zones.includes('back')) pull += sets;
+      const isPush = zones.includes('chest') || zones.includes('shoulders');
+      const isPull = zones.includes('back');
+      // Un exercice à la fois « poussée » (pecs/épaules) ET « tirage » (dos) — p.ex. suspension
+      // barre ou marche fermier (back+shoulders) — ne compte ses séries qu'UNE fois, du côté de sa
+      // zone PRINCIPALE (première taguée, cf. EXERCISE_ZONES). Sinon le même effort gonflait les
+      // deux plateaux et une isométrie dos/épaules ressortait « équilibrée » (ratio 1) à tort.
+      if (isPush && isPull) { if (zones[0] === 'back') pull += sets; else push += sets; }
+      else if (isPush) push += sets;
+      else if (isPull) pull += sets;
     });
   });
   if (push === 0 && pull === 0) return null;
@@ -2707,6 +2714,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.68', emoji: '🏋️', text: 'Équilibre poussée/tirage (onglet Athlète) : un exercice qui travaille à la fois le dos ET les épaules — comme la suspension à la barre ou la marche du fermier — ne fausse plus ton ratio. Jusqu’ici ses séries étaient comptées DEUX fois, une fois en poussée et une fois en tirage : une séance de pur gainage dos/épaules pouvait donc s’afficher « push/pull équilibré » alors que tu n’avais fait ni pompes ni tractions. Ces exercices comptent désormais une seule fois, du côté de leur muscle principal (le dos → tirage). Rien ne change pour tes exercices classiques (pompes, développés, tractions, rowing).' },
   { v: '2.0.67', emoji: '♿', text: 'Accessibilité : le bouton boussole « 🧭 » de l’ajout rapide dans « Ma semaine » (qui estime ton temps de trajet) a désormais un nom accessible. Il n’affichait qu’une icône sans texte : sur iPhone, VoiceOver l’annonçait comme un simple « emoji boussole », sans dire à quoi il sert. Il est maintenant lu « Estimer le trajet depuis mon point de départ », comme ses deux jumeaux ailleurs dans l’app qui affichent, eux, « 🧭 Estimer ». Rien ne change visuellement.' },
   { v: '2.0.66', emoji: '🧘', text: 'Records de régularité : une date impossible ne gonfle plus tes records de série (bien-être et protéines). Si une sauvegarde restaurée ou un import contenait une date qui n’existe pas au calendrier (par ex. un 31 avril), elle « débordait » sur le jour suivant et fabriquait une paire de jours consécutifs fantôme — ton record de série bien-être ou protéines pouvait alors afficher un chiffre jamais atteint, alors que ta série EN COURS, elle, l’ignorait déjà (les deux se contredisaient). Une telle date est désormais ignorée de la même façon partout. Rien ne change pour tes vraies dates.' },
   { v: '2.0.65', emoji: '🎂', text: 'Anniversaires : une date impossible ne crée plus d’anniversaire « fantôme » dans tes prochains anniversaires. Si une sauvegarde restaurée ou un import contenait une date qui n’existe pas (par ex. un 31 février), l’app la reportait par erreur au 3 mars et l’annonçait comme « à venir » — alors qu’elle n’apparaissait jamais dans la journée correspondante. Une telle date est désormais simplement ignorée, partout de la même façon. Le 29 février reste bien géré (fêté le 1er mars les années non bissextiles), et rien ne change pour tes vraies dates.' },

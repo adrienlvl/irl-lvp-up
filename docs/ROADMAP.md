@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.67 (2026-07-18)
+## 📍 État actuel — build 2.0.68 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **441 tests + smoke** verts (harness durci, dont garde-fou CSS + 61 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**434**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **441 tests + smoke** verts (harness durci, dont garde-fou CSS + 62 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**435**) :
+
+- 🏋️ **Équilibre poussée/tirage : un exercice dos+épaules ne compte plus des deux côtés** (2.0.68) :
+  `muscleBalance` (`logic.js:2427`) additionnait poussée (pecs+épaules) vs tirage (dos) par **deux `if`
+  indépendants** — un exercice à la fois `back` ET `shoulders` (`Suspension barre`, `Marche fermier
+  kettlebell`, seuls concernés de la bibliothèque) ajoutait ses séries **des deux côtés** : une séance
+  de pur gainage dos/épaules ressortait « push/pull équilibré » (ratio 1) sans aucun pressing ni rowing,
+  et `pushPullAdvice` disait « continue ». Correctif fondé sur la convention **déjà documentée** (« zone
+  principale en premier », `logic.js:2345`) : chaque série comptée **une fois**, du côté de la 1re zone
+  taguée (ici `back` → tirage). Zéro régression sur les exercices non ambigus. +3 assertions au test
+  existant + check smoke `muscleBalance` étendu **et promu bloquant** (441 tests). Correctness/robustesse
+  (§4.4/§4.2), domaine Force / Athlète. (`docs/recaps/435-muscle-balance-double-count.md`). ✅ _boucle #435._
 
 - ♿ **Accessibilité : le bouton boussole « 🧭 » de « Ma semaine » a enfin un nom accessible** (2.0.67) :
   `#weekQuickEstimate` (`index.html:240`, estime le temps de trajet) n'affichait qu'une icône sans
