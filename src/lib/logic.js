@@ -2633,6 +2633,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.55', emoji: '🏃', text: 'Ta plus longue sortie course (bilan endurance sur 28 j) s’affiche enfin à la bonne date quand deux sorties sont très proches. Avant, la distance de la plus longue sortie était comparée arrondie au dixième : deux sorties à 12,34 km et 12,32 km tombaient toutes deux sur « 12,3 », si bien que la plus récente (pourtant un poil plus courte) volait le record à la vraie plus longue — mauvaise date affichée. Le record est désormais jugé sur la distance réelle et n’est arrondi qu’à l’affichage. C’est le même correctif que pour les records de séance et de semaine muscu (2.0.46 / 2.0.48), appliqué cette fois à la course.' },
   { v: '2.0.54', emoji: '⚖️', text: 'Ajustement calorique : la stagnation de poids est enfin détectée même si tu te pèses tous les jours. Le conseil « ton poids stagne, baisse ~125 kcal (ou ajoute du cardio) » se déclenche quand ton poids ne bouge plus sur au moins 14 jours — mais l’app ne regardait en fait que tes 4 dernières pesées : en te pesant quotidiennement, ces 4 mesures ne couvraient que ~3 jours, donc le plateau n’était jamais repéré, même après des semaines sans changement. La fenêtre est désormais calée sur les ~14 derniers jours quelle que soit ta fréquence de pesée. Rien ne change pour une pesée espacée.' },
   { v: '2.0.53', emoji: '🗓️', text: 'Import de calendrier (.ics) plus robuste aux dates abîmées : un événement dont la date est calendairement impossible — « 30 février », « 31 novembre », ou une date carrément aberrante d’un fichier corrompu — est désormais ignoré à l’import au lieu d’être stocké avec une date qui n’existe pas (et qui rendait l’événement introuvable dans l’agenda, ou glissait silencieusement vers un autre jour). Les vraies dates, y compris le 29 février des années bissextiles, restent bien importées ; une heure impossible (« 25:60 ») est traitée de la même façon.' },
   { v: '2.0.52', emoji: '🌙', text: 'Plan de recalage du sommeil : plus de message contradictoire quand tu te couches juste après ta cible. Si ton coucher réel tombe dans la marge de tolérance (jusqu’à 15 min après l’objectif — un vrai succès), l’app fête « 🎉 Objectif atteint » ET affiche désormais une barre pleine avec « arrivée aujourd’hui ». Avant, elle célébrait l’objectif tout en indiquant en même temps une barre à 97 % et « arrivée estimée dans 1 jour » — trois verdicts qui se contredisaient. Aucun changement quand l’objectif n’est pas encore atteint.' },
@@ -5769,10 +5770,15 @@ function trailReadiness(workouts, todayKey) {
     const km = Number(w.distance) || 0;
     month += km; runs++;
     if (days <= 6) week += km;
-    if (km > 0 && (!longest || km > longest.km)) longest = { km: Math.round(km * 10) / 10, date: w.date };
+    // Record jugé sur le km BRUT, pas sur l'arrondi : deux sorties aux bruts distincts qui tombent
+    // dans le même seau d'arrondi (ex. 12,34 vs 12,32 → 12,3) ne sont PAS à égalité, sinon la plus
+    // récente vole le record à la plus longue réelle. Jumeau de bestTonnageWeek (#406) : on n'arrondit
+    // qu'à l'affichage (longRun.km ci-dessous).
+    if (km > 0 && (!longest || km > longest.km)) longest = { km, date: w.date };
   });
   if (!runs) return null;
-  return { weekKm: Math.round(week * 10) / 10, monthKm: Math.round(month * 10) / 10, runs, longRun: longest };
+  const longRun = longest ? { km: Math.round(longest.km * 10) / 10, date: longest.date } : null;
+  return { weekKm: Math.round(week * 10) / 10, monthKm: Math.round(month * 10) / 10, runs, longRun };
 }
 
 // Progression du volume de course semaine sur semaine (règle des +10 %/sem).

@@ -23,9 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.54 (2026-07-17)
+## 📍 État actuel — build 2.0.55 (2026-07-17)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**417**) :
+
+- 🏃 **Plus longue sortie course : record jugé sur le km brut, pas sur l'arrondi** (2.0.55) :
+  `trailReadiness` (`logic.js:5758`) stockait le record de plus longue sortie **déjà arrondi au
+  dixième** puis comparait le km **brut** de la sortie suivante contre cette valeur arrondie. Deux
+  sorties dans le même seau d'arrondi (12,34 vs 12,32 → 12,3) → la plus récente, pourtant plus courte,
+  **volait le record** (mauvaise date). Corrigé en comparant le **brut** et en n'arrondissant qu'à
+  l'affichage — même correctif que les records de séance (#406) et de semaine muscu (#408), appliqué
+  cette fois à la course. +1 cas de test (collision d'arrondi), compte inchangé (434).
+  (`docs/recaps/418-trail-readiness-record-brut.md`). ✅ _boucle #418._
 
 - 🧪 **Couverture : `dayColumns`, coloration d'intervalles de la grille agenda** (tests seuls, pas de bump) :
   la répartition en colonnes des événements d'une journée (`logic.js:6561`) n'était testée que sur trois cas

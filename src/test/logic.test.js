@@ -4054,6 +4054,14 @@ test('trailReadiness : km 7j/28j, sorties et plus longue sortie', () => {
   assert.equal(tr.monthKm, 41, '12 + 8 + 21');
   assert.equal(tr.runs, 3);
   assert.equal(tr.longRun.km, 21); assert.equal(tr.longRun.date, '2026-06-20');
+  // Collision d'arrondi : 12,34 et 12,32 tombent tous deux sur 12,3 à l'affichage, mais la 12,34 est
+  // la vraie plus longue → le record doit rester sur elle (jugé sur le brut, pas sur l'arrondi #406).
+  const rnd = L.trailReadiness([
+    { type: 'run', date: '2026-07-05', distance: 12.34 },
+    { type: 'run', date: '2026-07-06', distance: 12.32 },
+  ], '2026-07-10');
+  assert.equal(rnd.longRun.date, '2026-07-05', 'la 12,34 km garde le record malgré l\'arrondi commun');
+  assert.equal(rnd.longRun.km, 12.3, 'km affiché arrondi au dixième');
   assert.equal(L.trailReadiness([{ type: 'strength', date: '2026-07-09' }], '2026-07-10'), null, 'aucun run → null');
   assert.equal(L.trailReadiness(w, 'x'), null);
 });
@@ -4977,7 +4985,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.54');
+  assert.equal(L.CHANGELOG[0].v, '2.0.55');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
