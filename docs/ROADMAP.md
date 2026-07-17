@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.63 (2026-07-17)
+## 📍 État actuel — build 2.0.64 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**430**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**431**) :
+
+- 😴 **Sommeil : la dette ne perd plus une vraie nuit sur une date à double saisie** (2.0.64) :
+  `sleepDebtHours` (`logic.js:6286`) écrivait son index `byDate` **inconditionnellement**, seule
+  asymétrique face à ses 4 sœurs (`weeklySleepStats`/`sleepSeries`/`sleepRegularity`/`bedtimeRegularity`,
+  toutes gardées par `if (v > 0)`). Deux check-ins de même date — nuit chiffrée le matin + « coucher seul »
+  (`sleep:0`) le soir — et l'entrée à 0, si elle vient après, écrasait la vraie nuit, qui disparaissait
+  ensuite du filtre `s > 0` : dette sous-estimée, `nights`/`avg` faussés (réel sur legacy/import/restauration).
+  Garde `if (v > 0)` ajoutée → symétrie retrouvée, rétro-compatible. Referme la piste ouverte par #430.
+  +2 blocs de tests purs (2 ordres) + check smoke `sleepDebt` étendu bloquant (439 tests).
+  Robustesse/correctness (§4.2/§4.4), domaine Sommeil.
+  (`docs/recaps/431-sleep-debt-same-date-guard.md`). ✅ _boucle #431._
 
 - 🔁 **Calendrier : re-synchroniser un abonnement ne réinitialise plus les récurrents** (2.0.63) :
   `applyImportedIcs` (`app.js:854`) reconstruisait chaque événement **récurrent** à neuf à chaque re-sync

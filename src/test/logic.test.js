@@ -5141,7 +5141,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.63');
+  assert.equal(L.CHANGELOG[0].v, '2.0.64');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6048,6 +6048,20 @@ test('sleepDebtHours : heures manquantes sous la cible, nuits renseignées', () 
   assert.equal(r.target, 7.5);
   assert.equal(L.sleepDebtHours([], 7.5, '2026-07-06', '2026-07-10').debt, 0);
   assert.equal(L.sleepDebtHours('x', 7.5, '2026-07-06', '2026-07-10').nights, 0);
+  // Deux check-ins de MÊME date : un « coucher seul » (sleep:0) plus tard dans le tableau ne doit PAS
+  // écraser la vraie nuit du matin (symétrie avec weeklySleepStats/sleepSeries/sleepRegularity).
+  const dup = L.sleepDebtHours(
+    [{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-06', sleep: 0, bedtime: '23:00' }],
+    7.5, '2026-07-06', '2026-07-10');
+  assert.equal(dup.nights, 1, 'la nuit chiffrée compte, le coucher-seul ne l’efface pas');
+  assert.equal(dup.debt, 1.5, '7.5 - 6 = 1.5 (et non 0 par écrasement à sleep:0)');
+  assert.equal(dup.avg, 6, 'moyenne = 6 (la vraie nuit), pas 0');
+  // Ordre inverse (0 d’abord, vraie nuit ensuite) : même résultat, indépendant de l’ordre.
+  const dup2 = L.sleepDebtHours(
+    [{ date: '2026-07-06', sleep: 0, bedtime: '23:00' }, { date: '2026-07-06', sleep: 6 }],
+    7.5, '2026-07-06', '2026-07-10');
+  assert.equal(dup2.debt, 1.5);
+  assert.equal(dup2.nights, 1);
 });
 test('weeklySleepStats : moyenne, nuits, plus courte nuit, statut', () => {
   const rec = [

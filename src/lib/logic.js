@@ -2689,6 +2689,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.64', emoji: '😴', text: 'Bilan sommeil : ta dette de sommeil ne « perd » plus une vraie nuit quand une même date porte deux saisies. Si, sur un jour, tu avais enregistré ta nuit le matin (durée renseignée) puis, le soir, seulement ton heure de coucher (sans durée), le second enregistrement pouvait effacer la vraie nuit du calcul de dette — la moyenne et le nombre de nuits en pâtissaient. La dette de sommeil ignore désormais une saisie sans durée quand une nuit chiffrée existe pour la même date, exactement comme le font déjà la moyenne hebdo, la mini-courbe et la régularité. Rien ne change quand tu n’as qu’une saisie par jour.' },
   { v: '2.0.63', emoji: '🔁', text: 'Calendrier : re-synchroniser un agenda abonné (.ics) ne remet plus tes rendez-vous récurrents à zéro. Jusqu’ici, chaque re-sync du même abonnement RECONSTRUISAIT tes événements récurrents depuis zéro : les occurrences que tu avais cochées ou sautées repassaient à « à faire », une mise en pause était annulée, et l’identifiant interne changeait — alors que tes événements ponctuels, eux, étaient bien préservés. Désormais un récurrent déjà connu (même source) garde ton historique de cases cochées, tes jours sautés et son état « en pause » ; seuls le titre, l’heure et la règle sont rafraîchis depuis le calendrier. Rien ne change pour tes récurrents créés à la main.' },
   { v: '2.0.62', emoji: '💼', text: 'Alternance : une cible encore « à postuler » n’est plus comptée comme une candidature ENVOYÉE, même quand elle porte une date. En important ton tableur de suivi (Google Sheets), une ligne « à postuler » avec une date de repérage ou une deadline gonflait à tort ta série (« 🔥 »), ton compteur du jour (« postulé aujourd’hui ✓ ») et ton total de la semaine — alors que tu n’avais rien envoyé. Le moteur de motivation ne compte désormais que les candidatures réellement postulées. Rien ne change quand tes « à postuler » n’ont pas de date, ni pour tes vraies candidatures.' },
   { v: '2.0.61', emoji: '🎖️', text: 'Trophées : le badge « Cible atteinte » se fie enfin à ton poids le plus RÉCENT, pas au dernier de la liste. Après une restauration de sauvegarde ou un import, tes pesées ne sont pas toujours rangées dans l’ordre : le badge pouvait alors comparer un vieux poids et rester verrouillé alors que ta dernière pesée touchait la cible (ou, à l’inverse, se débloquer à tort). Il prend désormais la pesée la plus récente par date, comme le reste de l’app. Rien ne change quand tes poids sont déjà dans l’ordre.' },
@@ -6289,7 +6290,11 @@ function sleepDebtHours(recovery, target, sinceKey, todayKey) {
   (Array.isArray(recovery) ? recovery : []).forEach(r => {
     if (!r || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.date || ''))) return;
     if (r.date < sinceKey || r.date > todayKey) return;
-    byDate[r.date] = Number(r.sleep) || 0;
+    // Symétrie avec weeklySleepStats/sleepSeries/sleepRegularity : n'écris que les nuits chiffrées
+    // (sleep > 0). Sinon un second check-in de MÊME date sans durée (« coucher seul », sleep:0)
+    // écraserait la vraie nuit du matin — possible sur données legacy/import/restauration.
+    const v = Number(r.sleep) || 0;
+    if (v > 0) byDate[r.date] = v;
   });
   let debt = 0, nights = 0, sum = 0;
   Object.values(byDate).forEach(s => { if (s > 0) { nights++; sum += s; if (s < tgt) debt += (tgt - s); } });
