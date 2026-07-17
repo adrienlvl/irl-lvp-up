@@ -4335,6 +4335,14 @@ test('calorieAdjustment : stagnation → baisse/hausse calorique', () => {
   const gainFlat = [{ date: '2026-06-21', value: 70 }, { date: '2026-07-01', value: 70 }, { date: '2026-07-12', value: 70 }];
   assert.equal(L.calorieAdjustment(gainFlat, 'prise', 2500).suggestion, 'increase');
   assert.equal(L.calorieAdjustment(flat, 'maintien', 2000).stagnating, false);
+  // Pesée QUOTIDIENNE en plateau : les 4 dernières mesures ne couvrent que ~3 j, mais la fenêtre
+  // est ancrée par date (≥ 14 j) → le plateau est bien détecté (avant : slice(-4) → jamais).
+  const daily = [];
+  for (let d = 13; d <= 30; d++) daily.push({ date: `2026-06-${String(d).padStart(2, '0')}`, value: 80 });
+  for (let d = 1; d <= 12; d++) daily.push({ date: `2026-07-${String(d).padStart(2, '0')}`, value: 80 });
+  const dailyRes = L.calorieAdjustment(daily, 'perte', 2000);
+  assert.equal(dailyRes.stagnating, true); assert.equal(dailyRes.suggestion, 'reduce');
+  assert.equal(dailyRes.newTarget, 1875); assert.equal(dailyRes.ratePerWeek, 0);
 });
 test('weightForecast : trajectoire hebdo bornée à la cible', () => {
   const f = L.weightForecast(80, 72, 0.48, 17, '2026-07-12');
@@ -4949,7 +4957,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.53');
+  assert.equal(L.CHANGELOG[0].v, '2.0.54');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

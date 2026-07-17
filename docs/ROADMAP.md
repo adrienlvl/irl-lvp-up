@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.53 (2026-07-17)
+## 📍 État actuel — build 2.0.54 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**415**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**416**) :
+
+- ⚖️ **Ajustement calorique — le plateau est détecté même en pesée quotidienne** (2.0.54) :
+  `calorieAdjustment` (`logic.js:5435`) jugeait la stagnation de poids sur une fenêtre ancrée par
+  **nombre** de pesées (`list.slice(-4)`), pas par **date**. Pour qui se pèse **tous les jours**, ces
+  4 mesures ne couvraient que ~3 j → la garde `days >= 14` était toujours fausse → **le conseil de
+  plateau ne se déclenchait jamais**, même après des semaines de poids plat. Corrigé en ancrant la
+  borne basse sur la pesée la plus récente distante d'au moins 14 j — fenêtre calée sur les ~14
+  derniers jours quelle que soit la fréquence, tout en restant récente. Cas clairsemés inchangés
+  (l'ancre par date retombe sur la même pesée que `slice(-4)`). +1 cas de test (30 pesées quotidiennes
+  en plateau, échec avant / succès après). Logique pure, module Nutrition/Poids, variété (fenêtre
+  glissante mal bornée). (`docs/recaps/416-calorie-adjustment-fenetre-datee.md`). ✅ _boucle #416._
 
 - 🧪 **Couverture : `haversineKm` & `travelModes`, cas limites du module Déplacements** (tests seuls, pas de bump) :
   bornes et replis muets jamais exercés — points identiques → `0` exact, coords en chaînes numériques,

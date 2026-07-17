@@ -2633,6 +2633,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.54', emoji: '⚖️', text: 'Ajustement calorique : la stagnation de poids est enfin détectée même si tu te pèses tous les jours. Le conseil « ton poids stagne, baisse ~125 kcal (ou ajoute du cardio) » se déclenche quand ton poids ne bouge plus sur au moins 14 jours — mais l’app ne regardait en fait que tes 4 dernières pesées : en te pesant quotidiennement, ces 4 mesures ne couvraient que ~3 jours, donc le plateau n’était jamais repéré, même après des semaines sans changement. La fenêtre est désormais calée sur les ~14 derniers jours quelle que soit ta fréquence de pesée. Rien ne change pour une pesée espacée.' },
   { v: '2.0.53', emoji: '🗓️', text: 'Import de calendrier (.ics) plus robuste aux dates abîmées : un événement dont la date est calendairement impossible — « 30 février », « 31 novembre », ou une date carrément aberrante d’un fichier corrompu — est désormais ignoré à l’import au lieu d’être stocké avec une date qui n’existe pas (et qui rendait l’événement introuvable dans l’agenda, ou glissait silencieusement vers un autre jour). Les vraies dates, y compris le 29 février des années bissextiles, restent bien importées ; une heure impossible (« 25:60 ») est traitée de la même façon.' },
   { v: '2.0.52', emoji: '🌙', text: 'Plan de recalage du sommeil : plus de message contradictoire quand tu te couches juste après ta cible. Si ton coucher réel tombe dans la marge de tolérance (jusqu’à 15 min après l’objectif — un vrai succès), l’app fête « 🎉 Objectif atteint » ET affiche désormais une barre pleine avec « arrivée aujourd’hui ». Avant, elle célébrait l’objectif tout en indiquant en même temps une barre à 97 % et « arrivée estimée dans 1 jour » — trois verdicts qui se contredisaient. Aucun changement quand l’objectif n’est pas encore atteint.' },
   { v: '2.0.51', emoji: '♿', text: 'Accessibilité : deux menus déroulants de filtre annoncent enfin leur rôle aux lecteurs d’écran. Le filtre « famille » de la bibliothèque d’exercices (page Athlète) et le sélecteur « Autour de ta séance » des compléments n’avaient aucun nom accessible — un lecteur d’écran les annonçait comme « liste déroulante » sans dire à quoi ils servent (leurs voisins immédiats, eux, étaient déjà nommés). Chacun porte désormais un libellé explicite. Aucun changement visuel.' },
@@ -5439,9 +5440,16 @@ function calorieAdjustment(weights, goal, dailyTarget) {
     .sort((a, b) => a.date.localeCompare(b.date));
   const dt = Number(dailyTarget) || 0;
   if (list.length < 3 || !(dt > 0) || (goal !== 'perte' && goal !== 'prise')) return { stagnating: false, suggestion: null };
-  const recent = list.slice(-4), a = recent[0], b = recent[recent.length - 1];
-  const days = (Date.parse(b.date + 'T12:00:00') - Date.parse(a.date + 'T12:00:00')) / 864e5;
-  if (!(days >= 14)) return { stagnating: false, suggestion: null };
+  // Fenêtre RÉCENTE ancrée par DATE, pas par nombre de pesées : la stagnation se juge sur les
+  // ~14 derniers jours quelle que soit la fréquence. Ancrer sur les 4 dernières mesures (slice(-4))
+  // rétrécissait la fenêtre à ~3 j pour qui se pèse tous les jours → days ≥ 14 jamais vrai → plateau
+  // jamais détecté même après des mois. On prend la pesée la plus récente distante d'au moins 14 j.
+  const b = list[list.length - 1];
+  const daysTo = w => (Date.parse(b.date + 'T12:00:00') - Date.parse(w.date + 'T12:00:00')) / 864e5;
+  let a = null;
+  for (let i = list.length - 2; i >= 0; i--) { if (daysTo(list[i]) >= 14) { a = list[i]; break; } }
+  if (!a) return { stagnating: false, suggestion: null };
+  const days = daysTo(a);
   const ratePerWeek = Math.round(((b.value - a.value) / days * 7) * 100) / 100;
   const delta = 125, d = Math.round(days);
   const rateTxt = `${ratePerWeek >= 0 ? '+' : ''}${ratePerWeek} kg/sem sur ${d} j`;
