@@ -298,12 +298,21 @@ function jobStatusFromText(t) {
   return 'a_postuler';
 }
 // Extrait une date ISO d'un texte (ISO ou JJ/MM/AAAA). '' sinon. Pur.
-// Borne mois 1-12 / jour 1-31 : une cellule aberrante (ex. « 13/45/2026 ») ne pollue plus la date
-// d'une candidature — elle est ignorée ('') au lieu d'être stockée telle quelle. Si le motif ISO
-// trouvé est hors bornes, on retombe sur le motif JJ/MM/AAAA (une vraie date peut suivre du bruit).
+// Borne mois 1-12 / jour 1-31 ET validité CALENDAIRE : une cellule aberrante (« 13/45/2026 » hors
+// bornes, mais aussi « 30/02/2026 » ou « 31/11/2026 » — dates de calendrier inexistantes) ne pollue
+// plus la date d'une candidature — elle est ignorée ('') au lieu d'être stockée telle quelle. Sinon
+// un 30 février importé serait affiché « postulé le 30/02/2026 » et reparsé ailleurs comme le 2 mars.
+// La validité se vérifie par aller-retour sur `Date` (le rollover trahit un jour qui déborde le mois).
+// Si le motif ISO trouvé est invalide, on retombe sur le motif JJ/MM/AAAA (une vraie date peut suivre du bruit).
 function jobDateFromText(t) {
   const s = String(t || '');
-  const pad = (y, mo, d) => { const M = Number(mo), D = Number(d); return (M >= 1 && M <= 12 && D >= 1 && D <= 31) ? `${y}-${String(M).padStart(2, '0')}-${String(D).padStart(2, '0')}` : ''; };
+  const pad = (y, mo, d) => {
+    const Y = Number(y), M = Number(mo), D = Number(d);
+    if (!(M >= 1 && M <= 12 && D >= 1 && D <= 31)) return '';
+    const dt = new Date(Y, M - 1, D);
+    if (dt.getFullYear() !== Y || dt.getMonth() !== M - 1 || dt.getDate() !== D) return ''; // 30 févr., 31 nov.… → inexistante
+    return `${y}-${String(M).padStart(2, '0')}-${String(D).padStart(2, '0')}`;
+  };
   const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(s); const isoDate = iso ? pad(iso[1], iso[2], iso[3]) : '';
   if (isoDate) return isoDate;
   const fr = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s); return fr ? pad(fr[3], fr[2], fr[1]) : '';
@@ -2615,6 +2624,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.50', emoji: '💼', text: 'Import de candidatures plus robuste aux dates impossibles : quand un tableur (export ou saisie) contient une date de calendrier inexistante — « 30/02/2026 » ou « 31/11/2026 » (novembre n’a que 30 jours) —, l’app l’ignore désormais au lieu de la stocker telle quelle. Avant, elle passait le filtre (mois et jour dans les bornes) et s’affichait « postulé le 30/02/2026 », une date qui n’existe pas et que d’autres calculs interprétaient comme le 2 mars. Les vraies dates, y compris le 29 février des années bissextiles, restent bien lues.' },
   { v: '2.0.49', emoji: '💼', text: 'Suivi Alternance plus fiable à l’import : un statut « non retenu » (la formulation la plus courante d’un refus) n’est plus classé par erreur comme candidature « acceptée ». Quand tu importes ou synchronises un tableur de candidatures, une ligne « Non retenu », « Candidature non retenue » ou « Pas retenu » atterrit désormais bien dans « Refus » — avant, le mot « retenu » l’emportait et l’inversait en offre décrochée, faussant le funnel, le taux de réponse et « Le focus du moment ». Une vraie réponse positive (« Retenu », « embauché ») reste bien comptée comme acceptée.' },
   { v: '2.0.48', emoji: '🗓️', text: 'Record hebdomadaire de tonnage muscu plus juste : quand deux semaines ont un total très proche dont l’une en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg), l’app garde bien la semaine qui a réellement soulevé le plus. Avant, le tonnage était comparé arrondi : une semaine antérieure à 113,0 kg et une plus récente à 112,5 kg tombaient toutes deux sur « 113 », et la règle « à égalité, garde la plus récente » donnait le record à la mauvaise semaine (mauvaise date, et « Record hebdo battu cette semaine ! » possible à tort). C’est le même correctif que pour le record de séance (2.0.46), appliqué cette fois au record de la semaine.' },
   { v: '2.0.47', emoji: '🎯', text: 'Objectif suggéré à l’inscription plus juste au seuil : la suggestion d’objectif physique (perte de gras / prise de muscle / corps athlétique) se base désormais sur ton IMC réel, et non sur la valeur affichée arrondie. Un IMC réel de 24,98 (arrondi 25,0) reste « dans la norme » et propose un corps athlétique, au lieu de partir d’emblée sur une perte de gras ; à l’autre bout, un IMC 18,48 (arrondi 18,5) oriente bien vers la prise de muscle. Le chiffre affiché ne change pas — c’est la même règle IMC réel que pour le conseil de poids et le bilan corporel.' },

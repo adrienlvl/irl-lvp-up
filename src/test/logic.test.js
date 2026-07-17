@@ -690,6 +690,16 @@ test('jobDateFromText : lit ISO/JJ-MM-AAAA, borne mois/jour, ignore les dates ab
   assert.equal(L.jobDateFromText('13/45/2026'), '', 'jour 13 mois 45 → hors bornes');
   assert.equal(L.jobDateFromText('2026-25-99'), '', 'ISO mois 25 jour 99 → hors bornes');
   assert.equal(L.jobDateFromText('00/00/2026'), '', 'mois/jour 0 → hors bornes');
+  // Validité CALENDAIRE : un jour dans les bornes mais qui n'existe pas dans le mois est aberrant
+  // aussi (avant le correctif, ces dates impossibles étaient stockées puis affichées telles quelles)
+  assert.equal(L.jobDateFromText('2026-02-30'), '', '30 février → date inexistante');
+  assert.equal(L.jobDateFromText('30/02/2026'), '', '30 février (FR) → date inexistante');
+  assert.equal(L.jobDateFromText('31/11/2026'), '', '31 novembre → novembre n’a que 30 jours');
+  assert.equal(L.jobDateFromText('2025-02-29'), '', '29 février hors année bissextile → inexistant');
+  // Un 29 février d'une VRAIE année bissextile reste bien lu (pas de faux rejet)
+  assert.equal(L.jobDateFromText('2024-02-29'), '2024-02-29', '29 février d’une année bissextile → valide');
+  // Une date ISO calendairement invalide ne masque pas une vraie date JJ/MM/AAAA qui suit
+  assert.equal(L.jobDateFromText('ref 2026-02-30 puis 05/03/2026'), '2026-03-05', 'fallback ISO invalide→FR');
   // Un motif ISO hors bornes ne masque pas une vraie date JJ/MM/AAAA qui suit
   assert.equal(L.jobDateFromText('ref 2026-13-01 puis 05/03/2026'), '2026-03-05', 'fallback ISO→FR');
 });
@@ -4903,7 +4913,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.49');
+  assert.equal(L.CHANGELOG[0].v, '2.0.50');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

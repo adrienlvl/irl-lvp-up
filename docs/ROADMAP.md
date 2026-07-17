@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.49 (2026-07-17)
+## 📍 État actuel — build 2.0.50 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**410**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**411**) :
+
+- 💼 **Import Alternance : une date de calendrier inexistante n'est plus stockée** (2.0.50) :
+  `jobDateFromText` (`logic.js:304`), partagée par tous les imports (saisie, `parseApplicationsCsv`,
+  sync Google Sheets), ne validait que les bornes par champ (mois 1-12, jour 1-31) et pas la validité
+  **calendaire**. Un « 30/02/2026 » ou « 31/11/2026 » (novembre a 30 jours) passait et était **stocké
+  tel quel** puis affiché « postulé le 30/02/2026 » (`app.js:201`) — date inexistante que d'autres
+  calculs reparsaient comme le 2 mars. Corrigé par un aller-retour sur `Date` (le rollover trahit un
+  jour qui déborde le mois) ; le 29 février d'une année bissextile reste bien lu. +6 cas (4 fautifs
+  prouvés avant, 432 tests). Logique pure, module sacré fiabilisé, variété (robustesse de parseur de
+  date). (`docs/recaps/411-job-date-calendrier-valide.md`). ✅ _boucle #411._
 
 - 🧪 **Couverture : `compareApplications`, dernière fonction pure non testée, verrouillée** (tests seuls, pas de bump) :
   un audit de couverture (357 exports croisés avec les tests) a révélé qu'une **seule** fonction pure exportée
