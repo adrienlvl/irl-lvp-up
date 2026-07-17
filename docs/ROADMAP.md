@@ -25,7 +25,15 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.53 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**414**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**415**) :
+
+- 🧪 **Couverture : `haversineKm` & `travelModes`, cas limites du module Déplacements** (tests seuls, pas de bump) :
+  bornes et replis muets jamais exercés — points identiques → `0` exact, coords en chaînes numériques,
+  symétrie et `null` pour `haversineKm` ; plancher à 1 min, arrondi au dixième, distance négative → 0 et
+  entrées non numériques pour `travelModes`. Comportements figés après exécution sur le code réel (aucun
+  `logic.js` touché : filet de non-régression, pas un bug). Assertions ajoutées aux 2 tests existants →
+  compte de tests inchangé. Atterri dans le commit #414 par course d'index d'une session concurrente
+  (`[[autopilot-concurrent-sessions]]`). (`docs/recaps/415-geo-travel-coverage.md`). ✅ _boucle #415._
 
 - 🗓️ **Import .ics — une date/heure calendairement impossible n'est plus importée** (2.0.53) :
   `parseIcsDateTime` (`logic.js:838`) lit une date iCalendar compacte (`YYYYMMDD[Thhmmss[Z]]`) à
