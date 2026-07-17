@@ -619,7 +619,10 @@ function habitConsistency(habit, todayKey, days) {
   for (let i = 0; i < win; i++) {
     const k = key(d);
     if (k < earliest) break;                               // avant le début de l'habitude : on s'arrête
-    if (wds.has(d.getDay())) { scheduled++; if (done.has(k)) hit++; }
+    // Le jour courant PRÉVU mais pas encore fait n'est pas un échec : la journée n'est pas finie. On
+    // ne le compte ni comme prévu ni comme raté — même tolérance que `habitStreak` (« on n'entame pas »),
+    // sinon une habitude jeune parfaite afficherait 🔥 4 mais 📊 80 % en pleine journée (incohérent).
+    if (wds.has(d.getDay()) && !(i === 0 && !done.has(k))) { scheduled++; if (done.has(k)) hit++; }
     d.setDate(d.getDate() - 1);
   }
   if (!scheduled) return null;
@@ -2665,6 +2668,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.60', emoji: '📊', text: 'Habitudes : la régularité (le badge « 📊 % ») ne te pénalise plus pour la case du jour pas encore cochée. Une habitude jeune et parfaite pouvait afficher « 🔥 4 » (série intacte) juste à côté de « 📊 80 % » en pleine journée, uniquement parce qu’aujourd’hui n’était pas encore fait — deux chiffres qui se contredisent. La régularité tolère désormais le jour en cours exactement comme la série : tant que la journée n’est pas finie, il ne compte pas comme un raté. Un vrai jour manqué dans le passé, lui, compte toujours.' },
   { v: '2.0.59', emoji: '🍽️', text: 'Coach poids : quand ta perte stagne et que ta cible calorique est déjà proche du plancher (1200 kcal/jour), le conseil de baisse dit enfin la vérité. Il annonçait toujours « baisse d’environ 125 kcal/jour » alors que la « Nouvelle cible » ne pouvait pas descendre sous 1200 — la vraie baisse était parfois de 50 kcal seulement, un conseil qui se contredisait lui-même. Le montant annoncé correspond maintenant exactement à la baisse réelle, et une fois au plancher le coach t’oriente vers le cardio plutôt qu’une baisse impossible. Rien ne change quand la marge est large, ni pour une prise de poids.' },
   { v: '2.0.58', emoji: '📅', text: 'Agenda : un rendez-vous récurrent importé « qui se répète N fois » (fichier .ics d’un agenda Google ou Apple) s’arrête enfin après ses N occurrences. Ces séries finies sont encodées avec un « COUNT » (répéter 4 fois, 10 fois…) que l’import ignorait : le rendez-vous se répétait alors À L’INFINI dans l’agenda. Il est maintenant borné à la bonne dernière date (calculée exactement, même quand des mois n’ont pas le jour visé — ex. un 31 — ou pour un 29 février). Rien ne change pour une récurrence sans fin ou déjà bornée par une date de fin.' },
   { v: '2.0.57', emoji: '🎂', text: 'Anniversaires : l’âge s’accorde enfin correctement au singulier. Dans le bandeau « 🎂 À venir » et sur le calendrier mensuel, un premier anniversaire s’affichait « (1 ans) » — c’est désormais « (1 an) », comme dans « Ma journée » qui le faisait déjà bien. Rien ne change dès 2 ans (« 2 ans »), ni pour un anniversaire enregistré sans année de naissance (l’âge reste alors masqué).' },

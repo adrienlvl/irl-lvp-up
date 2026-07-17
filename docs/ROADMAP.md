@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.59 (2026-07-17)
+## 📍 État actuel — build 2.0.60 (2026-07-17)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**426**) :
+
+- 📊 **Habitudes : la régularité ne pénalise plus le jour courant pas encore fait** (2.0.60) :
+  le panneau affiche côte à côte la série (`🔥`, `habitStreak`, tolère le jour en cours) et le badge de
+  régularité (`📊 %`, `habitConsistency`, `logic.js:603`). `habitConsistency` comptait le jour courant
+  prévu-mais-pas-encore-fait comme un **raté** → une habitude jeune parfaite affichait `🔥 4` **et**
+  `📊 80 %` en pleine journée (contradictoire), 80 % identique à un vrai trou passé. La régularité tolère
+  désormais le jour en cours **exactement comme la série** (`i===0 && !fait` non compté) ; un vrai jour
+  manqué révolu compte toujours. +4 assertions pures + check smoke `habitConsistency` étendu (437 tests).
+  Cohérence/correctness (§4.4), domaine habitudes. (`docs/recaps/427-habit-consistency-jour-courant.md`).
+  ✅ _boucle #427._
 
 - 🍽️ **Coach poids : la baisse calorique annoncée = la baisse réelle près du plancher** (2.0.59) :
   quand la perte stagne et que la cible est déjà proche du plancher (1200 kcal), `calorieAdjustment`

@@ -5089,7 +5089,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.59');
+  assert.equal(L.CHANGELOG[0].v, '2.0.60');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6849,6 +6849,23 @@ test('habitConsistency : régularité DEPUIS le début (fenêtre bornée à la 1
   const hMiss = { name: 'Sport', weekdays: [1, 3, 5], log: ['2026-07-15', '2026-07-10'] };
   const rMiss = L.habitConsistency(hMiss, '2026-07-15', 14);
   assert.deepEqual([rMiss.done, rMiss.scheduled, rMiss.rate], [2, 3, 67]);
+  // JOUR COURANT prévu mais pas encore fait : la journée n'est pas finie → il ne compte PAS comme
+  // raté (même tolérance que `habitStreak`). Sinon une habitude jeune parfaite afficherait 🔥 4 mais
+  // 📊 80 % côte à côte, incohérence pure. 4 jours faits (13→16), today 17 prévu non fait → 100 %, pas 80 %.
+  const hToday = { name: 'Parfaite', weekdays: [], log: ['2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'] };
+  const rToday = L.habitConsistency(hToday, '2026-07-17', 30);
+  assert.deepEqual([rToday.done, rToday.scheduled, rToday.rate], [4, 4, 100]);
+  assert.equal(L.habitStreak(hToday, '2026-07-17'), 4);                  // cohérent avec la série affichée
+  // le MÊME jour une fois fait → toujours 100 %, mais compté (5/5)
+  const rTodayDone = L.habitConsistency({ ...hToday, log: [...hToday.log, '2026-07-17'] }, '2026-07-17', 30);
+  assert.deepEqual([rTodayDone.done, rTodayDone.scheduled, rTodayDone.rate], [5, 5, 100]);
+  // un VRAI trou passé compte toujours (le 14 manque, today 17 non fait) → 3 tenus / 4 prévus = 75 %,
+  // PAS 100 % : seul le jour courant est toléré, pas les jours révolus ratés.
+  const rHoleToday = L.habitConsistency({ name: 'Trou', weekdays: [], log: ['2026-07-13', '2026-07-15', '2026-07-16'] }, '2026-07-17', 30);
+  assert.deepEqual([rHoleToday.done, rHoleToday.scheduled, rHoleToday.rate], [3, 4, 75]);
+  // habitude hebdo (vendredi) : today ven 17 non fait → seul le ven 10 compte → 100 %, pas 50 %
+  const rWeekly = L.habitConsistency({ name: 'Hebdo', weekdays: [5], log: ['2026-07-10'] }, '2026-07-17', 30);
+  assert.deepEqual([rWeekly.done, rWeekly.scheduled, rWeekly.rate], [1, 1, 100]);
 });
 
 test('applyHabitEdit : modifie nom/jours en préservant id, log, xp, série', () => {
