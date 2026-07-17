@@ -2066,7 +2066,11 @@ function supplementTiming(kind) {
 // Plan d'hydratation/sodium par heure d'effort selon la température (°C).
 // Fourchettes larges volontaires : à ajuster à la transpiration et à la tolérance.
 function hydrationPlan(tempC) {
-  const t = Number(tempC);
+  let t = Number(tempC);
+  // Température absente ou non chiffrable (donnée corrompue, météo indisponible) → on se cale sur
+  // un temps tempéré (18 °C) plutôt que de tomber par défaut sur « Frais », le plan le MOINS
+  // hydratant : sans info, le repli sûr est un apport neutre, pas de sous-conseiller l'hydratation.
+  if (!Number.isFinite(t)) t = 18;
   if (t >= 30) return { level: 'Très chaud', fluidMlPerH: [600, 800], sodiumMgPerH: [800, 1000], note: 'Chaleur forte : bois avant d’avoir soif, monte le sodium, cherche l’ombre et rafraîchis-toi (nuque, avant-bras). Pars déjà bien hydraté.' };
   if (t >= 25) return { level: 'Chaud', fluidMlPerH: [500, 700], sodiumMgPerH: [600, 800], note: 'Il fait chaud : anticipe l’hydratation dès le départ et sale davantage ta boisson.' };
   if (t >= 15) return { level: 'Tempéré', fluidMlPerH: [400, 600], sodiumMgPerH: [400, 600], note: 'Conditions confortables : hydrate-toi régulièrement par petites gorgées.' };

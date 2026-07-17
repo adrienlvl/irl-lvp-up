@@ -25,7 +25,15 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.55 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**417**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**419**) :
+
+- 💧 **Hydratation : repli sûr sur température non chiffrable + bornes verrouillées** (tests seuls, pas de bump) :
+  `hydrationPlan` (`logic.js:2068`) retombait sur « Frais » — le plan **le moins hydratant** — dès que la
+  température n'était pas un nombre (`undefined`/`NaN`/chaîne), mauvais sens pour un repli. Coercition d'une
+  entrée non finie vers un temps tempéré (18 °C), sans toucher l'appelant ni dupliquer d'objet ; chemin
+  aujourd'hui non atteignable depuis l'UI → **aucun effet utilisateur, pas de bump**. En prime, bornes exactes
+  des seuils (15/25/30) jamais testées, désormais figées (off-by-one attrapé). Assertions ajoutées au test
+  existant → compte inchangé (434). Domaine hydratation, robustesse + couverture. (`docs/recaps/419-hydration-plan-repli-sur.md`). ✅ _boucle #419._
 
 - 🏃 **Plus longue sortie course : record jugé sur le km brut, pas sur l'arrondi** (2.0.55) :
   `trailReadiness` (`logic.js:5758`) stockait le record de plus longue sortie **déjà arrondi au

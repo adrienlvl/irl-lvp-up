@@ -2759,6 +2759,20 @@ test('hydrationPlan : plus chaud → plus de sodium et de liquide', () => {
   assert.ok(chaud.sodiumMgPerH[1] > tempere.sodiumMgPerH[1]);
   assert.ok(tres.fluidMlPerH[1] > frais.fluidMlPerH[1]);
   assert.ok(tres.note.length > 0);
+  // Bornes exactes des seuils (t >= 30 / >= 25 / >= 15) : un off-by-one (>) serait attrapé ici.
+  assert.equal(L.hydrationPlan(30).level, 'Très chaud');
+  assert.equal(L.hydrationPlan(29.9).level, 'Chaud');
+  assert.equal(L.hydrationPlan(25).level, 'Chaud');
+  assert.equal(L.hydrationPlan(24.9).level, 'Tempéré');
+  assert.equal(L.hydrationPlan(15).level, 'Tempéré');
+  assert.equal(L.hydrationPlan(14.9).level, 'Frais');
+  // Repli sûr sur température non chiffrable : « Tempéré » (médian), jamais « Frais » (le moins
+  // hydratant). Sans donnée, on ne sous-conseille pas l'hydratation.
+  assert.equal(L.hydrationPlan(undefined).level, 'Tempéré');
+  assert.equal(L.hydrationPlan(NaN).level, 'Tempéré');
+  assert.equal(L.hydrationPlan('abc').level, 'Tempéré');
+  // null coerce vers 0 (fini) : 0 °C est une vraie température → « Frais », pas le repli.
+  assert.equal(L.hydrationPlan(null).level, 'Frais');
 });
 
 test('weeklySummary : semaine vide → zéros', () => {
