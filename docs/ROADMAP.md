@@ -23,9 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.58 (2026-07-17)
+## 📍 État actuel — build 2.0.59 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 58 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**425**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**426**) :
+
+- 🍽️ **Coach poids : la baisse calorique annoncée = la baisse réelle près du plancher** (2.0.59) :
+  quand la perte stagne et que la cible est déjà proche du plancher (1200 kcal), `calorieAdjustment`
+  (`logic.js:5472`) annonçait toujours « −125 kcal/jour » alors que « Nouvelle cible » ne pouvait pas
+  descendre sous 1200 — baisse réelle parfois de **50 kcal** (conseil auto-contradictoire, `1250→1200`).
+  Le montant annoncé (et `delta`) correspond désormais à la baisse **réelle** (`cut = min(125, dt−1200)`),
+  et une fois au plancher le coach oriente vers le **cardio**. Cas à marge large et prise de poids
+  inchangés. +1 check smoke bloquant `calorieFloor`. Robustesse (§4.2), domaine nutrition/poids.
+  (`docs/recaps/426-calorie-adjustment-plancher.md`). ✅ _boucle #426._
 
 - 🏋️ **Couverture : `bestE1rmByExercise` — formes legacy et garde-fous verrouillés** (tests seuls, pas de bump) :
   le meilleur 1RM estimé par exercice (`logic.js:3924`) sait lire la forme moderne `exercises[]/setLogs[]`

@@ -2665,6 +2665,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.59', emoji: '🍽️', text: 'Coach poids : quand ta perte stagne et que ta cible calorique est déjà proche du plancher (1200 kcal/jour), le conseil de baisse dit enfin la vérité. Il annonçait toujours « baisse d’environ 125 kcal/jour » alors que la « Nouvelle cible » ne pouvait pas descendre sous 1200 — la vraie baisse était parfois de 50 kcal seulement, un conseil qui se contredisait lui-même. Le montant annoncé correspond maintenant exactement à la baisse réelle, et une fois au plancher le coach t’oriente vers le cardio plutôt qu’une baisse impossible. Rien ne change quand la marge est large, ni pour une prise de poids.' },
   { v: '2.0.58', emoji: '📅', text: 'Agenda : un rendez-vous récurrent importé « qui se répète N fois » (fichier .ics d’un agenda Google ou Apple) s’arrête enfin après ses N occurrences. Ces séries finies sont encodées avec un « COUNT » (répéter 4 fois, 10 fois…) que l’import ignorait : le rendez-vous se répétait alors À L’INFINI dans l’agenda. Il est maintenant borné à la bonne dernière date (calculée exactement, même quand des mois n’ont pas le jour visé — ex. un 31 — ou pour un 29 février). Rien ne change pour une récurrence sans fin ou déjà bornée par une date de fin.' },
   { v: '2.0.57', emoji: '🎂', text: 'Anniversaires : l’âge s’accorde enfin correctement au singulier. Dans le bandeau « 🎂 À venir » et sur le calendrier mensuel, un premier anniversaire s’affichait « (1 ans) » — c’est désormais « (1 an) », comme dans « Ma journée » qui le faisait déjà bien. Rien ne change dès 2 ans (« 2 ans »), ni pour un anniversaire enregistré sans année de naissance (l’âge reste alors masqué).' },
   { v: '2.0.56', emoji: '🌱', text: 'Petit détail d’affichage du « pas de vie » : le rappel « Dernier tenu : … » n’affiche plus un texte à rallonge pour un pas passé. Ton pas du jour était déjà raccourci à 140 caractères dans ce rappel, mais un pas tenu un jour précédent, lui, s’affichait en entier — un texte très long pouvait alors déborder la petite ligne. Les deux sont désormais traités pareil (raccourcis à 140 caractères, espaces de tête et de queue nettoyés). Rien ne change pour un pas court.' },
@@ -5487,10 +5488,20 @@ function calorieAdjustment(weights, goal, dailyTarget) {
   if (!a) return { stagnating: false, suggestion: null };
   const days = daysTo(a);
   const ratePerWeek = Math.round(((b.value - a.value) / days * 7) * 100) / 100;
-  const delta = 125, d = Math.round(days);
+  const delta = 125, d = Math.round(days), FLOOR = 1200;
   const rateTxt = `${ratePerWeek >= 0 ? '+' : ''}${ratePerWeek} kg/sem sur ${d} j`;
-  if (goal === 'perte' && ratePerWeek >= -0.1)
-    return { stagnating: true, suggestion: 'reduce', delta, newTarget: Math.max(1200, dt - delta), ratePerWeek, message: `Ton poids stagne (${rateTxt}). Baisse d'environ ${delta} kcal/jour ou ajoute du cardio pour relancer la perte.` };
+  if (goal === 'perte' && ratePerWeek >= -0.1) {
+    // La cible ne descend jamais sous le plancher calorique (1200) : la baisse RÉELLE est ce qui
+    // reste au-dessus du plancher (0 à 125 kcal), pas toujours 125. Sinon, pour un petit gabarit déjà
+    // proche du plancher (cible ~1250), le message annoncerait « −125 kcal » alors que « Nouvelle
+    // cible » ne bouge que de 50 → conseil auto-contradictoire. Épuisé le levier calorique → cardio.
+    const cut = Math.min(delta, Math.max(0, dt - FLOOR));
+    const newTarget = dt - cut;
+    const message = cut > 0
+      ? `Ton poids stagne (${rateTxt}). Baisse d'environ ${cut} kcal/jour ou ajoute du cardio pour relancer la perte.`
+      : `Ton poids stagne (${rateTxt}). Tu es déjà au plancher calorique (~${FLOOR} kcal) — relance par le cardio ou plus d'activité plutôt qu'une nouvelle baisse.`;
+    return { stagnating: true, suggestion: 'reduce', delta: cut, newTarget, ratePerWeek, message };
+  }
   if (goal === 'prise' && ratePerWeek <= 0.1)
     return { stagnating: true, suggestion: 'increase', delta, newTarget: dt + delta, ratePerWeek, message: `Ta prise stagne (${rateTxt}). Ajoute environ ${delta} kcal/jour pour relancer la progression.` };
   return { stagnating: false, suggestion: null, ratePerWeek };

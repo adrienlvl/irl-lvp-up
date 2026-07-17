@@ -4460,6 +4460,21 @@ test('calorieAdjustment : stagnation → baisse/hausse calorique', () => {
   const dailyRes = L.calorieAdjustment(daily, 'perte', 2000);
   assert.equal(dailyRes.stagnating, true); assert.equal(dailyRes.suggestion, 'reduce');
   assert.equal(dailyRes.newTarget, 1875); assert.equal(dailyRes.ratePerWeek, 0);
+  // Plancher calorique (1200) : la baisse ANNONCÉE = la baisse RÉELLE (cible − plancher), pas 125 fixe.
+  const near = L.calorieAdjustment(flat, 'perte', 1250);   // 1250 − 125 = 1125 < 1200 → cut réel 50
+  assert.equal(near.newTarget, 1200); assert.equal(near.delta, 50);
+  assert.match(near.message, /50 kcal\/jour/); assert.doesNotMatch(near.message, /125 kcal/);
+  const mid = L.calorieAdjustment(flat, 'perte', 1300);
+  assert.equal(mid.newTarget, 1200); assert.equal(mid.delta, 100);
+  // Déjà AU plancher : plus de levier calorique → délégué au cardio, cible inchangée (jamais relevée).
+  const atFloor = L.calorieAdjustment(flat, 'perte', 1200);
+  assert.equal(atFloor.stagnating, true); assert.equal(atFloor.delta, 0);
+  assert.equal(atFloor.newTarget, 1200); assert.match(atFloor.message, /plancher calorique/);
+  const below = L.calorieAdjustment(flat, 'perte', 1150);
+  assert.equal(below.newTarget, 1150, 'cible sous le plancher jamais REMONTÉE'); assert.equal(below.delta, 0);
+  // Prise : pas de plancher → baisse fixe de 125 conservée.
+  const gainNear = L.calorieAdjustment(gainFlat, 'prise', 1250);
+  assert.equal(gainNear.delta, 125); assert.equal(gainNear.newTarget, 1375);
 });
 test('weightForecast : trajectoire hebdo bornée à la cible', () => {
   const f = L.weightForecast(80, 72, 0.48, 17, '2026-07-12');
@@ -5074,7 +5089,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.58');
+  assert.equal(L.CHANGELOG[0].v, '2.0.59');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
