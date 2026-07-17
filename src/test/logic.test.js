@@ -4913,7 +4913,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.51');
+  assert.equal(L.CHANGELOG[0].v, '2.0.52');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6036,6 +6036,17 @@ test('sleepPlanDay : cible du jour, décalage progressif, adaptation aux écarts
   assert.equal(done.reached, true);
   assert.equal(done.progress, 100);
   assert.equal(done.daysLeft, 0);
+
+  // Atteint DANS la marge de tolérance : couche à 23:40, soit 10 min APRÈS l'objectif 23:30
+  // (dans les ±15 min). `reached` fait autorité → aucun verdict contradictoire : la progression,
+  // les pas restants et l'arrivée s'alignent tous sur « atteint » (avant correctif : reached=true
+  // mais progress=97, stepsLeft=1, daysLeft=1, arrivée dans le futur → « 🎉 atteint » ET « dans 1 jour »).
+  const near = L.sleepPlanDay(plan, [{ date: '2026-07-30', sleep: 8, bedtime: '23:40' }], '2026-07-30');
+  assert.equal(near.reached, true);
+  assert.equal(near.progress, 100, 'atteint dans la marge → barre pleine, pas 97 %');
+  assert.equal(near.stepsLeft, 0);
+  assert.equal(near.daysLeft, 0, 'atteint → 0 jour restant, pas d’arrivée dans le futur');
+  assert.equal(near.arrivalKey, '2026-07-30', 'arrivée = aujourd’hui quand atteint');
 });
 
 test('sleepEveningTips : conseils du soir calés sur le coucher visé', () => {

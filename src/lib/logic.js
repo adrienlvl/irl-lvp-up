@@ -2624,6 +2624,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.52', emoji: '🌙', text: 'Plan de recalage du sommeil : plus de message contradictoire quand tu te couches juste après ta cible. Si ton coucher réel tombe dans la marge de tolérance (jusqu’à 15 min après l’objectif — un vrai succès), l’app fête « 🎉 Objectif atteint » ET affiche désormais une barre pleine avec « arrivée aujourd’hui ». Avant, elle célébrait l’objectif tout en indiquant en même temps une barre à 97 % et « arrivée estimée dans 1 jour » — trois verdicts qui se contredisaient. Aucun changement quand l’objectif n’est pas encore atteint.' },
   { v: '2.0.51', emoji: '♿', text: 'Accessibilité : deux menus déroulants de filtre annoncent enfin leur rôle aux lecteurs d’écran. Le filtre « famille » de la bibliothèque d’exercices (page Athlète) et le sélecteur « Autour de ta séance » des compléments n’avaient aucun nom accessible — un lecteur d’écran les annonçait comme « liste déroulante » sans dire à quoi ils servent (leurs voisins immédiats, eux, étaient déjà nommés). Chacun porte désormais un libellé explicite. Aucun changement visuel.' },
   { v: '2.0.50', emoji: '💼', text: 'Import de candidatures plus robuste aux dates impossibles : quand un tableur (export ou saisie) contient une date de calendrier inexistante — « 30/02/2026 » ou « 31/11/2026 » (novembre n’a que 30 jours) —, l’app l’ignore désormais au lieu de la stocker telle quelle. Avant, elle passait le filtre (mois et jour dans les bornes) et s’affichait « postulé le 30/02/2026 », une date qui n’existe pas et que d’autres calculs interprétaient comme le 2 mars. Les vraies dates, y compris le 29 février des années bissextiles, restent bien lues.' },
   { v: '2.0.49', emoji: '💼', text: 'Suivi Alternance plus fiable à l’import : un statut « non retenu » (la formulation la plus courante d’un refus) n’est plus classé par erreur comme candidature « acceptée ». Quand tu importes ou synchronises un tableur de candidatures, une ligne « Non retenu », « Candidature non retenue » ou « Pas retenu » atterrit désormais bien dans « Refus » — avant, le mot « retenu » l’emportait et l’inversait en offre décrochée, faussant le funnel, le taux de réponse et « Le focus du moment ». Une vraie réponse positive (« Retenu », « embauché ») reste bien comptée comme acceptée.' },
@@ -6402,13 +6403,17 @@ function sleepPlanDay(plan, recovery, todayKey) {
     if (gentle > idealAnchor) { targetTodayAnchor = Math.min(startAnchor, gentle); adapted = true; }
   }
   targetTodayAnchor = Math.max(targetAnchor, Math.min(startAnchor, targetTodayAnchor));
+  // Objectif atteint dans la marge de tolérance (±15 min du coucher réel, ±5 min du planning idéal
+  // sans données). `reached` fait autorité : quand il est vrai, la progression, les pas restants et
+  // l'arrivée s'alignent sur « atteint » (sinon on affichait « 🎉 atteint » ET « arrivée dans N jours »
+  // avec une barre à 89 % — trois verdicts contradictoires pour un coucher 1-15 min après la cible).
   const reached = (recentAnchor != null && recentAnchor <= targetAnchor + 15) || (recentAnchor == null && targetTodayAnchor <= targetAnchor + 5);
   // Progression : part du chemin déjà parcourue (référence = coucher réel, sinon planification idéale).
   const donePos = recentAnchor != null ? Math.min(startAnchor, recentAnchor) : idealAnchor;
-  const progress = totalShift > 0 ? Math.max(0, Math.min(100, Math.round((startAnchor - donePos) / totalShift * 100))) : 100;
+  const progress = reached ? 100 : (totalShift > 0 ? Math.max(0, Math.min(100, Math.round((startAnchor - donePos) / totalShift * 100))) : 100);
   // Estimation d'arrivée basée sur la réalité : pas restants depuis le coucher réel récent.
   const fromAnchor = recentAnchor != null ? recentAnchor : idealAnchor;
-  const remaining = Math.max(0, fromAnchor - targetAnchor);
+  const remaining = reached ? 0 : Math.max(0, fromAnchor - targetAnchor);
   const stepsLeft = Math.ceil(remaining / p.stepMin);
   const daysLeft = stepsLeft * p.stepDays;
   const arrivalKey = daysLeft > 0 ? dateAfterDays(todayKey, daysLeft) : todayKey;

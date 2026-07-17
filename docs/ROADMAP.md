@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.51 (2026-07-17)
+## 📍 État actuel — build 2.0.52 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**411**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**413**) :
+
+- 🌙 **Sommeil — le plan de recalage ne se contredit plus à l'arrivée** (2.0.52) :
+  `sleepPlanDay` (`logic.js:6387`) fêtait « 🎉 Objectif atteint » (marge de tolérance ±15 min) tout en
+  affichant, dans la même carte, une barre à 97 % et « arrivée estimée dans 1 jour » — car `progress`,
+  `stepsLeft`, `daysLeft` et `arrivalKey` étaient calculés sur l'écart exact, sans la tolérance de
+  `reached`. Un coucher 1-15 min après la cible (le cas de succès typique) déclenchait ces trois
+  verdicts opposés. Corrigé en faisant de `reached` l'autorité : atteint ⇒ progression pleine, 0 pas
+  restant, arrivée aujourd'hui ; hors « atteint », calcul strictement inchangé. +1 cas de test prouvant
+  le bug (432 tests). Logique pure, module Sommeil fiabilisé, variété (cohérence interne d'un verdict).
+  (`docs/recaps/413-sleep-plan-reached-coherence.md`). ✅ _boucle #413._
 
 - ♿ **Accessibilité : deux menus déroulants de filtre annoncent enfin leur rôle** (2.0.51) :
   `#exerciseFamily` (filtre « famille » de la bibliothèque d'exercices, page Athlète) et `#suppKind`
