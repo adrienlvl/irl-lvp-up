@@ -631,6 +631,24 @@ test('isBoundedDateKey : accepte une date réelle, rejette format-valide mais im
   assert.equal(L.isBoundedDateKey(null), false);
 });
 
+test('isRealDateKey : exige une date calendaire réelle (round-trip), rejette les jours impossibles', () => {
+  assert.equal(L.isRealDateKey('2026-07-17'), true);
+  assert.equal(L.isRealDateKey('2024-02-29'), true, '29 févr. valide en année bissextile');
+  assert.equal(L.isRealDateKey('2026-02-29'), false, '29 févr. impossible hors bissextile');
+  assert.equal(L.isRealDateKey('2026-02-30'), false, 'févr. n’a pas 30 jours');
+  assert.equal(L.isRealDateKey('2026-04-31'), false, 'avril n’a pas 31 jours');
+  assert.equal(L.isRealDateKey('2026-06-31'), false, 'juin n’a pas 31 jours');
+  assert.equal(L.isRealDateKey('2026-12-31'), true, 'déc. a bien 31 jours');
+  assert.equal(L.isRealDateKey('2026-13-01'), false, 'mois 13');
+  assert.equal(L.isRealDateKey('2026-00-10'), false, 'mois 00');
+  assert.equal(L.isRealDateKey('2026-07-00'), false, 'jour 00');
+  assert.equal(L.isRealDateKey('pas-une-date'), false);
+  assert.equal(L.isRealDateKey(20260717), false, 'non-string → false');
+  assert.equal(L.isRealDateKey(null), false);
+  // plus strict que isBoundedDateKey (qui borne seulement mois≤12 / jour≤31)
+  assert.equal(L.isBoundedDateKey('2026-04-31'), true, 'témoin : isBoundedDateKey laisse passer 31 avr.');
+});
+
 test('todosForDay : actives (jour + en retard) triées, faites du jour séparées', () => {
   const todos = [
     { id: 1, text: 'Retard normal', date: '2026-07-05', priority: 'normal' },
@@ -4777,6 +4795,12 @@ test('logWellnessDone / wellnessStreak / wellnessCountInWindow : suivi des routi
   assert.equal(L.wellnessBestStreak(past), 4);
   // doublons le même jour ne gonflent pas le record
   assert.equal(L.wellnessBestStreak([{ date: '2026-07-13', key: 'a' }, { date: '2026-07-13', key: 'b' }]), 1);
+  // date IMPOSSIBLE (2026-04-31 → déborde au 1er mai sous `new Date`) : ne fabrique plus de paire
+  // consécutive fantôme avec le 2 mai. Une seule vraie séance existe → record 1, PAS 2.
+  const phantom = [{ date: '2026-04-31', key: 'a' }, { date: '2026-05-02', key: 'b' }];
+  assert.equal(L.wellnessBestStreak(phantom), 1, 'date impossible ignorée, pas de record fantôme');
+  // cohérence avec la sœur wellnessStreak (marche depuis une vraie date) : elle ignore déjà le 31/04
+  assert.equal(L.wellnessStreak(phantom, '2026-05-02'), 1, 'les deux sœurs sont d’accord');
   assert.equal(L.wellnessBestStreak([]), 0);
   assert.equal(L.wellnessBestStreak(null), 0);
   // comptage sur fenêtre (semaine)
@@ -5166,7 +5190,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.65');
+  assert.equal(L.CHANGELOG[0].v, '2.0.66');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6909,6 +6933,10 @@ test('proteinStreak : jours consécutifs à la cible protéines', () => {
   ], T, '2026-07-15');
   assert.equal(r3.current, 2);
   assert.equal(r3.best, 4);
+  // date IMPOSSIBLE (2026-04-31 → déborde au 1er mai) : le RECORD ne gonfle plus par une paire fantôme
+  // avec le 2 mai. current (marche depuis today) était déjà sûr et reste inchangé.
+  const rPhantom = L.proteinStreak([{ date: '2026-04-31', protein: 200 }, { date: '2026-05-02', protein: 200 }], T, '2026-05-02');
+  assert.deepEqual(rPhantom, { current: 1, best: 1 }, 'date impossible ignorée : best non gonflé');
   // cible absente / date invalide
   assert.deepEqual(L.proteinStreak(nut, 0, '2026-07-15'), { current: 0, best: 0 });
   assert.deepEqual(L.proteinStreak(nut, T, 'nope'), { current: 0, best: 0 });
