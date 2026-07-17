@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.64 (2026-07-17)
+## 📍 État actuel — build 2.0.65 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**431**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **440 tests + smoke** verts (harness durci, dont garde-fou CSS + 59 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**432**) :
+
+- 🎂 **Anniversaires : une date impossible ne crée plus d'anniversaire « fantôme »** (2.0.65) :
+  `normalizeBirthday` (`logic.js:390`) validait `day` (1–31) et `month` (1–12) **indépendamment** ;
+  une date impossible mais aux champs individuellement valides (ex. 31 févr.) survivait, puis
+  `upcomingBirthdays` la faisait **déborder** au 3 mars via `new Date` et l'annonçait « à venir » —
+  alors que sa sœur `birthdaysForDay` ne la matchait **jamais** (deux fonctions incohérentes).
+  Non saisissable via l'UI (`<input type="date">`), mais réel sur import/restauration/legacy (comme
+  #431). Jour désormais borné au max RÉEL du mois (févr. = 29 pour préserver le 29/02, fêté le 1er
+  mars les années non bissextiles) → date impossible ignorée partout, rétro-compatible. +2 blocs de
+  tests purs + check smoke `birthdays` étendu bloquant (440 tests). Robustesse/correctness (§4.1/§4.2),
+  domaine Anniversaires. (`docs/recaps/432-birthday-impossible-date.md`). ✅ _boucle #432._
 
 - 😴 **Sommeil : la dette ne perd plus une vraie nuit sur une date à double saisie** (2.0.64) :
   `sleepDebtHours` (`logic.js:6286`) écrivait son index `byDate` **inconditionnellement**, seule

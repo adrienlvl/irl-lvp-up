@@ -988,6 +988,31 @@ test('normalizeBirthday : bornes jour/mois, année optionnelle', () => {
   assert.equal(L.normalizeBirthday({ day: 40, month: 13 }).day, 0);
   assert.equal(L.normalizeBirthday({ day: 40, month: 13 }).month, 0);
   assert.equal(L.normalizeBirthday({ day: 5, month: 5, year: 1700 }).year, null);
+  // date IMPOSSIBLE (jour valide 1-31 mais incompatible avec le mois) → jour écarté, sinon `new Date`
+  // la ferait déborder en date fantôme dans upcomingBirthdays. Chaque max de mois est vérifié.
+  assert.equal(L.normalizeBirthday({ day: 31, month: 2 }).day, 0, '31 févr. impossible');
+  assert.equal(L.normalizeBirthday({ day: 30, month: 2 }).day, 0, '30 févr. impossible');
+  assert.equal(L.normalizeBirthday({ day: 29, month: 2 }).day, 29, '29 févr. préservé (fêté 1er mars les années non bissextiles)');
+  assert.equal(L.normalizeBirthday({ day: 31, month: 4 }).day, 0, '31 avril impossible');
+  assert.equal(L.normalizeBirthday({ day: 30, month: 4 }).day, 30, '30 avril valide');
+  assert.equal(L.normalizeBirthday({ day: 31, month: 6 }).day, 0, '31 juin impossible');
+  assert.equal(L.normalizeBirthday({ day: 31, month: 9 }).day, 0, '31 septembre impossible');
+  assert.equal(L.normalizeBirthday({ day: 31, month: 11 }).day, 0, '31 novembre impossible');
+  assert.equal(L.normalizeBirthday({ day: 31, month: 12 }).day, 31, '31 décembre valide');
+  // mois invalide → month 0 (donc entrée filtrée par `b.day && b.month` partout) ; le jour ne débordera jamais
+  assert.equal(L.normalizeBirthday({ day: 31, month: 0 }).month, 0);
+});
+
+test('upcomingBirthdays : une date impossible (31 févr.) est ignorée, pas annoncée comme date fantôme', () => {
+  // Non saisissable via <input type="date">, mais possible sur import/restauration d'un backup.
+  // AVANT : new Date(2026, 1, 31) débordait au 3 mars → anniversaire fantôme annoncé, jamais matché
+  // par birthdaysForDay('2026-03-03'). APRÈS : normalizeBirthday écarte le jour → aucune occurrence.
+  const impossible = [{ id: 1, name: 'Fantome', day: 31, month: 2 }];
+  assert.deepEqual(L.upcomingBirthdays(impossible, '2026-02-20', { withinDays: 60 }), []);
+  assert.deepEqual(L.birthdaysForDay(impossible, '2026-03-03'), []);   // les deux sœurs sont d'accord
+  // une vraie date du même mois reste bien annoncée
+  const valide = [{ id: 2, name: 'Vrai', day: 28, month: 2 }];
+  assert.equal(L.upcomingBirthdays(valide, '2026-02-20', { withinDays: 60 })[0].date, '2026-02-28');
 });
 
 test('birthdaysForDay : anniversaire récurrent + âge calculé', () => {
@@ -5141,7 +5166,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.64');
+  assert.equal(L.CHANGELOG[0].v, '2.0.65');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

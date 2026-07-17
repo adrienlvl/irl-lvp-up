@@ -390,11 +390,17 @@ function parseSheetApplications(text, opts) {
 function normalizeBirthday(item) {
   const x = item && typeof item === 'object' ? item : {};
   const day = Math.round(Number(x.day)), month = Math.round(Number(x.month)), year = Math.round(Number(x.year));
+  const monthOk = month >= 1 && month <= 12;
+  // Jour borné au max RÉEL du mois (févr. = 29 pour préserver le 29/02, fêté le 1er mars les années
+  // non bissextiles) : une date impossible (31/02, 31/04…) issue d'un import/restauration est écartée
+  // (day = 0 → filtrée partout), sinon `new Date(year, mois-1, 31)` la ferait déborder en date fantôme
+  // dans `upcomingBirthdays` — incohérente avec `birthdaysForDay`, qui ne matche jamais une telle date.
+  const maxDay = monthOk ? [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] : 31;
   return {
     id: Number(x.id) || Date.now(),
     name: String(x.name || '').slice(0, 60),
-    day: day >= 1 && day <= 31 ? day : 0,
-    month: month >= 1 && month <= 12 ? month : 0,
+    day: day >= 1 && day <= maxDay ? day : 0,
+    month: monthOk ? month : 0,
     year: (Number.isFinite(year) && year >= 1900 && year <= 2100) ? year : null
   };
 }
@@ -2689,6 +2695,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.65', emoji: '🎂', text: 'Anniversaires : une date impossible ne crée plus d’anniversaire « fantôme » dans tes prochains anniversaires. Si une sauvegarde restaurée ou un import contenait une date qui n’existe pas (par ex. un 31 février), l’app la reportait par erreur au 3 mars et l’annonçait comme « à venir » — alors qu’elle n’apparaissait jamais dans la journée correspondante. Une telle date est désormais simplement ignorée, partout de la même façon. Le 29 février reste bien géré (fêté le 1er mars les années non bissextiles), et rien ne change pour tes vraies dates.' },
   { v: '2.0.64', emoji: '😴', text: 'Bilan sommeil : ta dette de sommeil ne « perd » plus une vraie nuit quand une même date porte deux saisies. Si, sur un jour, tu avais enregistré ta nuit le matin (durée renseignée) puis, le soir, seulement ton heure de coucher (sans durée), le second enregistrement pouvait effacer la vraie nuit du calcul de dette — la moyenne et le nombre de nuits en pâtissaient. La dette de sommeil ignore désormais une saisie sans durée quand une nuit chiffrée existe pour la même date, exactement comme le font déjà la moyenne hebdo, la mini-courbe et la régularité. Rien ne change quand tu n’as qu’une saisie par jour.' },
   { v: '2.0.63', emoji: '🔁', text: 'Calendrier : re-synchroniser un agenda abonné (.ics) ne remet plus tes rendez-vous récurrents à zéro. Jusqu’ici, chaque re-sync du même abonnement RECONSTRUISAIT tes événements récurrents depuis zéro : les occurrences que tu avais cochées ou sautées repassaient à « à faire », une mise en pause était annulée, et l’identifiant interne changeait — alors que tes événements ponctuels, eux, étaient bien préservés. Désormais un récurrent déjà connu (même source) garde ton historique de cases cochées, tes jours sautés et son état « en pause » ; seuls le titre, l’heure et la règle sont rafraîchis depuis le calendrier. Rien ne change pour tes récurrents créés à la main.' },
   { v: '2.0.62', emoji: '💼', text: 'Alternance : une cible encore « à postuler » n’est plus comptée comme une candidature ENVOYÉE, même quand elle porte une date. En important ton tableur de suivi (Google Sheets), une ligne « à postuler » avec une date de repérage ou une deadline gonflait à tort ta série (« 🔥 »), ton compteur du jour (« postulé aujourd’hui ✓ ») et ton total de la semaine — alors que tu n’avais rien envoyé. Le moteur de motivation ne compte désormais que les candidatures réellement postulées. Rien ne change quand tes « à postuler » n’ont pas de date, ni pour tes vraies candidatures.' },
