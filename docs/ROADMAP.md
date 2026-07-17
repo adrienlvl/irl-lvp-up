@@ -25,7 +25,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.49 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**409**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **432 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**410**) :
+
+- 🧪 **Couverture : `compareApplications`, dernière fonction pure non testée, verrouillée** (tests seuls, pas de bump) :
+  un audit de couverture (357 exports croisés avec les tests) a révélé qu'une **seule** fonction pure exportée
+  n'était jamais testée — `compareApplications` (`logic.js:169`), le comparateur qui **ordonne tout le suivi
+  Alternance** — alors que son commentaire affirmait « Pur + testé ». Nouveau test de son contrat subtil : tri par
+  étape du pipeline, puis **score décroissant pour « à postuler »** vs **date décroissante pour les autres étapes**
+  (bascule jamais garantie jusqu'ici), départages, cohérence antisymétrique, et le chemin de production réel
+  (`normalizeApplication`+`sort`). Le cas « statut inconnu » (indexOf −1) confirmé **non atteignable** au call-site
+  (entrées toujours normalisées) → aucun correctif fabriqué. **432 tests + smoke** verts, zéro logique changée.
+  (`docs/recaps/410-compare-applications-tests.md`). ✅ _boucle #410._
 
 - 💼 **Alternance : « non retenu » (refus standard) n'est plus lu comme « accepté »** (2.0.49) :
   `jobStatusFromText` (`logic.js:284`), partagée par tous les imports Alternance (saisie,

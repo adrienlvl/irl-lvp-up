@@ -4944,6 +4944,63 @@ test('nextAlternanceTarget : la meilleure cible à postuler du jour', () => {
   assert.equal(m.applications[0].score, 9);
 });
 
+test('compareApplications : tri du suivi (étape, puis score/date selon l’étape)', () => {
+  const cmp = L.compareApplications;
+  // 1. clé primaire = étape du pipeline (a_postuler → postule → relance → entretien → accepte → refus)
+  const byStage = ['refus', 'accepte', 'entretien', 'relance', 'postule', 'a_postuler']
+    .map((s, i) => ({ status: s, score: null, date: '', createdAt: i }))
+    .sort(cmp).map(a => a.status);
+  assert.deepEqual(byStage, ['a_postuler', 'postule', 'relance', 'entretien', 'accepte', 'refus']);
+
+  // 2. à postuler : meilleur SCORE en tête, celles sans note en queue
+  const ap = [
+    { status: 'a_postuler', company: 'Moyenne', score: 3, date: '', createdAt: 1 },
+    { status: 'a_postuler', company: 'SansNote', score: null, date: '', createdAt: 2 },
+    { status: 'a_postuler', company: 'TopCible', score: 8, date: '', createdAt: 3 },
+  ].sort(cmp).map(a => a.company);
+  assert.deepEqual(ap, ['TopCible', 'Moyenne', 'SansNote'], 'score décroissant, sans note en dernier');
+
+  // à postuler, score égal → départage par date décroissante, puis par ajout le plus récent
+  const apTie = [
+    { status: 'a_postuler', company: 'Ancienne', score: 5, date: '2026-01-01', createdAt: 1 },
+    { status: 'a_postuler', company: 'Récente', score: 5, date: '2026-05-01', createdAt: 2 },
+  ].sort(cmp).map(a => a.company);
+  assert.deepEqual(apTie, ['Récente', 'Ancienne']);
+  const apTie2 = [
+    { status: 'a_postuler', company: 'AjoutTot', score: 5, date: '2026-01-01', createdAt: 100 },
+    { status: 'a_postuler', company: 'AjoutTard', score: 5, date: '2026-01-01', createdAt: 200 },
+  ].sort(cmp).map(a => a.company);
+  assert.deepEqual(apTie2, ['AjoutTard', 'AjoutTot'], 'à score et date égaux, le plus récemment ajouté d’abord');
+
+  // 3. AUTRE étape : la DATE prime sur le score (activité récente d’abord) — contraste avec « à postuler »
+  const ent = [
+    { status: 'entretien', company: 'VieuxGrosScore', score: 9, date: '2026-01-01', createdAt: 1 },
+    { status: 'entretien', company: 'RécentPetitScore', score: 1, date: '2026-06-01', createdAt: 2 },
+  ].sort(cmp).map(a => a.company);
+  assert.deepEqual(ent, ['RécentPetitScore', 'VieuxGrosScore'], 'hors à postuler, la date récente passe devant un meilleur score');
+
+  // date manquante ('') reléguée en queue de son groupe de statut
+  const noDate = [
+    { status: 'postule', company: 'SansDate', score: null, date: '', createdAt: 1 },
+    { status: 'postule', company: 'AvecDate', score: null, date: '2026-03-01', createdAt: 2 },
+  ].sort(cmp).map(a => a.company);
+  assert.deepEqual(noDate, ['AvecDate', 'SansDate']);
+
+  // 4. comparateur cohérent : antisymétrique et réflexif (l’étape prime toujours sur score/date)
+  const a = { status: 'a_postuler', score: 8, date: '2026-01-01', createdAt: 1 };
+  const b = { status: 'entretien', score: 2, date: '2026-05-01', createdAt: 2 };
+  assert.ok(cmp(a, b) < 0 && cmp(b, a) > 0, 'à postuler avant entretien quels que soient score/date');
+  assert.equal(cmp(a, a), 0);
+
+  // 5. chemin de production réel : normalizeApplication puis sort → À POSTULER en tête, mieux notée d’abord
+  const real = [
+    { id: 3, company: 'Refusée', status: 'refus', date: '2026-07-16' },
+    { id: 1, company: 'Petite Cible', status: 'a_postuler', score: 4 },
+    { id: 2, company: 'Grosse Cible', status: 'a_postuler', score: 9 },
+  ].map(L.normalizeApplication).sort(cmp).map(a => a.company);
+  assert.deepEqual(real, ['Grosse Cible', 'Petite Cible', 'Refusée']);
+});
+
 test('filterApplications : recherche insensible aux accents + filtre statut', () => {
   const apps = [
     { company: 'Cabinet Léa', role: 'Compta', source: 'Lorient (56)', notes: '', status: 'postule' },
