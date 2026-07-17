@@ -887,6 +887,25 @@ function parseRRule(rrule, startDateKey) {
     : [];
   let until = '';
   if (parts.UNTIL) { const m = /^(\d{4})(\d{2})(\d{2})/.exec(parts.UNTIL.trim()); if (m) until = `${m[1]}-${m[2]}-${m[3]}`; }
+  // COUNT (RFC 5545 : « répéter N fois », exclusif d'UNTIL) — la façon dont Google/Apple
+  // encodent une série finie. Le modèle interne n'a pas de compteur d'occurrences : sans
+  // conversion, un COUNT est ignoré et la série récurre à l'INFINI. On le traduit en la
+  // borne UNTIL équivalente = date de la N-ième occurrence, simulée avec recurrenceMatches
+  // (même moteur que le rendu aval → cohérence exacte, y compris jours-de-mois manquants et
+  // 29 févr.). Repli sûr : N-ième non atteinte dans une large fenêtre → UNTIL vide, soit le
+  // comportement actuel — jamais pire.
+  const count = Math.round(Number(parts.COUNT));
+  if (!until && Number.isFinite(count) && count >= 1) {
+    const sm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDateKey);
+    const probe = { freq, interval, weekdays, startDate: startDateKey, until: '' };
+    const d = new Date(+sm[1], +sm[2] - 1, +sm[3]); d.setHours(0, 0, 0, 0);
+    const pad = n => String(n).padStart(2, '0');
+    for (let i = 0, seen = 0; i < 20000; i++) {
+      const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      if (recurrenceMatches(probe, key)) { seen++; if (seen >= count) { until = key; break; } }
+      d.setDate(d.getDate() + 1);
+    }
+  }
   return { freq, interval, weekdays, startDate: startDateKey, until };
 }
 
@@ -2646,6 +2665,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.58', emoji: '📅', text: 'Agenda : un rendez-vous récurrent importé « qui se répète N fois » (fichier .ics d’un agenda Google ou Apple) s’arrête enfin après ses N occurrences. Ces séries finies sont encodées avec un « COUNT » (répéter 4 fois, 10 fois…) que l’import ignorait : le rendez-vous se répétait alors À L’INFINI dans l’agenda. Il est maintenant borné à la bonne dernière date (calculée exactement, même quand des mois n’ont pas le jour visé — ex. un 31 — ou pour un 29 février). Rien ne change pour une récurrence sans fin ou déjà bornée par une date de fin.' },
   { v: '2.0.57', emoji: '🎂', text: 'Anniversaires : l’âge s’accorde enfin correctement au singulier. Dans le bandeau « 🎂 À venir » et sur le calendrier mensuel, un premier anniversaire s’affichait « (1 ans) » — c’est désormais « (1 an) », comme dans « Ma journée » qui le faisait déjà bien. Rien ne change dès 2 ans (« 2 ans »), ni pour un anniversaire enregistré sans année de naissance (l’âge reste alors masqué).' },
   { v: '2.0.56', emoji: '🌱', text: 'Petit détail d’affichage du « pas de vie » : le rappel « Dernier tenu : … » n’affiche plus un texte à rallonge pour un pas passé. Ton pas du jour était déjà raccourci à 140 caractères dans ce rappel, mais un pas tenu un jour précédent, lui, s’affichait en entier — un texte très long pouvait alors déborder la petite ligne. Les deux sont désormais traités pareil (raccourcis à 140 caractères, espaces de tête et de queue nettoyés). Rien ne change pour un pas court.' },
   { v: '2.0.55', emoji: '🏃', text: 'Ta plus longue sortie course (bilan endurance sur 28 j) s’affiche enfin à la bonne date quand deux sorties sont très proches. Avant, la distance de la plus longue sortie était comparée arrondie au dixième : deux sorties à 12,34 km et 12,32 km tombaient toutes deux sur « 12,3 », si bien que la plus récente (pourtant un poil plus courte) volait le record à la vraie plus longue — mauvaise date affichée. Le record est désormais jugé sur la distance réelle et n’est arrondi qu’à l’affichage. C’est le même correctif que pour les records de séance et de semaine muscu (2.0.46 / 2.0.48), appliqué cette fois à la course.' },

@@ -492,6 +492,30 @@ test('parseRRule : FREQ/INTERVAL/BYDAY/UNTIL → règle interne ; non géré →
   assert.equal(L.parseRRule('FREQ=DAILY', 'nope'), null, 'date de début invalide');
 });
 
+test('parseRRule : COUNT (série finie) → borne UNTIL = date de la N-ième occurrence, pas d\'infini', () => {
+  // COUNT converti en UNTIL = date de la N-ième occurrence (simulation via recurrenceMatches).
+  const u = (r, s) => L.parseRRule(r, s).until;
+  assert.equal(u('FREQ=DAILY;COUNT=3', '2026-07-01'), '2026-07-03', 'daily : 01,02,03');
+  assert.equal(u('FREQ=DAILY;INTERVAL=2;COUNT=3', '2026-07-01'), '2026-07-05', 'daily x2 : 01,03,05');
+  assert.equal(u('FREQ=DAILY;COUNT=1', '2026-07-01'), '2026-07-01', 'COUNT=1 → seul le début');
+  assert.equal(u('FREQ=WEEKLY;COUNT=4;BYDAY=MO', '2026-07-06'), '2026-07-27', 'weekly : 4 lundis');
+  assert.equal(u('FREQ=WEEKLY;COUNT=3', '2026-07-06'), '2026-07-20', 'weekly sans BYDAY : jour du début');
+  assert.equal(u('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=4', '2026-07-06'), '2026-07-22', 'bihebdo MO,WE : 4e = mer. sem. 2');
+  assert.equal(u('FREQ=MONTHLY;COUNT=3', '2026-01-15'), '2026-03-15', 'monthly : 3 mois');
+  // Mois sans le 31 sautés (cohérent avec recurrenceMatches) : jan, mars, mai.
+  assert.equal(u('FREQ=MONTHLY;COUNT=3', '2026-01-31'), '2026-05-31', 'monthly jour 31 : jan/mars/mai');
+  assert.equal(u('FREQ=YEARLY;COUNT=2', '2026-03-20'), '2027-03-20', 'yearly : 2 ans');
+  // UNTIL explicite l'emporte (RFC : COUNT et UNTIL exclusifs) ; COUNT absent/≤0 → pas de borne.
+  assert.equal(u('FREQ=DAILY;COUNT=3;UNTIL=20261231T000000Z', '2026-07-01'), '2026-12-31', 'UNTIL prime');
+  assert.equal(u('FREQ=DAILY;COUNT=0', '2026-07-01'), '', 'COUNT=0 ignoré');
+  assert.equal(u('FREQ=DAILY', '2026-07-01'), '', 'sans COUNT → infini (inchangé)');
+  // Bout-en-bout : la série s'arrête à la N-ième occurrence, plus d'occurrence au-delà.
+  const r = L.parseRRule('FREQ=WEEKLY;COUNT=4;BYDAY=MO', '2026-07-06');
+  assert.equal(L.recurrenceMatches(r, '2026-07-27'), true, '4e lundi dans la borne');
+  assert.equal(L.recurrenceMatches(r, '2026-08-03'), false, '5e lundi exclu');
+  assert.equal(L.recurrenceMatches(r, '2030-01-07'), false, 'plus rien des années après');
+});
+
 test('parseIcs : événement récurrent (RRULE) → champ recurrence exploitable par le moteur', () => {
   const ics = 'BEGIN:VEVENT\r\nUID:r1\r\nSUMMARY:Standup\r\nDTSTART:20260706T090000\r\nRRULE:FREQ=WEEKLY;BYDAY=MO\r\nEND:VEVENT';
   const ev = L.parseIcs(ics)[0];
@@ -5017,7 +5041,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.57');
+  assert.equal(L.CHANGELOG[0].v, '2.0.58');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

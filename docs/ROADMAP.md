@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.57 (2026-07-17)
+## 📍 État actuel — build 2.0.58 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **435 tests + smoke** verts (harness durci, dont garde-fou CSS + 57 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**423**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **436 tests + smoke** verts (harness durci, dont garde-fou CSS + 58 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**424**) :
+
+- 📅 **Agenda : un `.ics` récurrent « N fois » (COUNT) s'arrête enfin** (2.0.58) :
+  à l'import ICS, `parseRRule` (`logic.js:878`) ne lisait pas `COUNT` (RFC 5545), la façon dont
+  Google/Apple encodent une série **finie**. Le modèle n'a pas de compteur d'occurrences →
+  `recurrenceMatches` ne s'arrête que sur `until` : une série `COUNT=4` récurrait **à l'infini**
+  (vérifié : match encore en 2030). Correctif chirurgical (une seule fonction) : `COUNT` traduit en la
+  borne `until` équivalente = date de la **N-ième occurrence**, simulée avec `recurrenceMatches`
+  lui-même (cohérence exacte, mois sans le jour visé et 29 févr. compris) ; `UNTIL` explicite prime,
+  repli sûr si non atteint. Tout l'aval gère déjà `until` (aucun autre point touché). +1 test (436) +
+  check smoke bloquant `icsCount`. Domaine Agenda/import ICS, robustesse (§4.2).
+  (`docs/recaps/424-ics-count-recurrence-finie.md`). ✅ _boucle #424._
 
 - 🎂 **Anniversaires : l'âge accordé au singulier (« 1 an », plus « 1 ans »)** (2.0.57) :
   l'âge s'affiche à trois endroits, mais seul `todayItems` (`logic.js:1132`, « Ma journée ») l'accordait
