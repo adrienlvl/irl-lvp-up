@@ -25,7 +25,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.54 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**416**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **434 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**417**) :
+
+- 🧪 **Couverture : `dayColumns`, coloration d'intervalles de la grille agenda** (tests seuls, pas de bump) :
+  la répartition en colonnes des événements d'une journée (`logic.js:6561`) n'était testée que sur trois cas
+  de base. Verrouillés en plus : **réutilisation de colonne** (3 événements peuvent tenir sur 2 colonnes quand
+  un bloc démarre après la fin d'un autre), **préservation de l'ordre d'entrée** malgré un tri interne par
+  `start`, **concurrence maximale** (3 chevauchements mutuels → 3 colonnes) et la **borne `end`** (`end ≤ start`
+  → `start+1`, non numériques → `0`). Comportements figés après exécution sur le code réel (aucun `logic.js`
+  touché : filet de non-régression). Assertions ajoutées au test existant → compte de tests inchangé (434).
+  Domaine Agenda/grille, variété. (`docs/recaps/417-daycolumns-coverage.md`). ✅ _boucle #417._
 
 - ⚖️ **Ajustement calorique — le plateau est détecté même en pesée quotidienne** (2.0.54) :
   `calorieAdjustment` (`logic.js:5435`) jugeait la stagnation de poids sur une fenêtre ancrée par

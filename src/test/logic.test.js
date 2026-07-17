@@ -3759,6 +3759,26 @@ test('dayColumns : chevauchements côte à côte, indépendants sur 1 colonne', 
   const s = L.dayColumns([{ start: 60, end: 120 }, { start: 120, end: 180 }]);
   assert.ok(s.every(x => x.cols === 1), 'contigus sans chevauchement = 1 colonne');
   assert.deepEqual(L.dayColumns([]), [], 'vide → []');
+  // réutilisation de colonne : A[9h-10h] et B[9h30-10h30] chevauchent (2 col), C[10h10-11h] commence
+  // APRÈS la fin de A → doit reprendre la colonne 0 (libérée), pas en créer une 3e. Le cluster A-B-C
+  // reste à 2 colonnes malgré 3 événements.
+  const reuse = L.dayColumns([{ start: 540, end: 600 }, { start: 570, end: 630 }, { start: 610, end: 660 }]);
+  assert.deepEqual(reuse.map(x => x.col), [0, 1, 0], 'C réutilise la colonne 0 libérée par A');
+  assert.ok(reuse.every(x => x.cols === 2), 'cluster A-B-C tient sur 2 colonnes (pas 3)');
+  // sortie alignée sur l'ORDRE D'ENTRÉE même si l'entrée est désordonnée (mapping par index i),
+  // et clustering correct : le 1er élément (isolé, 700-760) reste seul, les 2 autres se chevauchent.
+  const order = L.dayColumns([{ start: 700, end: 760 }, { start: 540, end: 600 }, { start: 570, end: 630 }]);
+  assert.deepEqual(order, [{ col: 0, cols: 1 }, { col: 0, cols: 2 }, { col: 1, cols: 2 }], 'ordre d’entrée préservé + clustering');
+  // concurrence maximale : trois blocs mutuellement chevauchants → 3 colonnes distinctes
+  const three = L.dayColumns([{ start: 540, end: 600 }, { start: 550, end: 610 }, { start: 560, end: 620 }]);
+  assert.deepEqual(three.map(x => x.col), [0, 1, 2], '3 chevauchements → 3 colonnes distinctes');
+  assert.ok(three.every(x => x.cols === 3), 'cols = concurrence max du cluster');
+  // borne end : end absent ou ≤ start est ramené à start+1 → l’événement occupe quand même un créneau
+  // et deux blocs de longueur nulle au même départ se retrouvent côte à côte (2 colonnes).
+  const clamped = L.dayColumns([{ start: 100 }, { start: 100, end: 50 }]);
+  assert.deepEqual(clamped.map(x => x.col), [0, 1], 'end ≤ start ramené à start+1 → côte à côte');
+  // start/end non numériques → coercés à 0 (Number || 0), l’événement reste placé sans planter
+  assert.deepEqual(L.dayColumns([{ start: 'abc', end: 'xyz' }]), [{ col: 0, cols: 1 }], 'entrées non numériques → 0, placé');
 });
 test('personalRecords : meilleure charge et meilleures reps par exercice', () => {
   const w = [
