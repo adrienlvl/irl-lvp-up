@@ -2609,6 +2609,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.46', emoji: '🏆', text: 'Record de séance muscu plus juste : quand ta séance du jour égale ton meilleur tonnage historique avec un total en demi-kilo (fréquent avec des charges en 12,5 / 7,5 kg et un nombre de reps impair), l’app affiche enfin « Nouveau record séance ! » à la bonne date. Avant, le record était comparé à sa valeur arrondie : un tonnage réel de 187,5 kg, arrondi à 188, ne se reconnaissait plus lui-même, si bien qu’une séance récente à égalité était ignorée (mauvaise date affichée, célébration manquée). Le chiffre affiché ne change pas — c’est la même règle « à égalité, garde la plus récente » que pour le record hebdo.' },
   { v: '2.0.45', emoji: '🔔', text: 'Badge d’icône PWA plus juste : une fois ta séance de sport du jour terminée, la pastille de notification sur l’icône de l’app ne la compte plus comme une action en attente. Avant, le badge restait allumé après ta séance faite (elle était comptée jusqu’au lendemain) ; il ne reflète désormais que ce qu’il te reste vraiment à faire — quêtes non cochées et séances du jour pas encore faites.' },
   { v: '2.0.44', emoji: '🏃', text: 'Paliers de course plus complets : les objectifs intermédiaires proposés vers ta course (10 km, semi-marathon…) n’écrasent plus le premier palier. Pour un marathon préparé sur ~8 mois, l’app n’affichait par erreur que le semi et perdait le palier 10 km ; elle propose désormais bien la progression complète et croissante. Le calcul qui répartit les paliers sur le temps disponible visait un cran trop haut et faisait fusionner les deux premiers.' },
   { v: '2.0.43', emoji: '⚖️', text: 'Conseil de poids cible plus juste au seuil : quand tu fixes un poids objectif, l’avertissement sur son réalisme (« insuffisance pondérale », « cible reste haute ») se base désormais sur l’IMC réel de la cible, et non sur la valeur affichée arrondie. Une cible à IMC réel 18,46 (affichée 18,5) déclenche bien l’alerte santé « insuffisance pondérale », au lieu d’un simple « cible très basse » ; même logique pour le haut de l’échelle. Le chiffre affiché ne change pas — c’est le prolongement du correctif IMC de la 2.0.40.' },
@@ -3745,10 +3746,10 @@ function bestSessionTonnage(workouts) {
     count++;
     const d = String(w.date || '');
     if (d > latestDate) latestDate = d;
-    if (!best || t > best.tonnage || (t === best.tonnage && d >= best.date)) best = { date: d, tonnage: Math.round(t) };
+    if (!best || t > best.tonnage || (t === best.tonnage && d >= best.date)) best = { date: d, tonnage: t };
   });
   if (!best) return null;
-  return { date: best.date, tonnage: best.tonnage, count, isLatest: best.date === latestDate };
+  return { date: best.date, tonnage: Math.round(best.tonnage), count, isLatest: best.date === latestDate };
 }
 // Meilleure SEMAINE de tonnage (record hebdo all-time) : somme du tonnage par semaine (lundi→dimanche),
 // puis la plus élevée. Renvoie { weekStart, tonnage, sessions, isCurrent } ou null si aucun tonnage.

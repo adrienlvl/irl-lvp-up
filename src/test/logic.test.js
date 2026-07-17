@@ -3262,6 +3262,17 @@ test('bestSessionTonnage : meilleure séance par tonnage', () => {
     { date: '2026-06-15', exercises: [{ name: 'Développé', load: 60, reps: 10, sets: 5 }] }, // 3000
   ];
   assert.equal(L.bestSessionTonnage(w3).date, '2026-06-15');
+  // tonnage en .5 (charge 12,5 × reps impaires) : l'égalité se juge sur le tonnage BRUT, pas l'arrondi.
+  // Avant le correctif, best.tonnage stocké arrondi (188) était comparé au brut (187,5) → la séance
+  // récente identique était rejetée (mauvaise date + « nouveau record » manqué). Cas prouvé fautif.
+  const w5 = [
+    { date: '2026-06-01', exercises: [{ name: 'Curl', load: 12.5, reps: 5, sets: 3 }] }, // 187,5
+    { date: '2026-06-08', exercises: [{ name: 'Curl', load: 12.5, reps: 5, sets: 3 }] }, // 187,5 (plus récente)
+  ];
+  const b5 = L.bestSessionTonnage(w5);
+  assert.equal(b5.date, '2026-06-08'); // égalité de tonnage brut → garde la plus récente
+  assert.equal(b5.tonnage, 188); // affichage arrondi inchangé
+  assert.equal(b5.isLatest, true); // → « Nouveau record séance ! »
   // séries validées (setLogs) prises en compte
   const w4 = [{ date: '2026-07-01', exercises: [{ name: 'Squat', setLogs: [{ completed: true, load: 100, reps: 5 }, { completed: true, load: 100, reps: 5 }] }] }];
   assert.equal(L.bestSessionTonnage(w4).tonnage, 1000);
@@ -4874,7 +4885,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.45');
+  assert.equal(L.CHANGELOG[0].v, '2.0.46');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

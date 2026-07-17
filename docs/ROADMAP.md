@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.45 (2026-07-17)
+## 📍 État actuel — build 2.0.46 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**405**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **431 tests + smoke** verts (harness durci, dont garde-fou CSS + 56 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**406**) :
+
+- 🏆 **Record de séance : l'égalité de tonnage se juge sur le brut, pas l'arrondi** (2.0.46) :
+  `bestSessionTonnage` (`logic.js:3739`) stockait le tonnage record **déjà arrondi** puis comparait la
+  valeur **brute** de la séance suivante à cet arrondi. Les tonnages en demi-kilo étant la norme
+  (charge 12,5 / 7,5 kg × reps impaires), une séance à `187,5` — arrondie à `188` — n'était plus jamais
+  `=== 188` : à égalité de record, la séance récente était rejetée → **mauvaise date affichée** et
+  **« Nouveau record séance !` manqué** dans `renderTonnageTrend` (`app.js:498`). La sœur
+  `bestTonnageWeek` arrondit, elle, les deux côtés. Corrigé en gardant le tonnage brut pour la
+  comparaison et en n'arrondissant qu'à l'affichage (séparation jugé/affiché, comme #400/#403).
+  +1 cas prouvé fautif avant (431 tests). Logique pure, zéro régression. (`docs/recaps/406-best-session-tonnage-demi-kilo.md`). ✅ _boucle #406._
 
 - 🔔 **Badge PWA : une séance de sport terminée n'est plus comptée « en attente »** (2.0.45) :
   `pendingBadgeCount` (`logic.js:2833`) alimente la pastille de l'icône PWA (`setAppBadge` via
