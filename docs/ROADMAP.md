@@ -25,7 +25,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.58 (2026-07-17)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **436 tests + smoke** verts (harness durci, dont garde-fou CSS + 58 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**424**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **437 tests + smoke** verts (harness durci, dont garde-fou CSS + 58 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**425**) :
+
+- 🏋️ **Couverture : `bestE1rmByExercise` — formes legacy et garde-fous verrouillés** (tests seuls, pas de bump) :
+  le meilleur 1RM estimé par exercice (`logic.js:3924`) sait lire la forme moderne `exercises[]/setLogs[]`
+  **et** la forme legacy mono-exercice `w.exercise`+`load/reps` (encore présente dans d'anciennes séances),
+  plus le repli `{load,reps}` sans setLogs. Le test existant n'exerçait que la forme moderne : legacy, repli
+  sans setLogs, max de 1RM sur plusieurs séries, bornes de fenêtre et garde-fous (date mal formée, charge
+  nulle, `exercises[]` vide→legacy, entrées hostiles) n'étaient **jamais** couverts. Nouveau test dédié figé
+  après exécution sur le vrai code, valeurs dérivées de `estimate1RM` (le test suit la formule). +1 test (437).
+  Domaine force/1RM, couverture (§4.1). (`docs/recaps/425-best-e1rm-legacy-coverage.md`). ✅ _boucle #425._
 
 - 📅 **Agenda : un `.ics` récurrent « N fois » (COUNT) s'arrête enfin** (2.0.58) :
   à l'import ICS, `parseRRule` (`logic.js:878`) ne lisait pas `COUNT` (RFC 5545), la façon dont

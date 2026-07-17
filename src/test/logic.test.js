@@ -3539,6 +3539,39 @@ test('bestE1rmByExercise / blockExerciseProgress : progression de force par exer
   // limite personnalisable
   assert.ok(L.blockExerciseProgress(history, workouts, { limit: 1 }).length === 1);
 });
+test('bestE1rmByExercise : formes legacy, repli sans setLogs, fenêtre de dates et garde-fous', () => {
+  const b = L.bestE1rmByExercise;
+  const W = '2026-05-01', E = '2026-05-31';
+  // Forme legacy mono-exercice (w.exercise + w.load/w.reps, sans exercises[]) — encore présente
+  // dans d'anciennes séances : bestE1rmByExercise la reconnaît (jumeau des ~6 autres lecteurs muscu).
+  assert.deepEqual(b([{ date: '2026-05-06', exercise: 'Squat', load: 100, reps: 5 }], W, E), { Squat: L.estimate1RM(100, 5) });
+  // exercises[] SANS setLogs → repli sur {load, reps} de l'exercice
+  assert.deepEqual(b([{ date: '2026-05-06', exercises: [{ name: 'Bench', load: 80, reps: 3 }] }], W, E), { Bench: L.estimate1RM(80, 3) });
+  // plusieurs setLogs → MEILLEUR 1RM estimé retenu (120×2 > 100×5)
+  assert.deepEqual(b([{ date: '2026-05-06', exercises: [{ name: 'DL', setLogs: [{ load: 100, reps: 5 }, { load: 120, reps: 2 }] }] }], W, E), { DL: L.estimate1RM(120, 2) });
+  // exercises[] présent mais VIDE → repli sur w.exercise (garde `.length`)
+  assert.deepEqual(b([{ date: '2026-05-06', exercises: [], exercise: 'Squat', load: 90, reps: 5 }], W, E), { Squat: L.estimate1RM(90, 5) });
+  // hors fenêtre [start..end] → exclu (la veille du début, le lendemain de la fin)
+  assert.deepEqual(b([{ date: '2026-04-30', exercise: 'Squat', load: 100, reps: 5 }], W, E), {});
+  assert.deepEqual(b([{ date: '2026-06-01', exercise: 'Squat', load: 100, reps: 5 }], W, E), {});
+  // bornes incluses (start et end exacts comptent)
+  assert.deepEqual(b([{ date: W, exercise: 'A', load: 60, reps: 5 }, { date: E, exercise: 'B', load: 60, reps: 5 }], W, E), { A: L.estimate1RM(60, 5), B: L.estimate1RM(60, 5) });
+  // date manquante / mal formée → ignorée
+  assert.deepEqual(b([{ date: 'pas-une-date', exercise: 'Squat', load: 100, reps: 5 }], W, E), {});
+  assert.deepEqual(b([{ exercise: 'Squat', load: 100, reps: 5 }], W, E), {});
+  // charge nulle (poids du corps) → estimate1RM null → aucun record chargé
+  assert.deepEqual(b([{ date: '2026-05-06', exercise: 'Tractions', load: 0, reps: 8 }], W, E), {});
+  // exercice sans nom → ignoré
+  assert.deepEqual(b([{ date: '2026-05-06', exercises: [{ load: 100, reps: 5 }] }], W, E), {});
+  // entrées hostiles → objet vide, jamais d'exception
+  assert.deepEqual(b(null, W, E), {});
+  assert.deepEqual(b([null, undefined, {}, { date: '2026-05-06' }], W, E), {});
+  // même exercice sur plusieurs séances de la fenêtre → meilleur 1RM toutes séances confondues
+  assert.deepEqual(b([
+    { date: '2026-05-06', exercise: 'Squat', load: 90, reps: 5 },
+    { date: '2026-05-20', exercise: 'Squat', load: 100, reps: 5 },
+  ], W, E), { Squat: L.estimate1RM(100, 5) });
+});
 test('blockProgressText / shareableBlockProgress : progression de bloc partageable', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
