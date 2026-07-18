@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.104');
+  assert.equal(L.CHANGELOG[0].v, '2.0.105');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7170,19 +7170,22 @@ test('adaptiveCoachFocus : priorise explicitement quand plusieurs piliers décro
   assert.doesNotMatch(one.insight, /autre pilier faiblit|autres piliers faiblissent/);
 
   // DEUX piliers décrochent (sport + focus, tier égal) → sport choisi (dormant depuis plus longtemps),
-  // note explicite au singulier, alsoSlipping 1.
+  // note explicite au singulier qui NOMME le pilier restant, alsoSlipping 1.
   const two = L.adaptiveCoachFocus({ workouts, focusSessions }, today);
   assert.equal(two.pillar, 'sport');
   assert.equal(two.tone, 'rebuild');
   assert.equal(two.alsoSlipping, 1);
-  assert.match(two.insight, /Un autre pilier faiblit aussi cette semaine/);
-  assert.match(two.insight, /levier prioritaire/);
+  assert.deepEqual(two.alsoSlippingPillars, ['focus']);
+  assert.match(two.insight, /Ton focus faiblit aussi cette semaine/);
+  assert.match(two.insight, /celui-ci d’abord, c’est ton levier prioritaire/);
 
-  // TROIS piliers décrochent → note au pluriel, alsoSlipping 2.
+  // TROIS piliers décrochent → note au pluriel qui NOMME les deux autres, dans l'ordre de gravité
+  // (sport le plus anciennement actif → choisi ; focus puis nutrition ensuite), alsoSlipping 2.
   const three = L.adaptiveCoachFocus({ workouts, focusSessions, nutrition }, today);
   assert.equal(three.pillar, 'sport');
   assert.equal(three.alsoSlipping, 2);
-  assert.match(three.insight, /2 autres piliers faiblissent aussi cette semaine/);
+  assert.deepEqual(three.alsoSlippingPillars, ['focus', 'nutrition']);
+  assert.match(three.insight, /Ton focus et ta nutrition faiblissent aussi cette semaine/);
 
   // Rotation (3 j du même focus journalisés) → on a fui le pilier prioritaire, pas de « d'abord ».
   const rotLog = [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sport' }];

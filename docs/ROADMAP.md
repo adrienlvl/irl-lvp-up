@@ -23,7 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.104 (2026-07-19)
+## 📍 État actuel — build 2.0.105 (2026-07-19)
+
+> 🧭 **2.0.105** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » ne se contente plus de **compter** les autres piliers qui décrochent — il les **NOMME**,
+> dans l'ordre de gravité. Au lieu de « 2 autres piliers faiblissent aussi cette semaine », il dit
+> lesquels surveiller ensuite : « **Ton focus et ta nutrition faiblissent aussi cette semaine — celui-ci
+> d'abord, c'est ton levier prioritaire.** ». Nouveau champ pur `alsoSlippingPillars` (clés triées par
+> gravité, en plus du compteur `alsoSlipping` conservé) : la liste vient de `fixes` déjà trié (tier,
+> ampleur du décrochage, dormance), filtré sur les piliers **autres** que le choisi ; noms possessifs
+> naturels (`ton entraînement`, `ton focus`, `ton sommeil`, `ta nutrition`), joints « a, b **et** c »,
+> verbe accordé. Adrien sait quoi attaquer en premier **ET** ce qui vient juste après. Garde-fous
+> identiques à #473 (tons « à corriger » uniquement, **hors rotation**, **hors micro-pas**, **hors geste
+> déjà fait**). Additif pur : insight **enrichi** (jamais remplacé), aucun retrait. `adaptiveCoachFocus`
+> pur + testé, check smoke bloquant `coachFocus` étendu. Recap #474.
 
 > 🧭 **2.0.104** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » dit désormais par quoi **COMMENCER** quand **plusieurs piliers décrochent** le même jour

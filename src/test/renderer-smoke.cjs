@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.104'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.105'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -856,9 +856,9 @@ app.whenReady().then(async () => {
           const fRdHigh = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
           if (!(fRdHigh.readiness === 100 && /pr[êe]t [àa] pousser/.test(fRdHigh.action))) return false;
           if (adaptiveCoachFocus({ workouts: rdWk }, '2026-07-16').readiness !== null) return false;
-          // Coach PRIORISANT : deux piliers décrochent → note explicite « quoi d'abord », alsoSlipping compté.
+          // Coach PRIORISANT : deux piliers décrochent → note explicite « quoi d'abord » qui NOMME l'autre pilier.
           const fTwo = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }], focusSessions: [{ date: '2026-07-04', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-08', minutes: 30 }, { date: '2026-07-12', minutes: 30 }] }, '2026-07-16');
-          if (!(fTwo.alsoSlipping === 1 && /Un autre pilier faiblit aussi/.test(fTwo.insight) && /levier prioritaire/.test(fTwo.insight))) return false;
+          if (!(fTwo.alsoSlipping === 1 && fTwo.alsoSlippingPillars && fTwo.alsoSlippingPillars[0] === 'focus' && /Ton focus faiblit aussi/.test(fTwo.insight) && /levier prioritaire/.test(fTwo.insight))) return false;
           // Un seul pilier décroche → pas de note de priorisation.
           if (adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }] }, '2026-07-16').alsoSlipping !== 0) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
