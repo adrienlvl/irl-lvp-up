@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.107 (2026-07-19)
+## 📍 État actuel — build 2.0.108 (2026-07-19)
+
+> 🔥 **2.0.108** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » ne salue plus seulement **une** belle journée — il célèbre ta **série**. Depuis #475,
+> `pillarsToday` (0-4) fait dire « 3/4 de tes piliers cochés aujourd'hui — belle journée complète 🎯 »,
+> mais ce crédit ne voyait qu'**un jour** : Adrien pouvait enchaîner trois journées complètes sans que le
+> coach le remarque. Nouveau champ pur `completeDayStreak` : nombre de jours **consécutifs** (finissant
+> aujourd'hui, avec grâce) où **≥ 3 des 4 piliers** sont cochés — le seuil même de la « belle journée
+> complète ». Réutilise `completeDaysStreak`/`dailyStreak` (éprouvés). Quand aujourd'hui EST complet
+> (`pillarsToday >= 3`, donc dans la série) ET que la série court (≥ 2 jours), le coach **célèbre
+> l'enchaînement** : « … **3 jours d'affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥** » ;
+> sinon le crédit d'un jour reste tel quel. Point clé : comptage par jour via une `Map<date, Set<pilier>>`
+> (prédicats d'activité existants), et la garde `pillarsToday >= 3` garantit qu'aujourd'hui compte dans la
+> série citée (donc « X jours d'affilée » est exact). Additif pur : `completeDayStreak` toujours renvoyé,
+> note de série **remplace** le crédit d'un jour seulement quand la série court, toujours disjoint
+> d'`alsoSlipping`. `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #477.
 
 > 🌙 **2.0.107** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **protège la fenêtre de coucher** du soir, comme il cale déjà tes blocs de focus (#471) et

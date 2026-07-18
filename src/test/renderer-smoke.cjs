@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.107'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.108'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -873,9 +873,12 @@ app.whenReady().then(async () => {
           if (adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }] }, '2026-07-16').alsoSlipping !== 0) return false;
           // Crédit MULTI-PILIERS : séance du jour faite (doneToday) + focus & nutrition cochés aujourd'hui → 3/4 salués.
           const fMulti = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, workouts: [{ date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-16', duration: 45 }], focusSessions: [{ date: '2026-07-16', minutes: 30, task: 'X' }], nutrition: [{ date: '2026-07-16', protein: 120 }] }, '2026-07-16');
-          if (!(fMulti.pillar === 'sport' && fMulti.doneToday === true && fMulti.pillarsToday === 3 && /3\\/4 de tes piliers déjà cochés aujourd/.test(fMulti.insight) && /belle journée complète/.test(fMulti.insight))) return false;
+          if (!(fMulti.pillar === 'sport' && fMulti.doneToday === true && fMulti.pillarsToday === 3 && fMulti.completeDayStreak === 1 && /3\\/4 de tes piliers déjà cochés aujourd/.test(fMulti.insight) && /belle journée complète/.test(fMulti.insight))) return false;
           // Un seul pilier coché aujourd'hui → pillarsToday 1, aucune note.
           if (fDone.pillarsToday !== 1 || /piliers déjà cochés/.test(fDone.insight)) return false;
+          // SÉRIE de journées complètes : les 4 piliers actifs 3 jours de suite → célébration de la série (pas le crédit d'un jour isolé).
+          const fStreak = adaptiveCoachFocus({ workouts: [{ date: '2026-07-14', duration: 45 }, { date: '2026-07-15', duration: 45 }, { date: '2026-07-16', duration: 45 }], focusSessions: [{ date: '2026-07-14', minutes: 30, task: 'X' }, { date: '2026-07-15', minutes: 30, task: 'X' }, { date: '2026-07-16', minutes: 30, task: 'X' }], recovery: [{ date: '2026-07-14', sleep: 7 }, { date: '2026-07-15', sleep: 7 }, { date: '2026-07-16', sleep: 7 }], nutrition: [{ date: '2026-07-14', protein: 100 }, { date: '2026-07-15', protein: 100 }, { date: '2026-07-16', protein: 100 }] }, '2026-07-16');
+          if (!(fStreak.pillarsToday === 4 && fStreak.completeDayStreak === 3 && /3 jours d.affil.*3\\+ piliers/.test(fStreak.insight) && !/belle journée complète/.test(fStreak.insight))) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
           const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };

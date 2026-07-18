@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.107');
+  assert.equal(L.CHANGELOG[0].v, '2.0.108');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7216,6 +7216,8 @@ test('adaptiveCoachFocus : crédite une journée multi-piliers (doneToday / rein
   assert.equal(m.pillarsToday, 3, 'sport + focus + nutrition cochés aujourd’hui');
   assert.match(m.insight, /3\/4 de tes piliers déjà cochés aujourd’hui/);
   assert.match(m.insight, /belle journée complète/);
+  assert.equal(m.completeDayStreak, 1, 'seul aujourd’hui est complet (jours précédents = sport seul) → série 1, pas d’enchaînement');
+  assert.doesNotMatch(m.insight, /jours d’affilée à 3\+ piliers/, 'pas de célébration de série sur une journée complète isolée');
   assert.match(m.action, /Séance déjà faite aujourd’hui/, 'le crédit du geste reste dans l’action');
 
   // Un SEUL pilier coché aujourd'hui (le sport crédité) → pillarsToday 1, aucune note multi-piliers.
@@ -7249,6 +7251,33 @@ test('adaptiveCoachFocus : crédite une journée multi-piliers (doneToday / rein
   assert.equal(ng.doneToday, false);
   assert.ok(ng.pillarsToday >= 1);
   assert.doesNotMatch(ng.insight, /piliers déjà cochés/, 'pas de crédit multi-piliers en contexte de correction');
+});
+
+test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ piliers plusieurs jours de suite)', () => {
+  const today = '2026-07-16';
+  // Les 4 piliers actifs sur 3 jours consécutifs (14, 15, 16) → chaque jour est « complet » (≥3 piliers).
+  const streakState = {
+    workouts: [{ date: '2026-07-14', duration: 45 }, { date: '2026-07-15', duration: 45 }, { date: today, duration: 45 }],
+    focusSessions: [{ date: '2026-07-14', minutes: 30, task: 'X' }, { date: '2026-07-15', minutes: 30, task: 'X' }, { date: today, minutes: 30, task: 'X' }],
+    recovery: [{ date: '2026-07-14', sleep: 7 }, { date: '2026-07-15', sleep: 7 }, { date: today, sleep: 7 }],
+    nutrition: [{ date: '2026-07-14', protein: 100 }, { date: '2026-07-15', protein: 100 }, { date: today, protein: 100 }],
+  };
+  const sk = L.adaptiveCoachFocus(streakState, today);
+  assert.equal(sk.pillarsToday, 4, 'les 4 piliers cochés aujourd’hui');
+  assert.equal(sk.completeDayStreak, 3, '3 jours consécutifs à ≥3 piliers');
+  assert.match(sk.insight, /3 jours d’affilée à 3\+ piliers/);
+  assert.doesNotMatch(sk.insight, /belle journée complète/, 'la série remplace le crédit du jour isolé');
+
+  // Série de 2 jours (15, 16 complets ; le 14 n’a qu’un pilier) → « 2 jours d’affilée ».
+  const two = {
+    workouts: [{ date: '2026-07-14', duration: 45 }, { date: '2026-07-15', duration: 45 }, { date: today, duration: 45 }],
+    focusSessions: [{ date: '2026-07-15', minutes: 30, task: 'X' }, { date: today, minutes: 30, task: 'X' }],
+    nutrition: [{ date: '2026-07-15', protein: 100 }, { date: today, protein: 100 }],
+  };
+  const t2 = L.adaptiveCoachFocus(two, today);
+  assert.equal(t2.pillarsToday, 3);
+  assert.equal(t2.completeDayStreak, 2, '14 = sport seul → hors série ; 15 et 16 complets');
+  assert.match(t2.insight, /2 jours d’affilée à 3\+ piliers/);
 });
 
 test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => {

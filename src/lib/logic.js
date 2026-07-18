@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.108', emoji: '🔥', text: 'Ton coach « Le focus du moment » ne salue plus seulement UNE belle journée : il célèbre ta SÉRIE. Quand tu as déjà coché au moins 3 de tes 4 piliers aujourd’hui et que tu enchaînes plusieurs journées complètes d’affilée, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 » Reconnaître qu’on TIENT la régularité motive plus que féliciter un jour isolé. Il reste discret : la célébration de série n’apparaît que les jours vraiment complets, jamais en même temps qu’une alerte « celui-ci d’abord ».' },
   { v: '2.0.107', emoji: '🌙', text: 'Ton coach « Le focus du moment » protège désormais ta fenêtre de coucher le soir, comme il cale déjà tes blocs de focus et de sport. Quand un plan de recalage du sommeil est actif et qu’un rendez-vous horaire de ta journée finit trop tard — sur ta cible de coucher ou dans les 30 min de sas juste avant —, il le repère et t’alerte : « Vise un coucher à 22:30 ce soir (ton plan de recalage). « Dîner famille » (à partir de 20:30) mord sur ta cible de 22:30 — protège ta fenêtre du soir. » Le premier saboteur d’un plan de recalage, c’est un soir qui déborde : le coach le voit venir dans ta vraie journée.' },
   { v: '2.0.106', emoji: '🎉', text: 'Ton coach « Le focus du moment » ne fait plus que pointer ce qui décroche : il SALUE désormais tes journées bien remplies. Quand ton geste du jour est déjà posé (ou qu’il renforce un bon élan) et que tu as en réalité déjà coché plusieurs piliers aujourd’hui, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯 » Le pendant positif de la priorisation : il nomme ce qui tient, pas seulement ce qui flanche. Complémentaire — jamais en même temps qu’une alerte « celui-ci d’abord ».' },
   { v: '2.0.105', emoji: '🧭', text: 'Ton coach « Le focus du moment » ne se contente plus de COMPTER les autres piliers qui décrochent — il les NOMME. Au lieu de « 2 autres piliers faiblissent aussi cette semaine », il te dit lesquels surveiller ensuite, dans l’ordre de gravité : « Ton entraînement s’essouffle… Ton focus et ta nutrition faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire. » Tu sais quoi attaquer en premier ET ce qui vient juste après. Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
@@ -5342,16 +5343,42 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // aujourd'hui » traduise une vraie dynamique du jour, pas un pilier isolé. Champ pur pillarsToday
   // (0-4) TOUJOURS renvoyé (informatif) ; la note n'est ajoutée qu'en contexte positif.
   const pillarsToday = cands.filter(c => (Array.isArray(c.list) ? c.list : []).some(e => e && e.date === todayKey && c.active(e))).length;
+  // SÉRIE de journées complètes — le cran au-dessus du crédit d'un jour isolé (#475). Reconnaître UNE
+  // belle journée motive ; reconnaître qu'Adrien ENCHAÎNE plusieurs journées complètes motive bien plus
+  // (l'app est gamifiée, la régularité est le vrai levier). On compte, par jour et sur les piliers, le
+  // nombre de piliers ayant une entrée active ce jour-là (mêmes prédicats que les piliers), puis la SÉRIE
+  // de jours consécutifs finissant aujourd'hui (avec grâce) où AU MOINS 3 des 4 piliers sont cochés —
+  // exactement le seuil de la « belle journée complète 🎯 ». Réutilise completeDaysStreak/dailyStreak
+  // (déjà éprouvés). Champ pur completeDayStreak TOUJOURS renvoyé. Dans la note de crédit : quand
+  // aujourd'hui EST complet (pillarsToday >= 3, donc dans la série) ET que la série court (>= 2 jours), on
+  // célèbre l'enchaînement plutôt que la journée seule ; sinon on garde le crédit d'un jour tel quel.
+  const completeDayCounts = new Map();
+  for (const c of cands) {
+    for (const e of (Array.isArray(c.list) ? c.list : [])) {
+      if (!e || !c.active(e)) continue;
+      const d = e.date;
+      if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d) || d > todayKey) continue;
+      let set = completeDayCounts.get(d);
+      if (!set) { set = new Set(); completeDayCounts.set(d, set); }
+      set.add(c.pillar);
+    }
+  }
+  const completeDayDays = Array.from(completeDayCounts, ([date, set]) => ({ date, count: set.size }));
+  const completeDayStreak = (typeof completeDaysStreak === 'function') ? completeDaysStreak(completeDayDays, 3, todayKey) : 0;
   if ((doneToday || tone === 'reinforce') && pillarsToday >= 2) {
-    insight += pillarsToday >= 3
-      ? ` ${pillarsToday}/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯`
-      : ' 2/4 de tes piliers déjà cochés aujourd’hui — bonne lancée.';
+    if (pillarsToday >= 3 && completeDayStreak >= 2) {
+      insight += ` ${completeDayStreak} jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥`;
+    } else if (pillarsToday >= 3) {
+      insight += ` ${pillarsToday}/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯`;
+    } else {
+      insight += ' 2/4 de tes piliers déjà cochés aujourd’hui — bonne lancée.';
+    }
   }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak,
   };
 }
 
