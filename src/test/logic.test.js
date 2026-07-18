@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.106');
+  assert.equal(L.CHANGELOG[0].v, '2.0.107');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7338,6 +7338,45 @@ test('adaptiveCoachFocus : coach conscient du sommeil (alerte + cible du plan)',
   const fi = L.adaptiveCoachFocus({ recovery: recImpact, morningRituals: mr }, today);
   assert.equal(fi.pillar, 'sommeil', 'court + irrégulier → focus sommeil');
   assert.match(fi.action, /couché tôt = \+\d/, 'l’action cite la preuve d’impact chiffrée');
+});
+
+test('adaptiveCoachFocus : protège la fenêtre de coucher quand un RDV du soir déborde (sommeil)', () => {
+  const today = '2026-07-16';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const recovery = [4, 8, 4, 8, 4, 8, 4].map((h, i) => ({ date: iso(i), sleep: h })); // court + irrégulier → alerte
+  const workouts = [iso(8), iso(9), iso(10), iso(1)].map(d => ({ date: d, type: 'muscu' }));
+  const plan = { active: true, startTime: '01:00', targetTime: '23:00', startKey: iso(6), stepDays: 3, stepMin: 15 };
+  const pd = L.sleepPlanDay(plan, recovery, today);
+  const tgt = pd.reached ? pd.goalTime : pd.targetTime;       // cible de coucher (souvent dans les petites heures ici)
+  const tgtAnchor = L.bedtimeAnchor(tgt);
+  // RDV du soir qui finit 20 min APRÈS la cible → mord sur la fenêtre (sas d'endormissement de 30 min).
+  const startAnchor = tgtAnchor + 20 - 60;                    // 60 min de RDV, fin = cible + 20
+  const startTime = L.minutesToTime((startAnchor + 720) % 1440); // ancre → HH:MM (inverse de bedtimeAnchor)
+  const agenda = [{ id: 1, title: 'Dîner famille', date: today, time: startTime, durationMin: 60, kind: 'life' }];
+  const f = L.adaptiveCoachFocus({ recovery, workouts, sleepPlan: plan, agenda }, today);
+  assert.equal(f.pillar, 'sommeil');
+  assert.equal(f.sleepConflict, startTime, 'le RDV menaçant est signalé par son heure de début');
+  assert.match(f.action, /Dîner famille/, 'l’action nomme le RDV qui déborde');
+  assert.match(f.action, /prot[èe]ge ta fen[êe]tre/i, 'l’action invite à protéger la fenêtre du soir');
+  assert.match(f.action, new RegExp(tgt), 'l’action rappelle la cible de coucher');
+  // RDV du soir qui finit BIEN AVANT (cible − 30) → aucune menace.
+  const early = [{ id: 2, title: 'Apéro', date: today, time: '18:00', durationMin: 60, kind: 'life' }];
+  const fe = L.adaptiveCoachFocus({ recovery, workouts, sleepPlan: plan, agenda: early }, today);
+  assert.equal(fe.sleepConflict, null, 'un RDV du soir qui finit tôt ne menace pas la fenêtre');
+  assert.ok(!/prot[èe]ge ta fen[êe]tre/i.test(fe.action));
+  // RDV en journée (commence avant 17:00) → jamais considéré, même long.
+  const day = [{ id: 3, title: 'Réunion', date: today, time: '14:00', durationMin: 180, kind: 'life' }];
+  assert.equal(L.adaptiveCoachFocus({ recovery, workouts, sleepPlan: plan, agenda: day }, today).sleepConflict, null);
+  // Sans plan actif → pas de cible concrète → pas de détection, même avec un RDV tardif.
+  const noPlan = L.adaptiveCoachFocus({ recovery, workouts, agenda }, today);
+  assert.equal(noPlan.pillar, 'sommeil');
+  assert.equal(noPlan.sleepConflict, null, 'sans plan de recalage, aucune cible à protéger');
+  // Autre pilier (sommeil solide → un creux ailleurs) → sleepConflict null.
+  const good = [8, 8, 8, 8, 8, 8, 8].map((h, i) => ({ date: iso(i), sleep: h }));
+  const fs = L.adaptiveCoachFocus({ recovery: good, workouts, sleepPlan: plan, agenda }, today);
+  assert.notEqual(fs.pillar, 'sommeil');
+  assert.equal(fs.sleepConflict, null, 'le garde-fenêtre ne concerne que le pilier sommeil');
 });
 
 test('adaptiveCoachFocus : parle en fonction des objectifs perso (hebdo calendaire)', () => {

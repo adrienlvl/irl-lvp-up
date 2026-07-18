@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.106 (2026-07-19)
+## 📍 État actuel — build 2.0.107 (2026-07-19)
+
+> 🌙 **2.0.107** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **protège la fenêtre de coucher** du soir, comme il cale déjà tes blocs de focus (#471) et
+> de sport (#472). Le pilier **sommeil** restait au « à quelle heure te coucher » sans jamais regarder
+> si la vraie journée d'Adrien le permet — or le premier saboteur d'un plan de recalage, c'est un soir
+> qui déborde. Nouveau champ pur `sleepConflict` : quand un plan de recalage est actif (cible concrète
+> via `sleepPlanDay`) et qu'un RDV du **soir** (début ≥ 17:00) déborde sur la fenêtre — il finit après
+> (cible − 30 min de sas d'endormissement), voire au-delà —, le coach le **NOMME** : « … **« Dîner
+> famille » (à partir de 23:50) mord sur ta cible de 00:30 — protège ta fenêtre du soir.** ». Point
+> technique clé : tout est comparé sur l'**échelle ancrée** (`bedtimeAnchor`, minutes depuis midi) —
+> indispensable car la cible de recalage tombe souvent dans les **petites heures** (00:30, 01:00…), où
+> une comparaison en minutes brutes croirait qu'un RDV de 23:30 est « après » 00:30. On cite le RDV
+> finissant le plus tard, par son heure de début. Garde-fous : plan actif requis, RDV du soir
+> uniquement, sas de 30 min. Additif pur : `sleepConflict` toujours renvoyé, action **enrichie** (jamais
+> remplacée), aucun retrait. Les trois piliers à horaire (focus/sport/sommeil) croisent enfin tous la
+> vraie journée. `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #476.
 
 > 🎉 **2.0.106** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » gagne son **registre positif**. Jusqu'ici il savait NOMMER ce qui décroche (`alsoSlipping`,

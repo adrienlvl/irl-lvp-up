@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.107', emoji: '🌙', text: 'Ton coach « Le focus du moment » protège désormais ta fenêtre de coucher le soir, comme il cale déjà tes blocs de focus et de sport. Quand un plan de recalage du sommeil est actif et qu’un rendez-vous horaire de ta journée finit trop tard — sur ta cible de coucher ou dans les 30 min de sas juste avant —, il le repère et t’alerte : « Vise un coucher à 22:30 ce soir (ton plan de recalage). « Dîner famille » (à partir de 20:30) mord sur ta cible de 22:30 — protège ta fenêtre du soir. » Le premier saboteur d’un plan de recalage, c’est un soir qui déborde : le coach le voit venir dans ta vraie journée.' },
   { v: '2.0.106', emoji: '🎉', text: 'Ton coach « Le focus du moment » ne fait plus que pointer ce qui décroche : il SALUE désormais tes journées bien remplies. Quand ton geste du jour est déjà posé (ou qu’il renforce un bon élan) et que tu as en réalité déjà coché plusieurs piliers aujourd’hui, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯 » Le pendant positif de la priorisation : il nomme ce qui tient, pas seulement ce qui flanche. Complémentaire — jamais en même temps qu’une alerte « celui-ci d’abord ».' },
   { v: '2.0.105', emoji: '🧭', text: 'Ton coach « Le focus du moment » ne se contente plus de COMPTER les autres piliers qui décrochent — il les NOMME. Au lieu de « 2 autres piliers faiblissent aussi cette semaine », il te dit lesquels surveiller ensuite, dans l’ordre de gravité : « Ton entraînement s’essouffle… Ton focus et ta nutrition faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire. » Tu sais quoi attaquer en premier ET ce qui vient juste après. Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.104', emoji: '🧭', text: 'Ton coach « Le focus du moment » te dit maintenant par quoi COMMENCER quand plusieurs piliers décrochent en même temps. Jusqu’ici il en choisissait un — le plus prioritaire, trié par gravité — mais sans le dire : tu ne voyais qu’un conseil, sans savoir que d’autres pans faiblissaient aussi. Il rend le choix explicite : « Ton entraînement s’essouffle… 2 autres piliers faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire. » Ne pas tout attaquer d’un coup, commencer par le bon levier. Il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
@@ -5060,6 +5061,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Focus sommeil ENRICHI : on remplace le compteur générique par le vrai verdict chiffré du coach
   // sommeil (sleepCoachInsight) et, si un plan de recalage est actif, par la CIBLE de coucher du soir
   // (sleepPlanDay) — le coach cesse d'ignorer l'intelligence sommeil qui vit juste à côté.
+  let sleepConflict = null;
   if (chosen.pillar === 'sommeil' && sleepIns) {
     insight = sleepIns.verdict;
     if (sleepIns.tone === 'urgent') headline = 'Ton sommeil déraille — priorité ce soir';
@@ -5072,6 +5074,37 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     const imp = (typeof sleepImpactReport === 'function') ? sleepImpactReport(s, todayKey) : null;
     if (imp && imp.deltas.energy != null && imp.deltas.energy >= 0.5) action += ' Tes soirs couché tôt = +' + imp.deltas.energy + ' d’énergie le lendemain.';
     else if (imp && imp.deltas.focusMin >= 15) action += ' Couché tôt, tu enchaînes +' + imp.deltas.focusMin + ' min de focus le lendemain.';
+    // Coach × AGENDA pour le SOMMEIL — le pendant, CÔTÉ SOIR, des créneaux focus/sport (#471/#472).
+    // Ici on ne CHERCHE pas un créneau (le coucher-cible est déjà fixé par le plan) : on PROTÈGE la
+    // fenêtre du soir. Quand un plan de recalage est actif (cible de coucher concrète) et qu'un RDV du
+    // SOIR déborde sur la cible — il finit après (cible − 30 min de sas d'endormissement), voire au-delà
+    // de la cible —, le coach le NOMME et alerte : « ce créneau mord sur ta cible, protège ta fenêtre ».
+    // Un coucher-cible qu'un RDV tardif rend intenable est le premier saboteur d'un plan de recalage ;
+    // le voir venir dans la vraie journée d'Adrien vaut mieux qu'un « couche-toi à HH:MM » aveugle.
+    // Tout est comparé sur l'ÉCHELLE ANCRÉE (bedtimeAnchor, minutes depuis midi) — INDISPENSABLE ici :
+    // la cible de recalage d'Adrien est souvent dans les PETITES HEURES (00:30, 01:00…), et sans ancrage
+    // un RDV finissant à 23:30 semblerait « après » une cible de 00:30. On ne retient que les RDV qui
+    // COMMENCENT le soir (heure ≥ 17:00) : « ce soir » sans ambiguïté sur la même date, et leur fin peut
+    // franchir minuit (l'ancre la suit de façon monotone, ≥ 17:00 → l'ancre reste < minuit + durée). On
+    // cite le RDV qui finit le plus TARD, par son heure de DÉBUT (toujours < 24:00 à l'affichage). Exige
+    // un plan actif (pd) donc une cible concrète à protéger. Additif pur : champ sleepConflict (HH:MM de
+    // début du RDV menaçant, ou null) ; la note ENRICHIT l'action, ne la remplace pas.
+    const bedTarget = pd ? (pd.reached ? pd.goalTime : pd.targetTime) : null;
+    const tgtAnchor = (bedTarget && typeof bedtimeAnchor === 'function') ? bedtimeAnchor(bedTarget) : null;
+    if (tgtAnchor != null) {
+      const windDown = 30;
+      const threats = (Array.isArray(s.agenda) ? s.agenda : [])
+        .filter(a => a && a.date === todayKey && !a.allDay && !a.completed && timeToMinutes(a.time) != null && timeToMinutes(a.time) >= 17 * 60)
+        .map(a => { const st = timeToMinutes(a.time); return { st, endAnchor: bedtimeAnchor(a.time) + Math.max(1, Math.round(Number(a.durationMin) || 60)), title: String(a.title || 'Bloc').trim() }; })
+        .filter(ev => ev.endAnchor > tgtAnchor - windDown)
+        .sort((a, b) => b.endAnchor - a.endAnchor);
+      if (threats.length) {
+        const ev = threats[0];
+        sleepConflict = minutesToTime(ev.st);
+        const nom = ev.title ? `« ${ev.title} »` : 'Ton créneau du soir';
+        action += ` ${nom} (à partir de ${sleepConflict}) mord sur ta cible de ${bedTarget} — protège ta fenêtre du soir.`;
+      }
+    }
   }
   // Focus nutrition ENRICHI (même esprit que le sommeil #459) : plutôt qu'un « renseigne tes
   // protéines » aveugle, le coach lit l'état RÉEL du jour — cible protéines calée sur le poids et
@@ -5318,7 +5351,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday,
   };
 }
 
