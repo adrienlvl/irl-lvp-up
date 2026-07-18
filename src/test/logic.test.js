@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.100');
+  assert.equal(L.CHANGELOG[0].v, '2.0.101');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7330,10 +7330,49 @@ test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare r�
   const fu = L.adaptiveCoachFocus(untitled, today);
   assert.equal(fu.pillar, 'focus');
   assert.equal(fu.focusTask, null, 'sans tâche nommée : pas d’enrichissement');
-  assert.match(fu.action, /Lance une session de focus de 25 min/, 'action générique conservée');
+  // Sans tâche nommée mais avec assez d’historique (30,30,30,25 → médiane 30), le bloc générique est
+  // quand même personnalisé sur la durée habituelle plutôt qu’un 25 min fixe.
+  assert.match(fu.action, /Lance une session de focus de 30 min \(ta durée habituelle\)/, 'bloc générique personnalisé sur la durée habituelle');
   // Un autre pilier (sport) → pas de champ focusTask parasite.
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }] }, today);
   assert.equal(sport.pillar, 'sport'); assert.equal(sport.focusTask, null, 'focusTask null hors pilier focus');
+  assert.equal(sport.focusBlockMin, null, 'focusBlockMin null hors pilier focus');
+});
+
+test('adaptiveCoachFocus : la longueur de bloc focus se cale sur la durée médiane réelle', () => {
+  const today = '2026-07-16';
+  // Décrochage focus, tâche nommée « Compta », sessions longues (50,50,50 min récentes) → médiane 50.
+  const long = { focusSessions: [
+    { date: '2026-07-05', minutes: 50, task: 'Compta' }, { date: '2026-07-06', minutes: 50, task: 'Compta' },
+    { date: '2026-07-07', minutes: 50, task: 'Compta' }, { date: '2026-07-14', minutes: 50, task: 'Compta' },
+  ] };
+  const fl = L.adaptiveCoachFocus(long, today);
+  assert.equal(fl.pillar, 'focus'); assert.equal(fl.tone, 'rebuild');
+  assert.equal(fl.focusBlockMin, 50, 'médiane des durées réelles = 50 min');
+  assert.match(fl.action, /un bloc de 50 min \(ta durée habituelle\)/, 'la durée habituelle est citée dans l’action tâche phare');
+  // Arrondi à 5 min + borne haute 60 : sessions 63,64,65 → médiane 64 → arrondi 65 → borné 60.
+  const capped = { focusSessions: [
+    { date: '2026-07-05', minutes: 63, task: 'Thèse' }, { date: '2026-07-06', minutes: 64, task: 'Thèse' }, { date: '2026-07-07', minutes: 65, task: 'Thèse' },
+    { date: '2026-07-13', minutes: 63, task: 'Thèse' }, { date: '2026-07-14', minutes: 64, task: 'Thèse' },
+  ] };
+  const fc = L.adaptiveCoachFocus(capped, today);
+  assert.equal(fc.focusBlockMin, 60, 'durées longues bornées à 60 min');
+  // Borne basse 10 min : sessions courtes 6,7,8 → médiane 7 → arrondi 5 → borné 10.
+  const tiny = { focusSessions: [
+    { date: '2026-07-05', minutes: 6, task: 'Lecture' }, { date: '2026-07-06', minutes: 7, task: 'Lecture' },
+    { date: '2026-07-07', minutes: 8, task: 'Lecture' }, { date: '2026-07-14', minutes: 6, task: 'Lecture' },
+  ] };
+  const ft = L.adaptiveCoachFocus(tiny, today);
+  assert.equal(ft.focusBlockMin, 10, 'durées très courtes bornées à 10 min');
+  // Moins de 3 sessions dans la fenêtre → signal insuffisant → focusBlockMin null, repli sur 25 min.
+  const scarce = { focusSessions: [
+    { date: '2026-07-05', minutes: 40, task: 'Compta' }, { date: '2026-07-14', minutes: 40, task: 'Compta' },
+  ] };
+  const fsc = L.adaptiveCoachFocus(scarce, today);
+  assert.equal(fsc.pillar, 'focus');
+  assert.equal(fsc.focusBlockMin, null, 'moins de 3 sessions : pas de médiane fiable');
+  assert.match(fsc.action, /un bloc de 25 min/, 'repli sur 25 min sans « ta durée habituelle »');
+  assert.ok(!/durée habituelle/.test(fsc.action), 'pas de mention « durée habituelle » sans signal');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {

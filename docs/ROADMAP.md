@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.100 (2026-07-19)
+## 📍 État actuel — build 2.0.101 (2026-07-19)
+
+> 🎯 **2.0.101** — Coaching adaptatif poussé à fond (priorité de la nuit) : la **longueur du bloc
+> focus** suggéré cesse d'être un « 25 min » codé en dur. Nouveau `focusBlockMin` : la **médiane** des
+> durées de session réelles (14 j, robuste, arrondie à 5 min, bornée [10, 60]) taille le conseil sur
+> **la durée habituelle** d'Adrien — « un bloc de 45 min (ta durée habituelle) suffit à relancer ».
+> Injecté dans les trois formulations d'action focus (tâche phare rebuild/reinforce + générique
+> rebuild/revive). **≥ 3 sessions** requises, sinon repli propre sur 25 min. Additif pur (`focusBlockMin`
+> nombre/null), aucun retrait ; crédit du jour (#469), micro-marche (#465) et renfort (#466) gardent la
+> priorité. `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #470.
 
 > ✅ **2.0.100** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » cesse de **radoter un ordre déjà exécuté** — le bug de crédibilité le plus visible. Nouveau

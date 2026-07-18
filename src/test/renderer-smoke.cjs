@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.100'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.101'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -820,6 +820,11 @@ app.whenReady().then(async () => {
           // Focus ENRICHI : le coach nomme la tâche PHARE réelle (focusByTask) dans l'action au lieu d'un « lance une session » aveugle.
           const fFocus = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30, task: 'Compta' }, { date: '2026-07-06', minutes: 30, task: 'Compta' }, { date: '2026-07-07', minutes: 30, task: 'Compta' }, { date: '2026-07-14', minutes: 25, task: 'Compta' }] }, '2026-07-16');
           if (!(fFocus.pillar === 'focus' && fFocus.focusTask === 'Compta' && /Reprends « Compta »/.test(fFocus.action) && /115 min sur 14 j/.test(fFocus.action))) return false;
+          // Longueur de bloc PERSONNALISÉE : la durée du bloc suggéré se cale sur la médiane réelle (30 min ici, cf. fFocus), pas un 25 min générique.
+          if (!(fFocus.focusBlockMin === 30 && /un bloc de 30 min \\(ta durée habituelle\\)/.test(fFocus.action))) return false;
+          // Moins de 3 sessions → pas de médiane fiable → focusBlockMin null, repli sur 25 min.
+          const fScarce = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 40, task: 'Compta' }, { date: '2026-07-14', minutes: 40, task: 'Compta' }] }, '2026-07-16');
+          if (!(fScarce.pillar === 'focus' && fScarce.focusBlockMin === null && /un bloc de 25 min/.test(fScarce.action))) return false;
           // Coach MÉTA-CONSCIENT : conseil « sport » ignoré 2 jours (journalisé, sans séance ces jours-là) → micro-marche.
           const fMicro = adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }] }, '2026-07-16');
           if (!(fMicro.pillar === 'sport' && fMicro.microStep === true && /5 min/.test(fMicro.action) && /abaisse la barre/.test(fMicro.insight))) return false;
