@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.80 (2026-07-18)
+## 📍 État actuel — build 2.0.81 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **445 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**448**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **446 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**449**) :
+
+- 🗓️ **Bloc d'entraînement : décompte des jours robuste au changement d'heure** (2.0.81) :
+  `currentBlock` (`logic.js:3751`) comptait les jours écoulés avec `Math.floor((today − start) /
+  86400000)` sur des minuits **locaux** ; à travers un DST, deux minuits successifs sont distants de
+  23 h (printemps) → 7 jours calendaires devenaient `6,958` rabattu sur 6. Le lundi suivant le passage
+  à l'heure d'été, `phaseSetsForDay` prescrivait **3 séries au lieu de 4** (S1 Base au lieu de S2
+  Volume) et la fin de bloc glissait d'un jour. Tout le reste du fichier utilise déjà `Math.round`
+  pour absorber ce ±1 h. Correctif = `floor` → `round`. Rétro-compatible (hors semaine DST : identique).
+  +1 test DST (`Europe/Paris`, TZ forcé/restauré) → **446 tests** + smoke vert (`currentBlock`,
+  `phaseSetsForDay`). Correctness (§4.1), domaine Musculation. (`docs/recaps/449-currentblock-dst-round.md`).
+  ✅ _boucle #449._
 
 - 😴 **Bilans hebdo/mensuel : moyenne de sommeil dédupliquée par date** (2.0.80) :
   `weeklySummary` (`logic.js:2180`) et `monthlyRecap` (`logic.js:2247`) moyennaient les **saisies

@@ -2739,6 +2739,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.81', emoji: '🗓️', text: 'Bloc d’entraînement (périodisation sur 4 semaines) : ta semaine de bloc et le nombre de séries de la séance guidée restent justes même la semaine d’un changement d’heure. Au passage à l’heure d’été (fin mars), deux minuits successifs ne sont distants que de 23 h : l’app pouvait alors compter 6 jours là où 7 s’étaient écoulés — te maintenant une semaine en arrière (par ex. semaine 1 « Base » au lieu de semaine 2 « Volume », soit 3 séries prescrites au lieu de 4) ou repoussant d’un jour la fin du bloc. Le décompte se fait désormais en jours calendaires pleins, comme partout ailleurs dans l’app. Rien ne change hors semaine de changement d’heure.' },
   { v: '2.0.80', emoji: '😴', text: 'Bilans de sommeil (bilan hebdo partageable et récap mensuel) : ta durée de sommeil moyenne compte désormais UNE valeur par nuit, même si une nuit a été saisie deux fois (import, restauration de sauvegarde, ou double check-in le même jour). Avant, une nuit relevée en double pesait double dans la moyenne — ce qui faussait ta moyenne affichée et pouvait déclencher à tort (ou masquer) l’alerte « sommeil bas ». Tes autres statistiques de sommeil (bilan récup, dette, courbe) dédupliquaient déjà par date : les bilans hebdo/mensuel s’alignent enfin.' },
   { v: '2.0.79', emoji: '⚖️', text: 'Coach Poids — plan calorique cohérent avec le conseil affiché juste à côté. Quand ton poids cible est à moins de 0,5 kg de ton poids actuel (soit l’ordre de grandeur de ta fluctuation quotidienne eau/sel), le plan indique désormais « Maintenir ton poids » — comme le fait déjà le bloc conseil « recomposition » sur le même écran. Avant, dès 0,3 kg d’écart, le plan basculait en « Perdre X kg » et te prescrivait un vrai déficit calorique (~500 kcal/j) là où le conseil, lui, disait « ton poids bougera à peine » : deux verdicts opposés au même endroit. Les deux s’accordent enfin.' },
   { v: '2.0.78', emoji: '💼', text: 'Alternance — statut « refusé après entretien » : un refus (ou un accord) reçu à l’issue d’un entretien est enfin classé comme état FINAL. Avant, dès que le mot « entretien » apparaissait dans un statut importé ou synchronisé (« Refusé après entretien », « Non retenu à l’entretien »…), la candidature restait bloquée en colonne « Entretien » du funnel au lieu de passer en « Refusé » — ce qui gonflait à tort ton nombre d’entretiens en cours et faussait tes stats. Un vrai entretien À VENIR (« Entretien prévu mardi ») reste bien en « Entretien ».' },
@@ -3754,7 +3755,10 @@ function currentBlock(blockStartKey, todayKey) {
   if (!s || !t) return null;
   const start = new Date(+s[1], +s[2] - 1, +s[3]); start.setHours(0, 0, 0, 0);
   const today = new Date(+t[1], +t[2] - 1, +t[3]); today.setHours(0, 0, 0, 0);
-  const days = Math.floor((today - start) / 86400000);
+  // Math.round (pas floor) : deux minuits locaux qui encadrent un changement d'heure (DST) sont
+  // distants de 23 h ou 25 h, pas 24 — floor rabattrait 7 jours calendaires sur 6 au printemps.
+  // Aligné sur la convention du fichier (daysUntil, acuteChronicRatio, membershipInfo…).
+  const days = Math.round((today - start) / 86400000);
   if (days < 0) return null;
   const weekIndex = Math.floor(days / 7);
   const done = weekIndex >= 4;

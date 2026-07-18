@@ -3358,6 +3358,23 @@ test('currentBlock : suivi de la semaine dans le bloc de 4 semaines', () => {
   assert.equal(L.currentBlock(start, '2026-07-01'), null, 'avant le début → null');
   assert.equal(L.currentBlock('', '2026-07-10'), null);
 });
+test('currentBlock : 7 jours calendaires = 7 jours même à travers un changement d’heure (DST)', () => {
+  // Bloc démarré un lundi, +7 jours calendaires plus tard = début de S2, quel que soit le fuseau.
+  // Au printemps, les deux minuits locaux sont distants de 23 h (86400000-3600000) : un Math.floor
+  // rabattrait 6,96 j sur 6 → S1 au lieu de S2 (et 3 séries au lieu de 4 en séance guidée).
+  const orig = process.env.TZ;
+  try {
+    process.env.TZ = 'Europe/Paris'; // printemps 2026 = 29 mars
+    const spring = L.currentBlock('2026-03-23', '2026-03-30');
+    assert.equal(spring.week, 2, '7 j à travers le DST → semaine 2');
+    assert.equal(spring.daysIntoWeek, 0, '7 j calendaires = pile 1 semaine');
+    assert.equal(L.phaseSetsForDay(3, '2026-03-23', '2026-03-30'), 4, 'S2 Volume = +1 malgré le DST');
+    // Fin de bloc : 28 j calendaires = bloc terminé, même à travers le DST.
+    assert.equal(L.currentBlock('2026-03-23', '2026-04-20').done, true, '28 j → bloc terminé');
+  } finally {
+    if (orig === undefined) delete process.env.TZ; else process.env.TZ = orig;
+  }
+});
 test('phaseSetsForDay : séries d’une séance ajustées à la phase du bloc', () => {
   const start = '2026-07-06';
   assert.equal(L.phaseSetsForDay(3, start, '2026-07-06'), 3, 'S1 Base = base');
@@ -5340,7 +5357,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.80');
+  assert.equal(L.CHANGELOG[0].v, '2.0.81');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
