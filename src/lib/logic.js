@@ -303,7 +303,10 @@ function jobStatusFromText(t) {
   // corromprait le funnel et `applicationStats` (accepted, responseRate). La négation peut être suivie
   // de quelques mots (« pas été retenu ») : on tolère un court intervalle avant « retenu ».
   if (/\b(non|pas)\b[\s\S]{0,12}retenu/.test(x)) return 'refus';
-  if (/accept|retenu|pris|embauch/.test(x)) return 'accepte';
+  // `pris` avec frontière de mot (\bpris) : « pris/prise/pris(es) » = accepté, MAIS pas le sous-motif
+  // « pris » d'« entre-pris-e » — sinon « Entretien EN ENTREPRISE » (tournure FR ultra-courante pour
+  // un entretien sur site) bascule en « accepté », faux positif corrompant le funnel + applicationStats.
+  if (/accept|retenu|\bpris|embauch/.test(x)) return 'accepte';
   if (/refus|negati|decline|abandonn|ecart|sans suite/.test(x)) return 'refus';
   // `entretien` APRÈS les états terminaux (refus/accepté) : un « refusé après entretien » ou un
   // « retenu à l'issue de l'entretien » est un état FINAL, pas un entretien en cours. Placé avant, le
@@ -2743,6 +2746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.87', emoji: '🩹', text: 'Correctif Alternance : « Entretien en entreprise » (et « entretien avec l’entreprise ») n’est plus classé par erreur en « Accepté ». Un mot glissé dans une version récente reconnaissait « pris » à l’intérieur d’« entre-pris-e » et prenait un entretien à venir pour une offre décrochée — ce qui gonflait à tort ton taux de réponse et pouvait « verrouiller » la candidature en accepté. Les vrais « pris/prise/retenu/accepté » restent bien reconnus.' },
   { v: '2.0.86', emoji: '🏃', text: 'Programme auto (onglet Athlète, « Mon programme selon mon objectif ») : le résumé accorde enfin « course » au pluriel quand ton objectif comporte plusieurs courses par semaine — « 4 courses/sem. » au lieu de « 4 course/sem. » (Perte de gras, Endurance, Corps athlétique…). Même correction dans le détail « (X muscu, Y courses) » et dans le programme copié/partagé. Un objectif à une seule course par semaine (Prise de muscle) reste au singulier. Petit détail d’accord — rien ne change au contenu de ton programme.' },
   { v: '2.0.85', emoji: '💼', text: 'Import Alternance (cibles depuis Google Sheets / CSV) : deux colonnes sont mieux reconnues. Un département d’outre-mer entre parenthèses — « (972) », « (974) »… — est désormais compris comme les départements métropolitains « (35) », donc filtrable et ciblable ; auparavant seuls deux chiffres étaient reconnus et les DOM étaient silencieusement ignorés. Et la colonne de score n’est plus confondue quand son en-tête est « Score /100 » (ou contient une autre année/nombre) : seule une note « /10 » est prise pour la colonne /10, ce qui évitait un import qui repartait vide sans explication. Rien ne change pour un tableau « Score /10 » classique avec des villes métropolitaines.' },
   { v: '2.0.84', emoji: '📸', text: 'Progression photo (onglet Croissance, encart « Avant / Après ») : quand tes deux photos comparées ne sont espacées que d’un jour, l’app écrit désormais « 1 jour d’écart » (au singulier) au lieu de « 1 jours d’écart ». Petit détail d’accord, dans la lignée des autres libellés récemment corrigés. Rien ne change au-delà de deux jours d’écart.' },

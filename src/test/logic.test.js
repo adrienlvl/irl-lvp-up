@@ -757,6 +757,13 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText('Non retenu à l’entretien'), 'refus', 'non retenu à l’entretien = refus');
   assert.equal(L.jobStatusFromText('Retenu après entretien'), 'accepte', 'retenu après entretien = accepté');
   assert.equal(L.jobStatusFromText('Entretien prévu mardi'), 'entretien', 'entretien à venir reste entretien');
+  // Piège du sous-motif : « entre-PRIS-e » ne doit PAS faire basculer en « accepté » (régression #446).
+  assert.equal(L.jobStatusFromText('Entretien en entreprise'), 'entretien', 'entretien EN ENTREPRISE reste entretien');
+  assert.equal(L.jobStatusFromText('Entretien avec l’entreprise mardi'), 'entretien');
+  assert.equal(L.jobStatusFromText('1er entretien avec l’entreprise'), 'entretien');
+  // …mais les vrais « pris/prise » restent bien « accepté ».
+  assert.equal(L.jobStatusFromText('Candidature prise'), 'accepte');
+  assert.equal(L.jobStatusFromText('Je suis pris'), 'accepte');
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
@@ -5414,7 +5421,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.86');
+  assert.equal(L.CHANGELOG[0].v, '2.0.87');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
