@@ -4633,6 +4633,12 @@ test('energyPlan : calories, macros, rythme et date d’atteinte (perte)', () =>
   assert.equal(gain.goal, 'prise'); assert.equal(gain.ratePerWeek, 0.25); assert.ok(gain.dailyTarget > gain.tdee);
   // maintien
   assert.equal(L.energyPlan({ weight: 75, height: 175, age: 25, sex: 'homme', sessionsPerWeek: 3, targetWeight: 75, todayKey: '2026-07-12' }).goal, 'maintien');
+  // seuil « maintien » aligné sur weightTargetAdvice (0,5) : un écart de 0,35 kg (fluctuation eau/sel)
+  // est un maintien, pas une « perte » avec déficit — les deux fonctions alimentent le même écran.
+  const micro = L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', sessionsPerWeek: 4, targetWeight: 79.65, todayKey: '2026-07-12' });
+  assert.equal(micro.goal, 'maintien', 'écart 0,35 kg < 0,5 → maintien (aligné sur weightTargetAdvice)');
+  assert.equal(micro.deficit, 0, 'maintien = pas de déficit'); assert.equal(micro.weeks, 0);
+  assert.equal(L.weightTargetAdvice({ weight: 80, height: 180, targetWeight: 79.65 }).direction, 'maintien', 'même verdict que la sœur');
   assert.equal(L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', targetWeight: 0 }), null, 'sans cible → null');
   // niveau d'activité manuel prioritaire sur le proxy séances
   const act = L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', activityLevel: 'actif', sessionsPerWeek: 2, targetWeight: 72, todayKey: '2026-07-12' });
@@ -5315,7 +5321,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.78');
+  assert.equal(L.CHANGELOG[0].v, '2.0.79');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

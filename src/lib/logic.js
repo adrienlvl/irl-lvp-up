@@ -2731,6 +2731,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.79', emoji: '⚖️', text: 'Coach Poids — plan calorique cohérent avec le conseil affiché juste à côté. Quand ton poids cible est à moins de 0,5 kg de ton poids actuel (soit l’ordre de grandeur de ta fluctuation quotidienne eau/sel), le plan indique désormais « Maintenir ton poids » — comme le fait déjà le bloc conseil « recomposition » sur le même écran. Avant, dès 0,3 kg d’écart, le plan basculait en « Perdre X kg » et te prescrivait un vrai déficit calorique (~500 kcal/j) là où le conseil, lui, disait « ton poids bougera à peine » : deux verdicts opposés au même endroit. Les deux s’accordent enfin.' },
   { v: '2.0.78', emoji: '💼', text: 'Alternance — statut « refusé après entretien » : un refus (ou un accord) reçu à l’issue d’un entretien est enfin classé comme état FINAL. Avant, dès que le mot « entretien » apparaissait dans un statut importé ou synchronisé (« Refusé après entretien », « Non retenu à l’entretien »…), la candidature restait bloquée en colonne « Entretien » du funnel au lieu de passer en « Refusé » — ce qui gonflait à tort ton nombre d’entretiens en cours et faussait tes stats. Un vrai entretien À VENIR (« Entretien prévu mardi ») reste bien en « Entretien ».' },
   { v: '2.0.77', emoji: '💪', text: 'Tonnage soulevé (kg total d’une séance, et tout ce qui en découle : « poids soulevé à vie », record séance, record hebdo, graphe « Tonnage muscu · 8 semaines ») : les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée) pèsent enfin leur vrai tonnage (charge × reps × séries). Avant, une telle séance restaurée ou importée comptait pour 0 kg partout — alors que ta fiche exercice et ton historique, eux, en affichaient déjà le tonnage : deux chiffres pouvaient se contredire. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
   { v: '2.0.76', emoji: '🏆', text: 'Palmarès de force (musculation) : ton « Palmarès de force » (meilleures séries et 1RM estimé par exercice) prend désormais aussi en compte les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import contenait ce format, la meilleure série de ces séances était absente du palmarès — alors que tes records perso, eux, la comptaient déjà : deux compteurs pouvaient se contredire côte à côte. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
@@ -4593,7 +4594,13 @@ function energyPlan(opts) {
   if (bmr == null || !(target > 0)) return null;
   const tdee = Math.round(bmr * (activityLevelFactor(o.activityLevel) || activityFactor(o.sessionsPerWeek)));
   const diff = Math.round((weight - target) * 10) / 10; // + = perdre, - = prendre
-  const goal = Math.abs(diff) < 0.3 ? 'maintien' : diff > 0 ? 'perte' : 'prise';
+  // Seuil « maintien » ALIGNÉ sur `weightTargetAdvice` (l. 5146, seuil 0,5) : les deux fonctions
+  // dérivent le MÊME verdict perte/prise/maintien depuis (poids − cible) et alimentent le MÊME écran
+  // Coach Poids, avec une logique de rythme identique. L'ancien seuil 0,3 divergeait : un écart de
+  // 0,35 kg (dans la fluctuation quotidienne eau/sel, ~0,5 % du poids) donnait ici « perte » + un
+  // déficit de ~500 kcal/j alors que le conseil affiché juste à côté disait « maintien/recomposition »
+  // — deux verdicts opposés sur le même écran. Sous 0,5 kg = maintien (le poids bouge à peine).
+  const goal = Math.abs(diff) < 0.5 ? 'maintien' : diff > 0 ? 'perte' : 'prise';
   let ratePerWeek = 0, deficit = 0, dailyTarget = tdee;
   if (goal === 'perte') {
     const desired = Math.min(0.9, Math.max(0.25, Math.round(weight * 0.006 * 100) / 100));

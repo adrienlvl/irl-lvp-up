@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.78 (2026-07-18)
+## 📍 État actuel — build 2.0.79 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **444 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**444**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **444 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**447**) :
+
+- ⚖️ **Coach Poids : seuil « maintien » d'`energyPlan` aligné sur `weightTargetAdvice`** (2.0.79) :
+  les deux fonctions dérivent le même verdict perte/prise/maintien depuis `poids − cible` et
+  alimentent le **même écran** Coach Poids, mais `energyPlan` (`logic.js:4596`) basculait en « perte »
+  dès 0,3 kg d'écart (déficit ~500 kcal/j) là où `weightTargetAdvice` (l. 5146, seuil 0,5) disait
+  « maintien/recomposition » — deux verdicts opposés au même endroit pour un écart (0,35 kg) dans la
+  fluctuation quotidienne eau/sel. Correctif = seuil aligné à 0,5. Rétro-compatible (seule la zone
+  `[0,3 ; 0,5[` bascule vers maintien). +4 tests → **444 tests** + smoke vert (`targetAdvice`).
+  Correctness (§4.1/§4.4), domaine Nutrition. (`docs/recaps/447-energyplan-maintien-seuil.md`).
+  ✅ _boucle #447._
 
 - 💼 **Alternance : « refusé/accepté après entretien » = état terminal** (2.0.78) :
   `jobStatusFromText` (`logic.js:296`, partagé par tous les imports manuels + sync Google Sheets)
