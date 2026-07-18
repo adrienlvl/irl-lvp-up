@@ -25,7 +25,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.81 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **446 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**449**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **446 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**450**) :
+
+- 🎨 **Cycle de thème : commentaire recalé sur le 4ᵉ mode « selon l'heure »** (docs, sans build) :
+  `nextThemeMode` (`logic.js:13`) cycle sur `['auto','light','dark','time']` (4 modes) mais son
+  commentaire (l. 12) annonçait « auto → clair → sombre → auto » (3 modes), omettant `'time'` — pourtant
+  de plein droit (`resolveTheme`, icône 🕐/tooltip, bouton `#themeToggle`, test l. 55-58). Commentaire
+  seul corrigé, aucune ligne de code ni de test touchée → **pas de bump** (§6). 446 tests + smoke vert.
+  Docs (§4.6), domaine Thème/UI. (`docs/recaps/450-nextthememode-comment-time.md`). ✅ _boucle #450._
 
 - 🗓️ **Bloc d'entraînement : décompte des jours robuste au changement d'heure** (2.0.81) :
   `currentBlock` (`logic.js:3751`) comptait les jours écoulés avec `Math.floor((today − start) /

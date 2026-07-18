@@ -9,7 +9,7 @@
 
 // Date locale au format YYYY-MM-DD (indépendante du fuseau, ancrée sur l'heure locale).
 function localDate() { const d = new Date(), offset = d.getTimezoneOffset(); return new Date(d - offset * 6e4).toISOString().slice(0, 10); }
-// Cycle des modes de thème : auto → clair → sombre → auto. Pur + testé.
+// Cycle des modes de thème : auto → clair → sombre → selon l'heure → auto. Pur + testé.
 function nextThemeMode(current) { const order = ['auto', 'light', 'dark', 'time']; const i = order.indexOf(current); return order[(i + 1) % order.length]; }
 // Thème effectif ('light'|'dark') selon le mode choisi, la préférence système et l'heure (mode 'time').
 // 'time' → clair de 7h à 18h59, sombre sinon (repli système si heure absente). Pur + testé.
