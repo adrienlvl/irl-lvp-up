@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.96'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.97'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -823,6 +823,9 @@ app.whenReady().then(async () => {
           if (typeof coachFollowThrough !== 'function' || !document.getElementById('coachFollow')) return false;
           const ft = coachFollowThrough({ coachLog: [{ date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sport' }], workouts: [{ date: '2026-07-15' }] }, '2026-07-16');
           if (!(ft && ft.total === 2 && ft.followed === 1 && ft.rate === 50)) return false;
+          // Coach MÉTA-CONSCIENT positif : suivi élevé (≥ 3 jours journalisés, ≥ 70 %) → le coach crédite Adrien (reinforce).
+          const fBoost = adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-11' }, { date: '2026-07-12' }, { date: '2026-07-14' }, { date: '2026-07-16' }], coachLog: [{ date: '2026-07-11', pillar: 'sport' }, { date: '2026-07-12', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }] }, '2026-07-16');
+          if (!(fBoost.tone === 'reinforce' && fBoost.followThrough === 100 && /toi qui le construis/.test(fBoost.insight))) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
           const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };

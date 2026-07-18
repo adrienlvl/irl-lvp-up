@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.97', emoji: '🙌', text: 'Ton coach « Le focus du moment » sait aussi te féliciter au bon moment : quand tu es en forme sur un pilier ET que tu as bien suivi ses conseils ces derniers jours, il ne dit plus juste « garde le rythme ». Il te crédite pour de vrai — « tu as tenu 5/6 de mes caps cette semaine, cet élan c’est toi qui le construis ». Le pendant positif du coach qui abaisse la barre quand tu décroches : ici il te renvoie le mérite quand tu assures.' },
   { v: '2.0.96', emoji: '🧗', text: 'Ton coach « Le focus du moment » remarque maintenant quand tu le laisses parler dans le vide : s’il t’a déjà poussé deux fois sur le même point (ton sport, ton focus, ton sommeil, ta nutrition) sans que rien ne bouge, il arrête de répéter plus fort. Il abaisse la barre et te propose une micro-marche imbattable — « juste 5 min de mouvement », « un seul bloc de 10 min » — en le disant franchement : on abaisse la barre, pas toi. Rouvrir la porte suffit.' },
   { v: '2.0.95', emoji: '🥗', text: 'Ton coach « Le focus du moment » sait enfin parler nutrition pour de vrai : quand c’est ta nutrition qui décroche, il ne se contente plus de « renseigne tes protéines ». Il calcule ta cible du jour (selon ton poids et ton objectif), regarde ce que tu as déjà mangé, et te propose une collation CONCRÈTE pour combler l’écart — « il te reste 40 g de protéines : un shaker de whey fait le job ». Et si tu tiens une série à ta cible, il te le rappelle pour ne pas la casser.' },
   { v: '2.0.94', emoji: '♿', text: 'Accessibilité : les champs de saisie du tableau de bord (nouvelle tâche, nouvelle habitude, tes 3 priorités de vie, tâche du bloc de concentration) portent désormais un vrai nom lu par les lecteurs d’écran, au lieu de ne compter que sur le texte d’exemple qui disparaît dès qu’on écrit. Rien ne change à l’écran — c’est du confort pour qui navigue en audio ou au clavier.' },
@@ -5100,11 +5101,27 @@ function adaptiveCoachFocus(state, todayKey) {
       }
     }
   }
+  // Coach MÉTA-CONSCIENT positif — le PENDANT du micro-pas (#465). Quand le coach RENFORCE un bon
+  // élan (tone 'reinforce', hors rotation) ET que le suivi RÉCENT de ses conseils est élevé
+  // (coachFollowThrough ≥ 70 % sur ≥ 3 jours journalisés), il le RECONNAÎT explicitement : le mérite
+  // revient à Adrien, pas au coach. Un « garde le rythme » générique ignore l'effort réel ; nommer le
+  // suivi (« tu as tenu 5/6 de mes caps ») rend l'agentivité et la fierté. coachFollowThrough
+  // n'alimentait qu'une ligne d'affichage séparée (#coachFollow) — on le branche enfin dans le MESSAGE
+  // du coach. Réservé au renforcement franc (pas de rotation, où l'on vient de fuir un pilier ignoré).
+  let followThrough = null;
+  if (!rotated && tone === 'reinforce' && typeof coachFollowThrough === 'function') {
+    const ft = coachFollowThrough(s, todayKey, 7);
+    if (ft && ft.total >= 3 && ft.rate >= 70) {
+      followThrough = ft.rate;
+      insight += ` Tu as tenu ${ft.followed}/${ft.total} de mes caps cette semaine — cet élan, c’est toi qui le construis.`;
+      action = 'Un jour actif de plus aujourd’hui : tu prouves que la régularité te ressemble.';
+    }
+  }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough,
   };
 }
 

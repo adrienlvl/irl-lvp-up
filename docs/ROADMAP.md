@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.96 (2026-07-19)
+## 📍 État actuel — build 2.0.97 (2026-07-19)
+
+> 🙌 **2.0.97** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » devient méta-conscient dans le sens **positif** — le pendant du micro-pas #465. Quand il
+> **renforce** un bon élan (tone `reinforce`, hors rotation) ET que le suivi récent de ses conseils
+> est élevé (`coachFollowThrough` ≥ 70 % sur ≥ 3 jours journalisés), il **crédite explicitement**
+> Adrien : « tu as tenu 5/6 de mes caps cette semaine — cet élan, c'est toi qui le construis ».
+> `coachFollowThrough` n'alimentait qu'une ligne d'affichage séparée — il est enfin branché dans le
+> MESSAGE. `adaptiveCoachFocus` pur + testé (champ `followThrough`), check smoke bloquant `coachFocus`
+> étendu. Recap #466.
 
 > 🧗 **2.0.96** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » devient **méta-conscient du suivi**. S'il a déjà poussé le même pilier ≥ 2 fois récemment

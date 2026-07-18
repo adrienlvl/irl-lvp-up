@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.96');
+  assert.equal(L.CHANGELOG[0].v, '2.0.97');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7298,6 +7298,38 @@ test('adaptiveCoachFocus : coach méta-conscient — abaisse la barre quand son 
   // L'alternance (priorité absolue) ne passe jamais par la micro-marche.
   const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-10' }], coachLog: [{ date: '2026-07-14', pillar: 'alternance' }, { date: '2026-07-15', pillar: 'alternance' }] }, today);
   assert.equal(alt.pillar, 'alternance'); assert.equal(alt.microStep, undefined, 'le focus alternance n’a pas de champ microStep');
+});
+
+test('adaptiveCoachFocus : coach méta-conscient positif — crédite un suivi élevé (reinforce)', () => {
+  const today = '2026-07-16';
+  // Sport en hausse franche (4 j récents vs 1 avant) → tone reinforce, aucun pilier à corriger.
+  const rising = [{ date: '2026-07-05' }, { date: '2026-07-11' }, { date: '2026-07-12' }, { date: '2026-07-14' }, { date: '2026-07-16' }];
+  const plain = L.adaptiveCoachFocus({ workouts: rising }, today);
+  assert.equal(plain.pillar, 'sport'); assert.equal(plain.tone, 'reinforce');
+  assert.equal(plain.followThrough, null, 'sans journal : pas de crédit de suivi');
+  assert.doesNotMatch(plain.insight, /tu qui le construis/);
+  // Le coach a poussé « sport » les 11, 12 et 14 et Adrien a suivi (séance ces jours-là) → suivi 100 %.
+  const boost = L.adaptiveCoachFocus({
+    workouts: rising,
+    coachLog: [{ date: '2026-07-11', pillar: 'sport' }, { date: '2026-07-12', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }],
+  }, today);
+  assert.equal(boost.pillar, 'sport'); assert.equal(boost.tone, 'reinforce');
+  assert.equal(boost.followThrough, 100, 'suivi élevé sur ≥ 3 jours → crédité');
+  assert.match(boost.insight, /3\/3 de mes caps/, 'l’insight nomme le suivi réel');
+  assert.match(boost.insight, /c’est toi qui le construis/, 'le mérite revient à Adrien');
+  assert.match(boost.action, /r[ée]gularit[ée] te ressemble/, 'l’action renforce l’agentivité');
+  // Seuil : 2 jours journalisés seulement → pas assez de signal, pas de crédit.
+  const few = L.adaptiveCoachFocus({
+    workouts: rising,
+    coachLog: [{ date: '2026-07-12', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }],
+  }, today);
+  assert.equal(few.followThrough, null, 'moins de 3 jours journalisés → pas de crédit');
+  // Suivi FAIBLE (conseils poussés mais non suivis) → pas de crédit malgré 3 jours.
+  const low = L.adaptiveCoachFocus({
+    workouts: rising,
+    coachLog: [{ date: '2026-07-08', pillar: 'sport' }, { date: '2026-07-09', pillar: 'sport' }, { date: '2026-07-10', pillar: 'sport' }],
+  }, today);
+  assert.equal(low.followThrough, null, 'suivi < 70 % → pas de crédit (pas de flatterie)');
 });
 
 test('coachFollowThrough : mesure si les conseils du coach sont suivis', () => {
