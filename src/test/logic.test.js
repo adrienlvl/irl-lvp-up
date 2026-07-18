@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.112');
+  assert.equal(L.CHANGELOG[0].v, '2.0.113');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7136,6 +7136,22 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(up.trend, 'up');
   assert.equal(up.recentDays, 3);
   assert.match(up.headline, /monte en régime/);
+  assert.equal(up.comeback, false, 'hausse continue (pas de long trou avant) → pas de relance amorcée');
+
+  // RELANCE AMORCÉE : reprise fraîche (07-16 = jour 0, 07-14 = jour 2) après un long silence (dernier
+  // geste avant le trou = 15 juin, jour 31) → ton reinforce + comeback salué, avec le trou chiffré.
+  const back = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-06-15' }, { date: '2026-07-14' }, { date: '2026-07-16' },
+  ] }, today);
+  assert.equal(back.pillar, 'sport');
+  assert.equal(back.tone, 'reinforce');
+  assert.equal(back.comeback, true, 'reprise fraîche après ≥ 14 j de trou → relance amorcée');
+  assert.match(back.insight, /Tu as rallumé ton entraînement il y a 2 j après 29 jours d’arrêt/);
+  assert.match(back.insight, /le plus dur \(franchir la reprise\) est fait/);
+  // Un pilier flambant NEUF (aucune activité avant le trou) n'est pas une « relance ».
+  const fresh = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: '2026-07-16' }] }, today);
+  assert.equal(fresh.tone, 'reinforce');
+  assert.equal(fresh.comeback, false, 'pilier sans passé avant la fenêtre récente → pas de relance');
 
   // priorité : un pilier qui décroche l'emporte sur un autre en hausse.
   const mixed = L.adaptiveCoachFocus({

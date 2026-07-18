@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.112 (2026-07-19)
+## 📍 État actuel — build 2.0.113 (2026-07-19)
+
+> 🔥 **2.0.113** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » sait désormais **saluer une relance amorcée** — le pendant POSITIF du ré-amorçage (#481). Il
+> savait proposer le tout premier pas d'un pilier **dormant** (`reviveStep`) ; il ne savait pas encore
+> **reconnaître** qu'Adrien l'avait honoré. Or dès qu'il reprend, le pilier n'est plus dormant
+> (`recentDays ≥ 1`, ton bascule en `reinforce`) et le coach servait le « monte en régime » **générique**.
+> Franchir le mur d'activation après une longue coupure est pourtant l'instant le plus **fragile ET le plus
+> méritant** d'une reprise. Le coach le nomme désormais : « **Tu as rallumé ton entraînement il y a 2 j
+> après 29 jours d'arrêt — le plus dur (franchir la reprise) est fait, ne laisse pas la flamme retomber.** »
+> Détection depuis le vrai historique du pilier : `relaunchDay` = plus ancienne activité de la fenêtre 7 j
+> (= début de la reprise), `prevOld` = dernière activité avant le trou, `gap` = leur écart (durée du silence
+> rompu) ; on fête quand la reprise est **fraîche** (dernier geste ≤ 3 j) et le trou **≥ 14 j**. Réservé au
+> ton **positif** (`reinforce`, hors rotation — une reprise se fête, pas un décrochage) et à un pilier
+> réellement **ANCIEN** (activité avant la fenêtre récente ; un pilier neuf n'est pas une « relance »).
+> Disjoint du micro-pas/ré-amorçage par le ton. Additif pur : champ `comeback` (booléen) toujours renvoyé,
+> enrichit l'insight, action intacte. `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus`
+> étendu. Recap #482.
 
 > 🌱 **2.0.112** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » adapte désormais son geste à la **DURÉE d'une coupure**. Il distinguait déjà un pilier

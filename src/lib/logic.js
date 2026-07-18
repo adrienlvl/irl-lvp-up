@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.113', emoji: '🔥', text: 'Ton coach « Le focus du moment » sait maintenant SALUER une relance amorcée. Il savait proposer le tout premier pas d’un pilier resté dormant ; désormais, quand tu l’honores — un geste frais qui rompt un silence d’au moins deux semaines —, il reconnaît la victoire : « Tu as rallumé ton entraînement il y a 2 j après 29 jours d’arrêt — le plus dur (franchir la reprise) est fait, ne laisse pas la flamme retomber. » Franchir le mur d’activation après une longue coupure est l’instant le plus fragile ET le plus méritant d’une reprise : le nommer ancre la victoire et protège l’élan naissant.' },
   { v: '2.0.112', emoji: '🌱', text: 'Ton coach « Le focus du moment » adapte désormais son geste à la DURÉE d’une coupure. Quand un pilier est resté dormant deux semaines ou plus, il ne te sort plus le « programme une séance courte » habituel — intimidant après une longue pause : il propose un tout premier pas MINUSCULE, proportionné, en nommant la coupure pour que l’effort demandé paraisse juste. « Après 26 jours sans focus, un seul bloc de 10 min sur une tâche facile — juste pour recréer le réflexe. » Au-delà de 3 semaines, il déculpabilise franchement : « On ne rouvre pas le chantier aujourd’hui, on rallume la lampe. » Après une longue coupure, rallumer la mèche compte plus que l’intensité. Il coupe alors la suggestion de créneau (« cale ta séance à 14:30 » contredirait « juste 5 min ») et laisse le micro-pas primer quand c’est plutôt un conseil ignoré.' },
   { v: '2.0.111', emoji: '🛏️', text: 'Ton coach « Le focus du moment » ne se contente plus d’ALERTER quand un rendez-vous du soir menace ta cible de coucher : il te donne le geste concret. Si le rendez-vous finit APRÈS ta cible — l’heure visée devient intenable ce soir —, il propose l’heure de coucher réaliste à viser à la place, calée sur sa fin : « « Dîner famille » (à partir de 21:30) finit vers 22:50, après ta cible de 22:30 — couche-toi dès sa fin plutôt que de repousser encore, tu protèges ta fenêtre du soir. » Viser un coucher tenable limite la casse mieux qu’un « couche-toi à 22:30 » impossible à honorer. Si le rendez-vous finit juste avant ta cible, elle tient encore : file au lit dès la fin, sans écran.' },
   { v: '2.0.110', emoji: '🏅', text: 'Ton coach « Le focus du moment » fête désormais tes PALIERS de journées complètes, comme il fête déjà tes séries quotidiennes. Quand ta série de journées à 3+ piliers franchit pile un jalon — 3, 7 (une semaine pleine !), 14, 30 jours —, il le débloque : « 7 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 🏅 Palier franchi : une semaine complète de journées pleines ! » Et quand le prochain palier est à un seul jour, il te donne le cap à tenir demain : « Encore 1 jour pour franchir le palier des 7. 🎯 » La fierté d’hier devient l’objectif de demain.' },
@@ -5471,11 +5472,46 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       insight += ' 2/4 de tes piliers déjà cochés aujourd’hui — bonne lancée.';
     }
   }
+  // Coach de la RELANCE AMORCÉE — le pendant POSITIF du ré-amorçage (#481). Le coach sait proposer le
+  // tout premier pas d'un pilier DORMANT ; il ne savait pas encore SALUER Adrien quand il l'a HONORÉ.
+  // Or franchir le mur d'activation après une longue coupure est l'instant le plus fragile ET le plus
+  // méritant d'une reprise : le nommer ancre la victoire et protège l'élan naissant. Quand le pilier
+  // poussé est en bonne dynamique (tone 'reinforce', hors rotation) et que son activité récente marque
+  // la FIN d'un long silence — la reprise (plus ancien geste de la fenêtre 7 j) suit un trou ≥ 14 j sans
+  // activité, et le tout dernier geste est FRAIS (≤ 3 j) —, le coach le reconnaît explicitement. On lit
+  // le vrai historique du pilier (mêmes prédicats d'activité) pour mesurer le trou : relaunchDay = plus
+  // ancienne activité de la fenêtre récente (= début de la reprise) ; prevOld = activité juste avant le
+  // trou ; gap = leur écart = la durée du silence rompu. Réservé au ton positif (une reprise se fête,
+  // pas un décrochage) et à un pilier réellement ANCIEN (older non vide) — un pilier flambant neuf n'est
+  // pas une « relance ». Disjoint du ré-amorçage/micro-pas (tons de correction) par le ton. Additif pur :
+  // champ comeback (booléen) TOUJOURS renvoyé ; note ajoutée à l'insight, action (déjà enrichie) intacte.
+  let comeback = false;
+  if (tone === 'reinforce' && !rotated) {
+    const ns = [];
+    for (const e of (Array.isArray(chosen.list) ? chosen.list : [])) {
+      if (!e || !chosen.active(e)) continue;
+      const n = daysAgo(e.date);
+      if (n !== null) ns.push(n);
+    }
+    ns.sort((a, b) => a - b);
+    const recent = ns.filter(n => n <= 6);
+    const older = ns.filter(n => n > 6);
+    if (recent.length && older.length && ns[0] <= 3) {
+      const relaunchDay = recent[recent.length - 1]; // plus ancienne activité récente = début de la reprise
+      const prevOld = older[0];                       // dernière activité avant le trou
+      const gap = prevOld - relaunchDay;
+      if (gap >= 14) {
+        comeback = true;
+        const when = relaunchDay === 0 ? 'aujourd’hui' : relaunchDay === 1 ? 'hier' : `il y a ${relaunchDay} j`;
+        insight += ` Tu as rallumé ${POSSESSIF[chosen.pillar] || 'ce pilier'} ${when} après ${gap} jours d’arrêt — le plus dur (franchir la reprise) est fait, ne laisse pas la flamme retomber.`;
+      }
+    }
+  }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
   };
 }
 
