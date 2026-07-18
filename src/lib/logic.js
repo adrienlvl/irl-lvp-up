@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.103', emoji: '🏋️', text: 'Ton coach « Le focus du moment » te propose désormais un vrai créneau pour ta SÉANCE aussi, pas seulement pour ton focus : quand il te pousse sur l’entraînement et que ta journée a déjà un planning horaire, il regarde ton agenda, cale la durée sur ta séance type (médiane de tes 14 derniers jours) et te dit où l’insérer. « Ton entraînement s’essouffle… Créneau libre à 17:30 aujourd’hui — cale ta séance là. » Il contourne tes rendez-vous, et se tait les jours de récup (readiness basse) ou quand ta séance est déjà faite. Le « quand » gagne aussi le sport.' },
   { v: '2.0.102', emoji: '🗓️', text: 'Ton coach « Le focus du moment » ne te dit plus seulement QUOI faire, mais QUAND : quand il te pousse sur ta concentration, il regarde ton agenda du jour et te propose un vrai créneau libre pour caler ton bloc. « Reprends « Compta »… — un bloc de 45 min suffit à relancer. Créneau libre à 14:30 aujourd’hui — cale ton bloc là. » Il contourne tes rendez-vous et ne suggère un horaire que si ta journée a déjà un planning — sinon il te laisse juger. Une bonne intention devient un plan exécutable inséré dans ta vraie journée.' },
   { v: '2.0.101', emoji: '🎯', text: 'Ton coach « Le focus du moment » arrête de te proposer « un bloc de 25 min » au hasard : quand il te pousse sur ta concentration, il cale la durée du bloc sur TA durée habituelle réelle — la médiane de tes sessions de focus des 14 derniers jours. « Reprends « Compta », ton chantier de focus phare — un bloc de 45 min (ta durée habituelle) suffit à relancer. » Un bloc taillé pour toi est plus crédible et plus facile à lancer qu’un chiffre générique. Sans historique suffisant, il garde le repère de 25 min.' },
   { v: '2.0.100', emoji: '✅', text: 'Ton coach « Le focus du moment » ne te répète plus un ordre que tu as déjà exécuté : quand il pousse ton entraînement ou ton focus alors que tu as DÉJÀ posé ta séance (ou ton bloc) aujourd’hui, il te crédite au lieu de radoter « programme une séance ». « Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée. » Il coupe aussi la micro-marche (« tu ignores mes caps ») les jours où le geste est justement là. Sommeil et nutrition gardent leur conseil du jour (le coucher de ce soir, la cible protéines) — eux ne sont pas « déjà bouclés » pour autant.' },
@@ -5168,6 +5169,45 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     const list = Array.isArray(chosen.list) ? chosen.list : [];
     doneToday = list.some(e => e && e.date === todayKey && chosen.active(e));
   }
+  // Coach × AGENDA pour le SPORT — le pendant du créneau focus (#471). Comme pour le focus, quand le
+  // pilier poussé est le sport, que l'heure du jour est connue (opts.nowMinutes, passé par le rendu)
+  // et que l'agenda du jour est structuré (≥1 RDV horaire réel), le coach propose le prochain CRÉNEAU
+  // LIBRE assez long pour caser la séance (nextFreeSlot, qui contourne les blocs occupés) et le CITE
+  // dans l'action : le « quand », pas seulement le « quoi ». Durée du bloc = médiane des durées de
+  // séance réelles sur 14 j (défaut 45, arrondie à 5 min, bornée [20, 90]) — la séance type d'Adrien,
+  // pas un chiffre arbitraire. Garde-fous : PAS un jour de récup (readiness < 50 → l'action dit
+  // « repose », caler une séance la contredirait), PAS quand la séance est déjà faite (doneToday), et
+  // un vrai planning horaire requis (sur une journée vide le « créneau » serait « maintenant »,
+  // trivial). La micro-marche et le renfort, plus bas, écrasent l'action — donc le créneau — quand on
+  // abaisse la barre ou qu'on félicite le suivi ; c'est voulu (pas de créneau à caler dans ces cas).
+  let sportSlot = null;
+  if (chosen.pillar === 'sport' && !doneToday && (readiness == null || readiness >= 50)
+      && typeof nextFreeSlot === 'function') {
+    const now = Math.round(Number(o.nowMinutes));
+    if (Number.isFinite(now) && now >= 0 && now < 1440) {
+      const agenda = Array.isArray(s.agenda) ? s.agenda : [];
+      const hasTimed = agenda.some(a => a && a.date === todayKey && !a.allDay && !a.completed && timeToMinutes(a.time) != null);
+      if (hasTimed) {
+        const durs = [];
+        for (const w of (Array.isArray(s.workouts) ? s.workouts : [])) {
+          if (!w) continue;
+          const n = daysAgo(w.date);
+          if (n === null || n > 13) continue;
+          const m = Math.round(Number(w.duration) || 0);
+          if (m > 0) durs.push(m);
+        }
+        let blk = 45;
+        if (durs.length >= 3) {
+          durs.sort((a, b) => a - b);
+          const mid = Math.floor(durs.length / 2);
+          const med = durs.length % 2 ? durs[mid] : (durs[mid - 1] + durs[mid]) / 2;
+          blk = Math.min(90, Math.max(20, Math.round(med / 5) * 5));
+        }
+        const slot = nextFreeSlot(agenda, { date: todayKey, after: minutesToTime(now), durationMin: blk });
+        if (slot) { sportSlot = slot; action += ` Créneau libre à ${slot} aujourd’hui — cale ta séance là.`; }
+      }
+    }
+  }
   // Coach MÉTA-CONSCIENT du suivi : si ce MÊME pilier a déjà été poussé plusieurs fois récemment
   // (s.coachLog) SANS que rien ne bouge — conseil IGNORÉ, pas juste répété —, hausser le ton ne sert
   // à rien. Le coach change de registre : il propose une MICRO-marche (5-10 min) en le reconnaissant
@@ -5230,7 +5270,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, doneToday,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, doneToday,
   };
 }
 

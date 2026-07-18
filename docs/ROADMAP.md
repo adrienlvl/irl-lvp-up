@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.102 (2026-07-19)
+## 📍 État actuel — build 2.0.103 (2026-07-19)
+
+> 🏋️ **2.0.103** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » cale désormais un créneau pour la **séance de sport** aussi, pas seulement pour le focus
+> (première piste laissée par #471). Nouveau `sportSlot`, exact pendant de `focusSlot` : quand le
+> pilier poussé est le **sport**, que l'heure du jour est connue (`opts.nowMinutes`, déjà passé par le
+> rendu) et que l'agenda du jour est **structuré** (≥ 1 RDV horaire réel), le coach cherche via
+> `nextFreeSlot` le prochain **créneau libre** assez long pour la séance et le **cite** — « …Créneau
+> libre à 17:30 aujourd'hui — cale ta séance là. » Durée du bloc = **médiane** des durées de séance
+> réelles (14 j, `workout.duration`, bornée [20, 90], repli 45). Il contourne les RDV (09:15 en RDV
+> → 10:00). Garde-fous : planning horaire requis, **pas un jour de récup** (readiness < 50 → l'action
+> protège), **pas quand la séance est déjà faite** (`doneToday`), heure inconnue → `null` inchangé
+> (rétrocompat 2 args), bloc qui ne rentre plus avant 22:00 → `null`. Additif pur ; micro-marche (#465)
+> et renfort (#466) gardent la priorité. `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #472.
 
 > 🗓️ **2.0.102** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » passe du **quoi/combien** au **quand**. Nouveau `focusSlot` (+ param optionnel

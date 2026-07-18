@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.102');
+  assert.equal(L.CHANGELOG[0].v, '2.0.103');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7413,6 +7413,50 @@ test('adaptiveCoachFocus : le coach cale le bloc focus dans un créneau libre de
   }, today, { nowMinutes: 8 * 60 });
   assert.equal(sport.pillar, 'sport');
   assert.equal(sport.focusSlot, null, 'le créneau ne concerne que le pilier focus');
+});
+
+test('adaptiveCoachFocus : cale la séance de sport dans un créneau libre de l’agenda', () => {
+  const today = '2026-07-16';
+  // Décrochage sport (3 j la semaine passée, 1 récente), durées ~45 min. Agenda : RDV 09:00-10:00 et 14:00-15:00.
+  const base = {
+    workouts: [
+      { date: '2026-07-05', duration: 45 }, { date: '2026-07-06', duration: 45 },
+      { date: '2026-07-07', duration: 45 }, { date: '2026-07-14', duration: 45 },
+    ],
+    agenda: [
+      { id: 'a', date: today, time: '09:00', durationMin: 60 },
+      { id: 'b', date: today, time: '14:00', durationMin: 60 },
+    ],
+  };
+  const early = L.adaptiveCoachFocus(base, today, { nowMinutes: 8 * 60 });
+  assert.equal(early.pillar, 'sport');
+  assert.equal(early.sportSlot, '08:00', 'créneau libre trouvé avant le premier RDV');
+  assert.match(early.action, /Créneau libre à 08:00 aujourd’hui — cale ta séance/, 'le créneau est cité dans l’action');
+  // En plein RDV (09:15) → le créneau contourne le bloc en cours → 10:00.
+  const mid = L.adaptiveCoachFocus(base, today, { nowMinutes: 9 * 60 + 15 });
+  assert.equal(mid.sportSlot, '10:00', 'le créneau contourne le RDV en cours');
+  // Sans nowMinutes (appel legacy 2 args) → pas de créneau, action inchangée.
+  const noNow = L.adaptiveCoachFocus(base, today);
+  assert.equal(noNow.sportSlot, null, 'sans heure du jour, pas de suggestion de créneau');
+  assert.ok(!/Créneau libre/.test(noNow.action), 'action inchangée sans nowMinutes');
+  // Journée sans planning horaire → pas de créneau (éviter un « maintenant » trivial).
+  const empty = L.adaptiveCoachFocus({ workouts: base.workouts, agenda: [] }, today, { nowMinutes: 8 * 60 });
+  assert.equal(empty.sportSlot, null, 'jour sans planning horaire : pas de créneau');
+  // Jour de récup (readiness basse) → l'action protège, pas de créneau de séance à caler.
+  const rest = L.adaptiveCoachFocus({ ...base, recovery: [{ date: today, sleep: 7, fatigue: 5, soreness: 5 }] }, today, { nowMinutes: 8 * 60 });
+  assert.ok(rest.readiness != null && rest.readiness < 50, 'readiness basse du jour');
+  assert.equal(rest.sportSlot, null, 'un jour de récup, pas de créneau de séance');
+  // Séance déjà faite aujourd’hui → crédit, pas de créneau.
+  const done = L.adaptiveCoachFocus({ ...base, workouts: [...base.workouts, { date: today, duration: 45 }] }, today, { nowMinutes: 8 * 60 });
+  assert.equal(done.doneToday, true, 'séance du jour détectée');
+  assert.equal(done.sportSlot, null, 'séance déjà faite : pas de créneau');
+  // Autre pilier (focus) → sportSlot toujours null.
+  const focus = L.adaptiveCoachFocus({
+    focusSessions: [{ date: '2026-07-05', minutes: 30, task: 'Compta' }, { date: '2026-07-06', minutes: 30, task: 'Compta' }, { date: '2026-07-07', minutes: 30, task: 'Compta' }, { date: '2026-07-14', minutes: 30, task: 'Compta' }],
+    agenda: base.agenda,
+  }, today, { nowMinutes: 8 * 60 });
+  assert.equal(focus.pillar, 'focus');
+  assert.equal(focus.sportSlot, null, 'le créneau séance ne concerne que le pilier sport');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {

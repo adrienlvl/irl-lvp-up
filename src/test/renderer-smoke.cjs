@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.102'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.103'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -830,6 +830,11 @@ app.whenReady().then(async () => {
           if (!(fSlot.focusSlot === '10:00' && /Cr[ée]neau libre à 10:00 aujourd/.test(fSlot.action))) return false;
           // Sans nowMinutes (appel 2 args) → pas de créneau, action inchangée.
           if (adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30, task: 'Compta' }, { date: '2026-07-06', minutes: 30, task: 'Compta' }, { date: '2026-07-07', minutes: 30, task: 'Compta' }, { date: '2026-07-14', minutes: 30, task: 'Compta' }], agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16').focusSlot !== null) return false;
+          // Coach × AGENDA (sport) : la séance aussi est calée dans un créneau libre (nowMinutes 09:15, RDV 09:00-10:00 → 10:00).
+          const sSlot = adaptiveCoachFocus({ workouts: [{ date: '2026-07-05', duration: 45 }, { date: '2026-07-06', duration: 45 }, { date: '2026-07-07', duration: 45 }, { date: '2026-07-14', duration: 45 }], agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16', { nowMinutes: 555 });
+          if (!(sSlot.pillar === 'sport' && sSlot.sportSlot === '10:00' && /Cr[ée]neau libre à 10:00 aujourd/.test(sSlot.action) && /cale ta s[ée]ance/.test(sSlot.action))) return false;
+          // Sans nowMinutes → pas de créneau séance (rétrocompat).
+          if (adaptiveCoachFocus({ workouts: [{ date: '2026-07-05', duration: 45 }, { date: '2026-07-06', duration: 45 }, { date: '2026-07-07', duration: 45 }, { date: '2026-07-14', duration: 45 }], agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16').sportSlot !== null) return false;
           // Coach MÉTA-CONSCIENT : conseil « sport » ignoré 2 jours (journalisé, sans séance ces jours-là) → micro-marche.
           const fMicro = adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }] }, '2026-07-16');
           if (!(fMicro.pillar === 'sport' && fMicro.microStep === true && /5 min/.test(fMicro.action) && /abaisse la barre/.test(fMicro.insight))) return false;
