@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.96', emoji: '🧗', text: 'Ton coach « Le focus du moment » remarque maintenant quand tu le laisses parler dans le vide : s’il t’a déjà poussé deux fois sur le même point (ton sport, ton focus, ton sommeil, ta nutrition) sans que rien ne bouge, il arrête de répéter plus fort. Il abaisse la barre et te propose une micro-marche imbattable — « juste 5 min de mouvement », « un seul bloc de 10 min » — en le disant franchement : on abaisse la barre, pas toi. Rouvrir la porte suffit.' },
   { v: '2.0.95', emoji: '🥗', text: 'Ton coach « Le focus du moment » sait enfin parler nutrition pour de vrai : quand c’est ta nutrition qui décroche, il ne se contente plus de « renseigne tes protéines ». Il calcule ta cible du jour (selon ton poids et ton objectif), regarde ce que tu as déjà mangé, et te propose une collation CONCRÈTE pour combler l’écart — « il te reste 40 g de protéines : un shaker de whey fait le job ». Et si tu tiens une série à ta cible, il te le rappelle pour ne pas la casser.' },
   { v: '2.0.94', emoji: '♿', text: 'Accessibilité : les champs de saisie du tableau de bord (nouvelle tâche, nouvelle habitude, tes 3 priorités de vie, tâche du bloc de concentration) portent désormais un vrai nom lu par les lecteurs d’écran, au lieu de ne compter que sur le texte d’exemple qui disparaît dès qu’on écrit. Rien ne change à l’écran — c’est du confort pour qui navigue en audio ou au clavier.' },
   { v: '2.0.93', emoji: '😴', text: 'Ta « Forme du jour » est plus juste : si tu notes ta fatigue et tes courbatures sans remplir les heures de sommeil, le score ne te compte plus une nuit blanche par défaut. Un sommeil laissé vide n’est plus pris pour « 0 h » (la pire note) — il est simplement ignoré, comme partout ailleurs dans l’app. Fini les fausses alertes « récupération prioritaire » juste parce que la case sommeil était vide.' },
@@ -5066,11 +5067,44 @@ function adaptiveCoachFocus(state, todayKey) {
       else if (prot > 0) action = `Cible protéines tenue (${prot}/${tgt} g) 💪 — verrouille l’eau et un fruit/légume.`;
     }
   }
+  // Coach MÉTA-CONSCIENT du suivi : si ce MÊME pilier a déjà été poussé plusieurs fois récemment
+  // (s.coachLog) SANS que rien ne bouge — conseil IGNORÉ, pas juste répété —, hausser le ton ne sert
+  // à rien. Le coach change de registre : il propose une MICRO-marche (5-10 min) en le reconnaissant
+  // honnêtement, pour rouvrir la porte sans culpabiliser (« on abaisse la barre, pas toi »). Distinct
+  // de la rotation anti-radotage, qui change de PILIER après 3 jours du même focus : ici on garde le
+  // pilier décroché mais on abaisse radicalement l'exigence. Un coach qui remarque que son approche
+  // ne prend pas et s'adapte vaut mieux qu'un coach qui répète plus fort. Uniquement pour les tons
+  // « à corriger » (rebuild/revive) et jamais après une rotation (le pilier vient de changer d'angle).
+  let microStep = false;
+  if (!rotated && (tone === 'rebuild' || tone === 'revive')) {
+    const log = Array.isArray(s.coachLog) ? s.coachLog : [];
+    const list = Array.isArray(chosen.list) ? chosen.list : [];
+    let ignored = 0;
+    for (const e of log) {
+      if (!e || e.pillar !== chosen.pillar) continue;
+      const n = daysAgo(e.date);
+      if (n === null || n < 1 || n > 7) continue; // jours RÉVOLUS des 7 derniers (le jour en cours ne compte pas)
+      if (!list.some(x => x && x.date === e.date && chosen.active(x))) ignored++;
+    }
+    if (ignored >= 2) {
+      const micros = {
+        sport: 'Vise juste 5 min de mouvement aujourd’hui — une marche, 10 squats. Rouvrir la porte suffit.',
+        focus: 'Un seul bloc de 10 min, minuteur lancé. Assez court pour ne pas pouvoir refuser.',
+        sommeil: 'Ce soir, un seul geste : écrans coupés 15 min plus tôt. Rien d’autre à tenir.',
+        nutrition: 'Aujourd’hui, vise juste 1 apport riche en protéines (œufs, skyr, thon). Un seul, pas tout le reste.',
+      };
+      if (micros[chosen.pillar]) {
+        action = micros[chosen.pillar];
+        insight += ' Je t’ai déjà soufflé ce cap sans que ça prenne — alors on abaisse la barre, pas toi.';
+        microStep = true;
+      }
+    }
+  }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep,
   };
 }
 

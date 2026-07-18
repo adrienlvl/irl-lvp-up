@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.95 (2026-07-19)
+## 📍 État actuel — build 2.0.96 (2026-07-19)
+
+> 🧗 **2.0.96** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » devient **méta-conscient du suivi**. S'il a déjà poussé le même pilier ≥ 2 fois récemment
+> (`s.coachLog`) **sans** que rien ne bouge (conseil ignoré, pas juste répété), il cesse de répéter :
+> il **abaisse la barre** vers une micro-marche concrète (« juste 5 min de mouvement », « un seul bloc
+> de 10 min ») en le reconnaissant honnêtement (« on abaisse la barre, pas toi »). Distinct de la
+> rotation anti-radotage (qui change de pilier) : ici on garde le pilier décroché mais on baisse
+> l'exigence. `adaptiveCoachFocus` pur + testé (champ `microStep`), check smoke bloquant `coachFocus`
+> étendu. Recap #465.
 
 > 🥗 **2.0.95** — Coaching adaptatif poussé à fond (priorité de la nuit) : le focus **nutrition** du
 > coach « Le focus du moment » cesse d'être générique. Cible protéines réelle (poids + objectif via

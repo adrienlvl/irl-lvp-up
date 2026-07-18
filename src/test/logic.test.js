@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.95');
+  assert.equal(L.CHANGELOG[0].v, '2.0.96');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7272,6 +7272,32 @@ test('adaptiveCoachFocus : focus nutrition enrichi (cible protéines réelle + c
   const noProfile = L.adaptiveCoachFocus({ nutrition: decline.nutrition }, today);
   assert.equal(noProfile.pillar, 'nutrition');
   assert.ok(!/Il te reste|cible protéines/.test(noProfile.action), 'sans profil : pas d’enrichissement, action générique conservée');
+});
+
+test('adaptiveCoachFocus : coach méta-conscient — abaisse la barre quand son conseil est ignoré', () => {
+  const today = '2026-07-16';
+  // Sport en décrochage (3 j la semaine passée, 1 récente) → tone rebuild, un seul pilier à corriger.
+  const base = { workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }] };
+  const f0 = L.adaptiveCoachFocus(base, today);
+  assert.equal(f0.pillar, 'sport'); assert.equal(f0.tone, 'rebuild');
+  assert.equal(f0.microStep, false, 'sans journal : pas de micro-marche, action normale');
+  assert.match(f0.action, /séance courte/, 'action standard tant que le conseil n’a pas été ignoré');
+  // Le coach a poussé « sport » les 13 et 14 SANS séance ces jours-là (ignoré 2×) → micro-marche.
+  const ignored = { ...base, coachLog: [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }] };
+  const fi = L.adaptiveCoachFocus(ignored, today);
+  assert.equal(fi.pillar, 'sport');
+  assert.equal(fi.microStep, true, 'conseil ignoré 2 jours → le coach abaisse la barre');
+  assert.match(fi.action, /5 min/, 'action = micro-marche concrète');
+  assert.match(fi.insight, /abaisse la barre, pas toi/, 'reconnaissance honnête dans l’insight');
+  // Un seul jour ignoré → pas encore de bascule (seuil = 2).
+  const once = { ...base, coachLog: [{ date: '2026-07-14', pillar: 'sport' }] };
+  assert.equal(L.adaptiveCoachFocus(once, today).microStep, false, 'un seul jour ignoré ne suffit pas');
+  // Conseil SUIVI (séance le 15) → ne compte pas comme ignoré, même avec 2 jours journalisés.
+  const followed = { workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-14' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sport' }] };
+  assert.equal(L.adaptiveCoachFocus(followed, today).microStep, false, 'un conseil suivi ne déclenche pas la micro-marche');
+  // L'alternance (priorité absolue) ne passe jamais par la micro-marche.
+  const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-10' }], coachLog: [{ date: '2026-07-14', pillar: 'alternance' }, { date: '2026-07-15', pillar: 'alternance' }] }, today);
+  assert.equal(alt.pillar, 'alternance'); assert.equal(alt.microStep, undefined, 'le focus alternance n’a pas de champ microStep');
 });
 
 test('coachFollowThrough : mesure si les conseils du coach sont suivis', () => {
