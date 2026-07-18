@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.109 (2026-07-19)
+## 📍 État actuel — build 2.0.110 (2026-07-19)
+
+> 🏅 **2.0.110** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » fête désormais tes **PALIERS** de journées complètes, comme l'app fête déjà tes séries
+> quotidiennes. Depuis #477 la note de série dit « N jours d'affilée à 3+ piliers — tu enchaînes les
+> journées complètes 🔥 », mais traitait **tous** les enchaînements pareil : une semaine pleine (7 j) et
+> une série de 4 recevaient le même compteur neutre. Or franchir 7 journées complètes d'affilée est un
+> **jalon**, pas un compteur anodin. On **rebranche les paliers de streak existants**
+> (`STREAK_MILESTONES` = `[3, 7, 14, 30, 60, 100, 180, 365]`, `nextStreakMilestone`) : quand la série
+> tombe pile sur un jalon → « 🏅 **Palier franchi : une semaine complète** de journées pleines ! » (7 j),
+> « deux semaines complètes » (14), « un mois complet » (30), sinon « N jours » ; et quand le prochain
+> palier est à **un seul jour** → cap actionnable « **Encore 1 jour pour franchir le palier des 7. 🎯** ».
+> La fierté d'hier devient l'objectif de demain. Point de conception : même échelle et même logique que
+> les streaks quotidiens ailleurs (cohérence gamifiée, zéro heuristique neuve) ; le libellé de base est
+> inchangé mot pour mot (tests #477 intacts), le palier s'ajoute derrière. Additif pur : nouveau champ
+> `completeDayMilestone` (valeur du palier franchi, ou null) toujours renvoyé ; garde-fous hérités
+> (contexte positif, disjoint d'`alsoSlipping`). `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #479.
 
 > 🧭 **2.0.109** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **nuance la GRAVITÉ** des autres piliers qui décrochent. Depuis #474/#475 il les NOMME

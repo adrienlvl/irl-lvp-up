@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.109');
+  assert.equal(L.CHANGELOG[0].v, '2.0.110');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7285,6 +7285,9 @@ test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ pili
   assert.equal(sk.completeDayStreak, 3, '3 jours consécutifs à ≥3 piliers');
   assert.match(sk.insight, /3 jours d’affilée à 3\+ piliers/);
   assert.doesNotMatch(sk.insight, /belle journée complète/, 'la série remplace le crédit du jour isolé');
+  // 3 est un palier (STREAK_MILESTONES) → jalon débloqué.
+  assert.equal(sk.completeDayMilestone, 3, 'série de 3 = palier franchi');
+  assert.match(sk.insight, /Palier franchi : 3 jours de journées pleines/);
 
   // Série de 2 jours (15, 16 complets ; le 14 n’a qu’un pilier) → « 2 jours d’affilée ».
   const two = {
@@ -7296,6 +7299,22 @@ test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ pili
   assert.equal(t2.pillarsToday, 3);
   assert.equal(t2.completeDayStreak, 2, '14 = sport seul → hors série ; 15 et 16 complets');
   assert.match(t2.insight, /2 jours d’affilée à 3\+ piliers/);
+  // 2 n’est pas un palier, mais le prochain (3) est à un jour → cap à tenir demain.
+  assert.equal(t2.completeDayMilestone, null, 'série de 2 = aucun palier franchi');
+  assert.match(t2.insight, /Encore 1 jour pour franchir le palier des 3/);
+
+  // Palier d’une SEMAINE complète : 4 piliers × 7 jours consécutifs (10 → 16).
+  const days7 = ['2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15', today];
+  const week = {
+    workouts: days7.map(d => ({ date: d, duration: 45 })),
+    focusSessions: days7.map(d => ({ date: d, minutes: 30, task: 'X' })),
+    recovery: days7.map(d => ({ date: d, sleep: 7 })),
+    nutrition: days7.map(d => ({ date: d, protein: 100 })),
+  };
+  const wk = L.adaptiveCoachFocus(week, today);
+  assert.equal(wk.completeDayStreak, 7, '7 jours consécutifs complets');
+  assert.equal(wk.completeDayMilestone, 7, 'série de 7 = palier franchi');
+  assert.match(wk.insight, /Palier franchi : une semaine complète de journées pleines/);
 });
 
 test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => {

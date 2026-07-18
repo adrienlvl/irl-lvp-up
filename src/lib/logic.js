@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.110', emoji: '🏅', text: 'Ton coach « Le focus du moment » fête désormais tes PALIERS de journées complètes, comme il fête déjà tes séries quotidiennes. Quand ta série de journées à 3+ piliers franchit pile un jalon — 3, 7 (une semaine pleine !), 14, 30 jours —, il le débloque : « 7 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 🏅 Palier franchi : une semaine complète de journées pleines ! » Et quand le prochain palier est à un seul jour, il te donne le cap à tenir demain : « Encore 1 jour pour franchir le palier des 7. 🎯 » La fierté d’hier devient l’objectif de demain.' },
   { v: '2.0.109', emoji: '🧭', text: 'Ton coach « Le focus du moment » nuance désormais la GRAVITÉ des piliers qui décrochent. Un pilier laissé à l’abandon depuis deux semaines n’appelle pas le même geste qu’un simple creux : le coach le dit. Au lieu de tout mettre sur « faiblit », il distingue « à l’arrêt » (dormant, à relancer) de « faiblit » (en léger recul, à rattraper) : « Ton entraînement s’essouffle… Ton sommeil est à l’arrêt aussi cette semaine — celui-ci d’abord. » Et si les deux se mélangent, il précise l’état de chacun : « Ta nutrition (en recul) et ton focus (à l’arrêt) décrochent aussi cette semaine. » Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.108', emoji: '🔥', text: 'Ton coach « Le focus du moment » ne salue plus seulement UNE belle journée : il célèbre ta SÉRIE. Quand tu as déjà coché au moins 3 de tes 4 piliers aujourd’hui et que tu enchaînes plusieurs journées complètes d’affilée, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 » Reconnaître qu’on TIENT la régularité motive plus que féliciter un jour isolé. Il reste discret : la célébration de série n’apparaît que les jours vraiment complets, jamais en même temps qu’une alerte « celui-ci d’abord ».' },
   { v: '2.0.107', emoji: '🌙', text: 'Ton coach « Le focus du moment » protège désormais ta fenêtre de coucher le soir, comme il cale déjà tes blocs de focus et de sport. Quand un plan de recalage du sommeil est actif et qu’un rendez-vous horaire de ta journée finit trop tard — sur ta cible de coucher ou dans les 30 min de sas juste avant —, il le repère et t’alerte : « Vise un coucher à 22:30 ce soir (ton plan de recalage). « Dîner famille » (à partir de 20:30) mord sur ta cible de 22:30 — protège ta fenêtre du soir. » Le premier saboteur d’un plan de recalage, c’est un soir qui déborde : le coach le voit venir dans ta vraie journée.' },
@@ -5386,9 +5387,31 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   }
   const completeDayDays = Array.from(completeDayCounts, ([date, set]) => ({ date, count: set.size }));
   const completeDayStreak = (typeof completeDaysStreak === 'function') ? completeDaysStreak(completeDayDays, 3, todayKey) : 0;
+  // PALIERS de série de journées complètes — le cran au-dessus de la simple série (#477). Enchaîner
+  // 7 journées complètes (une SEMAINE pleine à 3+ piliers) n'est pas un compteur anodin : c'est un
+  // JALON, et les jalons se fêtent — l'app gamifiée le fait déjà pour les streaks quotidiens
+  // (STREAK_MILESTONES / nextStreakMilestone). On rebranche exactement ces paliers ici : quand la
+  // série FRANCHIT pile un palier (3, 7, 14, 30…), le coach le débloque explicitement (« 🏅 Palier
+  // franchi : une semaine complète ! ») ; sinon, quand le prochain palier est à UN jour, il donne le
+  // cap concret à tenir demain (« Encore 1 jour pour franchir le palier des 7. 🎯 ») — une carotte
+  // actionnable qui transforme la fierté d'hier en objectif de demain. Réutilise STREAK_MILESTONES,
+  // aucune nouvelle échelle. Additif pur : champ completeDayMilestone (valeur du palier franchi
+  // aujourd'hui, ou null) TOUJOURS renvoyé ; le libellé s'ajoute à la note de série existante.
+  let completeDayMilestone = null;
   if ((doneToday || tone === 'reinforce') && pillarsToday >= 2) {
     if (pillarsToday >= 3 && completeDayStreak >= 2) {
       insight += ` ${completeDayStreak} jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥`;
+      if (Array.isArray(STREAK_MILESTONES) && STREAK_MILESTONES.includes(completeDayStreak)) {
+        completeDayMilestone = completeDayStreak;
+        const palier = completeDayStreak === 7 ? 'une semaine complète'
+          : completeDayStreak === 14 ? 'deux semaines complètes'
+          : completeDayStreak === 30 ? 'un mois complet'
+          : `${completeDayStreak} jours`;
+        insight += ` 🏅 Palier franchi : ${palier} de journées pleines !`;
+      } else if (typeof nextStreakMilestone === 'function') {
+        const nm = nextStreakMilestone(completeDayStreak);
+        if (nm && nm.remaining === 1) insight += ` Encore 1 jour pour franchir le palier des ${nm.milestone}. 🎯`;
+      }
     } else if (pillarsToday >= 3) {
       insight += ` ${pillarsToday}/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯`;
     } else {
@@ -5399,7 +5422,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
   };
 }
 
