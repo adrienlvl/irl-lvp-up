@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.110'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.111'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -820,6 +820,9 @@ app.whenReady().then(async () => {
           const scWk = [{ date: '2026-07-08' }, { date: '2026-07-07' }, { date: '2026-07-06' }, { date: '2026-07-15' }];
           const fConf = adaptiveCoachFocus({ recovery: sleepRec, workouts: scWk, sleepPlan: scPlan, agenda: [{ id: 'z', title: 'Dîner', date: '2026-07-16', time: scStart, durationMin: 60 }] }, '2026-07-16');
           if (!(fConf.pillar === 'sommeil' && fConf.sleepConflict === scStart && /D[îi]ner/.test(fConf.action) && /prot[èe]ge ta fen[êe]tre/.test(fConf.action))) return false;
+          // Geste CONCRET : le RDV finit APRÈS la cible → coach propose le coucher réaliste (fin du RDV) au lieu d'un ordre inatteignable.
+          const scRealBed = bedtimeFromAnchor(bedtimeAnchor(scTgt) + 20);
+          if (!(fConf.sleepConflictBedtime === scRealBed && new RegExp('finit vers ' + scRealBed).test(fConf.action) && /couche-toi dès sa fin/.test(fConf.action))) return false;
           // Sans plan actif → pas de cible concrète → aucune détection malgré le même RDV tardif.
           if (adaptiveCoachFocus({ recovery: sleepRec, workouts: scWk, agenda: [{ id: 'z', title: 'Dîner', date: '2026-07-16', time: scStart, durationMin: 60 }] }, '2026-07-16').sleepConflict !== null) return false;
           if (!adaptiveCoachFocus({ recovery: [{ date: '2026-07-04', sleep: 7 }, { date: '2026-07-05', sleep: 7 }, { date: '2026-07-06', sleep: 7 }, { date: '2026-07-14', sleep: 7 }], workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-13', pillar: 'sommeil' }, { date: '2026-07-14', pillar: 'sommeil' }, { date: '2026-07-15', pillar: 'sommeil' }] }, '2026-07-16').rotated) return false;

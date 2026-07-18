@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.110');
+  assert.equal(L.CHANGELOG[0].v, '2.0.111');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7426,6 +7426,20 @@ test('adaptiveCoachFocus : protège la fenêtre de coucher quand un RDV du soir 
   assert.match(f.action, /Dîner famille/, 'l’action nomme le RDV qui déborde');
   assert.match(f.action, /prot[èe]ge ta fen[êe]tre/i, 'l’action invite à protéger la fenêtre du soir');
   assert.match(f.action, new RegExp(tgt), 'l’action rappelle la cible de coucher');
+  // GESTE CONCRET : le RDV finit APRÈS la cible → coucher réaliste = fin du RDV (cible + 20), proposé en repli.
+  const realBed = L.bedtimeFromAnchor(tgtAnchor + 20);
+  assert.equal(f.sleepConflictBedtime, realBed, 'coucher réaliste = fin du RDV quand la cible saute');
+  assert.match(f.action, new RegExp('finit vers ' + realBed), 'l’action donne l’heure de coucher réaliste');
+  assert.match(f.action, /couche-toi dès sa fin/, 'l’action propose de se coucher dès la fin plutôt que de repousser');
+  // RDV qui finit DANS le sas mais AVANT la cible (cible − 15) → la cible tient : « file au lit », pas de repli.
+  const startAnchorB = (tgtAnchor - 15) - 60;
+  const startTimeB = L.minutesToTime((startAnchorB + 720) % 1440);
+  const agendaB = [{ id: 9, title: 'Ciné', date: today, time: startTimeB, durationMin: 60, kind: 'life' }];
+  const fB = L.adaptiveCoachFocus({ recovery, workouts, sleepPlan: plan, agenda: agendaB }, today);
+  assert.equal(fB.sleepConflict, startTimeB, 'un RDV dans le sas d’endormissement menace encore la fenêtre');
+  assert.equal(fB.sleepConflictBedtime, null, 'la cible tient encore → aucun coucher de repli');
+  assert.match(fB.action, /file au lit dès sa fin/, 'l’action invite à filer au lit dès la fin');
+  assert.match(fB.action, /prot[ée]ger ta fen[êe]tre/i, 'l’action protège toujours la fenêtre du soir');
   // RDV du soir qui finit BIEN AVANT (cible − 30) → aucune menace.
   const early = [{ id: 2, title: 'Apéro', date: today, time: '18:00', durationMin: 60, kind: 'life' }];
   const fe = L.adaptiveCoachFocus({ recovery, workouts, sleepPlan: plan, agenda: early }, today);

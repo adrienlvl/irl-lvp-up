@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.111', emoji: '🛏️', text: 'Ton coach « Le focus du moment » ne se contente plus d’ALERTER quand un rendez-vous du soir menace ta cible de coucher : il te donne le geste concret. Si le rendez-vous finit APRÈS ta cible — l’heure visée devient intenable ce soir —, il propose l’heure de coucher réaliste à viser à la place, calée sur sa fin : « « Dîner famille » (à partir de 21:30) finit vers 22:50, après ta cible de 22:30 — couche-toi dès sa fin plutôt que de repousser encore, tu protèges ta fenêtre du soir. » Viser un coucher tenable limite la casse mieux qu’un « couche-toi à 22:30 » impossible à honorer. Si le rendez-vous finit juste avant ta cible, elle tient encore : file au lit dès la fin, sans écran.' },
   { v: '2.0.110', emoji: '🏅', text: 'Ton coach « Le focus du moment » fête désormais tes PALIERS de journées complètes, comme il fête déjà tes séries quotidiennes. Quand ta série de journées à 3+ piliers franchit pile un jalon — 3, 7 (une semaine pleine !), 14, 30 jours —, il le débloque : « 7 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 🏅 Palier franchi : une semaine complète de journées pleines ! » Et quand le prochain palier est à un seul jour, il te donne le cap à tenir demain : « Encore 1 jour pour franchir le palier des 7. 🎯 » La fierté d’hier devient l’objectif de demain.' },
   { v: '2.0.109', emoji: '🧭', text: 'Ton coach « Le focus du moment » nuance désormais la GRAVITÉ des piliers qui décrochent. Un pilier laissé à l’abandon depuis deux semaines n’appelle pas le même geste qu’un simple creux : le coach le dit. Au lieu de tout mettre sur « faiblit », il distingue « à l’arrêt » (dormant, à relancer) de « faiblit » (en léger recul, à rattraper) : « Ton entraînement s’essouffle… Ton sommeil est à l’arrêt aussi cette semaine — celui-ci d’abord. » Et si les deux se mélangent, il précise l’état de chacun : « Ta nutrition (en recul) et ton focus (à l’arrêt) décrochent aussi cette semaine. » Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.108', emoji: '🔥', text: 'Ton coach « Le focus du moment » ne salue plus seulement UNE belle journée : il célèbre ta SÉRIE. Quand tu as déjà coché au moins 3 de tes 4 piliers aujourd’hui et que tu enchaînes plusieurs journées complètes d’affilée, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 » Reconnaître qu’on TIENT la régularité motive plus que féliciter un jour isolé. Il reste discret : la célébration de série n’apparaît que les jours vraiment complets, jamais en même temps qu’une alerte « celui-ci d’abord ».' },
@@ -5064,7 +5065,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Focus sommeil ENRICHI : on remplace le compteur générique par le vrai verdict chiffré du coach
   // sommeil (sleepCoachInsight) et, si un plan de recalage est actif, par la CIBLE de coucher du soir
   // (sleepPlanDay) — le coach cesse d'ignorer l'intelligence sommeil qui vit juste à côté.
-  let sleepConflict = null;
+  let sleepConflict = null, sleepConflictBedtime = null;
   if (chosen.pillar === 'sommeil' && sleepIns) {
     insight = sleepIns.verdict;
     if (sleepIns.tone === 'urgent') headline = 'Ton sommeil déraille — priorité ce soir';
@@ -5105,7 +5106,22 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         const ev = threats[0];
         sleepConflict = minutesToTime(ev.st);
         const nom = ev.title ? `« ${ev.title} »` : 'Ton créneau du soir';
-        action += ` ${nom} (à partir de ${sleepConflict}) mord sur ta cible de ${bedTarget} — protège ta fenêtre du soir.`;
+        // Ne plus seulement ALERTER : donner le geste concret (piste récurrente #477/#479). Deux cas selon
+        // que le RDV finit APRÈS la cible ou seulement DANS le sas d'endormissement (30 min) avant elle :
+        //  • fin APRÈS la cible → tenir l'heure-cible ce soir est devenu IMPOSSIBLE. Répéter « couche-toi à
+        //    HH:MM » serait un ordre inatteignable ; le coach propose l'heure de coucher RÉALISTE — la fin du
+        //    RDV — comme repli honnête : viser un coucher tenable juste après limite la casse mieux que de
+        //    laisser Adrien repousser encore. Champ additif sleepConflictBedtime (ce coucher de repli).
+        //  • fin AVANT la cible (dans le sas) → la cible tient ENCORE : filer au lit dès la fin, sans écran,
+        //    suffit à l'honorer. Pas de repli à proposer (sleepConflictBedtime reste null).
+        // L'heure de fin est reconvertie depuis l'échelle ANCRÉE (bedtimeFromAnchor), donc juste même quand
+        // le RDV — ou la cible de recalage — franchit minuit.
+        if (ev.endAnchor > tgtAnchor && typeof bedtimeFromAnchor === 'function') {
+          sleepConflictBedtime = bedtimeFromAnchor(ev.endAnchor);
+          action += ` ${nom} (à partir de ${sleepConflict}) finit vers ${sleepConflictBedtime}, après ta cible de ${bedTarget} — couche-toi dès sa fin plutôt que de repousser encore, protège ta fenêtre du soir.`;
+        } else {
+          action += ` ${nom} (à partir de ${sleepConflict}) mord sur ta cible de ${bedTarget} — file au lit dès sa fin, sans écran, pour protéger ta fenêtre du soir.`;
+        }
       }
     }
   }
@@ -5422,7 +5438,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
   };
 }
 

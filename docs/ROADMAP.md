@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.110 (2026-07-19)
+## 📍 État actuel — build 2.0.111 (2026-07-19)
+
+> 🛏️ **2.0.111** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » ne se contente plus d'**alerter** quand un RDV du soir menace la cible de coucher — il donne le
+> **geste concret**. Depuis #476 il NOMME le RDV qui déborde (« … mord sur ta cible de 22:30 — protège ta
+> fenêtre du soir »), mais rappelait la cible **même quand le RDV finit après elle**, la rendant
+> **intenable ce soir** : répéter « couche-toi à 22:30 » quand le RDV se termine à 22:50 est un ordre
+> inatteignable, et un conseil impossible à suivre décrédibilise le coach. Désormais deux branches selon où
+> tombe le RDV : **fin APRÈS la cible** → coucher **réaliste** calé sur la fin du RDV comme repli honnête
+> (« « Dîner famille » (à partir de 23:50) finit vers **00:50**, après ta cible de 00:30 — **couche-toi dès
+> sa fin** plutôt que de repousser encore, protège ta fenêtre du soir ») ; **fin dans le sas mais avant la
+> cible** → la cible tient, « **file au lit dès sa fin, sans écran** ». Point de conception : heure de fin
+> reconvertie depuis l'échelle ANCRÉE (`bedtimeFromAnchor`), juste même quand le RDV ou la cible franchit
+> minuit (courant chez Adrien, cibles dans les petites heures) ; on réutilise le seuil de menace déjà
+> calculé (`ev.endAnchor > tgtAnchor`), zéro heuristique neuve. La sous-chaîne « protège ta fenêtre du
+> soir » est gardée mot pour mot (assertions #476 intactes). Additif pur : nouveau champ
+> `sleepConflictBedtime` (coucher de repli, ou null) toujours renvoyé ; garde-fous hérités (plan actif, RDV
+> du soir ≥ 17:00, débordement sur cible − 30 min). `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #480.
 
 > 🏅 **2.0.110** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » fête désormais tes **PALIERS** de journées complètes, comme l'app fête déjà tes séries
