@@ -5421,7 +5421,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.88');
+  assert.equal(L.CHANGELOG[0].v, '2.0.89');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7144,6 +7144,28 @@ test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 j
   // L'alternance ne tourne JAMAIS, même après 3 jours.
   const alt = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: '2026-07-10' }], coachLog: [{ date: '2026-07-13', pillar: 'alternance' }, { date: '2026-07-14', pillar: 'alternance' }, { date: '2026-07-15', pillar: 'alternance' }] }, today);
   assert.equal(alt.pillar, 'alternance');
+});
+
+test('adaptiveCoachFocus : coach conscient du sommeil (alerte + cible du plan)', () => {
+  const today = '2026-07-16';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  // 7 nuits courtes ET irrégulières → sleepCoachInsight en alerte
+  const recovery = [4, 8, 4, 8, 4, 8, 4].map((h, i) => ({ date: iso(i), sleep: h }));
+  assert.equal(L.sleepCoachInsight(recovery, today).tone, 'urgent', 'les données sont bien en alerte');
+  // + un décrochage sport (3 séances la semaine passée, 1 récente) : sans promotion, le sport gagnerait.
+  const workouts = [iso(8), iso(9), iso(10), iso(1)].map(d => ({ date: d, type: 'muscu' }));
+  const f = L.adaptiveCoachFocus({ recovery, workouts }, today);
+  assert.equal(f.pillar, 'sommeil', 'un sommeil en alerte prime sur un simple creux de momentum');
+  assert.match(f.headline, /sommeil/i);
+  assert.ok(/court|irr[ée]guli/i.test(f.insight), 'insight = verdict chiffré du coach sommeil, pas un compteur générique');
+  // plan de recalage actif → l'action donne la CIBLE de coucher du soir.
+  const plan = { active: true, startTime: '01:00', targetTime: '23:00', startKey: iso(6), stepDays: 3, stepMin: 15 };
+  const fp = L.adaptiveCoachFocus({ recovery, workouts, sleepPlan: plan }, today);
+  assert.match(fp.action, /\d{1,2}:\d{2}/, 'action = heure de coucher visée par le plan');
+  // sommeil solide → aucune promotion : un vrai creux ailleurs reste le focus.
+  const good = [8, 8, 8, 8, 8, 8, 8].map((h, i) => ({ date: iso(i), sleep: h }));
+  assert.notEqual(L.adaptiveCoachFocus({ recovery: good, workouts }, today).pillar, 'sommeil');
 });
 
 test('adaptiveCoachFocus : parle en fonction des objectifs perso (hebdo calendaire)', () => {

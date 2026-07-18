@@ -2746,6 +2746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.89', emoji: '😴', text: 'Ton coach « Le focus du moment » connaît enfin ton sommeil. Quand tes nuits sont courtes ET irrégulières, il remonte le sommeil en tête avec le vrai verdict chiffré (moyenne, dette, régularité) au lieu d’un conseil passe-partout. Et si ton plan de recalage est actif, il te donne directement l’heure de coucher à viser ce soir. Les deux systèmes se parlent — jusqu’ici le coach ignorait toute ton intelligence sommeil.' },
   { v: '2.0.88', emoji: '🎯', text: 'Ton coach alternance ne s’arrête plus à « postule » : une fois ta candidature du jour envoyée, il continue à te piloter sur le reste du funnel. S’il y a une entreprise sans réponse depuis 7 jours ou plus, il te dit « Relance {entreprise} — sans réponse depuis N jours ». Et si tu as un entretien dans le pipeline, il te pousse à le préparer. La priorité reste absolue tant que tu n’as pas décroché ta place.' },
   { v: '2.0.87', emoji: '🩹', text: 'Correctif Alternance : « Entretien en entreprise » (et « entretien avec l’entreprise ») n’est plus classé par erreur en « Accepté ». Un mot glissé dans une version récente reconnaissait « pris » à l’intérieur d’« entre-pris-e » et prenait un entretien à venir pour une offre décrochée — ce qui gonflait à tort ton taux de réponse et pouvait « verrouiller » la candidature en accepté. Les vrais « pris/prise/retenu/accepté » restent bien reconnus.' },
   { v: '2.0.86', emoji: '🏃', text: 'Programme auto (onglet Athlète, « Mon programme selon mon objectif ») : le résumé accorde enfin « course » au pluriel quand ton objectif comporte plusieurs courses par semaine — « 4 courses/sem. » au lieu de « 4 course/sem. » (Perte de gras, Endurance, Corps athlétique…). Même correction dans le détail « (X muscu, Y courses) » et dans le programme copié/partagé. Un objectif à une seule course par semaine (Prise de muscle) reste au singulier. Petit détail d’accord — rien ne change au contenu de ton programme.' },
@@ -4928,7 +4929,18 @@ function adaptiveCoachFocus(state, todayKey) {
     if (c.recentDays < c.prevDays) return 2;
     return 9;
   };
+  // Coach CONSCIENT du sommeil : quand la nuit est en ALERTE (court ET irrégulier → sleepCoachInsight
+  // tone 'urgent'), une nuit déréglée est un levier plus fort qu'un simple creux de momentum ailleurs
+  // → on force le pilier sommeil en tête des corrections (tier -1), tout en le laissant soumis à la
+  // rotation anti-radotage (pas de nag mot pour mot 3 j de suite). Les deux systèmes profonds d'Adrien
+  // (coach + service Sommeil) se parlent enfin. (L'alternance, plus prioritaire, a déjà `return` au-dessus.)
+  const sleepIns = (typeof sleepCoachInsight === 'function') ? sleepCoachInsight(s.recovery, todayKey) : null;
+  const sommeilCand = cands.find(c => c.pillar === 'sommeil' && c.ever);
   const fixes = cands.map(c => ({ c, tier: tierOf(c) })).filter(x => x.tier < 9);
+  if (sleepIns && sleepIns.tone === 'urgent' && sommeilCand) {
+    const ex = fixes.find(f => f.c.pillar === 'sommeil');
+    if (ex) ex.tier = -1; else fixes.push({ c: sommeilCand, tier: -1 });
+  }
   let chosen, tone, rotated = false;
   if (fixes.length) {
     // À tier égal : le plus gros décrochage d'abord ; sinon le plus anciennement actif (dormant).
@@ -4998,6 +5010,17 @@ function adaptiveCoachFocus(state, todayKey) {
       const fw = focusWeekGoal(s.focusSessions, todayKey);
       if (fw) insight += fw.status === 'done' ? ` Objectif hebdo atteint : ${fw.done}/${fw.target} min 💪` : ` Objectif hebdo : ${fw.done}/${fw.target} min de focus.`;
     }
+  }
+  // Focus sommeil ENRICHI : on remplace le compteur générique par le vrai verdict chiffré du coach
+  // sommeil (sleepCoachInsight) et, si un plan de recalage est actif, par la CIBLE de coucher du soir
+  // (sleepPlanDay) — le coach cesse d'ignorer l'intelligence sommeil qui vit juste à côté.
+  if (chosen.pillar === 'sommeil' && sleepIns) {
+    insight = sleepIns.verdict;
+    if (sleepIns.tone === 'urgent') headline = 'Ton sommeil déraille — priorité ce soir';
+    const pd = (typeof sleepPlanDay === 'function') ? sleepPlanDay(s.sleepPlan, s.recovery, todayKey) : null;
+    if (pd && !pd.reached) action = 'Vise un coucher à ' + pd.targetTime + ' ce soir (ton plan de recalage).';
+    else if (pd && pd.reached) action = 'Tu tiens ta cible de ' + pd.goalTime + ' — verrouille l’habitude ce soir.';
+    else action = sleepIns.irregular ? 'Couche-toi à heure fixe ce soir, même le week-end.' : 'Vise un coucher 30 min plus tôt ce soir.';
   }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
