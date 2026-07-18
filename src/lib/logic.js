@@ -2727,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.76', emoji: '🏆', text: 'Palmarès de force (musculation) : ton « Palmarès de force » (meilleures séries et 1RM estimé par exercice) prend désormais aussi en compte les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import contenait ce format, la meilleure série de ces séances était absente du palmarès — alors que tes records perso, eux, la comptaient déjà : deux compteurs pouvaient se contredire côte à côte. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
   { v: '2.0.75', emoji: '🗓️', text: 'Coach Poids — « Ta semaine type » : quand le dimanche fait partie de tes jours dispo, la semaine s’affiche à nouveau dans l’ordre normal (lundi en tête, dimanche en dernier). Avant, le dimanche remontait tout en haut de la semaine — un simple souci d’affichage (la programmation des séances dans l’agenda, elle, était déjà correcte). Le reste de l’app (plan de course, programme par objectif) rangeait déjà la semaine lundi-en-tête : le Coach Poids s’aligne enfin.' },
   { v: '2.0.74', emoji: '🎯', text: 'Cible du jour en musculation (fiche exercice et séance guidée) : la suggestion de progression « 🎯 Cible du jour : X reps × Y kg » compte désormais aussi les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import ne contenait QUE ce format pour un exercice, l’historique s’affichait mais aucune cible n’apparaissait (l’app ne « voyait » pas ces séances pour calculer la progression). C’est corrigé : ces séances comptent maintenant comme partout ailleurs. Rien ne change pour tes séances normales.' },
   { v: '2.0.73', emoji: '🏆', text: 'Records perso (musculation) : les records tenus dans une vieille séance ne sont plus « volés ». Si une sauvegarde restaurée ou un import contenait une séance à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée), le meilleur poids/reps de cet exercice était ignoré au moment de comparer tes records — une charge INFÉRIEURE pouvait alors déclencher à tort un « 🎉 Nouveau record ». Ces vieilles séances comptent désormais dans tes records, exactement comme partout ailleurs dans l’app. Rien ne change pour tes séances normales.' },
@@ -4502,8 +4503,14 @@ function nextStrengthMilestone(value, step) {
 function strengthRecords(workouts) {
   const best = {};
   (Array.isArray(workouts) ? workouts : []).forEach(w => {
-    if (!w || !Array.isArray(w.exercises) || !/^\d{4}-\d{2}-\d{2}$/.test(String(w.date || ''))) return;
-    w.exercises.forEach(ex => {
+    if (!w || !/^\d{4}-\d{2}-\d{2}$/.test(String(w.date || ''))) return;
+    // Comme ses sœurs (`personalRecords`, `bestE1rmByExercise`, `workoutsTable`…), tolère la forme
+    // legacy mono-exercice `w.exercise` : sinon une meilleure série posée dans une vieille séance
+    // importée était absente du palmarès (incohérent avec `personalRecords`, qui la compte, #440).
+    const exos = Array.isArray(w.exercises) && w.exercises.length
+      ? w.exercises
+      : (w.exercise ? [{ name: w.exercise, load: w.load, reps: w.reps }] : []);
+    exos.forEach(ex => {
       if (!ex || !ex.name) return;
       const sets = Array.isArray(ex.setLogs) && ex.setLogs.length ? ex.setLogs : [{ load: ex.load, reps: ex.reps }];
       sets.forEach(s => {

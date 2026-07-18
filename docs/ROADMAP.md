@@ -23,9 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.75 (2026-07-18)
+## 📍 État actuel — build 2.0.76 (2026-07-18)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 67 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**442**) :
+
+- 🏆 **Palmarès de force : compter les séances au format legacy `w.exercise`** (2.0.76) :
+  `strengthRecords` (`logic.js:4502`) alimente le « 🏆 Palmarès de force » (`renderStrengthRecords`,
+  `app.js:311`). Sa garde `!Array.isArray(w.exercises)` ignorait la forme legacy mono-exercice
+  `w.exercise`, que sa sœur `personalRecords` (corrigée en #440) et toutes les autres du domaine
+  gèrent → une meilleure série posée dans une vieille séance importée était **absente du palmarès**,
+  alors que les records perso juste à côté la comptaient (deux compteurs contradictoires). Correctif =
+  repli legacy avant la boucle (aligné sur #440), rétro-compatible. +1 test (legacy + mix legacy/
+  moderne) → **443 tests** + check smoke `strengthRecords` étendu **et promu bloquant**. La famille
+  « repli legacy » n'était donc PAS entièrement close (#440/#441 avaient laissé passer cette fonction).
+  Correctness/robustesse (§4.4/§4.2), domaine Athlète. (`docs/recaps/443-strength-records-legacy.md`).
+  ✅ _boucle #443._
 
 - 🗓️ **Coach Poids « Ta semaine type » : semaine lundi-en-tête, dimanche en dernier** (2.0.75) :
   `coachWeekPlan` (`logic.js:5266`, rendu `app.js:266`) triait ses séances au comparateur brut

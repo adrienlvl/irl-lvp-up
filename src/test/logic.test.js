@@ -4071,6 +4071,26 @@ test('strengthRecords : meilleure série (1RM estimé) par exercice, triée', ()
   assert.equal(dc.e1rm, L.estimate1RM(45, 5));
   assert.deepEqual(L.strengthRecords([]), []);
 });
+test('strengthRecords : tolère la forme legacy mono-exercice w.exercise (#440)', () => {
+  // Séance importée/legacy : l'exercice est noté directement sur l'objet séance, sans tableau exercises[].
+  const legacy = [
+    { date: '2025-03-01', exercise: 'Tractions lestées', load: 30, reps: 6 },   // 1RM = 30×(1+6/30) = 36
+    { date: '2025-03-08', exercise: 'Tractions lestées', load: 32, reps: 5 },   // 1RM ≈ 37.5 → mieux
+  ];
+  const r = L.strengthRecords(legacy);
+  assert.equal(r.length, 1, 'l\'exercice legacy est bien compté');
+  assert.equal(r[0].name, 'Tractions lestées');
+  assert.equal(r[0].load, 32); assert.equal(r[0].reps, 5);
+  assert.equal(r[0].e1rm, L.estimate1RM(32, 5)); assert.equal(r[0].date, '2025-03-08');
+  // Mix legacy + moderne : une meilleure série legacy prime sur une série moderne plus faible.
+  const mix = [
+    { date: '2025-03-01', exercise: 'Squat', load: 100, reps: 5 },              // legacy, 1RM ≈ 116.5
+    { date: '2025-03-10', exercises: [{ name: 'Squat', load: 90, reps: 5 }] },  // moderne, 1RM = 105 → moins bien
+  ];
+  const rm = L.strengthRecords(mix);
+  assert.equal(rm.length, 1);
+  assert.equal(rm[0].load, 100); assert.equal(rm[0].date, '2025-03-01', 'la meilleure série legacy est retenue');
+});
 test('nextStrengthMilestone : prochain palier rond + écart', () => {
   assert.deepEqual(L.nextStrengthMilestone(133.5, 10), { milestone: 140, gap: 6.5 });
   assert.deepEqual(L.nextStrengthMilestone(100, 10), { milestone: 110, gap: 10 }, 'strictement au-dessus');
@@ -5278,7 +5298,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.75');
+  assert.equal(L.CHANGELOG[0].v, '2.0.76');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
