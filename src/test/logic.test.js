@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.105');
+  assert.equal(L.CHANGELOG[0].v, '2.0.106');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7198,6 +7198,57 @@ test('adaptiveCoachFocus : priorise explicitement quand plusieurs piliers décro
   const up = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-16' }, { date: '2026-07-14' }, { date: '2026-07-12' }] }, today);
   assert.equal(up.tone, 'reinforce');
   assert.equal(up.alsoSlipping, 0);
+});
+
+test('adaptiveCoachFocus : crédite une journée multi-piliers (doneToday / reinforce)', () => {
+  const today = '2026-07-16';
+  // Contexte doneToday : sport en décrochage MAIS séance du jour loggée → crédit du geste ; en plus,
+  // focus + nutrition sont déjà cochés aujourd'hui → 3/4 piliers → note « belle journée complète ».
+  const multi = {
+    profile: { weight: 80, goal: 'force' },
+    workouts: [{ date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: today, duration: 45 }],
+    focusSessions: [{ date: today, minutes: 30, task: 'Thèse' }],
+    nutrition: [{ date: today, protein: 120 }],
+  };
+  const m = L.adaptiveCoachFocus(multi, today);
+  assert.equal(m.pillar, 'sport');
+  assert.equal(m.doneToday, true);
+  assert.equal(m.pillarsToday, 3, 'sport + focus + nutrition cochés aujourd’hui');
+  assert.match(m.insight, /3\/4 de tes piliers déjà cochés aujourd’hui/);
+  assert.match(m.insight, /belle journée complète/);
+  assert.match(m.action, /Séance déjà faite aujourd’hui/, 'le crédit du geste reste dans l’action');
+
+  // Un SEUL pilier coché aujourd'hui (le sport crédité) → pillarsToday 1, aucune note multi-piliers.
+  const solo = { workouts: [{ date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: today, duration: 45 }] };
+  const s1 = L.adaptiveCoachFocus(solo, today);
+  assert.equal(s1.doneToday, true);
+  assert.equal(s1.pillarsToday, 1);
+  assert.doesNotMatch(s1.insight, /piliers déjà cochés/);
+
+  // DEUX piliers cochés → note « bonne lancée » (seuil bas à 2).
+  const two = { workouts: [{ date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: today, duration: 45 }], focusSessions: [{ date: today, minutes: 25, task: 'X' }] };
+  const t2 = L.adaptiveCoachFocus(two, today);
+  assert.equal(t2.pillarsToday, 2);
+  assert.match(t2.insight, /2\/4 de tes piliers déjà cochés aujourd’hui — bonne lancée/);
+
+  // Contexte reinforce SANS doneToday : sport en hausse (dernier jour actif = hier), mais focus ET
+  // nutrition cochés aujourd'hui → 2/4 salués. Prouve que le crédit n'exige pas doneToday : un bon élan
+  // suffit, et le pilier poussé (sport) n'a même pas d'entrée du jour.
+  const rise = { workouts: [{ date: '2026-07-05' }, { date: '2026-07-11' }, { date: '2026-07-12' }, { date: '2026-07-14' }, { date: '2026-07-15' }], focusSessions: [{ date: today, minutes: 30, task: 'X' }], nutrition: [{ date: today, protein: 100 }] };
+  const r = L.adaptiveCoachFocus(rise, today);
+  assert.equal(r.pillar, 'sport');
+  assert.equal(r.tone, 'reinforce');
+  assert.equal(r.doneToday, false, 'le pilier poussé n’a pas d’entrée du jour');
+  assert.equal(r.pillarsToday, 2);
+  assert.match(r.insight, /2\/4 de tes piliers déjà cochés aujourd’hui/);
+
+  // Contexte NÉGATIF (rebuild, geste du jour PAS fait) → aucun crédit, même si un autre pilier est coché.
+  const neg = { workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-11' }], focusSessions: [{ date: today, minutes: 30, task: 'X' }] };
+  const ng = L.adaptiveCoachFocus(neg, today);
+  assert.equal(ng.tone, 'rebuild');
+  assert.equal(ng.doneToday, false);
+  assert.ok(ng.pillarsToday >= 1);
+  assert.doesNotMatch(ng.insight, /piliers déjà cochés/, 'pas de crédit multi-piliers en contexte de correction');
 });
 
 test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => {

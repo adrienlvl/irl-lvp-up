@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.106', emoji: '🎉', text: 'Ton coach « Le focus du moment » ne fait plus que pointer ce qui décroche : il SALUE désormais tes journées bien remplies. Quand ton geste du jour est déjà posé (ou qu’il renforce un bon élan) et que tu as en réalité déjà coché plusieurs piliers aujourd’hui, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯 » Le pendant positif de la priorisation : il nomme ce qui tient, pas seulement ce qui flanche. Complémentaire — jamais en même temps qu’une alerte « celui-ci d’abord ».' },
   { v: '2.0.105', emoji: '🧭', text: 'Ton coach « Le focus du moment » ne se contente plus de COMPTER les autres piliers qui décrochent — il les NOMME. Au lieu de « 2 autres piliers faiblissent aussi cette semaine », il te dit lesquels surveiller ensuite, dans l’ordre de gravité : « Ton entraînement s’essouffle… Ton focus et ta nutrition faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire. » Tu sais quoi attaquer en premier ET ce qui vient juste après. Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.104', emoji: '🧭', text: 'Ton coach « Le focus du moment » te dit maintenant par quoi COMMENCER quand plusieurs piliers décrochent en même temps. Jusqu’ici il en choisissait un — le plus prioritaire, trié par gravité — mais sans le dire : tu ne voyais qu’un conseil, sans savoir que d’autres pans faiblissaient aussi. Il rend le choix explicite : « Ton entraînement s’essouffle… 2 autres piliers faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire. » Ne pas tout attaquer d’un coup, commencer par le bon levier. Il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.103', emoji: '🏋️', text: 'Ton coach « Le focus du moment » te propose désormais un vrai créneau pour ta SÉANCE aussi, pas seulement pour ton focus : quand il te pousse sur l’entraînement et que ta journée a déjà un planning horaire, il regarde ton agenda, cale la durée sur ta séance type (médiane de tes 14 derniers jours) et te dit où l’insérer. « Ton entraînement s’essouffle… Créneau libre à 17:30 aujourd’hui — cale ta séance là. » Il contourne tes rendez-vous, et se tait les jours de récup (readiness basse) ou quand ta séance est déjà faite. Le « quand » gagne aussi le sport.' },
@@ -5295,11 +5296,29 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       ? 'Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée.'
       : 'Bloc de focus déjà posé aujourd’hui ✅ — savoure ; si l’énergie est là, un second bloc te rapproche de l’objectif.';
   }
+  // Crédit MULTI-PILIERS — le pendant POSITIF de la priorisation (alsoSlipping NOMME ce qui décroche ;
+  // ici on reconnaît ce qui TIENT). Le coach savait pointer les faiblesses, jamais saluer une journée
+  // bien remplie. Quand le contexte est bon — le geste du pilier poussé est DÉJÀ posé (doneToday) OU le
+  // coach RENFORCE un bon élan (tone 'reinforce') — et qu'Adrien a en réalité déjà TOUCHÉ plusieurs
+  // piliers aujourd'hui (entrée active datée du jour, mêmes prédicats d'activité que les piliers), le
+  // coach le CRÉDITE : « 3/4 de tes piliers déjà cochés aujourd'hui — belle journée complète. » Nommer
+  // la journée complète motive (l'app est gamifiée) et rend l'agentivité, exactement comme alsoSlipping
+  // rend la priorisation lisible côté correction. Complémentaire et DISJOINT d'alsoSlipping par
+  // construction : alsoSlipping n'existe qu'en rebuild/revive + !doneToday ; ce crédit n'existe qu'en
+  // doneToday OU reinforce → jamais les deux notes le même jour. Seuil ≥ 2 piliers pour que « cochés
+  // aujourd'hui » traduise une vraie dynamique du jour, pas un pilier isolé. Champ pur pillarsToday
+  // (0-4) TOUJOURS renvoyé (informatif) ; la note n'est ajoutée qu'en contexte positif.
+  const pillarsToday = cands.filter(c => (Array.isArray(c.list) ? c.list : []).some(e => e && e.date === todayKey && c.active(e))).length;
+  if ((doneToday || tone === 'reinforce') && pillarsToday >= 2) {
+    insight += pillarsToday >= 3
+      ? ` ${pillarsToday}/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯`
+      : ' 2/4 de tes piliers déjà cochés aujourd’hui — bonne lancée.';
+  }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, doneToday, alsoSlipping, alsoSlippingPillars,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday,
   };
 }
 

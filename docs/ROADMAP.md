@@ -23,7 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.105 (2026-07-19)
+## 📍 État actuel — build 2.0.106 (2026-07-19)
+
+> 🎉 **2.0.106** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » gagne son **registre positif**. Jusqu'ici il savait NOMMER ce qui décroche (`alsoSlipping`,
+> #473/#474) mais ne saluait jamais une journée bien remplie. Nouveau champ pur `pillarsToday` (0-4 =
+> nombre de piliers avec une entrée **active datée du jour**) : quand le contexte est **positif** — geste
+> du pilier poussé déjà posé (`doneToday`) **OU** renforcement d'un bon élan (`reinforce`) — et qu'au
+> moins 2 piliers sont cochés aujourd'hui, une note de crédit enrichit l'insight : « **3/4 de tes piliers
+> déjà cochés aujourd'hui — belle journée complète. 🎯** » (« **2/4… — bonne lancée.** » à deux). Le
+> pendant exact d'`alsoSlipping` côté célébration, et **disjoint par construction** (`alsoSlipping` = fix
+> + `!doneToday` ; crédit = `doneToday` ou `reinforce`) → jamais les deux notes le même jour. Additif
+> pur : `pillarsToday` **toujours** renvoyé, insight **enrichi** en contexte positif, aucun retrait.
+> `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #475.
 
 > 🧭 **2.0.105** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » ne se contente plus de **compter** les autres piliers qui décrochent — il les **NOMME**,
