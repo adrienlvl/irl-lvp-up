@@ -2746,6 +2746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.88', emoji: '🎯', text: 'Ton coach alternance ne s’arrête plus à « postule » : une fois ta candidature du jour envoyée, il continue à te piloter sur le reste du funnel. S’il y a une entreprise sans réponse depuis 7 jours ou plus, il te dit « Relance {entreprise} — sans réponse depuis N jours ». Et si tu as un entretien dans le pipeline, il te pousse à le préparer. La priorité reste absolue tant que tu n’as pas décroché ta place.' },
   { v: '2.0.87', emoji: '🩹', text: 'Correctif Alternance : « Entretien en entreprise » (et « entretien avec l’entreprise ») n’est plus classé par erreur en « Accepté ». Un mot glissé dans une version récente reconnaissait « pris » à l’intérieur d’« entre-pris-e » et prenait un entretien à venir pour une offre décrochée — ce qui gonflait à tort ton taux de réponse et pouvait « verrouiller » la candidature en accepté. Les vrais « pris/prise/retenu/accepté » restent bien reconnus.' },
   { v: '2.0.86', emoji: '🏃', text: 'Programme auto (onglet Athlète, « Mon programme selon mon objectif ») : le résumé accorde enfin « course » au pluriel quand ton objectif comporte plusieurs courses par semaine — « 4 courses/sem. » au lieu de « 4 course/sem. » (Perte de gras, Endurance, Corps athlétique…). Même correction dans le détail « (X muscu, Y courses) » et dans le programme copié/partagé. Un objectif à une seule course par semaine (Prise de muscle) reste au singulier. Petit détail d’accord — rien ne change au contenu de ton programme.' },
   { v: '2.0.85', emoji: '💼', text: 'Import Alternance (cibles depuis Google Sheets / CSV) : deux colonnes sont mieux reconnues. Un département d’outre-mer entre parenthèses — « (972) », « (974) »… — est désormais compris comme les départements métropolitains « (35) », donc filtrable et ciblable ; auparavant seuls deux chiffres étaient reconnus et les DOM étaient silencieusement ignorés. Et la colonne de score n’est plus confondue quand son en-tête est « Score /100 » (ou contient une autre année/nombre) : seule une note « /10 » est prise pour la colonne /10, ce qui évitait un import qui repartait vide sans explication. Rien ne change pour un tableau « Score /10 » classique avec des villes métropolitaines.' },
@@ -4855,28 +4856,37 @@ function adaptiveCoachFocus(state, todayKey) {
     return n < 0 ? null : n;
   };
 
-  // Alternance : PRIORITÉ ABSOLUE. C'est le n°1 réel d'Adrien, avec une échéance dure (1er août).
-  // Tant qu'il cherche (≥ 1 candidature, aucune acceptée) et qu'il n'a pas postulé AUJOURD'HUI, ce
-  // focus prime sur tous les piliers de momentum — le but affiché est de le pousser à postuler chaque
-  // jour avant l'échéance. Une fois sa candidature du jour envoyée, le coach repasse au reste.
+  // Alternance : PRIORITÉ ABSOLUE (n°1 réel d'Adrien, échéance dure). Machine à états du FUNNEL, pas
+  // un simple « postule » : tant qu'il cherche (aucune acceptée), le focus reste alternance et son
+  // MESSAGE s'adapte à l'étape la plus utile du jour — (1) pas postulé aujourd'hui → postuler ;
+  // (2) postulé, mais une relance en attente (J+7 sans réponse) → relancer la plus ancienne, nommée ;
+  // (3) postulé, un entretien dans le pipeline → le préparer. Une fois la candidature du jour envoyée
+  // ET rien à relancer/préparer, le coach repasse aux piliers. applicationStats calcule déjà
+  // pendingRelances (triées desc) et entretiens — on les exploite au lieu de les jeter.
   const apps = Array.isArray(s.applications) ? s.applications : [];
   if (apps.length >= 1 && typeof applicationStats === 'function') {
     const st = applicationStats(apps, todayKey, { weekGoal: Number(s.jobSearchGoal) || 5 });
-    if (st.accepted === 0 && !st.appliedToday) {
+    if (st.accepted === 0) {
       const dl = (typeof alternanceDeadline === 'function') ? alternanceDeadline(todayKey) : null;
-      const parts = [];
-      if (dl && dl.daysLeft != null) parts.push('plus que ' + dl.daysLeft + ' j avant août');
-      parts.push(st.weekCount + '/' + st.weekGoal + ' candidature' + (st.weekGoal > 1 ? 's' : '') + ' cette semaine');
-      if (st.streak > 0) parts.push('🔥 ' + st.streak + ' j de suite');
-      const insight = parts.join(' · ');
-      return {
-        pillar: 'alternance', label: 'Alternance', emoji: '💼', page: 'alternance',
-        trend: 'deadline', tone: 'urgent',
-        recentDays: st.weekCount, prevDays: 0, lastActiveDays: null,
-        headline: 'Postule aujourd’hui pour ton alternance',
-        insight: insight.charAt(0).toUpperCase() + insight.slice(1) + '.',
-        action: 'Ajoute une candidature — une seule suffit à avancer.',
-      };
+      const dTxt = (dl && dl.daysLeft != null) ? 'plus que ' + dl.daysLeft + ' j avant août' : '';
+      const cap = z => z.charAt(0).toUpperCase() + z.slice(1);
+      const base = { pillar: 'alternance', label: 'Alternance', page: 'alternance', trend: 'deadline', tone: 'urgent', recentDays: st.weekCount, prevDays: 0, lastActiveDays: null };
+      if (!st.appliedToday) {
+        const parts = [];
+        if (dTxt) parts.push(dTxt);
+        parts.push(st.weekCount + '/' + st.weekGoal + ' candidature' + (st.weekGoal > 1 ? 's' : '') + ' cette semaine');
+        if (st.streak > 0) parts.push('🔥 ' + st.streak + ' j de suite');
+        return { ...base, emoji: '💼', headline: 'Postule aujourd’hui pour ton alternance', insight: cap(parts.join(' · ')) + '.', action: 'Ajoute une candidature — une seule suffit à avancer.' };
+      }
+      if (st.pendingRelances && st.pendingRelances.length) {
+        const r = st.pendingRelances[0];
+        const more = st.pendingRelances.length > 1 ? ' · ' + st.pendingRelances.length + ' relances à faire' : '';
+        return { ...base, emoji: '🔁', headline: 'Relance ' + (r.company || 'cette entreprise'), insight: 'Sans réponse depuis ' + r.days + ' jour' + (r.days > 1 ? 's' : '') + more + '. Une relance polie double souvent tes chances.', action: 'Envoie un message court et poli, puis marque la relance faite.' };
+      }
+      if (st.entretiens > 0) {
+        return { ...base, emoji: '🤝', headline: st.entretiens > 1 ? 'Prépare tes ' + st.entretiens + ' entretiens' : 'Prépare ton entretien', insight: (dTxt ? cap(dTxt) + ' · ' : '') + 'un entretien, c’est là que tout se joue.', action: 'Renseigne-toi sur l’entreprise et prépare 2-3 questions à poser.' };
+      }
+      // Postulé aujourd'hui, rien à relancer ni à préparer → le coach passe aux piliers de momentum.
     }
   }
 

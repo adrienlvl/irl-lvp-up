@@ -5421,7 +5421,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.87');
+  assert.equal(L.CHANGELOG[0].v, '2.0.88');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7086,10 +7086,31 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(alt.page, 'alternance');
   assert.match(alt.insight, /avant août/);
   assert.match(alt.insight, /cette semaine/);
-  // postulé aujourd'hui → le coach repasse aux piliers (plus d'alternance)
+  // postulé aujourd'hui, rien en attente → le coach repasse aux piliers (plus d'alternance)
   assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: today }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');
   // alternance décrochée → plus de pression alternance
   assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'accepte', date: '2026-07-01' }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');
+
+  // FUNNEL — postulé aujourd'hui MAIS une relance en attente (J+9) → le coach coache la relance, nommée.
+  const rel = L.adaptiveCoachFocus({ applications: [
+    { id: 1, company: 'Faite Aujourd’hui', status: 'postule', date: today },
+    { id: 2, company: 'Cabinet Léa', status: 'postule', date: '2026-07-07' },
+  ], workouts: [{ date: '2026-07-16' }] }, today);
+  assert.equal(rel.pillar, 'alternance');
+  assert.equal(rel.tone, 'urgent');
+  assert.match(rel.headline, /Relance Cabinet Léa/);
+  assert.match(rel.insight, /depuis 9 jours/);
+  // postulé aujourd'hui, pas de relance, mais un entretien dans le pipeline → prépa entretien.
+  const ent = L.adaptiveCoachFocus({ applications: [
+    { id: 1, company: 'A', status: 'postule', date: today },
+    { id: 2, company: 'B', status: 'entretien', date: '2026-07-05' },
+  ], workouts: [{ date: '2026-07-16' }] }, today);
+  assert.equal(ent.pillar, 'alternance');
+  assert.match(ent.headline, /entretien/i);
+  // PAS encore postulé aujourd'hui, même avec une relance en attente → postuler reste la priorité du jour.
+  const pri = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'X', status: 'postule', date: '2026-07-05' }], workouts: [{ date: '2026-07-16' }] }, today);
+  assert.equal(pri.pillar, 'alternance');
+  assert.match(pri.headline, /Postule aujourd’hui/);
 });
 
 test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {

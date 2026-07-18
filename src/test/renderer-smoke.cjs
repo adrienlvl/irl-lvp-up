@@ -625,7 +625,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.87'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.88'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -783,6 +783,9 @@ app.whenReady().then(async () => {
           if (adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, '2026-07-16').tone !== 'revive') return false;
           if (adaptiveCoachFocus({ workouts: [], focusSessions: [], recovery: [], nutrition: [] }, '2026-07-16') !== null) return false;
           if (adaptiveCoachFocus({ applications: [{ id: 1, status: 'postule', date: '2026-07-14' }] }, '2026-07-16').pillar !== 'alternance') return false;
+          // Funnel : postulé aujourd'hui + relance en attente (J+9) → le coach coache la relance nommée.
+          const funnelRel = adaptiveCoachFocus({ applications: [{ id: 1, company: 'FaiteAuj', status: 'postule', date: '2026-07-16' }, { id: 2, company: 'RelanceMoi', status: 'postule', date: '2026-07-07' }], workouts: [{ date: '2026-07-16' }] }, '2026-07-16');
+          if (!(funnelRel.pillar === 'alternance' && /Relance RelanceMoi/.test(funnelRel.headline))) return false;
           if (!adaptiveCoachFocus({ recovery: [{ date: '2026-07-04', sleep: 7 }, { date: '2026-07-05', sleep: 7 }, { date: '2026-07-06', sleep: 7 }, { date: '2026-07-14', sleep: 7 }], workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-13', pillar: 'sommeil' }, { date: '2026-07-14', pillar: 'sommeil' }, { date: '2026-07-15', pillar: 'sommeil' }] }, '2026-07-16').rotated) return false;
           if (!/Objectif hebdo : 1\\/4/.test(adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }], goals: { sessions: 4 } }, '2026-07-16').insight)) return false;
           if (typeof coachFollowThrough !== 'function' || !document.getElementById('coachFollow')) return false;

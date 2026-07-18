@@ -23,8 +23,9 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.87 (2026-07-18)
+## 📍 État actuel — build 2.0.88 (2026-07-18)
 
+> 🎯 **2.0.88** — approfondissement Coaching (reprise « faire évoluer l'app ») : le coach alternance pilote désormais TOUT le funnel — postuler → **relancer {entreprise}** (J+7) → **préparer l'entretien** —, plus seulement « postule ». Machine à états sur `applicationStats` (pendingRelances/entretiens déjà calculés). Issu d'une conception multi-agents (double jury, idée n°1). Recap #458.
 > 🩹 **2.0.87** — hotfix Alternance : « entretien en entreprise » n'est plus classé « accepté » (régression #446 attrapée par la revue adversariale de l'audit VPS). Voir recap #457.
 
 
