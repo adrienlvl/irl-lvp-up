@@ -23,7 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.103 (2026-07-19)
+## 📍 État actuel — build 2.0.104 (2026-07-19)
+
+> 🧭 **2.0.104** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » dit désormais par quoi **COMMENCER** quand **plusieurs piliers décrochent** le même jour
+> (priorisation explicite — « quoi faire en premier aujourd'hui »). `adaptiveCoachFocus` triait déjà les
+> piliers « à corriger » par gravité (tier, ampleur du décrochage, dormance) et n'en poussait qu'un — mais
+> ce choix restait **invisible**. Nouveau champ pur `alsoSlipping` (nombre de piliers « à corriger »
+> **autres** que le choisi) + note ajoutée à l'insight : « **Un autre pilier faiblit aussi cette semaine —
+> celui-ci d'abord, c'est ton levier prioritaire.** » (pluriel « **2 autres piliers…** » au-delà). Le coach
+> passe du choix implicite au « ne fais pas tout d'un coup, commence par le bon levier ». Garde-fous : tons
+> « à corriger » (rebuild/revive) uniquement, **hors rotation** (là on a fui le prioritaire → « d'abord »
+> serait faux), **hors micro-pas** (on abaisse la barre, pas le moment d'empiler les alertes) et **hors
+> geste déjà fait**. Additif pur : insight **enrichi** (jamais remplacé), aucun retrait. `adaptiveCoachFocus`
+> pur + testé, check smoke bloquant `coachFocus` étendu. Recap #473.
 
 > 🏋️ **2.0.103** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » cale désormais un créneau pour la **séance de sport** aussi, pas seulement pour le focus

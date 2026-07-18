@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.104', emoji: '🧭', text: 'Ton coach « Le focus du moment » te dit maintenant par quoi COMMENCER quand plusieurs piliers décrochent en même temps. Jusqu’ici il en choisissait un — le plus prioritaire, trié par gravité — mais sans le dire : tu ne voyais qu’un conseil, sans savoir que d’autres pans faiblissaient aussi. Il rend le choix explicite : « Ton entraînement s’essouffle… 2 autres piliers faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire. » Ne pas tout attaquer d’un coup, commencer par le bon levier. Il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.103', emoji: '🏋️', text: 'Ton coach « Le focus du moment » te propose désormais un vrai créneau pour ta SÉANCE aussi, pas seulement pour ton focus : quand il te pousse sur l’entraînement et que ta journée a déjà un planning horaire, il regarde ton agenda, cale la durée sur ta séance type (médiane de tes 14 derniers jours) et te dit où l’insérer. « Ton entraînement s’essouffle… Créneau libre à 17:30 aujourd’hui — cale ta séance là. » Il contourne tes rendez-vous, et se tait les jours de récup (readiness basse) ou quand ta séance est déjà faite. Le « quand » gagne aussi le sport.' },
   { v: '2.0.102', emoji: '🗓️', text: 'Ton coach « Le focus du moment » ne te dit plus seulement QUOI faire, mais QUAND : quand il te pousse sur ta concentration, il regarde ton agenda du jour et te propose un vrai créneau libre pour caler ton bloc. « Reprends « Compta »… — un bloc de 45 min suffit à relancer. Créneau libre à 14:30 aujourd’hui — cale ton bloc là. » Il contourne tes rendez-vous et ne suggère un horaire que si ta journée a déjà un planning — sinon il te laisse juger. Une bonne intention devient un plan exécutable inséré dans ta vraie journée.' },
   { v: '2.0.101', emoji: '🎯', text: 'Ton coach « Le focus du moment » arrête de te proposer « un bloc de 25 min » au hasard : quand il te pousse sur ta concentration, il cale la durée du bloc sur TA durée habituelle réelle — la médiane de tes sessions de focus des 14 derniers jours. « Reprends « Compta », ton chantier de focus phare — un bloc de 45 min (ta durée habituelle) suffit à relancer. » Un bloc taillé pour toi est plus crédible et plus facile à lancer qu’un chiffre générique. Sans historique suffisant, il garde le repère de 25 min.' },
@@ -5258,6 +5259,25 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       action = 'Un jour actif de plus aujourd’hui : tu prouves que la régularité te ressemble.';
     }
   }
+  // Coach PRIORISANT — « quoi faire en premier aujourd'hui ». Quand PLUSIEURS piliers décrochent en même
+  // temps (fixes contient > 1 pilier), le coach n'en pousse qu'un : le prioritaire, déjà trié plus haut
+  // par gravité (tier, puis ampleur du décrochage). Mais ce choix restait IMPLICITE — Adrien voyait un
+  // conseil unique sans savoir que d'autres piliers faiblissaient aussi, ni pourquoi celui-là d'abord.
+  // On rend la priorisation EXPLICITE dans l'insight : « 2 autres piliers faiblissent aussi cette semaine
+  // — celui-ci d'abord ». C'est exactement la priorisation actionnable visée par la demande de la nuit :
+  // ne pas tout attaquer, commencer par le bon levier. Réservé aux tons « à corriger » (chosen EST un
+  // fix), HORS rotation (là on a justement fui le pilier prioritaire → « d'abord » serait faux), HORS
+  // micro-pas (on abaisse la barre — pas le moment d'empiler les alertes) et HORS geste déjà fait
+  // (l'action félicite alors, un « d'abord » sonnerait faux). Additif pur : champ alsoSlipping (nombre).
+  let alsoSlipping = 0;
+  if (!rotated && !microStep && !doneToday && (tone === 'rebuild' || tone === 'revive')) {
+    alsoSlipping = fixes.filter(f => f.c.pillar !== chosen.pillar).length;
+    if (alsoSlipping >= 1) {
+      insight += alsoSlipping === 1
+        ? ' Un autre pilier faiblit aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire.'
+        : ` ${alsoSlipping} autres piliers faiblissent aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire.`;
+    }
+  }
   // Crédit du jour (placé EN DERNIER pour primer sur les actions « fais X » — génériques, readiness,
   // tâche phare, renfort) : le geste étant posé, l'action devient une consolidation légère. L'insight
   // (tendance hebdo) reste vrai et intact ; seule l'action, qui donnait un ordre déjà exécuté, change.
@@ -5270,7 +5290,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, doneToday,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, doneToday, alsoSlipping,
   };
 }
 

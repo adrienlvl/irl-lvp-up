@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.103');
+  assert.equal(L.CHANGELOG[0].v, '2.0.104');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7155,6 +7155,46 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   const pri = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'X', status: 'postule', date: '2026-07-05' }], workouts: [{ date: '2026-07-16' }] }, today);
   assert.equal(pri.pillar, 'alternance');
   assert.match(pri.headline, /Postule aujourd’hui/);
+});
+
+test('adaptiveCoachFocus : priorise explicitement quand plusieurs piliers décrochent', () => {
+  const today = '2026-07-16';
+  const workouts = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  const focusSessions = [{ date: '2026-07-04', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-08', minutes: 30 }, { date: '2026-07-12', minutes: 30 }];
+  const nutrition = [{ date: '2026-07-03', protein: 100 }, { date: '2026-07-05', protein: 100 }, { date: '2026-07-07', protein: 100 }, { date: '2026-07-13', protein: 100 }];
+
+  // Un SEUL pilier décroche → pas de note de priorisation, alsoSlipping 0.
+  const one = L.adaptiveCoachFocus({ workouts }, today);
+  assert.equal(one.pillar, 'sport');
+  assert.equal(one.alsoSlipping, 0);
+  assert.doesNotMatch(one.insight, /autre pilier faiblit|autres piliers faiblissent/);
+
+  // DEUX piliers décrochent (sport + focus, tier égal) → sport choisi (dormant depuis plus longtemps),
+  // note explicite au singulier, alsoSlipping 1.
+  const two = L.adaptiveCoachFocus({ workouts, focusSessions }, today);
+  assert.equal(two.pillar, 'sport');
+  assert.equal(two.tone, 'rebuild');
+  assert.equal(two.alsoSlipping, 1);
+  assert.match(two.insight, /Un autre pilier faiblit aussi cette semaine/);
+  assert.match(two.insight, /levier prioritaire/);
+
+  // TROIS piliers décrochent → note au pluriel, alsoSlipping 2.
+  const three = L.adaptiveCoachFocus({ workouts, focusSessions, nutrition }, today);
+  assert.equal(three.pillar, 'sport');
+  assert.equal(three.alsoSlipping, 2);
+  assert.match(three.insight, /2 autres piliers faiblissent aussi cette semaine/);
+
+  // Rotation (3 j du même focus journalisés) → on a fui le pilier prioritaire, pas de « d'abord ».
+  const rotLog = [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sport' }];
+  const rot = L.adaptiveCoachFocus({ workouts, focusSessions, coachLog: rotLog }, today);
+  assert.ok(rot.rotated);
+  assert.equal(rot.alsoSlipping, 0);
+  assert.doesNotMatch(rot.insight, /levier prioritaire/);
+
+  // Renforcement (rien à corriger) → aucune note, alsoSlipping 0.
+  const up = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-16' }, { date: '2026-07-14' }, { date: '2026-07-12' }] }, today);
+  assert.equal(up.tone, 'reinforce');
+  assert.equal(up.alsoSlipping, 0);
 });
 
 test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => {
