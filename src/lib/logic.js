@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.109', emoji: '🧭', text: 'Ton coach « Le focus du moment » nuance désormais la GRAVITÉ des piliers qui décrochent. Un pilier laissé à l’abandon depuis deux semaines n’appelle pas le même geste qu’un simple creux : le coach le dit. Au lieu de tout mettre sur « faiblit », il distingue « à l’arrêt » (dormant, à relancer) de « faiblit » (en léger recul, à rattraper) : « Ton entraînement s’essouffle… Ton sommeil est à l’arrêt aussi cette semaine — celui-ci d’abord. » Et si les deux se mélangent, il précise l’état de chacun : « Ta nutrition (en recul) et ton focus (à l’arrêt) décrochent aussi cette semaine. » Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
   { v: '2.0.108', emoji: '🔥', text: 'Ton coach « Le focus du moment » ne salue plus seulement UNE belle journée : il célèbre ta SÉRIE. Quand tu as déjà coché au moins 3 de tes 4 piliers aujourd’hui et que tu enchaînes plusieurs journées complètes d’affilée, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 » Reconnaître qu’on TIENT la régularité motive plus que féliciter un jour isolé. Il reste discret : la célébration de série n’apparaît que les jours vraiment complets, jamais en même temps qu’une alerte « celui-ci d’abord ».' },
   { v: '2.0.107', emoji: '🌙', text: 'Ton coach « Le focus du moment » protège désormais ta fenêtre de coucher le soir, comme il cale déjà tes blocs de focus et de sport. Quand un plan de recalage du sommeil est actif et qu’un rendez-vous horaire de ta journée finit trop tard — sur ta cible de coucher ou dans les 30 min de sas juste avant —, il le repère et t’alerte : « Vise un coucher à 22:30 ce soir (ton plan de recalage). « Dîner famille » (à partir de 20:30) mord sur ta cible de 22:30 — protège ta fenêtre du soir. » Le premier saboteur d’un plan de recalage, c’est un soir qui déborde : le coach le voit venir dans ta vraie journée.' },
   { v: '2.0.106', emoji: '🎉', text: 'Ton coach « Le focus du moment » ne fait plus que pointer ce qui décroche : il SALUE désormais tes journées bien remplies. Quand ton geste du jour est déjà posé (ou qu’il renforce un bon élan) et que tu as en réalité déjà coché plusieurs piliers aujourd’hui, il te le rend : « Séance déjà faite aujourd’hui 💪 … 3/4 de tes piliers déjà cochés aujourd’hui — belle journée complète. 🎯 » Le pendant positif de la priorisation : il nomme ce qui tient, pas seulement ce qui flanche. Complémentaire — jamais en même temps qu’une alerte « celui-ci d’abord ».' },
@@ -5315,11 +5316,31 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     alsoSlipping = others.length;
     alsoSlippingPillars = others.map(f => f.c.pillar);
     if (alsoSlipping >= 1) {
-      const noms = others.map(f => POSSESSIF[f.c.pillar] || f.c.label);
-      const liste = noms.length === 1 ? noms[0] : noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1];
+      // Modulation de la GRAVITÉ : nommer les autres piliers qui décrochent est utile (#474), mais les
+      // mettre TOUS sur le même « faiblit » perd une info actionnable. Un pilier DORMANT (tier 1 : deux
+      // semaines à zéro alors qu'il a déjà existé) n'appelle pas le même geste qu'un simple CREUX (léger
+      // recul) : le premier demande une vraie relance, le second un rattrapage. On distingue donc « à
+      // l'arrêt » (dormant) de « faiblit » (creux). Trois cas, du plus lisible au plus précis :
+      //  • tous dormants   → « … sont à l'arrêt aussi cette semaine »
+      //  • tous en creux   → « … faiblissent aussi cette semaine » (libellé historique, inchangé)
+      //  • mixte           → état en parenthèse par pilier + verbe neutre « décrochent »
+      // Additif pur : alsoSlipping/alsoSlippingPillars inchangés, seul le libellé s'affine.
+      const isDormant = f => f.tier === 1;
+      const joinNoms = ns => ns.length === 1 ? ns[0] : ns.slice(0, -1).join(', ') + ' et ' + ns[ns.length - 1];
+      const allDormant = others.every(isDormant);
+      const anyDormant = others.some(isDormant);
+      let liste, clause;
+      if (anyDormant && !allDormant) {
+        liste = joinNoms(others.map(f => (POSSESSIF[f.c.pillar] || f.c.label) + (isDormant(f) ? ' (à l’arrêt)' : ' (en recul)')));
+        clause = alsoSlipping === 1 ? 'décroche' : 'décrochent';
+      } else {
+        liste = joinNoms(others.map(f => POSSESSIF[f.c.pillar] || f.c.label));
+        clause = allDormant
+          ? (alsoSlipping === 1 ? 'est à l’arrêt' : 'sont à l’arrêt')
+          : (alsoSlipping === 1 ? 'faiblit' : 'faiblissent');
+      }
       const capListe = liste.charAt(0).toUpperCase() + liste.slice(1);
-      const verbe = alsoSlipping === 1 ? 'faiblit' : 'faiblissent';
-      insight += ` ${capListe} ${verbe} aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire.`;
+      insight += ` ${capListe} ${clause} aussi cette semaine — celui-ci d’abord, c’est ton levier prioritaire.`;
     }
   }
   // Crédit du jour (placé EN DERNIER pour primer sur les actions « fais X » — génériques, readiness,

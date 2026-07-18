@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.108');
+  assert.equal(L.CHANGELOG[0].v, '2.0.109');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7186,6 +7186,24 @@ test('adaptiveCoachFocus : priorise explicitement quand plusieurs piliers décro
   assert.equal(three.alsoSlipping, 2);
   assert.deepEqual(three.alsoSlippingPillars, ['focus', 'nutrition']);
   assert.match(three.insight, /Ton focus et ta nutrition faiblissent aussi cette semaine/);
+
+  // GRAVITÉ modulée : un autre pilier DORMANT (focus actif seulement il y a 3 semaines, 0 depuis
+  // 14 j) → « à l'arrêt » au lieu de « faiblit » (sport en creux reste le focus prioritaire).
+  const dormFocus = [{ date: '2026-06-25', minutes: 30 }];
+  const dorm = L.adaptiveCoachFocus({ workouts, focusSessions: dormFocus }, today);
+  assert.equal(dorm.pillar, 'sport');
+  assert.equal(dorm.alsoSlipping, 1);
+  assert.deepEqual(dorm.alsoSlippingPillars, ['focus']);
+  assert.match(dorm.insight, /Ton focus est à l’arrêt aussi cette semaine — celui-ci d’abord/);
+  assert.doesNotMatch(dorm.insight, /focus faiblit/);
+
+  // MIXTE : nutrition en creux + focus dormant → état précisé en parenthèse pour chacun, verbe neutre
+  // « décrochent » (ordre de gravité : les tier 0 avant le tier 1 dormant).
+  const mixte = L.adaptiveCoachFocus({ workouts, focusSessions: dormFocus, nutrition }, today);
+  assert.equal(mixte.pillar, 'sport');
+  assert.equal(mixte.alsoSlipping, 2);
+  assert.deepEqual(mixte.alsoSlippingPillars, ['nutrition', 'focus']);
+  assert.match(mixte.insight, /Ta nutrition \(en recul\) et ton focus \(à l’arrêt\) décrochent aussi cette semaine/);
 
   // Rotation (3 j du même focus journalisés) → on a fui le pilier prioritaire, pas de « d'abord ».
   const rotLog = [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sport' }];

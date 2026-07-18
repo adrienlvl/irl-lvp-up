@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.108 (2026-07-19)
+## 📍 État actuel — build 2.0.109 (2026-07-19)
+
+> 🧭 **2.0.109** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **nuance la GRAVITÉ** des autres piliers qui décrochent. Depuis #474/#475 il les NOMME
+> (`alsoSlipping`), mais tous recevaient le même verbe « faiblit », qu'ils soient **dormants** (deux
+> semaines à zéro) ou en simple **creux** — or ces deux états n'appellent pas le même geste (relance vs
+> rattrapage). La distinction existait déjà dans la logique (le `tier` de tri : tier 1 = dormant/revive),
+> mais était **perdue à l'affichage**. Désormais le libellé s'adapte : tous dormants → « … **est/sont à
+> l'arrêt** aussi cette semaine » ; tous en creux → « … **faiblissent** aussi » (historique, inchangé) ;
+> **mixte** → état en parenthèse par pilier + verbe neutre : « **Ta nutrition (en recul) et ton focus
+> (à l'arrêt) décrochent** aussi cette semaine ». Point de conception : `isDormant = tier === 1`
+> (exactement l'état dormant, déjà utilisé pour choisir `revive`/`rebuild`) — on relit la gravité déjà
+> triée, aucune nouvelle heuristique. Backward-compat totale : les cas « tout en creux » gardent mot pour
+> mot le libellé historique (tests #474/#475 inchangés). Additif pur : `alsoSlipping`/`alsoSlippingPillars`
+> inchangés, seul le libellé s'affine ; garde-fous hérités (rebuild/revive, hors rotation/micro-pas/geste
+> fait). `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #478.
 
 > 🔥 **2.0.108** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » ne salue plus seulement **une** belle journée — il célèbre ta **série**. Depuis #475,
