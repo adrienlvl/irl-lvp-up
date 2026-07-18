@@ -23,7 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.101 (2026-07-19)
+## 📍 État actuel — build 2.0.102 (2026-07-19)
+
+> 🗓️ **2.0.102** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » passe du **quoi/combien** au **quand**. Nouveau `focusSlot` (+ param optionnel
+> `opts.nowMinutes` passé par le rendu) : quand il pousse la concentration, que l'heure du jour est
+> connue et que l'agenda contient un **RDV horaire réel**, il cherche via `nextFreeSlot` le prochain
+> **créneau libre** assez long pour le bloc et le **cite** dans l'action — « …un bloc de 45 min suffit
+> à relancer. **Créneau libre à 14:30 aujourd'hui — cale ton bloc là.** ». Il contourne les RDV (09:15
+> en plein rendez-vous → 10:00). Garde-fous : planning horaire du jour requis (pas de « maintenant »
+> trivial sur jour vide), heure inconnue → `null` inchangé (rétrocompat 2 args), bloc qui ne rentre
+> plus avant 22:00 → `null`, hors focus → `null`. Additif pur ; crédit du jour (#469), micro-marche
+> (#465) et renfort (#466) gardent la priorité. `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #471.
 
 > 🎯 **2.0.101** — Coaching adaptatif poussé à fond (priorité de la nuit) : la **longueur du bloc
 > focus** suggéré cesse d'être un « 25 min » codé en dur. Nouveau `focusBlockMin` : la **médiane** des

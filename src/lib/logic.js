@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.102', emoji: '🗓️', text: 'Ton coach « Le focus du moment » ne te dit plus seulement QUOI faire, mais QUAND : quand il te pousse sur ta concentration, il regarde ton agenda du jour et te propose un vrai créneau libre pour caler ton bloc. « Reprends « Compta »… — un bloc de 45 min suffit à relancer. Créneau libre à 14:30 aujourd’hui — cale ton bloc là. » Il contourne tes rendez-vous et ne suggère un horaire que si ta journée a déjà un planning — sinon il te laisse juger. Une bonne intention devient un plan exécutable inséré dans ta vraie journée.' },
   { v: '2.0.101', emoji: '🎯', text: 'Ton coach « Le focus du moment » arrête de te proposer « un bloc de 25 min » au hasard : quand il te pousse sur ta concentration, il cale la durée du bloc sur TA durée habituelle réelle — la médiane de tes sessions de focus des 14 derniers jours. « Reprends « Compta », ton chantier de focus phare — un bloc de 45 min (ta durée habituelle) suffit à relancer. » Un bloc taillé pour toi est plus crédible et plus facile à lancer qu’un chiffre générique. Sans historique suffisant, il garde le repère de 25 min.' },
   { v: '2.0.100', emoji: '✅', text: 'Ton coach « Le focus du moment » ne te répète plus un ordre que tu as déjà exécuté : quand il pousse ton entraînement ou ton focus alors que tu as DÉJÀ posé ta séance (ou ton bloc) aujourd’hui, il te crédite au lieu de radoter « programme une séance ». « Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée. » Il coupe aussi la micro-marche (« tu ignores mes caps ») les jours où le geste est justement là. Sommeil et nutrition gardent leur conseil du jour (le coucher de ce soir, la cible protéines) — eux ne sont pas « déjà bouclés » pour autant.' },
   { v: '2.0.99', emoji: '🧠', text: 'Ton coach « Le focus du moment » ne te dit plus « lance une session » dans le vide : quand c’est ta concentration qui décroche (ou qui monte), il regarde SUR QUOI tu passes vraiment tes blocs de focus et te nomme ta tâche phare. « Reprends « Compta », ton chantier de focus phare (115 min sur 14 j) — un bloc de 25 min suffit à relancer. » Reprendre un chantier connu coûte moins que repartir de zéro. Le focus était le dernier pilier générique du coach : il parle désormais chiffres et concret sur les quatre (sport, sommeil, nutrition, focus).' },
@@ -4865,8 +4866,9 @@ function attentionDigest(state, todayKey, opts) {
 // Renvoie { pillar, label, emoji, page, trend, tone, recentDays, prevDays, lastActiveDays,
 //           headline, insight, action } ou null (aucun historique du tout → l'onboarding couvre ça).
 // Pur + testé. Ne dépend d'aucune API navigateur.
-function adaptiveCoachFocus(state, todayKey) {
+function adaptiveCoachFocus(state, todayKey, opts) {
   const s = state && typeof state === 'object' ? state : {};
+  const o = opts && typeof opts === 'object' ? opts : {};
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''))) return null;
   const dayMs = 864e5;
   const t0 = new Date(todayKey + 'T12:00:00').getTime();
@@ -5106,7 +5108,7 @@ function adaptiveCoachFocus(state, todayKey) {
   // [10, 60]. Proposer SA durée habituelle rend le conseil crédible et atteignable — « un bloc de 45
   // min, ta durée habituelle » colle à qui il est, là où un 25 min générique peut sembler dérisoire
   // (ou infaisable) selon la personne. ≥3 sessions requises pour un signal stable ; sinon défaut 25.
-  let focusTask = null, focusBlockMin = null;
+  let focusTask = null, focusBlockMin = null, focusSlot = null;
   if (chosen.pillar === 'focus') {
     const durs = [];
     for (const f of (Array.isArray(s.focusSessions) ? s.focusSessions : [])) {
@@ -5133,6 +5135,23 @@ function adaptiveCoachFocus(state, todayKey) {
     } else if (focusBlockMin && (tone === 'rebuild' || tone === 'revive')) {
       // Pas de tâche nommée mais une durée habituelle connue → on personnalise quand même l'action générique.
       action = `Lance une session de focus de ${blkTxt} maintenant.`;
+    }
+    // Coach × AGENDA : le coach dit désormais QUAND caler le bloc, pas seulement quoi/combien. Quand
+    // l'heure du jour est connue (opts.nowMinutes, passé par le rendu) et que l'agenda du jour contient
+    // au moins un RDV horaire réel, on cherche le prochain CRÉNEAU LIBRE assez long pour le bloc
+    // (nextFreeSlot, qui contourne les blocs occupés) et on le CITE dans l'action. « Un créneau libre à
+    // 14:30 » transforme une bonne intention (« lance une session ») en plan exécutable inséré dans la
+    // vraie journée d'Adrien — priorisation concrète du « quand », pas juste du « quoi ». On EXIGE un
+    // vrai planning horaire du jour : sur une journée vide, le « créneau » serait « maintenant » (trivial
+    // et parfois déjà passé) ; on ne veut le conseil que quand il apporte l'info d'un jour structuré.
+    const now = Math.round(Number(o.nowMinutes));
+    if (typeof nextFreeSlot === 'function' && Number.isFinite(now) && now >= 0 && now < 1440) {
+      const agenda = Array.isArray(s.agenda) ? s.agenda : [];
+      const hasTimed = agenda.some(a => a && a.date === todayKey && !a.allDay && !a.completed && timeToMinutes(a.time) != null);
+      if (hasTimed) {
+        const slot = nextFreeSlot(agenda, { date: todayKey, after: minutesToTime(now), durationMin: blk });
+        if (slot) { focusSlot = slot; action += ` Créneau libre à ${slot} aujourd’hui — cale ton bloc là.`; }
+      }
     }
   }
   // Coach CONSCIENT du « déjà fait aujourd'hui » : quand le pilier choisi a une entrée ACTIVE datée
@@ -5211,7 +5230,7 @@ function adaptiveCoachFocus(state, todayKey) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, doneToday,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, doneToday,
   };
 }
 
