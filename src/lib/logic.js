@@ -297,7 +297,6 @@ function jobStatusFromText(t) {
   const x = String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   if (/a postuler|a envoyer|a faire|a contacter|a verifier|trouver le contact|todo|prospect/.test(x)) return 'a_postuler';
   if (/relanc/.test(x)) return 'relance';
-  if (/entretien|entrevue/.test(x)) return 'entretien';
   // Rejet formulé par la NÉGATION d'un mot positif (« non retenu », « candidature non retenue »,
   // « pas (été) retenu(e) ») : la tournure standard d'un refus d'alternance. À tester AVANT `accepte`,
   // sinon son sous-motif « retenu » l'emporterait et inverserait le refus en offre acceptée — ce qui
@@ -306,6 +305,11 @@ function jobStatusFromText(t) {
   if (/\b(non|pas)\b[\s\S]{0,12}retenu/.test(x)) return 'refus';
   if (/accept|retenu|pris|embauch/.test(x)) return 'accepte';
   if (/refus|negati|decline|abandonn|ecart|sans suite/.test(x)) return 'refus';
+  // `entretien` APRÈS les états terminaux (refus/accepté) : un « refusé après entretien » ou un
+  // « retenu à l'issue de l'entretien » est un état FINAL, pas un entretien en cours. Placé avant, le
+  // simple mot « entretien » emportait le refus/l'accepté et laissait la candidature bloquée en
+  // colonne « entretien » du funnel (et non-régressable au re-sync, `rankOf` entretien < refus).
+  if (/entretien|entrevue/.test(x)) return 'entretien';
   if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)) return 'postule';
   return 'a_postuler';
 }
@@ -2727,6 +2731,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.78', emoji: '💼', text: 'Alternance — statut « refusé après entretien » : un refus (ou un accord) reçu à l’issue d’un entretien est enfin classé comme état FINAL. Avant, dès que le mot « entretien » apparaissait dans un statut importé ou synchronisé (« Refusé après entretien », « Non retenu à l’entretien »…), la candidature restait bloquée en colonne « Entretien » du funnel au lieu de passer en « Refusé » — ce qui gonflait à tort ton nombre d’entretiens en cours et faussait tes stats. Un vrai entretien À VENIR (« Entretien prévu mardi ») reste bien en « Entretien ».' },
   { v: '2.0.77', emoji: '💪', text: 'Tonnage soulevé (kg total d’une séance, et tout ce qui en découle : « poids soulevé à vie », record séance, record hebdo, graphe « Tonnage muscu · 8 semaines ») : les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée) pèsent enfin leur vrai tonnage (charge × reps × séries). Avant, une telle séance restaurée ou importée comptait pour 0 kg partout — alors que ta fiche exercice et ton historique, eux, en affichaient déjà le tonnage : deux chiffres pouvaient se contredire. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
   { v: '2.0.76', emoji: '🏆', text: 'Palmarès de force (musculation) : ton « Palmarès de force » (meilleures séries et 1RM estimé par exercice) prend désormais aussi en compte les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import contenait ce format, la meilleure série de ces séances était absente du palmarès — alors que tes records perso, eux, la comptaient déjà : deux compteurs pouvaient se contredire côte à côte. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
   { v: '2.0.75', emoji: '🗓️', text: 'Coach Poids — « Ta semaine type » : quand le dimanche fait partie de tes jours dispo, la semaine s’affiche à nouveau dans l’ordre normal (lundi en tête, dimanche en dernier). Avant, le dimanche remontait tout en haut de la semaine — un simple souci d’affichage (la programmation des séances dans l’agenda, elle, était déjà correcte). Le reste de l’app (plan de course, programme par objectif) rangeait déjà la semaine lundi-en-tête : le Coach Poids s’aligne enfin.' },

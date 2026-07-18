@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.77 (2026-07-18)
+## 📍 État actuel — build 2.0.78 (2026-07-18)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **444 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**444**) :
+
+- 💼 **Alternance : « refusé/accepté après entretien » = état terminal** (2.0.78) :
+  `jobStatusFromText` (`logic.js:296`, partagé par tous les imports manuels + sync Google Sheets)
+  testait `entretien` AVANT les refus/accepté → tout statut contenant « entretien » (« Refusé après
+  entretien », « Non retenu à l'entretien », « Retenu après entretien ») était classé `entretien` au
+  lieu de `refus`/`accepte`. La candidature restait bloquée en colonne Entretien du funnel (gonflant
+  `applicationStats.entretiens`) et, `rankOf` entretien < refus, ne pouvait plus régresser au re-sync.
+  Correctif = déplacer `entretien` APRÈS les états terminaux (négation « non retenu » toujours avant
+  `accepte`). Rétro-compatible : un entretien à venir reste `entretien`. +4 tests → **444 tests** +
+  smoke vert (`alternance`, `altStatusRefresh`). Correctness (§4.4), domaine Alternance.
+  (`docs/recaps/446-alternance-statut-entretien.md`). ✅ _boucle #446._
 
 - 💪 **Tonnage séance : compter les séances au format legacy `w.exercise`** (2.0.77) :
   `workoutTonnage` (`logic.js:5856`) alimentait à `0` toute la cascade tonnage (`lifetimeTonnage`

@@ -751,6 +751,12 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText('Profil non retenu'), 'refus');
   assert.equal(L.jobStatusFromText('Vous n’avez pas été retenu'), 'refus', 'pas (été) retenu = refus');
   assert.equal(L.jobStatusFromText('Vous êtes retenu'), 'accepte', 'retenu positif reste accepté');
+  // Un refus/accepté « après entretien » est un état TERMINAL : le mot « entretien » ne doit plus
+  // l'emporter (sinon la candidature reste bloquée en colonne entretien du funnel).
+  assert.equal(L.jobStatusFromText('Refusé après entretien'), 'refus', 'refus après entretien = refus');
+  assert.equal(L.jobStatusFromText('Non retenu à l’entretien'), 'refus', 'non retenu à l’entretien = refus');
+  assert.equal(L.jobStatusFromText('Retenu après entretien'), 'accepte', 'retenu après entretien = accepté');
+  assert.equal(L.jobStatusFromText('Entretien prévu mardi'), 'entretien', 'entretien à venir reste entretien');
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
@@ -5309,7 +5315,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.77');
+  assert.equal(L.CHANGELOG[0].v, '2.0.78');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
