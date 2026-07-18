@@ -625,8 +625,19 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.82'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.83'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
+        ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
+          // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
+          // comme le bandeau « À venir » et le calendrier mensuel (tous via ageLabel) — pas « 1 ans ».
+          const saved = state.birthdays;
+          const y1 = new Date().getFullYear() - 1;
+          state.birthdays = [{ id: 90101, name: 'Bebe', day: 5, month: 3, year: y1 }];
+          renderBirthdays();
+          const html = document.getElementById('birthdayList').innerHTML;
+          state.birthdays = saved; renderBirthdays();
+          return html.indexOf('1 an<') !== -1 && html.indexOf('1 ans') === -1;
+        })(),
         calorieFloor: typeof calorieAdjustment === 'function' && (() => { const flat = [{ date: '2026-06-21', value: 80 }, { date: '2026-07-01', value: 80.1 }, { date: '2026-07-12', value: 80 }]; const near = calorieAdjustment(flat, 'perte', 1250); const norm = calorieAdjustment(flat, 'perte', 2000); const floor = calorieAdjustment(flat, 'perte', 1200); return near.newTarget === 1200 && near.delta === 50 && near.message.indexOf('50 kcal/jour') !== -1 && near.message.indexOf('125 kcal') === -1 && norm.delta === 125 && norm.newTarget === 1875 && floor.delta === 0 && floor.newTarget === 1200 && floor.message.indexOf('plancher') !== -1; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
         blocksByObjective: typeof blocksByObjective === 'function' && !!document.getElementById('blocksByObjective') && (() => { const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-05-06', 20, 10), wo('2026-06-03', 30, 10), wo('2026-06-10', 30, 10)]; const history = [{ objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 }, { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 }]; const r = blocksByObjective(history, workouts); return r.length === 2 && r[0].objective === 'muscle' && r[0].blocks === 1 && r[0].sessions === 2 && blocksByObjective([], workouts).length === 0; })(),
@@ -1043,6 +1054,7 @@ app.whenReady().then(async () => {
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');
     if (!checks.ageLabel) errors.push('Libellé d’âge KO (ageLabel singulier/pluriel : « 1 an » / « 2 ans » / âge inconnu → vide)');
+    if (!checks.ageLabelList) errors.push('Liste anniversaires KO (renderBirthdays doit accorder l’âge via ageLabel : « 1 an » et non « 1 ans », comme le bandeau « À venir » et le calendrier)');
     if (!checks.calorieFloor) errors.push('Ajustement calorique KO (calorieAdjustment : baisse annoncée ≠ baisse réelle près du plancher 1200)');
     if (!checks.recurring) errors.push('Récurrence KO (recurrenceMatches/normalizeRecurring/recurringForm/recFreq/recurringList)');
     if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList/habitDays 7 jours)');

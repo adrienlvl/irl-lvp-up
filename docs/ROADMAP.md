@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.82 (2026-07-18)
+## 📍 État actuel — build 2.0.83 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **447 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**451**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **447 tests + smoke** verts (harness durci, dont garde-fou CSS + 69 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**453**) :
+
+- 🎂 **Liste des anniversaires : âge accordé au singulier (« 1 an » via `ageLabel`)** (2.0.83) :
+  `renderBirthdays` (`app.js:182`) codait « ans » en dur (`${nowY-b.year} ans`) → « 1 ans » pour un
+  premier anniversaire, là où les 2 vues sœurs (bandeau « 🎂 À venir » `app.js:469`, calendrier
+  mensuel `app.js:474`) passent déjà par le helper `ageLabel` (`logic.js:471`, « 1 an »/« 2 ans »,
+  0/1 → singulier). Correctif = réutilisation du helper (`ageLabel(nowY-b.year)`) — dernier des 3
+  emplacements resté au pluriel figé. Check smoke bloquant `ageLabelList` (« 1 an< » présent, « 1 ans »
+  absent) → **447 tests** + smoke vert. Polish UX honnête (§4.4), domaine Anniversaires.
+  (`docs/recaps/453-birthday-list-agelabel.md`). ✅ _boucle #453._
+
 
 - 🎯 **Bilan hebdo : « encore N séances » (nom accordé) au lieu de « encore N »** (2.0.82) :
   `weeklyInsights` (`logic.js:2303`, carte « Comment va ma semaine ») terminait son conseil objectif
