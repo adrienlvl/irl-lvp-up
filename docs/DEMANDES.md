@@ -9,6 +9,8 @@
 
 ## À traiter
 
+- Fais activement AVANCER la roadmap (docs/ROADMAP.md, CAP 3.0), pas seulement du polish 2.0.x. À chaque itération : repère la prochaine étape non terminée de la roadmap (actuellement Vague 2 « Fondations techniques » : IndexedDB, architecture), fais-la progresser d’UN pas concret et sûr (verify 100% vert), puis tiens à jour l’en-tête « État actuel » ET les cases correspondantes de docs/ROADMAP.md. Si l’étape est un gros chantier qui engage un choix structurant (schéma de données, migration), écris d’abord une proposition dans docs/proposals/ (problème, options, reco, risques) et signale-la ici, tout en avançant les sous-étapes sûres en attendant mon feu vert. Continue d’alterner avec un peu de robustesse/tests pour garder l’app stable. _(ajouté le 2026-07-18 22:22 via le terminal)_
+
 ## En cours
 
 ## Terminé
