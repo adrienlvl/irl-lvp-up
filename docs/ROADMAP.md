@@ -23,7 +23,9 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.90 (2026-07-18)
+## 📍 État actuel — build 2.0.91 (2026-07-18)
+
+> 🔗 **2.0.91** — le coach cite ta preuve : quand il te pousse sur le sommeil, l'action rappelle « tes soirs couché tôt = +2 d'énergie le lendemain » (via `sleepImpactReport`). Chaîne Coaching × Sommeil complète (#458→461). Recap #461.
 
 > 📊 **2.0.90** — le sommeil PROUVE son effet : nouvelle carte « L'effet de ton coucher » (page Récup) qui corrèle tes couchers tôt/tard avec l'énergie et le focus du lendemain — « avant 23:45 → 4/5 vs 2/5 ». `sleepImpactReport` pur + testé. Le moteur de motivation qui légitime le recalage. Recap #460.
 > 😴 **2.0.89** — approfondissement Coaching × Sommeil : le coach « Le focus du moment » connaît enfin le sommeil — nuits courtes ET irrégulières → sommeil promu en tête avec le verdict chiffré (`sleepCoachInsight`), et si un plan de recalage est actif, la cible de coucher du soir (`sleepPlanDay`). Les 2 systèmes profonds se parlent. Recap #459.

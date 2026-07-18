@@ -2746,6 +2746,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.91', emoji: '🔗', text: 'Ton coach relie tout : quand il te pousse sur le sommeil, il te rappelle ta propre preuve — « couche-toi à heure fixe ce soir. Tes soirs couché tôt = +2 d’énergie le lendemain ». Le conseil du soir porte désormais le « pourquoi » chiffré et personnel, pas juste une consigne.' },
   { v: '2.0.90', emoji: '📊', text: 'Nouveau sur ta page Récupération : « L’effet de ton coucher ». L’app compare tes lendemains selon l’heure où tu t’es couché et te montre la preuve chiffrée — « les soirs où tu te couches avant 23:45, ton lendemain a plus d’énergie : 4/5 contre 2/5 ». Le vrai moteur pour tenir ton recalage : voir noir sur blanc que se coucher tôt paie sur ton énergie et ton focus.' },
   { v: '2.0.89', emoji: '😴', text: 'Ton coach « Le focus du moment » connaît enfin ton sommeil. Quand tes nuits sont courtes ET irrégulières, il remonte le sommeil en tête avec le vrai verdict chiffré (moyenne, dette, régularité) au lieu d’un conseil passe-partout. Et si ton plan de recalage est actif, il te donne directement l’heure de coucher à viser ce soir. Les deux systèmes se parlent — jusqu’ici le coach ignorait toute ton intelligence sommeil.' },
   { v: '2.0.88', emoji: '🎯', text: 'Ton coach alternance ne s’arrête plus à « postule » : une fois ta candidature du jour envoyée, il continue à te piloter sur le reste du funnel. S’il y a une entreprise sans réponse depuis 7 jours ou plus, il te dit « Relance {entreprise} — sans réponse depuis N jours ». Et si tu as un entretien dans le pipeline, il te pousse à le préparer. La priorité reste absolue tant que tu n’as pas décroché ta place.' },
@@ -5022,6 +5023,11 @@ function adaptiveCoachFocus(state, todayKey) {
     if (pd && !pd.reached) action = 'Vise un coucher à ' + pd.targetTime + ' ce soir (ton plan de recalage).';
     else if (pd && pd.reached) action = 'Tu tiens ta cible de ' + pd.goalTime + ' — verrouille l’habitude ce soir.';
     else action = sleepIns.irregular ? 'Couche-toi à heure fixe ce soir, même le week-end.' : 'Vise un coucher 30 min plus tôt ce soir.';
+    // PREUVE d'impact : si tes propres données montrent que te coucher tôt paie, le coach le cite —
+    // un « pourquoi » chiffré et personnel motive plus qu'un conseil générique (boucle avec #460).
+    const imp = (typeof sleepImpactReport === 'function') ? sleepImpactReport(s, todayKey) : null;
+    if (imp && imp.deltas.energy != null && imp.deltas.energy >= 0.5) action += ' Tes soirs couché tôt = +' + imp.deltas.energy + ' d’énergie le lendemain.';
+    else if (imp && imp.deltas.focusMin >= 15) action += ' Couché tôt, tu enchaînes +' + imp.deltas.focusMin + ' min de focus le lendemain.';
   }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {

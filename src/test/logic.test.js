@@ -5421,7 +5421,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.90');
+  assert.equal(L.CHANGELOG[0].v, '2.0.91');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7193,6 +7193,14 @@ test('adaptiveCoachFocus : coach conscient du sommeil (alerte + cible du plan)',
   // sommeil solide → aucune promotion : un vrai creux ailleurs reste le focus.
   const good = [8, 8, 8, 8, 8, 8, 8].map((h, i) => ({ date: iso(i), sleep: h }));
   assert.notEqual(L.adaptiveCoachFocus({ recovery: good, workouts }, today).pillar, 'sommeil');
+
+  // PREUVE d'impact citée : sommeil en alerte + couchers qui prouvent leur effet (tôt = +énergie).
+  const recImpact = [], mr = [];
+  for (let i = 0; i < 4; i++) { const d = iso(i * 2); recImpact.push({ date: d, sleep: 6, bedtime: '22:00' }); mr.push({ date: d, energy: 4 }); }
+  for (let i = 0; i < 4; i++) { const d = iso(i * 2 + 1); recImpact.push({ date: d, sleep: 5, bedtime: '01:00' }); mr.push({ date: d, energy: 2 }); }
+  const fi = L.adaptiveCoachFocus({ recovery: recImpact, morningRituals: mr }, today);
+  assert.equal(fi.pillar, 'sommeil', 'court + irrégulier → focus sommeil');
+  assert.match(fi.action, /couché tôt = \+\d/, 'l’action cite la preuve d’impact chiffrée');
 });
 
 test('adaptiveCoachFocus : parle en fonction des objectifs perso (hebdo calendaire)', () => {
