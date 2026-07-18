@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.97 (2026-07-19)
+## 📍 État actuel — build 2.0.98 (2026-07-19)
+
+> 🩺 **2.0.98** — Coaching adaptatif poussé à fond (priorité de la nuit) : l'action **sport** du coach
+> « Le focus du moment » cesse d'être aveugle à la forme du jour. Nouvelle boucle **coach ×
+> récupération** (le pendant de coach × sommeil) : quand il pousse l'entraînement ET qu'un check-in de
+> récup **daté du jour** existe, l'action se cale sur `readinessScore` — allègement mobilité/marche
+> sous 50, feu vert pour pousser au-dessus de 75, séance mesurée entre les deux, score cité. Micro-pas
+> (#465) et renfort (#466) gardent la priorité (signaux de *suivi*, pas de *forme*). Sans check-in du
+> jour → action générique, `readiness` null. `adaptiveCoachFocus` pur + testé (champ `readiness`), check
+> smoke bloquant `coachFocus` étendu. Recap #467.
 
 > 🙌 **2.0.97** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » devient méta-conscient dans le sens **positif** — le pendant du micro-pas #465. Quand il

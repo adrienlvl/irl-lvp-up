@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.98', emoji: '🩺', text: 'Ton coach « Le focus du moment » ne te dit plus « fais une grosse séance » sans regarder ta forme du jour : quand il te pousse sur l’entraînement ET que tu as fait ton check-in de récup aujourd’hui, il cale son conseil sur ta readiness. Au plancher, il t’oriente vers mobilité/marche/technique légère plutôt qu’une grosse séance (récupérer aussi, ça progresse). Au vert, il te donne le feu vert pour pousser — c’est le jour d’une vraie séance. Entre les deux, séance mesurée, pas de record. Un coach qui adapte l’intensité à ton corps, pas juste au calendrier.' },
   { v: '2.0.97', emoji: '🙌', text: 'Ton coach « Le focus du moment » sait aussi te féliciter au bon moment : quand tu es en forme sur un pilier ET que tu as bien suivi ses conseils ces derniers jours, il ne dit plus juste « garde le rythme ». Il te crédite pour de vrai — « tu as tenu 5/6 de mes caps cette semaine, cet élan c’est toi qui le construis ». Le pendant positif du coach qui abaisse la barre quand tu décroches : ici il te renvoie le mérite quand tu assures.' },
   { v: '2.0.96', emoji: '🧗', text: 'Ton coach « Le focus du moment » remarque maintenant quand tu le laisses parler dans le vide : s’il t’a déjà poussé deux fois sur le même point (ton sport, ton focus, ton sommeil, ta nutrition) sans que rien ne bouge, il arrête de répéter plus fort. Il abaisse la barre et te propose une micro-marche imbattable — « juste 5 min de mouvement », « un seul bloc de 10 min » — en le disant franchement : on abaisse la barre, pas toi. Rouvrir la porte suffit.' },
   { v: '2.0.95', emoji: '🥗', text: 'Ton coach « Le focus du moment » sait enfin parler nutrition pour de vrai : quand c’est ta nutrition qui décroche, il ne se contente plus de « renseigne tes protéines ». Il calcule ta cible du jour (selon ton poids et ton objectif), regarde ce que tu as déjà mangé, et te propose une collation CONCRÈTE pour combler l’écart — « il te reste 40 g de protéines : un shaker de whey fait le job ». Et si tu tiens une série à ta cible, il te le rappelle pour ne pas la casser.' },
@@ -5027,6 +5028,26 @@ function adaptiveCoachFocus(state, todayKey) {
       if (fw) insight += fw.status === 'done' ? ` Objectif hebdo atteint : ${fw.done}/${fw.target} min 💪` : ` Objectif hebdo : ${fw.done}/${fw.target} min de focus.`;
     }
   }
+  // Coach CONSCIENT de la readiness — boucle coach × récupération (le pendant de coach × sommeil).
+  // Quand le pilier choisi est le SPORT et qu'un check-in de récup existe AUJOURD'HUI, l'action
+  // générique (« programme une séance courte ») s'efface au profit d'un conseil calé sur la forme
+  // RÉELLE du jour, via readinessScore de la nuit du jour. Dire « fais une grosse séance » quand la
+  // readiness est au plancher pousse à la blessure ou au dégoût ; dire « repose » quand tout est au
+  // vert bride les progrès. On module donc l'intensité recommandée : allègement (mobilité/marche)
+  // sous 50, feu vert pour pousser au-dessus de 75, séance mesurée entre les deux. On exige un
+  // check-in DATÉ DU JOUR — une readiness d'hier ne dit rien de la forme d'aujourd'hui. (Le
+  // micro-pas et le renfort, plus bas, peuvent encore prendre le dessus selon le suivi.)
+  let readiness = null;
+  if (chosen.pillar === 'sport' && typeof readinessScore === 'function') {
+    const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
+    const rs = todayR ? readinessScore(todayR) : null;
+    if (rs) {
+      readiness = rs.score;
+      if (rs.score < 50) action = `Readiness ${rs.score}/100 — récupération prioritaire : vise mobilité, marche ou technique légère plutôt qu’une grosse séance aujourd’hui.`;
+      else if (rs.score >= 75) action = `Readiness ${rs.score}/100 — ton corps est prêt à pousser : c’est le jour d’une vraie séance, monte un peu l’intensité.`;
+      else action = `Readiness ${rs.score}/100 — séance correcte, mais garde une marge : pas de record aujourd’hui.`;
+    }
+  }
   // Focus sommeil ENRICHI : on remplace le compteur générique par le vrai verdict chiffré du coach
   // sommeil (sleepCoachInsight) et, si un plan de recalage est actif, par la CIBLE de coucher du soir
   // (sleepPlanDay) — le coach cesse d'ignorer l'intelligence sommeil qui vit juste à côté.
@@ -5121,7 +5142,7 @@ function adaptiveCoachFocus(state, todayKey) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness,
   };
 }
 

@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.97');
+  assert.equal(L.CHANGELOG[0].v, '2.0.98');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7155,6 +7155,32 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   const pri = L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'X', status: 'postule', date: '2026-07-05' }], workouts: [{ date: '2026-07-16' }] }, today);
   assert.equal(pri.pillar, 'alternance');
   assert.match(pri.headline, /Postule aujourd’hui/);
+});
+
+test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => {
+  const today = '2026-07-16';
+  // Décrochage sport (3 j la semaine passée, 1 récente) → pilier « sport », ton rebuild.
+  const workouts = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // readiness au plancher aujourd'hui (15/100) → allègement recommandé, pas une grosse séance.
+  const low = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 3, fatigue: 5, soreness: 5 }] }, today);
+  assert.equal(low.pillar, 'sport');
+  assert.equal(low.tone, 'rebuild');
+  assert.equal(low.readiness, 15);
+  assert.match(low.action, /récupération prioritaire|mobilité/);
+  // readiness au vert (100/100) → feu vert pour pousser.
+  const high = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(high.pillar, 'sport');
+  assert.equal(high.readiness, 100);
+  assert.match(high.action, /prêt à pousser|vraie séance/);
+  // readiness moyenne (60/100) → séance mesurée, garde une marge.
+  const mid = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 6, fatigue: 3, soreness: 3 }] }, today);
+  assert.equal(mid.readiness, 60);
+  assert.match(mid.action, /garde une marge/);
+  // AUCUN check-in daté du jour → action générique, readiness null (une readiness d'hier n'engage pas).
+  const none = L.adaptiveCoachFocus({ workouts, recovery: [{ date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(none.pillar, 'sport');
+  assert.equal(none.readiness, null);
+  assert.match(none.action, /séance/);
 });
 
 test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {
