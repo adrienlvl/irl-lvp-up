@@ -23,7 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.98 (2026-07-19)
+## 📍 État actuel — build 2.0.99 (2026-07-19)
+
+> 🧠 **2.0.99** — Coaching adaptatif poussé à fond (priorité de la nuit) : le pilier **focus** du coach
+> « Le focus du moment » — **le seul encore générique** (pointé par #465 et #466) — cesse de dire
+> « lance une session » dans le vide. Nouveau bloc calqué sur la nutrition : `focusByTask` (14 j) sort
+> la **tâche phare nommée** d'Adrien, que le coach **cite** dans l'action — « Reprends « Compta », ton
+> chantier de focus phare (115 min sur 14 j) » en décrochage, « Ta concentration va surtout à « Thèse » »
+> en hausse. Reprendre un chantier connu coûte moins que repartir de zéro. Sans tâche nommée (que du
+> « Sans titre ») → action générique, `focusTask` null. Les **quatre** piliers parlent enfin chiffres +
+> concret (sport readiness, sommeil verdict/cible, nutrition protéines/collation, focus tâche phare).
+> `adaptiveCoachFocus` pur + testé (champ `focusTask`), check smoke bloquant `coachFocus` étendu. Recap #468.
 
 > 🩺 **2.0.98** — Coaching adaptatif poussé à fond (priorité de la nuit) : l'action **sport** du coach
 > « Le focus du moment » cesse d'être aveugle à la forme du jour. Nouvelle boucle **coach ×

@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.99', emoji: '🧠', text: 'Ton coach « Le focus du moment » ne te dit plus « lance une session » dans le vide : quand c’est ta concentration qui décroche (ou qui monte), il regarde SUR QUOI tu passes vraiment tes blocs de focus et te nomme ta tâche phare. « Reprends « Compta », ton chantier de focus phare (115 min sur 14 j) — un bloc de 25 min suffit à relancer. » Reprendre un chantier connu coûte moins que repartir de zéro. Le focus était le dernier pilier générique du coach : il parle désormais chiffres et concret sur les quatre (sport, sommeil, nutrition, focus).' },
   { v: '2.0.98', emoji: '🩺', text: 'Ton coach « Le focus du moment » ne te dit plus « fais une grosse séance » sans regarder ta forme du jour : quand il te pousse sur l’entraînement ET que tu as fait ton check-in de récup aujourd’hui, il cale son conseil sur ta readiness. Au plancher, il t’oriente vers mobilité/marche/technique légère plutôt qu’une grosse séance (récupérer aussi, ça progresse). Au vert, il te donne le feu vert pour pousser — c’est le jour d’une vraie séance. Entre les deux, séance mesurée, pas de record. Un coach qui adapte l’intensité à ton corps, pas juste au calendrier.' },
   { v: '2.0.97', emoji: '🙌', text: 'Ton coach « Le focus du moment » sait aussi te féliciter au bon moment : quand tu es en forme sur un pilier ET que tu as bien suivi ses conseils ces derniers jours, il ne dit plus juste « garde le rythme ». Il te crédite pour de vrai — « tu as tenu 5/6 de mes caps cette semaine, cet élan c’est toi qui le construis ». Le pendant positif du coach qui abaisse la barre quand tu décroches : ici il te renvoie le mérite quand tu assures.' },
   { v: '2.0.96', emoji: '🧗', text: 'Ton coach « Le focus du moment » remarque maintenant quand tu le laisses parler dans le vide : s’il t’a déjà poussé deux fois sur le même point (ton sport, ton focus, ton sommeil, ta nutrition) sans que rien ne bouge, il arrête de répéter plus fort. Il abaisse la barre et te propose une micro-marche imbattable — « juste 5 min de mouvement », « un seul bloc de 10 min » — en le disant franchement : on abaisse la barre, pas toi. Rouvrir la porte suffit.' },
@@ -5089,6 +5090,24 @@ function adaptiveCoachFocus(state, todayKey) {
       else if (prot > 0) action = `Cible protéines tenue (${prot}/${tgt} g) 💪 — verrouille l’eau et un fruit/légume.`;
     }
   }
+  // Focus ENRICHI (le pilier focus était le SEUL encore générique — cf. #465/#466). Comme le sport
+  // lit la readiness et la nutrition la cible protéines, le focus lit la RÉPARTITION réelle du temps
+  // de concentration par tâche (focusByTask sur 14 j — même fenêtre que la dynamique). Quand une
+  // tâche PHARE nommée ressort, le coach la CITE dans l'action : « reprends « X », ton chantier
+  // phare » vaut mieux qu'un « lance une session » aveugle — rouvrir un chantier connu coûte moins
+  // que partir de zéro, et nommer la tâche prouve que le coach lit vraiment tes données. L'insight
+  // garde le compteur d'objectif hebdo (bloc objectifs, plus haut). Dégrade proprement vers l'action
+  // générique si aucune tâche nommée (que du « Sans titre » ou aucune session sur la fenêtre).
+  let focusTask = null;
+  if (chosen.pillar === 'focus' && typeof focusByTask === 'function') {
+    const fb = focusByTask(s.focusSessions, todayKey, { days: 14 });
+    const top = (fb.tasks || []).find(t => t && t.task && t.task !== 'Sans titre');
+    if (top) {
+      focusTask = top.task;
+      if (tone === 'reinforce') action = `Ta concentration va surtout à « ${top.task} » (${top.minutes} min sur 14 j) — enchaîne un bloc de 25 min dessus aujourd’hui.`;
+      else action = `Reprends « ${top.task} », ton chantier de focus phare (${top.minutes} min sur 14 j) — un bloc de 25 min suffit à relancer.`;
+    }
+  }
   // Coach MÉTA-CONSCIENT du suivi : si ce MÊME pilier a déjà été poussé plusieurs fois récemment
   // (s.coachLog) SANS que rien ne bouge — conseil IGNORÉ, pas juste répété —, hausser le ton ne sert
   // à rien. Le coach change de registre : il propose une MICRO-marche (5-10 min) en le reconnaissant
@@ -5142,7 +5161,7 @@ function adaptiveCoachFocus(state, todayKey) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask,
   };
 }
 

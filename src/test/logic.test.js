@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.98');
+  assert.equal(L.CHANGELOG[0].v, '2.0.99');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7298,6 +7298,41 @@ test('adaptiveCoachFocus : focus nutrition enrichi (cible protéines réelle + c
   const noProfile = L.adaptiveCoachFocus({ nutrition: decline.nutrition }, today);
   assert.equal(noProfile.pillar, 'nutrition');
   assert.ok(!/Il te reste|cible protéines/.test(noProfile.action), 'sans profil : pas d’enrichissement, action générique conservée');
+});
+
+test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {
+  const today = '2026-07-16';
+  // Focus en décrochage (3 j la semaine passée, 1 récente) → tone rebuild, focus est le focus.
+  const decline = { focusSessions: [
+    { date: '2026-07-05', minutes: 30, task: 'Compta' }, { date: '2026-07-06', minutes: 30, task: 'Compta' },
+    { date: '2026-07-07', minutes: 30, task: 'Compta' }, { date: '2026-07-14', minutes: 25, task: 'Compta' },
+  ] };
+  const fd = L.adaptiveCoachFocus(decline, today);
+  assert.equal(fd.pillar, 'focus'); assert.equal(fd.tone, 'rebuild');
+  assert.equal(fd.focusTask, 'Compta', 'tâche phare exposée pour le style/les tests');
+  assert.match(fd.action, /Reprends « Compta »/, 'l’action nomme le chantier de focus phare');
+  assert.match(fd.action, /115 min sur 14 j/, 'et cite le temps réel passé dessus');
+  // Focus en hausse (1 la semaine passée, 3 récentes) → tone reinforce → phrasé « ta concentration va surtout à ».
+  const rising = { focusSessions: [
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-15', minutes: 30, task: 'Thèse' }, { date: '2026-07-16', minutes: 30, task: 'Thèse' },
+  ] };
+  const fr = L.adaptiveCoachFocus(rising, today);
+  assert.equal(fr.pillar, 'focus'); assert.equal(fr.tone, 'reinforce');
+  assert.equal(fr.focusTask, 'Thèse');
+  assert.match(fr.action, /Ta concentration va surtout à « Thèse »/, 'phrasé renforcement quand la dynamique monte');
+  // Que du « Sans titre » (aucune tâche nommée) → dégrade proprement vers l’action générique.
+  const untitled = { focusSessions: [
+    { date: '2026-07-05', minutes: 30 }, { date: '2026-07-06', minutes: 30 },
+    { date: '2026-07-07', minutes: 30 }, { date: '2026-07-14', minutes: 25 },
+  ] };
+  const fu = L.adaptiveCoachFocus(untitled, today);
+  assert.equal(fu.pillar, 'focus');
+  assert.equal(fu.focusTask, null, 'sans tâche nommée : pas d’enrichissement');
+  assert.match(fu.action, /Lance une session de focus de 25 min/, 'action générique conservée');
+  // Un autre pilier (sport) → pas de champ focusTask parasite.
+  const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }] }, today);
+  assert.equal(sport.pillar, 'sport'); assert.equal(sport.focusTask, null, 'focusTask null hors pilier focus');
 });
 
 test('adaptiveCoachFocus : coach méta-conscient — abaisse la barre quand son conseil est ignoré', () => {
