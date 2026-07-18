@@ -3442,6 +3442,16 @@ test('blockWindowStats / blockComparison : progression 1er → dernier bloc', ()
   assert.equal(st.sessions, 2);
   assert.equal(st.tonnage, 400);
   assert.equal(st.sets, 2);
+  // Séance saisie au formulaire (exercices avec `sets` mais SANS setLogs) : le tonnage et les séries
+  // doivent tous deux être comptés (jumeau de #444). Avant le repli, sets valait 0 malgré tonnage > 0.
+  const manual = [
+    { date: '2026-05-06', exercises: [{ name: 'Squat', load: 50, reps: 8, sets: 4 }] }, // 1600 kg, 4 séries
+    { date: '2026-05-20', exercise: 'Développé', load: 40, reps: 10, sets: 3 },          // legacy : 1200 kg, 3 séries
+  ];
+  const man = L.blockWindowStats(manual, '2026-05-01', '2026-05-31');
+  assert.equal(man.sessions, 2);
+  assert.equal(man.tonnage, 2800);
+  assert.equal(man.sets, 7);
   const history = [
     { objective: 'seche', start: '2026-05-04', end: '2026-05-31', weeks: 4 },
     { objective: 'muscle', start: '2026-06-01', end: '2026-06-28', weeks: 4 },
@@ -4226,6 +4236,21 @@ test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge
   assert.equal(L.workoutTonnage({ exercises: [] }), 0);
   assert.equal(L.workoutTonnage({}), 0);
   assert.equal(L.workoutTonnage(null), 0);
+});
+test('workoutSetCount : séries validées (setLogs) ou repli sur `sets` (saisie manuelle / legacy)', () => {
+  // setLogs présents → séries VALIDÉES uniquement (identique à completedSetCount)
+  assert.equal(L.workoutSetCount({ exercises: [{ name: 'DC', setLogs: [{ completed: true }, { completed: false }, { completed: true }] }] }), 2);
+  assert.equal(L.workoutSetCount({ exercises: [{ name: 'DC', setLogs: [{ completed: false }, { completed: false }] }] }), 0);
+  // sans setLogs (séance saisie au formulaire) → champ `sets`
+  assert.equal(L.workoutSetCount({ exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }), 3);
+  assert.equal(L.workoutSetCount({ exercises: [{ name: 'A', sets: 4 }, { name: 'B', sets: 3 }] }), 7);
+  // legacy mono-exercice w.exercise → w.sets
+  assert.equal(L.workoutSetCount({ date: '2025-03-08', exercise: 'Squat', load: 80, reps: 5, sets: 4 }), 4);
+  // bornes hostiles
+  assert.equal(L.workoutSetCount({ exercises: [{ name: 'X', sets: -2 }] }), 0);
+  assert.equal(L.workoutSetCount({ exercises: [] }), 0);
+  assert.equal(L.workoutSetCount({}), 0);
+  assert.equal(L.workoutSetCount(null), 0);
 });
 test('lifetimeTonnage : compte une séance legacy w.exercise à côté d’une moderne', () => {
   // moderne 60×10×3=1800 + legacy 80×5×4=1600 → 3400 (sans le fix, la legacy pesait 0 → 1800)
