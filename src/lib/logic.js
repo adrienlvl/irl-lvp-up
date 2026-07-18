@@ -197,15 +197,23 @@ function nextAlternanceTarget(applications) {
   const t = list[0];
   return { id: t.id, company: t.company, role: t.role, source: t.source, score: t.score };
 }
-// Échéance « avant août » : le prochain 1er août (cette année, ou l'an prochain si déjà passé).
-// Renvoie { date, daysLeft }. Pur + testé.
+// Échéance de la recherche d'alternance : la prochaine RENTRÉE (1er octobre). On ne vise plus le
+// 1er août — la recherche a du sens tout l'été et jusqu'à la rentrée (beaucoup de contrats démarrent
+// en sept./oct.), et le compte à rebours s'effondrait à « J-365 » pile au moment le plus tendu.
+// Trois phases : 'before' = compte à rebours normal (daysLeft > 0) ; 'crunch' = rentrée passée mais
+// saison encore ouverte (jusqu'au 1er déc. → daysLeft <= 0, « dernière ligne droite ») ; puis, la
+// saison réellement finie, on bascule sur le cap de l'an prochain. Renvoie { date, daysLeft, phase }.
+// Pur + testé.
 function alternanceDeadline(todayKey) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''))) return null;
   const y = +todayKey.slice(0, 4);
-  let deadline = y + '-08-01';
-  if (todayKey >= deadline) deadline = (y + 1) + '-08-01';
-  const days = daysUntil(todayKey, deadline);
-  return { date: deadline, daysLeft: days == null ? 0 : days };
+  const rentree = y + '-10-01', seasonEnd = y + '-12-01';
+  let date, phase;
+  if (todayKey < rentree) { date = rentree; phase = 'before'; }
+  else if (todayKey < seasonEnd) { date = rentree; phase = 'crunch'; }
+  else { date = (y + 1) + '-10-01'; phase = 'before'; }
+  const days = daysUntil(todayKey, date);
+  return { date, daysLeft: days == null ? 0 : days, phase };
 }
 // Le cœur MOTIVATION : compte les candidatures envoyées (aujourd'hui, cette semaine vs objectif), la
 // SÉRIE de jours consécutifs avec au moins une candidature (finissant aujourd'hui ou hier), le funnel
@@ -2746,6 +2754,8 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.93', emoji: '😴', text: 'Ta « Forme du jour » est plus juste : si tu notes ta fatigue et tes courbatures sans remplir les heures de sommeil, le score ne te compte plus une nuit blanche par défaut. Un sommeil laissé vide n’est plus pris pour « 0 h » (la pire note) — il est simplement ignoré, comme partout ailleurs dans l’app. Fini les fausses alertes « récupération prioritaire » juste parce que la case sommeil était vide.' },
+  { v: '2.0.92', emoji: '📅', text: 'Le compte à rebours de ta recherche d’alternance vise désormais la RENTRÉE (1er octobre), plus le 1er août — parce que chercher a encore tout son sens en été et jusqu’à la rentrée (beaucoup de contrats démarrent en septembre/octobre). Le compteur reste honnête tout l’été au lieu de retomber d’un coup, et une fois la rentrée là il passe en « dernière ligne droite » plutôt que de s’effondrer.' },
   { v: '2.0.91', emoji: '🔗', text: 'Ton coach relie tout : quand il te pousse sur le sommeil, il te rappelle ta propre preuve — « couche-toi à heure fixe ce soir. Tes soirs couché tôt = +2 d’énergie le lendemain ». Le conseil du soir porte désormais le « pourquoi » chiffré et personnel, pas juste une consigne.' },
   { v: '2.0.90', emoji: '📊', text: 'Nouveau sur ta page Récupération : « L’effet de ton coucher ». L’app compare tes lendemains selon l’heure où tu t’es couché et te montre la preuve chiffrée — « les soirs où tu te couches avant 23:45, ton lendemain a plus d’énergie : 4/5 contre 2/5 ». Le vrai moteur pour tenir ton recalage : voir noir sur blanc que se coucher tôt paie sur ton énergie et ton focus.' },
   { v: '2.0.89', emoji: '😴', text: 'Ton coach « Le focus du moment » connaît enfin ton sommeil. Quand tes nuits sont courtes ET irrégulières, il remonte le sommeil en tête avec le vrai verdict chiffré (moyenne, dette, régularité) au lieu d’un conseil passe-partout. Et si ton plan de recalage est actif, il te donne directement l’heure de coucher à viser ce soir. Les deux systèmes se parlent — jusqu’ici le coach ignorait toute ton intelligence sommeil.' },
@@ -4871,7 +4881,7 @@ function adaptiveCoachFocus(state, todayKey) {
     const st = applicationStats(apps, todayKey, { weekGoal: Number(s.jobSearchGoal) || 5 });
     if (st.accepted === 0) {
       const dl = (typeof alternanceDeadline === 'function') ? alternanceDeadline(todayKey) : null;
-      const dTxt = (dl && dl.daysLeft != null) ? 'plus que ' + dl.daysLeft + ' j avant août' : '';
+      const dTxt = dl ? ((dl.phase === 'crunch' || (dl.daysLeft != null && dl.daysLeft <= 0)) ? 'c’est la rentrée, dernière ligne droite' : (dl.daysLeft != null ? 'plus que ' + dl.daysLeft + ' j avant la rentrée' : '')) : '';
       const cap = z => z.charAt(0).toUpperCase() + z.slice(1);
       const base = { pillar: 'alternance', label: 'Alternance', page: 'alternance', trend: 'deadline', tone: 'urgent', recentDays: st.weekCount, prevDays: 0, lastActiveDays: null };
       if (!st.appliedToday) {
@@ -6393,10 +6403,20 @@ function proteinStreak(nutrition, target, todayKey) {
 function readinessScore(recovery) {
   const r = recovery && typeof recovery === 'object' ? recovery : null;
   if (!r) return null;
-  const sleep = Math.max(0, Math.min(12, Number(r.sleep) || 0));
   const fatigue = Math.max(1, Math.min(5, Number(r.fatigue) || 3));
   const soreness = Math.max(1, Math.min(5, Number(r.soreness) || 3));
-  const score = Math.round(Math.min(1, sleep / 8) * 40 + ((5 - fatigue) / 4) * 30 + ((5 - soreness) / 4) * 30);
+  const fComp = ((5 - fatigue) / 4) * 30, sComp = ((5 - soreness) / 4) * 30;
+  let score;
+  if (Number(r.sleep) > 0) {
+    const sleep = Math.min(12, Number(r.sleep));
+    score = Math.round(Math.min(1, sleep / 8) * 40 + fComp + sComp);
+  } else {
+    // Sommeil NON renseigné (champ vide → 0) : on ne le compte PAS comme « 0 h » (la pire nuit), sinon
+    // un check-in où l'on note sa fatigue sans les heures de sommeil perdait −40 pts à tort. On
+    // renormalise fatigue + courbatures (60 pts) sur 100 — même convention que tout le sous-système
+    // sommeil, qui exclut déjà sleep:0 comme « nuit non chiffrée ». Une donnée absente ne pénalise plus.
+    score = Math.round((fComp + sComp) / 60 * 100);
+  }
   const label = score >= 75 ? 'Prêt à pousser' : score >= 50 ? 'Correct — garde une marge' : 'Récupération prioritaire';
   return { score, label };
 }

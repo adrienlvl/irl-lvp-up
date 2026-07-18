@@ -673,10 +673,18 @@ test('normalizeApplication : coercion + statut par défaut', () => {
   assert.equal(L.normalizeApplication(null).company, '');
 });
 
-test('alternanceDeadline : prochain 1er août', () => {
-  assert.deepEqual(L.alternanceDeadline('2026-07-16'), { date: '2026-08-01', daysLeft: 16 });
-  assert.equal(L.alternanceDeadline('2026-08-15').date, '2027-08-01', 'après le 1er août → an prochain');
-  assert.equal(L.alternanceDeadline('2026-08-01').date, '2027-08-01', 'le jour même → an prochain');
+test('alternanceDeadline : cap sur la rentrée (1er octobre), pas le 1er août', () => {
+  // Avant la rentrée : compte à rebours normal (l'été ne fait plus s'effondrer le compteur).
+  assert.deepEqual(L.alternanceDeadline('2026-07-16'), { date: '2026-10-01', daysLeft: 77, phase: 'before' });
+  // Le 1er août n'est plus une bascule : c'est un jour normal du compte à rebours vers octobre.
+  assert.equal(L.alternanceDeadline('2026-08-01').phase, 'before');
+  assert.ok(L.alternanceDeadline('2026-08-01').daysLeft > 0, 'plus d’effondrement à J-365 le 1er août');
+  // Rentrée passée mais saison encore ouverte (avant le 1er déc.) → « dernière ligne droite », daysLeft <= 0.
+  const crunch = L.alternanceDeadline('2026-10-15');
+  assert.equal(crunch.phase, 'crunch'); assert.ok(crunch.daysLeft <= 0);
+  // Saison finie (après le 1er déc.) → cap de l'an prochain.
+  assert.equal(L.alternanceDeadline('2026-12-05').date, '2027-10-01');
+  assert.equal(L.alternanceDeadline('2026-12-05').phase, 'before');
   assert.equal(L.alternanceDeadline('bad'), null);
 });
 
@@ -5421,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.91');
+  assert.equal(L.CHANGELOG[0].v, '2.0.93');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6249,6 +6257,15 @@ test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
   const mid = L.readinessScore({ sleep: 7, fatigue: 2, soreness: 3 });
   assert.equal(mid.score, 73); assert.equal(mid.label, 'Correct — garde une marge');
   assert.equal(L.readinessScore(null), null);
+  // Sommeil NON renseigné (champ vide → 0) : ne compte plus « 0 h ». On renormalise fatigue+courbatures
+  // sur 100, comme tout le sous-système sommeil qui exclut sleep:0. (Avant : pénalité de −40 pts à tort.)
+  const noSleepNeutral = L.readinessScore({ fatigue: 3, soreness: 3 }); // était 30 « Récup prioritaire »
+  assert.equal(noSleepNeutral.score, 50); assert.equal(noSleepNeutral.label, 'Correct — garde une marge');
+  const noSleepFresh = L.readinessScore({ fatigue: 1, soreness: 1 }); // frais mais sommeil vide
+  assert.equal(noSleepFresh.score, 100, 'sans sommeil, frais → 100, pas 60');
+  assert.equal(L.readinessScore({ sleep: 0, fatigue: 2, soreness: 2 }).score, 75, 'sleep:0 traité comme non renseigné');
+  // sommeil renseigné → strictement inchangé (rétro-compatibilité)
+  assert.equal(L.readinessScore({ sleep: 8, fatigue: 3, soreness: 3 }).score, 70);
 });
 test('readinessTrend : série de forme des derniers check-ins + delta', () => {
   const rec = [
@@ -7111,7 +7128,7 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(alt.pillar, 'alternance');
   assert.equal(alt.tone, 'urgent');
   assert.equal(alt.page, 'alternance');
-  assert.match(alt.insight, /avant août/);
+  assert.match(alt.insight, /avant la rentrée/);
   assert.match(alt.insight, /cette semaine/);
   // postulé aujourd'hui, rien en attente → le coach repasse aux piliers (plus d'alternance)
   assert.notEqual(L.adaptiveCoachFocus({ applications: [{ id: 1, company: 'A', status: 'postule', date: today }], workouts: [{ date: '2026-07-16' }] }, today).pillar, 'alternance');

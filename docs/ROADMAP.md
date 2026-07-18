@@ -23,7 +23,9 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.91 (2026-07-18)
+## 📍 État actuel — build 2.0.93 (2026-07-18)
+
+> 📅😴 **2.0.92-93** — décisions d'Adrien tranchées (les 2 propositions du VPS résolues) : l'échéance alternance vise la **rentrée (1er oct.)** au lieu du 1er août (plus d'effondrement à J-365 ; phase « dernière ligne droite » après la rentrée), et `readinessScore` ne compte plus un **sommeil non renseigné comme « 0 h »** (renormalisé). Recap #462.
 
 > 🔗 **2.0.91** — le coach cite ta preuve : quand il te pousse sur le sommeil, l'action rappelle « tes soirs couché tôt = +2 d'énergie le lendemain » (via `sleepImpactReport`). Chaîne Coaching × Sommeil complète (#458→461). Recap #461.
 
