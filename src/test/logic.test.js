@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.99');
+  assert.equal(L.CHANGELOG[0].v, '2.0.100');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7313,9 +7313,10 @@ test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare r�
   assert.match(fd.action, /Reprends « Compta »/, 'l’action nomme le chantier de focus phare');
   assert.match(fd.action, /115 min sur 14 j/, 'et cite le temps réel passé dessus');
   // Focus en hausse (1 la semaine passée, 3 récentes) → tone reinforce → phrasé « ta concentration va surtout à ».
+  // (Dernier bloc = hier, pas aujourd'hui, pour tester le phrasé de renfort sans déclencher le crédit « déjà posé aujourd'hui ».)
   const rising = { focusSessions: [
-    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 30, task: 'Thèse' },
-    { date: '2026-07-15', minutes: 30, task: 'Thèse' }, { date: '2026-07-16', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-13', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-14', minutes: 30, task: 'Thèse' }, { date: '2026-07-15', minutes: 30, task: 'Thèse' },
   ] };
   const fr = L.adaptiveCoachFocus(rising, today);
   assert.equal(fr.pillar, 'focus'); assert.equal(fr.tone, 'reinforce');
@@ -7333,6 +7334,58 @@ test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare r�
   // Un autre pilier (sport) → pas de champ focusTask parasite.
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }] }, today);
   assert.equal(sport.pillar, 'sport'); assert.equal(sport.focusTask, null, 'focusTask null hors pilier focus');
+});
+
+test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {
+  const today = '2026-07-16';
+  // SPORT en décrochage (4 j la semaine passée, 1 récente = aujourd'hui) → rebuild, mais la séance
+  // du jour est DÉJÀ loggée → le coach crédite au lieu d'ordonner « programme une séance ».
+  const sportDone = { workouts: [
+    { date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' },
+    { date: '2026-07-16' },
+  ] };
+  const sd = L.adaptiveCoachFocus(sportDone, today);
+  assert.equal(sd.pillar, 'sport'); assert.equal(sd.tone, 'rebuild');
+  assert.equal(sd.doneToday, true, 'séance datée du jour → doneToday');
+  assert.match(sd.action, /Séance déjà faite aujourd’hui/, 'crédit au lieu d’un ordre déjà exécuté');
+  assert.match(sd.insight, /essouffle|semaine/, 'la tendance hebdo (vraie) reste dans l’insight');
+  // FOCUS en hausse avec un bloc AUJOURD'HUI → reinforce, tâche phare exposée, mais action = crédit du jour.
+  const focusDone = { focusSessions: [
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-15', minutes: 30, task: 'Thèse' }, { date: '2026-07-16', minutes: 30, task: 'Thèse' },
+  ] };
+  const fdn = L.adaptiveCoachFocus(focusDone, today);
+  assert.equal(fdn.pillar, 'focus'); assert.equal(fdn.doneToday, true);
+  assert.equal(fdn.focusTask, 'Thèse', 'la tâche phare reste exposée');
+  assert.match(fdn.action, /Bloc de focus déjà posé aujourd’hui/, 'crédit du bloc du jour');
+  // doneToday coupe la micro-marche : inutile de gronder un cap ignoré le jour où le geste est là.
+  const sportDoneIgnored = { ...sportDone, coachLog: [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }] };
+  const sdi = L.adaptiveCoachFocus(sportDoneIgnored, today);
+  assert.equal(sdi.doneToday, true);
+  assert.equal(sdi.microStep, false, 'pas de micro-marche un jour où le geste est fait');
+  assert.match(sdi.action, /déjà faite/, 'le crédit prime sur la micro-marche');
+  // Sans entrée du jour, pas de crédit : l'action garde son conseil normal (readiness générique ici).
+  const sportNot = { workouts: [{ date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-11' }] };
+  const sn = L.adaptiveCoachFocus(sportNot, today);
+  assert.equal(sn.pillar, 'sport'); assert.equal(sn.doneToday, false);
+  assert.doesNotMatch(sn.action, /déjà faite/, 'pas de séance du jour → pas de crédit');
+  // SOMMEIL EXCLU : une nuit notée = celle d'HIER ; l'action porte sur le coucher de CE SOIR, à venir.
+  const sleepToday = { recovery: [
+    { date: '2026-07-03', sleep: 7 }, { date: '2026-07-04', sleep: 7 }, { date: '2026-07-05', sleep: 7 },
+    { date: '2026-07-06', sleep: 7 }, { date: '2026-07-16', sleep: 7 },
+  ] };
+  const sl = L.adaptiveCoachFocus(sleepToday, today);
+  assert.equal(sl.pillar, 'sommeil');
+  assert.equal(sl.doneToday, false, 'le sommeil n’est jamais « déjà bouclé » : le coucher du soir reste à faire');
+  assert.doesNotMatch(sl.action, /déjà faite|déjà posé/, 'l’action sommeil (coucher du soir) est préservée');
+  // NUTRITION EXCLUE : « actif » y est trop lâche (protéines > 0 ≠ cible atteinte) → jamais de crédit.
+  const nutriToday = { profile: { weight: 80, goal: 'force' }, nutrition: [
+    { date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 },
+    { date: '2026-07-06', protein: 60 }, { date: '2026-07-16', protein: 40 },
+  ] };
+  const nt = L.adaptiveCoachFocus(nutriToday, today);
+  assert.equal(nt.pillar, 'nutrition');
+  assert.equal(nt.doneToday, false, 'la nutrition garde son action calée sur la cible protéines');
 });
 
 test('adaptiveCoachFocus : coach méta-conscient — abaisse la barre quand son conseil est ignoré', () => {
@@ -7364,7 +7417,8 @@ test('adaptiveCoachFocus : coach méta-conscient — abaisse la barre quand son 
 test('adaptiveCoachFocus : coach méta-conscient positif — crédite un suivi élevé (reinforce)', () => {
   const today = '2026-07-16';
   // Sport en hausse franche (4 j récents vs 1 avant) → tone reinforce, aucun pilier à corriger.
-  const rising = [{ date: '2026-07-05' }, { date: '2026-07-11' }, { date: '2026-07-12' }, { date: '2026-07-14' }, { date: '2026-07-16' }];
+  // (Dernier jour actif = hier, pas aujourd'hui, pour isoler le crédit de suivi du crédit « déjà fait aujourd'hui ».)
+  const rising = [{ date: '2026-07-05' }, { date: '2026-07-11' }, { date: '2026-07-12' }, { date: '2026-07-14' }, { date: '2026-07-15' }];
   const plain = L.adaptiveCoachFocus({ workouts: rising }, today);
   assert.equal(plain.pillar, 'sport'); assert.equal(plain.tone, 'reinforce');
   assert.equal(plain.followThrough, null, 'sans journal : pas de crédit de suivi');

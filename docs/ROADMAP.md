@@ -23,7 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.99 (2026-07-19)
+## 📍 État actuel — build 2.0.100 (2026-07-19)
+
+> ✅ **2.0.100** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » cesse de **radoter un ordre déjà exécuté** — le bug de crédibilité le plus visible. Nouveau
+> `doneToday` : quand le pilier choisi (**sport** ou **focus**) a une entrée active **datée du jour**,
+> l'action « fais X » devient un **crédit** — « Séance déjà faite aujourd'hui 💪 — verrouille avec 5 min
+> d'étirements » / « Bloc de focus déjà posé ✅ ». L'insight hebdo (vrai) reste intact ; la micro-marche
+> (#465) est **coupée** un jour où le geste est là (plus de « tu ignores mes caps »). **Sommeil exclu**
+> (nuit notée = hier ; le coucher de ce soir reste à faire) et **nutrition exclue** (« actif » ≠ cible
+> atteinte, son bloc gère déjà la cible). `adaptiveCoachFocus` pur + testé (champ `doneToday`), check
+> smoke bloquant `coachFocus` étendu. Recap #469.
 
 > 🧠 **2.0.99** — Coaching adaptatif poussé à fond (priorité de la nuit) : le pilier **focus** du coach
 > « Le focus du moment » — **le seul encore générique** (pointé par #465 et #466) — cesse de dire

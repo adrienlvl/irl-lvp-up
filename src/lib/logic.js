@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.100', emoji: '✅', text: 'Ton coach « Le focus du moment » ne te répète plus un ordre que tu as déjà exécuté : quand il pousse ton entraînement ou ton focus alors que tu as DÉJÀ posé ta séance (ou ton bloc) aujourd’hui, il te crédite au lieu de radoter « programme une séance ». « Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée. » Il coupe aussi la micro-marche (« tu ignores mes caps ») les jours où le geste est justement là. Sommeil et nutrition gardent leur conseil du jour (le coucher de ce soir, la cible protéines) — eux ne sont pas « déjà bouclés » pour autant.' },
   { v: '2.0.99', emoji: '🧠', text: 'Ton coach « Le focus du moment » ne te dit plus « lance une session » dans le vide : quand c’est ta concentration qui décroche (ou qui monte), il regarde SUR QUOI tu passes vraiment tes blocs de focus et te nomme ta tâche phare. « Reprends « Compta », ton chantier de focus phare (115 min sur 14 j) — un bloc de 25 min suffit à relancer. » Reprendre un chantier connu coûte moins que repartir de zéro. Le focus était le dernier pilier générique du coach : il parle désormais chiffres et concret sur les quatre (sport, sommeil, nutrition, focus).' },
   { v: '2.0.98', emoji: '🩺', text: 'Ton coach « Le focus du moment » ne te dit plus « fais une grosse séance » sans regarder ta forme du jour : quand il te pousse sur l’entraînement ET que tu as fait ton check-in de récup aujourd’hui, il cale son conseil sur ta readiness. Au plancher, il t’oriente vers mobilité/marche/technique légère plutôt qu’une grosse séance (récupérer aussi, ça progresse). Au vert, il te donne le feu vert pour pousser — c’est le jour d’une vraie séance. Entre les deux, séance mesurée, pas de record. Un coach qui adapte l’intensité à ton corps, pas juste au calendrier.' },
   { v: '2.0.97', emoji: '🙌', text: 'Ton coach « Le focus du moment » sait aussi te féliciter au bon moment : quand tu es en forme sur un pilier ET que tu as bien suivi ses conseils ces derniers jours, il ne dit plus juste « garde le rythme ». Il te crédite pour de vrai — « tu as tenu 5/6 de mes caps cette semaine, cet élan c’est toi qui le construis ». Le pendant positif du coach qui abaisse la barre quand tu décroches : ici il te renvoie le mérite quand tu assures.' },
@@ -5108,6 +5109,20 @@ function adaptiveCoachFocus(state, todayKey) {
       else action = `Reprends « ${top.task} », ton chantier de focus phare (${top.minutes} min sur 14 j) — un bloc de 25 min suffit à relancer.`;
     }
   }
+  // Coach CONSCIENT du « déjà fait aujourd'hui » : quand le pilier choisi a une entrée ACTIVE datée
+  // d'AUJOURD'HUI, lui ordonner « fais-le aujourd'hui » est contradictoire — Adrien vient de le faire.
+  // Le coach crédite alors le geste du jour et réoriente vers la consolidation, au lieu de radoter un
+  // ordre déjà exécuté (le pire bug de crédibilité d'un coach). Limité au SPORT et au FOCUS : là, une
+  // entrée du jour = l'activité est faite, rien de plus n'est requis aujourd'hui. Volontairement EXCLUS :
+  // le SOMMEIL (une nuit notée = celle d'HIER ; l'action porte sur le coucher de CE SOIR, encore à venir)
+  // et la NUTRITION (« actif » y est trop lâche — protéines > 0 ne veut pas dire cible atteinte ; son
+  // bloc enrichi gère déjà l'état du jour vis-à-vis de la cible). On calcule tôt pour couper aussi la
+  // micro-marche : inutile de dire « tu ignores mes caps » un jour où le geste est justement posé.
+  let doneToday = false;
+  if (chosen.pillar === 'sport' || chosen.pillar === 'focus') {
+    const list = Array.isArray(chosen.list) ? chosen.list : [];
+    doneToday = list.some(e => e && e.date === todayKey && chosen.active(e));
+  }
   // Coach MÉTA-CONSCIENT du suivi : si ce MÊME pilier a déjà été poussé plusieurs fois récemment
   // (s.coachLog) SANS que rien ne bouge — conseil IGNORÉ, pas juste répété —, hausser le ton ne sert
   // à rien. Le coach change de registre : il propose une MICRO-marche (5-10 min) en le reconnaissant
@@ -5115,9 +5130,10 @@ function adaptiveCoachFocus(state, todayKey) {
   // de la rotation anti-radotage, qui change de PILIER après 3 jours du même focus : ici on garde le
   // pilier décroché mais on abaisse radicalement l'exigence. Un coach qui remarque que son approche
   // ne prend pas et s'adapte vaut mieux qu'un coach qui répète plus fort. Uniquement pour les tons
-  // « à corriger » (rebuild/revive) et jamais après une rotation (le pilier vient de changer d'angle).
+  // « à corriger » (rebuild/revive), jamais après une rotation (le pilier vient de changer d'angle),
+  // et jamais un jour où le geste est déjà fait (doneToday — sinon on gronderait un effort réel).
   let microStep = false;
-  if (!rotated && (tone === 'rebuild' || tone === 'revive')) {
+  if (!rotated && !doneToday && (tone === 'rebuild' || tone === 'revive')) {
     const log = Array.isArray(s.coachLog) ? s.coachLog : [];
     const list = Array.isArray(chosen.list) ? chosen.list : [];
     let ignored = 0;
@@ -5157,11 +5173,19 @@ function adaptiveCoachFocus(state, todayKey) {
       action = 'Un jour actif de plus aujourd’hui : tu prouves que la régularité te ressemble.';
     }
   }
+  // Crédit du jour (placé EN DERNIER pour primer sur les actions « fais X » — génériques, readiness,
+  // tâche phare, renfort) : le geste étant posé, l'action devient une consolidation légère. L'insight
+  // (tendance hebdo) reste vrai et intact ; seule l'action, qui donnait un ordre déjà exécuté, change.
+  if (doneToday) {
+    action = chosen.pillar === 'sport'
+      ? 'Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée.'
+      : 'Bloc de focus déjà posé aujourd’hui ✅ — savoure ; si l’énergie est là, un second bloc te rapproche de l’objectif.';
+  }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, doneToday,
   };
 }
 

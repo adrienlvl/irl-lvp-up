@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.99'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.100'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -823,6 +823,11 @@ app.whenReady().then(async () => {
           // Coach MÉTA-CONSCIENT : conseil « sport » ignoré 2 jours (journalisé, sans séance ces jours-là) → micro-marche.
           const fMicro = adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-13', pillar: 'sport' }, { date: '2026-07-14', pillar: 'sport' }] }, '2026-07-16');
           if (!(fMicro.pillar === 'sport' && fMicro.microStep === true && /5 min/.test(fMicro.action) && /abaisse la barre/.test(fMicro.insight))) return false;
+          // Crédit du jour : séance déjà loggée AUJOURD'HUI → le coach crédite au lieu de radoter « programme une séance » (et coupe la micro-marche).
+          const fDone = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-16' }] }, '2026-07-16');
+          if (!(fDone.pillar === 'sport' && fDone.doneToday === true && fDone.microStep === false && /d[ée]j[àa] faite aujourd/.test(fDone.action))) return false;
+          // Sommeil EXCLU du crédit : une nuit notée = celle d'hier, le coucher du soir reste à faire.
+          if (adaptiveCoachFocus({ recovery: [{ date: '2026-07-03', sleep: 7 }, { date: '2026-07-04', sleep: 7 }, { date: '2026-07-05', sleep: 7 }, { date: '2026-07-06', sleep: 7 }, { date: '2026-07-16', sleep: 7 }] }, '2026-07-16').doneToday !== false) return false;
           if (typeof coachFollowThrough !== 'function' || !document.getElementById('coachFollow')) return false;
           const ft = coachFollowThrough({ coachLog: [{ date: '2026-07-14', pillar: 'sport' }, { date: '2026-07-15', pillar: 'sport' }], workouts: [{ date: '2026-07-15' }] }, '2026-07-16');
           if (!(ft && ft.total === 2 && ft.followed === 1 && ft.rate === 50)) return false;
