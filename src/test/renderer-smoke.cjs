@@ -235,6 +235,21 @@ app.whenReady().then(async () => {
           const rb = sleepCoachInsight(stableDurationJaggedBedtime, '2026-07-10');
           return !!rb && rb.irregular === true && rb.bedtimeStdevMin != null && rb.tone === 'attention' && /coucher irrégulier/.test(rb.verdict);
         })(),
+        sleepImpact: typeof sleepImpactReport === 'function' && typeof renderWeeklySleep === 'function' && !!document.getElementById('sleepImpact') && (() => {
+          const pad = n => (n < 10 ? '0' + n : '' + n);
+          const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+          const rec = [], mr = [];
+          for (let i = 0; i < 5; i++) { rec.push({ date: iso(i * 2), sleep: 7, bedtime: '22:30' }); mr.push({ date: iso(i * 2), energy: 4 }); }
+          for (let i = 0; i < 5; i++) { rec.push({ date: iso(i * 2 + 1), sleep: 6, bedtime: '01:00' }); mr.push({ date: iso(i * 2 + 1), energy: 2 }); }
+          const r = sleepImpactReport({ recovery: rec, morningRituals: mr }, localDate());
+          if (!(r && r.deltas.energy === 2 && r.confidence === 'good')) return false;
+          const saved = { r: state.recovery, m: state.morningRituals };
+          state.recovery = rec; state.morningRituals = mr; renderWeeklySleep();
+          const el = document.getElementById('sleepImpact');
+          const ok = !el.hidden && /coucher/i.test(el.textContent);
+          state.recovery = saved.r; state.morningRituals = saved.m; renderWeeklySleep();
+          return ok;
+        })(),
         sleepBedtimeRegularity: typeof bedtimeRegularity === 'function' && typeof sleepCoachInsight === 'function' && !!document.getElementById('sleepCoach') && (() => {
           // Coucher fixe chaque soir malgré une durée qui alterne 5 h/8 h : le vrai souci n'est QUE
           // la durée courte, pas un rythme décousu — la régularité du coucher doit primer sur celle
@@ -625,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.89'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.90'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1069,6 +1084,7 @@ app.whenReady().then(async () => {
     if (!checks.measureSpark) errors.push('Sparkline mensurations KO (measurementSeries / sparkLineSvg / #measurementsSpark)');
     if (!checks.sleepSpark) errors.push('Sparkline sommeil KO (sleepSeries / sparkLineSvg / #sleepSpark)');
     if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / bedtimeRegularity / #sleepCoach)');
+    if (!checks.sleepImpact) errors.push('Effet du coucher KO (sleepImpactReport / #sleepImpact / rendu)');
     if (!checks.sleepBedtimeRegularity) errors.push('Régularité du coucher KO (bedtimeRegularity ne prime plus sur la durée dans sleepCoachInsight)');
     if (!checks.sleepBedtime) errors.push('Capture heure de coucher KO (bedtimeAnchor / recentBedtimeAnchor / #bedtimeInput)');
     if (!checks.sleepReschedule) errors.push('Plan de recalage sommeil KO (sleepPlanDay / startSleepPlan / normalizeSleepPlan / #sleepPlan)');

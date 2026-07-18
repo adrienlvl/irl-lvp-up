@@ -5421,7 +5421,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.89');
+  assert.equal(L.CHANGELOG[0].v, '2.0.90');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6539,6 +6539,33 @@ test('sleepCoachInsight : la régularité du COUCHER prime sur celle de la duré
   assert.equal(r2.irregular, true, 'coucher irrégulier détecté malgré une durée stable');
   assert.equal(r2.tone, 'attention');
   assert.match(r2.verdict, /coucher irrégulier/);
+});
+
+test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {
+  const today = '2026-07-30';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const recovery = [], morningRituals = [], focusSessions = [];
+  // 5 nuits couché tôt (22:30) → lendemain énergie 4 / 60 min de focus ; 5 nuits tard (01:00) → 2 / 15 min.
+  for (let i = 0; i < 5; i++) { const d = iso(i * 2); recovery.push({ date: d, sleep: 7, bedtime: '22:30' }); morningRituals.push({ date: d, energy: 4 }); focusSessions.push({ date: d, minutes: 60 }); }
+  for (let i = 0; i < 5; i++) { const d = iso(i * 2 + 1); recovery.push({ date: d, sleep: 6, bedtime: '01:00' }); morningRituals.push({ date: d, energy: 2 }); focusSessions.push({ date: d, minutes: 15 }); }
+  const r = L.sleepImpactReport({ recovery, morningRituals, focusSessions }, today);
+  assert.equal(r.nights, 10);
+  assert.equal(r.early.energy, 4); assert.equal(r.late.energy, 2);
+  assert.equal(r.deltas.energy, 2); assert.equal(r.deltas.focusMin, 45);
+  assert.equal(r.confidence, 'good');
+  assert.match(r.verdict, /Se coucher tôt paie/);
+  // < 4 nuits chiffrées avec coucher → null (pas assez pour conclure)
+  assert.equal(L.sleepImpactReport({ recovery: recovery.slice(0, 3), morningRituals, focusSessions }, today), null);
+  // aucun contraste (tous couchés à la même heure) → un seul paquet → null
+  const flat = []; for (let i = 0; i < 6; i++) flat.push({ date: iso(i), sleep: 7, bedtime: '23:00' });
+  assert.equal(L.sleepImpactReport({ recovery: flat }, today), null);
+  // nuits sans heure de coucher → null (rien à corréler)
+  assert.equal(L.sleepImpactReport({ recovery: [0, 1, 2, 3].map(i => ({ date: iso(i), sleep: 7 })) }, today), null);
+  // confiance 'low' si un paquet a < 4 nuits
+  const few = [{ date: iso(0), sleep: 7, bedtime: '22:00' }, { date: iso(1), sleep: 7, bedtime: '22:30' }, { date: iso(2), sleep: 6, bedtime: '01:00' }, { date: iso(3), sleep: 6, bedtime: '01:30' }];
+  const rf = L.sleepImpactReport({ recovery: few, morningRituals: few.map(f => ({ date: f.date, energy: 3 })) }, today);
+  assert.equal(rf.confidence, 'low');
 });
 
 test('bedtimeAnchor : minutes depuis midi, coucher soir→matin monotone croissant', () => {

@@ -32,6 +32,12 @@
 .sleep-coach p{margin:4px 0 0;color:var(--muted);font-size:.8rem;line-height:1.4}
 .sleep-coach.sc-attention{border-left-color:#f59e0b}
 .sleep-coach.sc-urgent{border-left-color:#f87171;background:rgba(248,113,113,.07)}
+.sleep-impact{margin:8px 0 2px;font-size:.82rem;color:var(--text);background:rgba(94,234,212,.06);border:1px solid var(--line);border-left:3px solid #5eead4;border-radius:9px;padding:8px 11px}
+.sleep-impact[hidden]{display:none}
+.sleep-impact span{font-weight:650}
+.sleep-impact small{color:var(--muted);font-weight:400}
+.sleep-impact p{margin:4px 0 0;color:var(--muted);font-size:.8rem;line-height:1.4}
+.sleep-impact.si-low{opacity:.85}
 .sleep-plan{margin:10px 0 2px;font-size:.82rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid #a78bfa;border-radius:11px;padding:11px 12px}
 .sleep-plan .sp-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .sleep-plan .sp-head b{font-size:.9rem}
