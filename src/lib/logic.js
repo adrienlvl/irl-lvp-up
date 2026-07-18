@@ -2727,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.77', emoji: '💪', text: 'Tonnage soulevé (kg total d’une séance, et tout ce qui en découle : « poids soulevé à vie », record séance, record hebdo, graphe « Tonnage muscu · 8 semaines ») : les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée) pèsent enfin leur vrai tonnage (charge × reps × séries). Avant, une telle séance restaurée ou importée comptait pour 0 kg partout — alors que ta fiche exercice et ton historique, eux, en affichaient déjà le tonnage : deux chiffres pouvaient se contredire. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
   { v: '2.0.76', emoji: '🏆', text: 'Palmarès de force (musculation) : ton « Palmarès de force » (meilleures séries et 1RM estimé par exercice) prend désormais aussi en compte les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import contenait ce format, la meilleure série de ces séances était absente du palmarès — alors que tes records perso, eux, la comptaient déjà : deux compteurs pouvaient se contredire côte à côte. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },
   { v: '2.0.75', emoji: '🗓️', text: 'Coach Poids — « Ta semaine type » : quand le dimanche fait partie de tes jours dispo, la semaine s’affiche à nouveau dans l’ordre normal (lundi en tête, dimanche en dernier). Avant, le dimanche remontait tout en haut de la semaine — un simple souci d’affichage (la programmation des séances dans l’agenda, elle, était déjà correcte). Le reste de l’app (plan de course, programme par objectif) rangeait déjà la semaine lundi-en-tête : le Coach Poids s’aligne enfin.' },
   { v: '2.0.74', emoji: '🎯', text: 'Cible du jour en musculation (fiche exercice et séance guidée) : la suggestion de progression « 🎯 Cible du jour : X reps × Y kg » compte désormais aussi les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import ne contenait QUE ce format pour un exercice, l’historique s’affichait mais aucune cible n’apparaissait (l’app ne « voyait » pas ces séances pour calculer la progression). C’est corrigé : ces séances comptent maintenant comme partout ailleurs. Rien ne change pour tes séances normales.' },
@@ -5854,8 +5855,14 @@ function loggedExerciseNames(workouts) {
 // Tonnage total (kg soulevés) d'une séance : somme sur les exercices de charge × reps × séries,
 // en privilégiant les séries réellement validées (setLogs complétés). Pur + testé.
 function workoutTonnage(workout) {
-  if (!workout || !Array.isArray(workout.exercises)) return 0;
-  return workout.exercises.reduce((sum, ex) => {
+  if (!workout) return 0;
+  // Repli legacy mono-exercice `w.exercise` (séances importées/restaurées sans tableau `exercises`) :
+  // sinon une vieille séance chiffrée pesait 0 kg, à rebours de lastExerciseSession/exerciseHistoryStats
+  // qui en calculent bien le tonnage à partir des mêmes champs (charge/reps/séries).
+  const exos = Array.isArray(workout.exercises) && workout.exercises.length
+    ? workout.exercises
+    : (workout.exercise ? [{ name: workout.exercise, load: workout.load, reps: workout.reps, sets: workout.sets }] : []);
+  return exos.reduce((sum, ex) => {
     if (!ex) return sum;
     if (Array.isArray(ex.setLogs) && ex.setLogs.length) {
       const done = ex.setLogs.filter(x => x && x.completed);

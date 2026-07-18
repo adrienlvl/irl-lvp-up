@@ -4178,8 +4178,19 @@ test('workoutTonnage : kg soulevés (setLogs validés prioritaires, sinon charge
   // pas de setLogs → charge × reps × séries (60×10×3)
   assert.equal(L.workoutTonnage({ exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] }), 1800);
   assert.equal(L.workoutTonnage({ exercises: [{ name: 'Tractions', reps: 10, sets: 3 }] }), 0, 'poids du corps → 0');
+  // legacy mono-exercice `w.exercise` (séance importée/restaurée) : charge × reps × séries (80×5×4)
+  assert.equal(L.workoutTonnage({ date: '2025-03-08', exercise: 'Squat', load: 80, reps: 5, sets: 4 }), 1600, 'legacy w.exercise compté');
+  // exercises vide → repli legacy inactif si pas de w.exercise
+  assert.equal(L.workoutTonnage({ exercises: [] }), 0);
   assert.equal(L.workoutTonnage({}), 0);
   assert.equal(L.workoutTonnage(null), 0);
+});
+test('lifetimeTonnage : compte une séance legacy w.exercise à côté d’une moderne', () => {
+  // moderne 60×10×3=1800 + legacy 80×5×4=1600 → 3400 (sans le fix, la legacy pesait 0 → 1800)
+  assert.equal(L.lifetimeTonnage([
+    { date: '2026-07-01', exercises: [{ name: 'Sq', load: 60, reps: 10, sets: 3 }] },
+    { date: '2025-03-08', exercise: 'Squat', load: 80, reps: 5, sets: 4 }
+  ]), 3400);
 });
 test('strengthPlateau : détecte l’absence de nouveau record de force', () => {
   // progression continue → pas de plateau
@@ -5298,7 +5309,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.76');
+  assert.equal(L.CHANGELOG[0].v, '2.0.77');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

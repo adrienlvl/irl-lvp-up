@@ -23,9 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.76 (2026-07-18)
+## 📍 État actuel — build 2.0.77 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 67 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**442**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **444 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**444**) :
+
+- 💪 **Tonnage séance : compter les séances au format legacy `w.exercise`** (2.0.77) :
+  `workoutTonnage` (`logic.js:5856`) alimentait à `0` toute la cascade tonnage (`lifetimeTonnage`
+  💪 bilan à vie, `bestSessionTonnage`, `bestTonnageWeek`, `weeklyTonnageTrend`, graphe « Tonnage
+  soulevé ») pour une séance legacy mono-exercice `w.exercise`. Le doute de #443 (« choix de
+  design ? ») est **levé** : `lastExerciseSession` (`logic.js:4462`) et `exerciseHistoryStats` en
+  calculent déjà le tonnage → la même vieille séance chiffrée pesait un tonnage dans la fiche
+  exercice mais 0 kg dans le bilan à vie et les graphes (deux chiffres contradictoires). Correctif =
+  repli legacy avant la réduction (aligné sur #440→#443), rétro-compatible. +2 tests (`workoutTonnage`
+  legacy + `lifetimeTonnage` mix) → **444 tests** + check smoke `tonnage` étendu **et promu bloquant**
+  (68 gardes). **Famille « repli legacy `w.exercise` » désormais entièrement close (#440→#444).**
+  Correctness/robustesse (§4.4/§4.2), domaine Athlète. (`docs/recaps/444-workout-tonnage-legacy.md`).
+  ✅ _boucle #444._
 
 - 🏆 **Palmarès de force : compter les séances au format legacy `w.exercise`** (2.0.76) :
   `strengthRecords` (`logic.js:4502`) alimente le « 🏆 Palmarès de force » (`renderStrengthRecords`,
