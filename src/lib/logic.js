@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.95', emoji: '🥗', text: 'Ton coach « Le focus du moment » sait enfin parler nutrition pour de vrai : quand c’est ta nutrition qui décroche, il ne se contente plus de « renseigne tes protéines ». Il calcule ta cible du jour (selon ton poids et ton objectif), regarde ce que tu as déjà mangé, et te propose une collation CONCRÈTE pour combler l’écart — « il te reste 40 g de protéines : un shaker de whey fait le job ». Et si tu tiens une série à ta cible, il te le rappelle pour ne pas la casser.' },
   { v: '2.0.94', emoji: '♿', text: 'Accessibilité : les champs de saisie du tableau de bord (nouvelle tâche, nouvelle habitude, tes 3 priorités de vie, tâche du bloc de concentration) portent désormais un vrai nom lu par les lecteurs d’écran, au lieu de ne compter que sur le texte d’exemple qui disparaît dès qu’on écrit. Rien ne change à l’écran — c’est du confort pour qui navigue en audio ou au clavier.' },
   { v: '2.0.93', emoji: '😴', text: 'Ta « Forme du jour » est plus juste : si tu notes ta fatigue et tes courbatures sans remplir les heures de sommeil, le score ne te compte plus une nuit blanche par défaut. Un sommeil laissé vide n’est plus pris pour « 0 h » (la pire note) — il est simplement ignoré, comme partout ailleurs dans l’app. Fini les fausses alertes « récupération prioritaire » juste parce que la case sommeil était vide.' },
   { v: '2.0.92', emoji: '📅', text: 'Le compte à rebours de ta recherche d’alternance vise désormais la RENTRÉE (1er octobre), plus le 1er août — parce que chercher a encore tout son sens en été et jusqu’à la rentrée (beaucoup de contrats démarrent en septembre/octobre). Le compteur reste honnête tout l’été au lieu de retomber d’un coup, et une fois la rentrée là il passe en « dernière ligne droite » plutôt que de s’effondrer.' },
@@ -5039,6 +5040,31 @@ function adaptiveCoachFocus(state, todayKey) {
     const imp = (typeof sleepImpactReport === 'function') ? sleepImpactReport(s, todayKey) : null;
     if (imp && imp.deltas.energy != null && imp.deltas.energy >= 0.5) action += ' Tes soirs couché tôt = +' + imp.deltas.energy + ' d’énergie le lendemain.';
     else if (imp && imp.deltas.focusMin >= 15) action += ' Couché tôt, tu enchaînes +' + imp.deltas.focusMin + ' min de focus le lendemain.';
+  }
+  // Focus nutrition ENRICHI (même esprit que le sommeil #459) : plutôt qu'un « renseigne tes
+  // protéines » aveugle, le coach lit l'état RÉEL du jour — cible protéines calée sur le poids et
+  // l'objectif d'Adrien (proteinTarget), consommé du jour, écart restant — et propose une COLLATION
+  // concrète qui comble le trou (proteinSnackSuggestion). L'insight cite la SÉRIE protéines quand elle
+  // court (l'app est gamifiée), sinon la régularité 7 j — la nutrition rejoint sport/focus/sommeil qui
+  // parlent déjà chiffres. Dégrade proprement vers l'action générique si pas de cible exploitable.
+  if (chosen.pillar === 'nutrition' && s.profile && typeof proteinTarget === 'function') {
+    const tgt = proteinTarget(s.profile.weight, s.profile.goal).gramsPerDay;
+    const nut = Array.isArray(s.nutrition) ? s.nutrition : [];
+    if (tgt > 0) {
+      const todayN = nut.find(n => n && n.date === todayKey) || null;
+      const prot = todayN ? (Number(todayN.protein) || 0) : 0;
+      const streak = (typeof proteinStreak === 'function') ? proteinStreak(nut, tgt, todayKey) : { current: 0, best: 0 };
+      if (streak.current >= 2) {
+        insight = `🔥 ${streak.current} jours d’affilée à ta cible protéines (${tgt} g). Ne casse pas la série aujourd’hui.`;
+      } else {
+        const since = (typeof dateAfterDays === 'function') ? dateAfterDays(todayKey, -6) : null;
+        const onTgt = (since && typeof proteinDaysOnTarget === 'function') ? proteinDaysOnTarget(nut, tgt, since, todayKey) : 0;
+        insight = `${onTgt}/7 jours à ta cible protéines (${tgt} g) cette semaine. La régularité prime sur la perfection.`;
+      }
+      const snack = (typeof proteinSnackSuggestion === 'function') ? proteinSnackSuggestion(prot, tgt) : null;
+      if (snack) action = `Il te reste ${snack.gap} g de protéines aujourd’hui — ${snack.snack} (~${snack.snackProtein} g) comble l’écart.`;
+      else if (prot > 0) action = `Cible protéines tenue (${prot}/${tgt} g) 💪 — verrouille l’eau et un fruit/légume.`;
+    }
   }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {

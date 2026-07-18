@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.94');
+  assert.equal(L.CHANGELOG[0].v, '2.0.95');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7234,6 +7234,44 @@ test('adaptiveCoachFocus : parle en fonction des objectifs perso (hebdo calendai
   const f2 = L.adaptiveCoachFocus(focus, today);
   assert.equal(f2.pillar, 'focus');
   assert.match(f2.insight, /Objectif hebdo : 25\/120 min de focus\./);
+});
+
+test('adaptiveCoachFocus : focus nutrition enrichi (cible protéines réelle + collation concrète)', () => {
+  const today = '2026-07-16';
+  // Cible = proteinTarget(80, 'force') = round(80*1.9/5)*5 = 150 g.
+  assert.equal(L.proteinTarget(80, 'force').gramsPerDay, 150, 'cible protéines attendue');
+  // Nutrition en décrochage (3 j la semaine passée, 1 récente sous la cible) + aucun autre pilier
+  // → nutrition est le focus. Pas de série (jours sous la cible) → insight = régularité 7 j.
+  const base = { profile: { weight: 80, goal: 'force' } };
+  const decline = { ...base, nutrition: [
+    { date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 },
+    { date: '2026-07-15', protein: 50 },
+  ] };
+  const fn = L.adaptiveCoachFocus(decline, today);
+  assert.equal(fn.pillar, 'nutrition');
+  assert.match(fn.insight, /0\/7 jours à ta cible protéines \(150 g\)/, 'insight = régularité chiffrée, pas un compteur générique');
+  assert.match(fn.action, /Il te reste 150 g de protéines/, 'action = écart du jour (aucune entrée aujourd’hui → 150 g restants)');
+  assert.match(fn.action, /~\d+ g\)/, 'l’action cite une collation concrète et son apport');
+  // Série protéines en cours (≥ 2 j d’affilée à la cible) → l’insight bascule sur la série motivante.
+  const streak = { ...base, nutrition: [
+    { date: '2026-07-03', protein: 160 }, { date: '2026-07-04', protein: 160 }, { date: '2026-07-05', protein: 160 }, { date: '2026-07-06', protein: 160 },
+    { date: '2026-07-14', protein: 160 }, { date: '2026-07-15', protein: 160 },
+  ] };
+  const fs = L.adaptiveCoachFocus(streak, today);
+  assert.equal(fs.pillar, 'nutrition');
+  assert.match(fs.insight, /🔥 2 jours d’affilée à ta cible protéines \(150 g\)/, 'série protéines citée quand elle court');
+  // Cible du jour déjà tenue → l’action félicite au lieu de proposer une collation.
+  const held = { ...base, nutrition: [
+    { date: '2026-07-03', protein: 160 }, { date: '2026-07-04', protein: 160 }, { date: '2026-07-05', protein: 160 }, { date: '2026-07-06', protein: 160 },
+    { date: '2026-07-14', protein: 160 }, { date: '2026-07-15', protein: 160 }, { date: today, protein: 160 },
+  ] };
+  const fh = L.adaptiveCoachFocus(held, today);
+  assert.equal(fh.pillar, 'nutrition');
+  assert.match(fh.action, /Cible protéines tenue \(160\/150 g\)/, 'action = félicitation quand la cible du jour est atteinte');
+  // Sans profil (pas de cible exploitable) → dégrade proprement vers l’action générique.
+  const noProfile = L.adaptiveCoachFocus({ nutrition: decline.nutrition }, today);
+  assert.equal(noProfile.pillar, 'nutrition');
+  assert.ok(!/Il te reste|cible protéines/.test(noProfile.action), 'sans profil : pas d’enrichissement, action générique conservée');
 });
 
 test('coachFollowThrough : mesure si les conseils du coach sont suivis', () => {

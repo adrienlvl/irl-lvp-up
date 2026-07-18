@@ -23,7 +23,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.94 (2026-07-18)
+## 📍 État actuel — build 2.0.95 (2026-07-19)
+
+> 🥗 **2.0.95** — Coaching adaptatif poussé à fond (priorité de la nuit) : le focus **nutrition** du
+> coach « Le focus du moment » cesse d'être générique. Cible protéines réelle (poids + objectif via
+> `proteinTarget`), insight qui cite la **série** en cours ou la régularité 7 j, et action **concrète**
+> — collation qui comble l'écart du jour (`proteinSnackSuggestion`) ou félicitation si la cible est
+> tenue. Les 4 piliers parlent désormais chiffres. `adaptiveCoachFocus` pur + testé, check smoke
+> bloquant `coachFocus` étendu. Recap #464.
 
 > ♿ **2.0.94** — accessibilité : les 6 champs du tableau de bord au `placeholder` seul (nouvelle
 > tâche, nouvelle habitude, 3 priorités de vie, tâche du bloc de concentration) portent enfin un
