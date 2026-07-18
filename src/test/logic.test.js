@@ -5414,7 +5414,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.85');
+  assert.equal(L.CHANGELOG[0].v, '2.0.86');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -5917,6 +5917,12 @@ test('objectiveProgramText : export texte lisible du programme', () => {
   assert.ok(/×/.test(txt), 'séries×reps présentes');
   assert.ok(txt.includes('Nutrition') && txt.includes('kcal/j'), 'nutrition présente');
   assert.equal(txt.split('\n').length > 5, true, 'plusieurs lignes');
+  // Accord de « course » : athlétique = 3 runs → pluriel « 3 courses/sem. » (et jamais « 3 course/sem. »)
+  assert.ok(txt.includes('3 courses/sem.'), 'course accordée au pluriel quand runs > 1');
+  assert.ok(!/\b3 course\/sem\./.test(txt), 'pas de « 3 course/sem. » au singulier fautif');
+  // Prise de muscle = 1 run → singulier « 1 course/sem. »
+  const txtMuscle = L.objectiveProgramText(L.objectiveProgram('muscle', ex));
+  assert.ok(txtMuscle.includes('1 course/sem.') && !txtMuscle.includes('1 courses/sem.'), 'course au singulier quand runs = 1');
   assert.equal(L.objectiveProgramText(null), '', 'programme vide → chaîne vide');
   assert.equal(L.objectiveProgramText({ title: 'x', week: [] }), '', 'sans séances → vide');
   // shareableProgram : objet de partage natif { title, text }

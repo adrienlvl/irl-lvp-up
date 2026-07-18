@@ -2743,6 +2743,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.86', emoji: '🏃', text: 'Programme auto (onglet Athlète, « Mon programme selon mon objectif ») : le résumé accorde enfin « course » au pluriel quand ton objectif comporte plusieurs courses par semaine — « 4 courses/sem. » au lieu de « 4 course/sem. » (Perte de gras, Endurance, Corps athlétique…). Même correction dans le détail « (X muscu, Y courses) » et dans le programme copié/partagé. Un objectif à une seule course par semaine (Prise de muscle) reste au singulier. Petit détail d’accord — rien ne change au contenu de ton programme.' },
   { v: '2.0.85', emoji: '💼', text: 'Import Alternance (cibles depuis Google Sheets / CSV) : deux colonnes sont mieux reconnues. Un département d’outre-mer entre parenthèses — « (972) », « (974) »… — est désormais compris comme les départements métropolitains « (35) », donc filtrable et ciblable ; auparavant seuls deux chiffres étaient reconnus et les DOM étaient silencieusement ignorés. Et la colonne de score n’est plus confondue quand son en-tête est « Score /100 » (ou contient une autre année/nombre) : seule une note « /10 » est prise pour la colonne /10, ce qui évitait un import qui repartait vide sans explication. Rien ne change pour un tableau « Score /10 » classique avec des villes métropolitaines.' },
   { v: '2.0.84', emoji: '📸', text: 'Progression photo (onglet Croissance, encart « Avant / Après ») : quand tes deux photos comparées ne sont espacées que d’un jour, l’app écrit désormais « 1 jour d’écart » (au singulier) au lieu de « 1 jours d’écart ». Petit détail d’accord, dans la lignée des autres libellés récemment corrigés. Rien ne change au-delà de deux jours d’écart.' },
   { v: '2.0.83', emoji: '🎂', text: 'Anniversaires : dans la liste de gestion des anniversaires, l’âge s’accorde enfin au singulier — « 1 an » et non « 1 ans » pour quelqu’un qui fête son premier anniversaire. Le bandeau « 🎂 À venir » et le calendrier mensuel le faisaient déjà (via le même helper d’accord), mais cette troisième vue écrivait « ans » en dur : les trois vues s’alignent enfin. Rien ne change pour un âge de 2 ans ou plus.' },
@@ -3265,7 +3266,7 @@ function objectiveProgramText(program, opts) {
   const sum = programWeekSummary(week);
   const lines = [];
   lines.push(`${p.emoji || ''} ${p.title} — programme de la semaine`.trim());
-  lines.push(`${p.strength} muscu · ${p.runs} course/sem.${p.runFocus ? ' · ' + p.runFocus : ''}`);
+  lines.push(`${p.strength} muscu · ${p.runs} course${p.runs > 1 ? 's' : ''}/sem.${p.runFocus ? ' · ' + p.runFocus : ''}`);
   lines.push(`≈ ${String(sum.hours).replace('.', ',')} h/semaine · ${sum.sessions} séances`);
   lines.push('');
   week.forEach(s => {
