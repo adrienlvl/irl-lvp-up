@@ -23,9 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.81 (2026-07-18)
+## 📍 État actuel — build 2.0.82 (2026-07-18)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **447 tests + smoke** verts (harness durci, dont garde-fou CSS + 68 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**451**) :
+
+- 🎯 **Bilan hebdo : « encore N séances » (nom accordé) au lieu de « encore N »** (2.0.82) :
+  `weeklyInsights` (`logic.js:2303`, carte « Comment va ma semaine ») terminait son conseil objectif
+  par « encore 2 **pour** ton objectif hebdo » — le nombre restant **sans son nom**, là où le message
+  frère d'`app.js:146` inclut déjà « N séance(s) pour boucler ton objectif ». Correctif = le reste à
+  faire porte « séance(s) » accordé sur le nombre restant (`left > 1 ? 's'`), aligné sur `app.js` et
+  la convention FR. Seul le libellé change. +2 assertions au test `weeklyInsights` (singulier ET
+  pluriel du reste) → **447 tests** + smoke vert. Polish UX honnête (§4.4), domaine Bilan hebdo.
+  (`docs/recaps/452-weekly-insights-encore-seances.md`). ✅ _boucle #452._
 
 - 🏋️ **`blockWindowStats` : décompte des séries robuste aux séances saisies à la main** (sans build) :
   `blockWindowStats` (`logic.js:3828`) comptait le tonnage via `workoutTonnage` (qui gère les séances

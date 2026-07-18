@@ -1553,7 +1553,10 @@ test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   assert.ok(goal1done.some(i => i.tone === 'good' && /1\/1 séance — objectif atteint/.test(i.text)), '1/1 séance au singulier (objectif atteint)');
   assert.ok(!goal1done.some(i => /\/1 séances/.test(i.text)), 'pas de pluriel fautif quand objectif = 1');
   const goal1none = L.weeklyInsights({ workouts: [], goals: { sessions: 1 } }, '2026-07-06', '2026-07-11');
-  assert.ok(goal1none.some(i => i.tone === 'warn' && /0\/1 séance — encore 1 /.test(i.text)), '0/1 séance au singulier (encore)');
+  assert.ok(goal1none.some(i => i.tone === 'warn' && /0\/1 séance — encore 1 séance pour ton objectif hebdo\./.test(i.text)), '0/1 séance : le reste porte le nom « séance » au singulier');
+  // le reste à faire porte le nom « séance(s) » accordé sur le nombre restant (aligné sur app.js « N séance(s) pour boucler ton objectif »)
+  const goalMany = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'strength', duration: 50, effort: 3 }], goals: { sessions: 4 } }, '2026-07-06', '2026-07-11');
+  assert.ok(goalMany.some(i => i.tone === 'warn' && /1\/4 séances — encore 3 séances pour ton objectif hebdo\./.test(i.text)), 'encore 3 séances (pluriel du reste)');
   // état vide → un message d'amorce
   const empty = L.weeklyInsights({}, '2026-07-06', '2026-07-11');
   assert.equal(empty.length, 1);
@@ -5382,7 +5385,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.81');
+  assert.equal(L.CHANGELOG[0].v, '2.0.82');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
