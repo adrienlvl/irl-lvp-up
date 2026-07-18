@@ -625,7 +625,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.83'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.84'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -637,6 +637,17 @@ app.whenReady().then(async () => {
           const html = document.getElementById('birthdayList').innerHTML;
           state.birthdays = saved; renderBirthdays();
           return html.indexOf('1 an<') !== -1 && html.indexOf('1 ans') === -1;
+        })(),
+        photoCompareDelta: typeof renderGrowth === 'function' && !!document.getElementById('photoCompare') && (() => {
+          // L'écart entre deux photos doit accorder « jour » au singulier à 1 jour (« 1 jour d’écart »),
+          // pas « 1 jours » — même filon d’accord de libellé que ageLabel (helper appliqué / ternaire).
+          const savedP = state.photos, savedW = state.weights;
+          state.photos = [{ id: 1, date: '2026-07-01', file: 'a' }, { id: 2, date: '2026-07-02', file: 'b' }];
+          state.weights = [];
+          renderGrowth();
+          const html = document.getElementById('photoCompare').innerHTML;
+          state.photos = savedP; state.weights = savedW; renderGrowth();
+          return html.indexOf('1 jour d’écart') !== -1 && html.indexOf('1 jours') === -1;
         })(),
         calorieFloor: typeof calorieAdjustment === 'function' && (() => { const flat = [{ date: '2026-06-21', value: 80 }, { date: '2026-07-01', value: 80.1 }, { date: '2026-07-12', value: 80 }]; const near = calorieAdjustment(flat, 'perte', 1250); const norm = calorieAdjustment(flat, 'perte', 2000); const floor = calorieAdjustment(flat, 'perte', 1200); return near.newTarget === 1200 && near.delta === 50 && near.message.indexOf('50 kcal/jour') !== -1 && near.message.indexOf('125 kcal') === -1 && norm.delta === 125 && norm.newTarget === 1875 && floor.delta === 0 && floor.newTarget === 1200 && floor.message.indexOf('plancher') !== -1; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
@@ -1055,6 +1066,7 @@ app.whenReady().then(async () => {
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');
     if (!checks.ageLabel) errors.push('Libellé d’âge KO (ageLabel singulier/pluriel : « 1 an » / « 2 ans » / âge inconnu → vide)');
     if (!checks.ageLabelList) errors.push('Liste anniversaires KO (renderBirthdays doit accorder l’âge via ageLabel : « 1 an » et non « 1 ans », comme le bandeau « À venir » et le calendrier)');
+    if (!checks.photoCompareDelta) errors.push('Écart photos KO (renderGrowth doit accorder « jour » au singulier à 1 jour : « 1 jour d’écart » et non « 1 jours »)');
     if (!checks.calorieFloor) errors.push('Ajustement calorique KO (calorieAdjustment : baisse annoncée ≠ baisse réelle près du plancher 1200)');
     if (!checks.recurring) errors.push('Récurrence KO (recurrenceMatches/normalizeRecurring/recurringForm/recFreq/recurringList)');
     if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList/habitDays 7 jours)');

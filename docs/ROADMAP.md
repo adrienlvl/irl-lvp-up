@@ -23,9 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.83 (2026-07-18)
+## 📍 État actuel — build 2.0.84 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **447 tests + smoke** verts (harness durci, dont garde-fou CSS + 69 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**453**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **447 tests + smoke** verts (harness durci, dont garde-fou CSS + 69 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**454**) :
+
+- 📸 **Progression photo : « jour » accordé au singulier à 1 jour d'écart** (2.0.84) :
+  `renderGrowth` (`app.js:440`), encart « Avant / Après », affichait « 1 **jours** d'écart » quand
+  deux photos sans poids étaient à un jour d'intervalle (`photoComparePair.days` = 1, voire 0 le
+  même jour) — pluriel codé en dur, fautif en FR. Même filon que #453/#452. Correctif = ternaire
+  `jour${cmp.days>1?'s':''}` (idiome du fichier, aucun helper `jour` n'existe). Check smoke bloquant
+  `photoCompareDelta` → **447 tests** + smoke vert. Polish UX honnête (§4.4), domaine Croissance.
+  (`docs/recaps/454-photo-compare-jour-accord.md`). ✅ _boucle #454._
 
 - 🎂 **Liste des anniversaires : âge accordé au singulier (« 1 an » via `ageLabel`)** (2.0.83) :
   `renderBirthdays` (`app.js:182`) codait « ans » en dur (`${nowY-b.year} ans`) → « 1 ans » pour un
