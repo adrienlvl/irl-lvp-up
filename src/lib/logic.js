@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.114', emoji: '📈', text: 'Ton coach « Le focus du moment » fait maintenant GRANDIR le geste au fil d’une reprise, au lieu de te répéter « encore un jour actif ». Après une relance amorcée (un pilier rallumé après un long silence), il adapte l’ask au stade de la reprise. Encore fragile — un seul geste depuis la reprise —, il protège l’étincelle plutôt que de pousser : « Ne force pas le rythme : un 2e jour actif cette semaine ancre l’étincelle mieux qu’une grosse séance. » Dès que la reprise tient — deux jours actifs ou plus —, il remonte la barre vers la normale : « La reprise tient (2 jours cette semaine) — tu as regagné le droit à une vraie séance aujourd’hui. » Pour le sport, il respecte ta readiness du jour : un jour de récup garde le geste léger. Après le premier pas d’un pilier dormant puis le salut de la reprise, c’est le troisième temps : accompagner l’élan jusqu’au rythme normal.' },
   { v: '2.0.113', emoji: '🔥', text: 'Ton coach « Le focus du moment » sait maintenant SALUER une relance amorcée. Il savait proposer le tout premier pas d’un pilier resté dormant ; désormais, quand tu l’honores — un geste frais qui rompt un silence d’au moins deux semaines —, il reconnaît la victoire : « Tu as rallumé ton entraînement il y a 2 j après 29 jours d’arrêt — le plus dur (franchir la reprise) est fait, ne laisse pas la flamme retomber. » Franchir le mur d’activation après une longue coupure est l’instant le plus fragile ET le plus méritant d’une reprise : le nommer ancre la victoire et protège l’élan naissant.' },
   { v: '2.0.112', emoji: '🌱', text: 'Ton coach « Le focus du moment » adapte désormais son geste à la DURÉE d’une coupure. Quand un pilier est resté dormant deux semaines ou plus, il ne te sort plus le « programme une séance courte » habituel — intimidant après une longue pause : il propose un tout premier pas MINUSCULE, proportionné, en nommant la coupure pour que l’effort demandé paraisse juste. « Après 26 jours sans focus, un seul bloc de 10 min sur une tâche facile — juste pour recréer le réflexe. » Au-delà de 3 semaines, il déculpabilise franchement : « On ne rouvre pas le chantier aujourd’hui, on rallume la lampe. » Après une longue coupure, rallumer la mèche compte plus que l’intensité. Il coupe alors la suggestion de créneau (« cale ta séance à 14:30 » contredirait « juste 5 min ») et laisse le micro-pas primer quand c’est plutôt un conseil ignoré.' },
   { v: '2.0.111', emoji: '🛏️', text: 'Ton coach « Le focus du moment » ne se contente plus d’ALERTER quand un rendez-vous du soir menace ta cible de coucher : il te donne le geste concret. Si le rendez-vous finit APRÈS ta cible — l’heure visée devient intenable ce soir —, il propose l’heure de coucher réaliste à viser à la place, calée sur sa fin : « « Dîner famille » (à partir de 21:30) finit vers 22:50, après ta cible de 22:30 — couche-toi dès sa fin plutôt que de repousser encore, tu protèges ta fenêtre du soir. » Viser un coucher tenable limite la casse mieux qu’un « couche-toi à 22:30 » impossible à honorer. Si le rendez-vous finit juste avant ta cible, elle tient encore : file au lit dès la fin, sans écran.' },
@@ -5485,7 +5486,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // pas un décrochage) et à un pilier réellement ANCIEN (older non vide) — un pilier flambant neuf n'est
   // pas une « relance ». Disjoint du ré-amorçage/micro-pas (tons de correction) par le ton. Additif pur :
   // champ comeback (booléen) TOUJOURS renvoyé ; note ajoutée à l'insight, action (déjà enrichie) intacte.
-  let comeback = false;
+  let comeback = false, comebackStage = null;
   if (tone === 'reinforce' && !rotated) {
     const ns = [];
     for (const e of (Array.isArray(chosen.list) ? chosen.list : [])) {
@@ -5504,6 +5505,33 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         comeback = true;
         const when = relaunchDay === 0 ? 'aujourd’hui' : relaunchDay === 1 ? 'hier' : `il y a ${relaunchDay} j`;
         insight += ` Tu as rallumé ${POSSESSIF[chosen.pillar] || 'ce pilier'} ${when} après ${gap} jours d’arrêt — le plus dur (franchir la reprise) est fait, ne laisse pas la flamme retomber.`;
+        // ESCALADE du geste au fil de la reprise (piste en tête de #481/#482). #481 propose le premier
+        // pas d'un pilier dormant, #482 SALUE la reprise amorcée ; il manquait le troisième temps : faire
+        // GRANDIR l'ask avec l'élan, au lieu de servir le « encore un jour actif » générique quel que soit
+        // le stade de la relance. Deux stades, mesurés par le nombre de jours actifs DISTINCTS de la
+        // semaine (chosen.recentDays, déjà calculé) :
+        //  • ÉTINCELLE (recentDays === 1) — un seul geste depuis la reprise : c'est fragile, on PROTÈGE
+        //    plutôt qu'on pousse. Objectif = un 2e jour, pas une grosse séance qui dégoûte.
+        //  • ELLE PREND (recentDays ≥ 2) — la reprise s'installe : on REMONTE le geste vers la normale
+        //    (« repasse à une vraie séance / un vrai bloc / ta cible protéines pleine »), Adrien a regagné
+        //    le droit d'exiger. Pour le SPORT on respecte la readiness : un jour de récup (< 50) garde le
+        //    geste léger — pousser « une vraie séance » contredirait l'action readiness déjà posée.
+        // Le SOMMEIL est exclu : son coach dédié (sleepIns/plan de recalage) tient déjà une action riche,
+        // qu'une escalade générique piétinerait. Additif pur : champ comebackStage (null hors comeback),
+        // note APPENDUE à l'action (jamais remplacée), aucune autre branche touchée.
+        comebackStage = chosen.recentDays >= 2 ? 'building' : 'spark';
+        const n = chosen.recentDays;
+        const sportRecovery = chosen.pillar === 'sport' && readiness != null && readiness < 50;
+        const escal = comebackStage === 'spark' ? {
+          sport: 'Ne force pas le rythme : un 2e jour actif cette semaine ancre l’étincelle mieux qu’une grosse séance.',
+          focus: 'Ne force pas le rythme : un 2e bloc cette semaine ancre l’étincelle mieux qu’une journée marathon.',
+          nutrition: 'Ne force pas le rythme : un 2e jour de suivi cette semaine réancre le réflexe, pas besoin de tout tracker.',
+        } : {
+          sport: `La reprise tient (${n} jours cette semaine) — ${sportRecovery ? 'readiness bas aujourd’hui, garde léger, tu pousseras à la prochaine.' : 'tu as regagné le droit à une vraie séance aujourd’hui.'}`,
+          focus: `La reprise tient (${n} jours cette semaine) — repasse à un vrai bloc de focus, pas juste 10 min.`,
+          nutrition: `La reprise tient (${n} jours cette semaine) — vise ta cible protéines pleine aujourd’hui, plus juste un apport.`,
+        };
+        if (escal[chosen.pillar]) action += ' ' + escal[chosen.pillar];
       }
     }
   }
@@ -5511,7 +5539,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
   };
 }
 

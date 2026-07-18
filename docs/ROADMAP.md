@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.113 (2026-07-19)
+## 📍 État actuel — build 2.0.114 (2026-07-19)
+
+> 📈 **2.0.114** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » fait désormais **GRANDIR le geste au fil d'une reprise** — le **troisième temps** de l'arc du
+> pilier dormant (#481 propose le premier pas, #482 salue la reprise, #483 accompagne l'élan). Une fois
+> une relance amorcée (`comeback`, ton `reinforce`), l'action retombait sur le générique « encore un jour
+> actif » quel que soit le **stade** de la reprise. Or un seul geste (fragile) et 2-3 jours actifs
+> (installée) n'appellent pas le même ask. Deux stades, mesurés par le nombre de jours actifs **distincts**
+> de la semaine (`chosen.recentDays`, déjà calculé) : **étincelle** (`recentDays === 1`) → on PROTÈGE
+> — « **Ne force pas le rythme : un 2e jour actif cette semaine ancre l'étincelle mieux qu'une grosse
+> séance.** » ; **elle prend** (`≥ 2`) → on REMONTE vers la normale — « **La reprise tient (2 jours cette
+> semaine) — tu as regagné le droit à une vraie séance aujourd'hui.** ». Un geste par pilier (sport,
+> focus, nutrition). Points de conception : le SPORT respecte la readiness du jour (récup < 50 → geste
+> léger, pas « vraie séance ») ; le SOMMEIL est exclu de l'escalade (son coach dédié tient déjà une action
+> riche), mais garde le badge `comeback`. Additif pur : champ `comebackStage` (`spark`/`building`/`null`),
+> note **appendue** à l'action (jamais remplacée). `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #483.
 
 > 🔥 **2.0.113** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » sait désormais **saluer une relance amorcée** — le pendant POSITIF du ré-amorçage (#481). Il

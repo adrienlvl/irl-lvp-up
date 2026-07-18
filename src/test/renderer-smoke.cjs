@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.113'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.114'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -871,7 +871,12 @@ app.whenReady().then(async () => {
           // Coach de la RELANCE AMORCÉE : reprise fraîche (07-14, 07-16) après un long trou (dernier geste = 15 juin, 29 j) → comeback salué avec le trou chiffré.
           const fBack = adaptiveCoachFocus({ workouts: [{ date: '2026-06-15' }, { date: '2026-07-14' }, { date: '2026-07-16' }] }, '2026-07-16');
           if (!(fBack.pillar === 'sport' && fBack.tone === 'reinforce' && fBack.comeback === true && /Tu as rallum[ée] ton entra[îi]nement il y a 2 j apr[èe]s 29 jours/.test(fBack.insight))) return false;
-          if (fBoost.comeback !== false) return false; // hausse continue (pas de trou) → pas de relance
+          // ESCALADE du geste : 2 jours actifs → stade « building », le coach remonte l'ask vers une vraie séance.
+          if (!(fBack.comebackStage === 'building' && /La reprise tient \\(2 jours cette semaine\\)/.test(fBack.action) && /vraie s[ée]ance/.test(fBack.action))) return false;
+          // ESCALADE — stade « étincelle » : un SEUL geste depuis la reprise → le coach protège l'étincelle (« un 2e jour… »).
+          const fSpark = adaptiveCoachFocus({ workouts: [{ date: '2026-06-15' }, { date: '2026-07-16' }] }, '2026-07-16');
+          if (!(fSpark.comeback === true && fSpark.recentDays === 1 && fSpark.comebackStage === 'spark' && /Ne force pas le rythme/.test(fSpark.action) && /un 2e jour actif cette semaine/.test(fSpark.action))) return false;
+          if (fBoost.comeback !== false || fBoost.comebackStage !== null) return false; // hausse continue (pas de trou) → pas de relance
           // Coach CONSCIENT de la readiness : focus « sport » + check-in du jour → action calée sur la readiness.
           const rdWk = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
           const fRdLow = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 3, fatigue: 5, soreness: 5 }] }, '2026-07-16');

@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.113');
+  assert.equal(L.CHANGELOG[0].v, '2.0.114');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7148,10 +7148,25 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(back.comeback, true, 'reprise fraîche après ≥ 14 j de trou → relance amorcée');
   assert.match(back.insight, /Tu as rallumé ton entraînement il y a 2 j après 29 jours d’arrêt/);
   assert.match(back.insight, /le plus dur \(franchir la reprise\) est fait/);
+  // ESCALADE du geste : 2 jours actifs cette semaine (07-14 + 07-16) → reprise qui « prend » (building),
+  // le coach remonte l'ask vers une vraie séance.
+  assert.equal(back.comebackStage, 'building', 'reprise à 2 jours actifs → stade « building »');
+  assert.match(back.action, /La reprise tient \(2 jours cette semaine\)/);
+  assert.match(back.action, /regagné le droit à une vraie séance/);
+  // ESCALADE — stade « étincelle » : un SEUL geste depuis la reprise (07-16 seul, après un long trou)
+  // → le coach protège l'étincelle au lieu de pousser (« un 2e jour… »).
+  const spark = L.adaptiveCoachFocus({ workouts: [{ date: '2026-06-15' }, { date: '2026-07-16' }] }, today);
+  assert.equal(spark.tone, 'reinforce');
+  assert.equal(spark.comeback, true, 'reprise fraîche après long trou → relance amorcée');
+  assert.equal(spark.recentDays, 1);
+  assert.equal(spark.comebackStage, 'spark', 'un seul jour actif → stade « étincelle »');
+  assert.match(spark.action, /Ne force pas le rythme/);
+  assert.match(spark.action, /un 2e jour actif cette semaine/);
   // Un pilier flambant NEUF (aucune activité avant le trou) n'est pas une « relance ».
   const fresh = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: '2026-07-16' }] }, today);
   assert.equal(fresh.tone, 'reinforce');
   assert.equal(fresh.comeback, false, 'pilier sans passé avant la fenêtre récente → pas de relance');
+  assert.equal(fresh.comebackStage, null, 'hors relance → comebackStage null');
 
   // priorité : un pilier qui décroche l'emporte sur un autre en hausse.
   const mixed = L.adaptiveCoachFocus({
