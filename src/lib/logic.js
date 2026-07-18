@@ -356,11 +356,15 @@ function parseAlternanceTargets(text, opts) {
   const iCompany = find('entreprise', 'company', 'societe', 'employeur');
   if (iCompany < 0) return [];
   const iVille = find('ville', 'commune', 'localite');
-  const iScore = header.findIndex(h => h.includes('score') && h.includes('10'));
+  // Colonne score : « Score /10 ». On cherche « 10 » isolé (\b10\b) et non un simple includes('10')
+  // qui prendrait « Score /100 » (ou « Score 2010 ») pour la colonne /10 → scores hors [0,10] rejetés,
+  // et import silencieusement vide dès que minScore > 0.
+  const iScore = header.findIndex(h => h.includes('score') && /\b10\b/.test(h));
   const iStatus = find('statut', 'status', 'etat');
   const iRole = find('poste', 'intitule', 'metier');
   const iNotes = find('pourquoi', 'note', 'commentaire', 'contexte');
-  const deptOf = v => { const m = String(v || '').match(/\((\d{2})\)/); return m ? m[1] : ''; };
+  // Département entre parenthèses : 2 chiffres (métropole, « (35) ») OU 3 chiffres (outre-mer, « (972) »).
+  const deptOf = v => { const m = String(v || '').match(/\((\d{2,3})\)/); return m ? m[1] : ''; };
   const scoreOf = v => { const m = String(v || '').replace(',', '.').match(/^\s*(\d+(?:\.\d+)?)/); const n = m ? parseFloat(m[1]) : NaN; return (n >= 0 && n <= 10) ? n : NaN; };
   const geoOk = ville => {
     if (!allowDepts.length && !Object.keys(townDepts).length) return true;
@@ -2739,6 +2743,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.85', emoji: '💼', text: 'Import Alternance (cibles depuis Google Sheets / CSV) : deux colonnes sont mieux reconnues. Un département d’outre-mer entre parenthèses — « (972) », « (974) »… — est désormais compris comme les départements métropolitains « (35) », donc filtrable et ciblable ; auparavant seuls deux chiffres étaient reconnus et les DOM étaient silencieusement ignorés. Et la colonne de score n’est plus confondue quand son en-tête est « Score /100 » (ou contient une autre année/nombre) : seule une note « /10 » est prise pour la colonne /10, ce qui évitait un import qui repartait vide sans explication. Rien ne change pour un tableau « Score /10 » classique avec des villes métropolitaines.' },
   { v: '2.0.84', emoji: '📸', text: 'Progression photo (onglet Croissance, encart « Avant / Après ») : quand tes deux photos comparées ne sont espacées que d’un jour, l’app écrit désormais « 1 jour d’écart » (au singulier) au lieu de « 1 jours d’écart ». Petit détail d’accord, dans la lignée des autres libellés récemment corrigés. Rien ne change au-delà de deux jours d’écart.' },
   { v: '2.0.83', emoji: '🎂', text: 'Anniversaires : dans la liste de gestion des anniversaires, l’âge s’accorde enfin au singulier — « 1 an » et non « 1 ans » pour quelqu’un qui fête son premier anniversaire. Le bandeau « 🎂 À venir » et le calendrier mensuel le faisaient déjà (via le même helper d’accord), mais cette troisième vue écrivait « ans » en dur : les trois vues s’alignent enfin. Rien ne change pour un âge de 2 ans ou plus.' },
   { v: '2.0.82', emoji: '🎯', text: 'Bilan hebdo (« Comment va ma semaine ») : quand il te reste des séances à faire pour ton objectif, le message dit désormais « encore 3 séances pour ton objectif hebdo » (avec le mot « séance » accordé au nombre restant) au lieu du plus sec « encore 3 pour ton objectif hebdo ». Petit détail de libellé, aligné sur le même message ailleurs dans l’app.' },

@@ -23,9 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.84 (2026-07-18)
+## 📍 État actuel — build 2.0.85 (2026-07-18)
 
 App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **447 tests + smoke** verts (harness durci, dont garde-fou CSS + 69 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**454**) :
+
+- 💼 **Import Alternance : DOM à 3 chiffres + en-tête « Score /100 » mieux détectés** (2.0.85) :
+  `parseAlternanceTargets` (`logic.js:345`) — `deptOf` n'extrayait qu'`(\d{2})` → un département
+  d'outre-mer `(972)` n'était jamais reconnu (non ciblable) ; `iScore` faisait `includes('10')` →
+  « Score /100 » était pris pour la colonne `/10`, scores hors [0,10] → `NaN`, et avec `minScore>0`
+  **import silencieusement vide**. Fix pur : `\d{2}`→`\d{2,3}` et `includes('10')`→`/\b10\b/`, sans
+  effet sur les données actuelles (« Score /10 », villes métropolitaines). +2 tests → **449 tests**
+  + smoke vert. Robustesse (§4.2), module sacré amélioré. Pivot après 3 boucles d'accord de pluriel.
+  (`docs/recaps/455-alternance-parse-dom-score100.md`). ✅ _boucle #455._
 
 - 📸 **Progression photo : « jour » accordé au singulier à 1 jour d'écart** (2.0.84) :
   `renderGrowth` (`app.js:440`), encart « Avant / Après », affichait « 1 **jours** d'écart » quand

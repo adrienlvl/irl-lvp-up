@@ -838,6 +838,35 @@ test('parseAlternanceTargets : filtre score + géo sur un CSV type La Bonne Alte
   assert.equal(L.parseAlternanceTargets(csv, {}).length, 6);
 });
 
+test('parseAlternanceTargets : département d’outre-mer à 3 chiffres reconnu et filtrable', () => {
+  const csv = [
+    'Entreprise,Ville,Statut,Score /10',
+    'Cabinet Fort-de-France,Fort-de-France (972),À contacter,8',
+    'Cabinet Rennes,Rennes (35),À contacter,8',
+  ].join('\n') + '\n';
+  // On cible le 972 : seul le cabinet martiniquais doit passer (le 35 est hors zone).
+  const dom = L.parseAlternanceTargets(csv, { depts: ['972'] });
+  assert.deepEqual(dom.map(a => a.company), ['Cabinet Fort-de-France'], 'le DOM (972) est ciblable comme un dept métropolitain');
+  // Non-régression : cibler la métropole (35) ne ramène pas le DOM.
+  const metro = L.parseAlternanceTargets(csv, { depts: ['35'] });
+  assert.deepEqual(metro.map(a => a.company), ['Cabinet Rennes'], 'le 35 reste correctement filtré');
+});
+
+test('parseAlternanceTargets : en-tête « Score /100 » n’est pas confondu avec la colonne /10', () => {
+  // « Score /100 » ne doit PAS être pris pour la colonne de score /10 : sinon 85 et 42 (hors [0,10])
+  // deviennent NaN et, avec minScore>0, TOUTES les lignes sont écartées (import silencieusement vide).
+  const csv = [
+    'Entreprise,Ville,Score /100',
+    'ACME Rennes,Rennes (35),85',
+    'Beta Lorient,Lorient (56),42',
+  ].join('\n') + '\n';
+  const t = L.parseAlternanceTargets(csv, { minScore: 6 });
+  assert.deepEqual(t.map(a => a.company).sort(), ['ACME Rennes', 'Beta Lorient'], 'colonne /100 ignorée → aucune ligne écartée à tort');
+  // La vraie colonne « Score /10 » reste, elle, bien détectée (non-régression).
+  const csv10 = 'Entreprise,Ville,Score /10\nGamma,Rennes (35),8\nDelta,Rennes (35),4\n';
+  assert.deepEqual(L.parseAlternanceTargets(csv10, { minScore: 6 }).map(a => a.company), ['Gamma'], '/10 toujours détecté et filtré');
+});
+
 test('parseSheetApplications : route Cibles (filtré) vs suivi simple (non filtré)', () => {
   const cibles = 'Entreprise,Ville,Statut,Score /10\nA,Lorient (56),À contacter,8\nB,Nantes (44),À contacter,9\n';
   const suivi = 'Entreprise,Statut,Date\nA,Postulé,2026-07-10\nB,Entretien,2026-07-11\n';
@@ -5385,7 +5414,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.84');
+  assert.equal(L.CHANGELOG[0].v, '2.0.85');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
