@@ -2180,8 +2180,12 @@ function weeklySummary(state, mondayKey) {
   // Sommeil moyen : seules les nuits réellement chiffrées comptent (comme monthlyRecap /
   // weeklySleepStats). Un check-in récup sans heure de sommeil (fatigue/coucher seuls → sleep:0)
   // ne doit pas être moyenné comme une nuit de 0 h — sinon fausse moyenne + faux nudge « sommeil bas ».
-  const rec = (Array.isArray(s.recovery) ? s.recovery : []).filter(r => r && inWeek(r.date) && (Number(r.sleep) || 0) > 0);
-  const sleepAvg = rec.length ? rec.reduce((a, r) => a + (Number(r.sleep) || 0), 0) / rec.length : 0;
+  // UNE valeur par date (dernier check-in), comme weeklySleepStats/sleepDebtHours : deux saisies sur
+  // la MÊME nuit (import/restauration/double check-in) ne doivent pas peser double dans la moyenne.
+  const sleepByDate = {};
+  (Array.isArray(s.recovery) ? s.recovery : []).forEach(r => { if (r && inWeek(r.date) && (Number(r.sleep) || 0) > 0) sleepByDate[r.date] = Number(r.sleep) || 0; });
+  const sleepNights = Object.values(sleepByDate);
+  const sleepAvg = sleepNights.length ? sleepNights.reduce((a, v) => a + v, 0) / sleepNights.length : 0;
   const study = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.kind === 'study' && inWeek(a.date));
   const studyDone = study.filter(a => a.completed).length;
   // Recherche d'alternance : candidatures de la semaine (date d'action dans la semaine) et
@@ -2244,9 +2248,13 @@ function monthlyRecap(state, monthKey) {
   const wellness = wellnessList.length;
   const study = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.kind === 'study' && inMonth(a.date));
   const studyDoneList = study.filter(a => a.completed);
-  const rec = (Array.isArray(s.recovery) ? s.recovery : []).filter(r => r && inMonth(r.date) && (Number(r.sleep) || 0) > 0);
-  const sleepAvg = rec.length ? Math.round(rec.reduce((a, r) => a + (Number(r.sleep) || 0), 0) / rec.length * 10) / 10 : 0;
-  if (!sessions && !focusMin && !wellness && !studyDoneList.length && !rec.length) return null;
+  // Sommeil moyen : UNE valeur par date (dernier check-in), comme weeklySummary / weeklySleepStats /
+  // sleepDebtHours — deux saisies sur la même nuit (import/restauration) ne pèsent pas double.
+  const sleepByDate = {};
+  (Array.isArray(s.recovery) ? s.recovery : []).forEach(r => { if (r && inMonth(r.date) && (Number(r.sleep) || 0) > 0) sleepByDate[r.date] = Number(r.sleep) || 0; });
+  const sleepNights = Object.values(sleepByDate);
+  const sleepAvg = sleepNights.length ? Math.round(sleepNights.reduce((a, v) => a + v, 0) / sleepNights.length * 10) / 10 : 0;
+  if (!sessions && !focusMin && !wellness && !studyDoneList.length && !sleepNights.length) return null;
   const activeDays = new Set();
   workouts.forEach(w => activeDays.add(w.date));
   wellnessList.forEach(w => activeDays.add(w.date));
@@ -2731,6 +2739,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.80', emoji: '😴', text: 'Bilans de sommeil (bilan hebdo partageable et récap mensuel) : ta durée de sommeil moyenne compte désormais UNE valeur par nuit, même si une nuit a été saisie deux fois (import, restauration de sauvegarde, ou double check-in le même jour). Avant, une nuit relevée en double pesait double dans la moyenne — ce qui faussait ta moyenne affichée et pouvait déclencher à tort (ou masquer) l’alerte « sommeil bas ». Tes autres statistiques de sommeil (bilan récup, dette, courbe) dédupliquaient déjà par date : les bilans hebdo/mensuel s’alignent enfin.' },
   { v: '2.0.79', emoji: '⚖️', text: 'Coach Poids — plan calorique cohérent avec le conseil affiché juste à côté. Quand ton poids cible est à moins de 0,5 kg de ton poids actuel (soit l’ordre de grandeur de ta fluctuation quotidienne eau/sel), le plan indique désormais « Maintenir ton poids » — comme le fait déjà le bloc conseil « recomposition » sur le même écran. Avant, dès 0,3 kg d’écart, le plan basculait en « Perdre X kg » et te prescrivait un vrai déficit calorique (~500 kcal/j) là où le conseil, lui, disait « ton poids bougera à peine » : deux verdicts opposés au même endroit. Les deux s’accordent enfin.' },
   { v: '2.0.78', emoji: '💼', text: 'Alternance — statut « refusé après entretien » : un refus (ou un accord) reçu à l’issue d’un entretien est enfin classé comme état FINAL. Avant, dès que le mot « entretien » apparaissait dans un statut importé ou synchronisé (« Refusé après entretien », « Non retenu à l’entretien »…), la candidature restait bloquée en colonne « Entretien » du funnel au lieu de passer en « Refusé » — ce qui gonflait à tort ton nombre d’entretiens en cours et faussait tes stats. Un vrai entretien À VENIR (« Entretien prévu mardi ») reste bien en « Entretien ».' },
   { v: '2.0.77', emoji: '💪', text: 'Tonnage soulevé (kg total d’une séance, et tout ce qui en découle : « poids soulevé à vie », record séance, record hebdo, graphe « Tonnage muscu · 8 semaines ») : les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée) pèsent enfin leur vrai tonnage (charge × reps × séries). Avant, une telle séance restaurée ou importée comptait pour 0 kg partout — alors que ta fiche exercice et ton historique, eux, en affichaient déjà le tonnage : deux chiffres pouvaient se contredire. C’est corrigé : ces séances comptent maintenant partout de la même façon. Rien ne change pour tes séances normales.' },

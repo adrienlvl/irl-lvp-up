@@ -1431,6 +1431,22 @@ test('weeklySummary : une nuit sans sommeil saisi (sleep:0) ne plombe pas la moy
   assert.equal(r.sleepAvg, 8);         // deux nuits à 8 h, pas 16/3 ≈ 5.3
 });
 
+test('weeklySummary : deux saisies sur la MÊME nuit ne pèsent pas double (dédup par date)', () => {
+  // Import/restauration/double check-in : deux relevés de sommeil pour la même date. La moyenne
+  // doit compter UNE nuit (dernier check-in), comme weeklySleepStats/sleepDebtHours — pas moyenner
+  // les saisies brutes (qui donnerait (8+4+8)/3 ≈ 6,7 au lieu de (4+8)/2 = 6).
+  const state = {
+    recovery: [
+      { date: '2026-07-06', sleep: 8 },
+      { date: '2026-07-06', sleep: 4 }, // même nuit, second relevé → écrase le premier
+      { date: '2026-07-07', sleep: 8 }
+    ]
+  };
+  const r = L.weeklySummary(state, '2026-07-06');
+  assert.equal(r.sleepAvg, 6);
+  assert.equal(r.sleepAvg, L.weeklySleepStats(state.recovery, '2026-07-06', '2026-07-12').avg); // sœur d'accord
+});
+
 test('weeklySummary + weeklySummaryText : les candidatures de la semaine comptent', () => {
   const state = {
     applications: [
@@ -1483,6 +1499,9 @@ test('monthlyRecap : agrège le mois calendaire + jours actifs', () => {
   assert.equal(r.sleepAvg, 7.5);        // (8+7)/2
   // jours actifs distincts : 07-03, 07-18, 07-05, 07-12, 07-10 = 5
   assert.equal(r.activeDays, 5);
+  // deux saisies sur la même nuit ne pèsent pas double (dédup par date, dernier check-in)
+  const dup = L.monthlyRecap({ recovery: [{ date: '2026-07-05', sleep: 8 }, { date: '2026-07-05', sleep: 4 }] }, '2026-07');
+  assert.equal(dup.sleepAvg, 4);        // une seule nuit, pas (8+4)/2 = 6
   // mois vide / invalide → null
   assert.equal(L.monthlyRecap(state, '2020-01'), null);
   assert.equal(L.monthlyRecap(state, 'bad'), null);
@@ -5321,7 +5340,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.79');
+  assert.equal(L.CHANGELOG[0].v, '2.0.80');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
