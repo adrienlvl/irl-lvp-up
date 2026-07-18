@@ -4498,6 +4498,20 @@ test('progressionSuggestion : double progression (+reps puis +charge)', () => {
   assert.equal(L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Gainage', reps: 60 }] }], 'Gainage'), null);
   assert.equal(L.progressionSuggestion(w, 'Inconnu'), null);
   assert.equal(L.progressionSuggestion([], 'X'), null);
+  // séance legacy mono-exercice `w.exercise` (import/restauration, sans tableau `exercises`) :
+  // comptée comme ses sœurs → cible du jour calculée au lieu de null
+  const sLegacy = L.progressionSuggestion([
+    { date: '2026-06-01', exercise: 'Tractions', load: 80, reps: 8 },
+    { date: '2026-06-08', exercise: 'Tractions', load: 80, reps: 12 }, // dernière : au plafond
+  ], 'Tractions', { minReps: 8, maxReps: 12, increment: 2.5 });
+  assert.equal(sLegacy.action, 'weight'); assert.equal(sLegacy.nextLoad, 82.5);
+  assert.equal(sLegacy.lastLoad, 80); assert.equal(sLegacy.lastReps, 12); assert.equal(sLegacy.date, '2026-06-08');
+  // mix legacy + moderne pour le même exercice : la référence reste la date la plus récente
+  const sMix = L.progressionSuggestion([
+    { date: '2026-06-01', exercise: 'Rowing', load: 50, reps: 12 },
+    { date: '2026-06-08', exercises: [{ name: 'Rowing', load: 52.5, reps: 9 }] },
+  ], 'Rowing', { minReps: 8, maxReps: 12 });
+  assert.equal(sMix.action, 'reps'); assert.equal(sMix.lastLoad, 52.5); assert.equal(sMix.nextReps, 10);
 });
 test('progressionText : phrases FR selon l’action', () => {
   assert.match(L.progressionText({ action: 'weight', lastReps: 12, lastLoad: 40, nextLoad: 42.5, nextReps: 8, increment: 2.5, maxReps: 12 }), /42,5 kg/);
@@ -5257,7 +5271,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.73');
+  assert.equal(L.CHANGELOG[0].v, '2.0.74');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

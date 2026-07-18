@@ -23,9 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.73 (2026-07-18)
+## 📍 État actuel — build 2.0.74 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 65 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**440**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 66 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**441**) :
+
+- 🎯 **Cible du jour : compter les séances au format legacy `w.exercise`** (2.0.74) :
+  `progressionSuggestion` (`logic.js:6076`) alimente la « 🎯 Cible du jour » (séance guidée
+  `app.js:337`, fiche exercice `app.js:305`/`663`). Sa garde `!Array.isArray(w.exercises)` ignorait
+  la forme legacy mono-exercice `w.exercise`, que sa voisine `estimatedOneRmSeries` et toutes ses
+  sœurs gèrent. Historique legacy chargé → aucune cible affichée (`null`) alors que les données
+  existaient. Correctif = repli legacy avant la boucle (aligné sur #440). +2 cas de test + check
+  smoke `progression` étendu **et promu bloquant** (66 gardes). Piste #4 (dernière) de la mémoire
+  d'audit → **famille legacy/jours-distincts close** (#438→#441). Correctness/robustesse (§4.4/§4.2),
+  domaine Athlète. (`docs/recaps/441-progression-suggestion-legacy.md`). ✅ _boucle #441._
 
 - 🏆 **Records perso : compter les séances au format legacy `w.exercise`** (2.0.73) :
   `personalRecords` (`logic.js:4105`) alimente les toasts « 🎉 Nouveau record » (`newRecords` au

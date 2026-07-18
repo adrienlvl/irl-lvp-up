@@ -2727,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.74', emoji: '🎯', text: 'Cible du jour en musculation (fiche exercice et séance guidée) : la suggestion de progression « 🎯 Cible du jour : X reps × Y kg » compte désormais aussi les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import ne contenait QUE ce format pour un exercice, l’historique s’affichait mais aucune cible n’apparaissait (l’app ne « voyait » pas ces séances pour calculer la progression). C’est corrigé : ces séances comptent maintenant comme partout ailleurs. Rien ne change pour tes séances normales.' },
   { v: '2.0.73', emoji: '🏆', text: 'Records perso (musculation) : les records tenus dans une vieille séance ne sont plus « volés ». Si une sauvegarde restaurée ou un import contenait une séance à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée), le meilleur poids/reps de cet exercice était ignoré au moment de comparer tes records — une charge INFÉRIEURE pouvait alors déclencher à tort un « 🎉 Nouveau record ». Ces vieilles séances comptent désormais dans tes records, exactement comme partout ailleurs dans l’app. Rien ne change pour tes séances normales.' },
   { v: '2.0.72', emoji: '📈', text: 'Tendance de forme (onglet Athlète → Récupération, sous ton check-in) : le mini-graphe « Forme · N derniers check-ins » et sa flèche de tendance comptent désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton historique de récupération, ce jour apparaissait DEUX fois dans la courbe : la fenêtre des « 8 derniers » glissait alors sur des saisies au lieu de vrais jours, et la flèche haut/bas (calculée entre le premier et le dernier point) pouvait indiquer une tendance fausse. C’est corrigé (une entrée par date, la plus récente gagne — comme à l’enregistrement, qui remplaçait déjà le check-in du jour). Rien ne change quand chaque journée n’apparaît qu’une fois.' },
   { v: '2.0.71', emoji: '🌱', text: 'Suivi du « pas du jour » (accueil) : le compteur « X/Y · Z % » sous ta série de pas tenus compte désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton journal de pas, elle était comptée en double — le total de jours et le pourcentage étaient faussés, alors que la SÉRIE (🌱 … d’affilée) juste à côté ne comptait déjà qu’un jour par date : le même bandeau affichait deux comptes qui se contredisaient. C’est désormais cohérent (dernier pas gagné pour une date en double, comme à l’enregistrement). Rien ne change quand chaque journée n’apparaît qu’une fois (le cas normal).' },
@@ -6081,8 +6082,13 @@ function progressionSuggestion(workouts, name, opts) {
   const inc = Number(o.increment) > 0 ? Number(o.increment) : 2.5;
   let best = null;
   (Array.isArray(workouts) ? workouts : []).forEach(w => {
-    if (!w || !Array.isArray(w.exercises) || !/^\d{4}-\d{2}-\d{2}$/.test(String(w.date || ''))) return;
-    w.exercises.forEach(ex => {
+    if (!w || !/^\d{4}-\d{2}-\d{2}$/.test(String(w.date || ''))) return;
+    // Repli legacy mono-exercice `w.exercise` (séances importées/restaurées sans tableau
+    // `exercises`), même idiome que ses sœurs bestE1rmByExercise / estimatedOneRmSeries /
+    // personalRecords — sinon un historique legacy chargé n'affichait aucune cible du jour.
+    const exos = Array.isArray(w.exercises) && w.exercises.length ? w.exercises
+      : (w.exercise ? [{ name: w.exercise, load: w.load, reps: w.reps }] : []);
+    exos.forEach(ex => {
       if (!ex || ex.name !== name) return;
       let load = Number(ex.load) || 0, reps = Number(ex.reps) || 0;
       if (Array.isArray(ex.setLogs) && ex.setLogs.length) {
