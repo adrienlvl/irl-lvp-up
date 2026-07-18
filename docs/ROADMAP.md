@@ -23,9 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.74 (2026-07-18)
+## 📍 État actuel — build 2.0.75 (2026-07-18)
 
-App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 66 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**441**) :
+App **desktop (Electron) + PWA mobile EN LIGNE** sur https://adrienlvl.github.io/irl-lvp-up/ (GitHub Pages activé le 2026-07-14) — installation iPhone : voir **[docs/INSTALLER-SUR-IPHONE.md](INSTALLER-SUR-IPHONE.md)**. Hors accès réseau **opt-in**. **442 tests + smoke** verts (harness durci, dont garde-fou CSS + 67 gardes smoke bloquants, wrapper smoke async). Releases desktop **espacées** (~1/jour max hors session active) ; dernière Release publiée : `v2.0.11` (trio coach). **Vague 1 complète ; Vague 2 « Fondations » entamée.** Livré au-delà de la roadmap initiale (boucles #36→**442**) :
+
+- 🗓️ **Coach Poids « Ta semaine type » : semaine lundi-en-tête, dimanche en dernier** (2.0.75) :
+  `coachWeekPlan` (`logic.js:5266`, rendu `app.js:266`) triait ses séances au comparateur brut
+  (`a.weekday - b.weekday`, dimanche=0) → dès que le dimanche était coché dans les jours dispo, il
+  remontait en tête de semaine, à rebours de la convention `(weekday+6)%7` de toute l'app
+  (`runPlanWeek`, `objectiveProgram`, `scheduleCoachWeek`…). Souci d'affichage + de répartition ;
+  la programmation agenda était déjà correcte. Correctif = helper `mon = w => (w+6)%7` pour les deux
+  tris (`uniq` répartition + `sessions` affichage), rétro-compatible (jours 1-6 inchangés). +2 cas
+  de test (dimanche dispo) + check smoke `coachWeek` étendu **et promu bloquant** (67 gardes). Piste
+  #1 d'un audit frais de `logic.js`. Correctness/cohérence UX (§4.4), domaine Athlète.
+  (`docs/recaps/442-coach-week-monday-first.md`). ✅ _boucle #442._
 
 - 🎯 **Cible du jour : compter les séances au format legacy `w.exercise`** (2.0.74) :
   `progressionSuggestion` (`logic.js:6076`) alimente la « 🎯 Cible du jour » (séance guidée

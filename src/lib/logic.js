@@ -2727,6 +2727,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.75', emoji: '🗓️', text: 'Coach Poids — « Ta semaine type » : quand le dimanche fait partie de tes jours dispo, la semaine s’affiche à nouveau dans l’ordre normal (lundi en tête, dimanche en dernier). Avant, le dimanche remontait tout en haut de la semaine — un simple souci d’affichage (la programmation des séances dans l’agenda, elle, était déjà correcte). Le reste de l’app (plan de course, programme par objectif) rangeait déjà la semaine lundi-en-tête : le Coach Poids s’aligne enfin.' },
   { v: '2.0.74', emoji: '🎯', text: 'Cible du jour en musculation (fiche exercice et séance guidée) : la suggestion de progression « 🎯 Cible du jour : X reps × Y kg » compte désormais aussi les vieilles séances à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée). Si une sauvegarde restaurée ou un import ne contenait QUE ce format pour un exercice, l’historique s’affichait mais aucune cible n’apparaissait (l’app ne « voyait » pas ces séances pour calculer la progression). C’est corrigé : ces séances comptent maintenant comme partout ailleurs. Rien ne change pour tes séances normales.' },
   { v: '2.0.73', emoji: '🏆', text: 'Records perso (musculation) : les records tenus dans une vieille séance ne sont plus « volés ». Si une sauvegarde restaurée ou un import contenait une séance à l’ancien format (un seul exercice noté directement sur la séance, sans la liste détaillée), le meilleur poids/reps de cet exercice était ignoré au moment de comparer tes records — une charge INFÉRIEURE pouvait alors déclencher à tort un « 🎉 Nouveau record ». Ces vieilles séances comptent désormais dans tes records, exactement comme partout ailleurs dans l’app. Rien ne change pour tes séances normales.' },
   { v: '2.0.72', emoji: '📈', text: 'Tendance de forme (onglet Athlète → Récupération, sous ton check-in) : le mini-graphe « Forme · N derniers check-ins » et sa flèche de tendance comptent désormais des JOURS distincts, jamais des saisies. Si une sauvegarde restaurée ou un import contenait deux fois la même journée dans ton historique de récupération, ce jour apparaissait DEUX fois dans la courbe : la fenêtre des « 8 derniers » glissait alors sur des saisies au lieu de vrais jours, et la flèche haut/bas (calculée entre le premier et le dernier point) pouvait indiquer une tendance fausse. C’est corrigé (une entrée par date, la plus récente gagne — comme à l’enregistrement, qui remplaçait déjà le check-in du jour). Rien ne change quand chaque journée n’apparaît qu’une fois.' },
@@ -5265,7 +5266,8 @@ function coachSessionLabel(type) {
 // Renvoie { sessions:[{weekday,type,label,minutes,why}], strength, runs, renfo, note }.
 function coachWeekPlan(goal, days, opts) {
   const g = goal === 'perte' || goal === 'prise' ? goal : 'maintien';
-  const uniq = [...new Set((Array.isArray(days) ? days : []).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+  const mon = w => (w + 6) % 7; // lundi=0 … dimanche=6 : convention semaine de l'app (comme runPlanWeek)
+  const uniq = [...new Set((Array.isArray(days) ? days : []).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => mon(a) - mon(b));
   const slots = uniq.length || 4;
   const TEMPLATE = {
     perte: ['course', 'muscu', 'renfo', 'course', 'muscu', 'course'],
@@ -5289,7 +5291,7 @@ function coachWeekPlan(goal, days, opts) {
   if (!uniq.length) { const def = [1, 3, 5, 2, 4, 6, 0]; for (let i = 0; i < total; i++) dayList.push(def[i % 7]); }
   else if (uniq.length <= total) { for (let i = 0; i < total; i++) dayList.push(uniq[i % uniq.length]); }
   else { for (let i = 0; i < total; i++) dayList.push(uniq[Math.round(i * (uniq.length - 1) / (total - 1 || 1))]); }
-  const sessions = chosen.map((type, i) => ({ weekday: dayList[i], type, ...META[type] })).sort((a, b) => a.weekday - b.weekday);
+  const sessions = chosen.map((type, i) => ({ weekday: dayList[i], type, ...META[type] })).sort((a, b) => mon(a.weekday) - mon(b.weekday));
   return {
     sessions,
     strength: sessions.filter(s => s.type === 'muscu').length,

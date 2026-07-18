@@ -4684,6 +4684,13 @@ test('coachWeekPlan : semaine muscu/renfo/course adaptée à l’objectif', () =
   assert.match(m.note, /Maintien/);
   // objectif inconnu → maintien
   assert.match(L.coachWeekPlan('xxx', [1, 3]).note, /Maintien/);
+  // dimanche dispo (0) : la semaine reste lundi-en-tête, dimanche EN DERNIER
+  // (convention de l'app : (weekday+6)%7 ; runPlanWeek fait déjà pareil).
+  const dim = L.coachWeekPlan('maintien', [1, 0]);
+  assert.deepEqual(dim.sessions.map(s => s.weekday), [1, 0], 'lundi avant dimanche, pas dim=0 en tête');
+  const semaineComplete = L.coachWeekPlan('perte', [1, 2, 3, 4, 5, 6, 0]);
+  assert.equal(semaineComplete.sessions[0].weekday, 1, 'la semaine commence lundi');
+  assert.equal(semaineComplete.sessions.at(-1).weekday, 0, 'dimanche en dernier');
 });
 test('coachSessionLabel : titre agenda par type', () => {
   assert.match(L.coachSessionLabel('muscu'), /Musculation/);
@@ -5271,7 +5278,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.74');
+  assert.equal(L.CHANGELOG[0].v, '2.0.75');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
