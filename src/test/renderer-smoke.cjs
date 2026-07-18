@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.111'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.112'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -802,7 +802,13 @@ app.whenReady().then(async () => {
         coachFocus: typeof adaptiveCoachFocus === 'function' && typeof renderCoachFocus === 'function' && !!document.getElementById('coachFocusPanel') && !!document.getElementById('coachFocus') && (() => {
           const f = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-09' }, { date: '2026-07-11' }] }, '2026-07-16');
           if (!(f && f.pillar === 'sport' && f.tone === 'rebuild' && f.page === 'athlete' && /essouffle/.test(f.headline))) return false;
-          if (adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, '2026-07-16').tone !== 'revive') return false;
+          const fRevive = adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, '2026-07-16');
+          if (fRevive.tone !== 'revive') return false;
+          // Coach du RÉ-AMORÇAGE : pilier dormant 26 j (≥ 21) → tout premier pas minuscule qui NOMME la coupure + déculpabilise (bande « long »).
+          if (!(fRevive.reviveStep === true && /Après 26 jours sans focus/.test(fRevive.action) && /10 min/.test(fRevive.action) && /rallume la lampe/.test(fRevive.action))) return false;
+          // Bande modérée (15 j) : pas ré-amorçant proportionné, SANS la phrase « long ».
+          const fReviveMod = adaptiveCoachFocus({ workouts: [{ date: '2026-07-01' }] }, '2026-07-16');
+          if (!(fReviveMod.pillar === 'sport' && fReviveMod.reviveStep === true && /Après 15 jours sans séance/.test(fReviveMod.action) && !/rallumer la mèche/.test(fReviveMod.action))) return false;
           if (adaptiveCoachFocus({ workouts: [], focusSessions: [], recovery: [], nutrition: [] }, '2026-07-16') !== null) return false;
           if (adaptiveCoachFocus({ applications: [{ id: 1, status: 'postule', date: '2026-07-14' }] }, '2026-07-16').pillar !== 'alternance') return false;
           // Funnel : postulé aujourd'hui + relance en attente (J+9) → le coach coache la relance nommée.

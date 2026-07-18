@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.112', emoji: '🌱', text: 'Ton coach « Le focus du moment » adapte désormais son geste à la DURÉE d’une coupure. Quand un pilier est resté dormant deux semaines ou plus, il ne te sort plus le « programme une séance courte » habituel — intimidant après une longue pause : il propose un tout premier pas MINUSCULE, proportionné, en nommant la coupure pour que l’effort demandé paraisse juste. « Après 26 jours sans focus, un seul bloc de 10 min sur une tâche facile — juste pour recréer le réflexe. » Au-delà de 3 semaines, il déculpabilise franchement : « On ne rouvre pas le chantier aujourd’hui, on rallume la lampe. » Après une longue coupure, rallumer la mèche compte plus que l’intensité. Il coupe alors la suggestion de créneau (« cale ta séance à 14:30 » contredirait « juste 5 min ») et laisse le micro-pas primer quand c’est plutôt un conseil ignoré.' },
   { v: '2.0.111', emoji: '🛏️', text: 'Ton coach « Le focus du moment » ne se contente plus d’ALERTER quand un rendez-vous du soir menace ta cible de coucher : il te donne le geste concret. Si le rendez-vous finit APRÈS ta cible — l’heure visée devient intenable ce soir —, il propose l’heure de coucher réaliste à viser à la place, calée sur sa fin : « « Dîner famille » (à partir de 21:30) finit vers 22:50, après ta cible de 22:30 — couche-toi dès sa fin plutôt que de repousser encore, tu protèges ta fenêtre du soir. » Viser un coucher tenable limite la casse mieux qu’un « couche-toi à 22:30 » impossible à honorer. Si le rendez-vous finit juste avant ta cible, elle tient encore : file au lit dès la fin, sans écran.' },
   { v: '2.0.110', emoji: '🏅', text: 'Ton coach « Le focus du moment » fête désormais tes PALIERS de journées complètes, comme il fête déjà tes séries quotidiennes. Quand ta série de journées à 3+ piliers franchit pile un jalon — 3, 7 (une semaine pleine !), 14, 30 jours —, il le débloque : « 7 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 🏅 Palier franchi : une semaine complète de journées pleines ! » Et quand le prochain palier est à un seul jour, il te donne le cap à tenir demain : « Encore 1 jour pour franchir le palier des 7. 🎯 » La fierté d’hier devient l’objectif de demain.' },
   { v: '2.0.109', emoji: '🧭', text: 'Ton coach « Le focus du moment » nuance désormais la GRAVITÉ des piliers qui décrochent. Un pilier laissé à l’abandon depuis deux semaines n’appelle pas le même geste qu’un simple creux : le coach le dit. Au lieu de tout mettre sur « faiblit », il distingue « à l’arrêt » (dormant, à relancer) de « faiblit » (en léger recul, à rattraper) : « Ton entraînement s’essouffle… Ton sommeil est à l’arrêt aussi cette semaine — celui-ci d’abord. » Et si les deux se mélangent, il précise l’état de chacun : « Ta nutrition (en recul) et ton focus (à l’arrêt) décrochent aussi cette semaine. » Mêmes garde-fous : il se tait quand il varie d’angle, abaisse la barre ou quand le geste est déjà fait.' },
@@ -5062,6 +5063,21 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       else action = `Readiness ${rs.score}/100 — séance correcte, mais garde une marge : pas de record aujourd’hui.`;
     }
   }
+  // Coach du RÉ-AMORÇAGE — ÉLIGIBILITÉ (calculée ici, APPLIQUÉE après les créneaux/micro-pas). Un
+  // pilier DORMANT (ton 'revive' = ≥14 j sans activité) n'appelle pas le même geste qu'un simple
+  // creux : après une longue coupure, l'énergie d'activation est à son maximum, et exiger la « séance
+  // courte » habituelle intimide et fait remettre à demain. On abaissera l'ASK à un tout premier pas
+  // ré-amorçant, proportionné à la durée de dormance du pilier — rallumer la mèche compte plus que
+  // l'intensité. Distinct du micro-pas (#465), qui répond à un conseil IGNORÉ (coachLog) ; ici on
+  // répond à la seule DORMANCE, même si le coach n'a jamais nagué ce pilier. Exclusions : le SPORT un
+  // jour de récup (readiness < 50 → l'action dit déjà « repose », y caler « bouge 5 min » la
+  // contredirait) et le SOMMEIL quand le coach sommeil a déjà un verdict riche (sleepIns non nul, plan
+  // ou bilan). Ce flag COUPE aussi les créneaux (focusSlot/sportSlot) : « cale ta séance à 14:30 »
+  // contredirait « juste 5 min ». (doneToday est toujours faux en revive : un geste du jour ferait
+  // recentDays ≥ 1, donc plus de dormance — inutile de le tester.)
+  const reviveEligible = tone === 'revive'
+    && !(chosen.pillar === 'sport' && readiness != null && readiness < 50)
+    && !(chosen.pillar === 'sommeil' && sleepIns);
   // Focus sommeil ENRICHI : on remplace le compteur générique par le vrai verdict chiffré du coach
   // sommeil (sleepCoachInsight) et, si un plan de recalage est actif, par la CIBLE de coucher du soir
   // (sleepPlanDay) — le coach cesse d'ignorer l'intelligence sommeil qui vit juste à côté.
@@ -5201,7 +5217,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     // vrai planning horaire du jour : sur une journée vide, le « créneau » serait « maintenant » (trivial
     // et parfois déjà passé) ; on ne veut le conseil que quand il apporte l'info d'un jour structuré.
     const now = Math.round(Number(o.nowMinutes));
-    if (typeof nextFreeSlot === 'function' && Number.isFinite(now) && now >= 0 && now < 1440) {
+    if (typeof nextFreeSlot === 'function' && !reviveEligible && Number.isFinite(now) && now >= 0 && now < 1440) {
       const agenda = Array.isArray(s.agenda) ? s.agenda : [];
       const hasTimed = agenda.some(a => a && a.date === todayKey && !a.allDay && !a.completed && timeToMinutes(a.time) != null);
       if (hasTimed) {
@@ -5236,7 +5252,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // trivial). La micro-marche et le renfort, plus bas, écrasent l'action — donc le créneau — quand on
   // abaisse la barre ou qu'on félicite le suivi ; c'est voulu (pas de créneau à caler dans ces cas).
   let sportSlot = null;
-  if (chosen.pillar === 'sport' && !doneToday && (readiness == null || readiness >= 50)
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && (readiness == null || readiness >= 50)
       && typeof nextFreeSlot === 'function') {
     const now = Math.round(Number(o.nowMinutes));
     if (Number.isFinite(now) && now >= 0 && now < 1440) {
@@ -5296,6 +5312,27 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         microStep = true;
       }
     }
+  }
+  // Coach du RÉ-AMORÇAGE — APPLICATION (éligibilité calculée plus haut, cf. reviveEligible). Le
+  // micro-pas (#465, signal « tu m'ignores » via coachLog) est PLUS spécifique : s'il a déjà pris la
+  // main, on le laisse (il abaisse déjà la barre, avec le bon aveu). Sinon, pour un pilier dormant, on
+  // remplace l'action générique (« programme une séance courte ») par un tout premier pas MINUSCULE,
+  // en NOMMANT la durée de coupure pour que l'ask paraisse proportionné (« Après 26 jours… ») ; au-delà
+  // de 3 semaines (long), on ajoute une phrase qui déculpabilise franchement (« on rallume la mèche,
+  // pas le chantier »). Additif pur : champ reviveStep (booléen) toujours renvoyé ; aucune autre
+  // branche touchée. Distinct du micro-pas dans le libellé pour ne pas radoter le même mot à mot.
+  let reviveStep = false;
+  if (reviveEligible && !microStep) {
+    const d = chosen.lastActiveDays;
+    const dTxt = d != null ? `${d} jour${d > 1 ? 's' : ''}` : 'cette coupure';
+    const long = d != null && d >= 21;
+    const steps = {
+      sport: `Après ${dTxt} sans séance, ne vise pas la performance : enfile ta tenue et bouge 5 min, c’est tout.` + (long ? ' Après si longtemps, le seul objectif est de rallumer la mèche.' : ''),
+      focus: `Après ${dTxt} sans focus, un seul bloc de 10 min sur une tâche facile — juste pour recréer le réflexe.` + (long ? ' On ne rouvre pas le chantier aujourd’hui, on rallume la lampe.' : ''),
+      nutrition: `Après ${dTxt} sans suivi, un seul geste : note 1 apport protéiné aujourd’hui.` + (long ? ' Rien à rattraper — on relance juste le compteur.' : ''),
+      sommeil: `Après ${dTxt} sans nuit notée, note juste ta prochaine nuit — un seul champ pour relancer le suivi.` + (long ? ' On reprend le fil doucement, sans viser l’heure parfaite.' : ''),
+    };
+    if (steps[chosen.pillar]) { action = steps[chosen.pillar]; reviveStep = true; }
   }
   // Coach MÉTA-CONSCIENT positif — le PENDANT du micro-pas (#465). Quand le coach RENFORCE un bon
   // élan (tone 'reinforce', hors rotation) ET que le suivi RÉCENT de ses conseils est élevé
@@ -5438,7 +5475,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone,
   };
 }
 

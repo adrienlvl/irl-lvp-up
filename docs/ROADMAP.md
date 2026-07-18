@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.111 (2026-07-19)
+## 📍 État actuel — build 2.0.112 (2026-07-19)
+
+> 🌱 **2.0.112** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » adapte désormais son geste à la **DURÉE d'une coupure**. Il distinguait déjà un pilier
+> **dormant** (ton `revive`, ≥ 14 j sans activité) d'un simple creux, mais son action restait
+> **générique** — « Programme une séance courte », « Lance une session de 25 min » — quelle que soit
+> l'ancienneté de la pause. Or après une longue coupure l'énergie d'activation est maximale : cet ordre
+> intimide et fait remettre à demain. Le coach propose désormais un **tout premier pas MINUSCULE**,
+> proportionné, qui **nomme la coupure** : coupure **modérée** (14-20 j) → « **Après 15 jours sans
+> séance**, ne vise pas la performance : enfile ta tenue et **bouge 5 min**, c'est tout. » ; **longue**
+> coupure (≥ 21 j) → même pas + phrase qui déculpabilise franchement « **Après 26 jours sans focus**, un
+> seul bloc de **10 min**… **On ne rouvre pas le chantier aujourd'hui, on rallume la lampe.** ». Points de
+> conception : distinct du **micro-pas** (#465, qui répond à un conseil IGNORÉ via coachLog) — ici on
+> répond à la seule DORMANCE ; le micro-pas **prime** en cas de recouvrement. Le flag `reviveEligible`
+> **coupe** les créneaux (focusSlot/sportSlot — « cale ta séance à 14:30 » contredirait « juste 5 min »)
+> et exclut le SPORT un jour de récup (readiness < 50) et le SOMMEIL quand son coach a déjà un verdict
+> riche. Additif pur : champ `reviveStep` (booléen) toujours renvoyé, ton/headline/insight inchangés.
+> `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #481.
 
 > 🛏️ **2.0.111** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » ne se contente plus d'**alerter** quand un RDV du soir menace la cible de coucher — il donne le

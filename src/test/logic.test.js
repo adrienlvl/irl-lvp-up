@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.111');
+  assert.equal(L.CHANGELOG[0].v, '2.0.112');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7100,6 +7100,32 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(rev.prevDays, 0);
   assert.ok(rev.lastActiveDays >= 14);
   assert.match(rev.headline, /Reprends/);
+  // Ré-amorçage : après une longue coupure (26 j ≥ 21), l'action est un tout premier pas minuscule,
+  // qui NOMME la durée et déculpabilise franchement (bande « long »).
+  assert.equal(rev.reviveStep, true);
+  assert.match(rev.action, /Après 26 jours sans focus/);
+  assert.match(rev.action, /10 min/);
+  assert.match(rev.action, /rallume la lampe/);
+
+  // Ré-amorçage bande « modérée » (14-20 j) : pas minuscule proportionné, SANS la phrase « long ».
+  const revMod = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-01' }] }, today); // 15 j
+  assert.equal(revMod.pillar, 'sport');
+  assert.equal(revMod.tone, 'revive');
+  assert.equal(revMod.reviveStep, true);
+  assert.match(revMod.action, /Après 15 jours sans séance/);
+  assert.match(revMod.action, /bouge 5 min/);
+  assert.ok(!/rallumer la mèche/.test(revMod.action), 'bande modérée : pas de phrase « long »');
+
+  // Exclusion : un jour de récup (readiness < 50) sur un sport dormant garde l'action « repose »,
+  // pas de pas ré-amorçant qui la contredirait.
+  const revRest = L.adaptiveCoachFocus({
+    workouts: [{ date: '2026-07-01' }],
+    recovery: [{ date: '2026-07-16', sleep: 4, fatigue: 5, soreness: 5 }],
+  }, today);
+  assert.equal(revRest.pillar, 'sport');
+  assert.ok(revRest.readiness != null && revRest.readiness < 50);
+  assert.ok(!revRest.reviveStep, 'jour de récup : pas de ré-amorçage');
+  assert.match(revRest.action, /récupération prioritaire|repose|mobilité/);
 
   // reinforce : rien à corriger, une dynamique en hausse → ton « reinforce ».
   const up = L.adaptiveCoachFocus({ workouts: [
