@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.118', emoji: '💚', text: 'Ton coach « Le focus du moment » adapte maintenant sa CONSOLATION à la TAILLE de la série que tu viens de casser. Il te réconfortait déjà quand un pilier retombait après une vraie série, mais du même ton pour 4 jours perdus que pour un mois. Désormais il gradue : une série qui avait franchi le palier de la semaine (au moins 7 jours d’affilée) pèse plus lourd, alors il nomme la magnitude et lui rend justice — « Tu tenais une semaine entière d’affilée sur ton entraînement avant cette pause — ça, c’est du solide : pas un échec, une vraie base à relancer. Un geste aujourd’hui et tu repars de haut. » Pour une série plus courte (4 à 6 jours), il garde le ton léger « une série vite relancée ». Reconnaître un vrai capital perdu à sa juste valeur motive plus qu’un mot passe-partout.' },
   { v: '2.0.117', emoji: '💚', text: 'Ton coach « Le focus du moment » te console au lieu de te gronder quand une belle SÉRIE vient de casser. Il savait déjà brandir une série encore vivante que tu risques de perdre ; côté correction, il ne faisait que constater le recul. Désormais, quand il te ramène sur un pilier que tu as laissé retomber APRÈS avoir tenu une vraie série (au moins 4 jours d’affilée, close il y a peu), il reconnaît l’acquis plutôt que de te reprocher la pause : « Tu tenais 5 jours d’affilée sur ton entraînement avant cette pause — pas un échec, une série à relancer : un geste aujourd’hui et tu repars. » Perdre une série n’est pas repartir de zéro : nommer ce que tu avais bâti transforme la culpabilité (« j’ai lâché ») en élan (« je repars de là »). Il n’en parle que si la série était réelle et la coupure encore fraîche.' },
   { v: '2.0.116', emoji: '🏅', text: 'Ton coach « Le focus du moment » double le levier quand ta série en jeu touche un PALIER. Il te rappelait déjà qu’une série de jours d’affilée sur un pilier risque de tomber si tu ne poses pas ton geste aujourd’hui ; désormais, quand ce geste te ferait franchir PILE un palier (une semaine, deux semaines, un mois, 60 jours…), il ajoute la carotte au bâton : « Ta série de 6 jours d’affilée sur ton entraînement est en jeu — un seul geste aujourd’hui la garde vivante. Et ce geste décroche le palier d’une semaine ! 🏅 » Ne pas perdre sa série ET décrocher un jalon dans la foulée : deux ressorts qui tirent dans le même sens font agir plus fort qu’un seul. Il ne l’ajoute que le jour où le palier est vraiment à portée d’un geste.' },
   { v: '2.0.115', emoji: '🔥', text: 'Ton coach « Le focus du moment » brandit désormais tes SÉRIES en jeu. Quand il renforce un pilier qui tourne bien et que tu enchaînes déjà plusieurs jours d’affilée dessus sans encore avoir posé ton geste du jour, il ne se contente plus d’un « garde le rythme » abstrait : il nomme le capital que tu risques de perdre. « Ton entraînement monte en régime… 🔥 Ta série de 6 jours d’affilée sur ton entraînement est en jeu — un seul geste aujourd’hui la garde vivante. » Perdre une série fait agir plus fort que gagner un jour de plus : le coach s’appuie sur ce ressort. Il ne parle que d’une vraie série (au moins 3 jours) encore vivante, et se tait dès que ton geste du jour est posé — la série est alors prolongée, plus menacée.' },
@@ -5598,7 +5599,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // au-dessus du seuil « en jeu » de 3), on NOMME l'acquis pour recadrer. Disjoint de streakAtRisk /
   // comeback (reinforce) et du ré-amorçage (revive) par le ton. Additif pur : champ brokenStreak
   // (longueur de la série rompue, ou null) TOUJOURS renvoyé ; note appendue à l'insight, action intacte.
-  let brokenStreak = null;
+  let brokenStreak = null, brokenStreakTier = null;
   if (tone === 'rebuild' && !rotated && typeof dailyStreak === 'function') {
     const dates = [];
     for (const e of (Array.isArray(chosen.list) ? chosen.list : [])) {
@@ -5611,7 +5612,21 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         const broke = dailyStreak(dates, lastKey);
         if (broke >= 4) {
           brokenStreak = broke;
-          insight += ` Tu tenais ${broke} jours d’affilée sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} avant cette pause — pas un échec, une série à relancer : un geste aujourd’hui et tu repars.`;
+          // NUANCE selon la LONGUEUR perdue — consoler « pareil » une série de 4 jours et une série
+          // d'un mois sonne faux : la première se relance d'un geste léger, la seconde était un vrai
+          // capital dont la reprise mérite un mot à la hauteur. On gradue avec les paliers EXISTANTS
+          // (STREAK_MILESTONES : 7 = semaine, 14 = deux semaines, 30 = mois) : dès qu'un palier de
+          // semaine est franchi (broke ≥ 7) on nomme la magnitude (« une semaine entière », « ça,
+          // c'est du solide ») ; en dessous (4-6 j) on garde le ton léger « vite relancée ».
+          // brokenStreakTier ('long' | 'court') TOUJOURS renvoyé quand brokenStreak l'est.
+          const palierNom = broke >= 30 ? 'un mois entier' : broke >= 14 ? 'deux semaines pleines' : broke >= 7 ? 'une semaine entière' : null;
+          if (palierNom) {
+            brokenStreakTier = 'long';
+            insight += ` Tu tenais ${palierNom} d’affilée sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} avant cette pause — ça, c’est du solide : pas un échec, une vraie base à relancer. Un geste aujourd’hui et tu repars de haut.`;
+          } else {
+            brokenStreakTier = 'court';
+            insight += ` Tu tenais ${broke} jours d’affilée sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} avant cette pause — pas un échec, une série vite relancée : un geste aujourd’hui et tu repars.`;
+          }
         }
       }
     }
@@ -5620,7 +5635,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, brokenStreak,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, brokenStreak, brokenStreakTier,
   };
 }
 

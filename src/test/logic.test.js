@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.117');
+  assert.equal(L.CHANGELOG[0].v, '2.0.118');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7216,14 +7216,28 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   ] }, today);
   assert.equal(broken.tone, 'rebuild', 'série close + rien depuis une semaine → ton de correction');
   assert.equal(broken.brokenStreak, 5, 'série rompue de 5 jours détectée au dernier jour actif');
+  assert.equal(broken.brokenStreakTier, 'court', 'série de 5 j (< 7) → nuance « court », relance légère');
   assert.match(broken.insight, /Tu tenais 5 jours d’affilée sur ton entraînement avant cette pause/);
-  assert.match(broken.insight, /pas un échec, une série à relancer/);
+  assert.match(broken.insight, /une série vite relancée/);
+  // NUANCE selon la longueur : une série qui avait franchi le palier de la semaine (ici 8 j close il y
+  // a une semaine) pèse plus lourd → tier « long », magnitude nommée (« une semaine entière »).
+  const longBroken = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-02' }, { date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' },
+    { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-08' }, { date: '2026-07-09' },
+  ] }, today);
+  assert.equal(longBroken.tone, 'rebuild');
+  assert.equal(longBroken.brokenStreak, 8, 'série rompue de 8 jours mesurée au dernier jour actif');
+  assert.equal(longBroken.brokenStreakTier, 'long', 'série de 8 j (≥ 7) → nuance « long », vraie reprise');
+  assert.match(longBroken.insight, /Tu tenais une semaine entière d’affilée sur ton entraînement avant cette pause/);
+  assert.match(longBroken.insight, /ça, c’est du solide/);
+  assert.doesNotMatch(longBroken.insight, /vite relancée/);
   // Série trop courte (3 j close) → sous le seuil, pas de consolation.
   const shortBroken = L.adaptiveCoachFocus({ workouts: [
     { date: '2026-07-07' }, { date: '2026-07-08' }, { date: '2026-07-09' },
   ] }, today);
   assert.equal(shortBroken.tone, 'rebuild');
   assert.equal(shortBroken.brokenStreak, null, 'série de 3 j < 4 → pas de note « série rompue »');
+  assert.equal(shortBroken.brokenStreakTier, null, 'pas de série rompue → pas de nuance');
   assert.doesNotMatch(shortBroken.insight, /avant cette pause/);
   // Disjoint de la série EN JEU : en ton reinforce, brokenStreak reste null (c'est streakAtRisk qui parle).
   assert.equal(series.brokenStreak, null, 'reinforce (série vivante) → jamais de brokenStreak');

@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.117 (2026-07-19)
+## 📍 État actuel — build 2.0.118 (2026-07-19)
+
+> 💚 **2.0.118** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **gradue sa consolation à la TAILLE de la série cassée**. Depuis #486 il console une série
+> rompue (`brokenStreak`), mais servait **le même message pour 4 jours perdus que pour un mois** —
+> consoler « pareil » un run anecdotique et un vrai capital sonne faux. Il gradue désormais avec les
+> **paliers existants** (`STREAK_MILESTONES` 7/14/30) : une série ayant franchi le palier de la semaine
+> (`broke ≥ 7`) pèse plus lourd → ton **`long`**, magnitude **nommée** (« Tu tenais **une semaine
+> entière** d'affilée sur ton entraînement avant cette pause — ça, c'est du solide : pas un échec, une
+> vraie base à relancer. Un geste aujourd'hui et tu repars de haut. » ; ≥ 14 → « deux semaines pleines »,
+> ≥ 30 → « un mois entier ») ; une série plus courte (4-6 j) garde le ton **`court`** léger (« une série
+> vite relancée »). Reconnaître un capital perdu à sa juste valeur motive plus qu'un mot passe-partout.
+> Points de conception : **réutilise l'échelle existante** (aucun nouveau seuil) ; **additif pur** —
+> champ `brokenStreakTier` (`'long'` | `'court'` | `null`) TOUJOURS renvoyé, seul le libellé de la note
+> change, action intacte ; **hérite de toutes les gardes de `brokenStreak`**. `adaptiveCoachFocus` pur +
+> testé, check smoke bloquant `coachFocus` étendu. Recap #487.
 
 > 💚 **2.0.117** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **console au lieu de gronder quand une belle SÉRIE vient de casser**. Depuis #484/#485 il
