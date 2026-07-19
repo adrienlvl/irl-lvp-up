@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.126 (2026-07-19)
+## 📍 État actuel — build 2.0.127 (2026-07-19)
+
+> 😴 **2.0.127** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » lit enfin la **PENTE de ton sommeil**, pas seulement son état ponctuel. Quand il pousse le
+> pilier SOMMEIL, il remplaçait le compteur générique par le **verdict chiffré** de `sleepCoachInsight`
+> (moy. 7 j + dette + régularité) — mais ce snapshot reste **aveugle à la DIRECTION** : deux « moy.
+> 6,5 h » n'appellent pas le même mot selon que les nuits **remontent** ou **s'enfoncent**. C'était la
+> piste listée en « Suite possible » de **#493, #494 ET #495** (étendre la conscience de tendance,
+> montante ET descendante, au sommeil — le pendant côté sommeil de `readinessSlide`/`readinessRebound`
+> côté sport). Nouvelle fonction pure **`sleepDurationTrend`** (miroir de `readinessTrend` /
+> `morningEnergyTrend`) : moyenne des nuits chiffrées de la fenêtre récente 7 j vs la précédente 7 j →
+> `{ avg, prevAvg, delta, dir, count }` (dir up/down/flat, seuil ±0,4 h). Dans la branche sommeil, quand
+> le verdict n'est **pas déjà « solide »** (`tone !== 'ok'`) et qu'une pente franche existe, on NUANCE le
+> verdict (champ **`sleepTrend`** = delta en h, ou `null`) : nuits qui **s'enfoncent** → alerte « la
+> pente s'enfonce : tes nuits sont passées de 7 à 4,7 h (-2,3 h vs la semaine précédente) — enraye
+> maintenant, avant que la dette ne s'installe » ; nuits qui **remontent** → crédit « Bonne nouvelle : ça
+> remonte (+2,3 h…) — tu es sur la bonne pente, tiens le cap encore quelques soirs ». Conception :
+> **additif pur** (`sleepTrend` TOUJOURS renvoyé, NOTE appendue à l'insight, action intacte) ;
+> **mutuellement exclusif** up XOR down ; **garde-fou `tone !== 'ok'`** (jamais « ça s'aggrave » sous
+> « sommeil solide ») ; données réelles seulement (≥ 3 nuits récentes + semaine précédente renseignée).
+> `sleepDurationTrend` pure + testée, check smoke bloquant `coachFocus` étendu. Recap #496.
 
 > 🌱 **2.0.126** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » repère enfin la **SOUS-CHARGE** — le pendant POSITIF exact du `loadSpike` (#492). Depuis

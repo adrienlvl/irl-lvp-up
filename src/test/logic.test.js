@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.126');
+  assert.equal(L.CHANGELOG[0].v, '2.0.127');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6568,6 +6568,38 @@ test('sleepCoachInsight : la régularité du COUCHER prime sur celle de la duré
   assert.equal(r2.irregular, true, 'coucher irrégulier détecté malgré une durée stable');
   assert.equal(r2.tone, 'attention');
   assert.match(r2.verdict, /coucher irrégulier/);
+});
+
+test('sleepDurationTrend : compare la durée récente à la semaine précédente', () => {
+  const today = '2026-07-14';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  // Fenêtre récente (0-6 j) ≈ 7 h ; précédente (7-13 j) ≈ 6 h → pente MONTANTE de +1 h.
+  const up = [];
+  for (let i = 0; i < 7; i++) up.push({ date: iso(i), sleep: 7 });
+  for (let i = 7; i < 14; i++) up.push({ date: iso(i), sleep: 6 });
+  const tu = L.sleepDurationTrend(up, today, 7);
+  assert.equal(tu.avg, 7); assert.equal(tu.prevAvg, 6); assert.equal(tu.delta, 1); assert.equal(tu.dir, 'up'); assert.equal(tu.count, 7);
+  // Pente DESCENDANTE : récente 5,5 h, précédente 7 h → -1,5 h.
+  const down = [];
+  for (let i = 0; i < 7; i++) down.push({ date: iso(i), sleep: 5.5 });
+  for (let i = 7; i < 14; i++) down.push({ date: iso(i), sleep: 7 });
+  const td = L.sleepDurationTrend(down, today, 7);
+  assert.equal(td.delta, -1.5); assert.equal(td.dir, 'down');
+  // Stable (0,2 h d'écart, sous le seuil ±0,4) → 'flat'.
+  const flat = [];
+  for (let i = 0; i < 7; i++) flat.push({ date: iso(i), sleep: 7.2 });
+  for (let i = 7; i < 14; i++) flat.push({ date: iso(i), sleep: 7 });
+  assert.equal(L.sleepDurationTrend(flat, today, 7).dir, 'flat');
+  // Pas de semaine précédente → prevAvg null, delta 0, dir 'flat'.
+  const soloWeek = [];
+  for (let i = 0; i < 4; i++) soloWeek.push({ date: iso(i), sleep: 6 });
+  const ts = L.sleepDurationTrend(soloWeek, today, 7);
+  assert.equal(ts.prevAvg, null); assert.equal(ts.delta, 0); assert.equal(ts.dir, 'flat');
+  // Moins de 2 nuits récentes chiffrées → null ; nuits sleep:0 ignorées ; date invalide → null.
+  assert.equal(L.sleepDurationTrend([{ date: iso(0), sleep: 6 }], today, 7), null);
+  assert.equal(L.sleepDurationTrend([{ date: iso(0), sleep: 0 }, { date: iso(1), sleep: 0 }], today, 7), null);
+  assert.equal(L.sleepDurationTrend(up, 'nope', 7), null);
 });
 
 test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {
@@ -7820,6 +7852,40 @@ test('adaptiveCoachFocus : coach conscient du sommeil (alerte + cible du plan)',
   const fi = L.adaptiveCoachFocus({ recovery: recImpact, morningRituals: mr }, today);
   assert.equal(fi.pillar, 'sommeil', 'court + irrégulier → focus sommeil');
   assert.match(fi.action, /couché tôt = \+\d/, 'l’action cite la preuve d’impact chiffrée');
+});
+
+test('adaptiveCoachFocus : coach conscient de la PENTE de sommeil (dégradation / remontée)', () => {
+  const today = '2026-07-16';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const workouts = [iso(8), iso(9), iso(10), iso(1)].map(d => ({ date: d, type: 'muscu' })); // décrochage sport
+  // DÉGRADATION : semaine récente courte + irrégulière (urgent) ET plus basse que la précédente.
+  const down = [];
+  for (let i = 0; i < 7; i++) down.push({ date: iso(i), sleep: i % 2 ? 7 : 3 });      // récente ~4,7 h, irrégulière
+  for (let i = 7; i < 14; i++) down.push({ date: iso(i), sleep: 7 });                  // précédente 7 h
+  const fd = L.adaptiveCoachFocus({ recovery: down, workouts }, today);
+  assert.equal(fd.pillar, 'sommeil', 'sommeil urgent → focus');
+  assert.ok(fd.sleepTrend < 0, 'pente descendante → delta négatif renvoyé');
+  assert.match(fd.insight, /la pente s’enfonce/, 'l’insight nuance le verdict par la dégradation');
+  // REMONTÉE : semaine récente toujours courte + irrégulière (urgent) mais plus HAUTE que la précédente.
+  const up = [];
+  for (let i = 0; i < 7; i++) up.push({ date: iso(i), sleep: i % 2 ? 3 : 7 });         // récente ~5,3 h, irrégulière
+  for (let i = 7; i < 14; i++) up.push({ date: iso(i), sleep: 3 });                    // précédente 3 h
+  const fu = L.adaptiveCoachFocus({ recovery: up, workouts }, today);
+  assert.equal(fu.pillar, 'sommeil');
+  assert.ok(fu.sleepTrend > 0, 'pente montante → delta positif renvoyé');
+  assert.match(fu.insight, /ça remonte/, 'l’insight crédite le progrès');
+  assert.doesNotMatch(fu.insight, /la pente s’enfonce/, 'jamais les deux notes le même jour');
+  // STABLE : même sommeil court+irrégulier les deux semaines (motif identique) → pas de note, sleepTrend null.
+  const flat = [];
+  for (let i = 0; i < 14; i++) flat.push({ date: iso(i), sleep: (i % 7) % 2 ? 7 : 3 });
+  const ff = L.adaptiveCoachFocus({ recovery: flat, workouts }, today);
+  assert.equal(ff.pillar, 'sommeil');
+  assert.equal(ff.sleepTrend, null, 'pente plate → aucune note de tendance');
+  assert.doesNotMatch(ff.insight, /la pente s’enfonce|ça remonte/);
+  // Champ TOUJOURS présent, y compris hors pilier sommeil (focus prioritaire ailleurs).
+  const sport = L.adaptiveCoachFocus({ workouts: [iso(1), iso(3), iso(5)].map(d => ({ date: d })) }, today);
+  assert.ok('sleepTrend' in sport && sport.sleepTrend === null, 'sleepTrend toujours renvoyé, null hors sommeil');
 });
 
 test('adaptiveCoachFocus : protège la fenêtre de coucher quand un RDV du soir déborde (sommeil)', () => {

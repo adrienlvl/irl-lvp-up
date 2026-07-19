@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.126'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.127'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -956,6 +956,17 @@ app.whenReady().then(async () => {
           if (!(fLowUp.lowLoad != null && fLowUp.readinessRebound === 30 && /Fenêtre idéale/.test(fLowUp.action))) return false;
           // Forme qui glisse → la sous-charge NE réécrit PAS l'action (« garde léger » prime).
           if (adaptiveCoachFocus({ workouts: lowWk, recovery: slideRec }, '2026-07-16').lowLoad !== null) return false;
+          // Coach CONSCIENT de la PENTE de sommeil : verdict non « solide » + nuits qui S'ENFONCENT (récente < précédente)
+          // → note « la pente s'enfonce » ; nuits qui REMONTENT → note « ça remonte » (sleepTrend signé, jamais les deux).
+          const stWkDrop = [{ date: '2026-07-08' }, { date: '2026-07-07' }, { date: '2026-07-06' }, { date: '2026-07-15' }];
+          const stDown = []; for (let i = 0; i < 7; i++) stDown.push({ date: '2026-07-' + ('0' + (16 - i)).slice(-2), sleep: i % 2 ? 7 : 3 });
+          for (let i = 7; i < 14; i++) stDown.push({ date: '2026-07-' + ('0' + (16 - i)).slice(-2), sleep: 7 });
+          const fStDown = adaptiveCoachFocus({ recovery: stDown, workouts: stWkDrop }, '2026-07-16');
+          if (!(fStDown.pillar === 'sommeil' && fStDown.sleepTrend < 0 && /la pente s.enfonce/.test(fStDown.insight))) return false;
+          const stUp = []; for (let i = 0; i < 7; i++) stUp.push({ date: '2026-07-' + ('0' + (16 - i)).slice(-2), sleep: i % 2 ? 3 : 7 });
+          for (let i = 7; i < 14; i++) stUp.push({ date: '2026-07-' + ('0' + (16 - i)).slice(-2), sleep: 3 });
+          const fStUp = adaptiveCoachFocus({ recovery: stUp, workouts: stWkDrop }, '2026-07-16');
+          if (!(fStUp.pillar === 'sommeil' && fStUp.sleepTrend > 0 && /ça remonte/.test(fStUp.insight) && !/la pente s.enfonce/.test(fStUp.insight))) return false;
           // Coach PRIORISANT : deux piliers décrochent → note explicite « quoi d'abord » qui NOMME l'autre pilier.
           const fTwo = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }], focusSessions: [{ date: '2026-07-04', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-08', minutes: 30 }, { date: '2026-07-12', minutes: 30 }] }, '2026-07-16');
           if (!(fTwo.alsoSlipping === 1 && fTwo.alsoSlippingPillars && fTwo.alsoSlippingPillars[0] === 'focus' && /Ton focus faiblit aussi/.test(fTwo.insight) && /levier prioritaire/.test(fTwo.insight))) return false;
