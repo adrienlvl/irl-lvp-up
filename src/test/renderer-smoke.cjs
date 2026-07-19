@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.182'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.183'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1358,6 +1358,29 @@ app.whenReady().then(async () => {
           if (!/kilométrage/.test(u.primary)) return false;
           return true;
         })(),
+        // ACCORD DU PARTICIPE en vue Jour (#552) : « fait(s) » s'accorde avec le nombre RÉALISÉ
+        // (numérateur), pas avec le total — « 1/3 faits » était faux.
+        dayViewPlural: (() => {
+          const saved = state.agenda, savedCursor = new Date(dayCursor);
+          let ok = true;
+          try {
+            const d = new Date(), p = n => (n < 10 ? '0' + n : '' + n);
+            const key = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+            state.agenda = [
+              normalizeAgendaItem({ id: 8001, title: 'A', date: key, time: '09:00', kind: 'focus', completed: true }),
+              normalizeAgendaItem({ id: 8002, title: 'B', date: key, time: '11:00', kind: 'sport' }),
+              normalizeAgendaItem({ id: 8003, title: 'C', date: key, time: '15:00', kind: 'life' }),
+            ];
+            dayCursor = new Date(); renderDayView();
+            const t1 = document.querySelector('#dayView .day-view-head').textContent;
+            ok = ok && /1\\/3 fait\\s/.test(t1) && !/1\\/3 faits/.test(t1);
+            state.agenda[1].completed = true; renderDayView();
+            ok = ok && /2\\/3 faits/.test(document.querySelector('#dayView .day-view-head').textContent);
+          } catch (e) { ok = false; }
+          state.agenda = saved; dayCursor = savedCursor;
+          try { renderDayView(); } catch (e) {}
+          return ok;
+        })(),
         // ÉTATS VIDES (#550) : une liste filtrée à zéro ne doit JAMAIS rendre une zone blanche —
         // sans message, l'utilisateur croit ses données perdues.
         listEmptyStates: (() => {
@@ -1702,6 +1725,7 @@ app.whenReady().then(async () => {
     if (!checks.questStreak) errors.push('Série quêtes parfaites KO (questPerfectStreak : perfectDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
+    if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
     if (!checks.listEmptyStates) errors.push('Liste sans état vide (#altList filtré / #questList) — zone blanche sans message');
     if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');

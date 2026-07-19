@@ -23,7 +23,13 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.182 (2026-07-19)
+## 📍 État actuel — build 2.0.183 (2026-07-19)
+
+> ✍️ **2.0.183 — accord de « fait(s) » en vue Jour (P2.5, domaine `agenda`).** Le pluriel se calait
+> sur le **dénominateur** → « 1/3 fait**s** » avec un seul bloc réalisé, alors que la convention
+> correcte est utilisée juste à côté (`app.js:555`) et dans `renderMyDay`. Check smoke **bloquant**
+> `dayViewPlural`. _Piège du harnais re-rencontré et déjà documenté (§6) : dans les checks injectés
+> par template literal, écrire `\\/` et `\\s`._ Recap #552. _Domaine : agenda._
 
 > 🩹 **2.0.182 — le fix #446 était incomplet : des candidatures étaient « acceptées » à tort**
 > (domaine `robustesse`). `\bpris` matche aussi `prise` : « **prise de contact** », « **pris
@@ -170,7 +176,7 @@ dans le recap et passer à la suivante.
 - [ ] **P2.4 — Noms accessibles des champs de recherche** — `#exerciseSearch`, `#foodSearch`,
       `#agendaSearch` n'ont qu'un **placeholder** (WCAG 3.3.2), alors que leur voisin `#altSearch` a
       bien reçu un `aria-label` et que la règle est déjà appliquée ailleurs (`dashboardInputLabels`).
-- [ ] **P2.5 — Accord de « fait(s) » en vue Jour** — `app.js:487` accorde sur le **dénominateur**
+- [x] **P2.5 — Accord de « fait(s) » en vue Jour** ✅ _fait #552 (2.0.183)_ — `app.js:487` accorde sur le **dénominateur**
       (`doable.length`) : « 1/3 fait**s** » alors qu'un seul est fait. `renderMyDay` (`app.js:200`)
       accorde correctement sur le **numérateur**. _(Valeur faible — à prendre en bouche-trou.)_
 
