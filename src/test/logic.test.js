@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.124');
+  assert.equal(L.CHANGELOG[0].v, '2.0.125');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7656,6 +7656,54 @@ test('adaptiveCoachFocus : action sport tempérée par une READINESS QUI GLISSE 
   assert.ok(low.readiness != null && low.readiness < 50);
   assert.equal(low.readinessSlide, null, 'readiness basse → action récup, pas de doublon de tendance');
   assert.match(low.action, /récupération prioritaire|mobilité/);
+});
+
+test('adaptiveCoachFocus : action sport rehaussée par une READINESS QUI REMONTE (rebound)', () => {
+  const today = '2026-07-16';
+  // Même décrochage sport que le test glissade (aucune durée/effort → pas de pic de charge).
+  const workouts = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // Readiness EN REMONTÉE : sommeil constant 8 h, fatigue/courbatures qui BAISSENT → 40 → 48 → 55 → 63 → 70.
+  // Aujourd'hui 70 (zone 50-74) mais hausse de +30 pts sur 5 check-ins : le corps réencaisse.
+  const upRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 5, soreness: 5 }, // 40
+    { date: '2026-07-06', sleep: 8, fatigue: 5, soreness: 4 }, // 48
+    { date: '2026-07-10', sleep: 8, fatigue: 4, soreness: 4 }, // 55
+    { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, // 63
+    { date: '2026-07-16', sleep: 8, fatigue: 3, soreness: 3 }, // 70
+  ];
+  const up = L.adaptiveCoachFocus({ workouts, recovery: upRec }, today);
+  assert.equal(up.pillar, 'sport', 'sport reste le focus');
+  assert.equal(up.readiness, 70, 'readiness du jour dans la zone [50, 75[');
+  assert.equal(up.readinessRebound, 30, 'tendance montante de +30 pts renvoyée');
+  assert.equal(up.readinessSlide, null, 'pente montante → jamais de glissade en même temps');
+  assert.equal(up.loadSpike, null, 'aucune donnée de charge → pas de pic');
+  assert.match(up.action, /ta forme remonte franchement sur tes 5 derniers check-ins \(\+30 pts\)/);
+  assert.match(up.action, /réhausser un peu l’intensité/);
+  assert.doesNotMatch(up.action, /séance correcte, mais garde une marge/);
+
+  // Forme STABLE (~63 partout) → tendance plate : ni glissade ni remontée, l'action garde la marge.
+  const flatRec = ['2026-07-04', '2026-07-06', '2026-07-10', '2026-07-13', '2026-07-16']
+    .map(date => ({ date, sleep: 8, fatigue: 3, soreness: 4 })); // 63 chacun
+  const flat = L.adaptiveCoachFocus({ workouts, recovery: flatRec }, today);
+  assert.equal(flat.readinessRebound, null, 'forme stable → pas de remontée');
+  assert.equal(flat.readinessSlide, null, 'forme stable → pas de glissade');
+  assert.match(flat.action, /garde une marge/);
+
+  // Un PIC DE CHARGE coïncidant avec la remontée reprend la main : « réencaisse » ne vaut pas « ajoute
+  // du volume brutalement » (loadSpike tempère l'action, readinessRebound reste dans le champ, informatif).
+  const spikeWk = [
+    // Chronique faible (4 semaines) puis semaine aiguë chargée → ACWR en zone 'high'.
+    { date: '2026-06-22', duration: 30, effort: 2 }, { date: '2026-06-29', duration: 30, effort: 2 },
+    { date: '2026-07-06', duration: 30, effort: 2 },
+    { date: '2026-07-13', duration: 90, effort: 5 }, { date: '2026-07-14', duration: 90, effort: 5 },
+    { date: '2026-07-15', duration: 90, effort: 5 },
+  ];
+  const spike = L.adaptiveCoachFocus({ workouts: spikeWk, recovery: upRec }, today);
+  if (spike.pillar === 'sport' && spike.loadSpike != null) {
+    assert.equal(spike.readinessRebound, 30, 'la remontée reste renvoyée dans le champ malgré le pic');
+    assert.match(spike.action, /charge|volume|consolidation/i);
+    assert.doesNotMatch(spike.action, /réhausser un peu l’intensité/);
+  }
 });
 
 test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {

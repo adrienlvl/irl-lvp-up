@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.124 (2026-07-19)
+## 📍 État actuel — build 2.0.125 (2026-07-19)
+
+> 📈 **2.0.125** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » remarque enfin quand ta forme **REMONTE**, le **symétrique positif** de la fatigue qui
+> s'installe (#493). Même **zone d'angle mort** de la readiness du jour — [50, 75[, où l'action sert
+> « séance correcte, mais garde une marge : pas de record » —, mais quand la readiness du jour y est
+> **basse par pente ascendante** (le corps réencaisse : retour de vacances, deload qui paie, sommeil qui
+> se recale), ce plafond prudent **sous-vend la récupération réelle**. Nouveau champ **`readinessRebound`**
+> (le pendant exact de `readinessSlide`) : quand le pilier est le SPORT, la séance du jour pas faite et
+> la readiness du jour dans [50, 75[, une **remontée franche** (`readinessTrend` `direction 'up'`,
+> ≥ 12 pts sur ≥ 4 check-ins) fait **rehausser** l'action : « Readiness 70/100 aujourd'hui — et ta forme
+> remonte franchement sur tes 5 derniers check-ins (+30 pts) : ton corps réencaisse. Tu peux réhausser un
+> peu l'intensité aujourd'hui, sans viser le record d'un coup — la marge revient. » Points de conception :
+> **additif pur** (`readinessRebound` = delta positif ou `null` TOUJOURS renvoyé, action remplacée
+> seulement en cas de remontée franche) ; **mutuellement exclusif de `readinessSlide`** (une pente est
+> `'up'` XOR `'down'`) ; **garde-fous** — le `loadSpike` plus urgent reprend la main si un pic de charge
+> coïncide (réencaisser ≠ ajouter du volume brutalement), et l'escalade de reprise (`comebackStage`)
+> n'est **pas** freinée (les deux disent « tu peux pousser »). `adaptiveCoachFocus` pur + testé, check
+> smoke bloquant `coachFocus` étendu. Recap #494.
 
 > 📉 **2.0.124** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » repère enfin la **FATIGUE QUI S'INSTALLE**, pas seulement ta forme du jour. Côté sport, il
