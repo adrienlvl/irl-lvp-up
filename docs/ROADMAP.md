@@ -23,7 +23,28 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.123 (2026-07-19)
+## 📍 État actuel — build 2.0.124 (2026-07-19)
+
+> 📉 **2.0.124** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » repère enfin la **FATIGUE QUI S'INSTALLE**, pas seulement ta forme du jour. Côté sport, il
+> calait l'action sur deux signaux de récup — la **readiness du jour** (#463, une nuit) et la **charge
+> cumulée** (#492, ACWR) — mais restait **aveugle à la PENTE de forme** : `readinessTrend` existait (et
+> était rendue dans l'onglet Athlète) sans que le coach la lise. Le cas piégeux, symétrique du
+> `loadSpike` : une readiness du jour **« correcte »** (55-70, « séance correcte, garde une marge ») qui
+> **GLISSE** relevé après relevé — le score d'un seul jour n'y voit qu'un milieu de tableau, la pente
+> révèle un **surmenage naissant**. Nouveau champ **`readinessSlide`** : quand le pilier est le SPORT,
+> la séance du jour pas faite et la readiness dans la **zone d'alerte douce** (≥ 50 — sinon l'action dit
+> déjà « récup » — et < 75 — au vert, glisser depuis très haut reste bénin), une chute franche
+> (`direction 'down'`, ≥ 12 pts sur ≥ 4 check-ins) fait **tempérer** l'action : « Readiness 55/100
+> aujourd'hui — correcte en soi, mais ta forme glisse sur tes 5 derniers check-ins (-45 pts) : ce n'est
+> pas un creux d'un soir, c'est de la fatigue qui s'accumule. Séance allégée aujourd'hui, et soigne ta
+> récup avant de taper dans le rouge. » Points de conception : **additif pur** (`readinessSlide` = delta
+> ou `null` TOUJOURS renvoyé, action remplacée seulement en cas de glissade, données réelles requises) ;
+> **complémentaire des deux autres signaux** (jour × pente × charge se répartissent le terrain, la zone
+> [50, 75[ est le point aveugle exact de la readiness du jour) ; **garde-fous anti-contradiction** — le
+> `loadSpike` plus urgent peut encore réécrire l'action (même sens : « allège »), et l'escalade de
+> reprise (`comebackStage`) garde le geste léger quand la forme glisse. `adaptiveCoachFocus` pur +
+> testé, check smoke bloquant `coachFocus` étendu. Recap #493.
 
 > 🩹 **2.0.123** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » surveille enfin ta **CHARGE d'entraînement** (prévention de blessure), un domaine que les 8

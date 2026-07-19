@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.123'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.124'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -934,6 +934,13 @@ app.whenReady().then(async () => {
           const fSpikeFresh = adaptiveCoachFocus({ workouts: spikeWk, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
           if (!(fSpikeFresh.readiness === 100 && fSpikeFresh.loadSpike != null && /Forme au vert/.test(fSpikeFresh.action) && !/pr[êe]t [àa] pousser/.test(fSpikeFresh.action))) return false;
           if (adaptiveCoachFocus({ workouts: spikeWk, agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16', { nowMinutes: 555 }).sportSlot !== null) return false;
+          // Coach CONSCIENT de la TENDANCE de readiness : forme du jour « correcte » (55) mais qui GLISSE (-45 pts
+          // sur 5 check-ins, sommeil constant sain) → l'action tempère (fatigue cumulée), et un jour au vert (85) non.
+          const slideRec = [{ date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 }, { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 }, { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 }];
+          const fSlide = adaptiveCoachFocus({ workouts: rdWk, recovery: slideRec }, '2026-07-16');
+          if (!(fSlide.pillar === 'sport' && fSlide.readiness === 55 && fSlide.readinessSlide === -45 && /ta forme glisse sur tes 5 derniers check-ins/.test(fSlide.action) && /fatigue qui s.accumule/.test(fSlide.action))) return false;
+          const highRec = [{ date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, { date: '2026-07-06', sleep: 8, fatigue: 1, soreness: 1 }, { date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 2 }, { date: '2026-07-13', sleep: 8, fatigue: 2, soreness: 1 }, { date: '2026-07-16', sleep: 8, fatigue: 2, soreness: 2 }];
+          if (adaptiveCoachFocus({ workouts: rdWk, recovery: highRec }, '2026-07-16').readinessSlide !== null) return false;
           // Coach PRIORISANT : deux piliers décrochent → note explicite « quoi d'abord » qui NOMME l'autre pilier.
           const fTwo = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }], focusSessions: [{ date: '2026-07-04', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-08', minutes: 30 }, { date: '2026-07-12', minutes: 30 }] }, '2026-07-16');
           if (!(fTwo.alsoSlipping === 1 && fTwo.alsoSlippingPillars && fTwo.alsoSlippingPillars[0] === 'focus' && /Ton focus faiblit aussi/.test(fTwo.insight) && /levier prioritaire/.test(fTwo.insight))) return false;

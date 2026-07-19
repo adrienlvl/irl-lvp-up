@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.124', emoji: '📉', text: 'Ton coach « Le focus du moment » repère maintenant la FATIGUE QUI S’INSTALLE, pas seulement ta forme du jour. Il calait déjà l’intensité sur ta readiness du matin — mais une readiness « correcte » (autour de 55-70) qui GLISSE check-in après check-in cache un surmenage naissant que le score d’un seul jour sous-estime. Désormais, quand ta forme descend franchement sur tes derniers relevés (au moins 12 points perdus sur 4 check-ins ou plus) alors que le jour même semble juste « moyen », il le nomme au lieu de te dire « séance correcte » : « Readiness 60/100 aujourd’hui — correcte en soi, mais ta forme glisse sur tes 5 derniers check-ins (-40 pts) : ce n’est pas un creux d’un soir, c’est de la fatigue qui s’accumule. Séance allégée aujourd’hui, et soigne ta récup avant de taper dans le rouge. » Il ne t’escalade plus vers « une vraie séance » ces jours-là, même en pleine reprise. Rien ne change si ta forme est stable, si le jour est déjà au vert (≥ 75) ou déjà bas (il te dit alors de récupérer).' },
   { v: '2.0.123', emoji: '🩹', text: 'Ton coach « Le focus du moment » surveille maintenant ta CHARGE d’entraînement pour t’éviter la blessure. Il calait déjà l’intensité du jour sur ta readiness (ta forme du matin) — mais restait aveugle à un piège classique : un corps bien reposé qui a brutalement augmenté son volume ces 7 jours reste en zone de risque, là où la readiness seule crierait « pousse ! ». Désormais, quand ta charge récente bondit trop vite par rapport à ton habitude (ratio aigu/chronique élevé), il tempère : forme au vert, il crédite mais redirige vers la qualité (« Forme au vert, mais ta charge a bondi à 2,3× ton volume habituel ces 7 jours — mets l’énergie sur la technique, pas le volume : une semaine de consolidation te blinde sans risque de blessure ») ; sinon il allège franchement (« Charge en hausse brutale : ta semaine est à 2,3× ton volume habituel, et le corps encaisse mal les pics — allège aujourd’hui (-30 % de volume), technique propre, tu repartiras plus fort »). Il ne te propose plus de créneau pour une grosse séance ces jours-là. Rien ne change tant que ta charge reste régulière, ou quand ta readiness te dit déjà de récupérer.' },
   { v: '2.0.122', emoji: '🎯', text: 'Ton coach « Le focus du moment » ne se contente plus d’afficher ton objectif de séances de la semaine — il te dit s’il est ENCORE JOUABLE et quoi faire pour le tenir. Un « 2/4 séances » ne veut pas dire la même chose un mardi (large) ou un samedi (mort) : le coach calcule maintenant les séances qu’il te reste à caser face aux jours restants avant dimanche, et adapte le message. De la marge : « Dans les temps : 2 séances en 5 jours restants — tu as la marge pour boucler l’objectif hebdo. » Serré : « Serré mais jouable : 3 séances pour 3 jours restants — il en faut une chaque jour pour tenir l’objectif. » Hors de portée : « L’objectif de 4 ne passera plus cette semaine (3 séances pour 2 jours restants) — engrange ce que tu peux, tu repars plein lundi. » Un objectif chiffré selon le temps qui reste guide mieux qu’un compteur figé — sans jamais culpabiliser quand la semaine est trop courte. Rien ne change si tu n’as pas fixé d’objectif de séances ou s’il est déjà tenu.' },
   { v: '2.0.121', emoji: '🌱', text: 'Ton coach « Le focus du moment » salue maintenant ta REPRISE dès ses premiers pas. Il brandissait déjà une série en jeu à partir de 3 jours d’affilée — mais la marche la plus fragile d’un retour, celle des 2 premiers jours après une rupture, ne recevait rien. Désormais, quand une série repart (2 ou 3 jours d’affilée) alors que tu as déjà tenu bien plus long par le passé (au moins une semaine), il nomme la reconstruction et te redonne un cap : « 🌱 Tu reconstruis : 2 jours d’affilée sur ton entraînement, tu retrouves le chemin de ta meilleure série (record perso : 12 jours). Le plus dur — repartir — est derrière toi, une marche à la fois. » Repartir après une chute demande plus de cran que tenir : c’est le moment où l’encouragement compte le plus. Il n’en parle que si tu avais vraiment bâti quelque chose à retrouver.' },
@@ -5336,6 +5337,35 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     const list = Array.isArray(chosen.list) ? chosen.list : [];
     doneToday = list.some(e => e && e.date === todayKey && chosen.active(e));
   }
+  // Coach CONSCIENT de la TENDANCE de readiness — le pendant CUMULATIF, côté RÉCUP, de la readiness
+  // du jour (#463). readinessScore lit la forme d'AUJOURD'HUI, sur UNE nuit ; readinessTrend lit la
+  // PENTE de forme sur les derniers check-ins — et le cas piégeux est le symétrique de celui du
+  // loadSpike (#492) : une readiness du jour « correcte » (50-74, l'action dit « séance correcte,
+  // garde une marge ») mais qui GLISSE régulièrement depuis plusieurs relevés. Le score d'un seul jour
+  // ne voit qu'un « milieu de tableau » ; la pente révèle une fatigue qui s'INSTALLE (surmenage
+  // naissant), là où « pas de record aujourd'hui » sous-estime le signal. C'est exactement
+  // l'« adaptation aux écarts » demandée — et un domaine (récup cumulée) que la readiness du jour et la
+  // charge (loadSpike) ne couvraient pas. Quand le pilier poussé est le SPORT, que la séance du jour
+  // n'est pas déjà faite (doneToday) et que la readiness du jour est dans la zone d'alerte douce (≥ 50
+  // — sinon l'action dit déjà « récup » — et < 75 — au vert, une pente descendante depuis très haut
+  // reste bénigne), on interroge la tendance : si elle DESCEND franchement (direction 'down', chute
+  // ≥ 12 pts sur ≥ 4 check-ins), le coach NOMME la glissade et recadre vers une séance allégée + récup,
+  // plutôt qu'une « séance correcte » qui ignorerait la fatigue cumulée. Additif pur : champ
+  // readinessSlide (le delta négatif, ou null) TOUJOURS renvoyé ; l'action est remplacée, aucune autre
+  // branche touchée. Ne se déclenche que sur données réelles (≥ 4 check-ins datés). Le loadSpike, plus
+  // bas et plus urgent, peut encore réécrire l'action si un pic de charge coïncide (les deux disent
+  // « allège », pas de contradiction) ; readinessSlide reste alors dans le champ, informatif.
+  let readinessSlide = null;
+  if (chosen.pillar === 'sport' && !doneToday && readiness != null && readiness >= 50 && readiness < 75
+      && typeof readinessTrend === 'function') {
+    const rt = readinessTrend(s.recovery, 8);
+    if (rt && rt.direction === 'down' && rt.delta <= -12 && rt.points.length >= 4) {
+      readinessSlide = rt.delta;
+      const n = rt.points.length;
+      const drop = -rt.delta;
+      action = `Readiness ${readiness}/100 aujourd’hui — correcte en soi, mais ta forme glisse sur tes ${n} derniers check-ins (-${drop} pts) : ce n’est pas un creux d’un soir, c’est de la fatigue qui s’accumule. Séance allégée aujourd’hui, et soigne ta récup avant de taper dans le rouge.`;
+    }
+  }
   // Coach CONSCIENT de la CHARGE d'entraînement — le pendant CUMULATIF de la readiness du jour. La
   // readiness (readinessScore) lit la forme d'AUJOURD'HUI, sur UNE nuit ; l'ACWR (acuteChronicRatio)
   // lit la TENDANCE de charge sur 4 semaines — et les deux DIVERGENT dans le cas le plus piégeux : un
@@ -5648,8 +5678,8 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         const n = chosen.recentDays;
         // Garder léger quand la forme du jour est basse (readiness < 50) OU quand la charge est déjà en
         // pic (loadSpike) — dans les deux cas, « repasse à une vraie séance » serait dangereux.
-        const sportEase = chosen.pillar === 'sport' && ((readiness != null && readiness < 50) || loadSpike != null);
-        const sportEaseWhy = loadSpike != null ? 'charge déjà élevée cette semaine, garde léger' : 'readiness bas aujourd’hui, garde léger';
+        const sportEase = chosen.pillar === 'sport' && ((readiness != null && readiness < 50) || loadSpike != null || readinessSlide != null);
+        const sportEaseWhy = loadSpike != null ? 'charge déjà élevée cette semaine, garde léger' : readinessSlide != null ? 'ta forme glisse ces jours-ci, garde léger' : 'readiness bas aujourd’hui, garde léger';
         const escal = comebackStage === 'spark' ? {
           sport: 'Ne force pas le rythme : un 2e jour actif cette semaine ancre l’étincelle mieux qu’une grosse séance.',
           focus: 'Ne force pas le rythme : un 2e bloc cette semaine ancre l’étincelle mieux qu’une journée marathon.',
@@ -5809,7 +5839,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, sessionGoalPace, loadSpike,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, sessionGoalPace, loadSpike, readinessSlide,
   };
 }
 

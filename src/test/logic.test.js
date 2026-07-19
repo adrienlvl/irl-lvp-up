@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.123');
+  assert.equal(L.CHANGELOG[0].v, '2.0.124');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7598,6 +7598,64 @@ test('adaptiveCoachFocus : action sport tempérée par un PIC de charge (ACWR)',
   assert.equal(steady.pillar, 'sport');
   assert.equal(steady.loadSpike, null, 'charge régulière → pas de pic');
   assert.doesNotMatch(steady.action, /Charge en hausse brutale|consolidation/);
+});
+
+test('adaptiveCoachFocus : action sport tempérée par une READINESS QUI GLISSE (tendance)', () => {
+  const today = '2026-07-16';
+  // Décrochage sport (3 j la semaine passée, 1 récente, sans durée/effort → aucun pic de charge) → sport, rebuild.
+  const workouts = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // Readiness EN GLISSADE : sommeil constant 8 h (donc pilier sommeil sain, non urgent), fatigue/courbatures
+  // qui montent → 100 → 85 → 70 → 63 → 55. Aujourd'hui 55 (zone 50-74) mais chute de -45 pts sur 5 check-ins.
+  const slideRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+    { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 }, // 85
+    { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 }, // 70
+    { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, // 63
+    { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 }, // 55
+  ];
+  const slide = L.adaptiveCoachFocus({ workouts, recovery: slideRec }, today);
+  assert.equal(slide.pillar, 'sport', 'sport reste le focus (sommeil régulier → non prioritaire)');
+  assert.equal(slide.readiness, 55, 'readiness du jour dans la zone d’alerte douce');
+  assert.equal(slide.readinessSlide, -45, 'tendance descendante de -45 pts renvoyée');
+  assert.equal(slide.loadSpike, null, 'aucune donnée de charge → pas de pic');
+  assert.match(slide.action, /ta forme glisse sur tes 5 derniers check-ins \(-45 pts\)/);
+  assert.match(slide.action, /fatigue qui s’accumule/);
+  assert.match(slide.action, /Séance allégée aujourd’hui/);
+  assert.doesNotMatch(slide.action, /séance correcte, mais garde une marge/);
+
+  // JOUR AU VERT (≥ 75) même en tendance descendante → pas d'alerte : glisser depuis très haut reste bénin.
+  const highRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+    { date: '2026-07-06', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+    { date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 2 }, // 93
+    { date: '2026-07-13', sleep: 8, fatigue: 2, soreness: 1 }, // 93
+    { date: '2026-07-16', sleep: 8, fatigue: 2, soreness: 2 }, // 85
+  ];
+  const high = L.adaptiveCoachFocus({ workouts, recovery: highRec }, today);
+  assert.equal(high.readiness, 85);
+  assert.equal(high.readinessSlide, null, 'jour au vert → pas d’alerte fatigue cumulée');
+  assert.match(high.action, /prêt à pousser|vraie séance/);
+
+  // Forme STABLE (tous les check-ins ~63) → tendance plate, pas d'alerte.
+  const flatRec = ['2026-07-04', '2026-07-06', '2026-07-10', '2026-07-13', '2026-07-16']
+    .map(date => ({ date, sleep: 8, fatigue: 3, soreness: 4 })); // 63 chacun
+  const flat = L.adaptiveCoachFocus({ workouts, recovery: flatRec }, today);
+  assert.equal(flat.readiness, 63);
+  assert.equal(flat.readinessSlide, null, 'forme stable → pas de glissade');
+  assert.match(flat.action, /garde une marge/);
+
+  // Jour DÉJÀ BAS (< 50) : l'action « récup » prime déjà, pas de doublon de tendance (readinessSlide null).
+  const lowRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+    { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 }, // 85
+    { date: '2026-07-10', sleep: 8, fatigue: 4, soreness: 4 }, // 55
+    { date: '2026-07-13', sleep: 8, fatigue: 5, soreness: 4 }, // 48
+    { date: '2026-07-16', sleep: 8, fatigue: 5, soreness: 5 }, // 40
+  ];
+  const low = L.adaptiveCoachFocus({ workouts, recovery: lowRec }, today);
+  assert.ok(low.readiness != null && low.readiness < 50);
+  assert.equal(low.readinessSlide, null, 'readiness basse → action récup, pas de doublon de tendance');
+  assert.match(low.action, /récupération prioritaire|mobilité/);
 });
 
 test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {
