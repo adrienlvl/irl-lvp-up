@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.156 (2026-07-19)
+## 📍 État actuel — build 2.0.157 (2026-07-19)
+
+> 📈 **2.0.157** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach sport disait DE
+> s'entraîner, QUAND (`sportSlot`) et QUOI travailler (`sportZoneFocus`) — mais rien ne regardait si la
+> **CHARGE progresse**. Nouveau champ **`sportPlateau`** (`{exercise, best}` ou `null`) : réemploi de
+> **`strengthPlateauAny`** (déjà dans l'onglet Athlète, jamais dans le coach) — parcourt les exercices
+> **chargés** les mieux suivis, calcule leur **1RM estimé** séance après séance, repère celui dont la
+> meilleure valeur ne dépasse plus, sur 3 séances, celle d'avant. Quand un lift stagne, le coach le NOMME
+> et donne le geste de surcharge progressive, appendu à l'insight : « Côté progression : ton **Squat**
+> marque le pas — son 1RM estimé stagne autour de **116,5 kg** depuis 3 séances, sans nouveau record. Pour
+> débloquer ça : ajoute une répétition à charge égale, ralentis la phase de descente, ou décharge une
+> semaine avant de reprendre plus lourd. » Côté « adaptation aux **écarts** ». **HONNÊTE** : même gate de
+> vraie séance que `sportZoneFocus` (pilier SPORT · `!doneToday` · pas de spike · readiness pas au rouge),
+> plus un pilier en **bonne santé** exigé (`tone` hors rebuild/revive) — un plateau se lit sur des séances
+> récentes, pas quand le sport est décroché (historique vieux → le coach dit « rouvre la porte ») ; ce gate
+> écarte aussi tout chevauchement avec le micro-pas. Muet sans exercice chargé assez fourni (poids du corps
+> ignoré). Vocabulaire distinct (« marque le pas », « 1RM estimé stagne ») — zéro collision regex.
+> Réemploi total, **zéro** nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus`
+> étendu. Recap #526.
 
 > 🔎 **2.0.156** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach ne donne plus
 > seulement le **score** de forme du jour — il dit ce qui le **PLOMBE**. Sur un check-in sport

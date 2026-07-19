@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.156');
+  assert.equal(L.CHANGELOG[0].v, '2.0.157');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9458,6 +9458,42 @@ test('adaptiveCoachFocus : nomme le GROUPE MUSCULAIRE à cibler en priorité (sp
   const fFoc = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-07', minutes: 30 }, { date: '2026-07-14', minutes: 30 }] }, today);
   assert.equal(fFoc.pillar, 'focus');
   assert.equal(fFoc.sportZoneFocus, null, 'zone musculaire = pilier sport uniquement');
+});
+
+test('adaptiveCoachFocus : signale un PLATEAU de force sur un exercice chargé (sportPlateau)', () => {
+  const today = '2026-07-16';
+  const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] });
+  // Squat chargé, régulier et récent, dont le 1RM estimé ne progresse plus → plateau nommé.
+  const wk = [wo('2026-07-01', 100, 5), wo('2026-07-04', 98, 5), wo('2026-07-08', 99, 5), wo('2026-07-11', 100, 5), wo('2026-07-14', 98, 5)];
+  const f = L.adaptiveCoachFocus({ workouts: wk }, today);
+  assert.equal(f.pillar, 'sport');
+  assert.ok(f.tone !== 'rebuild' && f.tone !== 'revive', 'pilier sport en bonne santé');
+  assert.ok(f.sportPlateau && f.sportPlateau.exercise === 'Squat' && f.sportPlateau.best > 0, 'plateau détecté sur le Squat');
+  assert.match(f.insight, /ton Squat marque le pas/, 'le lift qui stagne est nommé dans l’insight');
+  assert.match(f.insight, /1RM estim[ée] stagne autour de [\d,]+ kg depuis 3 séances/, 'stagnation chiffrée');
+  assert.match(f.insight, /ajoute une répétition à charge égale|d[ée]charge une semaine/, 'geste de surcharge progressive concret');
+  // Exercice en PROGRESSION → pas de plateau, muet.
+  const up = [wo('2026-07-01', 90, 5), wo('2026-07-04', 95, 5), wo('2026-07-08', 100, 5), wo('2026-07-11', 105, 5), wo('2026-07-14', 110, 5)];
+  const fUp = L.adaptiveCoachFocus({ workouts: up }, today);
+  assert.equal(fUp.sportPlateau, null, 'force qui progresse → aucun plateau');
+  assert.ok(!/marque le pas/.test(fUp.insight), 'aucune note plateau quand ça progresse');
+  // Sport DORMANT (dernier entraînement il y a 20 j) → tone revive : plateau ancien tu, on ne parle pas de casser un plateau quand la porte est fermée.
+  const old = [wo('2026-06-20', 100, 5), wo('2026-06-22', 98, 5), wo('2026-06-24', 99, 5), wo('2026-06-26', 100, 5)];
+  const fOld = L.adaptiveCoachFocus({ workouts: old }, today);
+  assert.equal(fOld.pillar, 'sport');
+  assert.ok(fOld.tone === 'revive' || fOld.tone === 'rebuild', 'sport décroché');
+  assert.equal(fOld.sportPlateau, null, 'sport décroché → pas de note plateau (historique trop vieux)');
+  // Séance déjà faite aujourd’hui → on crédite, pas de plateau à casser.
+  const fDone = L.adaptiveCoachFocus({ workouts: [...wk, wo(today, 98, 5)] }, today);
+  assert.equal(fDone.doneToday, true);
+  assert.equal(fDone.sportPlateau, null, 'séance faite → pas de note plateau');
+  // Exercices au poids du corps seulement (aucune charge) → rien à mesurer → muet.
+  const bw = ['2026-07-01', '2026-07-04', '2026-07-08', '2026-07-11', '2026-07-14'].map(d => ({ date: d, exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 }] }] }));
+  assert.equal(L.adaptiveCoachFocus({ workouts: bw }, today).sportPlateau, null, 'poids du corps → pas de plateau de charge');
+  // Autre pilier (focus) → sportPlateau toujours null.
+  const fFoc = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-14', minutes: 30 }] }, today);
+  assert.equal(fFoc.pillar, 'focus');
+  assert.equal(fFoc.sportPlateau, null, 'plateau de force = pilier sport uniquement');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {
