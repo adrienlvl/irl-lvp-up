@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.167');
+  assert.equal(L.CHANGELOG[0].v, '2.0.168');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8766,6 +8766,30 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.match(ahead.insight, /amortira un jour creux plus tard/);
   // Vocabulaire distinct des trois notes de la branche serrée : aucune collision.
   assert.ok(!/au vert ce matin|tient la route ce matin|à plat ce matin|s’alignent/i.test(ahead.insight));
+  // NOMMER CE QUI DONNE CETTE CLARTÉ (focusAheadDriver, #537) — pendant EXACT de focusFreshDriver (#532),
+  // appliqué à la branche d'AVANCE (onpace × vert) et non à la branche serrée. Le cas `ahead` ci-dessus
+  // (8/1/1) a les TROIS forces à égalité (frac tous à 1) → aucun moteur unique : driver null malgré le vert.
+  assert.equal(ahead.focusAheadDriver, null, 'trois forces à égalité × marge → aucun moteur d’avance nommé');
+  assert.ok(!/te donne cette clarté/.test(ahead.insight));
+  // Sommeil moteur dominant : sleep 8 / fat 2 / sore 2 → readiness 85, sommeil domine (frac 1 vs 0,75).
+  const aheadSleep = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 2, soreness: 2 }] }, '2026-07-14');
+  assert.equal(aheadSleep.focusGoalAhead, 85, 'marge × vert → invitation à avancer');
+  assert.deepEqual(aheadSleep.focusAheadDriver, { factor: 'sleep', value: 8 }, 'sommeil moteur d’avance nommé');
+  assert.match(aheadSleep.insight, /ce qui te donne cette clarté : ta nuit de 8 h/);
+  assert.match(aheadSleep.insight, /avance prise sans forcer/);
+  // Énergie moteur dominant : sleep 6 / fat 1 / sore 2 → readiness 83, fatigue basse domine.
+  const aheadEnergy = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 1, soreness: 2 }] }, '2026-07-14');
+  assert.deepEqual(aheadEnergy.focusAheadDriver, { factor: 'fatigue', value: 1 }, 'énergie moteur d’avance nommée');
+  assert.match(aheadEnergy.insight, /ce qui te donne cette clarté : ton énergie est au top \(fatigue 1\/5\)/);
+  assert.match(aheadEnergy.insight, /banker un bloc d’avance/);
+  // HONNÊTETÉ : des muscles frais ne « donnent » PAS de clarté mentale → non crédités, focusAheadDriver null
+  // malgré le vert (même garde-fou que focusFreshDriver). sleep 6 / fat 2 / sore 1 → readiness 83.
+  const aheadSore = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 2, soreness: 1 }] }, '2026-07-14');
+  assert.equal(aheadSore.focusGoalAhead, 83, 'invitation à avancer présente');
+  assert.equal(aheadSore.focusAheadDriver, null, 'muscles frais dominants → non crédités côté focus (deep work)');
+  assert.ok(!/te donne cette clarté/.test(aheadSore.insight));
+  // Mutuellement exclusif : la branche serrée nomme focusFreshDriver, pas focusAheadDriver.
+  assert.equal(freshSleep.focusAheadDriver, null, 'branche serrée → focusAheadDriver null (c’est focusFreshDriver qui parle)');
   // HONNÊTETÉ : objectif large mais readiness moyenne (zone médiane) → aucune invitation (la marge suffit).
   // sleep 6 / fat 3 / sore 3 → 60 (< 75).
   const aheadMid = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-14');

@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.167 (2026-07-19)
+## 📍 État actuel — build 2.0.168 (2026-07-19)
+
+> 💡 **2.0.168** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach nomme **CE QUI
+> te donne cette clarté** les bons jours de marge côté focus (`focusAheadDriver`). Depuis #535,
+> `focusGoalAhead` invite à prendre de l'avance quand l'objectif focus est **large** (`onpace`) × readiness
+> au vert — mais restait **muet** sur QUELLE composante du check-in rend l'esprit si clair, alors que la
+> branche **serrée** le nomme déjà (`focusFreshDriver`, #532). Le recap #535 signalait ce trou. Le pendant
+> **sport** de cette piste (recap #536 lead 1) a été **écarté après vérif** : côté sport, `readinessBoost`
+> (#531) fire déjà sur la même condition et nomme le moteur → doublon ; le focus n'a **pas** de
+> `readinessBoost` → gap réel et propre uniquement côté focus. Nouveau champ **`focusAheadDriver`**
+> (`{ factor, value }` ou `null`, toujours renvoyé) : quand `focusGoalAhead` fire ET qu'une force domine
+> nettement (`readinessDriver`), il ajoute « Et ce qui te donne cette clarté : ta nuit de 8 h — autant
+> profiter d'un cerveau aussi reposé pour engranger un bloc de plus… c'est de l'avance prise sans forcer. »
+> **Honnête** : sommeil ou énergie SEULEMENT (muscles frais écartés — même garde-fou que `focusFreshDriver`),
+> et une seule force qui domine (égalité → muet). **Mutuellement exclusif** de `focusFreshDriver` (branche
+> onpace vs tight). Vocabulaire distinct (« ce qui te donne cette clarté ») — **zéro** collision regex.
+> **Zéro** nouvelle fonction (réemploi de `readinessDriver`). Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #537.
 
 > 🏋️ **2.0.167** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach t'invite à
 > **prendre de l'avance côté SPORT** les bons jours de marge (`sessionGoalAhead`). C'est le pendant
