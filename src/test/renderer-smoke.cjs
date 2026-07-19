@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.163'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.164'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -862,6 +862,14 @@ app.whenReady().then(async () => {
           const fFocusDrained = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-19');
           if (fFocusDrained.focusGoalFresh !== null) return false;
           if (!(fFocusDrained.focusGoalDrained === 40 && /ta forme est à plat ce matin \\(readiness 40\\/100\\)/.test(fFocusDrained.insight) && /focus court et facile aujourd.hui/.test(fFocusDrained.insight))) return false;
+          // Freins à égalité (fat 4/sore 4) → readinessLimiter null → focusDrainDriver null, aucun frein nommé.
+          if (fFocusDrained.focusDrainDriver !== null || /te plombe la tête/.test(fFocusDrained.insight)) return false;
+          // Nommer CE QUI plombe la tête (focusDrainDriver, pendant OPPOSÉ de focusFreshDriver) : sleep 3/fat 3/sore 3 → score 45, frein SOMMEIL dominant nommé.
+          const fDrainSleep = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 3, fatigue: 3, soreness: 3 }] }, '2026-07-19');
+          if (!(fDrainSleep.focusGoalDrained === 45 && fDrainSleep.focusDrainDriver && fDrainSleep.focusDrainDriver.factor === 'sleep' && /te plombe la tête aujourd.hui : ta nuit courte de 3 h/.test(fDrainSleep.insight) && /recharge le sommeil ce soir/.test(fDrainSleep.insight))) return false;
+          // HONNÊTETÉ : courbatures dominantes (6/3/5 → score 45, limiter soreness) → non créditées comme frein du deep work, focusDrainDriver null.
+          const fDrainSore = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 5 }] }, '2026-07-19');
+          if (!(fDrainSore.focusGoalDrained === 45 && fDrainSore.focusDrainDriver === null) || /te plombe la tête/.test(fDrainSore.insight)) return false;
           // Zone médiane (50 ≤ readiness < 75) → ni feu vert ni conflit. sleep 6/fat 3/sore 3 → 60.
           const fFocusMid = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-19');
           if (!(fFocusMid.focusGoalFresh === null && fFocusMid.focusGoalDrained === null)) return false;

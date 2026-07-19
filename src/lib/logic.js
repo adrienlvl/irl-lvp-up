@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.164', emoji: '🌫️', text: 'Ton coach « Le focus du moment » sait maintenant, côté FOCUS aussi, nommer CE QUI te plombe la tête les jours à plat. Quand ta semaine de deep work est serrée mais que ta forme du matin est au plancher, il te disait déjà « focus court aujourd’hui, soigne ta récup » — sans expliquer QUOI brume ton cerveau. Désormais, si un frein ressort nettement de ton check-in, il le nomme et te dit quoi soigner : une nuit trop courte → « Et ce qui te plombe la tête aujourd’hui : ta nuit courte de 4 h — recharge le sommeil ce soir, c’est lui qui remettra ton cerveau en état de deep work, pas l’acharnement du jour. » ; une grosse fatigue → « ta fatigue générale (5/5) — le repos de ce soir vaut plus qu’un bloc forcé maintenant, tu retrouveras un esprit bien plus tranchant demain. » C’est le miroir exact de ce qu’il fait déjà les bons jours (nommer ce qui porte ta fraîcheur mentale). Honnête : il ne pointe que le sommeil ou l’énergie (les seuls freins qui plombent vraiment un bloc) — jamais des muscles douloureux, qui pèsent sur une séance mais pas sur la concentration ; et il se tait si aucun frein ne domine clairement. La note enrichit l’insight, sans rien remplacer.' },
   { v: '2.0.163', emoji: '🧠', text: 'Ton coach « Le focus du moment » sait maintenant, côté FOCUS aussi, nommer CE QUI porte ta fraîcheur mentale. Quand ta semaine de deep work est serrée (« cale un vrai bloc aujourd’hui ») ET que ta forme du matin est au vert, il te disait déjà « c’est LE moment de pousser » — mais sans expliquer QUOI te rend l’esprit si clair. Désormais, si une force ressort nettement de ton check-in, il la nomme et la relie au deep work : une belle nuit → « Et ce qui nourrit cette fraîcheur mentale : ta nuit de 8 h — un cerveau reposé est le vrai carburant du deep work, attaque d’abord ta tâche la plus exigeante tant que la tête suit. » ; une énergie au top → « ton énergie est au top (fatigue 1/5) — l’esprit est vif, profite-en pour aller au fond du bloc le plus dur avant que la journée l’entame. » C’est le pendant, côté concentration, de ce que ton coach fait déjà côté sport, pour que tu voies quel comportement te donne un cerveau prêt et que tu le répètes. Honnête : il ne crédite que le sommeil ou l’énergie (les vrais carburants d’un vrai bloc) — jamais des muscles frais, qui ne portent pas la concentration ; et il se tait si aucune force ne domine clairement. La note enrichit l’insight, sans rien remplacer.' },
   { v: '2.0.162', emoji: '💚', text: 'Ton coach « Le focus du moment » ne te dit plus seulement CE QUI plombe ta forme les jours moyens — il te dit CE QUI la PORTE les jours au vert. C’est le pendant positif exact : quand ta readiness est haute (≥ 75, « prêt à pousser ») et qu’un bon comportement ressort clairement de ton check-in, il le nomme et t’invite à en profiter : une belle nuit → « Ce qui te porte aujourd’hui : ta nuit de 8,5 h — ce sommeil solide est le vrai moteur de ta forme, tu as tout pour aller chercher un stimulus franc. Capitalise dessus. » ; une énergie au top → « ton énergie est au top (fatigue 1/5) — profite de cette fraîcheur pour un vrai stimulus, c’est ces jours-là que les gains se construisent. » ; des muscles frais → « tes muscles sont frais, sans courbatures (1/5) — le corps est prêt à encaisser du volume, vas-y franchement. » Tu vois ainsi quel geste produit ta bonne forme, pour le répéter. Honnête : il ne parle que quand une force domine nettement (si tout est au top à égalité, pas de moteur unique désigné). La note enrichit ton action du jour, elle ne la remplace pas.' },
   { v: '2.0.161', emoji: '🏆', text: 'Ton coach « Le focus du moment » fête maintenant aussi tes records au POIDS DU CORPS. Il savait déjà célébrer un record de charge (un nouveau meilleur 1RM), mais il ignorait complètement tes progrès en calisthénie : gagner des répétitions sur tes tractions, pompes ou dips ne déclenchait rien, alors que sur ces exercices les reps SONT ta progression. Désormais, quand ta séance du jour bat ton record de répétitions sur un exercice sans charge que tu pratiques déjà, il le nomme et le célèbre : « 🏆 Et quelle séance : tu viens de battre ton record de répétitions sur le Tractions — 13 reps au poids du corps (ton meilleur passé : 10), du jamais-vu chez toi. La force au poids du corps se construit rep après rep — chapeau. » Honnête : il ne parle que d’un record vraiment battu aujourd’hui (égaler ne compte pas), sur un exercice sans aucune charge déjà à ton historique — et jamais en même temps qu’un record de charge (celui-ci passe d’abord). La note enrichit l’insight, ton action du jour reste intacte.' },
@@ -5105,7 +5106,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // date). Champ sessionGoalPace ('onpace' | 'tight' | 'unreachable' | null) TOUJOURS renvoyé ; note
   // APPENDUE au compteur, aucune autre branche touchée. Ne parle que quand un objectif existe et n'est
   // pas encore tenu (wc < g) : objectif atteint → le « déjà tenu 💪 » historique suffit.
-  let sessionGoalPace = null, focusGoalPace = null, focusGoalFresh = null, focusGoalDrained = null, focusFreshDriver = null;
+  let sessionGoalPace = null, focusGoalPace = null, focusGoalFresh = null, focusGoalDrained = null, focusFreshDriver = null, focusDrainDriver = null;
   {
     const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
     const monday = dateKey(mondayOf(new Date(+tm[1], +tm[2] - 1, +tm[3])));
@@ -5223,6 +5224,31 @@ function adaptiveCoachFocus(state, todayKey, opts) {
             } else if (rs && rs.score < 50) {
               focusGoalDrained = rs.score;
               insight += ` Mais ta forme est à plat ce matin (readiness ${rs.score}/100) : un cerveau fatigué ne produit pas un vrai bloc profond, et t’acharner empilerait des minutes creuses sans avancer l’objectif. Un focus court et facile aujourd’hui, soigne ta récup — l’esprit frais rattrapera ces minutes bien plus vite.`;
+              // Nommer CE QUI plombe l'esprit — le pendant EXACT et OPPOSÉ de focusFreshDriver (#532), et
+              // le symétrique côté FOCUS de readinessDrag (#525, sport). focusGoalDrained vient de dire que
+              // la readiness est au plancher, mais reste muet sur QUELLE composante du check-in brume la
+              // tête. On lit readinessLimiter (le même helper pur que le drag sport : le frein DOMINANT), et
+              // on ne le crédite QUE si c'est le SOMMEIL ou l'ÉNERGIE (fatigue haute) — les seuls freins qui
+              // plombent VRAIMENT un bloc de concentration. Des muscles douloureux (soreness dominant)
+              // pèsent sur une SÉANCE, pas sur le deep work : les nommer comme cause d'un cerveau brumeux
+              // serait une explication douteuse, alors on se tait (honnêteté avant complétude — exactement
+              // le miroir du garde-fou de focusFreshDriver, qui écarte les muscles frais côté positif).
+              // Reconnaître le frein qui compte rend l'action bien plus actionnable qu'un score nu : Adrien
+              // sait QUOI soigner ce soir (recharger le sommeil, se reposer) pour retrouver un esprit prêt.
+              // Additif pur : champ focusDrainDriver ({ factor: 'sleep'|'fatigue', value } ou null) TOUJOURS
+              // renvoyé ; note APPENDUE à l'insight, aucune autre branche touchée. MUTUELLEMENT EXCLUSIF de
+              // focusFreshDriver par construction (drained sur < 50 XOR fresh sur ≥ 75). Vocabulaire distinct
+              // (« Et ce qui te plombe la tête ») — zéro collision à l'œil ni en regex avec readinessDrag
+              // sport (« Ce qui pèse le plus »), focusFreshDriver (« nourrit cette fraîcheur mentale ») ni la
+              // note focusGoalDrained elle-même. Réemploi total de readinessLimiter — zéro nouvelle fonction.
+              if (typeof readinessLimiter === 'function') {
+                const lim = readinessLimiter(todayR);
+                if (lim && (lim.factor === 'sleep' || lim.factor === 'fatigue')) {
+                  focusDrainDriver = { factor: lim.factor, value: lim.value };
+                  if (lim.factor === 'sleep') insight += ` Et ce qui te plombe la tête aujourd’hui : ta nuit courte de ${String(lim.value).replace('.', ',')} h — recharge le sommeil ce soir, c’est lui qui remettra ton cerveau en état de deep work, pas l’acharnement du jour.`;
+                  else insight += ` Et ce qui te plombe la tête aujourd’hui : ta fatigue générale (${lim.value}/5) — le repos de ce soir vaut plus qu’un bloc forcé maintenant, tu retrouveras un esprit bien plus tranchant demain.`;
+                }
+              }
             }
           }
         } else {
@@ -6884,7 +6910,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

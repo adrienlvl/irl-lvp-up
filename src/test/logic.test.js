@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.163');
+  assert.equal(L.CHANGELOG[0].v, '2.0.164');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8660,6 +8660,31 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.match(tired.insight, /ta forme est à plat ce matin \(readiness 40\/100\)/);
   assert.match(tired.insight, /focus court et facile aujourd’hui/);
   assert.ok(!/les deux signaux s’alignent/i.test(tired.insight));
+  // Deux freins à égalité (fat 4 / sore 4 également plombants) → readinessLimiter null → aucun frein nommé.
+  assert.equal(tired.focusDrainDriver, null, 'freins à égalité → aucun frein unique nommé côté focus');
+  assert.ok(!/te plombe la tête/.test(tired.insight));
+  // Nommer CE QUI plombe la tête (focusDrainDriver) — pendant OPPOSÉ de focusFreshDriver (#532), miroir focus
+  // de readinessDrag (#525). Frein SOMMEIL : sleep 3 / fat 3 / sore 3 → readinessScore 45 (< 50), limiter
+  // sommeil (déficit 25 vs 15).
+  const drainSleep = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 3, fatigue: 3, soreness: 3 }] }, '2026-07-19');
+  assert.equal(drainSleep.focusGoalDrained, 45, 'readiness < 50 → conflit renvoyé');
+  assert.deepEqual(drainSleep.focusDrainDriver, { factor: 'sleep', value: 3 }, 'sommeil frein dominant nommé');
+  assert.match(drainSleep.insight, /te plombe la tête aujourd’hui : ta nuit courte de 3 h/);
+  assert.match(drainSleep.insight, /recharge le sommeil ce soir/);
+  // Frein ÉNERGIE : sleep 5 / fat 5 / sore 3 → readinessScore 40 (< 50), limiter fatigue (déficit 30 vs 15).
+  const drainFat = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 5, soreness: 3 }] }, '2026-07-19');
+  assert.equal(drainFat.focusGoalDrained, 40, 'readiness < 50 → conflit renvoyé');
+  assert.deepEqual(drainFat.focusDrainDriver, { factor: 'fatigue', value: 5 }, 'fatigue frein dominant nommé');
+  assert.match(drainFat.insight, /te plombe la tête aujourd’hui : ta fatigue générale \(5\/5\)/);
+  // Frein COURBATURES dominant (sleep 6 / fat 3 / sore 5 → score 45 < 50, limiter soreness) → HONNÊTETÉ :
+  // des muscles douloureux pèsent sur une séance, pas sur le deep work → on se tait, focusDrainDriver null.
+  const drainSore = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 5 }] }, '2026-07-19');
+  assert.equal(drainSore.focusGoalDrained, 45, 'readiness < 50 → conflit renvoyé');
+  assert.equal(drainSore.focusDrainDriver, null, 'courbatures dominantes → non créditées comme frein du deep work');
+  assert.ok(!/te plombe la tête/.test(drainSore.insight));
+  // Mutuellement exclusif de focusFreshDriver : au vert, aucun frein ; à plat, aucun moteur.
+  assert.equal(freshSleep.focusDrainDriver, null, 'readiness au vert → aucun frein');
+  assert.equal(drainSleep.focusFreshDriver, null, 'readiness à plat → aucun moteur de fraîcheur');
   // Zone MÉDIANE (50 ≤ readiness < 75) : ni feu vert ni conflit — sleep 6 / fatigue 3 / soreness 3 → 60.
   const mid = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-19');
   assert.equal(mid.focusGoalFresh, null, 'zone médiane → pas d’alignement');

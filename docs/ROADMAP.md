@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.163 (2026-07-19)
+## 📍 État actuel — build 2.0.164 (2026-07-19)
+
+> 🌫️ **2.0.164** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach nomme, **côté FOCUS
+> aussi**, CE QUI te **plombe la tête** les jours à plat. Depuis #532, `focusFreshDriver` dit CE QUI **porte**
+> ta fraîcheur mentale les bons jours ; le cas **OPPOSÉ** manquait (le recap #532 le signalait). Quand
+> `focusGoalDrained` (#510) fire — objectif focus serré × readiness au **plancher** (< 50) — le coach disait
+> « focus court aujourd'hui, soigne ta récup » mais restait **muet sur QUEL frein** brume la tête. Nouveau champ
+> **`focusDrainDriver`** (`{ factor: 'sleep'|'fatigue', value }` ou `null`) : réemploi **total** de
+> `readinessLimiter` (helper pur de #525) — quand un frein **domine net** le check-in, le coach le NOMME et dit
+> quoi soigner, appendu à l'insight : « Et ce qui te plombe la tête aujourd'hui : ta nuit courte de **4 h** —
+> recharge le sommeil ce soir, c'est lui qui remettra ton cerveau en état de deep work, pas l'acharnement du
+> jour. » (ou fatigue générale). **HONNÊTETÉ avant complétude** — miroir EXACT du garde-fou de
+> `focusFreshDriver` : on ne blâme que le **sommeil** ou l'**énergie** (les vrais freins d'un bloc) — jamais des
+> **courbatures** (`soreness` dominant → muet), qui pèsent sur une séance mais pas sur la concentration ; un
+> seul frein net (sinon muet) ; mutuellement exclusif de `focusFreshDriver` (< 50 XOR ≥ 75). La symétrie
+> moteur/frein est désormais **complète** des deux côtés (sport : `readinessBoost`/`readinessDrag` ; focus :
+> `focusFreshDriver`/`focusDrainDriver`). **Affine, ne remplace pas** : note appendue, action intacte.
+> Vocabulaire distinct (« te plombe la tête ») — **zéro** collision regex. Réemploi total, **zéro** nouvelle
+> fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #533.
 
 > 🧠 **2.0.163** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach nomme, **côté FOCUS
 > aussi**, CE QUI porte ta **fraîcheur mentale**. Depuis #531, `readinessBoost` dit POURQUOI ta forme est
