@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.165 (2026-07-19)
+## 📍 État actuel — build 2.0.166 (2026-07-19)
+
+> 🚀 **2.0.166** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach t'invite à
+> **prendre de l'avance** les bons jours où tu as de la **marge**. Depuis #509, `adaptiveCoachFocus`
+> ne reliait la forme du matin à l'objectif focus **QUE** en semaine **serrée** (branche `tight` : les
+> trois zones fresh/steady/drained couvertes). La branche **onpace** (« tu as la marge ») ne lisait
+> **jamais** la readiness → le coach laissait filer les bons jours confortables. Nouveau champ
+> **`focusGoalAhead`** (score du jour, ou `null`, toujours renvoyé) : quand l'allure focus est **large**
+> ET qu'un check-in **du jour** met la forme **au vert** (readiness ≥ 75), il ajoute « Et ta tête est
+> claire ce matin (readiness 88/100) : profite de cette marge pour prendre de l'avance sur l'objectif
+> tant que c'est facile — un vrai bloc engrangé maintenant te fait un coussin qui amortira un jour creux
+> plus tard, sans stress. » C'est le pendant **PROACTIF** de `focusGoalFresh` (qui, lui, répond à une
+> échéance serrée : effort *nécessaire* vs effort *malin*) et le même feu vert corps que le coach SPORT.
+> **Honnête** : au vert SEULEMENT — un jour moyen/bas où l'objectif a déjà de la marge n'a besoin
+> d'aucune pression en plus (readiness 60/40 → muet). On **invite**, sans injonction. Mutuellement
+> exclusif de fresh/steady/drained (branche onpace vs tight) et des notes sport. Vocabulaire distinct
+> (« ta tête est claire ce matin ») — **zéro** collision regex. **Zéro** nouvelle fonction (réemploi de
+> `readinessScore`). Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #535.
 
 > 🎯 **2.0.165** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach comble la **zone
 > MÉDIANE focus**, un mot honnête les jours de forme MOYENNE. Quand la semaine de deep work est **serrée**,

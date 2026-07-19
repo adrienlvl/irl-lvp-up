@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.165');
+  assert.equal(L.CHANGELOG[0].v, '2.0.166');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8703,6 +8703,35 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   // Objectif focus DANS LES TEMPS (onpace) → focusGoalFresh/Drained null (assignés dans la branche serrée).
   assert.equal(onpace.focusGoalFresh, null, 'objectif large → pas de note même côté focus');
   assert.equal(onpace.focusGoalDrained, null, 'objectif large → pas de conflit côté focus');
+  // Sans check-in de récup du jour → objectif large muet sur la forme, focusGoalAhead null.
+  assert.equal(onpace.focusGoalAhead, null, 'objectif large sans readiness → aucune invitation à avancer');
+  assert.ok(!/prendre de l’avance/.test(onpace.insight));
+  // PRENDRE DE L'AVANCE (focusGoalAhead, #535) — pendant PROACTIF de focusGoalFresh : objectif large +
+  // readiness au vert le jour même → invitation à engranger un coussin. (Session focus du 07-14 ajoutée
+  // pour que le pilier reste focus malgré le check-in de récup — sinon le sommeil monterait en tête.)
+  // sleep 8 / fat 1 / sore 1 → 100. Mardi 07-14, 40 min faites → onpace.
+  const aheadFs = [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }, { date: '2026-07-14', minutes: 10 }];
+  const ahead = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-14');
+  assert.equal(ahead.pillar, 'focus', 'pilier focus conservé malgré le check-in');
+  assert.equal(ahead.focusGoalPace, 'onpace', 'marge sur l’objectif focus');
+  assert.equal(ahead.focusGoalAhead, 100, 'readiness ≥ 75 le jour même × marge → le score renvoyé');
+  assert.match(ahead.insight, /ta tête est claire ce matin \(readiness 100\/100\)/);
+  assert.match(ahead.insight, /prendre de l’avance sur l’objectif tant que c’est facile/);
+  assert.match(ahead.insight, /amortira un jour creux plus tard/);
+  // Vocabulaire distinct des trois notes de la branche serrée : aucune collision.
+  assert.ok(!/au vert ce matin|tient la route ce matin|à plat ce matin|s’alignent/i.test(ahead.insight));
+  // HONNÊTETÉ : objectif large mais readiness moyenne (zone médiane) → aucune invitation (la marge suffit).
+  // sleep 6 / fat 3 / sore 3 → 60 (< 75).
+  const aheadMid = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-14');
+  assert.equal(aheadMid.focusGoalPace, 'onpace', 'marge sur l’objectif focus');
+  assert.equal(aheadMid.focusGoalAhead, null, 'readiness moyenne × marge → pas de note (aucune pression en plus)');
+  assert.ok(!/prendre de l’avance/.test(aheadMid.insight));
+  // Objectif large mais readiness à plat → aucune invitation non plus. sleep 5 / fat 4 / sore 4 → 40.
+  const aheadLow = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-14');
+  assert.equal(aheadLow.focusGoalAhead, null, 'readiness à plat × marge → pas de note');
+  // Mutuellement exclusif de la branche serrée : au vert × objectif SERRÉ → focusGoalFresh, pas Ahead.
+  assert.equal(fresh.focusGoalAhead, null, 'branche serrée → focusGoalAhead null');
+  assert.equal(mid.focusGoalAhead, null, 'branche serrée (zone médiane) → focusGoalAhead null');
   // Objectif déjà atteint (130 ≥ 120) → pas d'allure, le « atteint 💪 » suffit.
   const done = L.adaptiveCoachFocus(base(130), '2026-07-16');
   assert.equal(done.focusGoalPace, null);
