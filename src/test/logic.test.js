@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.135');
+  assert.equal(L.CHANGELOG[0].v, '2.0.136');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8204,6 +8204,43 @@ test('adaptiveCoachFocus : réconciliation objectif serré × forme à plat (res
   assert.equal(loose.sessionGoalPace, 'onpace');
   assert.equal(loose.restOverGoal, null);
   assert.ok(!/forme est à plat/.test(loose.insight));
+});
+
+test('adaptiveCoachFocus : réconciliation objectif serré × pic de charge (loadOverGoal)', () => {
+  const today = '2026-07-16'; // jeudi, semaine lundi 07-13 → dim 07-19 (4 jours restants, aujourd'hui compris)
+  // Charge en pic : 3 séances lourdes récentes après 3 semaines légères → ACWR zone 'high'. Une seule
+  // de ces séances (07-14) tombe dans la semaine calendaire → wc = 1. Objectif 5 → 4 séances pour 4 j
+  // restants = allure SERRÉE. Les deux consignes se contredisent (« une chaque jour » vs « allège »).
+  const spikeWk = [
+    { date: '2026-07-10', duration: 100, effort: 3 },
+    { date: '2026-07-12', duration: 100, effort: 3 },
+    { date: '2026-07-14', duration: 100, effort: 3 },
+    { date: '2026-07-05', duration: 30, effort: 1 },
+    { date: '2026-07-08', duration: 30, effort: 1 },
+    { date: '2026-06-28', duration: 30, effort: 1 },
+  ];
+  const conflict = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: spikeWk }, today);
+  assert.equal(conflict.pillar, 'sport');
+  assert.equal(conflict.sessionGoalPace, 'tight');
+  assert.ok(conflict.loadSpike != null && conflict.loadSpike > 1.5, 'pic de charge détecté');
+  assert.equal(conflict.loadOverGoal, conflict.loadSpike, 'loadOverGoal = le ratio du pic');
+  assert.match(conflict.insight, /ta charge est en pic cette semaine/);
+  assert.match(conflict.insight, /tempérer prime sur le chiffre/);
+  assert.match(conflict.action, /Charge en hausse brutale|allège/); // l'action de charge reste intacte
+  // Charge RÉGULIÈRE (pas de pic) mais objectif serré → aucun conflit à désamorcer, loadOverGoal null.
+  const noSpike = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: [
+    { date: '2026-07-14' }, { date: '2026-07-07' }, { date: '2026-07-03' },
+  ] }, today);
+  assert.equal(noSpike.sessionGoalPace, 'tight');
+  assert.equal(noSpike.loadSpike, null, 'aucune charge chiffrée → pas de pic');
+  assert.equal(noSpike.loadOverGoal, null);
+  assert.ok(!/charge est en pic cette semaine/.test(noSpike.insight));
+  // Pic de charge mais objectif LARGE (2 séances → 1 pour 4 j = dans les temps) → pas de conflit → null.
+  const loose = L.adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: spikeWk }, today);
+  assert.equal(loose.sessionGoalPace, 'onpace');
+  assert.ok(loose.loadSpike != null, 'le pic est bien là');
+  assert.equal(loose.loadOverGoal, null, 'objectif large → aucune pression à désamorcer');
+  assert.ok(!/charge est en pic cette semaine/.test(loose.insight));
 });
 
 test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jours restants)', () => {

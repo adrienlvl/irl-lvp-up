@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.135'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.136'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -969,6 +969,11 @@ app.whenReady().then(async () => {
           if (!(fSpike.pillar === 'sport' && fSpike.loadSpike != null && fSpike.loadSpike > 1.5 && /Charge en hausse brutale/.test(fSpike.action))) return false;
           const fSpikeFresh = adaptiveCoachFocus({ workouts: spikeWk, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
           if (!(fSpikeFresh.readiness === 100 && fSpikeFresh.loadSpike != null && /Forme au vert/.test(fSpikeFresh.action) && !/pr[êe]t [àa] pousser/.test(fSpikeFresh.action))) return false;
+          // RÉCONCILIATION objectif serré × pic de charge (loadOverGoal) : jeudi 07-16, 1 séance dans la semaine (07-14) + objectif 5 → serré, et charge en pic → le coach tranche pour la récup de charge, l'action de charge intacte.
+          const fLoadGoal = adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: spikeWk }, '2026-07-16');
+          if (!(fLoadGoal.sessionGoalPace === 'tight' && fLoadGoal.loadOverGoal === fLoadGoal.loadSpike && fLoadGoal.loadOverGoal != null && /ta charge est en pic cette semaine/.test(fLoadGoal.insight) && /temp[ée]rer prime sur le chiffre/.test(fLoadGoal.insight))) return false;
+          // Pic de charge mais objectif large (2 séances → onpace) → aucun conflit → loadOverGoal null.
+          if (adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: spikeWk }, '2026-07-16').loadOverGoal !== null) return false;
           if (adaptiveCoachFocus({ workouts: spikeWk, agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16', { nowMinutes: 555 }).sportSlot !== null) return false;
           // Coach CONSCIENT de la TENDANCE de readiness : forme du jour « correcte » (55) mais qui GLISSE (-45 pts
           // sur 5 check-ins, sommeil constant sain) → l'action tempère (fatigue cumulée), et un jour au vert (85) non.

@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.135 (2026-07-19)
+## 📍 État actuel — build 2.0.136 (2026-07-19)
+
+> 🏋️ **2.0.136** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **1ʳᵉ
+> « Suite possible » de #504** — le conflit **jumeau** de `restOverGoal`, côté **CHARGE**. Le coach
+> « Le focus du moment » savait déjà, le même jour, que l'objectif hebdo de séances était **serré**
+> (`sessionGoalPace === 'tight'` → « il en faut une chaque jour ») ET que la charge des 7 derniers jours
+> était en **PIC** (`loadSpike`, ACWR zone `high` → « allège, semaine de consolidation ») — **sans les
+> croiser**. Réunies, elles se **contredisent** (pousse chaque jour vs lève le pied) : le même bug de
+> crédibilité que #504, mais côté **charge cumulée** au lieu de la forme d'un jour. Nouveau : dans le
+> bloc `loadSpike`, quand — et **seulement** quand — le pic est détecté ET l'allure est `tight`, le coach
+> **tranche** via un champ **`loadOverGoal`** (le ratio ACWR, ou `null`), note appendue à l'insight :
+> « Mais ta charge est en pic cette semaine (2,3× ton volume) : tempérer prime sur le chiffre — empiler
+> une séance chaque jour sur un corps déjà en zone de blessure serait le pire choix. Laisse l'objectif
+> glisser, consolide, tu repars plus solide. » L'action de tempérage de charge reste **intacte**.
+> **Mutuellement exclusif de `restOverGoal`** par construction (`restOverGoal` exige `readiness < 50`,
+> ce bloc exige readiness null ou ≥ 50) → jamais deux notes le même jour. Un pic de charge est un signal
+> de risque encore plus net qu'une mauvaise forme d'un jour. Additif pur, réemploi total (zéro nouvelle
+> fonction). Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #505.
 
 > 🛌 **2.0.135** — Coaching adaptatif poussé à fond (priorité de la nuit) : on **VARIE le domaine** vers
 > le **SPORT** et on résout un **conflit de consignes**. Le coach « Le focus du moment » savait déjà, le
