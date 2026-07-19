@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.132');
+  assert.equal(L.CHANGELOG[0].v, '2.0.133');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6692,6 +6692,38 @@ test('proteinAdherenceTrend : compare les jours à la cible protéines récents 
   assert.equal(L.proteinAdherenceTrend([{ date: iso(8), protein: 160 }], tgt, today, 7), null);
   assert.equal(L.proteinAdherenceTrend(up, 0, today, 7), null);
   assert.equal(L.proteinAdherenceTrend(up, tgt, 'nope', 7), null);
+});
+
+test('hydrationAdherenceTrend : même moule que les protéines, sur le champ eau (verres/jour)', () => {
+  const today = '2026-07-14';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const goal = 8;
+  // Récente (0-6 j) : 5 jours à 8 verres ; précédente (7-13 j) : 2 → pente MONTANTE +3.
+  const up = [
+    { date: iso(0), water: 8 }, { date: iso(1), water: 9 }, { date: iso(2), water: 8 }, { date: iso(3), water: 8 }, { date: iso(4), water: 8 },
+    { date: iso(8), water: 8 }, { date: iso(9), water: 8 } ];
+  const tu = L.hydrationAdherenceTrend(up, goal, today, 7);
+  assert.equal(tu.recent, 5); assert.equal(tu.prev, 2); assert.equal(tu.delta, 3); assert.equal(tu.dir, 'up');
+  // Pente DESCENDANTE : récente 2, précédente 6 → -4.
+  const down = [
+    { date: iso(0), water: 8 }, { date: iso(1), water: 8 },
+    { date: iso(7), water: 8 }, { date: iso(8), water: 8 }, { date: iso(9), water: 8 }, { date: iso(10), water: 8 }, { date: iso(11), water: 8 }, { date: iso(12), water: 8 } ];
+  assert.equal(L.hydrationAdherenceTrend(down, goal, today, 7).delta, -4);
+  // Jours SOUS la cible non comptés ; agrégation au MAX par date (deux gorgées le même jour).
+  const maxDay = [{ date: iso(0), water: 5 }, { date: iso(0), water: 8 }, { date: iso(7), water: 9 }];
+  const tm = L.hydrationAdherenceTrend(maxDay, goal, today, 7);
+  assert.equal(tm.recent, 1); assert.equal(tm.prev, 1);
+  // Pas de jour saisi la semaine précédente → prev null, delta 0, dir 'flat'.
+  const solo = [{ date: iso(0), water: 8 }, { date: iso(2), water: 3 }];
+  const ts = L.hydrationAdherenceTrend(solo, goal, today, 7);
+  assert.equal(ts.prev, null); assert.equal(ts.dir, 'flat'); assert.equal(ts.recent, 1);
+  // Aucun jour récent → null ; cible 0 → null ; date invalide → null.
+  assert.equal(L.hydrationAdherenceTrend([{ date: iso(8), water: 8 }], goal, today, 7), null);
+  assert.equal(L.hydrationAdherenceTrend(up, 0, today, 7), null);
+  assert.equal(L.hydrationAdherenceTrend(up, goal, 'nope', 7), null);
+  // fieldAdherenceTrend générique sans champ → null (garde-fou).
+  assert.equal(L.fieldAdherenceTrend(up, '', goal, today, 7), null);
 });
 
 test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
@@ -8230,6 +8262,61 @@ test('adaptiveCoachFocus : focus nutrition — PENTE d’adhérence protéines (
   // Hors pilier nutrition → proteinTrend null.
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10' }, { date: '2026-07-12' }] }, today);
   assert.equal(sport.proteinTrend, null);
+});
+
+test('adaptiveCoachFocus : focus nutrition — PENTE d’hydratation (relais quand les protéines sont muettes)', () => {
+  const today = '2026-07-16';
+  // SANS PROFIL (l’eau ne dépend pas de la cible protéines) → protéines muettes (proteinTrend null),
+  // l’hydratation prend le relais. GRIMPE : récente 6 j à 8 verres, précédente 3 → +3.
+  const up = { nutrition: [
+    { date: '2026-07-03', water: 8 }, { date: '2026-07-04', water: 8 }, { date: '2026-07-05', water: 8 },
+    { date: '2026-07-10', water: 8 }, { date: '2026-07-11', water: 8 }, { date: '2026-07-12', water: 8 },
+    { date: '2026-07-13', water: 8 }, { date: '2026-07-14', water: 8 }, { date: '2026-07-15', water: 8 } ] };
+  const fu = L.adaptiveCoachFocus(up, today);
+  assert.equal(fu.pillar, 'nutrition');
+  assert.equal(fu.proteinTrend, null);
+  assert.equal(fu.hydrationTrend, 3);
+  assert.match(fu.insight, /côté hydratation, ça suit : 6 jours à tes 8 verres cette semaine vs 3 la précédente \(\+3\)/);
+  // DÉCROCHE (hors série protéines) : récente 3 j, précédente 6 → -3.
+  const down = { nutrition: [
+    { date: '2026-07-03', water: 8 }, { date: '2026-07-04', water: 8 }, { date: '2026-07-05', water: 8 },
+    { date: '2026-07-06', water: 8 }, { date: '2026-07-07', water: 8 }, { date: '2026-07-08', water: 8 },
+    { date: '2026-07-10', water: 8 }, { date: '2026-07-11', water: 8 }, { date: '2026-07-12', water: 8 },
+    { date: '2026-07-15', water: 3 } ] };
+  const fd = L.adaptiveCoachFocus(down, today);
+  assert.equal(fd.hydrationTrend, -3);
+  assert.match(fd.insight, /côté hydratation en revanche, ça décroche : 3 jours à tes 8 verres cette semaine vs 6 la précédente \(-3\)/i);
+  // PRIORISATION : quand la pente PROTÉINES parle, l’hydratation se tait (un seul intrant à la fois).
+  const protUp = { profile: { weight: 80, goal: 'force' }, nutrition: [
+    { date: '2026-07-05', protein: 160 },
+    { date: '2026-07-10', protein: 160 }, { date: '2026-07-11', protein: 160 }, { date: '2026-07-13', protein: 160 }, { date: '2026-07-14', protein: 160 },
+    // eau en baisse en parallèle — elle ne doit PAS s’afficher car les protéines ont la priorité.
+    { date: '2026-07-03', water: 8 }, { date: '2026-07-04', water: 8 }, { date: '2026-07-06', water: 8 },
+    { date: '2026-07-07', water: 8 }, { date: '2026-07-08', water: 8 }, { date: '2026-07-09', water: 8 },
+    { date: '2026-07-15', water: 3 } ] };
+  const fp = L.adaptiveCoachFocus(protUp, today);
+  assert.equal(fp.proteinTrend, 3);
+  assert.equal(fp.hydrationTrend, null, 'protéines prioritaires → hydratation muette');
+  assert.doesNotMatch(fp.insight, /hydratation/);
+  // JAMAIS « ça décroche » sous une série protéines célébrée : protéines à pente PLATE (proteinTrend
+  // null : 2 jours à la cible cette semaine comme la précédente) mais SÉRIE en cours (15,16) — l’eau en
+  // baisse est SUPPRIMÉE tant que la série protéines tient le ton.
+  const streak = { profile: { weight: 80, goal: 'force' }, nutrition: [
+    { date: '2026-07-05', protein: 160 }, { date: '2026-07-06', protein: 160 },
+    { date: '2026-07-15', protein: 160 }, { date: today, protein: 160 },
+    { date: '2026-07-03', water: 8 }, { date: '2026-07-04', water: 8 }, { date: '2026-07-07', water: 8 },
+    { date: '2026-07-08', water: 8 }, { date: '2026-07-09', water: 8 },
+    { date: '2026-07-10', water: 3 }, { date: '2026-07-11', water: 3 } ] };
+  const fst = L.adaptiveCoachFocus(streak, today);
+  assert.match(fst.insight, /🔥 2 jours d’affilée à ta cible protéines/);
+  assert.equal(fst.proteinTrend, null);
+  assert.equal(fst.hydrationTrend, null, 'pas de « décroche » sous une série protéines');
+  assert.doesNotMatch(fst.insight, /décroche/);
+  // Sans semaine précédente renseignée → hydrationTrend null, aucune note.
+  const solo = { nutrition: [{ date: '2026-07-14', water: 8 }, { date: '2026-07-15', water: 8 }] };
+  const fso = L.adaptiveCoachFocus(solo, today);
+  assert.equal(fso.hydrationTrend, null);
+  assert.doesNotMatch(fso.insight, /hydratation/);
 });
 
 test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers l’objectif de poids', () => {

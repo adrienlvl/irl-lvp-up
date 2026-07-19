@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.132 (2026-07-19)
+## 📍 État actuel — build 2.0.133 (2026-07-19)
+
+> 💧 **2.0.133** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » donne au **DERNIER intrant nutrition encore ponctuel — l'HYDRATATION — sa conscience de
+> tendance** (2ᵉ « Suite possible » de #501 : « chiffrer aussi la pente d'hydratation, même moule »).
+> L'eau n'avait que sa **jauge du jour** (barre d'hydratation, `hydrationPace`) ; sa **RÉGULARITÉ**
+> d'une semaine à l'autre était muette. Le moule de pente est **factorisé** en une fonction pure
+> générique **`fieldAdherenceTrend(records, field, target, todayKey, windowDays)`** (corps exact de
+> l'ancien `proteinAdherenceTrend`, généralisé au champ) ; `proteinAdherenceTrend` **délègue** dessus
+> (comportement identique) et **`hydrationAdherenceTrend`** en dérive sur le champ `water` — zéro
+> duplication. Le coach lit la pente (jours à la cible de **8 verres**, fenêtre récente 7 j vs
+> précédente ; nouveau champ **`hydrationTrend`** = delta jours, ou `null`) avec une règle de
+> **PRIORISATION** : l'eau ne parle **que quand la pente protéines est muette** (`proteinTrend` null)
+> — **un seul intrant à la fois**, protéines d'abord (levier), l'eau en **relais** (« quoi regarder
+> ensuite », pas un mur de texte). Hausse → crédit (« Et côté hydratation, ça suit : 6 jours à tes 8
+> verres cette semaine vs 3 la précédente (+3) — cette régularité soutient ta récup ») ; baisse **hors
+> série protéines** → alerte douce (« Côté hydratation en revanche, ça décroche : 3 vs 6 (-3) — un
+> verre régulier soutient récup et satiété »). Jamais « ça décroche » sous une série protéines
+> célébrée ; marche **même sans profil**. Additif pur (note appendue, action protéines intacte),
+> semaine précédente requise. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu.
+> Recap #502.
 
 > 🍗 **2.0.132** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » lit maintenant la **PENTE de ton ADHÉRENCE protéines** — le **dernier angle nutrition encore
