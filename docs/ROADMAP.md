@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.173 (2026-07-19)
+## 📍 État actuel — build 2.0.174 (2026-07-19)
+
+> 🦵 **2.0.174** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach repère enfin la **ZONE
+> musculaire délaissée depuis un MOIS** (`sportNeglectGuard`) — l'angle du **long terme**, absent de tout ce
+> qu'il lisait sur les muscles. `sportZoneFocus` désigne le groupe à cibler **aujourd'hui** (le plus reposé,
+> fenêtre 7 j) ; `pushPullGuard` ne voit que le **haut du corps**. Aucun ne dit « ça fait **quatre semaines**
+> que tu n'as pas touché tes jambes ». Or un groupe entier laissé de côté aussi longtemps — souvent le **bas
+> du corps** chez un pratiquant tourné haut du corps — **bride la force globale** (jambes/fessiers = plus
+> grosse masse musculaire) et crée un **point faible**, invisible à la fraîcheur (un groupe jamais servi
+> paraît « reposé ») comme à la modalité (100 % muscu peut être « hybride » côté course et pourtant zéro
+> jambe). Nouveau champ **`sportNeglectGuard`** (`{ zone, sets, mean }` ou `null`, toujours renvoyé) : quand la
+> muscu du dernier mois laisse une zone à **zéro** (ou < 40 % de la moyenne) avec un vrai volume (≥ 20
+> séries-zones sur 28 j), le coach **nomme** la zone la plus délaissée et invite à la remettre au programme —
+> « ta zone la plus délaissée, c'est les jambes : zéro série en quatre semaines… ajoute les jambes à ton
+> programme cette semaine. » **Honnête** : muet sur volume mensuel maigre, **subordonné** à `trainBalanceGuard`
+> ET `pushPullGuard` (une seule note d'équilibre à la fois, la plus grossière d'abord ; le dos délaissé
+> revient à `pushPullGuard`), mêmes gardes que `sportZoneFocus` (séance pas faite, pas de repos ordonné, pas de
+> pic de charge). Note **appendue** à l'insight, action du jour intacte. **Zéro** nouvelle fonction (réemploi
+> `neglectedZoneReport`, `doneToday`, `reviveEligible`, `loadSpike`, `readiness`). Tests + check smoke bloquant
+> `coachFocus` étendu. Recap #543.
 
 > 💪 **2.0.173** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach surveille enfin la
 > balance **POUSSÉE ↔ TIRAGE** en muscu (`pushPullGuard`) — un axe de **structure interne** jamais lu.

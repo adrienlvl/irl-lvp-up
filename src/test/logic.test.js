@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.173');
+  assert.equal(L.CHANGELOG[0].v, '2.0.174');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9404,6 +9404,52 @@ test('adaptiveCoachFocus : focus sport — balance POUSSÉE ↔ TIRAGE déséqui
   const fHybrid = L.adaptiveCoachFocus(hybridRunWeek, today);
   assert.deepEqual(fHybrid.trainBalanceGuard, { missing: 'strength', count: 3 });
   assert.equal(fHybrid.pushPullGuard, null, 'trainBalanceGuard prime → pushPullGuard muet');
+});
+
+test('adaptiveCoachFocus : focus sport — zone chroniquement délaissée sur 4 semaines (sportNeglectGuard)', () => {
+  const today = '2026-07-16';
+  const push = d => ({ date: d, exercises: [{ name: 'Pompes classiques', sets: 5, reps: 12 }] }); // chest/arms/shoulders
+  const pull = d => ({ date: d, exercises: [{ name: 'Tractions', sets: 5, reps: 8 }] });           // back/arms
+  const abs = d => ({ date: d, exercises: [{ name: 'Gainage planche', sets: 4 }] });                 // abs
+  const glute = d => ({ date: d, exercises: [{ name: 'Pont fessier', sets: 4 }] });                  // glutes
+  // Un mois de muscu ÉQUILIBRÉE en haut du corps (poussée 15 = tirage 15 → pushPullGuard null) + abdos +
+  // fessiers, mais ZÉRO jambe sur 28 j. Aucune course → trainBalanceGuard null (pas hybride). Volume réel
+  // (91 séries-zones ≥ 20). Dernière séance 07-10 → !doneToday. Zone la plus délaissée : les jambes (0 série).
+  const noLegs = { workouts: [
+    push('2026-06-22'), push('2026-06-29'), push('2026-07-06'),
+    pull('2026-06-24'), pull('2026-07-01'), pull('2026-07-08'),
+    abs('2026-06-26'), abs('2026-07-10'),
+    glute('2026-06-28'), glute('2026-07-04'),
+  ] };
+  const fNeg = L.adaptiveCoachFocus(noLegs, today);
+  assert.equal(fNeg.pillar, 'sport');
+  assert.equal(fNeg.trainBalanceGuard, null, 'aucune course → pas hybride → trainBalanceGuard muet');
+  assert.equal(fNeg.pushPullGuard, null, 'poussée/tirage équilibrés → pushPullGuard muet');
+  assert.deepEqual(fNeg.sportNeglectGuard, { zone: 'legs', sets: 0, mean: 13 });
+  assert.match(fNeg.insight, /sur le dernier mois, ta zone la plus délaissée, c’est les jambes : zéro série en quatre semaines/);
+  assert.match(fNeg.insight, /ajoute les jambes à ton programme cette semaine/);
+  // Cas SOUS la moyenne (pas zéro) : jambes travaillées un peu (4 séries) mais loin derrière le reste → note « loin derrière ».
+  const fewLegs = { workouts: [...noLegs.workouts, { date: '2026-06-30', exercises: [{ name: 'Chaise au mur', sets: 4 }] }] };
+  const fFew = L.adaptiveCoachFocus(fewLegs, today);
+  assert.equal(fFew.sportNeglectGuard.zone, 'legs');
+  assert.equal(fFew.sportNeglectGuard.sets, 4);
+  assert.match(fFew.insight, /les jambes : 4 séries en quatre semaines, loin derrière tes autres groupes/);
+  // Volume mensuel MAIGRE (< 20 séries-zones) → « zone délaissée » serait du bruit → null.
+  const thin = { workouts: [push('2026-07-08'), abs('2026-07-10')] };
+  const fThin = L.adaptiveCoachFocus(thin, today);
+  assert.equal(fThin.sportNeglectGuard, null);
+  assert.doesNotMatch(fThin.insight, /zone la plus délaissée/);
+  // Séance DÉJÀ faite aujourd'hui → pas de conseil du jour → null.
+  const done = L.adaptiveCoachFocus({ workouts: [...noLegs.workouts, push(today)] }, today);
+  assert.equal(done.sportNeglectGuard, null);
+  // Forme au plancher (readiness 40) → l'action ordonne le repos, on ne réclame pas de zone → null.
+  const tired = L.adaptiveCoachFocus({ ...noLegs, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
+  assert.equal(tired.sportNeglectGuard, null);
+  // SUBORDINATION à pushPullGuard : muscu push-heavy (dos délaissé) → pushPullGuard parle du dos, sportNeglectGuard muet.
+  const pushHeavy = { workouts: [push('2026-06-22'), push('2026-06-25'), push('2026-06-29'), push('2026-07-03'), push('2026-07-07'), push('2026-07-11'), push('2026-07-14'), pull('2026-06-24')] };
+  const fPushHeavy = L.adaptiveCoachFocus(pushHeavy, today);
+  assert.equal(fPushHeavy.pushPullGuard.zone, 'push-heavy');
+  assert.equal(fPushHeavy.sportNeglectGuard, null, 'pushPullGuard prime → sportNeglectGuard muet');
 });
 
 test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de la concentration', () => {

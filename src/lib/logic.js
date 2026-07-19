@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.174', emoji: '🦵', text: 'Ton coach « Le focus du moment » repère désormais la ZONE musculaire que tu délaisses depuis un MOIS — l’angle du long terme, là où il ne voyait jusqu’ici que la fraîcheur du jour. Il te disait déjà quel groupe cibler AUJOURD’HUI (le plus reposé), mais jamais « ça fait quatre semaines que tu n’as pas touché tes jambes ». Or un groupe entier laissé de côté aussi longtemps — souvent le bas du corps quand on se concentre sur le haut — bride ta force globale (les jambes/fessiers sont ta plus grosse masse musculaire) et crée un point faible, invisible à la fraîcheur comme à l’équilibre course/muscu. Désormais, quand ta muscu du dernier mois laisse une zone à zéro (ou très loin derrière les autres), il te le dit : « Et sur le dernier mois, ta zone la plus délaissée, c’est les jambes : zéro série en quatre semaines. Un groupe musculaire entier laissé de côté aussi longtemps finit par brider ta force globale et creuser un point faible — ajoute les jambes à ton programme cette semaine. » Honnête : il exige un vrai volume mensuel pour parler (sinon c’est du bruit), se tait les jours où ta forme demande du repos, où ta charge est en pic ou si tu as déjà bougé, et laisse la priorité aux notes d’équilibre plus grosses (course/muscu, poussée/tirage) — une seule à la fois. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.173', emoji: '💪', text: 'Ton coach « Le focus du moment » surveille désormais ta balance POUSSÉE ↔ TIRAGE en muscu — un déséquilibre de STRUCTURE qu’il ne voyait pas. Il regardait déjà l’équilibre course ↔ muscu et le groupe le plus reposé, mais jamais le penchant classique du haut du corps : pousser (pecs, épaules) bien plus qu’on ne tire (dos). Chaque séance de poussée paraît saine isolément, mais cumulée sur des semaines elle enroule les épaules vers l’avant et met la coiffe des rotateurs en tension — terrain classique de douleur d’épaule. Désormais, quand ta muscu du dernier mois penche nettement d’un côté (avec un vrai volume), il te le dit : « Et regarde ta balance poussée/tirage sur 4 semaines : 30 séries de poussée (pecs, épaules) pour seulement 6 de tirage — pousser bien plus qu’on ne tire enroule les épaules vers l’avant et met la coiffe des rotateurs en tension. Ajoute du dos (tractions, rowing) à ta prochaine séance, tes épaules te remercieront. » (et le miroir, ou le cas d’un côté à zéro). Honnête : il se tait tant qu’il n’a pas assez de séries pour juger, les jours où ta forme demande du repos, où ta charge est en pic, ou si tu as déjà bougé — et il laisse la priorité au conseil « cale carrément une séance » quand un côté entier de ta semaine manque. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.172', emoji: '⚖️', text: 'Ton coach « Le focus du moment » regarde enfin l’ÉQUILIBRE entre ta course et ta muscu — un angle qu’il ignorait totalement (il ne lisait que la fréquence, ta forme du jour, ta charge et tes carburants, jamais la répartition entre les deux). Comme tu pratiques les deux, une semaine entièrement d’un seul côté est un vrai trou : tout-cardio et zéro renfo, tes gains de force fondent et les appuis que la course sollicite perdent le renfort qui les protège ; tout-muscu et zéro course, ta base aérobie s’érode. Désormais, quand ta semaine sport bascule à 100 % d’un côté (au moins 3 séances, et à condition que tu pratiques bien les deux d’habitude), il te le dit : « Et regarde l’équilibre de ta semaine : 4 sorties de course et zéro renfo, alors que tu pratiques les deux d’habitude — une semaine tout-cardio laisse filer tes gains de force et prive les appuis que la course sollicite du renfort qui les protège. Cale une séance de renfo pour rééquilibrer. » (et le miroir côté muscu). Honnête : il n’en parle que si tu es vraiment un athlète hybride (les deux modalités présentes sur le dernier mois), pas à un coureur pur ; et il se tait les jours où ta forme demande du repos, où ta charge est déjà en pic, ou si tu as déjà bougé aujourd’hui. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.171', emoji: '😌', text: 'Ton coach « Le focus du moment » ne te pousse plus vers un gros bloc de deep work les jours où ta tête est à plat mais où ton objectif focus est confortablement dans les temps. Jusqu’ici, quand tu avais de la MARGE sur ton objectif (« dans les temps, tu as la marge »), il ne regardait ta forme du matin QUE si elle était au vert (pour t’inviter à prendre de l’avance) — un matin où l’esprit était épuisé, il restait muet et t’invitait quand même à un bloc normal. Le garde-fou « cerveau à plat → focus léger » n’existait que les semaines SERRÉES. Désormais, si ton objectif est dans les temps ET qu’un check-in de récup du matin met ta forme à plat (readiness < 50), il te rassure : « Mais ton énergie mentale est basse ce matin (readiness 40/100) : justement, tu as de la marge sur l’objectif — aucune raison de forcer un gros bloc aujourd’hui. Un focus léger, ou même une vraie pause, suffit largement : ta marge encaisse ce jour au ralenti sans stress, et tu repartiras l’esprit bien plus tranchant. » C’est le cas où lever le pied coûte le moins : l’objectif est déjà à l’abri, un jour au ralenti se rattrape tout seul. Honnête : il n’en parle qu’avec un check-in du jour et une forme réellement basse. La note enrichit l’insight, ton action du jour reste intacte.' },
@@ -6603,6 +6604,52 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       }
     }
   }
+  // Coach de la ZONE CHRONIQUEMENT DÉLAISSÉE — l'angle du MOIS (28 j), là où sportZoneFocus ne voit que la
+  // fraîcheur du JOUR (7 j) et pushPullGuard que le haut du corps. sportZoneFocus désigne le groupe le plus
+  // REPOSÉ à cibler AUJOURD'HUI (repos + déficit hebdo) ; il ne dit jamais « ça fait un MOIS que tu n'as pas
+  // touché tes jambes ». Or un groupe entier laissé de côté quatre semaines — typiquement le bas du corps
+  // chez un pratiquant tourné haut du corps — est un vrai trou structurel : il bride la force globale (les
+  // jambes/fessiers sont la plus grosse masse musculaire) et crée un point faible, invisible à la fraîcheur
+  // (un groupe jamais servi paraît « bien reposé » sans jamais dire qu'il est SOUS-servi sur le mois) comme
+  // à la modalité (100 % muscu peut être « bien hybride » côté course et pourtant zéro jambe). neglectedZoneReport
+  // (28 j : séries par zone, flag `neglected` = 0 série OU < 40 % de la moyenne) existait — mais ne vivait
+  // QUE dans l'onglet Athlète (carte « bloc »), jamais dans le coach du jour. Le coach NOMME la zone la plus
+  // délaissée du mois et invite à la remettre au programme, note APPENDUE à l'insight. Additif pur :
+  // sportNeglectGuard ({ zone, sets, mean } ou null) TOUJOURS renvoyé ; action intacte. Mêmes garde-fous que
+  // sportZoneFocus (pilier sport, séance du jour pas faite, pas de ré-amorçage dormant, forme qui n'ordonne
+  // pas le repos, pas de pic de charge) — on ne réclame une zone en plus que quand une vraie séance est
+  // encouragée. SUBORDONNÉ à trainBalanceGuard ET pushPullGuard (n'entre que si les deux sont null) : une
+  // seule note d'équilibre à la fois, la plus grossière d'abord (modalité > poussée/tirage > zone délaissée) ;
+  // si le trou EST dans l'axe poussée/tirage (dos délaissé), pushPullGuard parle déjà, et cette note se
+  // réserve les zones que lui ne voit pas (jambes, fessiers, abdos…). EXIGE un vrai volume mensuel (≥ 20
+  // séries-zones sur 28 j) : sans lui, « ta zone délaissée » ne serait que du bruit sur un mois quasi vide (le
+  // ton rebuild/revive gère déjà « tu t'entraînes peu »). Vocabulaire distinct (« ta zone la plus délaissée »,
+  // « sur le dernier mois », « ajoute … à ton programme ») — zéro collision à l'œil ni en regex avec
+  // sportZoneFocus (« le plus reposé », « cible en priorité »), pushPullGuard (« balance poussée/tirage »,
+  // « coiffe des rotateurs ») ni trainBalanceGuard (« tout-cardio », « rééquilibrer »). Réemploi total
+  // (neglectedZoneReport, doneToday, reviveEligible, loadSpike, readiness) — zéro nouvelle fonction pure.
+  let sportNeglectGuard = null;
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+      && (readiness == null || readiness >= 50) && trainBalanceGuard == null && pushPullGuard == null
+      && typeof neglectedZoneReport === 'function') {
+    const nz = neglectedZoneReport(s.workouts, todayKey, 28);
+    if (nz && nz.neglected) {
+      const bs = nz.bySets || {};
+      const vals = ['abs', 'arms', 'chest', 'back', 'shoulders', 'legs', 'glutes'].map(z => Number(bs[z]) || 0);
+      const total = vals.reduce((a, b) => a + b, 0);
+      if (total >= 20) {
+        const mean = Math.round(total / vals.length);
+        const ZONE_FR = { abs: 'les abdos', arms: 'les bras', chest: 'les pectoraux', back: 'le dos', shoulders: 'les épaules', legs: 'les jambes', glutes: 'les fessiers' };
+        const zl = ZONE_FR[nz.zone] || nz.zone;
+        sportNeglectGuard = { zone: nz.zone, sets: nz.sets, mean };
+        if (nz.sets === 0) {
+          insight += ` Et sur le dernier mois, ta zone la plus délaissée, c’est ${zl} : zéro série en quatre semaines. Un groupe musculaire entier laissé de côté aussi longtemps finit par brider ta force globale et creuser un point faible — ajoute ${zl} à ton programme cette semaine.`;
+        } else {
+          insight += ` Et sur le dernier mois, ta zone la plus délaissée, c’est ${zl} : ${nz.sets} série${nz.sets > 1 ? 's' : ''} en quatre semaines, loin derrière tes autres groupes (~${mean} en moyenne) — ajoute ${zl} à ton programme cette semaine pour combler le retard.`;
+        }
+      }
+    }
+  }
   // Coach de la PROGRESSION DE FORCE — sportSlot dit QUAND, sportZoneFocus QUEL groupe, mais rien ne
   // regardait si la CHARGE progresse vraiment. Or l'app détecte déjà les plateaux : strengthPlateauAny
   // parcourt les exercices chargés les plus suivis, calcule leur 1RM estimé séance après séance, et
@@ -7188,7 +7235,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, trainBalanceGuard, pushPullGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, focusMarginDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, trainBalanceGuard, pushPullGuard, sportNeglectGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, focusMarginDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 
