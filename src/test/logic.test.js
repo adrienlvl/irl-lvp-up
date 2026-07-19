@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.145');
+  assert.equal(L.CHANGELOG[0].v, '2.0.146');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8831,6 +8831,53 @@ test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de
   const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery: shortSleep }, today);
   assert.equal(done.sleepFocusGuard, null);
   assert.doesNotMatch(done.insight, /alimente ta concentration/);
+});
+
+test('adaptiveCoachFocus : focus focus — coucher IRRÉGULIER (durée OK) émousse la concentration', () => {
+  const today = '2026-07-16';
+  // Focus en décrochage → focus = focus (ton rebuild), aucun bloc aujourd’hui (!doneToday).
+  const focusSessions = [
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-06', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-07', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 25, task: 'Thèse' },
+  ];
+  // Sommeil de DURÉE correcte (8 h → avg 8 ≥ 7 → sleepFocusGuard null, PAS court) mais COUCHER erratique :
+  // alternance 22:00 (ancre 600) / 03:00 (ancre 900) → écart-type 150 min ≥ 60 → irregular, tone 'attention'
+  // (durée correcte mais irrégulier), non urgent → sommeil pas forcé, focus reste le focus.
+  const irregBed = [];
+  const dd = ['03','04','05','06','07','08','09','10','11','12','13','14','15','16'];
+  dd.forEach((d, i) => irregBed.push({ date: `2026-07-${d}`, sleep: 8, bedtime: i % 2 ? '03:00' : '22:00' }));
+  const wobbly = L.adaptiveCoachFocus({ focusSessions, recovery: irregBed }, today);
+  assert.equal(wobbly.pillar, 'focus', 'durée correcte + coucher irrégulier (non urgent) → focus reste le focus');
+  assert.equal(wobbly.sleepFocusGuard, null, 'durée non courte → pas de note « sommeil court »');
+  assert.equal(wobbly.bedtimeFocusGuard, 150, 'écart-type des couchers renvoyé');
+  assert.match(wobbly.insight, /Ta durée de sommeil tient, mais tes couchers partent dans tous les sens \(±150 min d’un soir à l’autre\)/);
+  assert.match(wobbly.insight, /horloge stable.*désynchronise l’horloge interne qui cadence la vigilance/);
+  assert.match(wobbly.insight, /Se coucher à heure fixe compte ici autant que le nombre d’heures/);
+  // Les deux notes sommeil (durée vs timing) ne coexistent pas : ici seule celle du timing parle.
+  assert.doesNotMatch(wobbly.insight, /alimente ta concentration/);
+  // COUCHER RÉGULIER (tous à 23:00, durée OK) → écart-type 0 < 60 → champ null, note absente.
+  const steady = irregBed.map(r => ({ ...r, bedtime: '23:00' }));
+  const calm = L.adaptiveCoachFocus({ focusSessions, recovery: steady }, today);
+  assert.equal(calm.pillar, 'focus');
+  assert.equal(calm.bedtimeFocusGuard, null);
+  assert.doesNotMatch(calm.insight, /couchers partent dans tous les sens/);
+  // Sommeil COURT (6 h) ET coucher irrégulier → tone 'urgent' → pilier forcé sur SOMMEIL (la durée prime) :
+  // on n’entre pas dans la branche focus, bedtimeFocusGuard reste null — les deux notes ne se pilent jamais.
+  const shortIrreg = irregBed.map(r => ({ ...r, sleep: 6 }));
+  const urgent = L.adaptiveCoachFocus({ focusSessions, recovery: shortIrreg }, today);
+  assert.equal(urgent.pillar, 'sommeil');
+  assert.equal(urgent.bedtimeFocusGuard, null);
+  assert.equal(urgent.sleepFocusGuard, null);
+  // Moins de 3 couchers renseignés → écart-type indisponible → champ null.
+  const thinBed = L.adaptiveCoachFocus({ focusSessions, recovery: [
+    { date: '2026-07-15', sleep: 8, bedtime: '22:00' }, { date: '2026-07-16', sleep: 8, bedtime: '03:00' },
+  ] }, today);
+  assert.equal(thinBed.bedtimeFocusGuard, null);
+  assert.doesNotMatch(thinBed.insight, /couchers partent dans tous les sens/);
+  // Bloc DÉJÀ posé aujourd’hui (doneToday) → pas de note.
+  const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery: irregBed }, today);
+  assert.equal(done.bedtimeFocusGuard, null);
+  assert.doesNotMatch(done.insight, /couchers partent dans tous les sens/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

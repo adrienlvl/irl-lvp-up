@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.145 (2026-07-19)
+## 📍 État actuel — build 2.0.146 (2026-07-19)
+
+> ⏰ **2.0.146** — Coaching adaptatif poussé à fond (priorité de la nuit) : nouveau croisement
+> **régularité du coucher × FOCUS**, l'axe neuf pointé par #514 après la saturation du thème « sommeil
+> chronique DURÉE × pilier ». `sleepFocusGuard` (#514) ne lit que la **durée** (`avg < 7`) et reste
+> **aveugle au TIMING** : on peut dormir assez d'heures et se coucher à 22 h un soir, 3 h le lendemain —
+> durée correcte, rythme circadien en miettes (le cas d'Adrien). Nouveau champ **`bedtimeFocusGuard`**
+> (écart-type des couchers en min, ou `null`) : quand le pilier poussé est le **focus**, le bloc du jour
+> pas fait (`!doneToday`), la note durée n'a **pas** parlé (`sleepFocusGuard == null`) ET les couchers
+> récents sont dispersés (`sleepIns.bedtimeStdevMin ≥ 60`), une note s'append : « Ta durée de sommeil
+> tient, mais tes couchers partent dans tous les sens (±150 min d'un soir à l'autre) : le cerveau ne
+> tourne à plein régime cognitif que sur une horloge stable — un coucher erratique désynchronise
+> l'horloge interne qui cadence la vigilance, et l'attention comme le temps de réaction décrochent même
+> après une nuit assez longue. Se coucher à heure fixe compte ici autant que le nombre d'heures. »
+> **Mutuellement exclusif** avec la note durée (n'entre que si `sleepFocusGuard == null` ; et sommeil
+> court + irrégulier → tone 'urgent' → pilier sommeil forcé, hors branche focus) : les deux notes
+> sommeil ne se pilent jamais. `bedtimeStdevMin != null` garantit ≥ 3 couchers renseignés ; seuil 60 min
+> = celui d'`irregular`. Additif pur, réemploi total (`sleepIns`, `doneToday`, `sleepFocusGuard`), zéro
+> nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #515.
 
 > 🧠 **2.0.145** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant FOCUS** du
 > croisement inter-pilier sommeil chronique × pilier, **dernière des quatre faces** (après perte #511,
