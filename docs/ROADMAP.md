@@ -23,7 +23,15 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.179 (2026-07-19)
+## 📍 État actuel — build 2.0.180 (2026-07-19)
+
+> ⌨️ **2.0.180 — focus clavier des 3 overlays plein écran (P2.1, domaine `a11y` — rotation reprise).**
+> `#weekPage`/`#calendarPage`/`#ultraPage` recouvrent `<main>` mais étaient ouvertes par un simple
+> `.hidden=false` (6 emplacements) : le focus restait **dans le dashboard caché derrière**, on tabulait
+> à l'aveugle, et la fermeture ne rendait pas le focus au bouton. Nouveaux `openOverlay`/`closeOverlay`
+> (focus entrant, `inert`+`aria-hidden` sur `<main>`, focus restitué ; déclencheur d'origine préservé
+> à travers les transitions). Piste **vérifiée exacte** avant codage. Check smoke **bloquant**
+> `overlayFocus` + parcours clavier validé en navigateur. Recap #549. _Domaine : a11y._
 
 > 🎯 **2.0.179 — la carte du coach redevient brève, sans jamais cacher une alerte.** La curation
 > gardait « 2 phrases » quelle que soit leur longueur → **25 % des cartes dépassaient 300 c** (jusqu'à
@@ -131,7 +139,7 @@ Elles viennent d'une lecture réelle du code mais **doivent être reconfirmées*
 implémentation — exactement ce qu'exige VPS-AUTOPILOT §2.3. Si une piste s'avère fausse : **le dire**
 dans le recap et passer à la suivante.
 
-- [ ] **P2.1 — Focus des 3 overlays plein écran** _(la plus utile)_ — `#weekPage` / `#calendarPage` /
+- [x] **P2.1 — Focus des 3 overlays plein écran** ✅ _fait #549 (2.0.180) — piste VÉRIFIÉE exacte_ — `#weekPage` / `#calendarPage` /
       `#ultraPage` sont des `<section>` `position:fixed;inset:0` ouvertes par un simple
       `.hidden=false` (`app.js:852-853, 864-865`) : **aucun** déplacement de focus à l'ouverture,
       **aucune** restitution au déclencheur à la fermeture, `<main>` jamais `inert`. Au clavier on

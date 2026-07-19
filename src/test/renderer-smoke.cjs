@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.179'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.180'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1358,6 +1358,29 @@ app.whenReady().then(async () => {
           if (!/kilométrage/.test(u.primary)) return false;
           return true;
         })(),
+        // A11Y des overlays plein écran (#549) : ouverture = focus DANS l'overlay + <main> neutralisé ;
+        // fermeture = focus RESTITUÉ au déclencheur. Les <section> fixed ne le font pas gratuitement,
+        // contrairement aux <dialog> showModal().
+        overlayFocus: typeof openOverlay === 'function' && typeof closeOverlay === 'function' && (() => {
+          const main = document.querySelector('main.app-shell');
+          const opener = document.getElementById('openWeekPage'), wp = document.getElementById('weekPage');
+          if (!main || !opener || !wp) return false;
+          opener.focus();
+          openOverlay(wp, opener);
+          if (wp.hidden) return false;
+          if (!wp.contains(document.activeElement)) return false;          // focus entré dans l'overlay
+          if (!main.hasAttribute('inert')) return false;                   // dashboard neutralisé
+          // TRANSITION semaine → mois : le déclencheur d'ORIGINE doit être conservé.
+          const cp = document.getElementById('calendarPage');
+          if (cp) {
+            wp.hidden = true; openOverlay(cp);
+            if (!main.hasAttribute('inert')) return false;                 // toujours neutralisé
+            closeOverlay(cp);
+          } else { closeOverlay(wp); }
+          if (main.hasAttribute('inert')) return false;                    // rendu au dashboard
+          if (document.activeElement !== opener) return false;             // focus restitué au bouton
+          return true;
+        })(),
         sheetSync: typeof normalizeSheetCsvUrl === 'function' && typeof mergeApplications === 'function' && typeof renderSheetSync === 'function' && typeof syncSheets === 'function' && typeof setupSheetSync === 'function' && !!document.getElementById('altSheetForm') && !!document.getElementById('altSheetUrl') && !!document.getElementById('altSheetList') && !!document.getElementById('altSheetSync') && !!document.getElementById('altSheetStatus') && (() => {
           if (!normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/e/x/pub?output=csv')) return false;
           if (normalizeSheetCsvUrl('https://evil.com/spreadsheets/d/x/pub?output=csv') !== '') return false;
@@ -1655,6 +1678,7 @@ app.whenReady().then(async () => {
     if (!checks.questStreak) errors.push('Série quêtes parfaites KO (questPerfectStreak : perfectDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
+    if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
     if (!checks.altHideRejected) errors.push('Masquage des refusées KO (altRejectedToggle/hideRejected/rendu liste)');
