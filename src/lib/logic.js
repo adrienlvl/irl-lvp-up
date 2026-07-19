@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.122', emoji: '🎯', text: 'Ton coach « Le focus du moment » ne se contente plus d’afficher ton objectif de séances de la semaine — il te dit s’il est ENCORE JOUABLE et quoi faire pour le tenir. Un « 2/4 séances » ne veut pas dire la même chose un mardi (large) ou un samedi (mort) : le coach calcule maintenant les séances qu’il te reste à caser face aux jours restants avant dimanche, et adapte le message. De la marge : « Dans les temps : 2 séances en 5 jours restants — tu as la marge pour boucler l’objectif hebdo. » Serré : « Serré mais jouable : 3 séances pour 3 jours restants — il en faut une chaque jour pour tenir l’objectif. » Hors de portée : « L’objectif de 4 ne passera plus cette semaine (3 séances pour 2 jours restants) — engrange ce que tu peux, tu repars plein lundi. » Un objectif chiffré selon le temps qui reste guide mieux qu’un compteur figé — sans jamais culpabiliser quand la semaine est trop courte. Rien ne change si tu n’as pas fixé d’objectif de séances ou s’il est déjà tenu.' },
   { v: '2.0.121', emoji: '🌱', text: 'Ton coach « Le focus du moment » salue maintenant ta REPRISE dès ses premiers pas. Il brandissait déjà une série en jeu à partir de 3 jours d’affilée — mais la marche la plus fragile d’un retour, celle des 2 premiers jours après une rupture, ne recevait rien. Désormais, quand une série repart (2 ou 3 jours d’affilée) alors que tu as déjà tenu bien plus long par le passé (au moins une semaine), il nomme la reconstruction et te redonne un cap : « 🌱 Tu reconstruis : 2 jours d’affilée sur ton entraînement, tu retrouves le chemin de ta meilleure série (record perso : 12 jours). Le plus dur — repartir — est derrière toi, une marche à la fois. » Repartir après une chute demande plus de cran que tenir : c’est le moment où l’encouragement compte le plus. Il n’en parle que si tu avais vraiment bâti quelque chose à retrouver.' },
   { v: '2.0.120', emoji: '⚖️', text: 'Quand ton coach « Le focus du moment » pousse ta NUTRITION, il relie enfin ta discipline du jour à ton RÉSULTAT CORPOREL réel. Jusqu’ici il parlait cible protéines, collation, série — mais restait aveugle à ton objectif de poids et à sa progression, le « pourquoi » de tout l’effort. Désormais, si tu as fixé un poids cible et que tes pesées le permettent, il cite l’avancement réel : bien avancé, il te crédite (« Et ça paie : 62% de ton objectif de perte atteint (3,7 kg sur 6) — ta nutrition en est le moteur ») ; en chemin, il t’encourage (« Ton objectif de perte avance (28%…) — chaque jour réglé sur ta cible rapproche le résultat ») ; pas encore de résultat, il recadre sans culpabiliser et t’invite à te peser (« Ta cible de perte (6 kg) attend encore un premier résultat — ces jours de nutrition régulière sont exactement ce qui la débloque »). Un « pourquoi » chiffré et personnel motive plus qu’un compteur isolé. Sans objectif de poids ou sans pesée exploitable, rien ne change.' },
   { v: '2.0.119', emoji: '🏆', text: 'Ton coach « Le focus du moment » brandit maintenant ton RECORD PERSO quand ta série en jeu s’en approche. Il nommait déjà la série que tu risques de perdre et le palier fixe à décrocher, mais restait aveugle à ta plus longue série jamais tenue sur un pilier — le levier le plus intime. Désormais, quand cette série en jeu touche ton record (au moins une semaine d’affilée dans ton histoire), il le rappelle : si ton run actuel EST déjà ton record, « 🏆 Et là tu bats ton record perso sur ton entraînement : jamais tu n’avais tenu autant de jours d’affilée » ; s’il approche un record passé (à trois jours près), « Ton record perso ici est de 10 jours d’affilée — encore 2 jours pour l’égaler. » Battre sa propre meilleure série fait agir plus fort qu’un jalon générique. Il n’en parle que d’un record notable, et jamais le même jour qu’un palier (une seule carotte à la fois).' },
@@ -5052,6 +5053,18 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Objectifs PERSO : quand le pilier choisi a un objectif hebdo défini, le coach parle en fonction
   // de LUI (« 1/4 séances sur ton objectif ») — plus crédible qu'un compteur générique. Semaine
   // CALENDAIRE (lundi → aujourd'hui), distincte de la fenêtre glissante 7 j de la dynamique.
+  // Coach de l'ALLURE hebdo — le compteur d'objectif « 2/4 séances » disait OÙ Adrien en est, jamais
+  // s'il est ENCORE JOUABLE ni quoi faire pour tenir. Un objectif hebdo est un quota à date butoir
+  // (dimanche) : deux personnes à « 2/4 » ne sont pas dans la même situation selon qu'on est mardi
+  // (large) ou samedi (mort). On calcule donc la FAISABILITÉ réelle — séances restantes à faire vs
+  // JOURS restants dans la semaine calendaire où en caser une (une séance = une DATE active, comme wc)
+  // — et on donne la conduite du jour, « adaptation aux progrès ET aux écarts » : marge, serré (il en
+  // faut une chaque jour), ou hors de portée (on recadre sans culpabiliser, cap remis à lundi). Les
+  // jours restants EXCLUENT aujourd'hui si la séance du jour est déjà posée (elle ne libère plus de
+  // date). Champ sessionGoalPace ('onpace' | 'tight' | 'unreachable' | null) TOUJOURS renvoyé ; note
+  // APPENDUE au compteur, aucune autre branche touchée. Ne parle que quand un objectif existe et n'est
+  // pas encore tenu (wc < g) : objectif atteint → le « déjà tenu 💪 » historique suffit.
+  let sessionGoalPace = null;
   {
     const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
     const monday = dateKey(mondayOf(new Date(+tm[1], +tm[2] - 1, +tm[3])));
@@ -5061,7 +5074,29 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         const wc = new Set((Array.isArray(s.workouts) ? s.workouts : [])
           .filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')) && w.date >= monday && w.date <= todayKey)
           .map(w => w.date)).size;
-        insight += wc >= g ? ` Objectif hebdo déjà tenu : ${wc}/${g} séance${g > 1 ? 's' : ''} 💪` : ` Objectif hebdo : ${wc}/${g} séance${g > 1 ? 's' : ''}.`;
+        if (wc >= g) {
+          insight += ` Objectif hebdo déjà tenu : ${wc}/${g} séance${g > 1 ? 's' : ''} 💪`;
+        } else {
+          insight += ` Objectif hebdo : ${wc}/${g} séance${g > 1 ? 's' : ''}.`;
+          const daysSinceMonday = Math.round((t0 - new Date(monday + 'T12:00:00').getTime()) / dayMs);
+          const daysLeftIncl = 7 - daysSinceMonday; // aujourd'hui compris (1 le dimanche … 7 le lundi)
+          const sportDoneToday = (Array.isArray(s.workouts) ? s.workouts : []).some(w => w && w.date === todayKey);
+          const remain = daysLeftIncl - (sportDoneToday ? 1 : 0); // dates FUTURES encore utiles
+          const need = g - wc;
+          const sN = need > 1 ? 's' : '', sD = remain > 1 ? 's' : '';
+          if (need > remain) {
+            sessionGoalPace = 'unreachable';
+            insight += remain <= 0
+              ? ` La semaine se termine à ${wc}/${g} — pas un échec, un objectif à viser plein dès lundi.`
+              : ` L’objectif de ${g} ne passera plus cette semaine (${need} séance${sN} pour ${remain} jour${sD} restant${sD}) — engrange ce que tu peux, tu repars plein lundi.`;
+          } else if (need === remain) {
+            sessionGoalPace = 'tight';
+            insight += ` Serré mais jouable : ${need} séance${sN} pour ${remain} jour${sD} restant${sD} — il en faut une chaque jour pour tenir l’objectif.`;
+          } else {
+            sessionGoalPace = 'onpace';
+            insight += ` Dans les temps : ${need} séance${sN} en ${remain} jour${sD} restant${sD} — tu as la marge pour boucler l’objectif hebdo.`;
+          }
+        }
       }
     } else if (chosen.pillar === 'focus' && typeof focusWeekGoal === 'function') {
       const fw = focusWeekGoal(s.focusSessions, todayKey);
@@ -5739,7 +5774,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, sessionGoalPace,
   };
 }
 

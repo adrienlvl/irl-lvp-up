@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.121');
+  assert.equal(L.CHANGELOG[0].v, '2.0.122');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7679,6 +7679,38 @@ test('adaptiveCoachFocus : parle en fonction des objectifs perso (hebdo calendai
   const f2 = L.adaptiveCoachFocus(focus, today);
   assert.equal(f2.pillar, 'focus');
   assert.match(f2.insight, /Objectif hebdo : 25\/120 min de focus\./);
+});
+
+test('adaptiveCoachFocus : allure de l’objectif de séances hebdo (faisabilité vs jours restants)', () => {
+  // Semaine calendaire : lundi 2026-07-13 → dimanche 2026-07-19. Objectif 4 séances, 1 faite (lundi).
+  const g = { goals: { sessions: 4 } };
+  // Mardi : 3 séances à caser sur 6 jours restants → DANS LES TEMPS.
+  const onpace = L.adaptiveCoachFocus({ ...g, workouts: [{ date: '2026-07-13' }] }, '2026-07-14');
+  assert.equal(onpace.pillar, 'sport');
+  assert.equal(onpace.sessionGoalPace, 'onpace');
+  assert.match(onpace.insight, /Dans les temps : 3 séances en 6 jours restants/);
+  // Vendredi : 3 séances pour 3 jours restants → SERRÉ (une chaque jour).
+  const tight = L.adaptiveCoachFocus({ ...g, workouts: [{ date: '2026-07-13' }] }, '2026-07-17');
+  assert.equal(tight.sessionGoalPace, 'tight');
+  assert.match(tight.insight, /Serré mais jouable : 3 séances pour 3 jours restants/);
+  // Samedi : 3 séances pour 2 jours restants → HORS DE PORTÉE (recadrage doux).
+  const unreach = L.adaptiveCoachFocus({ ...g, workouts: [{ date: '2026-07-13' }] }, '2026-07-18');
+  assert.equal(unreach.sessionGoalPace, 'unreachable');
+  assert.match(unreach.insight, /ne passera plus cette semaine \(3 séances pour 2 jours restants\)/);
+  // Dimanche, séance du jour déjà faite → 0 jour restant utile, la semaine se termine.
+  const closed = L.adaptiveCoachFocus({ ...g, workouts: [{ date: '2026-07-19' }] }, '2026-07-19');
+  assert.equal(closed.sessionGoalPace, 'unreachable');
+  assert.match(closed.insight, /La semaine se termine à 1\/4/);
+  // Objectif déjà tenu (4 dates distinctes) → pas d'allure, le « déjà tenu » suffit.
+  const done = L.adaptiveCoachFocus({ ...g, workouts: [
+    { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' }, { date: '2026-07-16' },
+  ] }, '2026-07-17');
+  assert.equal(done.sessionGoalPace, null);
+  assert.match(done.insight, /Objectif hebdo déjà tenu : 4\/4 séances 💪/);
+  // Sans objectif défini → champ null, aucune note d'allure.
+  const noGoal = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }] }, '2026-07-14');
+  assert.equal(noGoal.sessionGoalPace, null);
+  assert.ok(!/Dans les temps|Serré|ne passera plus/.test(noGoal.insight));
 });
 
 test('adaptiveCoachFocus : focus nutrition enrichi (cible protéines réelle + collation concrète)', () => {

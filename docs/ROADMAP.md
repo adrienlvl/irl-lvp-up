@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.121 (2026-07-19)
+## 📍 État actuel — build 2.0.122 (2026-07-19)
+
+> 🎯 **2.0.122** — Coaching adaptatif poussé à fond (priorité de la nuit) : quand « Le focus du
+> moment » pousse le **SPORT** avec un objectif hebdo de séances (`goals.sessions`), il ne se
+> contente plus d'un compteur figé (« 2/4 séances ») — il juge l'**ALLURE**. Un objectif hebdo est un
+> quota à date butoir (dimanche) : « 2/4 » un mardi (large) n'est pas « 2/4 » un samedi (mort). Le
+> coach calcule désormais la **faisabilité** — séances restantes (`need`) vs **jours restants** de la
+> semaine calendaire où en caser une (`remain`, aujourd'hui exclu si la séance du jour est déjà
+> faite) — et adapte en trois registres (champ **`sessionGoalPace`**) : **`onpace`** (marge : « Dans
+> les temps : 3 séances en 6 jours restants — tu as la marge ») · **`tight`** (`need === remain` :
+> « Serré mais jouable : 3 séances pour 3 jours restants — il en faut une chaque jour ») ·
+> **`unreachable`** (`need > remain` : « L'objectif de 4 ne passera plus cette semaine (3 séances
+> pour 2 jours restants) — engrange ce que tu peux, tu repars plein lundi »). Un objectif chiffré
+> selon le temps qui reste guide mieux qu'un compteur figé, sans culpabiliser quand la semaine est
+> trop courte. Points de conception : **un jour restant = une date active** (cohérent avec `wc`) ;
+> **additif pur** — `sessionGoalPace` (`onpace`/`tight`/`unreachable`/`null`) TOUJOURS renvoyé, note
+> appendue au compteur ; muet sans objectif ou objectif déjà tenu. `adaptiveCoachFocus` pur + testé,
+> check smoke bloquant `coachFocus` étendu. Recap #491.
 
 > 🌱 **2.0.121** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » salue enfin le **micro-jalon de reprise** — la marche la plus fragile d'un retour. Il

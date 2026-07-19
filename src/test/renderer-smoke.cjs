@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.121'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.122'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -833,6 +833,12 @@ app.whenReady().then(async () => {
           if (adaptiveCoachFocus({ recovery: sleepRec, workouts: scWk, agenda: [{ id: 'z', title: 'Dîner', date: '2026-07-16', time: scStart, durationMin: 60 }] }, '2026-07-16').sleepConflict !== null) return false;
           if (!adaptiveCoachFocus({ recovery: [{ date: '2026-07-04', sleep: 7 }, { date: '2026-07-05', sleep: 7 }, { date: '2026-07-06', sleep: 7 }, { date: '2026-07-14', sleep: 7 }], workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-15' }], coachLog: [{ date: '2026-07-13', pillar: 'sommeil' }, { date: '2026-07-14', pillar: 'sommeil' }, { date: '2026-07-15', pillar: 'sommeil' }] }, '2026-07-16').rotated) return false;
           if (!/Objectif hebdo : 1\\/4/.test(adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }], goals: { sessions: 4 } }, '2026-07-16').insight)) return false;
+          // ALLURE de l'objectif hebdo : faisabilité (séances restantes vs jours restants de la semaine calendaire).
+          const fPaceTight = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }], goals: { sessions: 4 } }, '2026-07-17'); // vendredi : 3 pour 3 j → serré
+          if (!(fPaceTight.sessionGoalPace === 'tight' && /Serré mais jouable : 3 séances pour 3 jours restants/.test(fPaceTight.insight))) return false;
+          const fPaceOut = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }], goals: { sessions: 4 } }, '2026-07-18'); // samedi : 3 pour 2 j → hors de portée
+          if (!(fPaceOut.sessionGoalPace === 'unreachable' && /ne passera plus cette semaine/.test(fPaceOut.insight))) return false;
+          if (adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }] }, '2026-07-17').sessionGoalPace !== null) return false; // sans objectif → pas d'allure
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;
