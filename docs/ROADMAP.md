@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.133 (2026-07-19)
+## 📍 État actuel — build 2.0.134 (2026-07-19)
+
+> 🧠 **2.0.134** — Coaching adaptatif poussé à fond (priorité de la nuit) : on **VARIE le domaine**
+> après cinq boucles nutrition (#498→#502) → le **FOCUS**. Le coach « Le focus du moment » donne
+> maintenant l'**ALLURE de ton objectif de focus hebdo** — le pendant, côté FOCUS, de `sessionGoalPace`
+> (sport). L'objectif de minutes n'affichait qu'un **compteur figé** (« 25/120 min ») sans dire s'il
+> était **encore jouable** ni **combien viser par jour**. Nouveau champ **`focusGoalPace`**
+> (`'onpace' | 'tight' | null`), calculé dans le même bloc que `sessionGoalPace` : quand le pilier poussé
+> est le focus et l'objectif pas atteint, on lit les minutes restantes (`focusWeekGoal.remaining`) et les
+> **jours restants** (aujourd'hui compris, car les minutes s'accumulent) puis on donne la conduite —
+> **dans les temps** (`perDay ≤ 60` : « ~15 min/jour sur les 6 jours restants et l'objectif tombe — tu as
+> la marge ») ou **serré** (`perDay > 60` : « Serré : 90 min restantes pour 1 jour — cale un vrai bloc
+> d'~90 min chaque jour pour tenir »). **Deux registres HONNÊTES seulement** : contrairement aux séances
+> (une par DATE distincte → « hors de portée » possible), les minutes de focus n'ont **aucun cas
+> structurellement impossible** → pas de faux « unreachable ». Réemploi `focusWeekGoal` + `monday`/`t0`
+> du bloc voisin, zéro duplication. Additif pur (note appendue, action intacte). Objectif atteint → le
+> « atteint 💪 » suffit, champ null. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu.
+> Recap #503.
 
 > 💧 **2.0.133** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » donne au **DERNIER intrant nutrition encore ponctuel — l'HYDRATATION — sa conscience de
