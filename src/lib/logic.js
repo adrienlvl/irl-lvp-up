@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.161', emoji: '🏆', text: 'Ton coach « Le focus du moment » fête maintenant aussi tes records au POIDS DU CORPS. Il savait déjà célébrer un record de charge (un nouveau meilleur 1RM), mais il ignorait complètement tes progrès en calisthénie : gagner des répétitions sur tes tractions, pompes ou dips ne déclenchait rien, alors que sur ces exercices les reps SONT ta progression. Désormais, quand ta séance du jour bat ton record de répétitions sur un exercice sans charge que tu pratiques déjà, il le nomme et le célèbre : « 🏆 Et quelle séance : tu viens de battre ton record de répétitions sur le Tractions — 13 reps au poids du corps (ton meilleur passé : 10), du jamais-vu chez toi. La force au poids du corps se construit rep après rep — chapeau. » Honnête : il ne parle que d’un record vraiment battu aujourd’hui (égaler ne compte pas), sur un exercice sans aucune charge déjà à ton historique — et jamais en même temps qu’un record de charge (celui-ci passe d’abord). La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.160', emoji: '🏆', text: 'Ton coach « Le focus du moment » fête enfin tes records. Il savait déjà projeter ta force qui monte, mais quand tu battais un record personnel dans la journée, il ne servait qu’un « séance déjà faite » générique — passer à côté du moment le plus fort. Désormais, quand ta séance du jour établit un nouveau record sur un exercice que tu pratiques déjà (un vrai record qui bat ta meilleure perf passée, pas un « record » de première fois), il le nomme et le célèbre : « 🏆 Et pas n’importe quelle séance : tu viens de battre ton record sur le Squat — 110 kg × 5 (1RM estimé à 128,5 kg), ta meilleure perf à ce jour. Ça, c’est gravé — savoure. » Ce palmarès vivait jusqu’ici seulement dans ton onglet Athlète — le voilà dans le coach du jour, pour transformer « séance faite » en victoire concrète. Honnête : il ne parle que d’un record vraiment battu aujourd’hui, sur un exercice chargé déjà à ton palmarès. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.159', emoji: '📏', text: 'Ton coach « Le focus du moment » ne se laisse plus tromper par la balance. Quand ton poids stagne sur un objectif de perte, il te conseillait de resserrer les calories — juste, sauf quand ta balance CACHE une vraie recomposition. Désormais, si ton tour de taille a fondu pendant que le poids ne bougeait plus, il le voit et te recadre : « Mais avant de resserrer : ton tour de taille a fondu de 3 cm sur les 65 derniers jours pendant que la balance stagnait — c’est de la recomposition (tu perds du gras en gardant le muscle), un progrès réel que le poids seul cache. La balance ne dit pas tout : tiens tes calories et tes protéines encore une semaine avant de couper, le résultat est déjà en cours. » Il t’évite ainsi de couper tes calories pour rien — et de saper ton muscle — alors que tu progresses déjà. Honnête : il ne parle que si tu as noté tes mensurations et que ta taille a vraiment baissé (≥ 1 cm). La note enrichit l’insight, sans effacer le repère de la balance.' },
   { v: '2.0.158', emoji: '🚀', text: 'Ton coach « Le focus du moment » ne sait plus seulement te dire quand ta force STAGNE — il te salue et te projette quand elle MONTE. C’est le pendant positif du plateau : quand un de tes exercices chargés (les mieux suivis) grimpe vraiment, il nomme le lift, son 1RM estimé, ta pente hebdo et surtout ton prochain cap : « Sur ta lancée : ton Squat gagne du terrain — 1RM estimé à 97,5 kg (+2,5 kg/sem). À ce rythme, tu passes la barre des 100 kg dans ~1 semaine — garde ce cap de surcharge progressive. » Cette projection vivait jusqu’ici seulement dans ton onglet Athlète — la voilà dans le coach du jour, pour transformer un chiffre en objectif motivant. Honnête : il ne parle que sur des exercices chargés avec une vraie pente positive, et jamais en même temps qu’une alerte de plateau (on ne te dit pas « ça stagne » et « ça grimpe » d’un même souffle — la correction du plateau passe d’abord). Ton action du jour reste intacte : la note enrichit l’insight, elle ne le remplace pas.' },
@@ -6339,6 +6340,45 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       insight += ` 🏆 Et pas n’importe quelle séance : tu viens de battre ton record sur le ${top.name} — ${ld} kg × ${top.reps} (1RM estimé à ${e1} kg), ta meilleure perf à ce jour. Ça, c’est gravé — savoure.`;
     }
   }
+  // Coach du RECORD DE RÉPÉTITIONS — le COMPLÉMENT HONNÊTE de sportRecordToday (#529). Ce dernier ne fête
+  // qu'un record de CHARGE (1RM estimé via strengthRecords), et IGNORE délibérément le poids du corps
+  // (estimate1RM(0, r) → null) : un progrès en calisthénie (tractions 8→12, pompes, dips) restait donc
+  // TOTALEMENT invisible au coach, alors que sur ces exercices les répétitions SONT l'axe de progression.
+  // Or personalRecords suit déjà, par exercice, le meilleur (charge, reps, date) — et pour un exercice
+  // purement au poids du corps la charge reste 0, donc sa date reflète le dernier RECORD DE REPS. Un
+  // record de reps du jour = un exercice sans charge dont le meilleur nombre de reps de TOUTE son
+  // histoire est battu aujourd'hui. Quand la séance du jour établit ça sur un exercice DÉJÀ documenté
+  // avant (un vrai PR de reps, pas un « record » trivial de première fois), le coach le NOMME et le FÊTE —
+  // la reconnaissance du progrès au poids du corps que sportRecordToday laissait de côté. HONNÊTE :
+  // poids du corps STRICT (rAll.load === 0 : jamais aucune charge sur cet exercice, sinon c'est le
+  // domaine de sportRecordToday), reps STRICTEMENT battues (rAll.reps > rPast.reps ; égaler ne compte
+  // pas), exercice au palmarès AVANT ce jour (rPast présent). EXCLUSION MUTUELLE avec sportRecordToday :
+  // muet si un record de CHARGE parle déjà (une seule célébration/jour, la charge prime — cohérent avec
+  // la priorité aux paliers chargés). Additif pur : champ sportRepRecordToday ({ exercise, reps, prev } ou
+  // null) TOUJOURS renvoyé ; note APPENDUE à l'insight. Réemploi total (personalRecords) — zéro nouvelle
+  // fonction. Vocabulaire distinct (« record de répétitions », « au poids du corps », « rep après rep »,
+  // « chapeau ») — zéro collision regex avec sportRecordToday (« 1RM estimé », « c'est gravé »),
+  // sportProgress (« gagne du terrain »), sportPlateau (« marque le pas ») ni les autres notes sport.
+  let sportRepRecordToday = null;
+  if (chosen.pillar === 'sport' && doneToday && sportRecordToday == null && typeof personalRecords === 'function') {
+    const past = (Array.isArray(s.workouts) ? s.workouts : []).filter(w => w && String(w.date || '') < todayKey);
+    const prPast = personalRecords(past);
+    const prAll = personalRecords(s.workouts);
+    const cands = [];
+    for (const name of Object.keys(prAll)) {
+      const rAll = prAll[name], rPast = prPast[name];
+      // Poids du corps strict (aucune charge jamais), record de reps posé aujourd'hui, exercice
+      // documenté avant, reps strictement battues.
+      if (rAll && rAll.load === 0 && rAll.date === todayKey && rAll.reps > 0 && rPast && rAll.reps > rPast.reps) {
+        cands.push({ name, reps: rAll.reps, prev: rPast.reps });
+      }
+    }
+    if (cands.length) {
+      const top = cands.reduce((a, b) => (b.reps > a.reps ? b : a)); // le plus haut nombre de reps battu ce jour
+      sportRepRecordToday = { exercise: top.name, reps: top.reps, prev: top.prev };
+      insight += ` 🏆 Et quelle séance : tu viens de battre ton record de répétitions sur le ${top.name} — ${top.reps} reps au poids du corps (ton meilleur passé : ${top.prev}), du jamais-vu chez toi. La force au poids du corps se construit rep après rep — chapeau.`;
+    }
+  }
   // Coach MÉTA-CONSCIENT du suivi : si ce MÊME pilier a déjà été poussé plusieurs fois récemment
   // (s.coachLog) SANS que rien ne bouge — conseil IGNORÉ, pas juste répété —, hausser le ton ne sert
   // à rien. Le coach change de registre : il propose une MICRO-marche (5-10 min) en le reconnaissant
@@ -6798,7 +6838,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

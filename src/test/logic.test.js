@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.160');
+  assert.equal(L.CHANGELOG[0].v, '2.0.161');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9611,6 +9611,51 @@ test('adaptiveCoachFocus : fête un RECORD personnel battu aujourd’hui (sportR
   assert.equal(L.adaptiveCoachFocus({ workouts: bw }, today).sportRecordToday, null, 'poids du corps → pas de record de charge');
   // Autre pilier (focus) → sportRecordToday toujours null.
   assert.equal(L.adaptiveCoachFocus({ focusSessions: [{ date: today, minutes: 30 }] }, today).sportRecordToday, null, 'record de force = pilier sport uniquement');
+});
+
+test('adaptiveCoachFocus : fête un RECORD DE RÉPÉTITIONS au poids du corps (sportRepRecordToday)', () => {
+  const today = '2026-07-16';
+  const bw = (date, reps) => ({ date, exercises: [{ name: 'Tractions', setLogs: [{ completed: true, load: 0, reps }] }] });
+  // Tractions au poids du corps depuis des jours (meilleur passé = 10 reps) puis, AUJOURD'HUI, 13 reps
+  // → un vrai PR de reps battu ce jour sur un exercice déjà documenté, mais AUCUNE charge (sportRecordToday
+  // resterait muet, cf. son test « poids du corps → pas de record de charge »).
+  const wk = [bw('2026-07-08', 8), bw('2026-07-11', 9), bw('2026-07-14', 10), bw(today, 13)];
+  const f = L.adaptiveCoachFocus({ workouts: wk }, today);
+  assert.equal(f.pillar, 'sport');
+  assert.equal(f.doneToday, true, 'séance du jour posée');
+  assert.equal(f.sportRecordToday, null, 'aucune charge → sportRecordToday reste muet');
+  assert.ok(f.sportRepRecordToday && f.sportRepRecordToday.exercise === 'Tractions', 'record de reps détecté sur les Tractions');
+  assert.equal(f.sportRepRecordToday.reps, 13, 'reps du record du jour');
+  assert.equal(f.sportRepRecordToday.prev, 10, 'meilleur passé rappelé');
+  assert.match(f.insight, /tu viens de battre ton record de répétitions sur le Tractions/, 'le record de reps est nommé');
+  assert.match(f.insight, /13 reps au poids du corps \(ton meilleur passé : 10\)/, 'reps du jour et passé chiffrés');
+  // Séance du jour SANS PR de reps (égaler le meilleur passé ne compte pas) → muet.
+  const fTie = L.adaptiveCoachFocus({ workouts: [bw('2026-07-08', 8), bw('2026-07-11', 9), bw('2026-07-14', 12), bw(today, 12)] }, today);
+  assert.equal(fTie.doneToday, true);
+  assert.equal(fTie.sportRepRecordToday, null, 'égaler le meilleur passé → pas un record');
+  assert.ok(!/record de répétitions/.test(fTie.insight), 'aucune note de reps sans PR strict');
+  // « Record » TRIVIAL de première fois : exercice au poids du corps jamais pratiqué avant → ignoré.
+  const fFirst = L.adaptiveCoachFocus({ workouts: [bw('2026-07-08', 8), bw('2026-07-11', 9), bw('2026-07-14', 10), { date: today, exercises: [{ name: 'Dips', setLogs: [{ completed: true, load: 0, reps: 15 }] }] }] }, today);
+  assert.equal(fFirst.doneToday, true);
+  assert.equal(fFirst.sportRepRecordToday, null, 'premier passage sur un exercice → pas un record à fêter');
+  // Exercice AVEC charge (domaine de sportRecordToday) → jamais un record de REPS, même si les reps montent.
+  const loaded = (date, load, reps) => ({ date, exercises: [{ name: 'Développé', setLogs: [{ completed: true, load, reps }] }] });
+  const fLoaded = L.adaptiveCoachFocus({ workouts: [loaded('2026-07-08', 60, 5), loaded('2026-07-11', 60, 6), loaded('2026-07-14', 60, 8), loaded(today, 60, 10)] }, today);
+  assert.equal(fLoaded.sportRepRecordToday, null, 'exercice chargé → hors du domaine des records de reps au poids du corps');
+  // EXCLUSION MUTUELLE : un record de CHARGE le même jour prime → pas de note de reps en plus.
+  const fBoth = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-08', exercises: [{ name: 'Squat', setLogs: [{ completed: true, load: 100, reps: 5 }] }, { name: 'Tractions', setLogs: [{ completed: true, load: 0, reps: 10 }] }] },
+    { date: '2026-07-14', exercises: [{ name: 'Squat', setLogs: [{ completed: true, load: 104, reps: 5 }] }, { name: 'Tractions', setLogs: [{ completed: true, load: 0, reps: 10 }] }] },
+    { date: today, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load: 110, reps: 5 }] }, { name: 'Tractions', setLogs: [{ completed: true, load: 0, reps: 13 }] }] },
+  ] }, today);
+  assert.ok(fBoth.sportRecordToday && fBoth.sportRecordToday.exercise === 'Squat', 'le record de charge est détecté');
+  assert.equal(fBoth.sportRepRecordToday, null, 'record de charge prioritaire → pas de note de reps en plus');
+  // Séance PAS faite aujourd'hui → jamais de record du jour.
+  const fPast = L.adaptiveCoachFocus({ workouts: [bw('2026-07-08', 8), bw('2026-07-11', 9), bw('2026-07-14', 10)] }, today);
+  assert.equal(fPast.doneToday, false);
+  assert.equal(fPast.sportRepRecordToday, null, 'pas de séance du jour → pas de record du jour');
+  // Autre pilier (focus) → sportRepRecordToday toujours null.
+  assert.equal(L.adaptiveCoachFocus({ focusSessions: [{ date: today, minutes: 30 }] }, today).sportRepRecordToday, null, 'record de reps = pilier sport uniquement');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {

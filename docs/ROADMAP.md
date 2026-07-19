@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.160 (2026-07-19)
+## 📍 État actuel — build 2.0.161 (2026-07-19)
+
+> 🏆 **2.0.161** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach fête aussi tes
+> records au **POIDS DU CORPS**. Il savait célébrer un record de **charge** (`sportRecordToday`, #529,
+> via `strengthRecords`) mais **ignorait** la calisthénie : `estimate1RM(0, r)` → `null`, donc gagner
+> des reps sur tes **tractions**/pompes/dips ne déclenchait rien, alors que là les **répétitions SONT
+> la progression**. Nouveau champ **`sportRepRecordToday`** (`{ exercise, reps, prev }` ou `null`) :
+> réemploi de **`personalRecords`** (meilleure `{ load, reps, date }` par exercice — pour un exercice
+> sans charge, la date reflète le dernier record de reps ; **jamais lue par le coach pour ce cas**).
+> Quand la séance du jour (`doneToday`) bat le record de reps d'un exercice **sans charge** déjà
+> pratiqué, le coach le NOMME et le FÊTE, appendu à l'insight : « 🏆 Et quelle séance : tu viens de
+> battre ton **record de répétitions** sur le Tractions — **13 reps au poids du corps** (ton meilleur
+> passé : 10), du jamais-vu chez toi. La force au poids du corps se construit rep après rep — chapeau. »
+> **HONNÊTE** : poids du corps **strict** (`load === 0` sur tout l'historique — un exercice chargé reste
+> le domaine de `sportRecordToday`), reps **strictement** battues (égaler ne compte pas), exercice au
+> palmarès **avant** ce jour (pas de « record » trivial de première fois). **Exclusion mutuelle** avec
+> `sportRecordToday` : muet si un record de **charge** parle déjà (une seule célébration/jour, la charge
+> prime). **Affine, ne remplace pas** : note appendue, action du jour intacte. Réemploi total, **zéro**
+> nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #530.
 
 > 🏆 **2.0.160** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach **fête enfin tes
 > RECORDS**. Il savait projeter une force qui monte (`sportProgress`, #527) et signaler un plateau
