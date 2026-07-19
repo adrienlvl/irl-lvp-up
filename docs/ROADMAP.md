@@ -23,20 +23,37 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.177 (2026-07-19)
+## 📍 État actuel — build 2.0.178 (2026-07-19)
+
+> 🚨 **2.0.178 — le coach dit d'abord ce qui compte.** Ses ~89 notes étaient concaténées dans l'ordre
+> du **code**, pas de l'**urgence** : les notes anodines ayant été ajoutées tôt (`sessionGoalBonus`
+> L5164) et les graves tard (kilométrage/fracture de fatigue L6726), la carte pouvait afficher
+> « c'est du pur bonus, sans pression » **en cachant l'avertissement de blessure**. Désormais
+> `orderCoachNotes` classe par urgence (0 blessure → 5 anodin), **verdict toujours en tête**, tri
+> stable. Rien d'ajouté ni retiré : **l'ORDRE** change. Au passage, le contrôle navigateur §4 ter a
+> attrapé ce que la suite verte laissait passer — le découpeur cassait « (moy. 5 h » en deux
+> « phrases », invisible tant que l'ordre était préservé, charabia dès qu'on reclasse → nouveau
+> `splitCoachSentences`. 518 tests + smoke. Recap #547. _Domaine : coach → la prochaine itération
+> DOIT changer de domaine (§4 bis)._
 
 **L'app est mature et stable** : 517 tests `node:test` + smoke Electron bloquant, **0 dépendance
 runtime**, desktop (Electron) + **PWA en ligne**, auto-update silencieux. Le module **Alternance** 💼
 (sync Google Sheets, cible du jour, relances) est opérationnel — c'est la **priorité de vie d'Adrien**
 jusqu'à la rentrée, on l'améliore et on ne le casse jamais.
 
-> 🧊 **Le coach adaptatif est GELÉ (2026-07-19).** Les versions **2.0.87 → 2.0.177** (89 entrées,
+> ⚖️ **Le coach adaptatif : qualité, pas volume (arbitrage d'Adrien, 2026-07-19).** Adrien **tient au
+> coach** et refuse le gel dur : on continue à l'améliorer, mais **en qualité** — corriger les
+> contradictions, fusionner les redondances, **hiérarchiser** ce qui remonte en premier. Ajouter une
+> note reste possible **sous condition de preuve** (§3). C'est la **rotation des domaines** (§4 bis),
+> pas une interdiction, qui empêche de refaire 60 itérations d'affilée. Contexte du diagnostic :
+> les versions **2.0.87 → 2.0.177** (89 entrées,
 > commits **#487→#546**) ont porté **presque exclusivement** sur `adaptiveCoachFocus`. La fonction
 > renvoie aujourd'hui **93 champs** (dont 60+ notes `…Guard` / `…Trend` / `…Driver`) et concatène
 > jusqu'à **89 `insight +=`** ; `src/lib/logic.js` est passé de **5 649 à 9 488 lignes (+68 %)**.
-> L'espace de conception est **épuisé** — les derniers ajouts ne faisaient plus que boucher les trous
-> laissés par les précédents. Le pavé de texte que ça produisait a été corrigé **au rendu** en #546
-> (curation + « ＋ plus de contexte »). Règle désormais en vigueur : **VPS-AUTOPILOT.md §3**.
+> Les derniers ajouts ne faisaient plus que boucher les trous laissés par les précédents. Le pavé de
+> texte que ça produisait a été corrigé **au rendu** en #546 (curation + « ＋ plus de contexte »).
+> **Le gisement de valeur restant est donc dans la HIÉRARCHISATION**, pas dans une 90ᵉ clause.
+> Règle en vigueur : **VPS-AUTOPILOT.md §3**.
 >
 > **Le détail version par version n'est plus recopié ici** (il vivait sur ~1 400 lignes) : il est
 > déjà conservé **deux fois** — dans `docs/recaps/` (#487→#546) et dans la constante `CHANGELOG` de
@@ -134,9 +151,9 @@ verrouiller par des tests. **Domaine idéal pour varier** : logique pure, aucun 
 
 ### 🚫 Ce qui n'est PAS à faire en autonomie
 
-Nouveau champ ou nouvelle note du coach (**gelé**) · tag/release · dépendance npm · données
-personnelles dans le repo · `.github/workflows/` et posture sécurité · retrait/désactivation d'une
-fonctionnalité · réécriture de fond de VPS-AUTOPILOT.md ou de la roadmap 3.0.
+Nouvelle note du coach **sans la double preuve exigée par §3** · tag/release · dépendance npm ·
+données personnelles dans le repo · `.github/workflows/` et posture sécurité · retrait/désactivation
+d'une fonctionnalité · réécriture de fond de VPS-AUTOPILOT.md ou de la roadmap 3.0.
 
 ---
 

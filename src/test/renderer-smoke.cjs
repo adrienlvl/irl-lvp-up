@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.177'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.178'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1335,6 +1335,16 @@ app.whenReady().then(async () => {
           // Le bouton « plus de contexte » NE doit PAS être imbriqué dans le <button> carte (interactif dans interactif interdit).
           const card = document.getElementById('coachFocus'), mb = document.getElementById('coachMoreBtn');
           if (card.contains(mb)) return false;
+          // HIÉRARCHISATION (#547) : sur un insight long où l'anodin PRÉCÈDE l'urgent dans le texte,
+          // la carte doit remonter l'urgent et reléguer l'anodin dans le contexte replié.
+          if (typeof orderCoachNotes !== 'function' || typeof coachNoteUrgency !== 'function') return false;
+          const mixed = splitCoachInsight('Ton sommeil déraille — priorité ce soir, cale une heure de coucher fixe dès ce soir. '
+            + 'Objectif bouclé : un bloc de plus serait du pur bonus, sans la moindre pression, juste du rab offert. '
+            + 'Et surveille ta montée de kilométrage : tu es bien au-delà des +10 %/semaine que tes tendons encaissent, première cause de fracture de fatigue.');
+          if (!/sommeil déraille/.test(mixed.primary)) return false; // le verdict reste en tête
+          if (!/kilométrage/.test(mixed.primary)) return false;      // l'urgent est SUR la carte
+          if (/pur bonus/.test(mixed.primary)) return false;         // l'anodin n'y est PAS
+          if (!/pur bonus/.test(mixed.extra)) return false;          // il est bien dans le contexte replié
           return true;
         })(),
         sheetSync: typeof normalizeSheetCsvUrl === 'function' && typeof mergeApplications === 'function' && typeof renderSheetSync === 'function' && typeof syncSheets === 'function' && typeof setupSheetSync === 'function' && !!document.getElementById('altSheetForm') && !!document.getElementById('altSheetUrl') && !!document.getElementById('altSheetList') && !!document.getElementById('altSheetSync') && !!document.getElementById('altSheetStatus') && (() => {

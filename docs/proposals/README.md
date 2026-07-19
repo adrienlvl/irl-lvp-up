@@ -39,7 +39,7 @@ avant qu'Adrien ait tranché les questions de leur dernière section.
 
 | Proposition | Sujet | Recommandation |
 |---|---|---|
-| [`coach-freeze.md`](coach-freeze.md) | Gel du coach adaptatif | **A** — gel dur (+ test « tripwire » à 93 clés) |
+| [`coach-freeze.md`](coach-freeze.md) | Gel du coach adaptatif | ✅ **TRANCHÉ — gel refusé** : « qualité, pas volume » |
 | [`indexeddb-primary-persistence.md`](indexeddb-primary-persistence.md) | IndexedDB source de vérité | **B** — IDB primaire ; débloque la sync |
 | [`multi-exam-etudes-bts.md`](multi-exam-etudes-bts.md) | `examGoals[]` multi-épreuves BTS | **A** — poser le modèle d'abord |
 | [`es-modules-split.md`](es-modules-split.md) | Découper les monolithes | **Attendre** — après P1.2, et le gel freine déjà la croissance |

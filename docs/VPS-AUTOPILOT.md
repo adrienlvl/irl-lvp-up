@@ -57,14 +57,21 @@
 - ❌ Ne supprime ni ne désactive **aucune** fonctionnalité existante (le module Alternance en
   particulier). Les retraits, c'est Adrien qui décide.
 - ❌ Pas de point-virgule dans les data-URI CSS (garde-fou `css-lint` en échec sinon).
-- 🧊 **Le coach adaptatif (`adaptiveCoachFocus`) est GELÉ** (décidé le 2026-07-19). **Interdit**
-  d'ajouter un champ ou une note à son `insight` : pas de nouveau `…Guard` / `…Trend` / `…Driver` /
-  `…Pace`, pas de nouveau `insight +=`. Il renvoie déjà **93 champs** et concatène jusqu'à **89**
-  clauses ; chaque pilier a déjà sa note de tendance, de forme, d'allure et d'inter-pilier —
-  **l'espace de conception est épuisé**. Seuls restent autorisés : **(a)** le **correctif** d'un guard
-  qui se déclenche à tort ou en **contredit** un autre, prouvé par un test ; **(b)** la **curation au
-  rendu** (`splitCoachInsight`). Toute idée de nouvel angle coach → `docs/proposals/coach-<slug>.md`,
-  puis **STOP** : Adrien tranche.
+- ⚖️ **Le coach adaptatif : on l'améliore en QUALITÉ, pas en VOLUME** _(arbitrage d'Adrien du
+  2026-07-19 — il tient au coach, il refuse le gel dur ; ceci remplace le gel)_. Le coach **compte**,
+  donc on continue à le travailler. Mais il renvoie déjà **93 champs** et concatène jusqu'à **89**
+  clauses dans **l'ordre du code** : le problème n'est plus ce qu'il **sait**, c'est ce qu'il **dit
+  en premier**.
+  - ✅ **Encouragé** : corriger un guard qui se déclenche à tort ou en **contredit** un autre ·
+    **fusionner/supprimer** des notes redondantes · améliorer la **hiérarchisation** (faire remonter
+    l'urgent avant l'accessoire) · rendre une formulation plus juste ou plus courte · la **curation
+    au rendu**. **Retirer une note en vaut souvent deux ajoutées.**
+  - ⚠️ **Sous condition** : ajouter une **nouvelle** note/champ. Tu dois d'abord **prouver dans le
+    recap** qu'aucune des notes existantes ne couvre l'angle, **et** appliquer le contrôle §4 ter
+    (rendre le résultat cumulé et le relire). Sans ces deux preuves : **ne l'ajoute pas**.
+  - 🔁 **La rotation des domaines (§4 bis) s'applique PLEINEMENT au domaine `coach`.** C'est elle —
+    pas une interdiction — qui empêche de refaire 60 itérations d'affilée. Le coach est un domaine
+    **parmi les autres**, il attend son tour comme les autres.
 - ❌ Ne réécris pas ce document ni la roadmap 3.0 sur le fond (tu peux corriger l'« État actuel »).
   **Y compris pour les règles ci-dessus** : si tu penses qu'une règle doit changer, écris une
   proposition — ne t'auto-légifère pas.

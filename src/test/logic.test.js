@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.177');
+  assert.equal(L.CHANGELOG[0].v, '2.0.178');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10612,4 +10612,39 @@ test('unwrapBackup : déballe le format enveloppé, laisse l’état brut intact
   assert.deepEqual(L.unwrapBackup({ state: [1, 2] }), { state: [1, 2] }, '.state tableau → inchangé');
   assert.equal(L.unwrapBackup(null), null);
   assert.deepEqual(L.unwrapBackup([1, 2]), [1, 2], 'tableau brut → inchangé');
+});
+
+test('coachNoteUrgency / orderCoachNotes : l’urgent passe devant l’anodin', () => {
+  // Paliers : 0 intégrité physique < 1 charge < 2 sommeil/récup < 3 intrants < 4 non classé < 5 anodin.
+  assert.equal(L.coachNoteUrgency('la première cause de blessure du coureur (fracture de fatigue)'), 0);
+  assert.equal(L.coachNoteUrgency('Mais ta charge est en pic cette semaine'), 1);
+  assert.equal(L.coachNoteUrgency('enraye maintenant, avant que la dette ne s’installe'), 2);
+  assert.equal(L.coachNoteUrgency('tu n’atteins ta cible protéines que 2/10'), 3);
+  assert.equal(L.coachNoteUrgency('Objectif hebdo : 2/3 séances.'), 4, 'note non classée = rang médian');
+  assert.equal(L.coachNoteUrgency('un bloc de plus serait du pur bonus, sans la moindre pression'), 5,
+    'l’anodin DOIT tomber sous le rang par défaut, sinon il n’est jamais relégué');
+  // Le verdict (1ʳᵉ phrase) ne bouge JAMAIS ; le reste est trié par urgence.
+  const ordered = L.orderCoachNotes(
+    'Ton sommeil déraille — priorité ce soir. Objectif bouclé : un bloc de plus serait du pur bonus, sans pression. ' +
+    'Et surveille ta montée de kilométrage : tes tendons encaissent mal, risque de fracture de fatigue. ' +
+    'Objectif hebdo : 2/3 séances.');
+  assert.match(ordered[0], /Ton sommeil déraille/, 'le verdict reste en tête');
+  assert.match(ordered[1], /kilométrage/, 'le risque de blessure remonte juste après le verdict');
+  assert.match(ordered[3], /pur bonus/, 'l’anodin part en dernier');
+  // Tri STABLE : à rang égal, l’ordre d’origine est conservé.
+  const stable = L.orderCoachNotes('Verdict. Note A neutre. Note B neutre. Note C neutre.');
+  assert.deepEqual(stable.slice(1), ['Note A neutre.', 'Note B neutre.', 'Note C neutre.']);
+  // Entrées dégénérées : jamais d’exception.
+  assert.deepEqual(L.orderCoachNotes(''), []);
+  assert.equal(L.coachNoteUrgency(null), 4);
+  // DÉCOUPAGE (régression attrapée en NAVIGATEUR) : « (moy. 5 h » et « ~69 min d’un soir » ne sont PAS
+  // des fins de phrase. Tant que l’ordre était préservé le charabia restait invisible ; dès qu’on
+  // reclasse, les fragments se séparent → « Sommeil court et coucher irrégulier (moy. Et la pente… ».
+  const vrai = 'Sommeil court et coucher irrégulier (moy. 5 h, coucher variant de ~69 min d’un soir à '
+    + 'l’autre) — avant d’allonger les nuits, stabilise d’abord une heure de coucher fixe. '
+    + 'Et la pente s’enfonce : tes nuits sont passées de 7,5 à 5 h (-2,5 h vs la semaine précédente).';
+  const ph = L.splitCoachSentences(vrai);
+  assert.equal(ph.length, 2, 'deux phrases réelles, pas quatre fragments');
+  assert.match(ph[0], /coucher fixe\.$/, 'le verdict reste entier, parenthèse et abréviation incluses');
+  assert.match(ph[1], /^Et la pente/);
 });

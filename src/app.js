@@ -170,11 +170,15 @@ function renderAttention(){const el=$('#attentionDigest'),panel=$('#attentionPan
 function splitCoachInsight(text){
   const t=String(text||'').trim();
   if(t.length<=200)return{primary:t,extra:''};
-  const parts=t.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
+  // Les notes du coach sont concaténées dans l'ordre du CODE, pas de l'URGENCE : on les RECLASSE
+  // (orderCoachNotes) avant de couper. Sans ça, la carte pouvait afficher « objectif bouclé, c'est du
+  // rab sans pression » (note ajoutée tôt) en cachant « +50 % de kilométrage, risque de fracture de
+  // fatigue » (note ajoutée tard) derrière « ＋ plus de contexte ».
+  const parts=(typeof orderCoachNotes==='function')?orderCoachNotes(t):t.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
   if(!parts||parts.length<=1)return{primary:t,extra:''};
   const keep=Math.min(2,parts.length-1);
-  const primary=parts.slice(0,keep).join('').trim();
-  return primary?{primary,extra:parts.slice(keep).join('').trim()}:{primary:t,extra:''};
+  const primary=parts.slice(0,keep).join(' ').trim();
+  return primary?{primary,extra:parts.slice(keep).join(' ').trim()}:{primary:t,extra:''};
 }
 function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});if(!f){panel.hidden=true;el.innerHTML='';el.removeAttribute('data-coach-page');const mb0=$('#coachMoreBtn'),mp0=$('#coachMore');if(mb0)mb0.hidden=true;if(mp0){mp0.hidden=true;mp0.textContent='';}return;}
   // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le

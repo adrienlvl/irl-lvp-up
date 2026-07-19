@@ -1,6 +1,32 @@
 # Proposition — Acter le gel du coach adaptatif
 
-_Rédigé le 2026-07-19 · statut : **à trancher par Adrien**_
+_Rédigé le 2026-07-19 · statut : ✅ **TRANCHÉ par Adrien le 2026-07-19 — gel REFUSÉ**_
+
+> ## ⚖️ Décision d'Adrien : ni option A, ni statu quo — « qualité, pas volume »
+>
+> Adrien a tranché : **« améliore toujours le Coach, c'est important »**. Le **gel dur (option A) est
+> donc écarté** — le coach reste un chantier vivant. Mais le diagnostic ci-dessous reste valable, d'où
+> la règle retenue, plus fine que les trois options proposées :
+>
+> - **Encouragé** : corriger les guards qui se déclenchent à tort ou se contredisent · fusionner ou
+>   **supprimer** les notes redondantes · **hiérarchiser** ce qui remonte en premier · reformuler plus
+>   court/plus juste · curer au rendu. _Retirer une note vaut souvent mieux qu'en ajouter une._
+> - **Sous condition** : ajouter une note **exige** de prouver dans le recap qu'aucune note existante
+>   ne couvre l'angle **et** d'appliquer le contrôle de cohérence §4 ter.
+> - **La rotation des domaines (§4 bis) s'applique pleinement au coach** : c'est elle, et non une
+>   interdiction, qui empêche de refaire 60 itérations d'affilée.
+>
+> **Ce que ça invalide dans le document** : la recommandation §3 (option A) et le tripwire à 93 clés
+> — figer la liste des champs contredirait l'autorisation conditionnelle d'en ajouter. Le reste du
+> constat (§1) tient et fonde la nouvelle règle.
+>
+> **Conséquence directe** : le vrai gisement n'est plus l'ajout mais la **hiérarchisation** — les 89
+> clauses sont concaténées dans **l'ordre du code**, donc l'urgent peut passer après l'accessoire.
+> C'est le chantier ouvert par cette décision.
+
+_Le document original est conservé ci-dessous pour la trace du raisonnement._
+
+---
 
 ## 1. Problème
 
