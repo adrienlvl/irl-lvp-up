@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.155 (2026-07-19)
+## 📍 État actuel — build 2.0.156 (2026-07-19)
+
+> 🔎 **2.0.156** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach ne donne plus
+> seulement le **score** de forme du jour — il dit ce qui le **PLOMBE**. Sur un check-in sport
+> sous le vert (`score < 75`), il calait l'intensité (« readiness 63/100 — séance correcte, garde une
+> marge ») sans jamais nommer **POURQUOI** ; or le bon geste diffère selon le frein. Nouveau helper pur
+> **`readinessLimiter`** : recalcule le **déficit de points** de chaque composante du check-in avec le
+> barème EXACT de `readinessScore` (sommeil /40, fatigue /30, courbatures /30) et renvoie le frein
+> **dominant** — seulement s'il est **net** (déficit ≥ 15 ET ≥ 6 pts au-dessus du second ; sinon deux
+> freins se valent → on se tait). Le sommeil n'est candidat que renseigné (`sleep > 0`). Nouveau champ
+> **`readinessDrag`** (`{factor, value}` ou `null`) : le coach NOMME le frein et adapte le geste, appendu
+> à l'action readiness — courbatures → « épargne les groupes déjà douloureux » ; fatigue → « réduis le
+> volume, vrai repos ce soir » ; nuit courte → « garde léger, recharge le sommeil ». **HONNÊTE** : muet
+> au vert (≥ 75), muet quand aucun frein ne domine (tout au rouge → pas de coupable au hasard). Affine
+> l'action, ne la remplace pas. Vocabulaire distinct (« Ce qui pèse le plus ») — zéro collision regex
+> avec les guards sport. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #525.
 
 > 🦵 **2.0.155** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach ne dit plus seulement
 > **DE** s'entraîner et **QUAND** (créneau `sportSlot`) — il dit désormais **QUOI travailler**. Nouveau champ

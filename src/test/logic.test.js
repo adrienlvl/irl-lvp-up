@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.155');
+  assert.equal(L.CHANGELOG[0].v, '2.0.156');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6278,6 +6278,27 @@ test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
   assert.equal(L.readinessScore({ sleep: 0, fatigue: 2, soreness: 2 }).score, 75, 'sleep:0 traité comme non renseigné');
   // sommeil renseigné → strictement inchangé (rétro-compatibilité)
   assert.equal(L.readinessScore({ sleep: 8, fatigue: 3, soreness: 3 }).score, 70);
+});
+test('readinessLimiter : nomme le frein DOMINANT du check-in (ou null si aucun net)', () => {
+  // Courbatures seules élevées (5) → déficit 30, fatigue/sommeil 0 → soreness dominant.
+  const sore = L.readinessLimiter({ sleep: 8, fatigue: 1, soreness: 5 });
+  assert.deepEqual(sore, { factor: 'soreness', deficit: 30, value: 5 });
+  // Fatigue seule élevée (5) → fatigue dominant.
+  const fat = L.readinessLimiter({ sleep: 8, fatigue: 5, soreness: 1 });
+  assert.deepEqual(fat, { factor: 'fatigue', deficit: 30, value: 5 });
+  // Nuit courte (3 h) dominante : déficit 25 vs fatigue 7.5 vs courbatures 0.
+  const sleepLim = L.readinessLimiter({ sleep: 3, fatigue: 2, soreness: 1 });
+  assert.deepEqual(sleepLim, { factor: 'sleep', deficit: 25, value: 3 });
+  // Deux freins à égalité (fatigue 5 ET courbatures 5, déficit 30 chacun) → pas de coupable unique → null.
+  assert.equal(L.readinessLimiter({ sleep: 8, fatigue: 5, soreness: 5 }), null);
+  // Aucun frein net (tout neutre : déficits 15/15/0) → sous le seuil de dominance → null.
+  assert.equal(L.readinessLimiter({ sleep: 8, fatigue: 3, soreness: 3 }), null);
+  // Sommeil NON renseigné (sleep vide) : jamais candidat (ne pénalise pas) ; courbatures 5 domine.
+  assert.deepEqual(L.readinessLimiter({ fatigue: 1, soreness: 5 }), { factor: 'soreness', deficit: 30, value: 5 });
+  // Marge insuffisante (< 6 pts) : courbatures 4 (22,5) vs fatigue 4 (22,5) → égalité → null.
+  assert.equal(L.readinessLimiter({ sleep: 8, fatigue: 4, soreness: 4 }), null);
+  // Entrée invalide → null.
+  assert.equal(L.readinessLimiter(null), null);
 });
 test('readinessTrend : série de forme des derniers check-ins + delta', () => {
   const rec = [
@@ -7868,6 +7889,36 @@ test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => 
   assert.equal(none.pillar, 'sport');
   assert.equal(none.readiness, null);
   assert.match(none.action, /séance/);
+});
+
+test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du jour', () => {
+  const today = '2026-07-16';
+  const workouts = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // Courbatures dominantes (sommeil 8, fatigue 1, courbatures 5 → score 70, sore déficit 30 seul) → note « courbatures ».
+  const sore = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 5 }] }, today);
+  assert.equal(sore.readiness, 70);
+  assert.deepEqual(sore.readinessDrag, { factor: 'soreness', value: 5 });
+  assert.match(sore.action, /Ce qui pèse le plus : tes courbatures \(5\/5\)/);
+  assert.match(sore.action, /épargne les groupes musculaires déjà douloureux/);
+  // Fatigue dominante (fatigue 5 seule) → note « fatigue générale ».
+  const fat = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 5, soreness: 1 }] }, today);
+  assert.deepEqual(fat.readinessDrag, { factor: 'fatigue', value: 5 });
+  assert.match(fat.action, /Ce qui pèse le plus : ta fatigue générale \(5\/5\)/);
+  // Nuit courte dominante (3 h, reste bon) → note « nuit courte », score < 75.
+  const sleepDrag = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 3, fatigue: 2, soreness: 1 }] }, today);
+  assert.equal(sleepDrag.readinessDrag.factor, 'sleep');
+  assert.match(sleepDrag.action, /Ce qui pèse le plus : ta nuit courte \(3 h\)/);
+  // Tous les freins au max (aucun coupable unique) → readinessDrag null, note absente.
+  const allBad = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 3, fatigue: 5, soreness: 5 }] }, today);
+  assert.equal(allBad.readinessDrag, null);
+  assert.doesNotMatch(allBad.action, /Ce qui pèse le plus/);
+  // readiness au vert (≥ 75) → rien à expliquer, readinessDrag null.
+  const green = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(green.readinessDrag, null);
+  // Pilier non-sport → readinessDrag toujours null (défaut).
+  const focusPillar = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, today);
+  assert.notEqual(focusPillar.pillar, 'sport');
+  assert.equal(focusPillar.readinessDrag, null);
 });
 
 test('adaptiveCoachFocus : action sport tempérée par un PIC de charge (ACWR)', () => {
