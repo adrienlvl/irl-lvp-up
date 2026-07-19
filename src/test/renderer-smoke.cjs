@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.169'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.170'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -899,6 +899,12 @@ app.whenReady().then(async () => {
           // Honnêteté : objectif bouclé × readiness moyenne (6/3/3 → 60) → aucun mot bonus.
           const fBonusMid = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-13', minutes: 130 }, { date: '2026-07-14', minutes: 10 }], recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-14');
           if (fBonusMid.focusGoalBonus !== null || /pur bonus/.test(fBonusMid.insight)) return false;
+          // SÉANCE BONUS LIBRE côté SPORT (sessionGoalBonus, pendant de focusGoalBonus) : objectif de séances DÉJÀ tenu (2/2, lun+mar) × readiness au vert le jour même (8/1/1 → 100) + séance du jour PAS faite → séance de plus cadrée en bonus libre, sans pression du compteur.
+          const fSessBonus = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }], goals: { sessions: 2 }, recovery: [{ date: '2026-07-15', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-15');
+          if (!(fSessBonus.pillar === 'sport' && fSessBonus.sessionGoalPace === null && fSessBonus.sessionGoalBonus === 100 && /objectif de séances déjà dans la poche/.test(fSessBonus.insight) && /chaque séance en plus est du gain offert/.test(fSessBonus.insight))) return false;
+          // Honnêteté : objectif de séances bouclé × readiness moyenne (6/3/3 → 60) → aucun mot bonus.
+          const fSessBonusMid = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }], goals: { sessions: 2 }, recovery: [{ date: '2026-07-15', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-15');
+          if (fSessBonusMid.sessionGoalBonus !== null || /du gain offert/.test(fSessBonusMid.insight)) return false;
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;

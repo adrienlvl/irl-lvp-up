@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.170', emoji: '🎁', text: 'Ton coach « Le focus du moment » sait maintenant, côté SPORT aussi, cadrer une séance de plus en bonus libre quand ton objectif de séances de la semaine est DÉJÀ bouclé. C’est le pendant exact de ce qu’il fait déjà côté deep work quand ton objectif de minutes est atteint. Jusqu’ici, une fois l’objectif hebdo de séances tenu (« Objectif hebdo déjà tenu : 2/2 séances 💪 »), il ne regardait plus ta forme du jour. Désormais, si ton objectif est bouclé, qu’un check-in de récup du matin met ton corps au vert (readiness ≥ 75) ET que tu n’as pas déjà bougé aujourd’hui, il ajoute : « Et ta forme est au top ce matin (readiness 88/100) : objectif de séances déjà dans la poche, aucune obligation de t’y remettre aujourd’hui — mais si l’envie de bouger est là, chaque séance en plus est du gain offert, du rab pris sans aucun compteur dans le dos. » Il ne te pousse pas à « lever le pied » (ton action du jour, elle, reste « prêt à pousser » si le corps suit) : il retire simplement la pression du calendrier — l’objectif est tenu, donc toute séance de plus est un pur bonus, pris par envie et sans culpabilité. Honnête : il n’en parle qu’au vert (objectif bouclé + forme moyenne ou basse = rien à ajouter), exige un check-in du jour et se tait si tu as déjà bougé aujourd’hui. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.169', emoji: '🎁', text: 'Ton coach « Le focus du moment » ne laisse plus tes bons jours sans un mot quand ton objectif focus est DÉJÀ bouclé. Jusqu’ici, une fois l’objectif hebdo de minutes atteint (« Objectif hebdo atteint : 130/120 min 💪 »), il ne regardait plus ta forme du jour. Désormais, si ton objectif est bouclé ET qu’un check-in de récup du matin met ta tête au vert (readiness ≥ 75), il cadre honnêtement ce que ça veut dire : « Objectif bouclé et la forme est au rendez-vous ce matin (readiness 88/100) : plus aucune cible à tenir — un bloc de plus serait du pur bonus, sans la moindre pression, juste un peu d’avance offerte à ta semaine prochaine si l’envie te prend. » Ni une injonction, ni une invitation à « prendre de l’avance » comme quand il reste un objectif à sécuriser : l’objectif est tenu, donc tout bloc de plus est du PUR BONUS, à faire par envie et sans culpabilité. Honnête : il n’en parle qu’au vert (objectif bouclé + tête moyenne ou basse = rien à ajouter, l’objectif est tenu) et exige un check-in du jour. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.168', emoji: '💡', text: 'Ton coach « Le focus du moment » ne se contente plus de t’inviter à prendre de l’avance les bons jours de marge côté deep work — il te dit maintenant CE QUI te donne cette clarté. Jusqu’ici, quand tu avais de la marge sur ton objectif focus ET la tête fraîche, il t’invitait à engranger un bloc d’avance sans jamais nommer POURQUOI ton esprit est si clair — alors qu’il le fait déjà les jours pressés (« ce qui nourrit cette fraîcheur mentale »). Désormais, si une force ressort nettement de ton check-in, il la nomme aussi sur ce bon jour confortable : une belle nuit → « Et ce qui te donne cette clarté : ta nuit de 8 h — autant profiter d’un cerveau aussi reposé pour engranger un bloc de plus tant que ça tourne tout seul, c’est de l’avance prise sans forcer. » ; une énergie au top → « ton énergie est au top (fatigue 1/5) — un esprit aussi vif avance vite, saisis-le pour banker un bloc d’avance pendant que c’est facile. » Tu vois ainsi quelle habitude t’offre ce mou pour la répéter. Honnête : il ne crédite que le sommeil ou l’énergie (les vrais carburants d’un bloc) — jamais des muscles frais, qui ne portent pas la concentration ; et il se tait si aucune force ne domine clairement. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.167', emoji: '🏋️', text: 'Ton coach « Le focus du moment » sait maintenant, côté SPORT aussi, t’inviter à prendre de l’avance les bons jours de marge. C’est le pendant exact de ce qu’il fait déjà côté deep work : quand tu as de la MARGE sur ton objectif de séances de la semaine (« dans les temps, tu as la marge ») ET que ta forme du matin est au vert (readiness ≥ 75), il ne laisse plus filer ce bon jour confortable. Il ajoute désormais : « Et ton corps est au vert ce matin (readiness 88/100) : rien ne t’oblige à t’entraîner aujourd’hui, mais profite de cette forme pour engranger une séance d’avance — une de plus maintenant te fait un coussin qui met l’objectif à l’abri si un jour creux tombe plus tard, sans sprint serré en fin de semaine. » Une séance de plus un jour où le corps suit et où rien n’y oblige, c’est mettre ton objectif hebdo à l’abri d’un imprévu. Honnête : il n’en parle qu’au vert (un jour moyen ou bas où tu as déjà la marge n’a besoin d’aucune pression), et seulement si tu n’as pas déjà bougé aujourd’hui (inutile de pousser une 2ᵉ séance le même jour). La note enrichit l’insight, ton action du jour reste intacte.' },
@@ -5111,7 +5112,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // date). Champ sessionGoalPace ('onpace' | 'tight' | 'unreachable' | null) TOUJOURS renvoyé ; note
   // APPENDUE au compteur, aucune autre branche touchée. Ne parle que quand un objectif existe et n'est
   // pas encore tenu (wc < g) : objectif atteint → le « déjà tenu 💪 » historique suffit.
-  let sessionGoalPace = null, sessionGoalAhead = null, focusGoalPace = null, focusGoalFresh = null, focusGoalDrained = null, focusFreshDriver = null, focusDrainDriver = null, focusGoalSteady = null, focusGoalAhead = null, focusAheadDriver = null, focusGoalBonus = null;
+  let sessionGoalPace = null, sessionGoalAhead = null, sessionGoalBonus = null, focusGoalPace = null, focusGoalFresh = null, focusGoalDrained = null, focusFreshDriver = null, focusDrainDriver = null, focusGoalSteady = null, focusGoalAhead = null, focusAheadDriver = null, focusGoalBonus = null;
   {
     const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
     const monday = dateKey(mondayOf(new Date(+tm[1], +tm[2] - 1, +tm[3])));
@@ -5123,6 +5124,39 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           .map(w => w.date)).size;
         if (wc >= g) {
           insight += ` Objectif hebdo déjà tenu : ${wc}/${g} séance${g > 1 ? 's' : ''} 💪`;
+          // OBJECTIF DE SÉANCES BOUCLÉ × FORME AU VERT → SÉANCE BONUS LIBRE. Le pendant, côté SPORT, de
+          // focusGoalBonus (#538, focus : objectif de minutes déjà atteint × vert → un bloc de plus = pur
+          // bonus). La branche sport « objectif hebdo déjà tenu 💪 » ne lisait PAS la forme du jour : un
+          // matin où l'objectif est bouclé ET le corps au vert, le coach laissait le bon geste possible sans
+          // un mot. Les recaps #536/#538 signalaient cette suite, en la marquant DÉLICATE : côté sport,
+          // l'action readiness pousse déjà « c'est le jour d'une vraie séance, monte l'intensité » (≥ 75) —
+          // un « bonus » mal cadré la contredirait. Le cadrage juste NE dit donc PAS « douceur / séance
+          // tranquille » (ce serait contre l'action) : il retire la seule PRESSION DU CALENDRIER (objectif
+          // bouclé → plus aucune obligation de s'entraîner) et reframe toute séance de plus en BONUS LIBRE —
+          // du gain offert, pris par envie. Compatible avec l'action : si Adrien s'entraîne, il s'entraîne
+          // bien (l'action tient) ; mais le compteur hebdo ne le pousse plus (l'insight le libère). Additif
+          // pur : sessionGoalBonus (le score du jour, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight,
+          // aucune autre branche touchée. Garde-fous honnêtes : (1) au VERT seulement (≥ 75) — objectif
+          // bouclé × tête moyenne/basse n'a besoin d'aucun mot ; (2) check-in de récup DU JOUR (données
+          // réelles) ; (3) séance du jour PAS encore faite (sportDoneToday faux) — si Adrien a déjà bougé
+          // aujourd'hui, le bonus est pris, pousser une 2e séance le même jour contredirait la philosophie
+          // readiness (protège du surmenage), même garde-fou que sessionGoalAhead. MUTUELLEMENT EXCLUSIF de
+          // sessionGoalAhead (branche wc >= g vs onpace), de restOverGoal (tight × plancher) et des notes
+          // focus (chosen.pillar === 'sport'). Vocabulaire distinct (« ta forme est au top ce matin »,
+          // « objectif de séances déjà dans la poche », « chaque séance en plus est du gain offert ») — zéro
+          // collision à l'œil ni en regex avec sessionGoalAhead (« ton corps est au vert ce matin »,
+          // « engranger une séance d'avance »), focusGoalBonus (« pur bonus, sans la moindre pression »),
+          // l'action readiness (« c'est le jour d'une vraie séance ») ni readinessBoost (« Ce qui te porte
+          // aujourd'hui »). Zéro nouvelle fonction (réemploi de readinessScore).
+          const sportDoneToday = (Array.isArray(s.workouts) ? s.workouts : []).some(w => w && w.date === todayKey);
+          if (!sportDoneToday && typeof readinessScore === 'function') {
+            const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
+            const rs = todayR ? readinessScore(todayR) : null;
+            if (rs && rs.score >= 75) {
+              sessionGoalBonus = rs.score;
+              insight += ` Et ta forme est au top ce matin (readiness ${rs.score}/100) : objectif de séances déjà dans la poche, aucune obligation de t’y remettre aujourd’hui — mais si l’envie de bouger est là, chaque séance en plus est du gain offert, du rab pris sans aucun compteur dans le dos.`;
+            }
+          }
         } else {
           insight += ` Objectif hebdo : ${wc}/${g} séance${g > 1 ? 's' : ''}.`;
           const daysSinceMonday = Math.round((t0 - new Date(monday + 'T12:00:00').getTime()) / dayMs);
@@ -7043,7 +7077,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

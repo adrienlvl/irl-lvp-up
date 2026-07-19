@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.169 (2026-07-19)
+## 📍 État actuel — build 2.0.170 (2026-07-19)
+
+> 🎁 **2.0.170** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach cadre une séance
+> de plus en **BONUS LIBRE** côté **sport** quand l'objectif de séances est **déjà bouclé**
+> (`sessionGoalBonus`) — le pendant exact de `focusGoalBonus` (#538), côté séances. La branche sport
+> « Objectif hebdo déjà tenu : 2/2 séances 💪 » ne lisait **pas du tout** la forme du jour : un matin
+> où l'objectif est bouclé ET le corps au vert, le coach laissait le bon geste possible **sans un
+> mot**. Les recaps #536 **et** #538 signalaient cette suite en la marquant **délicate** : l'action
+> readiness pousse déjà « c'est le jour d'une vraie séance, monte l'intensité » au vert → un bonus mal
+> cadré la contredirait. Nouveau champ **`sessionGoalBonus`** (score du jour, ou `null`, toujours
+> renvoyé) : objectif de séances **tenu** (`wc >= g`) × check-in de récup **du jour** au vert
+> (readiness ≥ 75) × séance du jour **pas encore faite** → « Et ta forme est au top ce matin (readiness
+> 100/100) : objectif de séances déjà dans la poche, aucune obligation de t'y remettre aujourd'hui —
+> mais si l'envie de bouger est là, chaque séance en plus est du gain offert, du rab pris sans aucun
+> compteur dans le dos. » Le cadrage **ne dit PAS** « lève le pied » (l'action « prêt à pousser »
+> reste vraie si le corps suit) : il retire la seule **pression du calendrier** et reframe toute
+> séance de plus en bonus, pris par envie. **Honnête** : au vert seulement (bouclé × tête moyenne/basse
+> → muet), exige un check-in du jour, se tait si séance déjà faite (bonus déjà pris). **Mutuellement
+> exclusif** de `sessionGoalAhead` (branche `done` vs `onpace`), `restOverGoal` et notes focus. **Zéro**
+> nouvelle fonction (réemploi de `readinessScore`). **Zéro** collision regex. Fonctions pures + testées,
+> check smoke bloquant `coachFocus` étendu. Recap #539.
 
 > 🎁 **2.0.169** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach cadre le bloc de
 > plus comme du **PUR BONUS** quand l'objectif focus est **déjà bouclé** (`focusGoalBonus`). Le coach

@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.169');
+  assert.equal(L.CHANGELOG[0].v, '2.0.170');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8499,6 +8499,50 @@ test('adaptiveCoachFocus : prendre de l’avance côté sport (sessionGoalAhead)
   assert.equal(tight.sessionGoalPace, 'tight');
   assert.equal(tight.sessionGoalAhead, null);
   assert.ok(!/engranger une séance d’avance/.test(tight.insight));
+});
+
+test('adaptiveCoachFocus : séance bonus libre côté sport, objectif bouclé (sessionGoalBonus)', () => {
+  // Mercredi 07-15 (semaine lundi 07-13 → dim 07-19). Objectif 2 séances, 2 faites (lun+mar) → objectif
+  // hebdo DÉJÀ tenu. Check-in du jour AU VERT (8/1/1 → 100) et séance du jour PAS encore faite → le coach
+  // cadre toute séance de plus en bonus libre, sans pression du compteur.
+  const bonus = L.adaptiveCoachFocus({
+    goals: { sessions: 2 }, workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }],
+    recovery: [{ date: '2026-07-15', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-15');
+  assert.equal(bonus.pillar, 'sport');
+  assert.equal(bonus.sessionGoalPace, null, 'objectif bouclé → aucune allure (branche done)');
+  assert.equal(bonus.sessionGoalBonus, 100);
+  assert.match(bonus.insight, /Objectif hebdo déjà tenu : 2\/2 séances 💪/);
+  assert.match(bonus.insight, /ta forme est au top ce matin \(readiness 100\/100\)/);
+  assert.match(bonus.insight, /objectif de séances déjà dans la poche/);
+  assert.match(bonus.insight, /chaque séance en plus est du gain offert/);
+  // Forme MOYENNE le même jour (6/3/3 → 60) × objectif bouclé → aucun mot (au vert seulement).
+  const mid = L.adaptiveCoachFocus({
+    goals: { sessions: 2 }, workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }],
+    recovery: [{ date: '2026-07-15', sleep: 6, fatigue: 3, soreness: 3 }],
+  }, '2026-07-15');
+  assert.equal(mid.sessionGoalBonus, null);
+  assert.ok(!/du gain offert/.test(mid.insight));
+  // Séance du jour DÉJÀ faite (07-15) × forme au vert → le bonus est pris, pas de 2ᵉ séance poussée.
+  const doneToday = L.adaptiveCoachFocus({
+    goals: { sessions: 2 }, workouts: [{ date: '2026-07-13' }, { date: '2026-07-15' }],
+    recovery: [{ date: '2026-07-15', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-15');
+  assert.equal(doneToday.sessionGoalBonus, null);
+  assert.ok(!/du gain offert/.test(doneToday.insight));
+  // Sans check-in du jour → objectif bouclé muet sur la forme, sessionGoalBonus null.
+  const noCheckin = L.adaptiveCoachFocus({
+    goals: { sessions: 2 }, workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }],
+  }, '2026-07-15');
+  assert.equal(noCheckin.sessionGoalBonus, null);
+  // Mutuellement exclusif : objectif NON tenu (onpace) × readiness au vert → sessionGoalBonus null
+  // (c’est sessionGoalAhead qui parle sur la marge, pas le bonus).
+  const onpace = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-15', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-15');
+  assert.equal(onpace.sessionGoalPace, 'onpace');
+  assert.equal(onpace.sessionGoalBonus, null);
 });
 
 test('adaptiveCoachFocus : réconciliation objectif serré × pic de charge (loadOverGoal)', () => {
