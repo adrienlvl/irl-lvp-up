@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.146 (2026-07-19)
+## 📍 État actuel — build 2.0.147 (2026-07-19)
+
+> 🌗 **2.0.147** — Coaching adaptatif poussé à fond (priorité de la nuit) : premier **renfort POSITIF**
+> sur l'axe circadien × FOCUS, pendant de `bedtimeFocusGuard` (#515, une alerte). Les cinq boucles
+> précédentes n'ajoutaient que des **avertissements** sommeil ; ici le coach **crédite le progrès** —
+> l'« adaptation aux progrès » demandée. Nouveau champ **`bedtimeFocusTrend`** (delta signé d'écart-type
+> des couchers en min, négatif = resserrement, ou `null`) : quand le pilier poussé est le **focus**, le
+> bloc du jour pas fait (`!doneToday`), **aucune** note sommeil-durée n'a parlé (`sleepFocusGuard == null`),
+> les couchers ne sont **pas** dispersés maintenant (`bedtimeFocusGuard == null`) ET
+> `bedtimeRegularityTrend` renvoie `dir === 'tightening'` (écart-type récent ≤ précédent − 15 min), une
+> note positive s'append : « Bonne nouvelle côté horloge interne : tes couchers se resserrent (±120 → ±40
+> min d'un soir à l'autre) — un rythme de coucher qui se stabilise réaligne l'horloge circadienne qui
+> cadence la vigilance, et l'attention comme le temps de réaction vont suivre. Tiens ce cap, ta
+> concentration a tout à y gagner. » **Mutuellement exclusif** avec les deux notes sommeil (durée/timing) :
+> une seule note sommeil/jour, la plus grossière prime ; le renfort ne parle que quand le rythme récent
+> est tenu ET le global 14 nuits reste sous le seuil `irregular`. Vocabulaire distinct (« se resserrent »,
+> « se stabilise », « réaligne », « vont suivre ») — zéro collision regex avec les notes d'alerte. Données
+> réelles garanties (`bedtimeRegularityTrend` exige ≥ 3 couchers récents ET ≥ 3 précédents). Additif pur,
+> réemploi total, zéro nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus`
+> étendu. Recap #516.
 
 > ⏰ **2.0.146** — Coaching adaptatif poussé à fond (priorité de la nuit) : nouveau croisement
 > **régularité du coucher × FOCUS**, l'axe neuf pointé par #514 après la saturation du thème « sommeil

@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.146');
+  assert.equal(L.CHANGELOG[0].v, '2.0.147');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8878,6 +8878,60 @@ test('adaptiveCoachFocus : focus focus — coucher IRRÉGULIER (durée OK) émou
   const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery: irregBed }, today);
   assert.equal(done.bedtimeFocusGuard, null);
   assert.doesNotMatch(done.insight, /couchers partent dans tous les sens/);
+});
+
+test('adaptiveCoachFocus : focus focus — coucher qui se RESSERRE (renfort positif circadien)', () => {
+  const today = '2026-07-16';
+  // Focus en décrochage → focus = focus (ton rebuild), aucun bloc aujourd’hui (!doneToday).
+  const focusSessions = [
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-06', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-07', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 25, task: 'Thèse' },
+  ];
+  const prevD = ['03', '04', '05', '06', '07', '08', '09'];   // fenêtre précédente (7 j)
+  const recD = ['10', '11', '12', '13', '14', '15', '16'];    // fenêtre récente (7 j)
+  const mk = (dates, bedFn, sleep) => dates.map((d, i) => ({ date: `2026-07-${d}`, sleep, bedtime: bedFn(i) }));
+  // Semaine passée dispersée (22:30/23:30 → écart-type ~30 min), semaine récente tenue à heure fixe
+  // (23:00 → écart-type 0). Durée 8 h (sleepFocusGuard null). Dispersion globale sur 14 nuits ~21 min
+  // < 60 → bedtimeFocusGuard null. bedtimeRegularityTrend : delta 0−30 = −30 ≤ −15 → 'tightening'.
+  const rising = [...mk(prevD, i => (i % 2 ? '23:30' : '22:30'), 8), ...mk(recD, () => '23:00', 8)];
+  const tighten = L.adaptiveCoachFocus({ focusSessions, recovery: rising }, today);
+  assert.equal(tighten.pillar, 'focus');
+  assert.equal(tighten.sleepFocusGuard, null, 'durée OK → pas de note « sommeil court »');
+  assert.equal(tighten.bedtimeFocusGuard, null, 'couchers pas dispersés maintenant → pas d’alerte');
+  assert.equal(tighten.bedtimeFocusTrend, -30, 'delta signé d’écart-type (resserrement) renvoyé');
+  assert.match(tighten.insight, /Bonne nouvelle côté horloge interne : tes couchers se resserrent \(±30 → ±0 min d’un soir à l’autre\)/);
+  assert.match(tighten.insight, /réaligne l’horloge circadienne qui cadence la vigilance.*vont suivre/);
+  assert.match(tighten.insight, /Tiens ce cap, ta concentration a tout à y gagner/);
+  // Aucune collision avec les notes d’avertissement (durée / timing).
+  assert.doesNotMatch(tighten.insight, /partent dans tous les sens/);
+  assert.doesNotMatch(tighten.insight, /alimente ta concentration/);
+  // Couchers STABLES dans les deux fenêtres (tous 23:00) → delta 0 → dir 'flat' → champ null, pas de note.
+  const steady = [...mk(prevD, () => '23:00', 8), ...mk(recD, () => '23:00', 8)];
+  const calm = L.adaptiveCoachFocus({ focusSessions, recovery: steady }, today);
+  assert.equal(calm.bedtimeFocusTrend, null);
+  assert.doesNotMatch(calm.insight, /tes couchers se resserrent/);
+  // SOMMEIL COURT (6 h) qui prime : même avec un resserrement, sleepFocusGuard parle et la note positive
+  // reste muette (une seule note sommeil/jour ; la durée est le manque le plus grossier).
+  const shortTighten = [...mk(prevD, i => (i % 2 ? '23:30' : '22:30'), 6), ...mk(recD, () => '23:00', 6)];
+  const short = L.adaptiveCoachFocus({ focusSessions, recovery: shortTighten }, today);
+  assert.equal(short.pillar, 'focus');
+  assert.equal(short.sleepFocusGuard, 6);
+  assert.equal(short.bedtimeFocusTrend, null, 'note durée prime → renfort circadien muet');
+  assert.match(short.insight, /alimente ta concentration/);
+  assert.doesNotMatch(short.insight, /tes couchers se resserrent/);
+  // Couchers ENCORE DISPERSÉS maintenant (prev 22:00/03:00, recent 22:30/23:30) : écart-type global ≥ 60
+  // → bedtimeFocusGuard alerte, la note positive ne s’empile PAS dessus même si la tendance se resserre.
+  const stillWide = [...mk(prevD, i => (i % 2 ? '03:00' : '22:00'), 8), ...mk(recD, i => (i % 2 ? '23:30' : '22:30'), 8)];
+  const wide = L.adaptiveCoachFocus({ focusSessions, recovery: stillWide }, today);
+  assert.equal(wide.pillar, 'focus');
+  assert.ok(wide.bedtimeFocusGuard >= 60, 'couchers encore dispersés → alerte');
+  assert.equal(wide.bedtimeFocusTrend, null, 'renfort exclu tant que les couchers sont dispersés');
+  assert.match(wide.insight, /partent dans tous les sens/);
+  assert.doesNotMatch(wide.insight, /tes couchers se resserrent/);
+  // Bloc DÉJÀ posé aujourd’hui (doneToday) → pas de note.
+  const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery: rising }, today);
+  assert.equal(done.bedtimeFocusTrend, null);
+  assert.doesNotMatch(done.insight, /tes couchers se resserrent/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {
