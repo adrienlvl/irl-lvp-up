@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.164');
+  assert.equal(L.CHANGELOG[0].v, '2.0.165');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8686,10 +8686,20 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(freshSleep.focusDrainDriver, null, 'readiness au vert → aucun frein');
   assert.equal(drainSleep.focusFreshDriver, null, 'readiness à plat → aucun moteur de fraîcheur');
   // Zone MÉDIANE (50 ≤ readiness < 75) : ni feu vert ni conflit — sleep 6 / fatigue 3 / soreness 3 → 60.
+  // Mot HONNÊTE de la zone médiane focus (focusGoalSteady, #534) : forme correcte → bloc mesuré.
   const mid = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-19');
   assert.equal(mid.focusGoalFresh, null, 'zone médiane → pas d’alignement');
   assert.equal(mid.focusGoalDrained, null, 'zone médiane → pas de conflit');
+  assert.equal(mid.focusGoalSteady, 60, 'zone médiane → le score du jour renvoyé');
+  assert.match(mid.insight, /Ta forme tient la route ce matin \(readiness 60\/100\) sans être au top/);
+  assert.match(mid.insight, /cale un bloc mesuré/);
   assert.ok(!/à plat ce matin|s’alignent/i.test(mid.insight));
+  // Mutuellement exclusif : au vert (fresh) et à plat (drained) → focusGoalSteady null.
+  assert.equal(fresh.focusGoalSteady, null, 'readiness ≥ 75 → pas de note zone médiane');
+  assert.equal(tired.focusGoalSteady, null, 'readiness < 50 → pas de note zone médiane');
+  assert.equal(onpace.focusGoalSteady, null, 'objectif large → pas de note zone médiane');
+  assert.ok(!/tient la route ce matin/.test(fresh.insight));
+  assert.ok(!/tient la route ce matin/.test(tired.insight));
   // Objectif focus DANS LES TEMPS (onpace) → focusGoalFresh/Drained null (assignés dans la branche serrée).
   assert.equal(onpace.focusGoalFresh, null, 'objectif large → pas de note même côté focus');
   assert.equal(onpace.focusGoalDrained, null, 'objectif large → pas de conflit côté focus');

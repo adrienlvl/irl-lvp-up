@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.164 (2026-07-19)
+## 📍 État actuel — build 2.0.165 (2026-07-19)
+
+> 🎯 **2.0.165** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach comble la **zone
+> MÉDIANE focus**, un mot honnête les jours de forme MOYENNE. Quand la semaine de deep work est **serrée**,
+> `adaptiveCoachFocus` savait parler des **deux extrêmes** — readiness au vert (≥ 75 → `focusGoalFresh`
+> « c'est LE moment de pousser ») et au plancher (< 50 → `focusGoalDrained` « focus court, soigne ta récup »)
+> — mais restait **totalement muet** entre les deux (50 ≤ readiness < 75), soit la **majorité des jours** (le
+> recap #533 le signalait). Nouveau champ **`focusGoalSteady`** (le score du jour, ou `null`, toujours
+> renvoyé) : quand l'allure focus est serrée et qu'un check-in **du jour** met la forme en zone médiane, le
+> coach comble le silence, appendu à l'insight : « Ta forme tient la route ce matin (readiness **60**/100) sans
+> être au top : cale un bloc **mesuré** — tiens la cible du jour sans forcer un marathon de deep work, un bloc
+> net et régulier fait avancer l'objectif sans creuser la fatigue. » C'est le pendant EXACT, côté FOCUS, du
+> « séance correcte, mais garde une marge » du coach SPORT. **Ni surpromesse, ni dramatisation** : on
+> n'encourage pas à foncer (pas au vert) ni ne dramatise la récup (pas au plancher) — juste un cadrage
+> réaliste. **Mutuellement exclusif** de `focusGoalFresh`/`focusGoalDrained` par construction (50 ≤ score
+> < 75). La symétrie forme-du-jour côté focus est désormais **complète sur les trois zones**. Vocabulaire
+> distinct (« tient la route ce matin ») — **zéro** collision regex. **Zéro** nouvelle fonction (réemploi de
+> `readinessScore`). Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #534.
 
 > 🌫️ **2.0.164** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach nomme, **côté FOCUS
 > aussi**, CE QUI te **plombe la tête** les jours à plat. Depuis #532, `focusFreshDriver` dit CE QUI **porte**

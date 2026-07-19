@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.164'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.165'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -870,9 +870,9 @@ app.whenReady().then(async () => {
           // HONNÊTETÉ : courbatures dominantes (6/3/5 → score 45, limiter soreness) → non créditées comme frein du deep work, focusDrainDriver null.
           const fDrainSore = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 5 }] }, '2026-07-19');
           if (!(fDrainSore.focusGoalDrained === 45 && fDrainSore.focusDrainDriver === null) || /te plombe la tête/.test(fDrainSore.insight)) return false;
-          // Zone médiane (50 ≤ readiness < 75) → ni feu vert ni conflit. sleep 6/fat 3/sore 3 → 60.
+          // Zone médiane (50 ≤ readiness < 75) → ni feu vert ni conflit, mot honnête « bloc mesuré » (focusGoalSteady, #534). sleep 6/fat 3/sore 3 → 60.
           const fFocusMid = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-19');
-          if (!(fFocusMid.focusGoalFresh === null && fFocusMid.focusGoalDrained === null)) return false;
+          if (!(fFocusMid.focusGoalFresh === null && fFocusMid.focusGoalDrained === null && fFocusMid.focusGoalSteady === 60 && /Ta forme tient la route ce matin \\(readiness 60\\/100\\) sans être au top/.test(fFocusMid.insight) && /cale un bloc mesuré/.test(fFocusMid.insight))) return false;
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;
