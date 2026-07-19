@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.134 (2026-07-19)
+## 📍 État actuel — build 2.0.135 (2026-07-19)
+
+> 🛌 **2.0.135** — Coaching adaptatif poussé à fond (priorité de la nuit) : on **VARIE le domaine** vers
+> le **SPORT** et on résout un **conflit de consignes**. Le coach « Le focus du moment » savait déjà, le
+> même jour, que l'objectif hebdo de séances était **serré** (`sessionGoalPace === 'tight'` → insight :
+> « il en faut une chaque jour pour tenir l'objectif ») ET que la **forme du jour** était **au plancher**
+> (`readiness < 50` → action : « récupération prioritaire, pas de grosse séance ») — **sans jamais les
+> croiser**. Réunies, ces deux consignes se **contredisent** (pousse chaque jour vs repose-toi) : un bug
+> de crédibilité. Nouveau : dans le bloc readiness (juste après le calcul de `sessionGoalPace`, donc y a
+> accès), quand — et **seulement** quand — l'allure est `tight` ET la readiness `< 50`, le coach
+> **tranche honnêtement** via un champ **`restOverGoal`** (le score du jour, ou `null`), note **appendue**
+> à l'insight : « Mais ta forme est à plat aujourd'hui (readiness 15/100) : la récup prime sur le chiffre
+> — mieux vaut manquer la séance du jour et laisser l'objectif glisser que de forcer sur une réserve
+> vide, tu repars plus fort. » L'action de récup reste **intacte**. Un seul conflit ciblé : `'unreachable'`
+> dit déjà « repars plein lundi » (aucune pression), `'onpace'` a de la marge (aucun conflit), readiness
+> ≥ 50 ne réclame pas de repos. Priorisation intelligente (« quoi faire en premier ») appliquée au conflit
+> le plus piégeux — le calendrier qui pousse quand le corps dit stop. Additif pur, réemploi total (zéro
+> nouvelle fonction). Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #504.
 
 > 🧠 **2.0.134** — Coaching adaptatif poussé à fond (priorité de la nuit) : on **VARIE le domaine**
 > après cinq boucles nutrition (#498→#502) → le **FOCUS**. Le coach « Le focus du moment » donne

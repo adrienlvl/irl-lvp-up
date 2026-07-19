@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.135', emoji: '🛌', text: 'Quand ton coach « Le focus du moment » pousse ton SPORT, il ne te donne plus deux consignes contradictoires le même jour. Jusqu’ici, si ton objectif hebdo était SERRÉ (« il en faut une chaque jour pour tenir l’objectif ») ET que ta forme du jour était à plat (« récupération prioritaire, pas de grosse séance aujourd’hui »), le coach te disait à la fois de pousser tous les jours ET de te reposer. Désormais il TRANCHE, honnêtement : « Mais ta forme est à plat aujourd’hui (readiness 15/100) : la récup prime sur le chiffre — mieux vaut manquer la séance du jour et laisser l’objectif glisser que de forcer sur une réserve vide, tu repars plus fort. » La récup passe avant le compteur : rater une séance quand le corps dit stop vaut mieux qu’une blessure. La note n’apparaît que sur ce conflit précis (objectif serré ET forme au plancher) — un objectif déjà hors de portée dit déjà « repars plein lundi », et un objectif large n’a aucun conflit.' },
   { v: '2.0.134', emoji: '🧠', text: 'Quand ton coach « Le focus du moment » pousse ton FOCUS, ton objectif hebdo de minutes ne se contente plus d’afficher un compteur (« 25/120 min ») : il te donne maintenant la CONDUITE du jour, comme il le fait déjà pour tes séances de sport. Il regarde combien de minutes il te reste à faire et sur combien de jours, puis te dit la marche à suivre. Dans les temps : « ~15 min/jour sur les 6 jours restants et l’objectif tombe — tu as la marge. » Et quand ça se resserre (dernier jour, gros reste) : « Serré : 90 min restantes pour 1 jour — cale un vrai bloc d’~90 min chaque jour pour tenir la cible. » Comme les minutes de focus s’accumulent (aujourd’hui compte toujours), pas de faux « hors de portée » : juste deux registres honnêtes, marge ou serré. Un objectif déjà atteint garde son « 💪 » habituel.' },
   { v: '2.0.133', emoji: '💧', text: 'Quand ton coach « Le focus du moment » pousse ta NUTRITION, ton HYDRATATION gagne à son tour une conscience de tendance — le dernier intrant nutrition qui ne parlait que du présent. Jusqu’ici l’eau n’avait que sa jauge du jour ; sa RÉGULARITÉ d’une semaine à l’autre restait muette. Désormais, quand tes protéines n’ont rien de neuf à signaler, le coach regarde l’eau : « Et côté hydratation, ça suit : 6 jours à tes 8 verres cette semaine vs 3 la précédente (+3) — cette régularité soutient ta récup », ou, si ça glisse, « Côté hydratation en revanche, ça décroche : 3 jours à tes 8 verres cette semaine vs 6 la précédente (-3) — un verre régulier soutient récup et satiété. » Un seul intrant parle à la fois : protéines d’abord (ton levier), l’eau en relais — c’est de la priorisation, pas un mur de texte. La note ne contredit jamais une série protéines que tu tiens, marche même sans profil complet, et n’apparaît qu’avec une semaine précédente renseignée.' },
   { v: '2.0.132', emoji: '🍗', text: 'Quand ton coach « Le focus du moment » pousse ta NUTRITION, il ne regarde plus seulement ta régularité protéines DU MOMENT (ta série en cours, ou ton « N/7 cette semaine ») — il lit maintenant dans quelle DIRECTION elle va. Deux « 4/7 » n’appellent pas le même mot selon que ta régularité DÉCOLLE (4 jours à la cible cette semaine contre 1 la précédente) ou S’EFFRITE (4 contre 7). Désormais, quand elle grimpe, il te crédite : « Et ta régularité grimpe : 5 jours à la cible cette semaine vs 2 la précédente (+3) — la dynamique est bonne, garde le cap. » Et quand elle glisse (hors série en cours), il t’alerte sans gronder : « Mais ta régularité s’effrite : 3 jours à la cible cette semaine vs 6 la précédente (-3) — un jour réglé aujourd’hui enraye la glissade. » La note enrichit ton conseil protéines sans jamais le remplacer, ne contredit jamais une série que tu tiens, et n’apparaît qu’avec une semaine précédente renseignée.' },
@@ -5149,7 +5150,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // sous 50, feu vert pour pousser au-dessus de 75, séance mesurée entre les deux. On exige un
   // check-in DATÉ DU JOUR — une readiness d'hier ne dit rien de la forme d'aujourd'hui. (Le
   // micro-pas et le renfort, plus bas, peuvent encore prendre le dessus selon le suivi.)
-  let readiness = null;
+  let readiness = null, restOverGoal = null;
   if (chosen.pillar === 'sport' && typeof readinessScore === 'function') {
     const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
     const rs = todayR ? readinessScore(todayR) : null;
@@ -5158,6 +5159,23 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       if (rs.score < 50) action = `Readiness ${rs.score}/100 — récupération prioritaire : vise mobilité, marche ou technique légère plutôt qu’une grosse séance aujourd’hui.`;
       else if (rs.score >= 75) action = `Readiness ${rs.score}/100 — ton corps est prêt à pousser : c’est le jour d’une vraie séance, monte un peu l’intensité.`;
       else action = `Readiness ${rs.score}/100 — séance correcte, mais garde une marge : pas de record aujourd’hui.`;
+      // RÉCONCILIATION objectif hebdo × forme du jour — priorisation intelligente (« quoi faire en
+      // premier aujourd'hui »). Quand l'allure de l'objectif hebdo est SERRÉE (sessionGoalPace 'tight' →
+      // l'insight vient de dire « il en faut une chaque jour pour tenir l'objectif ») ET que la forme du
+      // jour est à PLAT (readiness < 50 → l'action dit « récupération prioritaire, pas de grosse séance »),
+      // l'insight et l'action se CONTREDISENT frontalement : pousse une séance chaque jour vs repose-toi
+      // aujourd'hui. Laisser les deux côte à côte est un bug de crédibilité (le coach parle des deux coins
+      // de la bouche). Le coach TRANCHE honnêtement — la récup passe avant le chiffre : rater la séance du
+      // jour et laisser l'objectif hebdo glisser vaut mieux que forcer sur une réserve vide (blessure,
+      // dégoût, forme qui s'enfonce). C'est l'« adaptation aux écarts » demandée pour la nuit, appliquée au
+      // conflit le plus piégeux (le calendrier qui pousse quand le corps dit stop). Ne se déclenche QUE sur
+      // ce conflit précis (tight × readiness plancher) — 'unreachable' dit déjà « repars plein lundi »
+      // (aucune pression à désamorcer) et 'onpace' a de la marge (aucun conflit). Additif pur : restOverGoal
+      // (le score du jour, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight, l'action de récup intacte.
+      if (rs.score < 50 && sessionGoalPace === 'tight') {
+        restOverGoal = rs.score;
+        insight += ` Mais ta forme est à plat aujourd’hui (readiness ${rs.score}/100) : la récup prime sur le chiffre — mieux vaut manquer la séance du jour et laisser l’objectif glisser que de forcer sur une réserve vide, tu repars plus fort.`;
+      }
     }
   }
   // Coach du RÉ-AMORÇAGE — ÉLIGIBILITÉ (calculée ici, APPLIQUÉE après les créneaux/micro-pas). Un
@@ -6113,7 +6131,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, loadSpike, readinessSlide, readinessRebound, lowLoad, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, restOverGoal, loadSpike, readinessSlide, readinessRebound, lowLoad, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.134'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.135'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -957,6 +957,11 @@ app.whenReady().then(async () => {
           const fRdHigh = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
           if (!(fRdHigh.readiness === 100 && /pr[êe]t [àa] pousser/.test(fRdHigh.action))) return false;
           if (adaptiveCoachFocus({ workouts: rdWk }, '2026-07-16').readiness !== null) return false;
+          // RÉCONCILIATION objectif serré × forme à plat : vendredi 07-17, 3 séances pour 3 j (tight) + readiness 15 → le coach tranche pour la récup (restOverGoal), l'action de récup intacte.
+          const fRestGoal = adaptiveCoachFocus({ goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }], recovery: [{ date: '2026-07-17', sleep: 3, fatigue: 5, soreness: 5 }] }, '2026-07-17');
+          if (!(fRestGoal.pillar === 'sport' && fRestGoal.sessionGoalPace === 'tight' && fRestGoal.restOverGoal === 15 && /forme est [àa] plat aujourd.hui \\(readiness 15\\/100\\)/.test(fRestGoal.insight) && /r[ée]cup[ée]ration prioritaire/.test(fRestGoal.action))) return false;
+          // Forme au vert le même jour serré → pas de conflit → restOverGoal null.
+          if (adaptiveCoachFocus({ goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }], recovery: [{ date: '2026-07-17', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-17').restOverGoal !== null) return false;
           // Coach CONSCIENT de la CHARGE : pic aigu/chronique (ACWR high) → l'action sport TEMPÈRE (allège),
           // même sans readiness ; readiness au vert → registre « consolidation » ; le créneau est coupé.
           const spikeWk = [{ date: '2026-07-10', duration: 100, effort: 3 }, { date: '2026-07-12', duration: 100, effort: 3 }, { date: '2026-07-14', duration: 100, effort: 3 }, { date: '2026-07-05', duration: 30, effort: 1 }, { date: '2026-07-08', duration: 30, effort: 1 }, { date: '2026-06-28', duration: 30, effort: 1 }];

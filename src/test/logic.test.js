@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.134');
+  assert.equal(L.CHANGELOG[0].v, '2.0.135');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8171,6 +8171,39 @@ test('adaptiveCoachFocus : allure de l’objectif de séances hebdo (faisabilit�
   const noGoal = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }] }, '2026-07-14');
   assert.equal(noGoal.sessionGoalPace, null);
   assert.ok(!/Dans les temps|Serré|ne passera plus/.test(noGoal.insight));
+});
+
+test('adaptiveCoachFocus : réconciliation objectif serré × forme à plat (restOverGoal)', () => {
+  // Vendredi 2026-07-17 (semaine lundi 07-13 → dim 07-19). Objectif 4 séances, 1 faite → 3 pour 3 j
+  // restants = allure SERRÉE. Check-in du jour à plat (readiness 15/100). Les deux consignes se
+  // contredisent (« une chaque jour » vs « repose ») → le coach tranche : la récup prime.
+  const conflict = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-17', sleep: 3, fatigue: 5, soreness: 5 }],
+  }, '2026-07-17');
+  assert.equal(conflict.pillar, 'sport');
+  assert.equal(conflict.sessionGoalPace, 'tight');
+  assert.equal(conflict.readiness, 15);
+  assert.equal(conflict.restOverGoal, 15);
+  assert.match(conflict.insight, /ta forme est à plat aujourd’hui \(readiness 15\/100\)/);
+  assert.match(conflict.insight, /la récup prime sur le chiffre/);
+  assert.match(conflict.action, /récupération prioritaire/); // l'action de récup reste intacte
+  // Forme au VERT le même jour serré → aucun conflit, restOverGoal null (le coach dit « pousse »).
+  const fresh = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-17', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-17');
+  assert.equal(fresh.sessionGoalPace, 'tight');
+  assert.equal(fresh.restOverGoal, null);
+  assert.ok(!/forme est à plat/.test(fresh.insight));
+  // Forme à plat mais allure LARGE (mardi, dans les temps) → pas de conflit à désamorcer → null.
+  const loose = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-14', sleep: 3, fatigue: 5, soreness: 5 }],
+  }, '2026-07-14');
+  assert.equal(loose.sessionGoalPace, 'onpace');
+  assert.equal(loose.restOverGoal, null);
+  assert.ok(!/forme est à plat/.test(loose.insight));
 });
 
 test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jours restants)', () => {
