@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.114'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.115'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -877,6 +877,12 @@ app.whenReady().then(async () => {
           const fSpark = adaptiveCoachFocus({ workouts: [{ date: '2026-06-15' }, { date: '2026-07-16' }] }, '2026-07-16');
           if (!(fSpark.comeback === true && fSpark.recentDays === 1 && fSpark.comebackStage === 'spark' && /Ne force pas le rythme/.test(fSpark.action) && /un 2e jour actif cette semaine/.test(fSpark.action))) return false;
           if (fBoost.comeback !== false || fBoost.comebackStage !== null) return false; // hausse continue (pas de trou) → pas de relance
+          // Coach de la SÉRIE EN JEU : 3 jours d'entraînement consécutifs finissant HIER, rien aujourd'hui → série ≥ 3 nommée (aversion à la perte).
+          const fSeries = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' }] }, '2026-07-16');
+          if (!(fSeries.tone === 'reinforce' && fSeries.streakAtRisk === 3 && /série de 3 jours d.affilée sur ton entraînement est en jeu/.test(fSeries.insight))) return false;
+          // Série PROLONGÉE (geste du jour déjà posé, 07-16) → plus « en jeu » → aucune note, streakAtRisk null.
+          const fSeriesToday = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' }, { date: '2026-07-16' }] }, '2026-07-16');
+          if (fSeriesToday.streakAtRisk !== null || /est en jeu/.test(fSeriesToday.insight)) return false;
           // Coach CONSCIENT de la readiness : focus « sport » + check-in du jour → action calée sur la readiness.
           const rdWk = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
           const fRdLow = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 3, fatigue: 5, soreness: 5 }] }, '2026-07-16');

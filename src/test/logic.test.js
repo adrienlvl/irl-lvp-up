@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.114');
+  assert.equal(L.CHANGELOG[0].v, '2.0.115');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7167,6 +7167,30 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(fresh.tone, 'reinforce');
   assert.equal(fresh.comeback, false, 'pilier sans passé avant la fenêtre récente → pas de relance');
   assert.equal(fresh.comebackStage, null, 'hors relance → comebackStage null');
+  // La reprise fraîche (comeback) NE double PAS avec la série en jeu : elle raconte déjà le run.
+  assert.equal(spark.streakAtRisk, null, 'comeback → pas de note « série en jeu » (disjoint)');
+
+  // SÉRIE EN JEU : 3 jours d'entraînement CONSÉCUTIFS finissant hier (13-14-15), rien aujourd'hui →
+  // renforcement + série ≥ 3 nommée, aversion à la perte.
+  const series = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' },
+  ] }, today);
+  assert.equal(series.tone, 'reinforce');
+  assert.equal(series.comeback, false, 'pas de long trou avant → pas de relance');
+  assert.equal(series.streakAtRisk, 3, '3 jours consécutifs finissant hier → série de 3 en jeu');
+  assert.match(series.insight, /série de 3 jours d’affilée sur ton entraînement est en jeu/);
+  assert.match(series.insight, /un seul geste aujourd’hui la garde vivante/);
+  // Geste du jour DÉJÀ posé (07-16) → la série est prolongée, plus « en jeu » → aucune note.
+  const seriesToday = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' }, { date: '2026-07-16' },
+  ] }, today);
+  assert.equal(seriesToday.doneToday, true);
+  assert.equal(seriesToday.streakAtRisk, null, 'geste du jour posé → série prolongée, pas en jeu');
+  assert.doesNotMatch(seriesToday.insight, /est en jeu/);
+  // Série trop courte (2 jours consécutifs) → sous le seuil, pas de note.
+  const shortSeries = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: '2026-07-15' }] }, today);
+  assert.equal(shortSeries.tone, 'reinforce');
+  assert.equal(shortSeries.streakAtRisk, null, 'série de 2 j < 3 → pas de note « en jeu »');
 
   // priorité : un pilier qui décroche l'emporte sur un autre en hausse.
   const mixed = L.adaptiveCoachFocus({

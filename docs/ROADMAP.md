@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.114 (2026-07-19)
+## 📍 État actuel — build 2.0.115 (2026-07-19)
+
+> 🔥 **2.0.115** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **brandit désormais tes SÉRIES en jeu** (aversion à la perte, le ressort de motivation le
+> plus puissant d'une app gamifiée). Quand il RENFORCE un pilier qui tourne bien (`reinforce`), son
+> insight restait abstrait (« garde le rythme ») alors qu'un signal décisif dormait dans les données :
+> une **série de jours CONSÉCUTIFS** sur ce pilier, encore **vivante** mais **pas honorée
+> aujourd'hui**. Il la nomme enfin : « Ton entraînement monte en régime… 🔥 **Ta série de 3 jours
+> d'affilée sur ton entraînement est en jeu — un seul geste aujourd'hui la garde vivante.** » Perdre
+> une série fait agir plus fort que gagner un jour de plus. Points de conception : **en jeu, pas
+> prolongée** — dès que le geste du jour est posé, la série est prolongée, plus menacée → le coach se
+> tait (`streakAtRisk` null ; test `activeToday` local, valable pour les 4 piliers, pas seulement
+> sport/focus que traque `doneToday`) ; **disjoint du comeback** (#482/#483 : une reprise fraîche
+> raconte déjà l'histoire du run) ; seuil ≥ 3 j (1er palier `STREAK_MILESTONES`), réutilise
+> `dailyStreak`. Additif pur : champ `streakAtRisk` (nombre de jours, ou null) TOUJOURS renvoyé, note
+> appendue à l'insight, action intacte. `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #484.
 
 > 📈 **2.0.114** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » fait désormais **GRANDIR le geste au fil d'une reprise** — le **troisième temps** de l'arc du
