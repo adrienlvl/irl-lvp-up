@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.143'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.144'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -891,6 +891,13 @@ app.whenReady().then(async () => {
           // Prise × sommeil solide (8 h) → aucun frein invisible.
           const fGainRested = adaptiveCoachFocus({ nutrition: fWeightNut, goals: { targetWeight: 90 }, weights: [{ date: '2026-06-01', value: 82 }, { date: '2026-07-14', value: 85 }], recovery: fShortSleep.map(r => ({ date: r.date, sleep: 8 })) }, '2026-07-16');
           if (fGainRested.sleepGainGuard !== null || /frein invisible/.test(fGainRested.insight)) return false;
+          // Coach INTER-PILIER (pendant SPORT) : sommeil COURT (avg < 7, non urgent) × pilier SPORT → socle invisible des gains d'entraînement (sleepTrainGuard).
+          const fSportWk = [{ date: '2026-07-04' }, { date: '2026-07-06' }, { date: '2026-07-08' }, { date: '2026-07-15' }];
+          const fSleepTrain = adaptiveCoachFocus({ workouts: fSportWk, recovery: fShortSleep }, '2026-07-16');
+          if (!(fSleepTrain.pillar === 'sport' && fSleepTrain.sleepTrainGuard === 6 && fSleepTrain.sleepFatLossGuard === null && /Et n.oublie pas le socle invisible de tes gains : tu dors 6 h en moyenne ces derniers jours \\(dette de 21 h sur 14 j\\), sous les 7 h/.test(fSleepTrain.insight) && /Bien dormir d[ée]multiplie l.effort/.test(fSleepTrain.insight))) return false;
+          // Sport × sommeil solide (8 h) → aucun socle invisible.
+          const fSportRested = adaptiveCoachFocus({ workouts: fSportWk, recovery: fShortSleep.map(r => ({ date: r.date, sleep: 8 })) }, '2026-07-16');
+          if (fSportRested.sleepTrainGuard !== null || /socle invisible/.test(fSportRested.insight)) return false;
           // PENTE d'ADHÉRENCE protéines : régularité qui s'effrite (semaine récente 3 < précédente 6, hors série) → note chiffrée.
           const fProtDown = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 160 }, { date: '2026-07-04', protein: 160 }, { date: '2026-07-05', protein: 160 }, { date: '2026-07-06', protein: 160 }, { date: '2026-07-07', protein: 160 }, { date: '2026-07-08', protein: 160 }, { date: '2026-07-10', protein: 160 }, { date: '2026-07-11', protein: 160 }, { date: '2026-07-12', protein: 160 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fProtDown.pillar === 'nutrition' && fProtDown.proteinTrend === -3 && /r[ée]gularit[ée] s.effrite : 3 jours à la cible cette semaine vs 6 la précédente \\(-3\\)/.test(fProtDown.insight))) return false;

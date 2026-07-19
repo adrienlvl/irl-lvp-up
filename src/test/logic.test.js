@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.143');
+  assert.equal(L.CHANGELOG[0].v, '2.0.144');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8741,6 +8741,50 @@ test('adaptiveCoachFocus : focus nutrition — le SOMMEIL court, frein caché de
   const none = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights }, today);
   assert.equal(none.sleepFatLossGuard, null);
   assert.doesNotMatch(none.insight, /frein caché/);
+});
+
+test('adaptiveCoachFocus : focus sport — le SOMMEIL court, socle invisible des gains d’entraînement', () => {
+  const today = '2026-07-16';
+  // Sport en décrochage (3 séances la semaine passée, 1 récente) → sport = focus (ton rebuild, tier 0).
+  const workouts = [
+    { date: '2026-07-04' }, { date: '2026-07-06' }, { date: '2026-07-08' },
+    { date: '2026-07-15' },
+  ];
+  // Sommeil COURT et RÉGULIER (14 nuits à 6 h → avg 6 < 7, stdev 0 → tone 'attention', PAS 'urgent' → le
+  // sommeil n'est pas forcé en tête, sport reste le focus). recovery remplie les deux semaines (recentDays
+  // == prevDays == 7) → sommeil tier 9, jamais candidat correction. Debt = 14 × (7,5 − 6) = 21 h sur 14 j.
+  const shortSleep = [];
+  for (const d of ['03','04','05','06','07','08','09','10','11','12','13','14','15','16']) shortSleep.push({ date: `2026-07-${d}`, sleep: 6 });
+  const drained = L.adaptiveCoachFocus({ workouts, recovery: shortSleep }, today);
+  assert.equal(drained.pillar, 'sport', 'sommeil court mais non urgent → sport reste le focus');
+  assert.equal(drained.sleepTrainGuard, 6);
+  assert.match(drained.insight, /Et n’oublie pas le socle invisible de tes gains : tu dors 6 h en moyenne ces derniers jours \(dette de 21 h sur 14 j\), sous les 7 h/);
+  assert.match(drained.insight, /consolide l’entraînement.*synthèse protéique.*plafonne les gains de chaque séance.*risque de blessure/);
+  assert.match(drained.insight, /Bien dormir démultiplie l’effort/);
+  // La note nutrition ne s’invite jamais côté sport (leviers/pilier distincts).
+  assert.equal(drained.sleepFatLossGuard, null);
+  assert.equal(drained.sleepGainGuard, null);
+  assert.doesNotMatch(drained.insight, /frein caché|frein invisible/);
+  // SOMMEIL SOLIDE (8 h) → aucun socle invisible, champ null.
+  const rested = shortSleep.map(r => ({ ...r, sleep: 8 }));
+  const ok = L.adaptiveCoachFocus({ workouts, recovery: rested }, today);
+  assert.equal(ok.pillar, 'sport');
+  assert.equal(ok.sleepTrainGuard, null);
+  assert.doesNotMatch(ok.insight, /socle invisible/);
+  // Moins de 3 nuits chiffrées → signal trop maigre, champ null.
+  const thin = L.adaptiveCoachFocus({ workouts, recovery: [
+    { date: '2026-07-15', sleep: 6 }, { date: '2026-07-16', sleep: 6 },
+  ] }, today);
+  assert.equal(thin.sleepTrainGuard, null);
+  assert.doesNotMatch(thin.insight, /socle invisible/);
+  // Aucune donnée de récup → sleepIns null → champ null, note absente.
+  const none = L.adaptiveCoachFocus({ workouts }, today);
+  assert.equal(none.sleepTrainGuard, null);
+  assert.doesNotMatch(none.insight, /socle invisible/);
+  // Séance DÉJÀ faite aujourd’hui (doneToday) → pas de note (l’insight félicite, pas de conseil du jour).
+  const done = L.adaptiveCoachFocus({ workouts: [...workouts, { date: today }], recovery: shortSleep }, today);
+  assert.equal(done.sleepTrainGuard, null);
+  assert.doesNotMatch(done.insight, /socle invisible/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

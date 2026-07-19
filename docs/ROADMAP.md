@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.143 (2026-07-19)
+## 📍 État actuel — build 2.0.144 (2026-07-19)
+
+> 🌙 **2.0.144** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant SPORT** du
+> croisement inter-pilier sommeil × entraînement, filon laissé ouvert par #512. Après avoir bouclé les
+> **deux faces de la balance** côté nutrition (#511 perte, #512 prise), le pilier **sport** croisait déjà
+> la forme du JOUR (`readiness`) et la charge des 7 j (`acuteChronicRatio`) mais restait **aveugle au
+> sommeil CHRONIQUE** — une lecture *distincte* de la readiness (état aigu d'un matin) : le sommeil moyen
+> des derniers relevés est un signal **structurel** qu'on peut avoir dégradé malgré une readiness
+> correcte. Nouveau champ **`sleepTrainGuard`** (moyenne h, ou `null`) : quand le pilier poussé est le
+> **sport**, la séance du jour pas faite (`!doneToday`) ET le sommeil récent **court** (`sleepIns.avg < 7`
+> sur ≥ 3 nuits), une note s'append : « Et n'oublie pas le socle invisible de tes gains : tu dors 6 h en
+> moyenne… (dette de 21 h sur 14 j), sous les 7 h — c'est la nuit que le corps consolide l'entraînement
+> (synthèse protéique, réparation, hormones), et dormir court plafonne les gains de chaque séance tout en
+> augmentant le risque de blessure. Bien dormir démultiplie l'effort que tu fournis déjà. » Libellé
+> « socle **invisible** » distinct des « frein **caché** » (perte) / « frein **invisible** » (prise) ;
+> même garde-fou que #511/#512 (sommeil en alerte `tone 'urgent'` → pilier sommeil forcé, on n'entre pas
+> dans la branche sport → la note ne parle que dans le cas subtil). Additif pur, réemploi total
+> (`sleepIns`, `doneToday`), zéro nouvelle fonction. Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #513.
 
 > 💪 **2.0.143** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant PRISE** du
 > croisement inter-pilier ouvert en #511 (sommeil × perte). #511 ne visait que la **perte** de gras et
