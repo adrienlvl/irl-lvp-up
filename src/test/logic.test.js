@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.144');
+  assert.equal(L.CHANGELOG[0].v, '2.0.145');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8785,6 +8785,52 @@ test('adaptiveCoachFocus : focus sport — le SOMMEIL court, socle invisible des
   const done = L.adaptiveCoachFocus({ workouts: [...workouts, { date: today }], recovery: shortSleep }, today);
   assert.equal(done.sleepTrainGuard, null);
   assert.doesNotMatch(done.insight, /socle invisible/);
+});
+
+test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de la concentration', () => {
+  const today = '2026-07-16';
+  // Focus en décrochage (3 blocs la semaine passée, 1 récent) → focus = focus (ton rebuild, tier 0).
+  // Dernier bloc = 2026-07-14 → aucun bloc aujourd’hui (!doneToday vrai).
+  const focusSessions = [
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-06', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-07', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 25, task: 'Thèse' },
+  ];
+  // Sommeil COURT et RÉGULIER (14 nuits à 6 h → avg 6 < 7, stdev 0 → tone 'attention', PAS 'urgent' → le
+  // sommeil n’est pas forcé en tête, focus reste le focus). recovery remplie les deux semaines → sommeil
+  // tier 9, jamais candidat. Debt = 14 × (7,5 − 6) = 21 h sur 14 j.
+  const shortSleep = [];
+  for (const d of ['03','04','05','06','07','08','09','10','11','12','13','14','15','16']) shortSleep.push({ date: `2026-07-${d}`, sleep: 6 });
+  const drained = L.adaptiveCoachFocus({ focusSessions, recovery: shortSleep }, today);
+  assert.equal(drained.pillar, 'focus', 'sommeil court mais non urgent → focus reste le focus');
+  assert.equal(drained.sleepFocusGuard, 6);
+  assert.match(drained.insight, /Et n’oublie pas ce qui alimente ta concentration : tu dors 6 h en moyenne ces derniers jours \(dette de 21 h sur 14 j\), sous les 7 h/);
+  assert.match(drained.insight, /émousse l’attention et la mémoire de travail.*consolide ce que tu apprends le jour/);
+  assert.match(drained.insight, /démultiplie chaque bloc de focus/);
+  // Les notes des autres piliers ne s’invitent jamais côté focus (leviers/pilier distincts).
+  assert.equal(drained.sleepFatLossGuard, null);
+  assert.equal(drained.sleepGainGuard, null);
+  assert.equal(drained.sleepTrainGuard, null);
+  assert.doesNotMatch(drained.insight, /frein caché|frein invisible|socle invisible/);
+  // SOMMEIL SOLIDE (8 h) → aucun carburant caché, champ null.
+  const rested = shortSleep.map(r => ({ ...r, sleep: 8 }));
+  const ok = L.adaptiveCoachFocus({ focusSessions, recovery: rested }, today);
+  assert.equal(ok.pillar, 'focus');
+  assert.equal(ok.sleepFocusGuard, null);
+  assert.doesNotMatch(ok.insight, /alimente ta concentration/);
+  // Moins de 3 nuits chiffrées → signal trop maigre, champ null.
+  const thin = L.adaptiveCoachFocus({ focusSessions, recovery: [
+    { date: '2026-07-15', sleep: 6 }, { date: '2026-07-16', sleep: 6 },
+  ] }, today);
+  assert.equal(thin.sleepFocusGuard, null);
+  assert.doesNotMatch(thin.insight, /alimente ta concentration/);
+  // Aucune donnée de récup → sleepIns null → champ null, note absente.
+  const none = L.adaptiveCoachFocus({ focusSessions }, today);
+  assert.equal(none.sleepFocusGuard, null);
+  assert.doesNotMatch(none.insight, /alimente ta concentration/);
+  // Bloc DÉJÀ posé aujourd’hui (doneToday) → pas de note.
+  const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery: shortSleep }, today);
+  assert.equal(done.sleepFocusGuard, null);
+  assert.doesNotMatch(done.insight, /alimente ta concentration/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

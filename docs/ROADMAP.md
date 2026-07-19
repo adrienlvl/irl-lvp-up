@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.144 (2026-07-19)
+## 📍 État actuel — build 2.0.145 (2026-07-19)
+
+> 🧠 **2.0.145** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant FOCUS** du
+> croisement inter-pilier sommeil chronique × pilier, **dernière des quatre faces** (après perte #511,
+> prise #512, sport #513). Le pilier **focus** lisait déjà l'allure hebdo de minutes (`focusGoalPace`) et
+> la forme du JOUR (`focusGoalFresh`/`focusGoalDrained` via `readiness`) mais restait **aveugle au sommeil
+> CHRONIQUE** — axe orthogonal à la readiness d'un matin (on peut l'avoir correcte tout en accumulant une
+> dette depuis des jours). Nouveau champ **`sleepFocusGuard`** (moyenne h, ou `null`) : quand le pilier
+> poussé est le **focus**, le bloc du jour pas fait (`!doneToday`) ET le sommeil récent **court**
+> (`sleepIns.avg < 7` sur ≥ 3 nuits), une note s'append : « Et n'oublie pas ce qui alimente ta
+> concentration : tu dors 6 h en moyenne… (dette de 21 h sur 14 j), sous les 7 h — une nuit courte émousse
+> l'attention et la mémoire de travail (le cortex préfrontal tourne au ralenti), et c'est la nuit que le
+> cerveau consolide ce que tu apprends le jour. Dormir court, c'est fournir plus d'effort pour retenir
+> moins ; bien dormir démultiplie chaque bloc de focus. » Libellé « **alimente** ta concentration »
+> distinct des « frein **caché** » (perte) / « frein **invisible** » (prise) / « socle **invisible** »
+> (sport) ; même garde-fou (sommeil `tone 'urgent'` → pilier sommeil forcé → note muette). Le thème
+> « sommeil chronique × pilier » est désormais **saturé** (4/4 piliers). Additif pur, réemploi total
+> (`sleepIns`, `doneToday`), zéro nouvelle fonction. Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #514.
 
 > 🌙 **2.0.144** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant SPORT** du
 > croisement inter-pilier sommeil × entraînement, filon laissé ouvert par #512. Après avoir bouclé les
