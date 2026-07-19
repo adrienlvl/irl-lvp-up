@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.159');
+  assert.equal(L.CHANGELOG[0].v, '2.0.160');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9575,6 +9575,42 @@ test('adaptiveCoachFocus : projette le prochain palier quand la force MONTE (spo
   assert.equal(L.adaptiveCoachFocus({ workouts: bw }, today).sportProgress, null, 'poids du corps → pas de projection de charge');
   // Autre pilier (focus) → sportProgress toujours null.
   assert.equal(L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-14', minutes: 30 }] }, today).sportProgress, null, 'projection de force = pilier sport uniquement');
+});
+
+test('adaptiveCoachFocus : fête un RECORD personnel battu aujourd’hui (sportRecordToday)', () => {
+  const today = '2026-07-16';
+  const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] });
+  // Squat pratiqué depuis des jours (meilleur passé = 104×5 → 1RM 121,5) puis, AUJOURD'HUI, 110×5
+  // (1RM estimé 128,5) → un vrai PR battu ce jour sur un exercice déjà au palmarès.
+  const wk = [wo('2026-07-08', 100, 5), wo('2026-07-11', 102, 5), wo('2026-07-14', 104, 5), wo(today, 110, 5)];
+  const f = L.adaptiveCoachFocus({ workouts: wk }, today);
+  assert.equal(f.pillar, 'sport');
+  assert.equal(f.doneToday, true, 'séance du jour posée');
+  assert.ok(f.sportRecordToday && f.sportRecordToday.exercise === 'Squat', 'record du jour détecté sur le Squat');
+  assert.equal(f.sportRecordToday.e1rm, 128.5, '1RM estimé du record');
+  assert.equal(f.sportRecordToday.load, 110, 'charge du record');
+  assert.equal(f.sportRecordToday.reps, 5, 'répétitions du record');
+  assert.match(f.insight, /tu viens de battre ton record sur le Squat/, 'le record est nommé dans l’insight');
+  assert.match(f.insight, /1RM estimé à 128,5 kg/, 'le 1RM du record est chiffré');
+  assert.match(f.insight, /ta meilleure perf à ce jour/, 'la victoire est explicitée');
+  // Séance du jour SANS record (effort en deçà du meilleur passé) → aucune note.
+  const fNo = L.adaptiveCoachFocus({ workouts: [wo('2026-07-08', 100, 5), wo('2026-07-11', 102, 5), wo('2026-07-14', 110, 5), wo(today, 100, 5)] }, today);
+  assert.equal(fNo.doneToday, true);
+  assert.equal(fNo.sportRecordToday, null, 'pas de PB battu aujourd’hui → muet');
+  assert.ok(!/battre ton record/.test(fNo.insight), 'aucune note record sans PB du jour');
+  // « Record » TRIVIAL de première fois : exercice jamais pratiqué avant aujourd'hui → ignoré (honnêteté).
+  const fFirst = L.adaptiveCoachFocus({ workouts: [wo('2026-07-08', 100, 5), wo('2026-07-11', 102, 5), wo('2026-07-14', 104, 5), { date: today, exercises: [{ name: 'Soulevé de terre', setLogs: [{ completed: true, load: 140, reps: 3 }] }] }] }, today);
+  assert.equal(fFirst.doneToday, true);
+  assert.equal(fFirst.sportRecordToday, null, 'premier passage sur un exercice → pas un record à fêter');
+  // Séance PAS faite aujourd'hui → jamais de record du jour.
+  const fPast = L.adaptiveCoachFocus({ workouts: [wo('2026-07-08', 100, 5), wo('2026-07-11', 102, 5), wo('2026-07-14', 110, 5)] }, today);
+  assert.equal(fPast.doneToday, false);
+  assert.equal(fPast.sportRecordToday, null, 'pas de séance du jour → pas de record du jour');
+  // Poids du corps uniquement (aucune charge → 1RM non estimable) → muet même sur un « mieux ».
+  const bw = ['2026-07-08', '2026-07-11', '2026-07-14', today].map((d, i) => ({ date: d, exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 + i * 4 }] }] }));
+  assert.equal(L.adaptiveCoachFocus({ workouts: bw }, today).sportRecordToday, null, 'poids du corps → pas de record de charge');
+  // Autre pilier (focus) → sportRecordToday toujours null.
+  assert.equal(L.adaptiveCoachFocus({ focusSessions: [{ date: today, minutes: 30 }] }, today).sportRecordToday, null, 'record de force = pilier sport uniquement');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {

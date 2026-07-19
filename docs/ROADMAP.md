@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.159 (2026-07-19)
+## 📍 État actuel — build 2.0.160 (2026-07-19)
+
+> 🏆 **2.0.160** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach **fête enfin tes
+> RECORDS**. Il savait projeter une force qui monte (`sportProgress`, #527) et signaler un plateau
+> (`sportPlateau`, #526), mais ces notes n'existent que les jours SANS séance — le jour où tu bats un
+> **record personnel**, il ne servait qu'un « séance déjà faite » générique, ratant le moment le plus
+> fort (le **sommet de « l'adaptation aux progrès »**). Nouveau champ **`sportRecordToday`**
+> (`{ exercise, e1rm, load, reps }` ou `null`) : réemploi de **`strengthRecords`** (palmarès par
+> exercice chargé, **avec la date** du meilleur 1RM — jamais lu par le coach jusqu'ici). Quand la séance
+> du jour (`doneToday`) établit un record sur un exercice **déjà pratiqué avant**, le coach le NOMME et
+> le FÊTE, appendu à l'insight : « 🏆 Et pas n'importe quelle séance : tu viens de **battre ton record
+> sur le Squat** — **110 kg × 5** (1RM estimé à **128,5 kg**), ta meilleure perf à ce jour. Ça, c'est
+> gravé — savoure. » **HONNÊTE** : record **strictement** battu (égaler ne compte pas), sur un exercice
+> **au palmarès avant ce jour** (pas de « record » trivial de première fois), poids du corps ignoré
+> (`estimate1RM(0,r)` → null). **Exclusif** de `sportProgress`/`sportPlateau`/`sportZoneFocus`/
+> `sportSlot` (tous en `!doneToday`) par construction — jamais dans le même insight. Vocabulaire distinct
+> (« battre ton record », « ta meilleure perf à ce jour », « c'est gravé ») — zéro collision regex.
+> **Affine, ne remplace pas** : note appendue, action du jour intacte. Réemploi total, **zéro** nouvelle
+> fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #529.
 
 > 📏 **2.0.159** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach ne se laisse plus
 > **tromper par la balance**. Sur un objectif de perte au poids stagnant, il déclenchait une note « balance
