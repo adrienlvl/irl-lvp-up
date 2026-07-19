@@ -53,23 +53,30 @@ jusqu'à la rentrée, on l'améliore et on ne le casse jamais.
 > Ci-dessous : des tâches **nommées, vérifiées dans le code, et rangées par domaine** — on en prend
 > **une**, on la coche, on **change de domaine** à la suivante (VPS-AUTOPILOT §4 bis).
 
-### P1 — Réveiller le mécanisme de PROPOSITIONS _(jamais utilisé à ce jour)_
+### P1 — Réveiller le mécanisme de PROPOSITIONS _(✅ écrites — en attente de décision)_
 
 `docs/proposals/` n'existait pas : la soupape « gros chantier = proposition » n'a **jamais** servi en
-546 boucles. Ces cinq sujets sont les **vrais** verrous du Cap 3.0. Chacun = **un document de design**
+546 boucles. Ces six sujets sont les **vrais** verrous du Cap 3.0. Chacun = **un document de design**
 (problème · 2-3 options · reco · risques · ce qui dépend d'Adrien), **PAS une implémentation**.
 
-- [ ] **P1.1 — `coach-freeze.md`** — acter le gel : périmètre exact de ce qui reste autorisé
+> ✅ **Les 6 propositions sont ÉCRITES (2026-07-19)** — elles attendent maintenant **les décisions
+> d'Adrien**, listées en fin de chaque document. **Rien ne s'implémente avant qu'il ait tranché.**
+> Recommandations : **P1.1** geler (A) · **P1.2** IDB primaire (B) · **P1.3** modèle `examGoals[]`
+> d'abord (A) · **P1.4** attendre, après P1.2 · **P1.5** étendre le smoke sans dépendance (B) ·
+> **P1.6** ne rien faire pour l'instant (D). _Les deux dernières concluent volontairement par un
+> « non » : une proposition honnête peut recommander de ne pas faire le travail._
+
+- [x] **P1.1 — `coach-freeze.md`** — acter le gel : périmètre exact de ce qui reste autorisé
       (correctif d'un guard qui se déclenche à tort / se contredit, curation au rendu) vs interdit
       (tout nouveau champ ou `insight +=`). _Le VPS ne modifie PAS §3 lui-même : il propose, Adrien acte._
-- [ ] **P1.2 — `indexeddb-primary-persistence.md`** — **prérequis n°1 de la sync multi-appareils.**
+- [x] **P1.2 — `indexeddb-primary-persistence.md`** — **prérequis n°1 de la sync multi-appareils.**
       Aujourd'hui `app.js:32` démarre sur `localStorage['irl-level-up']` et `save()` (`app.js:54`)
       écrit localStorage **en premier** ; IndexedDB n'est qu'une **copie de secours** lue uniquement
       en récupération après éviction (`app.js:104-119`), **jamais au démarrage normal** → le plafond
       ~5-10 Mo et le risque d'éviction iOS restent **entiers**. Options : sauvegarde seule / IDB
       primaire asynchrone / schéma versionné prêt pour la sync. Le vrai risque à peser : le boot
       devient **asynchrone**.
-- [ ] **P1.3 — `multi-exam-etudes-bts.md`** — **le besoin réel d'Adrien (BTS CG).** `examGoal` est un
+- [x] **P1.3 — `multi-exam-etudes-bts.md`** — **le besoin réel d'Adrien (BTS CG).** `examGoal` est un
       **objet unique** `{title,date}` (`app.js:22`) et le formulaire de planning **écrase** l'examen
       précédent à chaque envoi (`app.js:872`) : impossible de suivre deux épreuves à des dates
       différentes. 5 fonctions le consomment au singulier (`examCountdown`, `examReminderDue`,
@@ -77,15 +84,15 @@ jusqu'à la rentrée, on l'améliore et on ne le casse jamais.
       déduit la matière du **titre** sans date d'examen propre. Reco : modèle `examGoals[]`
       `{id,subject,title,date}` + migration rétro-compatible. **Doc seul** — le portage des
       consommateurs et l'UI multi-examens sont un chantier multi-commits.
-- [ ] **P1.4 — `es-modules-split.md`** — `logic.js` **9 488 lignes** (un seul `module.exports` final),
+- [x] **P1.4 — `es-modules-split.md`** — `logic.js` **9 488 lignes** (un seul `module.exports` final),
       `app.js` **367 Ko / 1 089 lignes ultra-denses**, 5 scripts chargés en **globals**
       (`index.html:287-291`), aucun bundler. Options : modules ES natifs (zéro dép) / bundler en
       devDep / hybride. Contrainte dure : le harnais CommonJS des tests **et** le smoke doivent rester
       verts. Dépend d'Adrien : accepter ou non un bundler.
-- [ ] **P1.5 — `e2e-playwright.md`** — aucun test de **parcours** utilisateur (le smoke est un rendu
+- [x] **P1.5 — `e2e-playwright.md`** — aucun test de **parcours** utilisateur (le smoke est un rendu
       ponctuel). ⚠️ Playwright = **devDependency + binaire navigateur**, ce qui heurte de plein fouet
       la règle « aucune dépendance » → **décision d'Adrien obligatoire**, d'où la proposition.
-- [ ] **P1.6 — `i18n-groundwork.md`** — `<html lang="fr">`, des milliers de littéraux FR en dur
+- [x] **P1.6 — `i18n-groundwork.md`** — `<html lang="fr">`, des milliers de littéraux FR en dur
       (`WEEKDAY_FR` `logic.js:9426`, `monthLabelFr` `logic.js:2259`), **aucune** infra `t()`. Reco :
       helper minimal + catalogue FR + **une tranche bornée** (libellés de nav/réglages). Piège à
       signaler : `logic.js` renvoie des **phrases pré-composées** qui résistent à l'extraction naïve.

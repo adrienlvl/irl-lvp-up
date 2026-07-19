@@ -32,18 +32,22 @@ Dès que le sujet **engage Adrien** — et pas seulement parce qu'il est gros :
 Reste **court** et **décidable** : le but est qu'Adrien puisse répondre « option B, vas-y » en une
 lecture. Une proposition qui pré-décide à sa place a raté sa cible.
 
-## À écrire (assigné dans la roadmap)
+## ✅ Écrites — en attente de décision d'Adrien
 
-Liste ordonnée dans [`ROADMAP.md` → « 🎯 Prochaines priorités » → P1](../ROADMAP.md) :
+Les six propositions du lot P1 ont été rédigées le **2026-07-19**. **Aucune ne doit être implémentée**
+avant qu'Adrien ait tranché les questions de leur dernière section.
 
-| Slug | Sujet | Pourquoi ça bloque |
+| Proposition | Sujet | Recommandation |
 |---|---|---|
-| `coach-freeze.md` | Acter le gel du coach adaptatif | Périmètre exact du correctif/curation encore autorisé |
-| `indexeddb-primary-persistence.md` | IndexedDB comme source de vérité | **Prérequis n°1 de la sync multi-appareils** |
-| `multi-exam-etudes-bts.md` | `examGoals[]` multi-matières | Le besoin réel BTS CG — un seul examen suivi aujourd'hui |
-| `es-modules-split.md` | Découper les monolithes | `logic.js` 9 488 l. / `app.js` 367 Ko |
-| `e2e-playwright.md` | Tests de parcours | Demande une **devDependency** → décision d'Adrien |
-| `i18n-groundwork.md` | Amorce i18n | Milliers de littéraux FR en dur _(priorité basse)_ |
+| [`coach-freeze.md`](coach-freeze.md) | Gel du coach adaptatif | **A** — gel dur (+ test « tripwire » à 93 clés) |
+| [`indexeddb-primary-persistence.md`](indexeddb-primary-persistence.md) | IndexedDB source de vérité | **B** — IDB primaire ; débloque la sync |
+| [`multi-exam-etudes-bts.md`](multi-exam-etudes-bts.md) | `examGoals[]` multi-épreuves BTS | **A** — poser le modèle d'abord |
+| [`es-modules-split.md`](es-modules-split.md) | Découper les monolithes | **Attendre** — après P1.2, et le gel freine déjà la croissance |
+| [`e2e-playwright.md`](e2e-playwright.md) | Tests de parcours | **B** — étendre le smoke, **zéro dépendance** |
+| [`i18n-groundwork.md`](i18n-groundwork.md) | Amorce i18n | **D** — ne rien faire tant que l'app est perso |
+
+> Deux de ces documents recommandent de **ne pas faire** le travail. C'est volontaire : une
+> proposition qui conclurait toujours « il faut le faire » ne serait pas un outil de décision.
 
 Quand une proposition est écrite, coche sa case dans la roadmap et **change de domaine** à
 l'itération suivante (§4 bis.3).
