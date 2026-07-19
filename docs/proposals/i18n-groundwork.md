@@ -1,6 +1,8 @@
 # Proposition — Amorce d'internationalisation (i18n)
 
-_Rédigé le 2026-07-19 · statut : **à trancher par Adrien** · **priorité basse assumée**_
+_Rédigé le 2026-07-19 · statut : ✅ **VALIDÉ par Adrien le 2026-07-19 — recommandation = NE RIEN FAIRE (option D)**_
+
+> ⛔ **Valider ce document, c'est acter qu'on n'amorce PAS l'i18n.** L'app reste l'outil perso d'Adrien ; l'extraction coûterait cher pour zéro service, et le vrai piège (phrases pré-composées dans `logic.js`) resterait entier. À rouvrir seulement s'il veut publier hors francophonie.
 
 ## 1. Problème
 

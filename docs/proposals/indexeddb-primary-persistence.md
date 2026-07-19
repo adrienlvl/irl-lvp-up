@@ -1,6 +1,8 @@
 # Proposition — IndexedDB comme source de vérité
 
-_Rédigé le 2026-07-19 · statut : **à trancher par Adrien** · **prérequis n°1 de la sync multi-appareils**_
+_Rédigé le 2026-07-19 · statut : ✅ **VALIDÉ par Adrien le 2026-07-19 — option B retenue (IDB primaire)**_
+
+> ⚠️ **Chantier À FAIRE EN SESSION SUPERVISÉE, pas en autonomie de nuit.** Il réécrit le démarrage de l'app en asynchrone et touche la persistance : un échec non surveillé risque les données d'Adrien. Le VPS ne doit PAS l'entamer seul.
 
 ## 1. Problème
 

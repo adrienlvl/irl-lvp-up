@@ -1,6 +1,9 @@
 # Proposition — `examGoals[]` : suivre plusieurs épreuves du BTS CG
 
-_Rédigé le 2026-07-19 · statut : **à trancher par Adrien** · **le besoin réel, pas une amélioration technique**_
+_Rédigé le 2026-07-19 · statut : ✅ **VALIDÉ par Adrien le 2026-07-19 — option A retenue (modèle `examGoals[]` d'abord)**_
+
+> ▶️ **Autorisé en autonomie, PAR ÉTAPES** (étape 1 = modèle + migration rétro-compatible + tests ; l'UI multi-examens exige un check smoke bloquant).
+> ❓ **Reste ouvert** : taxonomie des matières (liste BTS CG figée vs texte libre) et vraies dates d'épreuves. **Défaut sûr retenu** : `subject` en **texte libre**, aligné sur la taxonomie déjà déduite par `studyBySubject` — n'invente aucune matière ni aucune date.
 
 ## 1. Problème
 

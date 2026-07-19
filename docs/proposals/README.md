@@ -32,22 +32,26 @@ Dès que le sujet **engage Adrien** — et pas seulement parce qu'il est gros :
 Reste **court** et **décidable** : le but est qu'Adrien puisse répondre « option B, vas-y » en une
 lecture. Une proposition qui pré-décide à sa place a raté sa cible.
 
-## ✅ Écrites — en attente de décision d'Adrien
+## ✅ TOUTES TRANCHÉES par Adrien le 2026-07-19
 
-Les six propositions du lot P1 ont été rédigées le **2026-07-19**. **Aucune ne doit être implémentée**
-avant qu'Adrien ait tranché les questions de leur dernière section.
+Adrien a **validé les 6 propositions**, c'est-à-dire **accepté la recommandation de chacune**. Deux de
+ces recommandations sont des **« non »** : les valider, c'est acter qu'on ne fait **pas** le travail.
 
-| Proposition | Sujet | Recommandation |
+| Proposition | Décision | Qui l'exécute |
 |---|---|---|
-| [`coach-freeze.md`](coach-freeze.md) | Gel du coach adaptatif | ✅ **TRANCHÉ — gel refusé** : « qualité, pas volume » |
-| [`indexeddb-primary-persistence.md`](indexeddb-primary-persistence.md) | IndexedDB source de vérité | **B** — IDB primaire ; débloque la sync |
-| [`multi-exam-etudes-bts.md`](multi-exam-etudes-bts.md) | `examGoals[]` multi-épreuves BTS | **A** — poser le modèle d'abord |
-| [`es-modules-split.md`](es-modules-split.md) | Découper les monolithes | **Attendre** — après P1.2, et le gel freine déjà la croissance |
-| [`e2e-playwright.md`](e2e-playwright.md) | Tests de parcours | **B** — étendre le smoke, **zéro dépendance** |
-| [`i18n-groundwork.md`](i18n-groundwork.md) | Amorce i18n | **D** — ne rien faire tant que l'app est perso |
+| [`coach-freeze.md`](coach-freeze.md) | ❌ Gel **refusé** → « qualité, pas volume » | ✅ Déjà appliqué (§3) |
+| [`indexeddb-primary-persistence.md`](indexeddb-primary-persistence.md) | ✅ **Option B** — IDB primaire | ⚠️ **Session supervisée** — PAS le VPS |
+| [`multi-exam-etudes-bts.md`](multi-exam-etudes-bts.md) | ✅ **Option A** — modèle `examGoals[]` d'abord | ▶️ **VPS autorisé**, par étapes |
+| [`es-modules-split.md`](es-modules-split.md) | ⛔ **Attendre** — après P1.2 | Personne pour l'instant |
+| [`e2e-playwright.md`](e2e-playwright.md) | ✅ **Option B** — étendre le smoke, **zéro dép.** | ▶️ **VPS autorisé** |
+| [`i18n-groundwork.md`](i18n-groundwork.md) | ⛔ **Ne rien faire** (option D) | Personne |
 
-> Deux de ces documents recommandent de **ne pas faire** le travail. C'est volontaire : une
-> proposition qui conclurait toujours « il faut le faire » ne serait pas un outil de décision.
+**Donc, concrètement : 2 chantiers seulement s'ouvrent en autonomie** (multi-examens BTS et parcours
+smoke). Un est réservé à une session supervisée (IndexedDB : il réécrit le boot en asynchrone et
+touche la persistance — trop risqué sans surveillance). Deux sont fermés, volontairement.
+
+> Une proposition qui conclurait toujours « il faut le faire » ne serait pas un outil de décision :
+> c'est pour ça que deux d'entre elles recommandent de s'abstenir.
 
 Quand une proposition est écrite, coche sa case dans la roadmap et **change de domaine** à
 l'itération suivante (§4 bis.3).

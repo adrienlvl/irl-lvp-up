@@ -1,6 +1,8 @@
 # Proposition — Découper les monolithes (`logic.js` / `app.js`)
 
-_Rédigé le 2026-07-19 · statut : **à trancher par Adrien**_
+_Rédigé le 2026-07-19 · statut : ✅ **VALIDÉ par Adrien le 2026-07-19 — recommandation = ATTENDRE**_
+
+> ⛔ **Valider ce document, c'est acter qu'on ne le fait PAS maintenant.** Le gel du coach a neutralisé le facteur de croissance, et ce chantier entrerait en collision avec P1.2 (même zone : boot du renderer, deux écrivains sur master). À rouvrir après P1.2.
 
 ## 1. Problème
 

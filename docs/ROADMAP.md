@@ -107,12 +107,31 @@ verts. Rotation des domaines **amorcée** — les 7 derniers recaps sont étique
 `coach · coach · a11y · alternance · robustesse · agenda · tests`.
 
 **Ta prochaine boucle est #554.** Domaines **interdits** au démarrage (§4 bis.3, apparaissent dans les
-5 derniers) : `tests`, `agenda`, `robustesse`. **Commence donc par `a11y`** — P2.2 puis P2.4 ci-dessous,
-tous deux **vérifiés et à périmètre corrigé** — puis change de domaine.
+5 derniers) : `tests`, `agenda`, `robustesse`.
 
-**⛔ NE TOUCHE PAS aux propositions P1.** Les 6 documents sont **écrits** et attendent des décisions
-d'Adrien (fin de chaque fichier). Les implémenter sans son arbitrage serait exactement l'excès que ce
-dispositif corrige. Si tu veux avancer dessus : **approfondis le document**, n'implémente pas.
+**Ordre conseillé pour la nuit** (respecte la rotation d'une boucle à l'autre) :
+
+1. **#554 → `a11y`** : **P2.2** (ajouter `aria-live` à `#quickSessionResult` — **lui seul**) puis, une
+   autre boucle, **P2.4** (`aria-label` sur `#foodSearch` et `#agendaSearch` — **eux seuls**).
+2. **#555 → `etudes`** : **P6.1**, le modèle `examGoals[]` + migration. **C'est le plus utile à
+   Adrien** (BTS CG). Logique pure : aucun risque renderer.
+3. **#556 → `tests`** : **P7.1**, premier parcours scripté dans le smoke.
+4. Puis alterne librement entre **P6.2**, **P7.2/P7.3**, **P4** (regex non ancrées) et **P2**, en
+   changeant de domaine à chaque fois.
+
+**✅ LES 6 PROPOSITIONS P1 SONT TRANCHÉES** (Adrien, 2026-07-19 — il a validé **la recommandation de
+chaque document**). Attention : **deux recommandations étaient des « non »**. Ce qui s'ouvre :
+
+| | Décision | Pour toi, VPS |
+|---|---|---|
+| **P1.1** coach | Gel refusé → « qualité, pas volume » | Déjà appliqué (§3) — le coach reste un domaine **comme les autres**, soumis à la rotation |
+| **P1.2** IndexedDB | ✅ option B | ⛔ **NE L'ENTAME PAS.** Réservé à une session supervisée : réécrit le boot en **asynchrone** et touche la **persistance** — risque sur les données d'Adrien sans surveillance |
+| **P1.3** multi-examens BTS | ✅ option A | ▶️ **AUTORISÉ, par étapes** — voir P6 ci-dessous |
+| **P1.4** modules ES | ⛔ attendre | Rien à faire (rouvre après P1.2) |
+| **P1.5** parcours E2E | ✅ option B (smoke, zéro dép.) | ▶️ **AUTORISÉ** — voir P7 ci-dessous |
+| **P1.6** i18n | ⛔ ne rien faire | Rien à faire. **N'amorce pas d'i18n.** |
+
+**Playwright reste interdit** (§3 « aucune dépendance ») : la décision retenue est d'étendre le smoke.
 
 **⚠️ Deux corrections de cap à connaître** (elles t'éviteront deux boucles perdues) :
 - **P3 est une impasse** — sondée en #553, les fonctions pures sont correctes et déjà couvertes.
@@ -253,6 +272,38 @@ sur des centaines d'états réalistes et observer la distribution de ce qui sort
       sur les résumés « Ma journée », la revue hebdo, les partages texte. Un pavé se corrige au rendu.
 - [ ] **P5.2 — Cohérence des conseils entre panneaux** : un même jour, le coach, « Ma journée » et la
       revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer.
+
+### P6 — Multi-épreuves BTS `examGoals[]` _(P1.3 VALIDÉE — option A)_ ⭐ **le plus utile à Adrien**
+
+Aujourd'hui `examGoal` est un **objet unique** et le formulaire de planning **écrase l'épreuve
+précédente** (`app.js:872`, affectation directe) : impossible de suivre Droit et Compta à deux dates.
+**Une étape par boucle**, chacune verte, dans cet ordre :
+
+- [ ] **P6.1 — Le modèle + la migration** _(logique pure, aucun risque renderer)_ : `examGoals: []`
+      de `{id, subject, title, date}` dans `defaults`, et migration **rétro-compatible** dans
+      `normalizeState` (l'ancien `examGoal` unique devient le **premier élément**, sans perte).
+      **Teste la migration EN PREMIER** : un utilisateur avec un examen unique doit continuer à
+      fonctionner **à l'identique**. `examGoal` reste lu pour compatibilité.
+      ❗ `subject` en **texte libre** — n'invente **aucune** matière BTS ni **aucune** date : Adrien
+      ne les a pas données, et `studyBySubject` (`logic.js:1750`) déduit déjà la matière du titre.
+- [ ] **P6.2 — Porter les consommateurs** (6, un ou deux par boucle, avec leurs tests) :
+      `examCountdown` (`logic.js:1770`), `examReminderDue` (`:1778`), `studyPacing` (`:1789`),
+      `upcomingKeyDates` (`:1702`), `keyDateMarkers` (`:1729`), le coach (`:4922`). Règle simple :
+      **prendre l'épreuve la plus proche** (ou itérer là où la liste a du sens).
+- [ ] **P6.3 — UI ajouter / lister / supprimer une épreuve.** ⚠️ **Renderer → check smoke BLOQUANT
+      obligatoire.** À ne faire qu'après P6.1 et P6.2 vertes.
+
+### P7 — Parcours utilisateur dans le smoke _(P1.5 VALIDÉE — option B, zéro dépendance)_
+
+Le smoke est un rendu ponctuel ; **aucun test ne joue un enchaînement**. On y ajoute des parcours
+scriptés (clic → saisie → assertion), **sans aucune dépendance** (Playwright reste interdit, §3).
+Un parcours par boucle, chacun en check **bloquant** :
+
+- [ ] **P7.1 — Enregistrer une séance** → historique et XP à jour.
+- [ ] **P7.2 — Générer un planning de révision** → créneaux visibles dans l'agenda.
+- [ ] **P7.3 — Onboarding complet** → état cohérent en sortie.
+
+_Restaure toujours l'état à la fin du check (voir `listEmptyStates` et `dayViewPlural` pour le motif)._
 
 ### 🌙 SI LE BACKLOG SE VIDE — dans cet ordre, sans jamais inventer
 

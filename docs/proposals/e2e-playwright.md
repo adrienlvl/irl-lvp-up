@@ -1,6 +1,8 @@
 # Proposition — Tests de parcours utilisateur (E2E)
 
-_Rédigé le 2026-07-19 · statut : **à trancher par Adrien** · ⚠️ **heurte la règle « aucune dépendance »**_
+_Rédigé le 2026-07-19 · statut : ✅ **VALIDÉ par Adrien le 2026-07-19 — option B retenue (étendre le smoke, ZÉRO dépendance)**_
+
+> ▶️ **Autorisé en autonomie** : c'est du test pur, sans risque de régression utilisateur. Playwright reste **écarté** (la devDependency + le binaire navigateur heurtent §3). Premiers parcours : onboarding, enregistrer une séance, générer un planning de révision.
 
 ## 1. Problème
 
