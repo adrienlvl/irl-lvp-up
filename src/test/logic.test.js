@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.115');
+  assert.equal(L.CHANGELOG[0].v, '2.0.116');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7191,6 +7191,21 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   const shortSeries = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: '2026-07-15' }] }, today);
   assert.equal(shortSeries.tone, 'reinforce');
   assert.equal(shortSeries.streakAtRisk, null, 'série de 2 j < 3 → pas de note « en jeu »');
+  // PALIER de série EN JEU : 6 jours consécutifs finissant hier (10→15), rien aujourd'hui → le geste
+  // du jour porterait la série à 7 = palier. Le coach ajoute la carotte du jalon à la note « en jeu ».
+  const milestoneSeries = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-10' }, { date: '2026-07-11' }, { date: '2026-07-12' },
+    { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' },
+  ] }, today);
+  assert.equal(milestoneSeries.tone, 'reinforce');
+  assert.equal(milestoneSeries.comeback, false, 'série continue de 6 j → pas de relance');
+  assert.equal(milestoneSeries.streakAtRisk, 6, '6 jours consécutifs finissant hier → série de 6 en jeu');
+  assert.equal(milestoneSeries.streakMilestoneReach, 7, 'streak 6 → le geste du jour ferait franchir le palier 7');
+  assert.match(milestoneSeries.insight, /série de 6 jours d’affilée sur ton entraînement est en jeu/);
+  assert.match(milestoneSeries.insight, /décroche le palier d’une semaine/);
+  // La série de 3 j (streak 3) n'est PAS à un palier (prochain = 7, à 4 jours) → pas de carotte jalon.
+  assert.equal(series.streakMilestoneReach, null, 'streak 3 loin du palier 7 → pas de note « palier »');
+  assert.doesNotMatch(series.insight, /décroche le palier/);
 
   // priorité : un pilier qui décroche l'emporte sur un autre en hausse.
   const mixed = L.adaptiveCoachFocus({

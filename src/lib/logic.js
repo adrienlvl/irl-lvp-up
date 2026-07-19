@@ -2754,6 +2754,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.116', emoji: '🏅', text: 'Ton coach « Le focus du moment » double le levier quand ta série en jeu touche un PALIER. Il te rappelait déjà qu’une série de jours d’affilée sur un pilier risque de tomber si tu ne poses pas ton geste aujourd’hui ; désormais, quand ce geste te ferait franchir PILE un palier (une semaine, deux semaines, un mois, 60 jours…), il ajoute la carotte au bâton : « Ta série de 6 jours d’affilée sur ton entraînement est en jeu — un seul geste aujourd’hui la garde vivante. Et ce geste décroche le palier d’une semaine ! 🏅 » Ne pas perdre sa série ET décrocher un jalon dans la foulée : deux ressorts qui tirent dans le même sens font agir plus fort qu’un seul. Il ne l’ajoute que le jour où le palier est vraiment à portée d’un geste.' },
   { v: '2.0.115', emoji: '🔥', text: 'Ton coach « Le focus du moment » brandit désormais tes SÉRIES en jeu. Quand il renforce un pilier qui tourne bien et que tu enchaînes déjà plusieurs jours d’affilée dessus sans encore avoir posé ton geste du jour, il ne se contente plus d’un « garde le rythme » abstrait : il nomme le capital que tu risques de perdre. « Ton entraînement monte en régime… 🔥 Ta série de 6 jours d’affilée sur ton entraînement est en jeu — un seul geste aujourd’hui la garde vivante. » Perdre une série fait agir plus fort que gagner un jour de plus : le coach s’appuie sur ce ressort. Il ne parle que d’une vraie série (au moins 3 jours) encore vivante, et se tait dès que ton geste du jour est posé — la série est alors prolongée, plus menacée.' },
   { v: '2.0.114', emoji: '📈', text: 'Ton coach « Le focus du moment » fait maintenant GRANDIR le geste au fil d’une reprise, au lieu de te répéter « encore un jour actif ». Après une relance amorcée (un pilier rallumé après un long silence), il adapte l’ask au stade de la reprise. Encore fragile — un seul geste depuis la reprise —, il protège l’étincelle plutôt que de pousser : « Ne force pas le rythme : un 2e jour actif cette semaine ancre l’étincelle mieux qu’une grosse séance. » Dès que la reprise tient — deux jours actifs ou plus —, il remonte la barre vers la normale : « La reprise tient (2 jours cette semaine) — tu as regagné le droit à une vraie séance aujourd’hui. » Pour le sport, il respecte ta readiness du jour : un jour de récup garde le geste léger. Après le premier pas d’un pilier dormant puis le salut de la reprise, c’est le troisième temps : accompagner l’élan jusqu’au rythme normal.' },
   { v: '2.0.113', emoji: '🔥', text: 'Ton coach « Le focus du moment » sait maintenant SALUER une relance amorcée. Il savait proposer le tout premier pas d’un pilier resté dormant ; désormais, quand tu l’honores — un geste frais qui rompt un silence d’au moins deux semaines —, il reconnaît la victoire : « Tu as rallumé ton entraînement il y a 2 j après 29 jours d’arrêt — le plus dur (franchir la reprise) est fait, ne laisse pas la flamme retomber. » Franchir le mur d’activation après une longue coupure est l’instant le plus fragile ET le plus méritant d’une reprise : le nommer ancre la victoire et protège l’élan naissant.' },
@@ -5550,7 +5551,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // (reinforce, hors rotation) et DISJOINT du comeback (une reprise fraîche raconte déjà l'histoire du
   // run — pas de double récit). Additif pur : champ streakAtRisk (nombre de jours, ou null) TOUJOURS
   // renvoyé ; note appendue à l'insight, action intacte.
-  let streakAtRisk = null;
+  let streakAtRisk = null, streakMilestoneReach = null;
   if (tone === 'reinforce' && !rotated && !comeback && typeof dailyStreak === 'function') {
     const activeToday = (Array.isArray(chosen.list) ? chosen.list : []).some(e => e && e.date === todayKey && chosen.active(e));
     if (!activeToday) {
@@ -5562,6 +5563,24 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       if (streak >= 3) {
         streakAtRisk = streak;
         insight += ` 🔥 Ta série de ${streak} jours d’affilée sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} est en jeu — un seul geste aujourd’hui la garde vivante.`;
+        // PALIER de série EN JEU — quand honorer le pilier AUJOURD'HUI ferait franchir PILE un palier
+        // (STREAK_MILESTONES : 3, 7, 14, 30…), on double le levier : à l'aversion à la perte (la série
+        // en jeu) s'ajoute la carotte d'un JALON à décrocher dans la foulée. C'est le cas exactement
+        // quand nextStreakMilestone(streak).remaining === 1 (streak+1 est un palier) — la série court
+        // jusqu'à hier (grâce), le geste du jour la porterait à streak+1. Réutilise l'échelle existante,
+        // aucune nouvelle. Additif pur : champ streakMilestoneReach (valeur du palier atteignable
+        // aujourd'hui, ou null) TOUJOURS renvoyé ; libellé APPENDU à la note « série en jeu ».
+        if (typeof nextStreakMilestone === 'function') {
+          const nm = nextStreakMilestone(streak);
+          if (nm && nm.remaining === 1) {
+            streakMilestoneReach = nm.milestone;
+            const palier = nm.milestone === 7 ? 'le palier d’une semaine'
+              : nm.milestone === 14 ? 'le palier de deux semaines'
+              : nm.milestone === 30 ? 'le palier d’un mois'
+              : `le palier des ${nm.milestone} jours`;
+            insight += ` Et ce geste décroche ${palier} ! 🏅`;
+          }
+        }
       }
     }
   }
@@ -5569,7 +5588,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach,
   };
 }
 

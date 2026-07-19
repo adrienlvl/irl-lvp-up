@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.115 (2026-07-19)
+## 📍 État actuel — build 2.0.116 (2026-07-19)
+
+> 🏅 **2.0.116** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **double le levier quand ta série en jeu touche un PALIER**. Depuis #484 il brandit une
+> série de jours consécutifs sur un pilier (`streakAtRisk`) pour jouer l'aversion à la perte, mais il
+> restait aveugle au moment où poser le geste du jour ferait franchir **pile** un palier
+> (`STREAK_MILESTONES`) : à streak = 6, le geste porte la série à 7 = un jalon, et le coach servait le
+> même message qu'à streak = 3. Il ajoute désormais la **carotte du jalon** au bâton de la perte :
+> « Ta série de 6 jours d'affilée sur ton entraînement est en jeu — un seul geste aujourd'hui la garde
+> vivante. **Et ce geste décroche le palier d'une semaine ! 🏅** » Deux ressorts qui tirent dans le
+> même sens font agir plus fort qu'un seul. Points de conception : **le jour exact où c'est vrai** — la
+> série court jusqu'à hier (grâce), le geste d'aujourd'hui la porte à `streak+1` ; la carotte
+> n'apparaît **que** quand ce `streak+1` est pile un palier (`nextStreakMilestone().remaining === 1`),
+> jamais la veille ni le surlendemain (streak = 3, palier à 4 j → rien) ; **réutilise l'échelle
+> existante** (aucun nouveau seuil) ; **additif pur** — champ `streakMilestoneReach` (valeur du palier
+> atteignable, ou `null`) TOUJOURS renvoyé, libellé appendu à la note existante, action intacte, hérite
+> de toutes les gardes de `streakAtRisk`. `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #485.
 
 > 🔥 **2.0.115** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **brandit désormais tes SÉRIES en jeu** (aversion à la perte, le ressort de motivation le
