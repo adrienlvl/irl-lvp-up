@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.140');
+  assert.equal(L.CHANGELOG[0].v, '2.0.141');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8380,12 +8380,23 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(fresh.focusGoalFresh, 100, 'readiness ≥ 75 le jour même → le score renvoyé');
   assert.match(fresh.insight, /ta forme est au vert ce matin \(readiness 100\/100\)/);
   assert.match(fresh.insight, /LE moment de pousser pour boucler l’objectif focus/);
-  // Readiness du jour BASSE (< 75) → pas de feu vert, focusGoalFresh null.
+  // Réconciliation du CONFLIT côté FOCUS : objectif serré + readiness AU PLANCHER (< 50) le jour même
+  // → focusGoalDrained (le pendant OPPOSÉ de focusGoalFresh, symétrique focus de restOverGoal).
+  // sleep 5 / fatigue 4 / soreness 4 → score 40 (< 50).
   const tired = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-19');
   assert.equal(tired.focusGoalFresh, null, 'readiness < 75 → aucun alignement');
+  assert.equal(tired.focusGoalDrained, 40, 'readiness < 50 le jour même → le score du conflit renvoyé');
+  assert.match(tired.insight, /ta forme est à plat ce matin \(readiness 40\/100\)/);
+  assert.match(tired.insight, /focus court et facile aujourd’hui/);
   assert.ok(!/les deux signaux s’alignent/i.test(tired.insight));
-  // Objectif focus DANS LES TEMPS (onpace) → focusGoalFresh null (assigné seulement dans la branche serrée).
+  // Zone MÉDIANE (50 ≤ readiness < 75) : ni feu vert ni conflit — sleep 6 / fatigue 3 / soreness 3 → 60.
+  const mid = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-19');
+  assert.equal(mid.focusGoalFresh, null, 'zone médiane → pas d’alignement');
+  assert.equal(mid.focusGoalDrained, null, 'zone médiane → pas de conflit');
+  assert.ok(!/à plat ce matin|s’alignent/i.test(mid.insight));
+  // Objectif focus DANS LES TEMPS (onpace) → focusGoalFresh/Drained null (assignés dans la branche serrée).
   assert.equal(onpace.focusGoalFresh, null, 'objectif large → pas de note même côté focus');
+  assert.equal(onpace.focusGoalDrained, null, 'objectif large → pas de conflit côté focus');
   // Objectif déjà atteint (130 ≥ 120) → pas d'allure, le « atteint 💪 » suffit.
   const done = L.adaptiveCoachFocus(base(130), '2026-07-16');
   assert.equal(done.focusGoalPace, null);

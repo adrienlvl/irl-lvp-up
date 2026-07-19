@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.140 (2026-07-19)
+## 📍 État actuel — build 2.0.141 (2026-07-19)
+
+> 🌫️ **2.0.141** — Coaching adaptatif poussé à fond (priorité de la nuit) : on ferme la **face
+> manquante** de #509. #509 avait nommé l'**alignement** côté FOCUS (`focusGoalFresh` : objectif focus
+> serré × readiness au VERT → « fonce »), mais laissait ouvert le **conflit symétrique et opposé** — le
+> **pendant EXACT côté focus de `restOverGoal`** (#504, sport serré × forme à plat → la récup prime).
+> Quand l'allure focus est serrée (« cale ~90 min aujourd'hui ») ALORS QUE la readiness du matin est au
+> **PLANCHER** (< 50, même seuil que le feu rouge sport), le coach ne poussait plus rien : un cerveau
+> épuisé ne produit pas de deep work, s'acharner empile des minutes creuses. Nouveau champ
+> **`focusGoalDrained`** (score readiness, ou `null`) : en `else if` de `focusGoalFresh` (< 50 XOR ≥ 75,
+> zone médiane [50,75[ → ni l'un ni l'autre), la note s'ajoute : « Mais ta forme est à plat ce matin
+> (readiness 40/100) : un cerveau fatigué ne produit pas un vrai bloc profond… Un focus court et facile
+> aujourd'hui, soigne ta récup — l'esprit frais rattrapera ces minutes bien plus vite. » Nuance focus vs
+> sport : les minutes de focus s'accumulent (pas de date perdue), le message porte sur la QUALITÉ du bloc
+> et la récup rapide. **Mutuellement exclusif** de `focusGoalFresh` et des notes sport (branche
+> `chosen.pillar === 'focus'`). Additif pur, réemploi total (`readinessScore`, `rs` déjà calculé pour
+> `focusGoalFresh`) — zéro nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus`
+> étendu. Recap #510.
 
 > 🧠 **2.0.140** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **« Suite
 > possible » côté FOCUS**, notée de façon répétée depuis #504/#505 puis rappelée en tête par #507 et #508 — le

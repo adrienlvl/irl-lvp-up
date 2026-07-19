@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.141', emoji: '🌫️', text: 'Ton coach « Le focus du moment » ne sait pas que célébrer l’alignement côté FOCUS (nouveauté récente : objectif serré ET forme au vert → fonce) : il sait aussi désamorcer le CONFLIT inverse. Quand ton objectif hebdo de MINUTES de focus est SERRÉ (« cale un vrai bloc d’~90 min aujourd’hui pour tenir la cible ») MAIS qu’un check-in de récup du jour met ta forme au PLANCHER (readiness < 50, l’esprit épuisé), le coach ne te pousse plus à t’acharner dans le vide : « Mais ta forme est à plat ce matin (readiness 40/100) : un cerveau fatigué ne produit pas un vrai bloc profond, et t’acharner empilerait des minutes creuses sans avancer l’objectif. Un focus court et facile aujourd’hui, soigne ta récup — l’esprit frais rattrapera ces minutes bien plus vite. » C’est le pendant EXACT et OPPOSÉ de la note d’alignement côté focus, et le symétrique côté focus de la note sport « objectif serré ET forme à plat → la récup prime » : quand la tête est vide, s’entêter sur un gros bloc n’avance rien. La note n’apparaît que sur ce cas précis (objectif focus serré ET readiness au plancher le jour même) ; rien d’autre ne change.' },
   { v: '2.0.140', emoji: '🧠', text: 'Ton coach « Le focus du moment » sait enfin reconnaître l’alignement « tout est réuni » aussi côté FOCUS, pas seulement côté sport. Quand ton objectif hebdo de MINUTES de focus est SERRÉ (« cale un vrai bloc d’~90 min aujourd’hui pour tenir la cible ») ET qu’un check-in de récup du jour met ta forme au vert (readiness ≥ 75, l’esprit frais), le coach ne laisse plus passer la fenêtre : « Et bonne nouvelle : cette cadence serrée tombe pile — ta forme est au vert ce matin (readiness 82/100), l’esprit est frais pour tenir un vrai bloc. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif focus. » C’est le pendant EXACT, côté focus, de la note sport « objectif serré ET charge en sous-charge » : le focus n’a pas de charge, mais une tête reposée encaisse un gros bloc de concentration comme un corps frais encaisse une séance. La note n’apparaît que sur ce cas précis (objectif focus serré ET readiness au vert le jour même) ; rien d’autre ne change.' },
   { v: '2.0.139', emoji: '🟢', text: 'Quand ton coach « Le focus du moment » repère l’alignement « objectif serré ET charge en sous-charge » (nouveauté récente : deux feux verts, le calendrier presse pendant que ton corps a de la marge), il sait maintenant reconnaître le cas encore plus favorable : quand, EN PLUS, ta forme REMONTE franchement relevé après relevé. Ce ne sont alors plus deux lectures d’un même moment, mais TROIS signaux concordants qui se cumulent — charge basse (marge structurelle) + forme qui rebondit (ton corps réencaisse, en direct) + cadence serrée (le calendrier réclame). Le coach le dit alors plus enthousiaste : « Et bonne nouvelle : cette cadence serrée tombe pile — ta charge n’est qu’à 0,6× ton volume habituel ET ta forme remonte franchement (+30 pts sur tes derniers check-ins) : trois feux verts concordants (charge basse, forme qui rebondit, calendrier qui presse), pas un hasard — c’est LE moment de pousser pour boucler l’objectif, ton corps est prêt. » C’est le pendant POSITIF exact de la note « pic de charge ET forme qui glisse » (deux signaux de fatigue) : ici, deux/trois signaux de fraîcheur. Quand la forme ne remonte pas, le message reste le même qu’avant. L’action de sous-charge reste intacte.' },
   { v: '2.0.138', emoji: '🚀', text: 'Ton coach « Le focus du moment » ne sait pas que trancher les conflits : il sait aussi reconnaître quand tout s’ALIGNE. Quand ton objectif hebdo de séances est SERRÉ (« il en faut une chaque jour pour tenir l’objectif ») ET que ta charge des dernières semaines est en SOUS-charge (ton corps a de la marge pour remonter), les deux ne se contredisent plus — ils tirent dans le même sens. Le coach le nomme : « Et bonne nouvelle : cette cadence serrée tombe pile — ta charge n’est qu’à 0,6× ton volume habituel, ton corps a toute la marge pour enchaîner ces séances sans risque. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif. » C’est le pendant POSITIF exact de la note « pic de charge, lève le pied » : quand le calendrier presse ET que le corps est frais, c’est une fenêtre à saisir, pas un conflit. La note n’apparaît que sur ce cas précis (objectif serré ET sous-charge) ; l’action de sous-charge reste intacte.' },
@@ -5082,7 +5083,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // date). Champ sessionGoalPace ('onpace' | 'tight' | 'unreachable' | null) TOUJOURS renvoyé ; note
   // APPENDUE au compteur, aucune autre branche touchée. Ne parle que quand un objectif existe et n'est
   // pas encore tenu (wc < g) : objectif atteint → le « déjà tenu 💪 » historique suffit.
-  let sessionGoalPace = null, focusGoalPace = null, focusGoalFresh = null;
+  let sessionGoalPace = null, focusGoalPace = null, focusGoalFresh = null, focusGoalDrained = null;
   {
     const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
     const monday = dateKey(mondayOf(new Date(+tm[1], +tm[2] - 1, +tm[3])));
@@ -5153,12 +5154,31 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           // touchée. Mutuellement exclusif des notes sport (restOverGoal/lowLoadUnderGoal, branche
           // chosen.pillar === 'sport') par construction. Données réelles seulement : exige un check-in de
           // récup du jour ET un objectif focus rendu serré par le calendrier.
+          // RÉCONCILIATION du CONFLIT côté FOCUS — le pendant EXACT et OPPOSÉ de focusGoalFresh (#509),
+          // et le symétrique côté FOCUS de restOverGoal (#504, sport serré × forme à plat → la récup
+          // prime). #509 a nommé l'ALIGNEMENT (allure focus serrée × readiness au VERT → fonce) mais a
+          // laissé ouvert le CONFLIT : une allure serrée qui réclame un vrai bloc de ~90 min ALORS QUE la
+          // readiness du matin est au PLANCHER (< 50, même seuil que le feu rouge sport). Un cerveau
+          // épuisé (nuit courte, fatigue, courbatures) ne produit pas de deep work — s'acharner sur un gros
+          // bloc empile des minutes creuses qui n'avancent pas vraiment l'objectif et creusent la fatigue.
+          // À la différence du sport (rater LA séance fait glisser l'objectif de séances/dates), les
+          // minutes de focus s'ACCUMULENT : un esprit frais rattrapera ces minutes bien plus vite qu'un
+          // cerveau brumeux qui s'entête. Le coach TRANCHE honnêtement — la récup avant le chiffre : un
+          // focus court et facile aujourd'hui, on protège la tête, on rattrape demain. C'est
+          // l'« adaptation aux écarts » demandée, appliquée au conflit focus le plus piégeux. Additif pur :
+          // focusGoalDrained (le score du jour, ou null) TOUJOURS renvoyé ; note APPENDUE, aucune autre
+          // branche touchée. MUTUELLEMENT EXCLUSIF de focusGoalFresh (≥ 75 XOR < 50) et des notes sport
+          // (branche chosen.pillar === 'sport') par construction. Données réelles seulement : exige un
+          // check-in de récup DU JOUR ET un objectif focus rendu serré par le calendrier.
           if (typeof readinessScore === 'function') {
             const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
             const rs = todayR ? readinessScore(todayR) : null;
             if (rs && rs.score >= 75) {
               focusGoalFresh = rs.score;
               insight += ` Et bonne nouvelle : cette cadence serrée tombe pile — ta forme est au vert ce matin (readiness ${rs.score}/100), l’esprit est frais pour tenir un vrai bloc. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif focus.`;
+            } else if (rs && rs.score < 50) {
+              focusGoalDrained = rs.score;
+              insight += ` Mais ta forme est à plat ce matin (readiness ${rs.score}/100) : un cerveau fatigué ne produit pas un vrai bloc profond, et t’acharner empilerait des minutes creuses sans avancer l’objectif. Un focus court et facile aujourd’hui, soigne ta récup — l’esprit frais rattrapera ces minutes bien plus vite.`;
             }
           }
         } else {
@@ -6223,7 +6243,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, focusGoalFresh, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 
