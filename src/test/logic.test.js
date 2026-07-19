@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.172');
+  assert.equal(L.CHANGELOG[0].v, '2.0.173');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9358,6 +9358,52 @@ test('adaptiveCoachFocus : focus sport — ÉQUILIBRE course ↔ muscu déséqui
   assert.equal(spike.loadSpike !== null, true, 'setup : la charge doit bien être en pic');
   assert.equal(spike.trainBalanceGuard, null);
   assert.doesNotMatch(spike.insight, /rééquilibrer/);
+});
+
+test('adaptiveCoachFocus : focus sport — balance POUSSÉE ↔ TIRAGE déséquilibrée (pushPullGuard)', () => {
+  const today = '2026-07-16';
+  const push = d => ({ date: d, exercises: [{ name: 'Pompes classiques', sets: 5, reps: 12 }] });
+  const pull = d => ({ date: d, exercises: [{ name: 'Tractions', sets: 3, reps: 8 }] });
+  // Muscu du dernier mois très PUSH-HEAVY : 7 séances de pompes (35 séries poussée) pour 1 de tractions
+  // (3 séries tirage) → ratio ~11,7 → push-heavy. Aucune course → trainBalanceGuard null (pas hybride), la
+  // balance poussée/tirage prend le relais. Dernière séance 07-14 → !doneToday, pas de ré-amorçage dormant.
+  const pushHeavy = { workouts: [push('2026-06-22'), push('2026-06-25'), push('2026-06-29'), push('2026-07-03'), push('2026-07-07'), push('2026-07-11'), push('2026-07-14'), pull('2026-06-24')] };
+  const fPush = L.adaptiveCoachFocus(pushHeavy, today);
+  assert.equal(fPush.pillar, 'sport');
+  assert.equal(fPush.trainBalanceGuard, null, 'aucune course → pas hybride → trainBalanceGuard ne parle pas');
+  assert.deepEqual(fPush.pushPullGuard, { zone: 'push-heavy', push: 35, pull: 3, ratio: Math.round(35 / 3 * 100) / 100 });
+  assert.match(fPush.insight, /balance poussée\/tirage sur 4 semaines : 35 séries de poussée \(pecs, épaules\) pour seulement 3 de tirage/);
+  assert.match(fPush.insight, /coiffe des rotateurs en tension/);
+  assert.match(fPush.insight, /Ajoute du dos \(tractions, rowing\) à ta prochaine séance/);
+  // Cas ZÉRO tirage : que de la poussée → zone no-pull, message « priorité posture ».
+  const noPull = { workouts: [push('2026-06-25'), push('2026-06-29'), push('2026-07-05'), push('2026-07-11')] };
+  const fNoPull = L.adaptiveCoachFocus(noPull, today);
+  assert.equal(fNoPull.pushPullGuard.zone, 'no-pull');
+  assert.match(fNoPull.insight, /zéro tirage/);
+  assert.match(fNoPull.insight, /c’est ta priorité posture/);
+  // Balance CORRECTE (autant de poussée que de tirage) → aucune note, champ null.
+  const balanced = { workouts: [push('2026-06-25'), push('2026-07-05'), pull('2026-06-27'), pull('2026-07-07'), pull('2026-07-11')] };
+  const fBal = L.adaptiveCoachFocus(balanced, today);
+  // 2 push × 5 = 10 séries poussée ; 3 pull × 3 = 9 séries tirage → ratio ~1,11 → balanced → null.
+  assert.equal(fBal.pushPullGuard, null);
+  assert.doesNotMatch(fBal.insight, /balance poussée/);
+  // Volume trop MAIGRE (< 10 séries poussée+tirage sur le mois) → signal non fiable → null.
+  const thin = { workouts: [push('2026-07-11')] };
+  const fThin = L.adaptiveCoachFocus(thin, today);
+  assert.equal(fThin.pushPullGuard, null);
+  // Séance DÉJÀ faite aujourd'hui → pas de conseil du jour → null.
+  const done = L.adaptiveCoachFocus({ workouts: [...pushHeavy.workouts, push(today)] }, today);
+  assert.equal(done.pushPullGuard, null);
+  assert.doesNotMatch(done.insight, /balance poussée/);
+  // Forme au plancher (readiness 40) → l'action ordonne le repos, on ne charge pas un côté → null.
+  const tired = L.adaptiveCoachFocus({ ...pushHeavy, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
+  assert.equal(tired.pushPullGuard, null);
+  // SUBORDINATION à trainBalanceGuard : semaine 100 % course chez un hybride (muscu push-heavy sur le mois)
+  // → trainBalanceGuard parle (manque de renfo), pushPullGuard se tait (le signal grossier prime).
+  const hybridRunWeek = { workouts: [push('2026-06-22'), push('2026-06-25'), push('2026-06-29'), push('2026-07-01'), { date: '2026-07-10', type: 'run' }, { date: '2026-07-12', type: 'run' }, { date: '2026-07-14', type: 'run' }] };
+  const fHybrid = L.adaptiveCoachFocus(hybridRunWeek, today);
+  assert.deepEqual(fHybrid.trainBalanceGuard, { missing: 'strength', count: 3 });
+  assert.equal(fHybrid.pushPullGuard, null, 'trainBalanceGuard prime → pushPullGuard muet');
 });
 
 test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de la concentration', () => {

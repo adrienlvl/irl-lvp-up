@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.172 (2026-07-19)
+## 📍 État actuel — build 2.0.173 (2026-07-19)
+
+> 💪 **2.0.173** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach surveille enfin la
+> balance **POUSSÉE ↔ TIRAGE** en muscu (`pushPullGuard`) — un axe de **structure interne** jamais lu.
+> Il voyait la modalité (course↔muscu, `trainBalanceGuard` #541) et le groupe le plus reposé
+> (`sportZoneFocus`), mais pas le penchant le plus **courant et sournois** : pousser (pecs, épaules)
+> bien plus qu'on ne tire (dos). Cumulé sur des semaines, ça **enroule les épaules** et met la **coiffe
+> des rotateurs** en tension — terrain de douleur d'épaule, **invisible** à la fraîcheur (le dos peut
+> être « reposé » ET sous-travaillé sur le mois) comme à la modalité (100 % muscu peut être « hybride »
+> côté course et pourtant tout en poussée). Nouveau champ **`pushPullGuard`** (`{ zone, push, pull,
+> ratio }` ou `null`, toujours renvoyé) : quand la muscu du dernier mois penche nettement (push-heavy /
+> pull-heavy / un côté à zéro) avec un vrai volume (≥ 10 séries poussée+tirage sur 28 j), le coach nomme
+> le penchant et le côté à recharger — « Ajoute du dos (tractions, rowing)… tes épaules te
+> remercieront. » **Honnête** : muet sur données maigres, **subordonné** à `trainBalanceGuard` (inutile
+> d'affiner la balance le jour où on dit déjà « cale carrément une séance de renfo »), mêmes gardes que
+> `sportZoneFocus` (séance pas faite, pas de repos ordonné, pas de pic de charge). Note **appendue** à
+> l'insight, action du jour intacte. **Zéro** nouvelle fonction (réemploi `muscleBalance`,
+> `pushPullAdvice`, `doneToday`, `reviveEligible`, `loadSpike`, `readiness`). Tests + check smoke
+> bloquant `coachFocus` étendu. Recap #542.
 
 > ⚖️ **2.0.172** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach regarde enfin
 > l'**ÉQUILIBRE course ↔ muscu** (`trainBalanceGuard`) — un axe de **modalité** jusque-là totalement
