@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.121', emoji: '🌱', text: 'Ton coach « Le focus du moment » salue maintenant ta REPRISE dès ses premiers pas. Il brandissait déjà une série en jeu à partir de 3 jours d’affilée — mais la marche la plus fragile d’un retour, celle des 2 premiers jours après une rupture, ne recevait rien. Désormais, quand une série repart (2 ou 3 jours d’affilée) alors que tu as déjà tenu bien plus long par le passé (au moins une semaine), il nomme la reconstruction et te redonne un cap : « 🌱 Tu reconstruis : 2 jours d’affilée sur ton entraînement, tu retrouves le chemin de ta meilleure série (record perso : 12 jours). Le plus dur — repartir — est derrière toi, une marche à la fois. » Repartir après une chute demande plus de cran que tenir : c’est le moment où l’encouragement compte le plus. Il n’en parle que si tu avais vraiment bâti quelque chose à retrouver.' },
   { v: '2.0.120', emoji: '⚖️', text: 'Quand ton coach « Le focus du moment » pousse ta NUTRITION, il relie enfin ta discipline du jour à ton RÉSULTAT CORPOREL réel. Jusqu’ici il parlait cible protéines, collation, série — mais restait aveugle à ton objectif de poids et à sa progression, le « pourquoi » de tout l’effort. Désormais, si tu as fixé un poids cible et que tes pesées le permettent, il cite l’avancement réel : bien avancé, il te crédite (« Et ça paie : 62% de ton objectif de perte atteint (3,7 kg sur 6) — ta nutrition en est le moteur ») ; en chemin, il t’encourage (« Ton objectif de perte avance (28%…) — chaque jour réglé sur ta cible rapproche le résultat ») ; pas encore de résultat, il recadre sans culpabiliser et t’invite à te peser (« Ta cible de perte (6 kg) attend encore un premier résultat — ces jours de nutrition régulière sont exactement ce qui la débloque »). Un « pourquoi » chiffré et personnel motive plus qu’un compteur isolé. Sans objectif de poids ou sans pesée exploitable, rien ne change.' },
   { v: '2.0.119', emoji: '🏆', text: 'Ton coach « Le focus du moment » brandit maintenant ton RECORD PERSO quand ta série en jeu s’en approche. Il nommait déjà la série que tu risques de perdre et le palier fixe à décrocher, mais restait aveugle à ta plus longue série jamais tenue sur un pilier — le levier le plus intime. Désormais, quand cette série en jeu touche ton record (au moins une semaine d’affilée dans ton histoire), il le rappelle : si ton run actuel EST déjà ton record, « 🏆 Et là tu bats ton record perso sur ton entraînement : jamais tu n’avais tenu autant de jours d’affilée » ; s’il approche un record passé (à trois jours près), « Ton record perso ici est de 10 jours d’affilée — encore 2 jours pour l’égaler. » Battre sa propre meilleure série fait agir plus fort qu’un jalon générique. Il n’en parle que d’un record notable, et jamais le même jour qu’un palier (une seule carotte à la fois).' },
   { v: '2.0.118', emoji: '💚', text: 'Ton coach « Le focus du moment » adapte maintenant sa CONSOLATION à la TAILLE de la série que tu viens de casser. Il te réconfortait déjà quand un pilier retombait après une vraie série, mais du même ton pour 4 jours perdus que pour un mois. Désormais il gradue : une série qui avait franchi le palier de la semaine (au moins 7 jours d’affilée) pèse plus lourd, alors il nomme la magnitude et lui rend justice — « Tu tenais une semaine entière d’affilée sur ton entraînement avant cette pause — ça, c’est du solide : pas un échec, une vraie base à relancer. Un geste aujourd’hui et tu repars de haut. » Pour une série plus courte (4 à 6 jours), il garde le ton léger « une série vite relancée ». Reconnaître un vrai capital perdu à sa juste valeur motive plus qu’un mot passe-partout.' },
@@ -5663,6 +5664,32 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       }
     }
   }
+  // MICRO-JALON DE REPRISE — le pendant PRÉCOCE de la « série en jeu ». Une série qui repart après une
+  // rupture franchit sa marche la plus fragile — et la plus décisive — AVANT d'atteindre le seuil « en
+  // jeu » de 3 j : à 2 jours d'affilée, rien ne la saluait, alors même que c'est là qu'on rebâtit ce
+  // qu'on avait perdu. On comble ce trou : en renforcement (reinforce, hors rotation, hors comeback qui
+  // raconte déjà la relance), quand la série EN COURS est courte (2 ou 3 j, streakAtRisk resté muet — soit
+  // streak < 3, soit streak 3 mais geste du jour déjà posé) ET qu'il existe un RECORD perso NOTABLE (≥ 7 j)
+  // au-dessus, on nomme la RECONSTRUCTION : « tu retrouves le chemin de ta meilleure série ». Le record
+  // sert de cap concret vers lequel remonter — la reprise reprend du sens. Disjoint de streakAtRisk (série
+  // ≥ 3 en jeu), du comeback (relance longue) et de brokenStreak (rebuild) par streak / le ton. Additif
+  // pur : champ streakRebuild (record perso visé, ou null) TOUJOURS renvoyé ; note appendue, action intacte.
+  let streakRebuild = null;
+  if (tone === 'reinforce' && !rotated && !comeback && streakAtRisk == null
+      && typeof dailyStreak === 'function' && typeof bestDailyStreak === 'function') {
+    const dates = [];
+    for (const e of (Array.isArray(chosen.list) ? chosen.list : [])) {
+      if (e && chosen.active(e) && /^\d{4}-\d{2}-\d{2}$/.test(String(e.date || '')) && e.date <= todayKey) dates.push(e.date);
+    }
+    const streak = dailyStreak(dates, todayKey);
+    if (streak === 2 || streak === 3) {
+      const best = bestDailyStreak(dates);
+      if (best >= 7) {
+        streakRebuild = best;
+        insight += ` 🌱 Tu reconstruis : ${streak} jours d’affilée sur ${POSSESSIF[chosen.pillar] || 'ce pilier'}, tu retrouves le chemin de ta meilleure série (record perso : ${best} jours). Le plus dur — repartir — est derrière toi, une marche à la fois.`;
+      }
+    }
+  }
   // Coach de la SÉRIE ROMPUE — le pendant CONSOLANT, côté correction, de la « série en jeu » (#484/#485,
   // qui n'agit qu'en reinforce sur une série VIVANTE). Côté correction, le coach ne savait que constater
   // le recul ; or un pilier qui RECULE juste après avoir tenu une belle SÉRIE ne mérite pas un reproche
@@ -5712,7 +5739,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, brokenStreak, brokenStreakTier, weightGoalPct,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct,
   };
 }
 

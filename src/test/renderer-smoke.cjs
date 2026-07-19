@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.120'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.121'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -908,6 +908,11 @@ app.whenReady().then(async () => {
           // Série trop courte (3 j) → pas de consolation ; et la série EN JEU (reinforce) ne déclenche jamais brokenStreak.
           const fShortBroken = adaptiveCoachFocus({ workouts: [{ date: '2026-07-07' }, { date: '2026-07-08' }, { date: '2026-07-09' }] }, '2026-07-16');
           if (fShortBroken.brokenStreak !== null || fShortBroken.brokenStreakTier !== null || /avant cette pause/.test(fShortBroken.insight) || fSeries.brokenStreak !== null) return false;
+          // MICRO-JALON DE REPRISE : série repartie à 2 j (07-14,07-15) sous le seuil « en jeu », record perso notable de 7 j au-dessus (trou de 12 j < 14) → reconstruction saluée.
+          const fRebuild = adaptiveCoachFocus({ workouts: [{ date: '2026-06-26' }, { date: '2026-06-27' }, { date: '2026-06-28' }, { date: '2026-06-29' }, { date: '2026-06-30' }, { date: '2026-07-01' }, { date: '2026-07-02' }, { date: '2026-07-14' }, { date: '2026-07-15' }] }, '2026-07-16');
+          if (!(fRebuild.tone === 'reinforce' && fRebuild.streakAtRisk === null && fRebuild.streakRebuild === 7 && /Tu reconstruis : 2 jours d.affilée sur ton entra/.test(fRebuild.insight) && /record perso : 7 jours/.test(fRebuild.insight))) return false;
+          // Sans record notable au-dessus (série de 3 j en jeu) → pas de micro-jalon de reprise.
+          if (fSeries.streakRebuild !== null) return false;
           // Coach CONSCIENT de la readiness : focus « sport » + check-in du jour → action calée sur la readiness.
           const rdWk = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
           const fRdLow = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 3, fatigue: 5, soreness: 5 }] }, '2026-07-16');

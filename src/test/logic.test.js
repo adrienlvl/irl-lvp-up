@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.120');
+  assert.equal(L.CHANGELOG[0].v, '2.0.121');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7247,6 +7247,35 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   assert.equal(recordNear.streakMilestoneReach, null, 'streak 5 loin d’un palier → pas de carotte palier');
   assert.equal(recordNear.streakRecordReach, 'near', 'record passé de 8 j à 3 j du run actuel → à portée');
   assert.match(recordNear.insight, /record perso ici est de 8 jours d’affilée — encore 3 jours pour l’égaler/);
+
+  // MICRO-JALON DE REPRISE — une série repartie à 2 jours (07-14, 07-15, rien aujourd'hui) SOUS le seuil
+  // « en jeu » de 3, avec un record perso notable au-dessus (7 j : 06-26→07-02, hors fenêtres, trou de 12 j
+  // < 14 → pas de relance) → le coach salue la reconstruction et cite le record comme cap.
+  const rebuild = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-06-26' }, { date: '2026-06-27' }, { date: '2026-06-28' }, { date: '2026-06-29' },
+    { date: '2026-06-30' }, { date: '2026-07-01' }, { date: '2026-07-02' },
+    { date: '2026-07-14' }, { date: '2026-07-15' },
+  ] }, today);
+  assert.equal(rebuild.tone, 'reinforce');
+  assert.equal(rebuild.comeback, false, 'trou de 12 j < 14 → pas de relance, place au micro-jalon de reprise');
+  assert.equal(rebuild.streakAtRisk, null, 'série repartie de 2 j < 3 → pas « en jeu »');
+  assert.equal(rebuild.streakRebuild, 7, 'série de 2 j + record perso de 7 j → reconstruction saluée, record cité');
+  assert.match(rebuild.insight, /Tu reconstruis : 2 jours d’affilée sur ton entraînement/);
+  assert.match(rebuild.insight, /record perso : 7 jours/);
+  // Reprise à 3 j AVEC le geste du jour posé (streakAtRisk muet car série prolongée) → couvert aussi.
+  const rebuild3 = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-06-26' }, { date: '2026-06-27' }, { date: '2026-06-28' }, { date: '2026-06-29' },
+    { date: '2026-06-30' }, { date: '2026-07-01' }, { date: '2026-07-02' },
+    { date: '2026-07-14' }, { date: '2026-07-15' }, { date: '2026-07-16' },
+  ] }, today);
+  assert.equal(rebuild3.streakAtRisk, null, 'geste du jour posé → série prolongée, pas « en jeu »');
+  assert.equal(rebuild3.streakRebuild, 7, 'reprise à 3 j (geste du jour posé) + record 7 j → reconstruction saluée');
+  assert.match(rebuild3.insight, /Tu reconstruis : 3 jours d’affilée/);
+  // SANS record notable au-dessus : la petite série de 2 j (07-14, 07-15) seule → pas de « reconstruction ».
+  assert.equal(shortSeries.streakRebuild, null, 'série de 2 j sans record perso ≥ 7 → pas de micro-jalon de reprise');
+  // Série EN JEU (≥ 3, streakAtRisk parle) → le micro-jalon de reprise reste muet (disjoint).
+  assert.equal(recordNear.streakRebuild, null, 'série de 5 j en jeu → streakAtRisk parle, pas streakRebuild');
+  assert.equal(series.streakRebuild, null, 'série de 3 j en jeu → pas de streakRebuild');
 
   // Coach de la SÉRIE ROMPUE (côté correction, pendant consolant de la « série en jeu ») : une série de
   // 5 j close il y a une semaine, pilier maintenant en recul (rebuild) → le coach reconnaît l'acquis

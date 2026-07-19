@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.120 (2026-07-19)
+## 📍 État actuel — build 2.0.121 (2026-07-19)
+
+> 🌱 **2.0.121** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » salue enfin le **micro-jalon de reprise** — la marche la plus fragile d'un retour. Il
+> brandissait une **série en jeu** dès 3 j (`streakAtRisk`), le palier, le record approché
+> (#484→#488) et consolait une série cassée (`brokenStreak`, #486/#487), mais les **2 premiers jours**
+> d'une série qui **repart après une rupture** tombaient SOUS le seuil « en jeu » → rien ne les
+> saluait, alors que c'est là qu'on rebâtit et que l'encouragement compte le plus (piste répétée de
+> #486/#487/#488). Nouveau signal **`streakRebuild`** : en renforcement (`reinforce`, hors rotation,
+> hors `comeback`), quand la série EN COURS est courte (2 ou 3 j, `streakAtRisk` muet) ET qu'un
+> **record perso notable** existe au-dessus (`bestDailyStreak` ≥ 7), le coach nomme la reconstruction
+> et cite le record comme cap (« 🌱 Tu reconstruis : 2 jours d'affilée sur ton entraînement, tu
+> retrouves le chemin de ta meilleure série (record perso : 12 jours). Le plus dur — repartir — est
+> derrière toi, une marche à la fois »). Points de conception : **réutilise** `dailyStreak` +
+> `bestDailyStreak` (aucun calcul neuf) ; **disjoint** de `streakAtRisk` / `comeback` / `brokenStreak`
+> par streak & ton ; **record notable seulement** (≥ 7 j) ; **additif pur** — champ `streakRebuild`
+> (record visé ou `null`) TOUJOURS renvoyé, note appendue, action intacte. `adaptiveCoachFocus` pur +
+> testé, check smoke bloquant `coachFocus` étendu. Recap #490.
 
 > ⚖️ **2.0.120** — Coaching adaptatif poussé à fond (priorité de la nuit) : quand le coach « Le focus
 > du moment » pousse la **NUTRITION**, il relie enfin la discipline du jour au **RÉSULTAT CORPOREL
