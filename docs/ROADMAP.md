@@ -100,6 +100,28 @@ jusqu'à la rentrée, on l'améliore et on ne le casse jamais.
 
 ---
 
+## 🌙 DÉMARRAGE VPS — nuit du 2026-07-19 (lis ceci EN PREMIER)
+
+**État au moment du relais** : `master` = **2.0.183**, publiée (tag `v2.0.183`). 519 tests + smoke
+verts. Rotation des domaines **amorcée** — les 7 derniers recaps sont étiquetés
+`coach · coach · a11y · alternance · robustesse · agenda · tests`.
+
+**Ta prochaine boucle est #554.** Domaines **interdits** au démarrage (§4 bis.3, apparaissent dans les
+5 derniers) : `tests`, `agenda`, `robustesse`. **Commence donc par `a11y`** — P2.2 puis P2.4 ci-dessous,
+tous deux **vérifiés et à périmètre corrigé** — puis change de domaine.
+
+**⛔ NE TOUCHE PAS aux propositions P1.** Les 6 documents sont **écrits** et attendent des décisions
+d'Adrien (fin de chaque fichier). Les implémenter sans son arbitrage serait exactement l'excès que ce
+dispositif corrige. Si tu veux avancer dessus : **approfondis le document**, n'implémente pas.
+
+**⚠️ Deux corrections de cap à connaître** (elles t'éviteront deux boucles perdues) :
+- **P3 est une impasse** — sondée en #553, les fonctions pures sont correctes et déjà couvertes.
+- **L'audit a11y était partiellement faux** — `#wpResult` et `#exerciseSearch` ont déjà ce qu'on leur
+  reprochait. Les périmètres de P2.2 et P2.4 sont corrigés ci-dessous. **Vérifie toujours avant de
+  coder** : c'est la règle §2.3, et elle vient de payer trois fois.
+
+---
+
 ## 🎯 Prochaines priorités — ce sur quoi travailler MAINTENANT
 
 > **Pourquoi cette section existe.** 60 itérations autonomes d'affilée sont parties dans le même
@@ -166,16 +188,19 @@ dans le recap et passer à la suivante.
       **aucune** restitution au déclencheur à la fermeture, `<main>` jamais `inert`. Au clavier on
       reste donc dans le dashboard **caché derrière**. (Les vrais `<dialog>` en `showModal` gèrent ça
       tout seuls — d'où l'écart.) Check smoke **bloquant** obligatoire.
-- [ ] **P2.2 — `aria-live` manquant sur 2 panneaux de résultat** — `#objectiveResult` et
-      `#runPlanResult` l'ont (et c'est verrouillé par le check `a11yObjective`), mais `#wpResult`
-      (« Générer ma semaine ») et `#quickSessionResult` **ne l'ont pas** → plan généré = silence au
-      lecteur d'écran.
+- [ ] **P2.2 — `aria-live` manquant sur 1 panneau de résultat** _(périmètre CORRIGÉ le 2026-07-19)_ —
+      ⚠️ l'audit annonçait deux panneaux : **c'était faux**. Vérifié dans `index.html` :
+      `#objectiveResult`, `#runPlanResult` **et `#wpResult`** ont déjà `aria-live`. **Seul
+      `#quickSessionResult` en manque** → circuit généré = silence au lecteur d'écran. Ajouter
+      `aria-live="polite"` + étendre le check smoke `a11yObjective`.
 - [x] **P2.3 — États vides manquants** ✅ _fait #550 (2.0.181) — piste VÉRIFIÉE exacte_ — `#altList` filtré à zéro rend `''` (`app.js:220`) : la zone
       devient **blanche** alors que des candidatures existent (l'utilisateur croit ses données
       perdues). Idem `#questList` (`app.js:506`) quand toutes les quêtes sont supprimées.
-- [ ] **P2.4 — Noms accessibles des champs de recherche** — `#exerciseSearch`, `#foodSearch`,
-      `#agendaSearch` n'ont qu'un **placeholder** (WCAG 3.3.2), alors que leur voisin `#altSearch` a
-      bien reçu un `aria-label` et que la règle est déjà appliquée ailleurs (`dashboardInputLabels`).
+- [ ] **P2.4 — Noms accessibles des champs de recherche** _(périmètre CORRIGÉ le 2026-07-19)_ —
+      ⚠️ l'audit citait trois champs : **`#exerciseSearch` a déjà un `aria-label`**. Restent
+      **`#foodSearch`** et **`#agendaSearch`**, qui n'ont qu'un `placeholder` (WCAG 3.3.2 : un
+      placeholder n'est pas un nom accessible). Même règle que `#altSearch`, déjà appliquée et
+      verrouillée ailleurs par `dashboardInputLabels` — étendre ce check.
 - [x] **P2.5 — Accord de « fait(s) » en vue Jour** ✅ _fait #552 (2.0.183)_ — `app.js:487` accorde sur le **dénominateur**
       (`doable.length`) : « 1/3 fait**s** » alors qu'un seul est fait. `renderMyDay` (`app.js:200`)
       accorde correctement sur le **numérateur**. _(Valeur faible — à prendre en bouche-trou.)_
@@ -195,6 +220,47 @@ pour un chantier ouvert, ça coûterait une boucle pour rien.
 > positif corrigé en #551 (« prise de contact » classée « acceptée », funnel corrompu à chaque sync).
 > **Toute regex de classification de texte FR doit être ancrée** (`\b`, ou exiger une tournure
 > explicite) — un mot français en contient souvent un autre.
+
+### P4 — Chasse aux REGEX NON ANCRÉES _(le vrai gisement, prouvé)_
+
+C'est la dette de qualité identifiée par les faits : **un mot français en contient souvent un autre**.
+Historique réel — bug **#446** (`pris` dans « entre**pris**e »), faux positif **#551** (« **prise** de
+contact » → candidature « acceptée », entonnoir corrompu **à chaque sync**), et deux pièges heurtés le
+même jour (`repos` dans « cerveau repos**é** », `blessure` en incise dans une note pédagogique).
+
+**Méthode par cible** : lire la regex, **construire 5-10 phrases FR réalistes** contenant le motif
+dans un mot plus long ou dans un autre sens, exécuter, **prouver** le faux positif, ancrer (`\b` ou
+exiger une tournure explicite), verrouiller par un test. **Si aucun faux positif réaliste n'existe :
+le dire dans le recap et passer à la cible suivante** — ne force pas.
+
+- [ ] **P4.1 — `jobStatusFromText`, motifs restants** (`logic.js:307` `/relanc/`, `:333`
+      `/entretien|entrevue/`, et le seau `postule`). Le plus sensible : il alimente **ton entonnoir**.
+- [ ] **P4.2 — Classement des exercices par nom** (`logic.js:1930-1947`) : `/poussée|tirage|haut|
+      traction|pompes|press|militaire/`, `/jambe|chaîne|squat|fessier|fente|mollet/`,
+      `/trail|côte|course|puissance|longue|swing|explos/`. Motifs courts (`haut`, `press`, `côte`,
+      `course`) dans des noms d'exercices libres — vérifier chacun.
+- [ ] **P4.3 — Balayage du reste de `logic.js`** : `grep -n "\.test(" lib/logic.js`, écarter les
+      regex structurelles (dates, ISO, CSV) et ne garder que celles qui classent du **texte FR saisi
+      par Adrien**. Une cible par boucle.
+
+### P5 — Mesurer avant de supposer _(méthode qui a marché, à réemployer)_
+
+La boucle #548 a trouvé un vrai défaut en **mesurant** plutôt qu'en devinant : rejouer une fonction
+sur des centaines d'états réalistes et observer la distribution de ce qui sort. Elle a aussi
+**invalidé** une piste (0 contradiction sur 1 260 scénarios) — un résultat négatif est un résultat.
+
+- [ ] **P5.1 — Longueur des textes utilisateur ailleurs que le coach** : mêmes mesures (p50/p90/max)
+      sur les résumés « Ma journée », la revue hebdo, les partages texte. Un pavé se corrige au rendu.
+- [ ] **P5.2 — Cohérence des conseils entre panneaux** : un même jour, le coach, « Ma journée » et la
+      revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer.
+
+### 🌙 SI LE BACKLOG SE VIDE — dans cet ordre, sans jamais inventer
+
+1. Reprends **P4** (il y a de quoi tenir : chaque regex est une cible).
+2. Écris une **proposition** manquante ou approfondis-en une (`docs/proposals/`).
+3. **Améliore les recaps/commentaires** là où le code est piégeux (domaine `docs`).
+4. **Ne commite RIEN** et dis-le (§5). Un run vide vaut mieux qu'un commit inventé — c'est
+   explicitement ce qu'Adrien préfère.
 
 ### 🚫 Ce qui n'est PAS à faire en autonomie
 
