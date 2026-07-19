@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.116 (2026-07-19)
+## 📍 État actuel — build 2.0.117 (2026-07-19)
+
+> 💚 **2.0.117** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **console au lieu de gronder quand une belle SÉRIE vient de casser**. Depuis #484/#485 il
+> brandit une série encore vivante que tu risques de perdre — mais **uniquement en ton `reinforce`** ;
+> **côté correction** (`rebuild`) il ne faisait que constater le recul, aveugle au fait qu'avant cette
+> pause tu tenais peut-être un vrai run. Nouveau signal **série rompue** : quand il te ramène sur un
+> pilier laissé retomber alors que sa série est **bien rompue aujourd'hui** (`dailyStreak(today) === 0`)
+> mais dont le dernier geste reste **frais** (≤ 10 j), il mesure la **longueur** de la série close à ce
+> dernier jour actif (`dailyStreak` réutilisé, ce jour pris comme « aujourd'hui ») et, si elle était
+> **longue** (≥ 4, au-dessus du seuil « en jeu » de 3), il **nomme l'acquis** : « Tu tenais 5 jours
+> d'affilée sur ton entraînement avant cette pause — **pas un échec, une série à relancer : un geste
+> aujourd'hui et tu repars.** » Perdre une série n'est pas repartir de zéro — le nommer transforme la
+> culpabilité en élan. Points de conception : **disjoint par construction** (streakAtRisk/comeback sont
+> reinforce-only, le ré-amorçage revive-only, ce signal rebuild-only → jamais deux récits de série le
+> même jour) ; **fraîche, pas dormante** (≤ 10 j, sinon terrain du ré-amorçage) ; **additif pur** —
+> champ `brokenStreak` (longueur, ou `null`) TOUJOURS renvoyé, note appendue à l'insight, action intacte.
+> `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #486.
 
 > 🏅 **2.0.116** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **double le levier quand ta série en jeu touche un PALIER**. Depuis #484 il brandit une

@@ -5429,7 +5429,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.116');
+  assert.equal(L.CHANGELOG[0].v, '2.0.117');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7206,6 +7206,32 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   // La série de 3 j (streak 3) n'est PAS à un palier (prochain = 7, à 4 jours) → pas de carotte jalon.
   assert.equal(series.streakMilestoneReach, null, 'streak 3 loin du palier 7 → pas de note « palier »');
   assert.doesNotMatch(series.insight, /décroche le palier/);
+
+  // Coach de la SÉRIE ROMPUE (côté correction, pendant consolant de la « série en jeu ») : une série de
+  // 5 j close il y a une semaine, pilier maintenant en recul (rebuild) → le coach reconnaît l'acquis
+  // plutôt que de reprocher la pause.
+  const broken = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' },
+    { date: '2026-07-08' }, { date: '2026-07-09' },
+  ] }, today);
+  assert.equal(broken.tone, 'rebuild', 'série close + rien depuis une semaine → ton de correction');
+  assert.equal(broken.brokenStreak, 5, 'série rompue de 5 jours détectée au dernier jour actif');
+  assert.match(broken.insight, /Tu tenais 5 jours d’affilée sur ton entraînement avant cette pause/);
+  assert.match(broken.insight, /pas un échec, une série à relancer/);
+  // Série trop courte (3 j close) → sous le seuil, pas de consolation.
+  const shortBroken = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-07' }, { date: '2026-07-08' }, { date: '2026-07-09' },
+  ] }, today);
+  assert.equal(shortBroken.tone, 'rebuild');
+  assert.equal(shortBroken.brokenStreak, null, 'série de 3 j < 4 → pas de note « série rompue »');
+  assert.doesNotMatch(shortBroken.insight, /avant cette pause/);
+  // Disjoint de la série EN JEU : en ton reinforce, brokenStreak reste null (c'est streakAtRisk qui parle).
+  assert.equal(series.brokenStreak, null, 'reinforce (série vivante) → jamais de brokenStreak');
+  // Une reprise fraîche (dernier geste aujourd'hui, série vivante) n'est pas une « série rompue ».
+  const aliveNotBroken = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' }, { date: '2026-07-16' },
+  ] }, today);
+  assert.equal(aliveNotBroken.brokenStreak, null, 'série encore vivante aujourd’hui → pas rompue');
 
   // priorité : un pilier qui décroche l'emporte sur un autre en hausse.
   const mixed = L.adaptiveCoachFocus({
