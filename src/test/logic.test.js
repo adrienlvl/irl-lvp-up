@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.147');
+  assert.equal(L.CHANGELOG[0].v, '2.0.148');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8932,6 +8932,53 @@ test('adaptiveCoachFocus : focus focus — coucher qui se RESSERRE (renfort posi
   const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery: rising }, today);
   assert.equal(done.bedtimeFocusTrend, null);
   assert.doesNotMatch(done.insight, /tes couchers se resserrent/);
+});
+
+test('adaptiveCoachFocus : focus focus — hydratation basse, levier aigu de la concentration', () => {
+  const today = '2026-07-16';
+  // Focus en décrochage → focus = focus (ton rebuild), aucun bloc aujourd’hui (!doneToday).
+  const focusSessions = [
+    { date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-06', minutes: 30, task: 'Thèse' },
+    { date: '2026-07-07', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 25, task: 'Thèse' },
+  ];
+  // Sommeil de DURÉE correcte (8 h) SANS heure de coucher → sleepFocusGuard/bedtimeFocusGuard/
+  // bedtimeFocusTrend tous null : les trois notes sommeil se taisent, l’hydratation peut parler.
+  const recovery = ['10', '11', '12', '13', '14', '15', '16'].map(d => ({ date: `2026-07-${d}`, sleep: 8 }));
+  // Hydratation chroniquement basse : 4 verres/jour sur 4 jours récents (avg 4 < 6, sous la cible de 8).
+  const nutrition = ['11', '12', '14', '15'].map(d => ({ date: `2026-07-${d}`, water: 4 }));
+  const dry = L.adaptiveCoachFocus({ focusSessions, recovery, nutrition }, today);
+  assert.equal(dry.pillar, 'focus', 'focus reste le pilier (nutrition récente sans passé → pas un fix)');
+  assert.equal(dry.sleepFocusGuard, null, 'durée OK → pas de note « sommeil court »');
+  assert.equal(dry.bedtimeFocusGuard, null, 'pas de coucher saisi → pas d’alerte timing');
+  assert.equal(dry.bedtimeFocusTrend, null, 'pas de coucher saisi → pas de renfort circadien');
+  assert.equal(dry.hydrationFocusGuard, 4, 'moyenne de verres récente renvoyée');
+  assert.match(dry.insight, /Et un levier immédiat, souvent négligé : tu bois 4 verres d’eau par jour ces derniers jours, sous les 8/);
+  assert.match(dry.insight, /déshydratation légère.*brouille l’attention et la mémoire de travail/);
+  assert.match(dry.insight, /Contrairement au sommeil, ça se corrige en minutes : un grand verre d’eau avant ton bloc/);
+  // Aucune collision avec les notes sommeil.
+  assert.doesNotMatch(dry.insight, /alimente ta concentration/);
+  assert.doesNotMatch(dry.insight, /partent dans tous les sens/);
+  // Bien HYDRATÉ (8 verres → avg 8 ≥ 6) → champ null, note absente.
+  const wet = L.adaptiveCoachFocus({ focusSessions, recovery, nutrition: nutrition.map(n => ({ ...n, water: 8 })) }, today);
+  assert.equal(wet.hydrationFocusGuard, null);
+  assert.doesNotMatch(wet.insight, /un levier immédiat, souvent négligé/);
+  // Moins de 3 jours d’hydratation saisis → champ null (données réelles insuffisantes).
+  const thin = L.adaptiveCoachFocus({ focusSessions, recovery, nutrition: [
+    { date: '2026-07-15', water: 4 }, { date: '2026-07-16', water: 3 },
+  ] }, today);
+  assert.equal(thin.hydrationFocusGuard, null);
+  assert.doesNotMatch(thin.insight, /un levier immédiat, souvent négligé/);
+  // SOMMEIL COURT (6 h) qui prime : sleepFocusGuard parle, l’hydratation reste muette (une note socle/jour).
+  const short = L.adaptiveCoachFocus({ focusSessions, recovery: recovery.map(r => ({ ...r, sleep: 6 })), nutrition }, today);
+  assert.equal(short.pillar, 'focus');
+  assert.equal(short.sleepFocusGuard, 6);
+  assert.equal(short.hydrationFocusGuard, null, 'note sommeil prime → hydratation muette');
+  assert.match(short.insight, /alimente ta concentration/);
+  assert.doesNotMatch(short.insight, /un levier immédiat, souvent négligé/);
+  // Bloc DÉJÀ posé aujourd’hui (doneToday) → pas de note.
+  const done = L.adaptiveCoachFocus({ focusSessions: [...focusSessions, { date: today, minutes: 30, task: 'Thèse' }], recovery, nutrition }, today);
+  assert.equal(done.hydrationFocusGuard, null);
+  assert.doesNotMatch(done.insight, /un levier immédiat, souvent négligé/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

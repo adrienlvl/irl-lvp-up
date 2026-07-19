@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.147 (2026-07-19)
+## 📍 État actuel — build 2.0.148 (2026-07-19)
+
+> 💧 **2.0.148** — Coaching adaptatif poussé à fond (priorité de la nuit) : **axe neuf** après six
+> boucles saturées de croisements sommeil × pilier (#511-#516) — l'**hydratation** comme levier AIGU
+> de la concentration, jamais lue côté focus. Le pilier focus lisait tout le sommeil (durée, timing,
+> resserrement) mais restait aveugle à `nutrition[].water` — pourtant un des leviers cognitifs les
+> plus rapides : une déshydratation légère (1-2 % du poids) émousse l'attention et la mémoire de
+> travail. Sa valeur : l'exact **complément** du sommeil (chronique, jours) — l'hydratation se corrige
+> en **minutes**. Nouveau champ **`hydrationFocusGuard`** (moyenne de verres récente, ou `null`) :
+> quand le pilier poussé est le **focus**, le bloc du jour pas fait (`!doneToday`), **aucune** des trois
+> notes sommeil du focus n'a parlé (`sleepFocusGuard == null && bedtimeFocusGuard == null &&
+> bedtimeFocusTrend == null`) ET l'hydratation récente est basse (moyenne < 6 verres sur ≥ 3 jours d'eau
+> saisis parmi les 7 derniers, sous la cible de 8), une note s'append : « Et un levier immédiat, souvent
+> négligé : tu bois 4 verres d'eau par jour ces derniers jours, sous les 8 — même une déshydratation
+> légère brouille l'attention et la mémoire de travail et fait grimper la sensation d'effort.
+> Contrairement au sommeil, ça se corrige en minutes : un grand verre d'eau avant ton bloc, et garde une
+> gourde à portée. » **Relais du sommeil, jamais concurrent** : une seule note « socle »/jour, le sommeil
+> prime, l'hydratation en relais (motif `hydrationTrend`-en-relais-de-`proteinTrend`, #502). Vocabulaire
+> distinct (« déshydratation », « un grand verre », « une gourde ») — zéro collision regex. Données réelles
+> garanties (≥ 3 jours `water > 0`, agrégés au MAX par date). Additif pur, réemploi total, **zéro** nouvelle
+> fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #517.
 
 > 🌗 **2.0.147** — Coaching adaptatif poussé à fond (priorité de la nuit) : premier **renfort POSITIF**
 > sur l'axe circadien × FOCUS, pendant de `bedtimeFocusGuard` (#515, une alerte). Les cinq boucles
