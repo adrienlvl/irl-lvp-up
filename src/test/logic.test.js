@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.153');
+  assert.equal(L.CHANGELOG[0].v, '2.0.154');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6775,6 +6775,37 @@ test('adaptiveCoachFocus : surveille la chaîne d’une habitude à risque (habi
   // Aucune habitude → champ null, aucune note (rétrocompat).
   const none = L.adaptiveCoachFocus({ workouts: wk }, '2026-07-16');
   assert.equal(none.habitAtRisk, null);
+});
+
+test('adaptiveCoachFocus : célèbre un palier de série d’habitude franchi (habitMilestone)', () => {
+  const wk = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // Habitude cochée AUJOURD'HUI (16), série tombant pile sur 3 (14-15-16) → palier franchi.
+  const hit = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-14', '2026-07-15', '2026-07-16'] }] }, '2026-07-16');
+  assert.ok(hit.habitMilestone, 'habitMilestone renseigné');
+  assert.equal(hit.habitMilestone.name, 'Lecture');
+  assert.equal(hit.habitMilestone.streak, 3);
+  assert.match(hit.insight, /Chaîne au sommet/);
+  assert.match(hit.insight, /atteint 3 jours consécutifs aujourd/);
+  // Série de 4 (13→16) : 4 n'est PAS un palier → null, pas de note.
+  const between = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'] }] }, '2026-07-16');
+  assert.equal(between.habitMilestone, null);
+  assert.doesNotMatch(between.insight, /Chaîne au sommet/);
+  // Palier d'une SEMAINE (7, 10→16) → libellé nommé.
+  const week = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Sport', log: ['2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'] }] }, '2026-07-16');
+  assert.equal(week.habitMilestone.streak, 7);
+  assert.match(week.insight, /une semaine complète \(7 jours consécutifs\)/);
+  // Habitude PAS cochée aujourd'hui (série 3 finissant hier) → habitMilestone muet (c'est habitAtRisk qui parle).
+  const notDone = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-13', '2026-07-14', '2026-07-15'] }] }, '2026-07-16');
+  assert.equal(notDone.habitMilestone, null);
+  // Deux habitudes au palier le même jour → on nomme la PLUS haute série (7 > 3).
+  const many = L.adaptiveCoachFocus({ workouts: wk, habits: [
+    { id: 1, name: 'Méditation', log: ['2026-07-14', '2026-07-15', '2026-07-16'] },
+    { id: 2, name: 'Sport', log: ['2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'] } ] }, '2026-07-16');
+  assert.equal(many.habitMilestone.name, 'Sport');
+  assert.equal(many.habitMilestone.streak, 7);
+  // Aucune habitude → champ null (rétrocompat).
+  const none = L.adaptiveCoachFocus({ workouts: wk }, '2026-07-16');
+  assert.equal(none.habitMilestone, null);
 });
 
 test('adaptiveCoachFocus : croise entraînement actif × bien-être lapsé (mobilityTrainGuard)', () => {

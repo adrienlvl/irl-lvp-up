@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.153'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.154'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1176,6 +1176,13 @@ app.whenReady().then(async () => {
           if (!(fHabitDone.habitAtRisk === null && !/Ne casse pas la cha[îi]ne/.test(fHabitDone.insight))) return false;
           // Série trop courte (2 < seuil 3) → pas de note ni de champ.
           if (adaptiveCoachFocus({ workouts: habWk, habits: [{ id: 1, name: 'Eau', log: ['2026-07-14', '2026-07-15'] }] }, '2026-07-16').habitAtRisk !== null) return false;
+          // Coach × PALIER D'HABITUDE (habitMilestone) : habitude cochée aujourd'hui, série pile sur un palier (3) → note « Chaîne au sommet », champ renvoyé.
+          const fMile = adaptiveCoachFocus({ workouts: habWk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-14', '2026-07-15', '2026-07-16'] }] }, '2026-07-16');
+          if (!(fMile.habitMilestone && fMile.habitMilestone.name === 'Lecture' && fMile.habitMilestone.streak === 3 && /Cha[îi]ne au sommet/.test(fMile.insight) && /atteint 3 jours cons/.test(fMile.insight))) return false;
+          // Série de 4 (hors palier) → habitMilestone null, aucune note.
+          if (!(fHabitDone.habitMilestone === null && !/Cha[îi]ne au sommet/.test(fHabitDone.insight))) return false;
+          // Habitude pas cochée aujourd'hui → habitMilestone muet (c'est habitAtRisk qui parle).
+          if (fHabit.habitMilestone !== null) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
           const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };

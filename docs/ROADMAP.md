@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.153 (2026-07-19)
+## 📍 État actuel — build 2.0.154 (2026-07-19)
+
+> 🏆 **2.0.154** — Coaching adaptatif poussé à fond (priorité de la nuit) : après une salve d'alertes de
+> **déficit** (guards sommeil/hydratation/mobilité/protéine, `habitAtRisk`), le coach renoue avec le
+> **renforcement du PROGRÈS** — la demande veut « adaptation aux **progrès** ET aux écarts ». Nouveau champ
+> **`habitMilestone`** (`{name, streak}` ou `null`), **pendant positif** de `habitAtRisk` (#520) : quand une
+> habitude **cochée aujourd'hui** voit sa série tomber **pile sur un palier** (`STREAK_MILESTONES` : 3, 7,
+> 14, 30, 60, 100, 180, 365), le coach la **célèbre** — « 🏆 Chaîne au sommet : ton habitude « Lecture »
+> atteint une semaine complète (7 jours consécutifs) aujourd'hui — un vrai palier, l'automatisme s'installe.
+> Savoure et enchaîne le prochain maillon. » On nomme le palier le **plus impressionnant** du jour ; libellé
+> nommé pour les gros jalons (semaine, mois, six mois…), sinon « N jours consécutifs ». Ne se répète pas
+> (chaque jalon franchi une seule fois : le lendemain la série vaut palier+1, hors liste). Disjoint de
+> `habitAtRisk` (habitudes **non cochées**) : les deux peuvent parler le même jour sur des habitudes
+> différentes. Vocabulaire distinct (« Chaîne au sommet », « atteint … jours consécutifs ») — zéro collision
+> regex avec `habitAtRisk`, `completeDayMilestone`, `streakRecordReach`, `streakRebuild`. Additif pur,
+> réemploi total de `habitsForDay` + `STREAK_MILESTONES`, **zéro** nouvelle fonction. Fonctions pures +
+> testées, check smoke bloquant `coachFocus` étendu. Recap #523.
 
 > 🥩 **2.0.153** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach lit enfin les
 > **PROTÉINES** quand il pilote sur le **SPORT** — le maillon manquant de sa lecture de l'entraînement. Il
