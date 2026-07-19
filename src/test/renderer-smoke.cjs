@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.122'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.123'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -926,6 +926,14 @@ app.whenReady().then(async () => {
           const fRdHigh = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
           if (!(fRdHigh.readiness === 100 && /pr[êe]t [àa] pousser/.test(fRdHigh.action))) return false;
           if (adaptiveCoachFocus({ workouts: rdWk }, '2026-07-16').readiness !== null) return false;
+          // Coach CONSCIENT de la CHARGE : pic aigu/chronique (ACWR high) → l'action sport TEMPÈRE (allège),
+          // même sans readiness ; readiness au vert → registre « consolidation » ; le créneau est coupé.
+          const spikeWk = [{ date: '2026-07-10', duration: 100, effort: 3 }, { date: '2026-07-12', duration: 100, effort: 3 }, { date: '2026-07-14', duration: 100, effort: 3 }, { date: '2026-07-05', duration: 30, effort: 1 }, { date: '2026-07-08', duration: 30, effort: 1 }, { date: '2026-06-28', duration: 30, effort: 1 }];
+          const fSpike = adaptiveCoachFocus({ workouts: spikeWk }, '2026-07-16');
+          if (!(fSpike.pillar === 'sport' && fSpike.loadSpike != null && fSpike.loadSpike > 1.5 && /Charge en hausse brutale/.test(fSpike.action))) return false;
+          const fSpikeFresh = adaptiveCoachFocus({ workouts: spikeWk, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
+          if (!(fSpikeFresh.readiness === 100 && fSpikeFresh.loadSpike != null && /Forme au vert/.test(fSpikeFresh.action) && !/pr[êe]t [àa] pousser/.test(fSpikeFresh.action))) return false;
+          if (adaptiveCoachFocus({ workouts: spikeWk, agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16', { nowMinutes: 555 }).sportSlot !== null) return false;
           // Coach PRIORISANT : deux piliers décrochent → note explicite « quoi d'abord » qui NOMME l'autre pilier.
           const fTwo = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }], focusSessions: [{ date: '2026-07-04', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-08', minutes: 30 }, { date: '2026-07-12', minutes: 30 }] }, '2026-07-16');
           if (!(fTwo.alsoSlipping === 1 && fTwo.alsoSlippingPillars && fTwo.alsoSlippingPillars[0] === 'focus' && /Ton focus faiblit aussi/.test(fTwo.insight) && /levier prioritaire/.test(fTwo.insight))) return false;

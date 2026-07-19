@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.122 (2026-07-19)
+## 📍 État actuel — build 2.0.123 (2026-07-19)
+
+> 🩹 **2.0.123** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » surveille enfin ta **CHARGE d'entraînement** (prévention de blessure), un domaine que les 8
+> derniers builds (séries/piliers) n'avaient pas touché. L'action sport se calait sur la **readiness**
+> du jour (#463, la forme du matin, UNE nuit) mais restait **aveugle à la tendance de charge** sur 4
+> semaines — le cas piégeux : un corps bien reposé (readiness au vert) qui a **brutalement augmenté son
+> volume** ces 7 jours reste en zone de risque, là où la readiness seule crierait « pousse ! ».
+> `acuteChronicRatio` (ratio aigu/chronique) existait déjà mais **le coach ne le lisait pas**. Nouveau
+> champ **`loadSpike`** : quand le pilier est le SPORT, la séance du jour pas déjà faite et la readiness
+> n'ordonne pas déjà le repos (null ou ≥ 50), un pic (`zone === 'high'`, ratio > 1,5) fait **tempérer**
+> l'action en deux registres — **readiness au vert (≥ 75)** : on crédite la forme et on redirige vers la
+> qualité (« Forme au vert, mais ta charge a bondi à 2,3× ton volume habituel — mets l'énergie sur la
+> technique, pas le volume : consolidation ») ; **sinon** : on allège franchement (« Charge en hausse
+> brutale : ta semaine est à 2,3× ton volume habituel — allège aujourd'hui (-30 % de volume), technique
+> propre »). Points de conception : **additif pur** (`loadSpike` = ratio ou `null` TOUJOURS renvoyé,
+> action remplacée seulement en cas de pic, données réelles requises) ; **garde-fous
+> anti-contradiction** — le pic COUPE le créneau sport, empêche `followThrough` de réécrire l'action, et
+> garde l'escalade de reprise (`comebackStage`) légère ; **complémentaire de la readiness** (sous 50,
+> `loadSpike` reste null, pas de doublon). `adaptiveCoachFocus` pur + testé, check smoke bloquant
+> `coachFocus` étendu. Recap #492.
 
 > 🎯 **2.0.122** — Coaching adaptatif poussé à fond (priorité de la nuit) : quand « Le focus du
 > moment » pousse le **SPORT** avec un objectif hebdo de séances (`goals.sessions`), il ne se

@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.122');
+  assert.equal(L.CHANGELOG[0].v, '2.0.123');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7547,6 +7547,57 @@ test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => 
   assert.equal(none.pillar, 'sport');
   assert.equal(none.readiness, null);
   assert.match(none.action, /séance/);
+});
+
+test('adaptiveCoachFocus : action sport tempérée par un PIC de charge (ACWR)', () => {
+  const today = '2026-07-16';
+  // Charge en pic : 3 séances LOURDES sur 7 j (durée 100 × effort 3 = load 300) après 3 semaines
+  // légères → ratio aigu/chronique ≈ 3,6 (> 1,5, zone « high »). Momentum en hausse → sport, reinforce.
+  const spikeWk = [
+    { date: '2026-07-10', duration: 100, effort: 3 },
+    { date: '2026-07-12', duration: 100, effort: 3 },
+    { date: '2026-07-14', duration: 100, effort: 3 },
+    { date: '2026-07-05', duration: 30, effort: 1 },
+    { date: '2026-07-08', duration: 30, effort: 1 },
+    { date: '2026-06-28', duration: 30, effort: 1 },
+  ];
+  // Sans check-in du jour (readiness null), le coach voit quand même le pic et allège.
+  const spike = L.adaptiveCoachFocus({ workouts: spikeWk }, today);
+  assert.equal(spike.pillar, 'sport');
+  assert.equal(spike.tone, 'reinforce');
+  assert.equal(spike.comeback, false);
+  assert.ok(spike.loadSpike != null && spike.loadSpike > 1.5, 'ratio en zone high renvoyé');
+  assert.match(spike.action, /Charge en hausse brutale/);
+  assert.match(spike.action, /allège aujourd’hui/);
+  // readiness au VERT (100) : corps frais mais charge bondie → on crédite la forme et on redirige vers
+  // la qualité, PAS « pousse le volume ».
+  const spikeFresh = L.adaptiveCoachFocus({ workouts: spikeWk, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(spikeFresh.pillar, 'sport');
+  assert.equal(spikeFresh.readiness, 100);
+  assert.ok(spikeFresh.loadSpike != null);
+  assert.match(spikeFresh.action, /Forme au vert/);
+  assert.match(spikeFresh.action, /consolidation/);
+  assert.doesNotMatch(spikeFresh.action, /prêt à pousser/);
+  // readiness BASSE (< 50) : l'action « récup » prime déjà, le pic ne double pas dessus (loadSpike null).
+  const spikeLow = L.adaptiveCoachFocus({ workouts: spikeWk, recovery: [{ date: today, sleep: 3, fatigue: 5, soreness: 5 }] }, today);
+  assert.ok(spikeLow.readiness != null && spikeLow.readiness < 50);
+  assert.equal(spikeLow.loadSpike, null, 'readiness basse → action récup, pas de doublon de charge');
+  assert.match(spikeLow.action, /récupération prioritaire|mobilité/);
+  // Le créneau sport est COUPÉ par le pic (« cale ta séance » contredirait « allège »).
+  const spikeSlot = L.adaptiveCoachFocus({ workouts: spikeWk, agenda: [{ id: 'a', date: today, time: '09:00', durationMin: 60 }] }, today, { nowMinutes: 555 });
+  assert.ok(spikeSlot.loadSpike != null);
+  assert.equal(spikeSlot.sportSlot, null, 'pic de charge → pas de créneau à caler');
+  // Charge RÉGULIÈRE (2 séances/semaine sur 4 semaines, load constant) → ratio ≈ 1 (optimal),
+  // loadSpike null, action générique/readiness intacte.
+  const steady = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-11', duration: 45, effort: 2 }, { date: '2026-07-15', duration: 45, effort: 2 },
+    { date: '2026-07-05', duration: 45, effort: 2 }, { date: '2026-07-08', duration: 45, effort: 2 },
+    { date: '2026-06-30', duration: 45, effort: 2 }, { date: '2026-07-02', duration: 45, effort: 2 },
+    { date: '2026-06-22', duration: 45, effort: 2 }, { date: '2026-06-25', duration: 45, effort: 2 },
+  ] }, today);
+  assert.equal(steady.pillar, 'sport');
+  assert.equal(steady.loadSpike, null, 'charge régulière → pas de pic');
+  assert.doesNotMatch(steady.action, /Charge en hausse brutale|consolidation/);
 });
 
 test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {
