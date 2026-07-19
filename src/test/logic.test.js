@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.138');
+  assert.equal(L.CHANGELOG[0].v, '2.0.139');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8311,6 +8311,28 @@ test('adaptiveCoachFocus : réconciliation POSITIVE objectif serré × sous-char
   assert.match(align.insight, /cette cadence serrée tombe pile/);
   assert.match(align.insight, /LE moment de pousser pour boucler l’objectif/);
   assert.match(align.action, /Tu es en sous-charge/, 'l’action de sous-charge reste intacte');
+  assert.equal(align.lowLoadUnderGoalRebound, null, 'sans forme qui remonte → note à deux signaux');
+  assert.match(align.insight, /Les deux signaux s’alignent/, 'registre « deux signaux » par défaut');
+
+  // TRIPLE feu vert : objectif serré + sous-charge + forme qui REMONTE (readinessRebound) → trois signaux
+  // concordants, la note s'enthousiasme et les nomme. Recovery en remontée 40→70 (+30 pts sur 5 check-ins),
+  // readiness du jour 70 (zone [50,75[), sommeil constant 8 h — même setup que le test readinessRebound.
+  const upRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 5, soreness: 5 }, { date: '2026-07-06', sleep: 8, fatigue: 5, soreness: 4 },
+    { date: '2026-07-10', sleep: 8, fatigue: 4, soreness: 4 }, { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 },
+    { date: '2026-07-16', sleep: 8, fatigue: 3, soreness: 3 },
+  ];
+  const triple = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: lowWk, recovery: upRec }, today);
+  assert.equal(triple.sessionGoalPace, 'tight', 'objectif toujours serré');
+  assert.ok(triple.lowLoad != null && triple.lowLoad < 0.8, 'sous-charge toujours détectée');
+  assert.equal(triple.lowLoadUnderGoal, triple.lowLoad, 'lowLoadUnderGoal toujours renvoyé');
+  assert.equal(triple.readinessRebound, 30, 'forme qui remonte de +30 pts');
+  assert.equal(triple.lowLoadUnderGoalRebound, 30, 'le delta positif de la remontée renvoyé');
+  assert.match(triple.insight, /trois feux verts concordants/);
+  assert.match(triple.insight, /ta forme remonte franchement \(\+30 pts/);
+  assert.match(triple.insight, /LE moment de pousser pour boucler l’objectif/);
+  assert.doesNotMatch(triple.insight, /Les deux signaux s’alignent/, 'la note à deux signaux est remplacée');
+  assert.match(triple.action, /Fenêtre idéale/, 'l’action de sous-charge (renforcée par le rebond) reste intacte');
 
   // Objectif LARGE (onpace) + sous-charge → pas de cadence quotidienne à soutenir, lowLoadUnderGoal null.
   const loose = L.adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: lowWk }, today);

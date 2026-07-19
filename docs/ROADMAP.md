@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.138 (2026-07-19)
+## 📍 État actuel — build 2.0.139 (2026-07-19)
+
+> 🟢 **2.0.139** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **2ᵉ « Suite
+> possible » de #507** — le **pendant POSITIF exact** du compound `loadOverGoalSlide` (#506, côté PIC). Côté
+> rouge, le conflit pic × objectif serré durcit quand la forme **glisse** EN PLUS (deux signaux de fatigue qui
+> se cumulent). Côté vert, l'alignement `lowLoadUnderGoal` (sous-charge × objectif serré, #507) nommait « deux
+> feux verts » — mais restait aveugle au cas où la forme **remonte** franchement (`readinessRebound`, déjà
+> calculé) : ce n'est alors plus « charge basse + calendrier qui presse » mais **trois signaux de fraîcheur
+> concordants**. Nouveau champ **`lowLoadUnderGoalRebound`** (le delta positif, ou `null`) : quand — et
+> seulement quand — l'alignement `tight` × sous-charge est retenu ET `readinessRebound` non nul, la note
+> s'enthousiasme et les nomme : « … ta charge n'est qu'à 0,6× ton volume habituel ET ta forme remonte
+> franchement (+30 pts) : trois feux verts concordants (charge basse, forme qui rebondit, calendrier qui
+> presse), pas un hasard — c'est LE moment de pousser pour boucler l'objectif, ton corps est prêt. » Sans
+> remontée, la note à deux signaux de #507 est conservée à l'identique. **Compatible par construction**
+> (`lowLoad` exige `readinessSlide == null` ∧ `readinessRebound` exige `'up'` → jamais slide+rebond, mais
+> rebond possible ici). Additif pur, réemploi total (zéro nouvelle fonction). Fonctions pures + testées, check
+> smoke bloquant `coachFocus` étendu. Recap #508.
 
 > 🚀 **2.0.138** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre le **pendant
 > POSITIF** listé en « Suite possible » de #506 — le symétrique exact et OPPOSÉ de `loadOverGoal`. Côté
