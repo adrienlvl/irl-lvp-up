@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.168'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.169'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -893,6 +893,12 @@ app.whenReady().then(async () => {
           if (fFocusAhead.focusAheadDriver !== null || /te donne cette clarté/.test(fFocusAhead.insight)) return false;
           const fAheadDrv = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }, { date: '2026-07-14', minutes: 10 }], recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 2, soreness: 2 }] }, '2026-07-14');
           if (!(fAheadDrv.focusGoalAhead === 85 && fAheadDrv.focusAheadDriver && fAheadDrv.focusAheadDriver.factor === 'sleep' && /ce qui te donne cette clarté : ta nuit de 8 h/.test(fAheadDrv.insight))) return false;
+          // PUR BONUS (focusGoalBonus, #538) : objectif focus DÉJÀ bouclé (140/120) × readiness au vert le jour même (8/1/1 → 100) → un bloc de plus cadré comme pur bonus sans pression. Session focus du 07-14 pour garder le pilier focus.
+          const fBonus = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-13', minutes: 130 }, { date: '2026-07-14', minutes: 10 }], recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-14');
+          if (!(fBonus.pillar === 'focus' && fBonus.focusGoalPace === null && fBonus.focusGoalBonus === 100 && /Objectif bouclé et la forme est au rendez-vous ce matin \\(readiness 100\\/100\\)/.test(fBonus.insight) && /un bloc de plus serait du pur bonus, sans la moindre pression/.test(fBonus.insight))) return false;
+          // Honnêteté : objectif bouclé × readiness moyenne (6/3/3 → 60) → aucun mot bonus.
+          const fBonusMid = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-13', minutes: 130 }, { date: '2026-07-14', minutes: 10 }], recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-14');
+          if (fBonusMid.focusGoalBonus !== null || /pur bonus/.test(fBonusMid.insight)) return false;
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;

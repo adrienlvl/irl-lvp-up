@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.168');
+  assert.equal(L.CHANGELOG[0].v, '2.0.169');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8807,6 +8807,29 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(done.focusGoalPace, null);
   assert.match(done.insight, /Objectif hebdo atteint : 130\/120 min 💪/);
   assert.ok(!/Dans les temps|Serré/.test(done.insight));
+  // Sans check-in de récup du jour → objectif bouclé muet sur la forme, focusGoalBonus null.
+  assert.equal(done.focusGoalBonus, null, 'objectif bouclé sans readiness → aucun mot bonus');
+  assert.ok(!/pur bonus/.test(done.insight));
+  // PUR BONUS (focusGoalBonus, #538) — objectif hebdo DÉJÀ bouclé × readiness au vert le jour même →
+  // cadrer un bloc de plus comme du pur bonus sans pression. Session focus du 07-16 pour garder le pilier
+  // focus malgré le check-in de récup. Total semaine 130 + 10 = 140 ≥ 120 → done. sleep 8/fat 1/sore 1 → 100.
+  const bonusFs = [{ date: '2026-07-13', minutes: 130 }, { date: '2026-07-16', minutes: 10 }];
+  const bonus = L.adaptiveCoachFocus({ focusSessions: bonusFs, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
+  assert.equal(bonus.pillar, 'focus', 'pilier focus conservé malgré le check-in');
+  assert.equal(bonus.focusGoalPace, null, 'objectif bouclé → pas d’allure');
+  assert.equal(bonus.focusGoalBonus, 100, 'objectif bouclé × readiness ≥ 75 le jour même → le score renvoyé');
+  assert.match(bonus.insight, /Objectif hebdo atteint : 140\/120 min 💪/);
+  assert.match(bonus.insight, /Objectif bouclé et la forme est au rendez-vous ce matin \(readiness 100\/100\)/);
+  assert.match(bonus.insight, /un bloc de plus serait du pur bonus, sans la moindre pression/);
+  // Vocabulaire distinct des notes d'allure : aucune collision.
+  assert.ok(!/prendre de l’avance|au vert ce matin|tient la route ce matin|à plat ce matin/.test(bonus.insight));
+  // HONNÊTETÉ : objectif bouclé mais readiness moyenne (zone médiane) → aucun mot bonus. sleep 6/fat 3/sore 3 → 60.
+  const bonusMid = L.adaptiveCoachFocus({ focusSessions: bonusFs, recovery: [{ date: '2026-07-16', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-16');
+  assert.equal(bonusMid.focusGoalBonus, null, 'readiness moyenne × objectif bouclé → pas de note (rien à ajouter)');
+  assert.ok(!/pur bonus/.test(bonusMid.insight));
+  // Mutuellement exclusif : objectif NON tenu (behind) × readiness au vert → focusGoalBonus null (c’est l’allure qui parle).
+  assert.equal(ahead.focusGoalBonus, null, 'objectif non tenu → aucun mot bonus (branche allure)');
+  assert.equal(fresh.focusGoalBonus, null, 'objectif serré non tenu → aucun mot bonus');
   // Hors pilier focus (sport choisi) → focusGoalPace null.
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' }, { date: '2026-07-15' }] }, '2026-07-16');
   assert.equal(sport.pillar, 'sport');

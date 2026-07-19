@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.168 (2026-07-19)
+## 📍 État actuel — build 2.0.169 (2026-07-19)
+
+> 🎁 **2.0.169** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach cadre le bloc de
+> plus comme du **PUR BONUS** quand l'objectif focus est **déjà bouclé** (`focusGoalBonus`). Le coach
+> lisait finement la forme du jour sur la branche d'objectif **non tenu** (fresh/ahead/steady/drained),
+> mais dès que l'objectif hebdo de minutes était **atteint** (`status === 'done'`), il retombait sur le
+> seul « Objectif hebdo atteint : 130/120 min 💪 » — **muet** sur la forme du jour. Les recaps #536 **et**
+> #537 signalaient tous deux cette suite. Le cadrage `focusGoalAhead` (#535) ne convient pas ici : « prendre
+> de l'avance » suppose un objectif **à sécuriser** (le bloc fait un coussin) — or ici il est **bouclé**,
+> plus rien à sécuriser cette semaine. Nouveau champ **`focusGoalBonus`** (score du jour, ou `null`, toujours
+> renvoyé) : quand l'objectif focus est **atteint** ET qu'un check-in de récup **du jour** met la tête **au
+> vert** (readiness ≥ 75), il ajoute « Objectif bouclé et la forme est au rendez-vous ce matin (readiness
+> 100/100) : plus aucune cible à tenir — un bloc de plus serait du pur bonus, sans la moindre pression, juste
+> un peu d'avance offerte à ta semaine prochaine si l'envie te prend. » Ni injonction, ni « prendre de
+> l'avance » : ton RPG motivant **sans culpabilité**, qui reconnaît le PROGRÈS (objectif tenu). **Honnête** :
+> au vert SEULEMENT (objectif bouclé × tête moyenne/basse → muet) et exige un check-in du jour. **Mutuellement
+> exclusif** de toutes les notes d'allure (branche `done` vs `behind`). Côté **sport**, on s'abstient
+> volontairement (l'action readiness pousse déjà « monte l'intensité » → un « bonus sans pression »
+> brouillerait le message). **Zéro** nouvelle fonction (réemploi de `readinessScore`). **Zéro** collision
+> regex (« pur bonus », « au rendez-vous ce matin »). Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #538.
 
 > 💡 **2.0.168** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach nomme **CE QUI
 > te donne cette clarté** les bons jours de marge côté focus (`focusAheadDriver`). Depuis #535,
