@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.127 (2026-07-19)
+## 📍 État actuel — build 2.0.128 (2026-07-19)
+
+> 🛏️ **2.0.128** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » lit maintenant la **PENTE de la RÉGULARITÉ de ton coucher**, pas seulement celle de la durée
+> (#496). Le sommeil a deux axes — durée ET régularité — et le coach n'avait la conscience de tendance
+> que sur le premier ; `sleepCoachInsight` dit à quel point le coucher est stable **en ce moment**
+> (`bedtimeRegularity`, écart-type min) mais restait **aveugle à la DIRECTION** de cette stabilité : le
+> nuage des heures de coucher se **resserre**-t-il (l'ancre circadienne se pose) ou s'**éparpille**-t-il
+> (le rythme part) ? C'était la 1re piste « Suite possible » de **#496**. Nouvelle fonction pure
+> **`bedtimeRegularityTrend`** (pendant, sur l'axe régularité, de `sleepDurationTrend`) : compare
+> l'écart-type des couchers ancrés (`bedtimeAnchor`) de la fenêtre récente 7 j vs la précédente 7 j →
+> `{ stdevMin, prevStdevMin, delta, dir, recentNights, prevNights }` (dir tightening/dispersing/flat,
+> seuil ±15 min). Dans la branche sommeil, quand le verdict n'est pas « solide » (`tone !== 'ok'`) **et
+> que la pente de durée n'a rien dit** (`sleepTrend === null` — UNE seule note de pente à la fois), on
+> NUANCE (champ **`sleepBedtimeTrend`**) : coucher qui se disperse → alerte « ré-ancre une heure fixe
+> avant que le rythme ne parte » ; qui se resserre → crédit « l'ancre circadienne se pose, tiens le cap ».
+> Additif pur (note appendue, action intacte) ; durée prioritaire ; ≥ 3 couchers saisis dans chaque
+> fenêtre. `bedtimeRegularityTrend` pure + testée, check smoke bloquant `coachFocus` étendu. Recap #497.
 
 > 😴 **2.0.127** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » lit enfin la **PENTE de ton sommeil**, pas seulement son état ponctuel. Quand il pousse le

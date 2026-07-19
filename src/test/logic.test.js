@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.127');
+  assert.equal(L.CHANGELOG[0].v, '2.0.128');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6600,6 +6600,36 @@ test('sleepDurationTrend : compare la durée récente à la semaine précédente
   assert.equal(L.sleepDurationTrend([{ date: iso(0), sleep: 6 }], today, 7), null);
   assert.equal(L.sleepDurationTrend([{ date: iso(0), sleep: 0 }, { date: iso(1), sleep: 0 }], today, 7), null);
   assert.equal(L.sleepDurationTrend(up, 'nope', 7), null);
+});
+
+test('bedtimeRegularityTrend : compare la dispersion du coucher récente à la semaine précédente', () => {
+  const today = '2026-07-14';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  // Coucher qui SE DISPERSE : récente éparpillée (22:00 / 02:00 en alternance), précédente serrée (23:30).
+  const disp = [];
+  for (let i = 0; i < 7; i++) disp.push({ date: iso(i), bedtime: i % 2 ? '02:00' : '22:00' });
+  for (let i = 7; i < 14; i++) disp.push({ date: iso(i), bedtime: '23:30' });
+  const td = L.bedtimeRegularityTrend(disp, today, 7);
+  assert.equal(td.prevStdevMin, 0, 'semaine précédente parfaitement régulière');
+  assert.ok(td.stdevMin >= 60, 'semaine récente très dispersée');
+  assert.ok(td.delta >= 15 && td.dir === 'dispersing', 'écart-type qui grimpe → dispersing');
+  assert.equal(td.recentNights, 7); assert.equal(td.prevNights, 7);
+  // Coucher qui SE RESSERRE : l'inverse exact → tightening, delta négatif.
+  const tight = [];
+  for (let i = 0; i < 7; i++) tight.push({ date: iso(i), bedtime: '23:30' });
+  for (let i = 7; i < 14; i++) tight.push({ date: iso(i), bedtime: i % 2 ? '02:00' : '22:00' });
+  const tt = L.bedtimeRegularityTrend(tight, today, 7);
+  assert.ok(tt.delta <= -15 && tt.dir === 'tightening', 'écart-type qui baisse → tightening');
+  // Stable (même dispersion modérée les deux semaines) → 'flat'.
+  const flat = [];
+  for (let i = 0; i < 14; i++) flat.push({ date: iso(i), bedtime: i % 2 ? '23:15' : '22:45' });
+  assert.equal(L.bedtimeRegularityTrend(flat, today, 7).dir, 'flat');
+  // Moins de 3 couchers dans une fenêtre → null ; couchers absents ignorés ; date invalide → null.
+  const sparse = [{ date: iso(0), bedtime: '23:00' }, { date: iso(1), bedtime: '23:00' }];
+  for (let i = 7; i < 14; i++) sparse.push({ date: iso(i), bedtime: '23:00' });
+  assert.equal(L.bedtimeRegularityTrend(sparse, today, 7), null, 'récente < 3 couchers → null');
+  assert.equal(L.bedtimeRegularityTrend(disp, 'nope', 7), null);
 });
 
 test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {
@@ -7886,6 +7916,43 @@ test('adaptiveCoachFocus : coach conscient de la PENTE de sommeil (dégradation 
   // Champ TOUJOURS présent, y compris hors pilier sommeil (focus prioritaire ailleurs).
   const sport = L.adaptiveCoachFocus({ workouts: [iso(1), iso(3), iso(5)].map(d => ({ date: d })) }, today);
   assert.ok('sleepTrend' in sport && sport.sleepTrend === null, 'sleepTrend toujours renvoyé, null hors sommeil');
+});
+
+test('adaptiveCoachFocus : coach conscient de la PENTE de régularité du coucher', () => {
+  const today = '2026-07-16';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const workouts = [iso(8), iso(9), iso(10), iso(1)].map(d => ({ date: d, type: 'muscu' }));
+  // DURÉE stable et courte les deux semaines (sleepTrend restera null : pente plate) → focus sommeil (court).
+  // COUCHER qui SE DISPERSE : semaine récente éparpillée, précédente serrée.
+  const disp = [];
+  for (let i = 0; i < 7; i++) disp.push({ date: iso(i), sleep: 6, bedtime: i % 2 ? '02:00' : '22:00' });
+  for (let i = 7; i < 14; i++) disp.push({ date: iso(i), sleep: 6, bedtime: '23:30' });
+  const fd = L.adaptiveCoachFocus({ recovery: disp, workouts }, today);
+  assert.equal(fd.pillar, 'sommeil', 'sommeil court → focus');
+  assert.equal(fd.sleepTrend, null, 'durée plate → pas de note de durée');
+  assert.ok(fd.sleepBedtimeTrend > 0, 'coucher qui se disperse → delta positif renvoyé');
+  assert.match(fd.insight, /ton coucher se disperse/, 'l’insight nuance par la dispersion');
+  // COUCHER qui SE RESSERRE : l'inverse → crédit, sleepBedtimeTrend négatif, jamais « se disperse ».
+  const tight = [];
+  for (let i = 0; i < 7; i++) tight.push({ date: iso(i), sleep: 6, bedtime: '23:30' });
+  for (let i = 7; i < 14; i++) tight.push({ date: iso(i), sleep: 6, bedtime: i % 2 ? '02:00' : '22:00' });
+  const ft = L.adaptiveCoachFocus({ recovery: tight, workouts }, today);
+  assert.equal(ft.pillar, 'sommeil');
+  assert.ok(ft.sleepBedtimeTrend < 0, 'coucher qui se resserre → delta négatif');
+  assert.match(ft.insight, /ton coucher se régularise/, 'l’insight crédite la régularisation');
+  assert.doesNotMatch(ft.insight, /ton coucher se disperse/, 'jamais les deux notes');
+  // MUTUELLEMENT EXCLUSIF avec la pente de DURÉE : durée qui s'enfonce ET coucher dispersé → une SEULE
+  // note (la durée prime), sleepBedtimeTrend reste null.
+  const both = [];
+  for (let i = 0; i < 7; i++) both.push({ date: iso(i), sleep: i % 2 ? 7 : 3, bedtime: i % 2 ? '02:00' : '22:00' });
+  for (let i = 7; i < 14; i++) both.push({ date: iso(i), sleep: 7, bedtime: '23:30' });
+  const fb = L.adaptiveCoachFocus({ recovery: both, workouts }, today);
+  assert.ok(fb.sleepTrend < 0, 'la durée qui s’enfonce prend la main');
+  assert.equal(fb.sleepBedtimeTrend, null, 'une seule note de pente à la fois');
+  // Champ TOUJOURS présent, y compris hors pilier sommeil.
+  const sport = L.adaptiveCoachFocus({ workouts: [iso(1), iso(3), iso(5)].map(d => ({ date: d })) }, today);
+  assert.ok('sleepBedtimeTrend' in sport && sport.sleepBedtimeTrend === null, 'sleepBedtimeTrend toujours renvoyé, null hors sommeil');
 });
 
 test('adaptiveCoachFocus : protège la fenêtre de coucher quand un RDV du soir déborde (sommeil)', () => {
