@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.128 (2026-07-19)
+## 📍 État actuel — build 2.0.129 (2026-07-19)
+
+> 🧠 **2.0.129** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » lit maintenant la **PENTE de ton FOCUS** — le **seul pilier qui n'avait encore AUCUNE
+> conscience de tendance**. Le SPORT lit déjà la pente de forme et de charge, le SOMMEIL celle de durée
+> (#496) et de régularité du coucher (#497), la NUTRITION relie protéines et résultat corporel ; le
+> FOCUS nommait le chantier phare et calait la durée de bloc mais restait **aveugle au VOLUME** : deux
+> « 3 jours actifs » n'appellent pas le même mot selon que les **minutes de concentration montent ou
+> s'effritent** (le décompte de jours ne voit pas ça — plus de jours pour moins de minutes, ou
+> l'inverse). Nouvelle fonction pure **`focusMinutesTrend`** (pendant, côté focus, de `sleepDurationTrend`
+> / `readinessTrend`) : somme les minutes de focus par jour (sessions du même jour **cumulées**) puis
+> compare le **TOTAL** de la fenêtre récente 7 j vs la précédente 7 j → `{ recent, prev, delta, dir,
+> days, count }` (dir up/down/flat, seuil ±30 min). Dans la branche focus, on NUANCE l'insight (champ
+> **`focusTrend`**) **uniquement quand la pente CONCORDE avec le ton** (jamais de contradiction avec la
+> headline) : minutes en **recul** sous « ton focus s'essouffle » → on quantifie la chute (« Tes minutes
+> de focus reculent : 300 → 90 min cette semaine (-210 min) — un bloc aujourd'hui inverse la pente ») ;
+> minutes en **hausse** sous « monte en régime » → on crédite (« Et le volume grimpe : 60 → 240 min
+> (+180 min) — tu montes en puissance, garde le cap »). Additif pur (note appendue, action intacte) ;
+> up XOR down ; semaine précédente renseignée requise. `focusMinutesTrend` pure + testée, check smoke
+> bloquant `coachFocus` étendu. Recap #498.
 
 > 🛏️ **2.0.128** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » lit maintenant la **PENTE de la RÉGULARITÉ de ton coucher**, pas seulement celle de la durée

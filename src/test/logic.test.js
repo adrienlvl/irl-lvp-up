@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.128');
+  assert.equal(L.CHANGELOG[0].v, '2.0.129');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6630,6 +6630,57 @@ test('bedtimeRegularityTrend : compare la dispersion du coucher récente à la s
   for (let i = 7; i < 14; i++) sparse.push({ date: iso(i), bedtime: '23:00' });
   assert.equal(L.bedtimeRegularityTrend(sparse, today, 7), null, 'récente < 3 couchers → null');
   assert.equal(L.bedtimeRegularityTrend(disp, 'nope', 7), null);
+});
+
+test('focusMinutesTrend : compare le volume de focus récent à la semaine précédente', () => {
+  const today = '2026-07-14';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  // Fenêtre récente (0-6 j) 4×60 = 240 min ; précédente (7-13 j) 2×20 = 40 min → pente MONTANTE de +200 min.
+  const up = [{ date: iso(0), minutes: 60 }, { date: iso(1), minutes: 60 }, { date: iso(2), minutes: 60 }, { date: iso(3), minutes: 60 }, { date: iso(7), minutes: 20 }, { date: iso(9), minutes: 20 }];
+  const tu = L.focusMinutesTrend(up, today, 7);
+  assert.equal(tu.recent, 240); assert.equal(tu.prev, 40); assert.equal(tu.delta, 200); assert.equal(tu.dir, 'up'); assert.equal(tu.count, 4);
+  // Pente DESCENDANTE : récente 60 min, précédente 300 min → -240 min.
+  const down = [{ date: iso(0), minutes: 30 }, { date: iso(2), minutes: 30 }, { date: iso(7), minutes: 60 }, { date: iso(8), minutes: 60 }, { date: iso(9), minutes: 60 }, { date: iso(10), minutes: 60 }, { date: iso(11), minutes: 60 }];
+  const td = L.focusMinutesTrend(down, today, 7);
+  assert.equal(td.delta, -240); assert.equal(td.dir, 'down');
+  // Plusieurs sessions le même jour se CUMULENT (temps total réel).
+  const same = [{ date: iso(0), minutes: 25 }, { date: iso(0), minutes: 25 }, { date: iso(7), minutes: 10 }];
+  assert.equal(L.focusMinutesTrend(same, today, 7).recent, 50);
+  // Stable (20 min d'écart, sous le seuil ±30) → 'flat'.
+  const flat = [{ date: iso(0), minutes: 60 }, { date: iso(1), minutes: 20 }, { date: iso(7), minutes: 60 }];
+  assert.equal(L.focusMinutesTrend(flat, today, 7).dir, 'flat');
+  // Pas de semaine précédente → prev null, delta 0, dir 'flat'.
+  const solo = [{ date: iso(0), minutes: 30 }, { date: iso(2), minutes: 30 }];
+  const ts = L.focusMinutesTrend(solo, today, 7);
+  assert.equal(ts.prev, null); assert.equal(ts.delta, 0); assert.equal(ts.dir, 'flat');
+  // Aucun jour de focus récent → null ; minutes ≤ 0 ignorées ; date invalide → null.
+  assert.equal(L.focusMinutesTrend([{ date: iso(8), minutes: 60 }], today, 7), null);
+  assert.equal(L.focusMinutesTrend([{ date: iso(0), minutes: 0 }], today, 7), null);
+  assert.equal(L.focusMinutesTrend(up, 'nope', 7), null);
+});
+
+test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
+  // Pilier focus À CORRIGER (jours récents < précédents) + minutes en RECUL → note « minutes de focus reculent ».
+  const down = { focusSessions: [
+    { date: '2026-07-03', minutes: 60 }, { date: '2026-07-04', minutes: 60 }, { date: '2026-07-05', minutes: 60 }, { date: '2026-07-06', minutes: 60 }, { date: '2026-07-07', minutes: 60 },
+    { date: '2026-07-10', minutes: 30 }, { date: '2026-07-12', minutes: 30 } ] };
+  const fDown = L.adaptiveCoachFocus(down, '2026-07-16');
+  assert.equal(fDown.pillar, 'focus');
+  assert.ok(fDown.focusTrend < 0, 'focusTrend négatif');
+  assert.match(fDown.insight, /minutes de focus reculent/);
+  // Pilier focus EN RENFORT (jours récents ≥ précédents) + minutes en HAUSSE → note « le volume grimpe ».
+  const up = { focusSessions: [
+    { date: '2026-07-03', minutes: 20 }, { date: '2026-07-05', minutes: 20 },
+    { date: '2026-07-11', minutes: 60 }, { date: '2026-07-12', minutes: 60 }, { date: '2026-07-13', minutes: 60 }, { date: '2026-07-14', minutes: 60 } ] };
+  const fUp = L.adaptiveCoachFocus(up, '2026-07-16');
+  assert.equal(fUp.pillar, 'focus');
+  assert.ok(fUp.focusTrend > 0, 'focusTrend positif');
+  assert.match(fUp.insight, /le volume grimpe/);
+  assert.doesNotMatch(fUp.insight, /reculent/);
+  // Hors pilier focus → focusTrend null (sport seul actif).
+  const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10' }, { date: '2026-07-12' }] }, '2026-07-16');
+  assert.equal(sport.focusTrend, null);
 });
 
 test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {
