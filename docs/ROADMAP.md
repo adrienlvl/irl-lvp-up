@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.161 (2026-07-19)
+## 📍 État actuel — build 2.0.162 (2026-07-19)
+
+> 💚 **2.0.162** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach dit enfin POURQUOI
+> ta forme est **BONNE**. Depuis #525, `readinessDrag` nomme le frein DOMINANT quand la forme **bride**
+> la séance (< 75) ; il restait **aveugle au cas symétrique** — la readiness au **VERT** (≥ 75, « prêt à
+> pousser ») **portée** par un bon comportement précis. Nouveau helper pur **`readinessDriver`** (pendant
+> exact de `readinessLimiter`) : **fraction du max** atteinte par chaque composante du check-in (sommeil
+> `min(h/8,1)` ; fatigue/courbatures `(5−n)/4` — barème renormalisé de `readinessScore`, où un niveau BAS
+> = une **force**), renvoie la composante la plus proche de son max **seulement si elle domine nette**
+> (`frac ≥ 0,75` ET ≥ 0,2 au-dessus de la 2e — sinon plusieurs forces se valent, pas de moteur unique, on
+> se tait). Nouveau champ **`readinessBoost`** (`{ factor, value }` ou `null`) : sport + check-in du jour +
+> `score ≥ 75` + un moteur dominant → le coach le NOMME et invite à **capitaliser**, appendu à l'action
+> « pousse » : « Ce qui te porte aujourd'hui : ta nuit de **8,5 h** — ce sommeil solide est le vrai
+> **moteur** de ta forme, tu as tout pour aller chercher un stimulus franc. » (ou énergie au top / muscles
+> frais). Adrien voit ainsi quel geste **produit** sa bonne forme et le **répète** — l'axe « adaptation aux
+> PROGRÈS » demandé. **HONNÊTE** : mutuellement exclusif de `readinessDrag` (< 75 XOR ≥ 75) ; deux forces à
+> égalité → muet ; seuil `frac ≥ 0,75` (vraiment excellente) ; sommeil candidat seulement s'il est
+> renseigné. **Affine, ne remplace pas** : note appendue, l'action intacte (disparaît sans contradiction si
+> `loadSpike`/`doneToday` réécrit l'action). Vocabulaire distinct (« Ce qui te porte aujourd'hui »),
+> **zéro** collision regex. Réemploi total du barème `readinessScore` — un seul helper pur neuf, testé en
+> isolation. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #531.
 
 > 🏆 **2.0.161** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach fête aussi tes
 > records au **POIDS DU CORPS**. Il savait célébrer un record de **charge** (`sportRecordToday`, #529,

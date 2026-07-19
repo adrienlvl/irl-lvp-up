@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.161'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.162'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1105,6 +1105,12 @@ app.whenReady().then(async () => {
           if (!(fDragFat.readinessDrag && fDragFat.readinessDrag.factor === 'fatigue' && /Ce qui p[èe]se le plus : ta fatigue g[ée]n[ée]rale \\(5\\/5\\)/.test(fDragFat.action))) return false;
           if (fRdLow.readinessDrag !== null || /Ce qui p[èe]se le plus/.test(fRdLow.action)) return false; // tous freins au max → aucun coupable unique → null
           if (fRdHigh.readinessDrag !== null) return false; // readiness au vert (≥ 75) → rien à expliquer
+          // Coach du POURQUOI de la BONNE forme (readinessBoost, pendant positif) : forme au vert + un MOTEUR dominant → le coach le NOMME et invite à capitaliser.
+          const fFormBoost = adaptiveCoachFocus({ workouts: rdWk, recovery: [{ date: '2026-07-16', sleep: 9, fatigue: 2, soreness: 2 }] }, '2026-07-16'); // score 85, belle nuit dominante
+          if (!(fFormBoost.readiness === 85 && fFormBoost.readinessBoost && fFormBoost.readinessBoost.factor === 'sleep' && fFormBoost.readinessBoost.value === 9 && /Ce qui te porte aujourd.hui : ta nuit de 9 h/.test(fFormBoost.action) && /le vrai moteur de ta forme/.test(fFormBoost.action))) return false;
+          if (fFormBoost.readinessDrag !== null) return false; // ≥ 75 → drag muet, boost prend le relais
+          if (fRdHigh.readinessBoost !== null || /Ce qui te porte aujourd.hui/.test(fRdHigh.action)) return false; // tout au top à égalité → aucun moteur unique → null
+          if (fDragSore.readinessBoost !== null) return false; // score < 75 → terrain du drag, boost muet
           // RÉCONCILIATION objectif serré × forme à plat : vendredi 07-17, 3 séances pour 3 j (tight) + readiness 15 → le coach tranche pour la récup (restOverGoal), l'action de récup intacte.
           const fRestGoal = adaptiveCoachFocus({ goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }], recovery: [{ date: '2026-07-17', sleep: 3, fatigue: 5, soreness: 5 }] }, '2026-07-17');
           if (!(fRestGoal.pillar === 'sport' && fRestGoal.sessionGoalPace === 'tight' && fRestGoal.restOverGoal === 15 && /forme est [àa] plat aujourd.hui \\(readiness 15\\/100\\)/.test(fRestGoal.insight) && /r[ée]cup[ée]ration prioritaire/.test(fRestGoal.action))) return false;

@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.161');
+  assert.equal(L.CHANGELOG[0].v, '2.0.162');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6299,6 +6299,26 @@ test('readinessLimiter : nomme le frein DOMINANT du check-in (ou null si aucun n
   assert.equal(L.readinessLimiter({ sleep: 8, fatigue: 4, soreness: 4 }), null);
   // Entrée invalide → null.
   assert.equal(L.readinessLimiter(null), null);
+});
+test('readinessDriver : nomme le MOTEUR dominant de la forme (pendant positif du limiter)', () => {
+  // Belle nuit (9 h → frac 1) domine fatigue 2 / courbatures 2 (frac 0,75) → sommeil moteur.
+  assert.deepEqual(L.readinessDriver({ sleep: 9, fatigue: 2, soreness: 2 }), { factor: 'sleep', frac: 1, value: 9 });
+  // Énergie au top (fatigue 1 → frac 1) domine sommeil 5 (0,625) / courbatures 3 (0,5) → fatigue moteur.
+  assert.deepEqual(L.readinessDriver({ sleep: 5, fatigue: 1, soreness: 3 }), { factor: 'fatigue', frac: 1, value: 1 });
+  // Muscles frais (courbatures 1 → frac 1) domine sommeil 5 / fatigue 3 → courbatures moteur.
+  assert.deepEqual(L.readinessDriver({ sleep: 5, fatigue: 3, soreness: 1 }), { factor: 'soreness', frac: 1, value: 1 });
+  // Deux forces à égalité (sommeil 8 ET fatigue 1, frac 1 chacune) → pas de moteur unique → null.
+  assert.equal(L.readinessDriver({ sleep: 8, fatigue: 1, soreness: 3 }), null);
+  // Tout au top à égalité (frac 1/1/1) → null.
+  assert.equal(L.readinessDriver({ sleep: 8, fatigue: 1, soreness: 1 }), null);
+  // Aucune force nette (top 0,625 < 0,75) → null.
+  assert.equal(L.readinessDriver({ sleep: 5, fatigue: 3, soreness: 3 }), null);
+  // Sommeil NON renseigné : jamais candidat ; fatigue 1 domine courbatures 3 → fatigue moteur.
+  assert.deepEqual(L.readinessDriver({ fatigue: 1, soreness: 3 }), { factor: 'fatigue', frac: 1, value: 1 });
+  // Marge insuffisante (< 0,2) : fatigue 1 (1) vs sommeil 7 h (0,875) → écart 0,125 → null.
+  assert.equal(L.readinessDriver({ sleep: 7, fatigue: 1, soreness: 3 }), null);
+  // Entrée invalide → null.
+  assert.equal(L.readinessDriver(null), null);
 });
 test('readinessTrend : série de forme des derniers check-ins + delta', () => {
   const rec = [
@@ -7919,6 +7939,42 @@ test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du 
   const focusPillar = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, today);
   assert.notEqual(focusPillar.pillar, 'sport');
   assert.equal(focusPillar.readinessDrag, null);
+});
+
+test('adaptiveCoachFocus : readinessBoost nomme le MOTEUR de la forme au vert (pendant positif)', () => {
+  const today = '2026-07-16';
+  const workouts = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // Belle nuit (9 h) dominante, forme au vert (score 85) → moteur SOMMEIL nommé.
+  const sleep = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 9, fatigue: 2, soreness: 2 }] }, today);
+  assert.equal(sleep.pillar, 'sport');
+  assert.equal(sleep.readiness, 85);
+  assert.deepEqual(sleep.readinessBoost, { factor: 'sleep', value: 9 });
+  assert.match(sleep.action, /prêt à pousser/);
+  assert.match(sleep.action, /Ce qui te porte aujourd’hui : ta nuit de 9 h/);
+  assert.match(sleep.action, /le vrai moteur de ta forme/);
+  assert.equal(sleep.readinessDrag, null); // ≥ 75 → drag muet, boost prend le relais
+  // Énergie au top (fatigue 1) dominante, score 75 → moteur FATIGUE (fraîcheur).
+  const fat = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 6, fatigue: 1, soreness: 3 }] }, today);
+  assert.equal(fat.readiness, 75);
+  assert.deepEqual(fat.readinessBoost, { factor: 'fatigue', value: 1 });
+  assert.match(fat.action, /Ce qui te porte aujourd’hui : ton énergie est au top \(fatigue 1\/5\)/);
+  // Muscles frais (courbatures 1) dominants, score 75 → moteur COURBATURES.
+  const sore = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 6, fatigue: 3, soreness: 1 }] }, today);
+  assert.deepEqual(sore.readinessBoost, { factor: 'soreness', value: 1 });
+  assert.match(sore.action, /Ce qui te porte aujourd’hui : tes muscles sont frais, sans courbatures \(1\/5\)/);
+  // Tout au top à égalité (score 100, aucun moteur unique) → readinessBoost null, note absente.
+  const allTop = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(allTop.readiness, 100);
+  assert.equal(allTop.readinessBoost, null);
+  assert.doesNotMatch(allTop.action, /Ce qui te porte aujourd’hui/);
+  // Forme sous le vert (score 70 < 75) → readinessBoost null (terrain de readinessDrag).
+  const below = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 5 }] }, today);
+  assert.ok(below.readiness < 75);
+  assert.equal(below.readinessBoost, null);
+  // Pilier non-sport → readinessBoost toujours null (défaut).
+  const focusPillar = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, today);
+  assert.notEqual(focusPillar.pillar, 'sport');
+  assert.equal(focusPillar.readinessBoost, null);
 });
 
 test('adaptiveCoachFocus : action sport tempérée par un PIC de charge (ACWR)', () => {
