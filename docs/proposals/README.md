@@ -1,0 +1,49 @@
+# 📋 Propositions — les gros chantiers, décidés par Adrien
+
+Ce dossier est la **soupape** de la boucle autonome, décrite dans
+[`VPS-AUTOPILOT.md`](../VPS-AUTOPILOT.md) §4 et §5.
+
+> **Honnêteté sur l'historique** : ce dossier n'existait pas jusqu'au 2026-07-19. Le mécanisme
+> « gros chantier = proposition » était écrit dans la doc depuis le début mais **n'a jamais servi en
+> 546 boucles** — pendant que 60 itérations d'affilée partaient dans le coach adaptatif. C'est
+> précisément ce trou que le **quota de propositions** (§4 bis.4) vient combler.
+
+## Quand écrire une proposition plutôt que du code
+
+Dès que le sujet **engage Adrien** — et pas seulement parce qu'il est gros :
+
+- il faudrait une **dépendance npm** (ex. Playwright, un bundler) → règle « zéro dépendance » ;
+- il touche le **modèle de données** ou la **persistance** (migration, schéma versionné) ;
+- il change l'**UX de façon majeure**, ou retirerait/désactiverait quelque chose ;
+- il demande un **arbitrage de périmètre** (jusqu'où aller ? quelle option ?) ;
+- il modifie les **règles d'autonomie** elles-mêmes (VPS-AUTOPILOT, roadmap 3.0) — dans ce cas, la
+  proposition est **le seul** chemin : on ne s'auto-légifère pas.
+
+Écris le document, **puis STOP**. On n'implémente pas dans la foulée.
+
+## Format attendu (`<slug>.md`)
+
+1. **Problème** — factuel, prouvé dans le code (`fichier:ligne`), pas une intuition.
+2. **Options** — 2 ou 3, avec leurs coûts réels et ce qu'elles ferment.
+3. **Recommandation** — une seule, assumée, avec le pourquoi.
+4. **Risques** — ce qui peut casser (tests, smoke, migration, boot, données).
+5. **Ce qui dépend d'Adrien** — les décisions explicites qu'il doit trancher.
+
+Reste **court** et **décidable** : le but est qu'Adrien puisse répondre « option B, vas-y » en une
+lecture. Une proposition qui pré-décide à sa place a raté sa cible.
+
+## À écrire (assigné dans la roadmap)
+
+Liste ordonnée dans [`ROADMAP.md` → « 🎯 Prochaines priorités » → P1](../ROADMAP.md) :
+
+| Slug | Sujet | Pourquoi ça bloque |
+|---|---|---|
+| `coach-freeze.md` | Acter le gel du coach adaptatif | Périmètre exact du correctif/curation encore autorisé |
+| `indexeddb-primary-persistence.md` | IndexedDB comme source de vérité | **Prérequis n°1 de la sync multi-appareils** |
+| `multi-exam-etudes-bts.md` | `examGoals[]` multi-matières | Le besoin réel BTS CG — un seul examen suivi aujourd'hui |
+| `es-modules-split.md` | Découper les monolithes | `logic.js` 9 488 l. / `app.js` 367 Ko |
+| `e2e-playwright.md` | Tests de parcours | Demande une **devDependency** → décision d'Adrien |
+| `i18n-groundwork.md` | Amorce i18n | Milliers de littéraux FR en dur _(priorité basse)_ |
+
+Quand une proposition est écrite, coche sa case dans la roadmap et **change de domaine** à
+l'itération suivante (§4 bis.3).
