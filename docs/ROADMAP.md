@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.157 (2026-07-19)
+## 📍 État actuel — build 2.0.158 (2026-07-19)
+
+> 🚀 **2.0.158** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach sport savait dire
+> quand ta force **STAGNE** (`sportPlateau`, #526) — voici le **pendant positif**, quand elle **MONTE**.
+> Nouveau champ **`sportProgress`** (`{exercise, current, milestone, weeks, perWeek}` ou `null`) : réemploi
+> de **`bestStrengthForecast`** (déjà dans l'onglet Athlète, carte « bloc » ligne 🎯, jamais dans le
+> coach) — parcourt les exercices **chargés** les mieux suivis, estime le gain de **1RM/semaine** et l'ETA
+> au **prochain palier rond**. Quand un lift grimpe vraiment, le coach le NOMME et projette le cap, appendu
+> à l'insight : « Sur ta lancée : ton **Squat** gagne du terrain — 1RM estimé à **128,5 kg** (+**12,65
+> kg/sem**). À ce rythme, tu passes la barre des **130 kg** dans **~1 semaine** — garde ce cap de surcharge
+> progressive. » Un chiffre nu devient objectif motivant et daté (axe « adaptation aux **progrès** »).
+> **HONNÊTE** : même gate de vraie séance que `sportPlateau` (pilier SPORT · `!doneToday` · pas de spike ·
+> readiness pas au rouge · `tone` hors rebuild/revive), plus une **exclusion mutuelle stricte** — muet dès
+> qu'un plateau parle (jamais « stagne » et « grimpe » d'un même souffle ; la correction du plateau prime).
+> Muet sans pente positive nette (poids du corps ignoré). Vocabulaire distinct (« gagne du terrain »,
+> « passes la barre des ») — zéro collision regex. Réemploi total, **zéro** nouvelle fonction. Fonctions
+> pures + testées, check smoke bloquant `coachFocus` étendu. Recap #527.
 
 > 📈 **2.0.157** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach sport disait DE
 > s'entraîner, QUAND (`sportSlot`) et QUOI travailler (`sportZoneFocus`) — mais rien ne regardait si la

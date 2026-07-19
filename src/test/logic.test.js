@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.157');
+  assert.equal(L.CHANGELOG[0].v, '2.0.158');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9494,6 +9494,43 @@ test('adaptiveCoachFocus : signale un PLATEAU de force sur un exercice chargé (
   const fFoc = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-14', minutes: 30 }] }, today);
   assert.equal(fFoc.pillar, 'focus');
   assert.equal(fFoc.sportPlateau, null, 'plateau de force = pilier sport uniquement');
+});
+
+test('adaptiveCoachFocus : projette le prochain palier quand la force MONTE (sportProgress)', () => {
+  const today = '2026-07-16';
+  const wo = (date, load, reps) => ({ date, exercises: [{ name: 'Squat', setLogs: [{ completed: true, load, reps }] }] });
+  // Squat chargé, régulier et récent, dont le 1RM estimé grimpe franchement → progression projetée.
+  const up = [wo('2026-07-01', 90, 5), wo('2026-07-04', 95, 5), wo('2026-07-08', 100, 5), wo('2026-07-11', 105, 5), wo('2026-07-14', 110, 5)];
+  const f = L.adaptiveCoachFocus({ workouts: up }, today);
+  assert.equal(f.pillar, 'sport');
+  assert.ok(f.tone !== 'rebuild' && f.tone !== 'revive', 'pilier sport en bonne santé');
+  assert.equal(f.sportPlateau, null, 'force qui monte → aucun plateau');
+  assert.ok(f.sportProgress && f.sportProgress.exercise === 'Squat', 'lift qui progresse nommé');
+  assert.equal(f.sportProgress.current, 128.5, '1RM estimé courant');
+  assert.equal(f.sportProgress.milestone, 130, 'prochain palier rond');
+  assert.equal(f.sportProgress.weeks, 1, 'ETA en semaines');
+  assert.match(f.insight, /ton Squat gagne du terrain/, 'le lift qui grimpe est nommé dans l’insight');
+  assert.match(f.insight, /tu passes la barre des 130 kg dans ~1 semaine/, 'palier projeté avec ETA');
+  // EXCLUSION MUTUELLE : sur un plateau, la note de progression se tait (jamais « stagne » et « grimpe » ensemble).
+  const flat = [wo('2026-07-01', 100, 5), wo('2026-07-04', 98, 5), wo('2026-07-08', 99, 5), wo('2026-07-11', 100, 5), wo('2026-07-14', 98, 5)];
+  const fFlat = L.adaptiveCoachFocus({ workouts: flat }, today);
+  assert.ok(fFlat.sportPlateau, 'plateau détecté');
+  assert.equal(fFlat.sportProgress, null, 'plateau prioritaire → pas de note de progression');
+  assert.ok(!/gagne du terrain/.test(fFlat.insight), 'aucune note de progression quand ça stagne');
+  // Sport DORMANT (dernière séance il y a 20 j) → tone revive : on ne projette pas un palier quand la porte est fermée.
+  const old = [wo('2026-06-16', 90, 5), wo('2026-06-20', 95, 5), wo('2026-06-24', 100, 5), wo('2026-06-26', 105, 5)];
+  const fOld = L.adaptiveCoachFocus({ workouts: old }, today);
+  assert.ok(fOld.tone === 'revive' || fOld.tone === 'rebuild', 'sport décroché');
+  assert.equal(fOld.sportProgress, null, 'sport décroché → pas de projection (historique trop vieux)');
+  // Séance déjà faite aujourd’hui → on crédite, pas de projection.
+  const fDone = L.adaptiveCoachFocus({ workouts: [...up, wo(today, 110, 5)] }, today);
+  assert.equal(fDone.doneToday, true);
+  assert.equal(fDone.sportProgress, null, 'séance faite → pas de note de progression');
+  // Poids du corps seulement (aucune charge) → rien à projeter → muet.
+  const bw = ['2026-07-01', '2026-07-04', '2026-07-08', '2026-07-11', '2026-07-14'].map(d => ({ date: d, exercises: [{ name: 'Pompes', setLogs: [{ completed: true, load: 0, reps: 20 }] }] }));
+  assert.equal(L.adaptiveCoachFocus({ workouts: bw }, today).sportProgress, null, 'poids du corps → pas de projection de charge');
+  // Autre pilier (focus) → sportProgress toujours null.
+  assert.equal(L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-14', minutes: 30 }] }, today).sportProgress, null, 'projection de force = pilier sport uniquement');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {
