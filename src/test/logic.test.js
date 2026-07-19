@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.174');
+  assert.equal(L.CHANGELOG[0].v, '2.0.175');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9450,6 +9450,36 @@ test('adaptiveCoachFocus : focus sport — zone chroniquement délaissée sur 4 
   const fPushHeavy = L.adaptiveCoachFocus(pushHeavy, today);
   assert.equal(fPushHeavy.pushPullGuard.zone, 'push-heavy');
   assert.equal(fPushHeavy.sportNeglectGuard, null, 'pushPullGuard prime → sportNeglectGuard muet');
+});
+
+test('adaptiveCoachFocus : focus sport — montée de kilométrage de course trop rapide (runVolumeGuard)', () => {
+  const today = '2026-07-16';
+  const run = (d, km) => ({ type: 'run', date: d, distance: km });
+  // Semaine précédente (7-13 j) : 20 km de base. Semaine en cours (0-6 j) : 30 km → +50 %, zone 'high'.
+  // Aucune durée/effort → ACWR nul → loadSpike null. Aucune course aujourd'hui → !doneToday.
+  const spike = { workouts: [run('2026-07-05', 20), run('2026-07-12', 30)] };
+  const fSpike = L.adaptiveCoachFocus(spike, today);
+  assert.equal(fSpike.pillar, 'sport');
+  assert.equal(fSpike.loadSpike, null, 'sans durée/effort → ACWR nul → pas de pic de charge global');
+  assert.deepEqual(fSpike.runVolumeGuard, { thisWeekKm: 30, lastWeekKm: 20, rampPct: 50 });
+  assert.match(fSpike.insight, /surveille ta montée de kilométrage/);
+  assert.match(fSpike.insight, /de 20 à 30 km de course cette semaine \(\+50 %\)/);
+  assert.match(fSpike.insight, /\+10 %\/semaine/);
+  // Base trop maigre (semaine précédente < 10 km) : « +150 % » sur 4 km serait du bruit → null.
+  const thinBase = { workouts: [run('2026-07-05', 4), run('2026-07-12', 10)] };
+  assert.equal(L.adaptiveCoachFocus(thinBase, today).runVolumeGuard, null);
+  // Progression maîtrisée (+5 %, zone 'steady') → null.
+  const steady = { workouts: [run('2026-07-05', 20), run('2026-07-12', 21)] };
+  assert.equal(L.adaptiveCoachFocus(steady, today).runVolumeGuard, null);
+  // Muscu pure (aucune course) → weeklyKmRamp nul → null.
+  const strengthOnly = { workouts: [{ date: '2026-07-05', exercises: [{ name: 'Pompes classiques', sets: 5, reps: 12 }] }, { date: '2026-07-12', exercises: [{ name: 'Pompes classiques', sets: 5, reps: 12 }] }] };
+  assert.equal(L.adaptiveCoachFocus(strengthOnly, today).runVolumeGuard, null);
+  // Course déjà faite aujourd'hui → conseil du jour muet → null.
+  const doneRun = { workouts: [run('2026-07-05', 20), run('2026-07-12', 30), run(today, 5)] };
+  assert.equal(L.adaptiveCoachFocus(doneRun, today).runVolumeGuard, null);
+  // Forme au plancher (readiness 40) → l'action ordonne le repos, on ne réclame pas de volume → null.
+  const tired = L.adaptiveCoachFocus({ ...spike, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
+  assert.equal(tired.runVolumeGuard, null);
 });
 
 test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de la concentration', () => {

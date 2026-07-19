@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.174 (2026-07-19)
+## 📍 État actuel — build 2.0.175 (2026-07-19)
+
+> 🏃 **2.0.175** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach surveille enfin la
+> **MONTÉE de KILOMÉTRAGE de course** (`runVolumeGuard`) — la règle des **+10 %/semaine**, l'axe de
+> **progression du volume de course** jamais lu. `loadSpike` (ACWR) lit la charge **globale** (durée ×
+> effort de TOUTES les séances) et reste **aveugle au mileage propre à la course** : on peut garder une
+> ACWR « optimale » tout en faisant **bondir** ses km (footing qui remplace le renfo, ou plus de course en
+> endurance facile). Or c'est le mileage qui **casse** — monter le volume trop vite est **la première cause
+> de blessure du coureur** (périostite, fracture de fatigue), tendons/os/articulations s'adaptant bien plus
+> lentement que le cardio. Nouveau champ **`runVolumeGuard`** (`{ thisWeekKm, lastWeekKm, rampPct }` ou
+> `null`, toujours renvoyé) : quand la semaine de course bondit dans la zone `high` (+30 %) sur une **vraie
+> base** (≥ 10 km la semaine précédente), le coach **nomme** le saut — « tu es passé de 20 à 30 km cette
+> semaine (+50 %)… plafonne l'augmentation autour de +10 % la semaine prochaine. » **Honnête** : muet sur
+> base maigre (< 10 km → bruit), progression maîtrisée (build/steady/down), **subordonné** à `loadSpike`
+> (une seule note charge/blessure, la plus grossière d'abord), aucune contradiction avec `trainBalanceGuard`
+> (`missing:'run'` ⇒ km course = 0 ⇒ jamais `high`), mêmes gardes que `sportZoneFocus` (séance pas faite,
+> pas de repos ordonné, pas de dormance). Note **appendue** à l'insight, action du jour intacte. **Zéro**
+> nouvelle fonction (réemploi `weeklyKmRamp`, `doneToday`, `reviveEligible`, `loadSpike`, `readiness`).
+> Tests + check smoke bloquant `coachFocus` étendu. Recap #544.
 
 > 🦵 **2.0.174** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach repère enfin la **ZONE
 > musculaire délaissée depuis un MOIS** (`sportNeglectGuard`) — l'angle du **long terme**, absent de tout ce
