@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.151');
+  assert.equal(L.CHANGELOG[0].v, '2.0.152');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6775,6 +6775,38 @@ test('adaptiveCoachFocus : surveille la chaîne d’une habitude à risque (habi
   // Aucune habitude → champ null, aucune note (rétrocompat).
   const none = L.adaptiveCoachFocus({ workouts: wk }, '2026-07-16');
   assert.equal(none.habitAtRisk, null);
+});
+
+test('adaptiveCoachFocus : croise entraînement actif × bien-être lapsé (mobilityTrainGuard)', () => {
+  // Entraînement actif ces jours-ci (11-13-15 → recentDays 3) → pilier sport, séance pas faite le 16.
+  const wk = [{ date: '2026-07-11' }, { date: '2026-07-13' }, { date: '2026-07-15' }];
+  // Bien-être LAPSÉ : dernière routine le 07-10 → 6 j sans mobilité (≥ 4) → note récup.
+  const lapsed = L.adaptiveCoachFocus({ workouts: wk, wellnessDone: [{ date: '2026-07-10', key: 'mobilite-dos' }] }, '2026-07-16');
+  assert.equal(lapsed.pillar, 'sport');
+  assert.equal(lapsed.mobilityTrainGuard, 6);
+  assert.equal(lapsed.sleepTrainGuard, null);
+  assert.equal(lapsed.hydrationTrainGuard, null);
+  assert.match(lapsed.insight, /Un dernier levier, côté récupération : ça fait 6 jours sans routine mobilité/);
+  assert.match(lapsed.insight, /tissus et articulations encaissent la charge/);
+  // Bien-être frais (routine hier → 1 j < 4) → pas de note.
+  const fresh = L.adaptiveCoachFocus({ workouts: wk, wellnessDone: [{ date: '2026-07-15', key: 'mobilite-dos' }] }, '2026-07-16');
+  assert.equal(fresh.mobilityTrainGuard, null);
+  assert.doesNotMatch(fresh.insight, /côté récupération/);
+  // Jamais touché au bien-être (liste vide) → muet, on ne tanne pas un débutant du pilier.
+  const never = L.adaptiveCoachFocus({ workouts: wk }, '2026-07-16');
+  assert.equal(never.mobilityTrainGuard, null);
+  assert.doesNotMatch(never.insight, /sans routine mobilité/);
+  // Séance déjà faite aujourd'hui → doneToday → pas de note récup.
+  const doneToday = L.adaptiveCoachFocus({ workouts: [...wk, { date: '2026-07-16' }], wellnessDone: [{ date: '2026-07-10', key: 'mobilite-dos' }] }, '2026-07-16');
+  assert.equal(doneToday.mobilityTrainGuard, null);
+  // Sommeil court (sleepTrainGuard prime) → mobilité en relais, muette ce jour-là. Sport reste le pilier
+  // choisi (5 jours actifs > 3 nuits courtes), le sommeil n'est pas en alerte (régulier) donc non forcé.
+  const wkBusy = ['11', '12', '13', '14', '15'].map(d => ({ date: '2026-07-' + d }));
+  const recov = ['13', '14', '15'].map(d => ({ date: '2026-07-' + d, sleep: 6 }));
+  const sleepFirst = L.adaptiveCoachFocus({ workouts: wkBusy, recovery: recov, wellnessDone: [{ date: '2026-07-10', key: 'mobilite-dos' }] }, '2026-07-16');
+  assert.equal(sleepFirst.pillar, 'sport');
+  assert.ok(sleepFirst.sleepTrainGuard != null, 'le sommeil court prime');
+  assert.equal(sleepFirst.mobilityTrainGuard, null);
 });
 
 test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {

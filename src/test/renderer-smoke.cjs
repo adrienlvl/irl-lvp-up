@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.151'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.152'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -941,6 +941,16 @@ app.whenReady().then(async () => {
           // Sport bien hydraté (8 verres) → aucun carburant oublié.
           const fWetSport = adaptiveCoachFocus({ workouts: fSportWk, recovery: fPlainSleep, nutrition: fDryNut.map(n => ({ date: n.date, water: 8 })) }, '2026-07-16');
           if (fWetSport.hydrationTrainGuard !== null || /un carburant qu.on oublie [àa] l.effort/.test(fWetSport.insight)) return false;
+          // Coach × pilier BIEN-ÊTRE/MOBILITÉ (mobilityTrainGuard) : entraînement actif (recentDays 3) × pilier SPORT, sommeil/hydratation muets, bien-être LAPSÉ (dernière routine 07-10 → 6 j) → note récup « côté récupération / routine mobilité ».
+          const fMobWk = [{ date: '2026-07-11' }, { date: '2026-07-13' }, { date: '2026-07-15' }];
+          const fMobLapsed = adaptiveCoachFocus({ workouts: fMobWk, wellnessDone: [{ date: '2026-07-10', key: 'mobilite-dos' }] }, '2026-07-16');
+          if (!(fMobLapsed.pillar === 'sport' && fMobLapsed.mobilityTrainGuard === 6 && fMobLapsed.sleepTrainGuard === null && fMobLapsed.hydrationTrainGuard === null && /Un dernier levier, c[ôo]t[ée] r[ée]cup[ée]ration : [çc]a fait 6 jours sans routine mobilit[ée]/.test(fMobLapsed.insight) && /tissus et articulations encaissent la charge/.test(fMobLapsed.insight))) return false;
+          // Bien-être FRAIS (routine hier → 1 j < 4) → aucune note mobilité.
+          const fMobFresh = adaptiveCoachFocus({ workouts: fMobWk, wellnessDone: [{ date: '2026-07-15', key: 'mobilite-dos' }] }, '2026-07-16');
+          if (fMobFresh.mobilityTrainGuard !== null || /c[ôo]t[ée] r[ée]cup[ée]ration : [çc]a fait/.test(fMobFresh.insight)) return false;
+          // JAMAIS touché au bien-être (liste vide) → muet même si l'entraînement est actif (convention honnête, comme renderWellnessNudge).
+          const fMobNever = adaptiveCoachFocus({ workouts: fMobWk }, '2026-07-16');
+          if (fMobNever.mobilityTrainGuard !== null || /sans routine mobilit[ée]/.test(fMobNever.insight)) return false;
           // Coach INTER-PILIER : FORME du jour basse (readiness < 50, check-in du jour, sommeil 8 h → guards sommeil muets) × pilier NUTRITION → note « l'assiette dérape » (readinessNutriGuard).
           const fLowForm = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }], recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 5, soreness: 5 }] }, '2026-07-16');
           if (!(fLowForm.pillar === 'nutrition' && fLowForm.readinessNutriGuard === 40 && fLowForm.sleepFatLossGuard === null && fLowForm.sleepGainGuard === null && /ta forme est basse ce matin \\(readiness 40\\/100\\), et les jours de fatigue sont ceux o[ùu] l.assiette d[ée]rape le plus/.test(fLowForm.insight) && /te prot[èe]gent des fringales bien mieux que la volont[ée]/.test(fLowForm.insight))) return false;

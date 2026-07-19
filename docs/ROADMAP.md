@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.151 (2026-07-19)
+## 📍 État actuel — build 2.0.152 (2026-07-19)
+
+> 🧘 **2.0.152** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach devient conscient du
+> **pilier bien-être / mobilité** (`s.wellnessDone`) — une source de données **réelle et loggée** qu'il
+> n'avait **jamais** lue (il ne voyait que les 4 piliers, les habitudes, les candidatures, la readiness, le
+> poids). Sur le **SPORT**, il lisait déjà la charge (ACWR), la forme du jour, le sommeil et l'hydratation
+> chroniques, mais restait aveugle à la **RÉCUPÉRATION ACTIVE** : s'entraîner régulièrement sans jamais
+> relâcher (mobilité, étirements), c'est laisser les tissus et articulations encaisser la charge sans
+> contrepartie — terrain des tensions et blessures de surcharge, souplesse qui se perd et bride l'amplitude.
+> Nouveau champ **`mobilityTrainGuard`** (nb de jours sans routine, ou `null`) : quand le pilier poussé est
+> le sport, la séance pas faite, l'entraînement **réellement actif** (`recentDays >= 2`), qu'**aucune note
+> carburant n'a déjà parlé** (`sleepTrainGuard`/`hydrationTrainGuard` muets → relais : une seule note
+> récup/carburant par jour, le sommeil prime) ET que le suivi bien-être a **lapsé** (`wellnessInactivity`,
+> ≥ 4 j), une note s'append : « Un dernier levier, côté récupération : ça fait 6 jours sans routine mobilité
+> … 5 min de mobilité ou d'étirements aujourd'hui entretiennent ce capital et accélèrent la récup. »
+> **Convention honnête** : liste vide → muet (on ne tanne pas qui n'a jamais touché au bien-être, comme
+> `renderWellnessNudge`). Vocabulaire distinct (« côté récupération », « tissus et articulations ») — zéro
+> collision regex avec « socle invisible » (sommeil) / « carburant qu'on oublie » (hydratation). Additif
+> pur, réemploi total de `wellnessInactivity`, **zéro** nouvelle fonction. Fonctions pures + testées, check
+> smoke bloquant `coachFocus` étendu. Recap #521.
 
 > 🔗 **2.0.151** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach devient conscient du
 > **tracker d'habitudes** (`s.habits`) — une source de données réelle qu'il n'avait **jamais** lue (il ne
