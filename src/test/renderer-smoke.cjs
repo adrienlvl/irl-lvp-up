@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.178'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.179'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1345,6 +1345,17 @@ app.whenReady().then(async () => {
           if (!/kilométrage/.test(mixed.primary)) return false;      // l'urgent est SUR la carte
           if (/pur bonus/.test(mixed.primary)) return false;         // l'anodin n'y est PAS
           if (!/pur bonus/.test(mixed.extra)) return false;          // il est bien dans le contexte replié
+          // BUDGET (#548) : une note ACCESSOIRE longue est reléguée (la carte reste brève)…
+          const longAnodin = 'Verdict court du jour. ' + 'Objectif bouclé : un bloc de plus serait du pur bonus offert, sans la moindre pression, '
+            + 'juste un peu d’avance donnée à ta semaine prochaine si l’envie te prend, rien de plus à tenir, aucun compteur dans le dos, '
+            + 'et absolument rien qui t’oblige à t’y remettre aujourd’hui si le cœur n’y est pas.';
+          const a = splitCoachInsight(longAnodin);
+          if (a.primary.length > 120 || !/pur bonus/.test(a.extra)) return false;
+          // …mais une ALERTE (rang ≤ 1) passe SUR la carte même si elle dépasse le budget.
+          const longUrgent = 'Verdict court du jour. ' + 'Et surveille ta montée de kilométrage : tu es passé bien au-delà des +10 %/semaine que '
+            + 'tes tendons, tes os et tes articulations encaissent sans casser — première cause de fracture de fatigue chez le coureur, plafonne dès maintenant.';
+          const u = splitCoachInsight(longUrgent);
+          if (!/kilométrage/.test(u.primary)) return false;
           return true;
         })(),
         sheetSync: typeof normalizeSheetCsvUrl === 'function' && typeof mergeApplications === 'function' && typeof renderSheetSync === 'function' && typeof syncSheets === 'function' && typeof setupSheetSync === 'function' && !!document.getElementById('altSheetForm') && !!document.getElementById('altSheetUrl') && !!document.getElementById('altSheetList') && !!document.getElementById('altSheetSync') && !!document.getElementById('altSheetStatus') && (() => {

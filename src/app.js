@@ -167,6 +167,7 @@ function renderAttention(){const el=$('#attentionDigest'),panel=$('#attentionPan
 // de contexte). Sur la CARTE on ne montre que le focus (≤ 2 phrases / ~200 car) ; le reste passe
 // derrière « plus de contexte ». Message punchy, richesse préservée — aucun impact sur la logique pure
 // ni les tests (on ne fait que scinder la chaîne à l'affichage). Pur.
+const COACH_CARD_BUDGET=260; // longueur cible de la carte du coach, en caractères
 function splitCoachInsight(text){
   const t=String(text||'').trim();
   if(t.length<=200)return{primary:t,extra:''};
@@ -176,9 +177,23 @@ function splitCoachInsight(text){
   // fatigue » (note ajoutée tard) derrière « ＋ plus de contexte ».
   const parts=(typeof orderCoachNotes==='function')?orderCoachNotes(t):t.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
   if(!parts||parts.length<=1)return{primary:t,extra:''};
-  const keep=Math.min(2,parts.length-1);
-  const primary=parts.slice(0,keep).join(' ').trim();
-  return primary?{primary,extra:parts.slice(keep).join(' ').trim()}:{primary:t,extra:''};
+  // Budget en CARACTÈRES, pas en phrases : compter « 2 phrases » laissait passer des cartes de 420 c
+  // (deux phrases longues), soit l'inverse de l'objectif « punchy ». Le VERDICT (1ʳᵉ phrase) est
+  // toujours gardé ENTIER — jamais tronqué au milieu, c'est le diagnostic — puis on n'ajoute la note
+  // suivante (la plus urgente, cf. orderCoachNotes) que si elle TIENT dans le budget.
+  // ⚠️ L'URGENCE PRIME SUR LE BUDGET : une alerte d'intégrité physique ou de charge (rang ≤ 1) passe
+  // sur la carte même si elle dépasse le budget — mesuré : un budget appliqué aveuglément reléguait
+  // 96 alertes de ce type derrière le dépliant, soit exactement ce que la hiérarchisation corrige.
+  // Le budget ne filtre donc que l'ACCESSOIRE (on ne l'affiche que s'il est bon marché).
+  const kept=[parts[0]];let len=parts[0].length;
+  for(let i=1;i<parts.length&&kept.length<2;i++){
+    const add=1+parts[i].length;
+    const urgent=(typeof coachNoteUrgency==='function')&&coachNoteUrgency(parts[i])<=1;
+    if(!urgent&&len+add>COACH_CARD_BUDGET)break;
+    kept.push(parts[i]);len+=add;
+  }
+  const primary=kept.join(' ').trim(),extra=parts.slice(kept.length).join(' ').trim();
+  return primary?{primary,extra}:{primary:t,extra:''};
 }
 function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});if(!f){panel.hidden=true;el.innerHTML='';el.removeAttribute('data-coach-page');const mb0=$('#coachMoreBtn'),mp0=$('#coachMore');if(mb0)mb0.hidden=true;if(mp0){mp0.hidden=true;mp0.textContent='';}return;}
   // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le

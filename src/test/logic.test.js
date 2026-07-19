@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.178');
+  assert.equal(L.CHANGELOG[0].v, '2.0.179');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10621,6 +10621,12 @@ test('coachNoteUrgency / orderCoachNotes : l’urgent passe devant l’anodin', 
   assert.equal(L.coachNoteUrgency('enraye maintenant, avant que la dette ne s’installe'), 2);
   assert.equal(L.coachNoteUrgency('tu n’atteins ta cible protéines que 2/10'), 3);
   assert.equal(L.coachNoteUrgency('Objectif hebdo : 2/3 séances.'), 4, 'note non classée = rang médian');
+  // FAUX POSITIF attrapé EN NAVIGATEUR : une note PÉDAGOGIQUE sur le sommeil qui mentionne la
+  // blessure en incise ne doit PAS passer rang 0 — sinon elle force une carte de 365 c (mesuré).
+  // Elle porte sur le sommeil → rang 2. Même piège de sous-chaîne que le bug #446 (`pris`/entreprise).
+  assert.equal(L.coachNoteUrgency('tu dors 5 h en moyenne ces derniers jours, sous les 7 h — dormir '
+    + 'court plafonne les gains de chaque séance tout en augmentant le risque de blessure'), 2,
+    'mentionner « blessure » ne suffit pas : la note doit PORTER sur l’intégrité physique');
   assert.equal(L.coachNoteUrgency('un bloc de plus serait du pur bonus, sans la moindre pression'), 5,
     'l’anodin DOIT tomber sous le rang par défaut, sinon il n’est jamais relégué');
   // Le verdict (1ʳᵉ phrase) ne bouge JAMAIS ; le reste est trié par urgence.

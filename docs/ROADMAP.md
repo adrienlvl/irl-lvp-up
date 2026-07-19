@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.178 (2026-07-19)
+## 📍 État actuel — build 2.0.179 (2026-07-19)
+
+> 🎯 **2.0.179 — la carte du coach redevient brève, sans jamais cacher une alerte.** La curation
+> gardait « 2 phrases » quelle que soit leur longueur → **25 % des cartes dépassaient 300 c** (jusqu'à
+> 420). Budget désormais en **caractères** : médiane **273 → 53 c**, plus aucune carte > 300 c. Nuance
+> décisive : le budget ne filtre que **l'accessoire** — une alerte d'intégrité physique ou de charge
+> passe **même si elle est longue** (un budget aveugle reléguait 96 alertes, annulant #547). Mesuré
+> par fuzz sur 576 scénarios. _Piste des contradictions explorée et **déclarée fausse** : 0 doublon,
+> 0 contradiction sur 1 260 scénarios._ Recap #548. _Domaine : coach — **2ᵉ d'affilée par exception
+> explicite d'Adrien** ; la rotation §4 bis reprend en #549._
 
 > 🚨 **2.0.178 — le coach dit d'abord ce qui compte.** Ses ~89 notes étaient concaténées dans l'ordre
 > du **code**, pas de l'**urgence** : les notes anodines ayant été ajoutées tôt (`sessionGoalBonus`
