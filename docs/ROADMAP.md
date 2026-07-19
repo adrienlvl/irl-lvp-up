@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.170 (2026-07-19)
+## 📍 État actuel — build 2.0.171 (2026-07-19)
+
+> 😌 **2.0.171** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach te fait **lever le
+> pied** les jours où le **cerveau est à plat** MAIS où l'objectif focus est **confortablement dans les
+> temps** (`focusMarginDrained`). La branche d'allure focus **serrée** (`tight`) couvrait ses trois
+> zones (vert `focusGoalFresh`, à plat `focusGoalDrained`, médiane `focusGoalSteady`), mais la branche
+> **large** (`onpace`, « tu as la marge ») ne lisait la forme **qu'au vert** (`focusGoalAhead`, #535 → «
+> prends de l'avance ») : un matin d'esprit épuisé avec de la marge → **muet**, et l'action invitait
+> quand même à un vrai bloc. Le garde-fou du cerveau fatigué n'existait que les semaines serrées, **alors
+> que le calendrier confortable est justement le cas où lever le pied coûte le MOINS**. Nouveau champ
+> **`focusMarginDrained`** (score du jour, ou `null`, toujours renvoyé) : allure large × check-in de récup
+> **du jour** à plat (readiness < 50) → « Mais ton énergie mentale est basse ce matin (readiness 40/100) :
+> justement, tu as de la marge sur l'objectif — aucune raison de forcer un gros bloc aujourd'hui. Un focus
+> léger, ou même une vraie pause, suffit largement : ta marge encaisse ce jour au ralenti sans stress, et
+> tu repartiras l'esprit bien plus tranchant. » Cadrage **distinct** de `focusGoalDrained` (qui gère une
+> cible menacée) : ici l'objectif est **déjà à l'abri** → on **rassure sans culpabilité**, pas «
+> attention à ne pas creuser la fatigue ». **Honnête** : à plat seulement (médiane/vert → muet), exige
+> un check-in du jour. **Mutuellement exclusif** de `focusGoalAhead` (≥ 75 XOR < 50), des notes serrées
+> (`tight` vs `onpace`) et des notes sport. **Zéro** nouvelle fonction (réemploi `readinessScore`), zéro
+> collision regex. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #540.
 
 > 🎁 **2.0.170** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach cadre une séance
 > de plus en **BONUS LIBRE** côté **sport** quand l'objectif de séances est **déjà bouclé**

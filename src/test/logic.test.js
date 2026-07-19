@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.170');
+  assert.equal(L.CHANGELOG[0].v, '2.0.171');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8840,9 +8840,23 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(aheadMid.focusGoalPace, 'onpace', 'marge sur l’objectif focus');
   assert.equal(aheadMid.focusGoalAhead, null, 'readiness moyenne × marge → pas de note (aucune pression en plus)');
   assert.ok(!/prendre de l’avance/.test(aheadMid.insight));
-  // Objectif large mais readiness à plat → aucune invitation non plus. sleep 5 / fat 4 / sore 4 → 40.
+  // Objectif large mais readiness à plat → aucune invitation à avancer. sleep 5 / fat 4 / sore 4 → 40.
   const aheadLow = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-14');
-  assert.equal(aheadLow.focusGoalAhead, null, 'readiness à plat × marge → pas de note');
+  assert.equal(aheadLow.focusGoalAhead, null, 'readiness à plat × marge → pas d’invitation à avancer');
+  // CERVEAU À PLAT × MARGE → LÈVE LE PIED (focusMarginDrained) — trou symétrique de focusGoalAhead dans la
+  // branche onpace : la marge rend un jour au ralenti sans conséquence, on rassure au lieu de rester muet.
+  assert.equal(aheadLow.focusMarginDrained, 40, 'readiness < 50 × marge → le score du jour renvoyé');
+  assert.match(aheadLow.insight, /ton énergie mentale est basse ce matin \(readiness 40\/100\)/);
+  assert.match(aheadLow.insight, /tu as de la marge sur l’objectif/);
+  assert.match(aheadLow.insight, /ta marge encaisse ce jour au ralenti/);
+  // Vocabulaire distinct : aucune collision avec les notes des autres branches/zones.
+  assert.ok(!/à plat ce matin|ta tête est claire ce matin|tient la route ce matin|au vert ce matin|prendre de l’avance/i.test(aheadLow.insight));
+  // MUTUELLEMENT EXCLUSIF : focusMarginDrained ne parle QUE en onpace × < 50.
+  assert.equal(aheadLow.focusGoalDrained, null, 'onpace → focusGoalDrained (branche serrée) reste null');
+  assert.equal(ahead.focusMarginDrained, null, 'onpace × vert (≥ 75) → focusMarginDrained null (c’est focusGoalAhead qui parle)');
+  assert.equal(aheadMid.focusMarginDrained, null, 'onpace × zone médiane → focusMarginDrained null');
+  assert.equal(onpace.focusMarginDrained, null, 'onpace sans check-in de récup du jour → focusMarginDrained null');
+  assert.equal(tired.focusMarginDrained, null, 'branche serrée × à plat → focusMarginDrained null (c’est focusGoalDrained qui parle)');
   // Mutuellement exclusif de la branche serrée : au vert × objectif SERRÉ → focusGoalFresh, pas Ahead.
   assert.equal(fresh.focusGoalAhead, null, 'branche serrée → focusGoalAhead null');
   assert.equal(mid.focusGoalAhead, null, 'branche serrée (zone médiane) → focusGoalAhead null');
