@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.143', emoji: '💪', text: 'Ton coach « Le focus du moment » relie aussi ton SOMMEIL à ta prise de MUSCLE — le pendant exact de la note « sommeil × perte de gras ». Quand il te pilote sur la nutrition avec un objectif de PRISE en cours et que tes nuits sont courtes (moins de 7 h de moyenne sur tes derniers relevés), il nomme le frein invisible : « Et surveille un frein invisible : tu dors 6 h en moyenne ces derniers jours (dette de 21 h sur 14 j), sous les 7 h — le manque de sommeil fait chuter la testostérone et l’hormone de croissance, bride la synthèse musculaire et range ton surplus en gras plutôt qu’en muscle. Bien dormir, c’est transformer tes calories en muscle, pas seulement en avaler plus. » Le lien hormonal est l’inverse de la perte : sur une prise, la nuit courte plombe la récup et la construction musculaire, si bien que le surplus se range en gras. La note n’apparaît que sur ce cas (objectif de prise ET sommeil court, sans être déjà en alerte prioritaire) ; rien d’autre ne change.' },
   { v: '2.0.142', emoji: '🌙', text: 'Ton coach « Le focus du moment » relie enfin ton SOMMEIL à ta perte de poids. Quand il te pilote sur la nutrition avec un objectif de PERTE en cours et que tes nuits sont courtes (moins de 7 h de moyenne sur tes derniers relevés), il nomme le frein caché : « Et surveille un frein caché : tu dors 6 h en moyenne ces derniers jours (dette de 21 h sur 14 j), sous les 7 h — le manque de sommeil pousse la faim (ghréline) et le stockage (cortisol) à la hausse et freine la perte de gras autant qu’un écart d’assiette. Mieux dormir fait partie du plan, pas seulement mieux manger. » Jusqu’ici le coach nutrition ne regardait que ton assiette et ta balance ; il croise désormais les piliers pour pointer ce qui peut faire caler ta perte sans que tu le voies. La note n’apparaît que sur ce cas (objectif de perte ET sommeil court, sans être déjà en alerte prioritaire) ; rien d’autre ne change.' },
   { v: '2.0.141', emoji: '🌫️', text: 'Ton coach « Le focus du moment » ne sait pas que célébrer l’alignement côté FOCUS (nouveauté récente : objectif serré ET forme au vert → fonce) : il sait aussi désamorcer le CONFLIT inverse. Quand ton objectif hebdo de MINUTES de focus est SERRÉ (« cale un vrai bloc d’~90 min aujourd’hui pour tenir la cible ») MAIS qu’un check-in de récup du jour met ta forme au PLANCHER (readiness < 50, l’esprit épuisé), le coach ne te pousse plus à t’acharner dans le vide : « Mais ta forme est à plat ce matin (readiness 40/100) : un cerveau fatigué ne produit pas un vrai bloc profond, et t’acharner empilerait des minutes creuses sans avancer l’objectif. Un focus court et facile aujourd’hui, soigne ta récup — l’esprit frais rattrapera ces minutes bien plus vite. » C’est le pendant EXACT et OPPOSÉ de la note d’alignement côté focus, et le symétrique côté focus de la note sport « objectif serré ET forme à plat → la récup prime » : quand la tête est vide, s’entêter sur un gros bloc n’avance rien. La note n’apparaît que sur ce cas précis (objectif focus serré ET readiness au plancher le jour même) ; rien d’autre ne change.' },
   { v: '2.0.140', emoji: '🧠', text: 'Ton coach « Le focus du moment » sait enfin reconnaître l’alignement « tout est réuni » aussi côté FOCUS, pas seulement côté sport. Quand ton objectif hebdo de MINUTES de focus est SERRÉ (« cale un vrai bloc d’~90 min aujourd’hui pour tenir la cible ») ET qu’un check-in de récup du jour met ta forme au vert (readiness ≥ 75, l’esprit frais), le coach ne laisse plus passer la fenêtre : « Et bonne nouvelle : cette cadence serrée tombe pile — ta forme est au vert ce matin (readiness 82/100), l’esprit est frais pour tenir un vrai bloc. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif focus. » C’est le pendant EXACT, côté focus, de la note sport « objectif serré ET charge en sous-charge » : le focus n’a pas de charge, mais une tête reposée encaisse un gros bloc de concentration comme un corps frais encaisse une séance. La note n’apparaît que sur ce cas précis (objectif focus serré ET readiness au vert le jour même) ; rien d’autre ne change.' },
@@ -5452,7 +5453,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Additif pur : weightPace (kg/sem, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight, action
   // (protéines) intacte. Deux axes distincts (habitude nutrition vs résultat balance) → pas de
   // contradiction avec le ton. Données réelles seulement (≥ 2 pesées exploitables, sinon null).
-  let weightGoalPct = null, weightPace = null, calorieTarget = null, sleepFatLossGuard = null;
+  let weightGoalPct = null, weightPace = null, calorieTarget = null, sleepFatLossGuard = null, sleepGainGuard = null;
   if (chosen.pillar === 'nutrition' && typeof weightGoalProgress === 'function') {
     const tgtW = Number(s.goals && s.goals.targetWeight);
     const fbW = Number(s.profile && s.profile.weight);
@@ -5543,6 +5544,20 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           const numW = n => String(n).replace('.', ',');
           const detteTxt = (sleepIns.debt > 0) ? ` (dette de ${numW(sleepIns.debt)} h sur 14 j)` : '';
           insight += ` Et surveille un frein caché : tu dors ${numW(sleepIns.avg)} h en moyenne ces derniers jours${detteTxt}, sous les 7 h — le manque de sommeil pousse la faim (ghréline) et le stockage (cortisol) à la hausse et freine la perte de gras autant qu’un écart d’assiette. Mieux dormir fait partie du plan, pas seulement mieux manger.`;
+        } else if (wp.direction === 'prise' && sleepIns && sleepIns.nights >= 3 && sleepIns.avg > 0 && sleepIns.avg < 7) {
+          // PENDANT côté PRISE de #511 (perte). Le lien hormonal est INVERSE : sur un objectif de prise de
+          // muscle, la nuit courte fait chuter la testostérone et l'hormone de croissance (sécrétée surtout
+          // en sommeil profond), bride la SYNTHÈSE PROTÉIQUE et la récup — donc ton surplus calorique se
+          // range davantage en GRAS qu'en muscle. Manger plus ne suffit pas si le corps ne construit pas la
+          // nuit. Message et champ DISTINCTS de la perte (masse maigre vs gras) : libellé « frein invisible »
+          // (≠ « frein caché » de la perte, pour ne pas confondre les deux notes ni les tests), champ dédié
+          // sleepGainGuard. Même gate de données réelles (≥ 3 nuits chiffrées, moyenne < 7 h) et même
+          // compatibilité avec le sommeil-pilier (tone 'urgent' → chosen.pillar === 'sommeil', on n'est pas
+          // ici). Additif pur : sleepGainGuard TOUJOURS renvoyé (null par défaut), note appendue seule.
+          sleepGainGuard = sleepIns.avg;
+          const numW = n => String(n).replace('.', ',');
+          const detteTxt = (sleepIns.debt > 0) ? ` (dette de ${numW(sleepIns.debt)} h sur 14 j)` : '';
+          insight += ` Et surveille un frein invisible : tu dors ${numW(sleepIns.avg)} h en moyenne ces derniers jours${detteTxt}, sous les 7 h — le manque de sommeil fait chuter la testostérone et l’hormone de croissance, bride la synthèse musculaire et range ton surplus en gras plutôt qu’en muscle. Bien dormir, c’est transformer tes calories en muscle, pas seulement en avaler plus.`;
         }
       }
     }
@@ -6266,7 +6281,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

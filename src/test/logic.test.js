@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.142');
+  assert.equal(L.CHANGELOG[0].v, '2.0.143');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8712,12 +8712,25 @@ test('adaptiveCoachFocus : focus nutrition — le SOMMEIL court, frein caché de
   const ok = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights, recovery: rested }, today);
   assert.equal(ok.sleepFatLossGuard, null);
   assert.doesNotMatch(ok.insight, /frein caché/);
-  // Objectif de PRISE (cible au-dessus) → le lien hormonal perte de gras ne s’applique pas, champ null.
+  // Objectif de PRISE (cible au-dessus) × sommeil court → PENDANT musculaire : le champ perte reste null,
+  // mais sleepGainGuard = 6 et la note « frein invisible » (testostérone/GH, synthèse musculaire) s’ajoute.
   const gain = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 90 }, weights: [
     { date: '2026-06-01', value: 82 }, { date: '2026-07-14', value: 85 },
   ], recovery: shortSleep }, today);
-  assert.equal(gain.sleepFatLossGuard, null, 'prise : pas de note frein-sommeil');
+  assert.equal(gain.sleepFatLossGuard, null, 'prise : pas de note perte-de-gras');
   assert.doesNotMatch(gain.insight, /frein caché/);
+  assert.equal(gain.sleepGainGuard, 6, 'prise × sommeil court : frein musculaire nommé');
+  assert.match(gain.insight, /Et surveille un frein invisible : tu dors 6 h en moyenne ces derniers jours \(dette de 21 h sur 14 j\), sous les 7 h/);
+  assert.match(gain.insight, /testostérone.*hormone de croissance.*synthèse musculaire.*surplus en gras plutôt qu’en muscle/);
+  assert.match(gain.insight, /Bien dormir, c’est transformer tes calories en muscle/);
+  // PRISE × sommeil solide (8 h) → aucun frein invisible.
+  const gainRested = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 90 }, weights: [
+    { date: '2026-06-01', value: 82 }, { date: '2026-07-14', value: 85 },
+  ], recovery: rested }, today);
+  assert.equal(gainRested.sleepGainGuard, null);
+  assert.doesNotMatch(gainRested.insight, /frein invisible/);
+  // La note PERTE, elle, ne pose jamais le champ prise.
+  assert.equal(drained.sleepGainGuard, null, 'perte : pas de note prise-muscle');
   // Moins de 3 nuits chiffrées → signal trop maigre, champ null.
   const thin = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights, recovery: [
     { date: '2026-07-15', sleep: 6 }, { date: '2026-07-16', sleep: 6 },

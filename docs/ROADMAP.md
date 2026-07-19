@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.142 (2026-07-19)
+## 📍 État actuel — build 2.0.143 (2026-07-19)
+
+> 💪 **2.0.143** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant PRISE** du
+> croisement inter-pilier ouvert en #511 (sommeil × perte). #511 ne visait que la **perte** de gras et
+> laissait explicitement la face « prise de muscle » à traiter. Désormais, dans la branche nutrition,
+> quand l'objectif est une **PRISE** (`wp.direction === 'prise'`) ET que le sommeil récent est **court**
+> (`sleepIns.avg < 7` sur ≥ 3 nuits), une note **distincte** s'append via le nouveau champ
+> **`sleepGainGuard`** (moyenne h, ou `null`) : « Et surveille un frein invisible : tu dors 6 h en
+> moyenne… (dette de 21 h sur 14 j), sous les 7 h — le manque de sommeil fait chuter la testostérone et
+> l'hormone de croissance, bride la synthèse musculaire et range ton surplus en gras plutôt qu'en muscle.
+> Bien dormir, c'est transformer tes calories en muscle, pas seulement en avaler plus. » Lien hormonal
+> **inverse** de la perte (testostérone/GH + synthèse protéique vs ghréline/cortisol), libellé « frein
+> **invisible** » ≠ « frein **caché** » pour ne pas confondre les deux notes. Même garde-fou que #511 :
+> si le sommeil est en alerte (`tone 'urgent'`), il devient le pilier choisi (tier −1) → on n'entre pas
+> dans la branche nutrition ; la note ne parle que dans le cas subtil (sommeil court sans être le focus).
+> Additif pur, réemploi total (`sleepIns`), zéro nouvelle fonction. Fonctions pures + testées, check
+> smoke bloquant `coachFocus` étendu. Recap #512.
 
 > 🌙 **2.0.142** — Coaching adaptatif poussé à fond (priorité de la nuit) : **premier croisement de
 > PILIERS** du coach, filon neuf après la saturation du thème « objectif serré × forme » (#504→#510).
