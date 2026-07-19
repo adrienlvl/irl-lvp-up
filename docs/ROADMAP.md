@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.175 (2026-07-19)
+## 📍 État actuel — build 2.0.176 (2026-07-19)
+
+> 🥗 **2.0.176** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach regarde enfin tes
+> **FRUITS & LÉGUMES** (`fruitGuard`) — le **seul** champ du journal nutrition (`nutrition[].fruit`)
+> qu'il n'avait **jamais** lu. Il parlait déjà protéines (le macro : cible, série, pente
+> `proteinTrend`), eau (hydratation : `hydrationTrend`) et résultat balance (`weightGoalPct`/`weightPace`),
+> mais le **micronutriment** — fibres, vitamines, antioxydants : récup, digestion, immunité — restait
+> **muet**, coché ou non chaque jour sans que personne ne le remarque (il ne vivait que dans l'action
+> générique « verrouille l'eau et un fruit/légume »). Nouveau champ **`fruitGuard`**
+> (`{ fruitDays, trackedDays }` ou `null`, toujours renvoyé) : quand Adrien **suit vraiment** sa
+> nutrition (≥ 8 jours des 14 derniers où protéines OU eau sont saisies) mais **néglige** la case
+> fruit/légume (≤ ⅓ des jours suivis), le coach **nomme** le manque — « Côté fruits et légumes en
+> revanche, zéro sur tes 10 jours suivis ces deux dernières semaines… glisse un fruit ou une portion de
+> légumes à un repas aujourd'hui, c'est le maillon le plus vite comblé. » **Honnête** : muet sans vrai
+> suivi (case vide = « pas noté », pas un manque), muet si l'habitude fruits est déjà correcte,
+> **subordonné** aux deux pentes d'intrant (`proteinTrend` ET `hydrationTrend` null — une seule note
+> d'intrant à la fois, protéines > eau > fruits/légumes), marche sans profil. Note **appendue** à
+> l'insight, action du jour intacte. **Zéro** nouvelle fonction (réemploi `daysHittingTarget`,
+> `dateAfterDays`). Tests + check smoke bloquant `coachFocus` étendu. Recap #545.
 
 > 🏃 **2.0.175** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach surveille enfin la
 > **MONTÉE de KILOMÉTRAGE de course** (`runVolumeGuard`) — la règle des **+10 %/semaine**, l'axe de

@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.175');
+  assert.equal(L.CHANGELOG[0].v, '2.0.176');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9038,6 +9038,48 @@ test('adaptiveCoachFocus : focus nutrition — PENTE d’hydratation (relais qua
   const fso = L.adaptiveCoachFocus(solo, today);
   assert.equal(fso.hydrationTrend, null);
   assert.doesNotMatch(fso.insight, /hydratation/);
+});
+
+test('adaptiveCoachFocus : focus nutrition — fruits & légumes délaissés malgré un vrai suivi (fruitGuard)', () => {
+  const today = '2026-07-16';
+  // SANS PROFIL (proteinTrend null) et SANS eau (hydrationTrend null) : nutrition suivie 10 jours sur 14
+  // via les protéines, mais ZÉRO fruit/légume coché → le coach nomme le manque de micronutriments.
+  const dates = ['2026-07-05', '2026-07-07', '2026-07-09', '2026-07-10', '2026-07-11',
+                 '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'];
+  const zero = { nutrition: dates.map(d => ({ date: d, protein: 100 })) };
+  const fz = L.adaptiveCoachFocus(zero, today);
+  assert.equal(fz.pillar, 'nutrition');
+  assert.equal(fz.proteinTrend, null);
+  assert.equal(fz.hydrationTrend, null);
+  assert.deepEqual(fz.fruitGuard, { fruitDays: 0, trackedDays: 10 });
+  assert.match(fz.insight, /Côté fruits et légumes en revanche, zéro sur tes 10 jours suivis/);
+  assert.match(fz.insight, /fibres, vitamines et antioxydants/);
+  // Quelques jours seulement (2/10 ≤ ⌊10\/3⌋ = 3) → branche « seulement N jours ».
+  const few = { nutrition: dates.map((d, i) => ({ date: d, protein: 100, fruit: i < 2 })) };
+  const ff = L.adaptiveCoachFocus(few, today);
+  assert.deepEqual(ff.fruitGuard, { fruitDays: 2, trackedDays: 10 });
+  assert.match(ff.insight, /seulement 2 jours sur tes 10 jours suivis/);
+  // Habitude déjà correcte (5/10 > 3) → muet.
+  const okHabit = { nutrition: dates.map((d, i) => ({ date: d, protein: 100, fruit: i < 5 })) };
+  assert.equal(L.adaptiveCoachFocus(okHabit, today).fruitGuard, null);
+  // Suivi trop maigre (6 jours < 8) → muet, même sans aucun fruit (fruit=false serait juste « pas loggé »).
+  const thin = { nutrition: dates.slice(0, 6).map(d => ({ date: d, protein: 100 })) };
+  const ft = L.adaptiveCoachFocus(thin, today);
+  assert.equal(ft.pillar, 'nutrition');
+  assert.equal(ft.fruitGuard, null);
+  // SUBORDINATION : quand la pente d’hydratation parle (relais protéines), le fruit se tait (un seul
+  // intrant à la fois). Eau qui grimpe (6 j récents à 8 verres vs 3 la précédente) + zéro fruit.
+  const hydra = { nutrition: [
+    { date: '2026-07-03', water: 8 }, { date: '2026-07-04', water: 8 }, { date: '2026-07-05', water: 8 },
+    { date: '2026-07-10', water: 8 }, { date: '2026-07-11', water: 8 }, { date: '2026-07-12', water: 8 },
+    { date: '2026-07-13', water: 8 }, { date: '2026-07-14', water: 8 }, { date: '2026-07-15', water: 8 } ] };
+  const fh = L.adaptiveCoachFocus(hydra, today);
+  assert.equal(fh.hydrationTrend, 3);
+  assert.equal(fh.fruitGuard, null, 'un seul intrant à la fois : hydratation prime sur le fruit');
+  assert.doesNotMatch(fh.insight, /fruits et légumes/);
+  // Hors pilier nutrition → fruitGuard null.
+  const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: '2026-07-15' }] }, today);
+  assert.equal(sport.fruitGuard, null);
 });
 
 test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers l’objectif de poids', () => {

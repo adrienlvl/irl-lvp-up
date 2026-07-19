@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.175'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.176'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -930,6 +930,12 @@ app.whenReady().then(async () => {
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;
+          // Fruits & légumes délaissés (fruitGuard) : nutrition suivie 10 j via protéines (sans profil → pas de pente d'intrant), ZÉRO fruit coché → note micronutriments.
+          const fFruitNut = ['2026-07-05', '2026-07-07', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'].map(d => ({ date: d, protein: 100 }));
+          const fFruit = adaptiveCoachFocus({ nutrition: fFruitNut }, '2026-07-16');
+          if (!(fFruit.pillar === 'nutrition' && fFruit.fruitGuard && fFruit.fruitGuard.fruitDays === 0 && fFruit.fruitGuard.trackedDays === 10 && /Côté fruits et légumes en revanche, z[ée]ro sur tes 10 jours suivis/.test(fFruit.insight))) return false;
+          // Habitude fruits déjà correcte (5/10 > ⌊10/3⌋) → muet, pas de note.
+          if (adaptiveCoachFocus({ nutrition: fFruitNut.map((n, i) => ({ date: n.date, protein: 100, fruit: i < 5 })) }, '2026-07-16').fruitGuard !== null) return false;
           // Focus nutrition — le coach relie la discipline du jour au RÉSULTAT CORPOREL : progression réelle vers l'objectif de poids (weightGoalProgress).
           const fWeightNut = [{ date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 }];
           const fWeight = adaptiveCoachFocus({ nutrition: fWeightNut, goals: { targetWeight: 79 }, weights: [{ date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 82 }] }, '2026-07-16');
