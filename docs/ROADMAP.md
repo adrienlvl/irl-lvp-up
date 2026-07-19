@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.118 (2026-07-19)
+## 📍 État actuel — build 2.0.119 (2026-07-19)
+
+> 🏆 **2.0.119** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » **brandit ton RECORD PERSO de série** quand ta série en jeu s'en approche. Il nommait déjà
+> la série menacée (`streakAtRisk`, #484/#485) et le palier fixe à décrocher (`streakMilestoneReach`),
+> mais restait **aveugle à la plus longue série jamais tenue** sur un pilier — le levier le plus intime.
+> Nouvelle fonction pure **`bestDailyStreak`** (jumelle de `dailyStreak`, mais le RECORD au lieu de la
+> série en cours) branchée dans le bloc « série en jeu ». Quand cette série touche un record **notable**
+> (≥ 7 j), deux cas disjoints du palier (une seule carotte bonus/jour, gaté par `!streakMilestoneReach`) :
+> **`break`** (le run en cours EST déjà le record → « 🏆 Et là tu bats ton record perso sur ton
+> entraînement : jamais tu n'avais tenu autant de jours d'affilée ») ; **`near`** (un record passé à
+> ≤ 3 j → « Ton record perso ici est de 8 jours d'affilée — encore 3 jours pour l'égaler »). Battre sa
+> propre meilleure série fait agir plus fort qu'un jalon générique. Points de conception : **réutilise
+> les dates déjà collectées** par `streakAtRisk` (`best ≥ streak` par construction) ; **record notable
+> seulement** (≥ 7 j) ; **additif pur** — champ `streakRecordReach` (`'break'` | `'near'` | `null`)
+> TOUJOURS renvoyé, note appendue, action intacte. `adaptiveCoachFocus` + `bestDailyStreak` pures et
+> testées, check smoke bloquant `coachFocus` étendu. Recap #488.
 
 > 💚 **2.0.118** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **gradue sa consolation à la TAILLE de la série cassée**. Depuis #486 il console une série

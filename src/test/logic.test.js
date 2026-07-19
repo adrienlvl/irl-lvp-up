@@ -1701,6 +1701,18 @@ test('dailyStreak : jours calendaires consécutifs, grâce aujourd’hui, cassé
   assert.equal(L.dailyStreak(['2026-07-10'], 'pas-une-date'), 0);
 });
 
+test('bestDailyStreak : plus longue série de jours consécutifs (record), robuste aux doublons/désordre', () => {
+  // deux runs : 3 jours (05→07) et 4 jours (10→13) → record = 4
+  assert.equal(L.bestDailyStreak(['2026-07-05', '2026-07-06', '2026-07-07', '2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13']), 4);
+  // désordre + doublons + clés invalides ignorés → run de 3 (08→10)
+  assert.equal(L.bestDailyStreak(['2026-07-10', '2026-07-08', '2026-07-09', '2026-07-10', 'nope', '2026-07-01']), 3);
+  assert.equal(L.bestDailyStreak(['2026-07-05']), 1, 'un seul jour → 1');
+  assert.equal(L.bestDailyStreak([]), 0);
+  assert.equal(L.bestDailyStreak(null), 0);
+  // run traversant un mois (30 juin → 2 juil) = 3 consécutifs
+  assert.equal(L.bestDailyStreak(['2026-06-30', '2026-07-01', '2026-07-02']), 3);
+});
+
 test('recentWins : victoires passées du rituel du soir, plus récentes d’abord', () => {
   const today = '2026-07-10';
   const refl = [
@@ -5429,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.118');
+  assert.equal(L.CHANGELOG[0].v, '2.0.119');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7206,6 +7218,35 @@ test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/t
   // La série de 3 j (streak 3) n'est PAS à un palier (prochain = 7, à 4 jours) → pas de carotte jalon.
   assert.equal(series.streakMilestoneReach, null, 'streak 3 loin du palier 7 → pas de note « palier »');
   assert.doesNotMatch(series.insight, /décroche le palier/);
+  // Les séries de 3 et 6 j ont un record < 7 → pas de note « record perso » (record non notable).
+  assert.equal(series.streakRecordReach, null, 'record 3 j < 7 → pas de note record');
+  assert.equal(milestoneSeries.streakRecordReach, null, 'record 6 j < 7 → pas de note record (et palier déjà servi)');
+
+  // RECORD PERSO — le run EN COURS est déjà le record all-time (7 j d'affilée finissant hier, ≥ 7) →
+  // un geste aujourd'hui le PROLONGE en nouveau record.
+  const recordBreak = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-09' }, { date: '2026-07-10' }, { date: '2026-07-11' }, { date: '2026-07-12' },
+    { date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' },
+  ] }, today);
+  assert.equal(recordBreak.tone, 'reinforce');
+  assert.equal(recordBreak.streakAtRisk, 7, '7 jours consécutifs finissant hier → série de 7 en jeu');
+  assert.equal(recordBreak.streakMilestoneReach, null, 'prochain palier de 7 est 14 (loin) → pas de carotte palier');
+  assert.equal(recordBreak.streakRecordReach, 'break', 'run en cours = record all-time → un geste bat le record');
+  assert.match(recordBreak.insight, /tu bats ton record perso sur ton entraînement/);
+  // RECORD PERSO — un record PASSÉ (8 j d'affilée) proche du run actuel (5 j finissant hier, écart ≤ 3),
+  // sans long trou (pas de relance) et sans palier du jour (streak 5 loin d'un palier) → note « à portée ».
+  const recordNear = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-06-30' }, { date: '2026-07-01' }, { date: '2026-07-02' }, { date: '2026-07-03' },
+    { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-07' },
+    { date: '2026-07-11' }, { date: '2026-07-12' }, { date: '2026-07-13' },
+    { date: '2026-07-14' }, { date: '2026-07-15' },
+  ] }, today);
+  assert.equal(recordNear.tone, 'reinforce');
+  assert.equal(recordNear.comeback, false, 'trou < 14 j entre les deux runs → pas de relance');
+  assert.equal(recordNear.streakAtRisk, 5, '5 jours consécutifs finissant hier → série de 5 en jeu');
+  assert.equal(recordNear.streakMilestoneReach, null, 'streak 5 loin d’un palier → pas de carotte palier');
+  assert.equal(recordNear.streakRecordReach, 'near', 'record passé de 8 j à 3 j du run actuel → à portée');
+  assert.match(recordNear.insight, /record perso ici est de 8 jours d’affilée — encore 3 jours pour l’égaler/);
 
   // Coach de la SÉRIE ROMPUE (côté correction, pendant consolant de la « série en jeu ») : une série de
   // 5 j close il y a une semaine, pilier maintenant en recul (rebuild) → le coach reconnaît l'acquis
