@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.150');
+  assert.equal(L.CHANGELOG[0].v, '2.0.151');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6747,6 +6747,34 @@ test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
   // Hors pilier focus → focusTrend null (sport seul actif).
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10' }, { date: '2026-07-12' }] }, '2026-07-16');
   assert.equal(sport.focusTrend, null);
+});
+
+test('adaptiveCoachFocus : surveille la chaîne d’une habitude à risque (habitAtRisk)', () => {
+  const wk = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+  // Habitude prévue ce jour (aucun weekday = tous les jours), série de 3 (13-14-15), pas cochée le 16 → à risque.
+  const at = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-13', '2026-07-14', '2026-07-15'] }] }, '2026-07-16');
+  assert.ok(at.habitAtRisk, 'habitAtRisk renseigné');
+  assert.equal(at.habitAtRisk.name, 'Lecture');
+  assert.equal(at.habitAtRisk.streak, 3);
+  assert.match(at.insight, /Ne casse pas la chaîne/);
+  assert.match(at.insight, /ton habitude « Lecture » tient depuis 3 jours/);
+  // Cochée aujourd'hui → plus à risque → null, pas de note.
+  const done = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'] }] }, '2026-07-16');
+  assert.equal(done.habitAtRisk, null);
+  assert.doesNotMatch(done.insight, /Ne casse pas la chaîne/);
+  // Série trop courte (2 < seuil 3) → ignorée.
+  const short = L.adaptiveCoachFocus({ workouts: wk, habits: [{ id: 1, name: 'Eau', log: ['2026-07-14', '2026-07-15'] }] }, '2026-07-16');
+  assert.equal(short.habitAtRisk, null);
+  // Plusieurs habitudes à risque → la plus longue série nommée + signalement du reste.
+  const many = L.adaptiveCoachFocus({ workouts: wk, habits: [
+    { id: 1, name: 'Lecture', log: ['2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15'] },
+    { id: 2, name: 'Méditation', log: ['2026-07-13', '2026-07-14', '2026-07-15'] } ] }, '2026-07-16');
+  assert.equal(many.habitAtRisk.name, 'Lecture');
+  assert.equal(many.habitAtRisk.streak, 5);
+  assert.match(many.insight, /\(\+1 autre à cocher\)/);
+  // Aucune habitude → champ null, aucune note (rétrocompat).
+  const none = L.adaptiveCoachFocus({ workouts: wk }, '2026-07-16');
+  assert.equal(none.habitAtRisk, null);
 });
 
 test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {

@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.150 (2026-07-19)
+## 📍 État actuel — build 2.0.151 (2026-07-19)
+
+> 🔗 **2.0.151** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach devient conscient du
+> **tracker d'habitudes** (`s.habits`) — une source de données réelle qu'il n'avait **jamais** lue (il ne
+> voyait que les 4 piliers, les objectifs, la readiness, la charge, le sommeil, la balance). Nouvelle
+> capacité **transversale**, pas un 41ᵉ croisement inter-pilier : une **série d'habitude qui se joue
+> aujourd'hui** (prévue ce jour, pas encore cochée) est le signal le plus **time-critical** du coach —
+> elle **tombe** si la journée finit sans validation, là où une tendance chronique peut attendre. Nouveau
+> champ **`habitAtRisk`** (`{ name, streak }` ou `null`) : via `habitsAtRisk` (déjà testé, seuil 3 = même
+> « en jeu » que `streakAtRisk` des piliers), on **nomme la plus longue série menacée** et on signale le
+> reste à cocher (priorisation honnête) : « Ne casse pas la chaîne : ton habitude « Lecture » tient depuis
+> 12 jours et n'est pas encore cochée aujourd'hui (+1 autre à cocher) — un petit geste et elle continue. »
+> Note **appendue quel que soit le pilier/ton** (axe orthogonal) ; l'**alternance** (`return` en amont)
+> jamais touchée. Vocabulaire distinct (« ne casse pas la chaîne », « ton habitude "X" ») — zéro collision
+> regex avec `streakAtRisk`/`brokenStreak`/`streakRebuild`. Additif pur, réemploi total de `habitsAtRisk`,
+> **zéro** nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu.
+> Recap #520.
 
 > 🍽️ **2.0.150** — Coaching adaptatif poussé à fond (priorité de la nuit) : **readiness du JOUR × pilier
 > NUTRITION**, le dernier axe inter-pilier franc signalé (#513/#518). La branche nutrition croisait déjà

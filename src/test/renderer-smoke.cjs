@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.150'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.151'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1148,6 +1148,15 @@ app.whenReady().then(async () => {
           // Série de 2 (hors palier) mais prochain palier à un jour → cap à tenir demain, aucun palier franchi.
           const fSoon = adaptiveCoachFocus({ workouts: [{ date: '2026-07-14', duration: 45 }, { date: '2026-07-15', duration: 45 }, { date: '2026-07-16', duration: 45 }], focusSessions: [{ date: '2026-07-15', minutes: 30, task: 'X' }, { date: '2026-07-16', minutes: 30, task: 'X' }], nutrition: [{ date: '2026-07-15', protein: 100 }, { date: '2026-07-16', protein: 100 }] }, '2026-07-16');
           if (!(fSoon.completeDayStreak === 2 && fSoon.completeDayMilestone === null && /Encore 1 jour pour franchir le palier des 3/.test(fSoon.insight))) return false;
+          // Coach × TRACKER D'HABITUDES (habitAtRisk) : habitude prévue ce jour, série 3, pas cochée aujourd'hui → note « ne casse pas la chaîne », champ renvoyé, quel que soit le pilier.
+          const habWk = [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }];
+          const fHabit = adaptiveCoachFocus({ workouts: habWk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-13', '2026-07-14', '2026-07-15'] }] }, '2026-07-16');
+          if (!(fHabit.habitAtRisk && fHabit.habitAtRisk.name === 'Lecture' && fHabit.habitAtRisk.streak === 3 && /Ne casse pas la cha[îi]ne/.test(fHabit.insight) && /ton habitude . Lecture/.test(fHabit.insight))) return false;
+          // Habitude déjà cochée aujourd'hui → plus à risque → habitAtRisk null, aucune note.
+          const fHabitDone = adaptiveCoachFocus({ workouts: habWk, habits: [{ id: 1, name: 'Lecture', log: ['2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'] }] }, '2026-07-16');
+          if (!(fHabitDone.habitAtRisk === null && !/Ne casse pas la cha[îi]ne/.test(fHabitDone.insight))) return false;
+          // Série trop courte (2 < seuil 3) → pas de note ni de champ.
+          if (adaptiveCoachFocus({ workouts: habWk, habits: [{ id: 1, name: 'Eau', log: ['2026-07-14', '2026-07-15'] }] }, '2026-07-16').habitAtRisk !== null) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
           const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };

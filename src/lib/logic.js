@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.151', emoji: '🔗', text: 'Ton coach « Le focus du moment » regarde enfin tes HABITUDES — jusqu’ici il ne lisait que tes 4 piliers (sport, focus, sommeil, nutrition) et restait aveugle à ton tracker d’habitudes. Or une habitude dont la série se joue AUJOURD’HUI (prévue ce jour, pas encore cochée) est le geste le plus urgent et le plus concret de la journée : elle tombe si tu ne la valides pas avant ce soir, là où une tendance de fond peut attendre. Désormais, quand une de tes habitudes porte une série d’au moins 3 jours et n’est pas encore cochée, il te le rappelle : « Ne casse pas la chaîne : ton habitude « Lecture » tient depuis 12 jours et n’est pas encore cochée aujourd’hui — un petit geste et elle continue. » Il prend la plus longue série menacée et te signale s’il en reste d’autres à cocher, pour que tu saches quoi verrouiller en premier. La note s’ajoute quel que soit le pilier du jour, sans jamais remplacer ton action ni la carte Alternance, toujours prioritaire.' },
   { v: '2.0.150', emoji: '🍽️', text: 'Ton coach « Le focus du moment » tient maintenant compte de ta FORME DU JOUR quand il te pilote sur la NUTRITION — un signal qu’il ignorait jusqu’ici de ce côté. Il lisait ton assiette, ta balance et ton sommeil sur la durée, mais restait aveugle à ta readiness du matin ; or le jour de fatigue est, statistiquement, celui où l’assiette dérape : le corps réclame du sucre rapide et la satiété se dérègle. Quand tu as fait ton check-in de récup aujourd’hui et que ta forme est au plancher (readiness < 50), et qu’aucune note de sommeil ne prime, il le nomme au lieu de te laisser subir le jour : « Un dernier repère pour aujourd’hui : ta forme est basse ce matin (readiness 40/100), et les jours de fatigue sont ceux où l’assiette dérape le plus — le corps réclame du sucre rapide et la satiété se dérègle. C’est justement aujourd’hui que tenir l’essentiel compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales bien mieux que la volonté sur une réserve vide. » La note n’apparaît que sur ce cas précis (coach sur la nutrition, check-in du jour au plancher, sans note de sommeil qui primerait) ; ton action du jour (protéines) reste intacte.' },
   { v: '2.0.149', emoji: '🚰', text: 'Ton coach « Le focus du moment » regarde maintenant aussi ton HYDRATATION quand il te pilote sur l’ENTRAÎNEMENT — le pendant, côté SPORT, de la note d’hydratation ajoutée juste avant côté focus. Jusqu’ici, sur le sport, il lisait ta forme du jour (readiness), ta charge des 7 jours et ton sommeil, mais restait aveugle à l’eau — pourtant un des leviers de performance les plus RAPIDES : même une déshydratation légère (1 à 2 % du poids) fait chuter la force, la puissance et l’endurance, gêne la thermorégulation et la récupération, et gonfle la sensation d’effort. Quand tes derniers jours montrent une hydratation basse (moins de 6 verres/jour de moyenne, sous la cible de 8) et qu’aucune note de sommeil ne prime, il le dit : « Et pense à un carburant qu’on oublie à l’effort : tu bois 4 verres d’eau par jour ces derniers jours, sous les 8 — même une déshydratation légère fait chuter la force, la puissance et l’endurance, gêne la thermorégulation et la récupération, et gonfle la sensation d’effort. Ça se corrige tout de suite : un grand verre avant de bouger, et une gourde à côté de toi pendant l’effort. » La note n’apparaît que sur ce cas (coach sur le sport, hydratation basse, sans note de sommeil qui primerait) ; ton action du jour reste intacte.' },
   { v: '2.0.148', emoji: '💧', text: 'Ton coach « Le focus du moment » regarde maintenant aussi ton HYDRATATION quand il te pilote sur la concentration — un levier tout neuf, complémentaire du sommeil. Jusqu’ici, côté focus, il ne parlait que de ton sommeil (durée, régularité du coucher), qui se construit sur des jours. L’hydratation, elle, est le levier cognitif le plus RAPIDE : même une déshydratation légère (1 à 2 % du poids) émousse l’attention et la mémoire de travail et fait grimper la sensation d’effort — et ça se corrige en minutes. Quand tes derniers jours montrent une hydratation basse (moins de 6 verres/jour de moyenne, sous la cible de 8) et qu’aucune note de sommeil ne prime, il le dit : « Et un levier immédiat, souvent négligé : tu bois 4 verres d’eau par jour ces derniers jours, sous les 8 — même une déshydratation légère brouille l’attention et la mémoire de travail et fait grimper la sensation d’effort. Contrairement au sommeil, ça se corrige en minutes : un grand verre d’eau avant ton bloc, et garde une gourde à portée. » La note n’apparaît que sur ce cas (coach sur le focus, hydratation basse, sans note de sommeil qui primerait) ; ton action du jour reste intacte.' },
@@ -6487,11 +6488,37 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       }
     }
   }
+  // Coach de la CHAÎNE D'HABITUDE — jusqu'ici le coach lisait les 4 piliers (sport/focus/sommeil/
+  // nutrition), les objectifs hebdo, la readiness et le sommeil, mais restait TOTALEMENT AVEUGLE au
+  // tracker d'habitudes (`s.habits`) — une source de données réelle jamais exploitée. Or une habitude
+  // dont la SÉRIE se joue AUJOURD'HUI (prévue ce jour, pas encore cochée) est le signal le plus
+  // TIME-CRITICAL et actionnable qui soit : contrairement aux tendances chroniques, elle TOMBE si la
+  // journée se termine sans validation — c'est pile « quoi faire en premier aujourd'hui ». On réutilise
+  // `habitsAtRisk` (déjà testé : prévues ce jour, non faites, série ≥ min, triées série desc) avec le
+  // seuil 3 (même seuil « en jeu » que streakAtRisk des piliers) pour ne nommer qu'une chaîne qui vaut
+  // la peine d'être protégée. On NOMME la plus longue série menacée, et on signale s'il en reste
+  // d'autres à cocher (priorisation honnête). Orthogonal aux piliers → la note s'appende quel que soit
+  // le pilier/ton choisi (l'alternance, plus prioritaire, a déjà `return` au-dessus, donc jamais
+  // touchée). Vocabulaire DISTINCT (« ne casse pas la chaîne », « ton habitude "X" », « cochée ») —
+  // zéro collision à l'œil ni en regex avec streakAtRisk (« en jeu », « d'affilée sur ton pilier »),
+  // brokenStreak (« avant cette pause ») ni streakRebuild. Additif pur : champ habitAtRisk
+  // ({ name, streak } ou null) TOUJOURS renvoyé ; note APPENDUE à l'insight, action du jour intacte.
+  let habitAtRisk = null;
+  if (typeof habitsAtRisk === 'function') {
+    const risky = habitsAtRisk(s.habits, todayKey, 3);
+    if (risky.length) {
+      const top = risky[0];
+      habitAtRisk = { name: top.name, streak: top.streak };
+      const extra = risky.length - 1;
+      const others = extra > 0 ? ` (+${extra} autre${extra > 1 ? 's' : ''} à cocher)` : '';
+      insight += ` Ne casse pas la chaîne : ton habitude « ${top.name} » tient depuis ${top.streak} jour${top.streak > 1 ? 's' : ''} et n’est pas encore cochée aujourd’hui${others} — un petit geste et elle continue.`;
+    }
+  }
   if (rotated) insight += ' On varie les angles aujourd’hui.';
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 
