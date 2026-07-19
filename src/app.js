@@ -163,13 +163,32 @@ function goToSection(page,selector){showPage(page);const target=$(selector);targ
 // (voir attentionDigest). Chaque ligne renvoie vers l'onglet concerné.
 function renderAttention(){const el=$('#attentionDigest'),panel=$('#attentionPanel');if(!el||!panel||typeof attentionDigest!=='function')return;const items=attentionDigest(state,localDate());if(!items.length){panel.hidden=true;el.innerHTML='';return;}panel.hidden=false;el.innerHTML=items.map(i=>`<button type="button" class="att-item att-${i.sev}" data-att-page="${i.page}" data-att-key="${i.key}"><span class="att-emo" aria-hidden="true">${i.emoji}</span><span class="att-text">${escapeHtml(i.text)}</span><span class="att-go" aria-hidden="true">→</span></button>`).join('');}
 // Coaching adaptatif : carte « Le focus du moment » sur l'accueil (proactif, lit la dynamique 2 semaines).
-function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});if(!f){panel.hidden=true;el.innerHTML='';el.removeAttribute('data-coach-page');return;}
+// Curation de l'affichage du coach : adaptiveCoachFocus produit un insight RICHE (focus + « guards »
+// de contexte). Sur la CARTE on ne montre que le focus (≤ 2 phrases / ~200 car) ; le reste passe
+// derrière « plus de contexte ». Message punchy, richesse préservée — aucun impact sur la logique pure
+// ni les tests (on ne fait que scinder la chaîne à l'affichage). Pur.
+function splitCoachInsight(text){
+  const t=String(text||'').trim();
+  if(t.length<=200)return{primary:t,extra:''};
+  const parts=t.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
+  if(!parts||parts.length<=1)return{primary:t,extra:''};
+  const keep=Math.min(2,parts.length-1);
+  const primary=parts.slice(0,keep).join('').trim();
+  return primary?{primary,extra:parts.slice(keep).join('').trim()}:{primary:t,extra:''};
+}
+function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});if(!f){panel.hidden=true;el.innerHTML='';el.removeAttribute('data-coach-page');const mb0=$('#coachMoreBtn'),mp0=$('#coachMore');if(mb0)mb0.hidden=true;if(mp0){mp0.hidden=true;mp0.textContent='';}return;}
   // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le
   // focus change en cours de journée. Lu par adaptiveCoachFocus pour varier d'angle après 3 jours.
   {const today=localDate();if(!Array.isArray(state.coachLog))state.coachLog=[];const log=state.coachLog,last=log.length?log[log.length-1]:null;
    if(!last||last.date!==today){log.push({date:today,pillar:f.pillar});if(log.length>60)log.splice(0,log.length-60);save();}
    else if(last.pillar!==f.pillar){last.pillar=f.pillar;save();}}
-  panel.hidden=false;el.dataset.coachPage=f.page;el.className='coach-focus coach-'+f.tone;el.innerHTML=`<span class="coach-emo" aria-hidden="true">${f.emoji}</span><span class="coach-body"><b class="coach-headline">${escapeHtml(f.headline)}</b><span class="coach-insight">${escapeHtml(f.insight)}</span><span class="coach-action">${escapeHtml(f.action)}</span></span><span class="coach-go" aria-hidden="true">→</span>`;
+  panel.hidden=false;el.dataset.coachPage=f.page;el.className='coach-focus coach-'+f.tone;
+  const ci=(typeof splitCoachInsight==='function')?splitCoachInsight(f.insight):{primary:f.insight,extra:''};
+  el.innerHTML=`<span class="coach-emo" aria-hidden="true">${f.emoji}</span><span class="coach-body"><b class="coach-headline">${escapeHtml(f.headline)}</b><span class="coach-insight">${escapeHtml(ci.primary)}${ci.extra?' …':''}</span><span class="coach-action">${escapeHtml(f.action)}</span></span><span class="coach-go" aria-hidden="true">→</span>`;
+  // Le reste du contexte (guards) vit derrière « plus de contexte » SOUS la carte (hors du bouton) :
+  // la carte reste un focus punchy, la richesse du coach reste accessible en un tap. État d'ouverture
+  // préservé entre rendus (on lit mp.hidden).
+  const mb=$('#coachMoreBtn'),mp=$('#coachMore');if(mb&&mp){if(ci.extra){mb.hidden=false;mp.textContent=ci.extra;mb.textContent=mp.hidden?'＋ plus de contexte':'− masquer';mb.setAttribute('aria-expanded',String(!mp.hidden));}else{mb.hidden=true;mp.hidden=true;mp.textContent='';}}
   // Suivi des conseils : visible dès 2 jours de journal évaluables (en dessous = bruit).
   const fl=$('#coachFollow');
   if(fl){const ft=(typeof coachFollowThrough==='function')?coachFollowThrough(state,localDate()):null;
@@ -1035,6 +1054,7 @@ $('#goToPlanFromGoals')?.addEventListener('click',()=>{showPage('poids');setTime
 // = récup et séances manquées sont sur le sous-onglet Séance.
 $('#attentionDigest')?.addEventListener('click',e=>{const b=e.target.closest('[data-att-page]');if(!b)return;const page=b.dataset.attPage,key=b.dataset.attKey;if(page==='calendar'){$('#openWeekPage')?.click();setTimeout(()=>$('#openCalendarPage')?.click(),60);return;}if(page==='agenda'){$('#openWeekPage')?.click();return;}showPage(page);if(page==='athlete'&&typeof showAthleteTab==='function')showAthleteTab('seance');const cible={readiness:'.recovery-panel',sport:'#missedSessions',habits:'.habits-panel'}[key];if(cible)setTimeout(()=>{document.querySelector(cible)?.scrollIntoView({behavior:'smooth',block:'center'});},80);});
 $('#coachFocus')?.addEventListener('click',()=>{const p=$('#coachFocus')?.dataset.coachPage;if(!p)return;showPage(p);if(p==='athlete'&&typeof showAthleteTab==='function')showAthleteTab('seance');});
+$('#coachMoreBtn')?.addEventListener('click',()=>{const mp=$('#coachMore'),mb=$('#coachMoreBtn');if(!mp||!mb)return;const show=mp.hidden;mp.hidden=!show;mb.textContent=show?'− masquer':'＋ plus de contexte';mb.setAttribute('aria-expanded',String(show));});
 // Le champ du panneau « Mon plan » enregistre DIRECTEMENT : c'est là qu'on lit son plan, on ne
 // va pas renvoyer vers un autre onglet pour valider. Le champ des objectifs hebdo, lui, reste
 // soumis au bouton « Enregistrer » avec les autres objectifs — d'où le save() seulement ici.

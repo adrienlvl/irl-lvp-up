@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.176');
+  assert.equal(L.CHANGELOG[0].v, '2.0.177');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8319,6 +8319,15 @@ test('adaptiveCoachFocus : coach conscient de la PENTE de régularité du couche
   // Champ TOUJOURS présent, y compris hors pilier sommeil.
   const sport = L.adaptiveCoachFocus({ workouts: [iso(1), iso(3), iso(5)].map(d => ({ date: d })) }, today);
   assert.ok('sleepBedtimeTrend' in sport && sport.sleepBedtimeTrend === null, 'sleepBedtimeTrend toujours renvoyé, null hors sommeil');
+  // COHÉRENCE (#457-suite) : sommeil SOLIDE (verdict « rythme régulier », tone 'ok') mais coucher qui
+  // se disperse RÉCEMMENT → PAS de note « se disperse » (elle contredirait « rythme régulier »). Le
+  // bloc coucher est gardé par tone !== 'ok', comme la note de durée.
+  const solidButRecentlyDispersing = [];
+  for (let i = 0; i < 7; i++) solidButRecentlyDispersing.push({ date: iso(i), sleep: 8, bedtime: i % 2 ? '23:50' : '23:10' }); // récent : dispersion ~20 min
+  for (let i = 7; i < 14; i++) solidButRecentlyDispersing.push({ date: iso(i), sleep: 8, bedtime: '23:30' }); // précédent : serré
+  const solid = L.adaptiveCoachFocus({ recovery: solidButRecentlyDispersing }, today);
+  assert.match(solid.insight, /Sommeil solide/, 'verdict solide (tone ok)');
+  assert.doesNotMatch(solid.insight, /ton coucher se disperse/, 'pas de note contradictoire quand le sommeil est solide');
 });
 
 test('adaptiveCoachFocus : protège la fenêtre de coucher quand un RDV du soir déborde (sommeil)', () => {

@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.176'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.177'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1324,6 +1324,19 @@ app.whenReady().then(async () => {
           renderCoachFocus();
           return !!shown;
         })(),
+        // CURATION du coach (#457-suite) : la carte affiche l'essentiel, le reste se déplie sous la carte.
+        coachCuration: typeof splitCoachInsight === 'function' && !!document.getElementById('coachMoreBtn') && !!document.getElementById('coachMore') && (() => {
+          // Contrat du découpeur : texte court → tout en primary, rien en extra.
+          const short = splitCoachInsight('Sommeil solide, continue.');
+          if (!(short.primary === 'Sommeil solide, continue.' && short.extra === '')) return false;
+          // Texte long multi-phrases → primary ≤ 2 phrases, le reste bascule en extra (contexte).
+          const long = splitCoachInsight('Ton sommeil tient la barre cette semaine avec une belle moyenne. Ta récup suit bien le mouvement au fil des nuits. Mais ton coucher a tendance à glisser tard ces derniers jours. Cale une heure fixe pour verrouiller tout ça durablement.');
+          if (!(long.primary && long.extra && /coucher/.test(long.extra) && !/coucher/.test(long.primary))) return false;
+          // Le bouton « plus de contexte » NE doit PAS être imbriqué dans le <button> carte (interactif dans interactif interdit).
+          const card = document.getElementById('coachFocus'), mb = document.getElementById('coachMoreBtn');
+          if (card.contains(mb)) return false;
+          return true;
+        })(),
         sheetSync: typeof normalizeSheetCsvUrl === 'function' && typeof mergeApplications === 'function' && typeof renderSheetSync === 'function' && typeof syncSheets === 'function' && typeof setupSheetSync === 'function' && !!document.getElementById('altSheetForm') && !!document.getElementById('altSheetUrl') && !!document.getElementById('altSheetList') && !!document.getElementById('altSheetSync') && !!document.getElementById('altSheetStatus') && (() => {
           if (!normalizeSheetCsvUrl('https://docs.google.com/spreadsheets/d/e/x/pub?output=csv')) return false;
           if (normalizeSheetCsvUrl('https://evil.com/spreadsheets/d/x/pub?output=csv') !== '') return false;
@@ -1621,6 +1634,7 @@ app.whenReady().then(async () => {
     if (!checks.questStreak) errors.push('Série quêtes parfaites KO (questPerfectStreak : perfectDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
+    if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
     if (!checks.altHideRejected) errors.push('Masquage des refusées KO (altRejectedToggle/hideRejected/rendu liste)');
     if (!checks.altFilter) errors.push('Recherche/filtre du suivi alternance KO (filterApplications/altSearch/altStatusFilter)');

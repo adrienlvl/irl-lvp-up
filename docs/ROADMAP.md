@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.176 (2026-07-19)
+## 📍 État actuel — build 2.0.177 (2026-07-19)
+
+> ✂️ **2.0.177** — **Passe de cohérence** (retour d'Adrien) : le coach « Le focus du moment » a tant
+> gagné en finesse (sommeil, charge, force, kilométrage, nutrition, équilibre muscu…) que sa carte
+> pouvait, les jours chargés, virer au **pavé de 3-4 phrases** (~620 caractères) — l'inverse d'un
+> « focus ». Comme chaque clause est verrouillée par un test, tronquer la **fonction pure** casserait
+> tout **et** perdrait du contexte → la curation vit au **rendu**. Nouvelle **`splitCoachInsight(text)`** :
+> au-delà de ~200 car., garde les **≤ 2 premières phrases** pour la carte (`primary`) et bascule le
+> reste (`extra`) derrière **« ＋ plus de contexte »** — un bouton + un paragraphe placés **sous** la
+> carte, **hors** du `<button>` `#coachFocus` (interactif-dans-interactif interdit → a11y saine, clic de
+> navigation intact). Un tap déplie/replie, label « ＋ plus de contexte » ⇄ « − masquer », `aria-expanded`
+> suivi, état préservé entre rendus. **Fonction pure inchangée** (insight complet toujours renvoyé, zéro
+> test de garde touché). **Bonus cohérence (#457-suite)** : le bloc de tendance de coucher est désormais
+> gardé par `tone !== 'ok'` — fini le « rythme régulier » **et** « ton coucher se disperse » dans la même
+> phrase. 517 tests + smoke bloquant **`coachCuration`** verts. Recap #546.
 
 > 🥗 **2.0.176** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach regarde enfin tes
 > **FRUITS & LÉGUMES** (`fruitGuard`) — le **seul** champ du journal nutrition (`nutrition[].fruit`)
