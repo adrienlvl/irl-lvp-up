@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.131');
+  assert.equal(L.CHANGELOG[0].v, '2.0.132');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6658,6 +6658,40 @@ test('focusMinutesTrend : compare le volume de focus récent à la semaine préc
   assert.equal(L.focusMinutesTrend([{ date: iso(8), minutes: 60 }], today, 7), null);
   assert.equal(L.focusMinutesTrend([{ date: iso(0), minutes: 0 }], today, 7), null);
   assert.equal(L.focusMinutesTrend(up, 'nope', 7), null);
+});
+
+test('proteinAdherenceTrend : compare les jours à la cible protéines récents à la semaine précédente', () => {
+  const today = '2026-07-14';
+  const pad = n => (n < 10 ? '0' + n : '' + n);
+  const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  const tgt = 150;
+  // Récente (0-6 j) : 5 jours à la cible ; précédente (7-13 j) : 2 jours → pente MONTANTE de +3 jours.
+  const up = [
+    { date: iso(0), protein: 160 }, { date: iso(1), protein: 160 }, { date: iso(2), protein: 160 }, { date: iso(3), protein: 160 }, { date: iso(4), protein: 160 },
+    { date: iso(8), protein: 160 }, { date: iso(9), protein: 160 } ];
+  const tu = L.proteinAdherenceTrend(up, tgt, today, 7);
+  assert.equal(tu.recent, 5); assert.equal(tu.prev, 2); assert.equal(tu.delta, 3); assert.equal(tu.dir, 'up'); assert.equal(tu.count, 5);
+  // Pente DESCENDANTE : récente 2 jours, précédente 6 jours → -4.
+  const down = [
+    { date: iso(0), protein: 160 }, { date: iso(1), protein: 160 },
+    { date: iso(7), protein: 160 }, { date: iso(8), protein: 160 }, { date: iso(9), protein: 160 }, { date: iso(10), protein: 160 }, { date: iso(11), protein: 160 }, { date: iso(12), protein: 160 } ];
+  const td = L.proteinAdherenceTrend(down, tgt, today, 7);
+  assert.equal(td.delta, -4); assert.equal(td.dir, 'down');
+  // Jours SOUS la cible non comptés ; agrégation au MAX par date (2 entrées le même jour).
+  const maxDay = [{ date: iso(0), protein: 100 }, { date: iso(0), protein: 160 }, { date: iso(7), protein: 200 }];
+  const tm = L.proteinAdherenceTrend(maxDay, tgt, today, 7);
+  assert.equal(tm.recent, 1); assert.equal(tm.prev, 1);
+  // Écart 1 jour (sous le seuil ±2) → 'flat'.
+  const flat = [{ date: iso(0), protein: 160 }, { date: iso(1), protein: 160 }, { date: iso(7), protein: 160 }];
+  assert.equal(L.proteinAdherenceTrend(flat, tgt, today, 7).dir, 'flat');
+  // Pas de jour saisi la semaine précédente → prev null, delta 0, dir 'flat'.
+  const solo = [{ date: iso(0), protein: 160 }, { date: iso(2), protein: 50 }];
+  const ts = L.proteinAdherenceTrend(solo, tgt, today, 7);
+  assert.equal(ts.prev, null); assert.equal(ts.delta, 0); assert.equal(ts.dir, 'flat'); assert.equal(ts.recent, 1);
+  // Aucun jour nutrition récent saisi → null ; cible 0 → null ; date invalide → null.
+  assert.equal(L.proteinAdherenceTrend([{ date: iso(8), protein: 160 }], tgt, today, 7), null);
+  assert.equal(L.proteinAdherenceTrend(up, 0, today, 7), null);
+  assert.equal(L.proteinAdherenceTrend(up, tgt, 'nope', 7), null);
 });
 
 test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
@@ -8143,6 +8177,59 @@ test('adaptiveCoachFocus : focus nutrition enrichi (cible protéines réelle + c
   const noProfile = L.adaptiveCoachFocus({ nutrition: decline.nutrition }, today);
   assert.equal(noProfile.pillar, 'nutrition');
   assert.ok(!/Il te reste|cible protéines/.test(noProfile.action), 'sans profil : pas d’enrichissement, action générique conservée');
+});
+
+test('adaptiveCoachFocus : focus nutrition — PENTE d’adhérence protéines (grimpe / s’effrite)', () => {
+  const today = '2026-07-16'; // cible = 150 g (poids 80, objectif force)
+  const base = { profile: { weight: 80, goal: 'force' } };
+  // NEUTRE + S’EFFRITE : semaine précédente 6 jours à la cible, semaine récente 3 (pas en fin → pas de série) → -3.
+  const down = { ...base, nutrition: [
+    { date: '2026-07-03', protein: 160 }, { date: '2026-07-04', protein: 160 }, { date: '2026-07-05', protein: 160 },
+    { date: '2026-07-06', protein: 160 }, { date: '2026-07-07', protein: 160 }, { date: '2026-07-08', protein: 160 },
+    { date: '2026-07-10', protein: 160 }, { date: '2026-07-11', protein: 160 }, { date: '2026-07-12', protein: 160 },
+    { date: '2026-07-15', protein: 50 } ] };
+  const fd = L.adaptiveCoachFocus(down, today);
+  assert.equal(fd.pillar, 'nutrition');
+  assert.equal(fd.proteinTrend, -3);
+  assert.match(fd.insight, /3\/7 jours à ta cible protéines/);
+  assert.match(fd.insight, /Mais ta régularité s’effrite : 3 jours à la cible cette semaine vs 6 la précédente \(-3\)/);
+  // NEUTRE + GRIMPE : semaine précédente 1 jour, récente 4 (pas en fin → pas de série) → +3.
+  const up = { ...base, nutrition: [
+    { date: '2026-07-05', protein: 160 },
+    { date: '2026-07-10', protein: 160 }, { date: '2026-07-11', protein: 160 }, { date: '2026-07-13', protein: 160 }, { date: '2026-07-14', protein: 160 },
+    { date: '2026-07-15', protein: 50 } ] };
+  const fu = L.adaptiveCoachFocus(up, today);
+  assert.equal(fu.pillar, 'nutrition');
+  assert.equal(fu.proteinTrend, 3);
+  assert.match(fu.insight, /Et ta régularité grimpe : 4 jours à la cible cette semaine vs 1 la précédente \(\+3\)/);
+  assert.doesNotMatch(fu.insight, /s’effrite/);
+  // SÉRIE + GRIMPE : série en cours (14,15,16 à la cible) + semaine précédente maigre → note « grimpe » sous la série.
+  const streakUp = { ...base, nutrition: [
+    { date: '2026-07-05', protein: 160 },
+    { date: '2026-07-14', protein: 160 }, { date: '2026-07-15', protein: 160 }, { date: today, protein: 160 } ] };
+  const fsu = L.adaptiveCoachFocus(streakUp, today);
+  assert.match(fsu.insight, /🔥 3 jours d’affilée à ta cible protéines/);
+  assert.ok(fsu.proteinTrend > 0, 'grimpe créditée sous la série');
+  assert.match(fsu.insight, /Et ta régularité grimpe/);
+  // SÉRIE + baisse hebdo : une série courte (15,16) mais semaine précédente forte → la note « s’effrite » est SUPPRIMÉE (jamais contre une série).
+  const streakDown = { ...base, nutrition: [
+    { date: '2026-07-03', protein: 160 }, { date: '2026-07-04', protein: 160 }, { date: '2026-07-05', protein: 160 },
+    { date: '2026-07-06', protein: 160 }, { date: '2026-07-07', protein: 160 }, { date: '2026-07-08', protein: 160 },
+    { date: '2026-07-15', protein: 160 }, { date: today, protein: 160 } ] };
+  const fsd = L.adaptiveCoachFocus(streakDown, today);
+  assert.match(fsd.insight, /🔥 2 jours d’affilée à ta cible protéines/);
+  assert.equal(fsd.proteinTrend, null, 'pas de note « s’effrite » sous une série');
+  assert.doesNotMatch(fsd.insight, /s’effrite/);
+  // Pas de semaine précédente renseignée → proteinTrend null, aucune note de pente.
+  const solo = { ...base, nutrition: [
+    { date: '2026-07-10', protein: 160 }, { date: '2026-07-12', protein: 160 }, { date: '2026-07-15', protein: 50 } ] };
+  const fsolo = L.adaptiveCoachFocus(solo, today);
+  assert.equal(fsolo.pillar, 'nutrition');
+  assert.equal(fsolo.proteinTrend, null);
+  assert.doesNotMatch(fsolo.insight, /grimpe|s’effrite/);
+  // Hors pilier nutrition → proteinTrend null.
+  const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10' }, { date: '2026-07-12' }] }, today);
+  assert.equal(sport.proteinTrend, null);
 });
 
 test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers l’objectif de poids', () => {

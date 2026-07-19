@@ -23,7 +23,29 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.131 (2026-07-19)
+## 📍 État actuel — build 2.0.132 (2026-07-19)
+
+> 🍗 **2.0.132** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » lit maintenant la **PENTE de ton ADHÉRENCE protéines** — le **dernier angle nutrition encore
+> ponctuel** (piste « Suite possible » répétée en #498, #499 ET #500). Côté nutrition, il avait acquis
+> la conscience de tendance sur le **résultat corporel** (`weightPace` #499, cible calorique chiffrée
+> #500), mais l'**HABITUDE protéines** — l'intrant qu'Adrien contrôle jour après jour — ne disait que
+> son état **PONCTUEL** : la série en cours (`proteinStreak`) ou le compte de la semaine
+> (`proteinDaysOnTarget` → « 4/7 »). Deux « 4/7 » n'appellent pas le même mot selon que la régularité
+> **DÉCOLLE** (4 vs 1 la semaine passée) ou **S'EFFRITE** (4 vs 7). Nouvelle fonction pure
+> **`proteinAdherenceTrend`** (pendant côté INTRANT de `focusMinutesTrend`) : agrège la protéine du jour
+> au **max par date** (comme `daysHittingTarget`), puis compare les **jours à la cible** de la fenêtre
+> récente 7 j vs la précédente → `{ recent, prev, delta, dir, days, count }` (dir up/down/flat, seuil
+> **±2 jours** ; `prev` null si semaine précédente non renseignée — pas de fausse pente née d'un
+> non-suivi). Le coach NUANCE l'insight (champ **`proteinTrend`**) **sans jamais contredire la
+> headline** : régularité en **hausse** → crédit (« Et ta régularité grimpe : 5 jours à la cible cette
+> semaine vs 2 la précédente (+3) — la dynamique est bonne ») appendu sous une série **comme** sous le
+> verdict neutre ; régularité en **baisse** → alerte bienveillante (« Mais ta régularité s'effrite : 3
+> vs 6 — un jour réglé aujourd'hui enraye la glissade ») **uniquement hors série** (jamais « ça
+> s'effrite » sous un « ne casse pas la série »). Additif pur (note appendue, action protéines intacte) ;
+> deux axes distincts (habitude vs résultat balance) → pas de contradiction avec `weightPace` ; semaine
+> précédente renseignée requise. `proteinAdherenceTrend` pure + testée, check smoke bloquant
+> `coachFocus` étendu. Recap #501.
 
 > 🔥 **2.0.131** — Coaching adaptatif poussé à fond (priorité de la nuit) : quand le coach « Le focus du
 > moment » repère que la balance CALE (pente de poids `weightPace`, #499 — plateau « ne descend plus » ou
