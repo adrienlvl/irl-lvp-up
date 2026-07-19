@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.137 (2026-07-19)
+## 📍 État actuel — build 2.0.138 (2026-07-19)
+
+> 🚀 **2.0.138** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre le **pendant
+> POSITIF** listé en « Suite possible » de #506 — le symétrique exact et OPPOSÉ de `loadOverGoal`. Côté
+> pic (#505/#506), un objectif hebdo **serré** (« il en faut une chaque jour ») CONTREDISAIT une charge en
+> pic (« allège ») → le coach lâchait l'objectif. Ici, quand l'allure est **serrée** (`sessionGoalPace ===
+> 'tight'`) ET que la charge est en **SOUS-charge** (`lowLoad`, ACWR zone `low` → le corps a de la marge
+> pour remonter), les deux signaux ne se contredisent plus : ils **s'ALIGNENT**. Le calendrier réclame des
+> séances ET le corps a exactement la marge pour les encaisser — deux feux verts concordants, une
+> opportunité à NOMMER (pas un conflit à désamorcer). Nouveau champ **`lowLoadUnderGoal`** (le ratio, ou
+> `null`) et note appendue à l'insight : « Et bonne nouvelle : cette cadence serrée tombe pile — ta charge
+> n'est qu'à 0,6× ton volume habituel, ton corps a toute la marge pour enchaîner ces séances sans risque.
+> Les deux signaux s'alignent : c'est LE moment de pousser pour boucler l'objectif. » **Mutuellement
+> exclusif** de `loadOverGoal` (zone `high` vs `low`) ET de `restOverGoal` (readiness < 50 vs null/≥ 50)
+> par construction → jamais deux notes le même jour. L'action de sous-charge reste **intacte** ; additif
+> pur, réemploi total (`lowLoad`, `sessionGoalPace` déjà branchés — zéro nouvelle fonction). Fonctions
+> pures + testées, check smoke bloquant `coachFocus` étendu. Recap #507.
 
 > 🪫 **2.0.137** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **1ʳᵉ
 > « Suite possible » de #505** — croiser le conflit `loadOverGoal` (pic de charge qui écrase un objectif

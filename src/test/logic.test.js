@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.137');
+  assert.equal(L.CHANGELOG[0].v, '2.0.138');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8290,6 +8290,50 @@ test('adaptiveCoachFocus : pic de charge × objectif serré RENFORCÉ par une fo
   ], recovery: slideRec }, today);
   assert.equal(noSpike.loadOverGoal, null);
   assert.equal(noSpike.loadOverGoalSlide, null, 'pas de pic → pas de renfort de charge');
+});
+
+test('adaptiveCoachFocus : réconciliation POSITIVE objectif serré × sous-charge (lowLoadUnderGoal)', () => {
+  const today = '2026-07-16'; // jeudi, semaine lundi 07-13 → dim 07-19, 4 jours restants incl. aujourd'hui
+  // Base chronique régulière puis semaine allégée (1 séance récente, sur 07-13 = lundi de la semaine) →
+  // ratio aigu/chronique en zone « low ». La séance du 07-13 compte pour l'objectif hebdo (wc=1).
+  const lowWk = [
+    { date: '2026-06-22', duration: 50, effort: 4 }, { date: '2026-06-25', duration: 50, effort: 4 },
+    { date: '2026-06-29', duration: 50, effort: 4 }, { date: '2026-07-02', duration: 50, effort: 4 },
+    { date: '2026-07-06', duration: 50, effort: 4 }, { date: '2026-07-09', duration: 50, effort: 4 },
+    { date: '2026-07-13', duration: 50, effort: 4 },
+  ];
+  // Objectif serré (5 séances, 1 faite → 4 à caser pour 4 jours) ET sous-charge → deux feux verts qui S'ALIGNENT.
+  const align = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: lowWk }, today);
+  assert.equal(align.pillar, 'sport');
+  assert.equal(align.sessionGoalPace, 'tight', 'objectif rendu serré par le calendrier');
+  assert.ok(align.lowLoad != null && align.lowLoad < 0.8, 'sous-charge détectée');
+  assert.equal(align.lowLoadUnderGoal, align.lowLoad, 'lowLoadUnderGoal = le ratio de sous-charge');
+  assert.match(align.insight, /cette cadence serrée tombe pile/);
+  assert.match(align.insight, /LE moment de pousser pour boucler l’objectif/);
+  assert.match(align.action, /Tu es en sous-charge/, 'l’action de sous-charge reste intacte');
+
+  // Objectif LARGE (onpace) + sous-charge → pas de cadence quotidienne à soutenir, lowLoadUnderGoal null.
+  const loose = L.adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: lowWk }, today);
+  assert.equal(loose.sessionGoalPace, 'onpace');
+  assert.ok(loose.lowLoad != null, 'la sous-charge est toujours là');
+  assert.equal(loose.lowLoadUnderGoal, null, 'objectif large → aucune opportunité à nommer');
+  assert.doesNotMatch(loose.insight, /cette cadence serrée tombe pile/);
+
+  // Sous-charge SANS objectif défini → lowLoadUnderGoal null (rien à réconcilier).
+  const noGoal = L.adaptiveCoachFocus({ workouts: lowWk }, today);
+  assert.ok(noGoal.lowLoad != null);
+  assert.equal(noGoal.lowLoadUnderGoal, null, 'pas d’objectif → pas de note');
+
+  // Objectif serré mais charge RÉGULIÈRE (pas de sous-charge) → lowLoad null → lowLoadUnderGoal null.
+  const okWk = [
+    { date: '2026-07-15', duration: 50, effort: 4 }, { date: '2026-07-11', duration: 50, effort: 4 },
+    { date: '2026-07-08', duration: 50, effort: 4 }, { date: '2026-07-05', duration: 50, effort: 4 },
+    { date: '2026-07-02', duration: 50, effort: 4 }, { date: '2026-06-30', duration: 50, effort: 4 },
+  ];
+  const steady = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: okWk }, today);
+  assert.equal(steady.sessionGoalPace, 'tight', 'objectif serré aussi ici');
+  assert.equal(steady.lowLoad, null, 'charge régulière → pas de sous-charge');
+  assert.equal(steady.lowLoadUnderGoal, null, 'sans sous-charge, pas de note positive');
 });
 
 test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jours restants)', () => {

@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.138', emoji: '🚀', text: 'Ton coach « Le focus du moment » ne sait pas que trancher les conflits : il sait aussi reconnaître quand tout s’ALIGNE. Quand ton objectif hebdo de séances est SERRÉ (« il en faut une chaque jour pour tenir l’objectif ») ET que ta charge des dernières semaines est en SOUS-charge (ton corps a de la marge pour remonter), les deux ne se contredisent plus — ils tirent dans le même sens. Le coach le nomme : « Et bonne nouvelle : cette cadence serrée tombe pile — ta charge n’est qu’à 0,6× ton volume habituel, ton corps a toute la marge pour enchaîner ces séances sans risque. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif. » C’est le pendant POSITIF exact de la note « pic de charge, lève le pied » : quand le calendrier presse ET que le corps est frais, c’est une fenêtre à saisir, pas un conflit. La note n’apparaît que sur ce cas précis (objectif serré ET sous-charge) ; l’action de sous-charge reste intacte.' },
   { v: '2.0.137', emoji: '🪫', text: 'Quand ton coach « Le focus du moment » tranche entre ton objectif serré et ta CHARGE en pic (nouveauté récente), il sait maintenant reconnaître le cas le plus sérieux : quand, EN PLUS du pic de charge, ta forme GLISSE relevé après relevé. Ce ne sont alors plus deux lectures d’un même instant, mais deux signaux de fatigue qui se CUMULENT — charge cumulée trop haute ET récup qui décroche. Le coach le dit alors plus fermement : « Mais ta charge est en pic cette semaine (2,3× ton volume habituel) ET ta forme glisse en parallèle (-18 pts sur tes derniers check-ins) : deux signaux de fatigue qui se cumulent, pas un coup de mou isolé. Laisser l’objectif hebdo glisser n’est plus prudent, c’est la seule option saine — consolide, protège-toi, tu repars bien plus solide. » Quand un seul des deux signaux est là, le message reste le même qu’avant. Rien d’autre ne change, l’action de charge reste intacte.' },
   { v: '2.0.136', emoji: '🏋️', text: 'Quand ton coach « Le focus du moment » pousse ton SPORT, il désamorce un SECOND conflit du même type que le précédent — cette fois entre ton objectif serré et ta CHARGE. Jusqu’ici, si ton objectif hebdo était SERRÉ (« il en faut une chaque jour pour tenir l’objectif ») ET que ta charge des 7 derniers jours était en PIC (« allège aujourd’hui, semaine de consolidation »), le coach te poussait à enchaîner tous les jours ET à lever le pied. Désormais il TRANCHE : « Mais ta charge est en pic cette semaine (2,3× ton volume habituel) : tempérer prime sur le chiffre — empiler une séance chaque jour sur un corps déjà en zone de blessure serait le pire choix. Laisse l’objectif glisser, consolide, tu repars plus solide. » Un pic de charge est un signal de risque encore plus net qu’une mauvaise forme d’un jour : laisser l’objectif hebdo glisser une semaine ne coûte presque rien à côté d’une blessure. La note n’apparaît que sur ce conflit précis (objectif serré ET charge en pic).' },
   { v: '2.0.135', emoji: '🛌', text: 'Quand ton coach « Le focus du moment » pousse ton SPORT, il ne te donne plus deux consignes contradictoires le même jour. Jusqu’ici, si ton objectif hebdo était SERRÉ (« il en faut une chaque jour pour tenir l’objectif ») ET que ta forme du jour était à plat (« récupération prioritaire, pas de grosse séance aujourd’hui »), le coach te disait à la fois de pousser tous les jours ET de te reposer. Désormais il TRANCHE, honnêtement : « Mais ta forme est à plat aujourd’hui (readiness 15/100) : la récup prime sur le chiffre — mieux vaut manquer la séance du jour et laisser l’objectif glisser que de forcer sur une réserve vide, tu repars plus fort. » La récup passe avant le compteur : rater une séance quand le corps dit stop vaut mieux qu’une blessure. La note n’apparaît que sur ce conflit précis (objectif serré ET forme au plancher) — un objectif déjà hors de portée dit déjà « repars plein lundi », et un objectif large n’a aucun conflit.' },
@@ -5708,7 +5709,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // sont MUTUELLEMENT EXCLUSIFS par construction (une seule zone ACWR à la fois). Additif pur : champ
   // lowLoad (le ratio, ou null) TOUJOURS renvoyé ; l'action est remplacée uniquement en sous-charge,
   // aucune autre branche touchée. Ne se déclenche que sur données réelles (durée × effort > 0 sur 4 sem.).
-  let lowLoad = null;
+  let lowLoad = null, lowLoadUnderGoal = null;
   if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && readinessSlide == null
       && (readiness == null || readiness >= 50) && typeof acuteChronicRatio === 'function') {
     const acwr = acuteChronicRatio(s.workouts, todayKey);
@@ -5718,6 +5719,23 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       action = (readinessRebound != null)
         ? `Fenêtre idéale : ta forme remonte ET ta charge est à ${r}× ton volume habituel (sous ta base) — le bon moment pour rebâtir du volume. Ajoute un peu aujourd’hui et remonte progressivement vers ta base (≤ 10 %/semaine), sans brûler les étapes.`
         : `Tu es en sous-charge : ta semaine est à ${r}× ton volume habituel — ton corps a de la marge pour remonter. Rajoute un peu de volume aujourd’hui (une série, 10 min) et reviens progressivement vers ta base (≤ 10 %/semaine), tu construis sans risque de blessure.`;
+      // RÉCONCILIATION POSITIVE objectif hebdo × sous-charge — le pendant EXACT et OPPOSÉ de loadOverGoal
+      // (#505/#506, côté PIC), listé en « Suite possible » de #506. Côté pic, l'objectif serré (« il en faut
+      // une chaque jour ») CONTREDISAIT la charge (« allège ») → le coach lâchait l'objectif. Ici, quand
+      // l'allure est SERRÉE (sessionGoalPace 'tight') ET que la charge est en SOUS-CHARGE (ACWR zone 'low' →
+      // le corps a de la marge pour remonter), les deux signaux ne se contredisent plus : ils S'ALIGNENT. Le
+      // calendrier réclame des séances ET le corps a exactement la marge pour les encaisser sans risque —
+      // deux feux verts concordants (pas un conflit à désamorcer, une opportunité à NOMMER). C'est
+      // l'« adaptation aux progrès » : la cadence serrée tombe pile sur une fenêtre de charge idéale, c'est LE
+      // moment de pousser pour boucler l'objectif. Note APPENDUE à l'insight (comme loadOverGoal), orthogonale
+      // à l'action de sous-charge qui reste intacte. MUTUELLEMENT EXCLUSIF de loadOverGoal (zone 'high' vs
+      // 'low') ET de restOverGoal (readiness < 50 vs null/≥ 50) par construction → jamais deux notes le même
+      // jour. Ne se déclenche QUE sur ce conflit précis (tight × sous-charge) — 'unreachable'/'onpace' n'ont
+      // pas de cadence quotidienne à soutenir. Additif pur : lowLoadUnderGoal (le ratio, ou null) TOUJOURS renvoyé.
+      if (sessionGoalPace === 'tight') {
+        lowLoadUnderGoal = acwr.ratio;
+        insight += ` Et bonne nouvelle : cette cadence serrée tombe pile — ta charge n’est qu’à ${r}× ton volume habituel, ton corps a toute la marge pour enchaîner ces séances sans risque. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif.`;
+      }
     }
   }
   // Coach × AGENDA pour le SPORT — le pendant du créneau focus (#471). Comme pour le focus, quand le
@@ -6164,7 +6182,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

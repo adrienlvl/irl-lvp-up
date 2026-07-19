@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.137'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.138'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1005,6 +1005,11 @@ app.whenReady().then(async () => {
           if (!(fLowUp.lowLoad != null && fLowUp.readinessRebound === 30 && /Fenêtre idéale/.test(fLowUp.action))) return false;
           // Forme qui glisse → la sous-charge NE réécrit PAS l'action (« garde léger » prime).
           if (adaptiveCoachFocus({ workouts: lowWk, recovery: slideRec }, '2026-07-16').lowLoad !== null) return false;
+          // RÉCONCILIATION POSITIVE objectif serré × sous-charge (lowLoadUnderGoal) : objectif 5 (1 faite → serré) + sous-charge → deux feux verts qui s'alignent, note « LE moment de pousser ».
+          const fLowGoal = adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: lowWk }, '2026-07-16');
+          if (!(fLowGoal.sessionGoalPace === 'tight' && fLowGoal.lowLoad != null && fLowGoal.lowLoadUnderGoal === fLowGoal.lowLoad && /cette cadence serrée tombe pile/.test(fLowGoal.insight) && /LE moment de pousser pour boucler l.objectif/.test(fLowGoal.insight))) return false;
+          // Sous-charge mais objectif large (2 séances → onpace) → aucune cadence à soutenir → lowLoadUnderGoal null.
+          if (adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: lowWk }, '2026-07-16').lowLoadUnderGoal !== null) return false;
           // Coach CONSCIENT de la PENTE de sommeil : verdict non « solide » + nuits qui S'ENFONCENT (récente < précédente)
           // → note « la pente s'enfonce » ; nuits qui REMONTENT → note « ça remonte » (sleepTrend signé, jamais les deux).
           const stWkDrop = [{ date: '2026-07-08' }, { date: '2026-07-07' }, { date: '2026-07-06' }, { date: '2026-07-15' }];
