@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.125'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.126'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -946,6 +946,16 @@ app.whenReady().then(async () => {
           const upRec = [{ date: '2026-07-04', sleep: 8, fatigue: 5, soreness: 5 }, { date: '2026-07-06', sleep: 8, fatigue: 5, soreness: 4 }, { date: '2026-07-10', sleep: 8, fatigue: 4, soreness: 4 }, { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, { date: '2026-07-16', sleep: 8, fatigue: 3, soreness: 3 }];
           const fUp = adaptiveCoachFocus({ workouts: rdWk, recovery: upRec }, '2026-07-16');
           if (!(fUp.pillar === 'sport' && fUp.readiness === 70 && fUp.readinessRebound === 30 && fUp.readinessSlide === null && /ta forme remonte franchement sur tes 5 derniers check-ins/.test(fUp.action) && /r[ée]hausser un peu l.intensit[ée]/.test(fUp.action))) return false;
+          // Coach CONSCIENT de la SOUS-CHARGE : base chronique régulière puis semaine allégée (ACWR zone low) →
+          // l'action invite à REMONTER le volume progressivement (pendant positif du pic de charge).
+          const lowWk = [{ date: '2026-06-22', duration: 50, effort: 4 }, { date: '2026-06-25', duration: 50, effort: 4 }, { date: '2026-06-29', duration: 50, effort: 4 }, { date: '2026-07-02', duration: 50, effort: 4 }, { date: '2026-07-06', duration: 50, effort: 4 }, { date: '2026-07-09', duration: 50, effort: 4 }, { date: '2026-07-13', duration: 50, effort: 4 }];
+          const fLow = adaptiveCoachFocus({ workouts: lowWk }, '2026-07-16');
+          if (!(fLow.pillar === 'sport' && fLow.lowLoad != null && fLow.lowLoad < 0.8 && fLow.loadSpike === null && /Tu es en sous-charge/.test(fLow.action) && /progressivement vers ta base/.test(fLow.action))) return false;
+          // Sous-charge + forme qui remonte → deux feux verts concordants, message « Fenêtre idéale ».
+          const fLowUp = adaptiveCoachFocus({ workouts: lowWk, recovery: upRec }, '2026-07-16');
+          if (!(fLowUp.lowLoad != null && fLowUp.readinessRebound === 30 && /Fenêtre idéale/.test(fLowUp.action))) return false;
+          // Forme qui glisse → la sous-charge NE réécrit PAS l'action (« garde léger » prime).
+          if (adaptiveCoachFocus({ workouts: lowWk, recovery: slideRec }, '2026-07-16').lowLoad !== null) return false;
           // Coach PRIORISANT : deux piliers décrochent → note explicite « quoi d'abord » qui NOMME l'autre pilier.
           const fTwo = adaptiveCoachFocus({ workouts: [{ date: '2026-07-03' }, { date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-11' }], focusSessions: [{ date: '2026-07-04', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-08', minutes: 30 }, { date: '2026-07-12', minutes: 30 }] }, '2026-07-16');
           if (!(fTwo.alsoSlipping === 1 && fTwo.alsoSlippingPillars && fTwo.alsoSlippingPillars[0] === 'focus' && /Ton focus faiblit aussi/.test(fTwo.insight) && /levier prioritaire/.test(fTwo.insight))) return false;

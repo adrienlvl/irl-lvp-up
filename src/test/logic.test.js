@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.125');
+  assert.equal(L.CHANGELOG[0].v, '2.0.126');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7704,6 +7704,59 @@ test('adaptiveCoachFocus : action sport rehaussée par une READINESS QUI REMONTE
     assert.match(spike.action, /charge|volume|consolidation/i);
     assert.doesNotMatch(spike.action, /réhausser un peu l’intensité/);
   }
+});
+
+test('adaptiveCoachFocus : action sport rehaussée par une SOUS-CHARGE (ACWR zone low)', () => {
+  const today = '2026-07-16';
+  // Base chronique régulière (6 séances 50 min × effort 4 sur 4 semaines) puis semaine récente ALLÉGÉE
+  // (1 seule séance identique) → ratio aigu/chronique ≈ 0,57 (< 0,8, zone « low »).
+  const lowWk = [
+    { date: '2026-06-22', duration: 50, effort: 4 }, { date: '2026-06-25', duration: 50, effort: 4 },
+    { date: '2026-06-29', duration: 50, effort: 4 }, { date: '2026-07-02', duration: 50, effort: 4 },
+    { date: '2026-07-06', duration: 50, effort: 4 }, { date: '2026-07-09', duration: 50, effort: 4 },
+    { date: '2026-07-13', duration: 50, effort: 4 },
+  ];
+  const low = L.adaptiveCoachFocus({ workouts: lowWk }, today);
+  assert.equal(low.pillar, 'sport');
+  assert.ok(low.lowLoad != null && low.lowLoad < 0.8, 'ratio en zone low renvoyé');
+  assert.equal(low.loadSpike, null, 'sous-charge → pas de pic (zones exclusives)');
+  assert.match(low.action, /Tu es en sous-charge/);
+  assert.match(low.action, /ton volume habituel/);
+  assert.match(low.action, /progressivement vers ta base/);
+
+  // Forme QUI REMONTE en plus de la sous-charge → deux feux verts concordants, message « Fenêtre idéale ».
+  const upRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 5, soreness: 5 }, { date: '2026-07-06', sleep: 8, fatigue: 5, soreness: 4 },
+    { date: '2026-07-10', sleep: 8, fatigue: 4, soreness: 4 }, { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 },
+    { date: '2026-07-16', sleep: 8, fatigue: 3, soreness: 3 },
+  ];
+  const both = L.adaptiveCoachFocus({ workouts: lowWk, recovery: upRec }, today);
+  assert.equal(both.readiness, 70);
+  assert.equal(both.readinessRebound, 30, 'la remontée reste renvoyée dans le champ');
+  assert.ok(both.lowLoad != null && both.lowLoad < 0.8, 'sous-charge aussi renvoyée');
+  assert.match(both.action, /Fenêtre idéale/);
+  assert.match(both.action, /ta forme remonte ET ta charge/);
+
+  // Forme QUI GLISSE (readinessSlide) → « garde léger » prime, la sous-charge NE réécrit PAS l'action.
+  const slideRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 },
+    { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 }, { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 },
+    { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 },
+  ];
+  const slide = L.adaptiveCoachFocus({ workouts: lowWk, recovery: slideRec }, today);
+  assert.equal(slide.readinessSlide, -45, 'glissade détectée');
+  assert.equal(slide.lowLoad, null, 'forme qui glisse → pas d’incitation à remonter le volume');
+  assert.doesNotMatch(slide.action, /sous-charge/);
+
+  // Charge RÉGULIÈRE (ratio ≈ 1, zone optimal) → lowLoad null, action inchangée.
+  const okWk = [
+    { date: '2026-07-11', duration: 50, effort: 4 }, { date: '2026-07-15', duration: 50, effort: 4 },
+    { date: '2026-07-05', duration: 50, effort: 4 }, { date: '2026-07-08', duration: 50, effort: 4 },
+    { date: '2026-06-30', duration: 50, effort: 4 }, { date: '2026-07-02', duration: 50, effort: 4 },
+  ];
+  const ok = L.adaptiveCoachFocus({ workouts: okWk }, today);
+  assert.equal(ok.lowLoad, null, 'charge régulière → pas de sous-charge');
+  assert.doesNotMatch(ok.action, /sous-charge/);
 });
 
 test('adaptiveCoachFocus : mémoire anti-radotage — varie d’angle après 3 jours du même focus', () => {

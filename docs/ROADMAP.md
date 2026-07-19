@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.125 (2026-07-19)
+## 📍 État actuel — build 2.0.126 (2026-07-19)
+
+> 🌱 **2.0.126** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » repère enfin la **SOUS-CHARGE** — le pendant POSITIF exact du `loadSpike` (#492). Depuis
+> #492 il lit l'ACWR (`acuteChronicRatio`) mais ne réagissait qu'au bord `high` (pic → allège) ; le cas
+> **symétrique** listé en « Suite possible » de #492 **et** #494 restait muet : l'ACWR en zone **`low`**
+> (ratio < 0,8), quand le corps tourne **nettement sous son volume habituel**, avec de la marge pour
+> remonter. L'action sport générique (« prêt à pousser ») ignorait que c'est la **fenêtre idéale** pour
+> rebâtir du volume progressivement (≤ 10 %/semaine, principe de `loadAdvice` zone `low`). Nouveau champ
+> **`lowLoad`** : quand le pilier est le SPORT, la séance du jour pas faite, le pilier pas dormant
+> (`!reviveEligible`) et la readiness n'ordonne pas le repos (null ou ≥ 50), une zone `low` fait
+> **rehausser** l'action : « Tu es en sous-charge : ta semaine est à 0,57× ton volume habituel — ton
+> corps a de la marge pour remonter. Rajoute un peu de volume aujourd'hui (une série, 10 min) et reviens
+> progressivement vers ta base (≤ 10 %/semaine). » Et si la forme **remonte** en plus
+> (`readinessRebound`), deux feux verts concordants → « Fenêtre idéale : ta forme remonte ET ta charge
+> est à 0,57× ton volume habituel… ». Points de conception : **additif pur** (`lowLoad` = ratio ou
+> `null` TOUJOURS renvoyé) ; **mutuellement exclusif de `loadSpike`** (zone `high` XOR `low`) ;
+> **garde-fou clé `readinessSlide == null`** — si la forme glisse, « garde léger » prime et « remonte le
+> volume » la contredirait ; le créneau sport reste complémentaire (appendu). `adaptiveCoachFocus` pur +
+> testé, check smoke bloquant `coachFocus` étendu. Recap #495.
 
 > 📈 **2.0.125** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » remarque enfin quand ta forme **REMONTE**, le **symétrique positif** de la fatigue qui
