@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.181 (2026-07-19)
+## 📍 État actuel — build 2.0.182 (2026-07-19)
+
+> 🩹 **2.0.182 — le fix #446 était incomplet : des candidatures étaient « acceptées » à tort**
+> (domaine `robustesse`). `\bpris` matche aussi `prise` : « **prise de contact** », « **pris
+> contact** », « **pris en compte** », « **rendez-vous pris** » — les formulations les plus courantes
+> d'une recherche d'alternance — basculaient toutes en **offre décrochée**, gonflant l'entonnoir et
+> `applicationStats`, **automatiquement à chaque sync du Sheets**. « pris » exige désormais une
+> tournure d'acceptation ; `\baccept` corrige aussi « in-accept-able ». L'attente documentée
+> « candidature prise » → accepté est **préservée, pas renversée** (⚠️ ambiguë, à trancher par Adrien).
+> 519 tests. Recap #551. _Domaine : robustesse._
 
 > 🔎 **2.0.181 — plus de zone blanche (P2.3, domaine `alternance`).** Le suivi Alternance filtré à
 > zéro rendait une chaîne vide (`app.js:268`) : compteur « 0 / 2 » mais liste **blanche**, de quoi

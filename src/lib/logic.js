@@ -314,14 +314,27 @@ function jobStatusFromText(t) {
   // `pris` avec frontière de mot (\bpris) : « pris/prise/pris(es) » = accepté, MAIS pas le sous-motif
   // « pris » d'« entre-pris-e » — sinon « Entretien EN ENTREPRISE » (tournure FR ultra-courante pour
   // un entretien sur site) bascule en « accepté », faux positif corrompant le funnel + applicationStats.
-  if (/accept|retenu|\bpris|embauch/.test(x)) return 'accepte';
+  // `\bpris` (fix #446) ne réglait QUE « entre-pris-e » : il matche encore « PRISE de contact »,
+  // « PRIS contact », « PRIS en compte », « rendez-vous PRIS » — tournures ultra-courantes d'une
+  // recherche d'alternance, toutes des états EN COURS, qui basculaient en « accepté » et corrompaient
+  // le funnel + applicationStats. « pris » ne vaut acceptation que dans une TOURNURE d'acceptation
+  // (« j'ai été pris », « je suis prise ») : on l'exige, au lieu de se fier au mot seul.
+  // De même `accept` nu matchait « in-accept-able » → `\baccept` (la frontière tombe après « in »).
+  // `candidature prise` est conservé explicitement : c'était une attente DOCUMENTÉE par le test du
+  // fix #446, on ne la renverse pas au passage (formulation ambiguë — à trancher par Adrien).
+  if (/\baccept|\bretenu|\bembauch/.test(x)
+    || /\b(?:ete|suis|est|etes|sommes|sont)\s+prise?s?\b/.test(x)
+    || /candidature prise/.test(x)) return 'accepte';
   if (/refus|negati|decline|abandonn|ecart|sans suite/.test(x)) return 'refus';
   // `entretien` APRÈS les états terminaux (refus/accepté) : un « refusé après entretien » ou un
   // « retenu à l'issue de l'entretien » est un état FINAL, pas un entretien en cours. Placé avant, le
   // simple mot « entretien » emportait le refus/l'accepté et laissait la candidature bloquée en
   // colonne « entretien » du funnel (et non-régressable au re-sync, `rankOf` entretien < refus).
   if (/entretien|entrevue/.test(x)) return 'entretien';
-  if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)) return 'postule';
+  // « prise de contact », « pris contact », « pris en compte », « rendez-vous pris » : le contact EST
+  // établi — c'est un dossier envoyé/en cours, pas un « à postuler » (et surtout pas un « accepté »).
+  if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)
+    || /prise? de contact|pris contact|pris en compte|rendez-?vous pris|rdv pris/.test(x)) return 'postule';
   return 'a_postuler';
 }
 // Extrait une date ISO d'un texte (ISO ou JJ/MM/AAAA). '' sinon. Pur.
@@ -2770,6 +2783,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.182', emoji: '🩹', text: 'Correctif important sur ton suivi Alternance : des candidatures étaient marquées « acceptée » à tort. Le mot « pris » suffisait à déclencher une acceptation — or « PRISE de contact », « j’ai PRIS contact », « PRIS en compte » et « rendez-vous PRIS » sont parmi les formulations les plus courantes quand on cherche une alternance. Toutes basculaient en offre décrochée, ce qui gonflait faussement ton entonnoir et tes statistiques (taux de réponse, nombre d’acceptations) — y compris automatiquement, à chaque synchronisation de ton Google Sheets. Désormais « pris » ne vaut acceptation que dans une vraie tournure d’acceptation (« j’ai été pris », « je suis prise »), et ces quatre formulations sont correctement classées « candidature envoyée ». Au passage, « candidature inacceptable » n’est plus lue comme « acceptée ».' },
   { v: '2.0.181', emoji: '🔎', text: 'Plus jamais de liste vide sans explication. Dans le suivi Alternance, quand ta recherche ou ton filtre de statut ne trouvait aucune candidature, la liste devenait simplement BLANCHE — de quoi croire, une seconde de trop, que tes candidatures avaient disparu. Elle t’explique maintenant ce qui se passe et quoi faire : « Aucune candidature ne correspond à ce filtre. Efface la recherche ou choisis un autre statut. » Même correction pour tes quêtes du jour : une fois toutes supprimées, la zone t’invite à en ajouter une au lieu de rester muette. Ces deux listes étaient les seules de l’app à ne pas avoir leur message d’état vide.' },
   { v: '2.0.180', emoji: '⌨️', text: 'Navigation au clavier réparée sur les trois grandes pages qui s’ouvrent par-dessus le tableau de bord — Ma semaine, le Calendrier et le plan Ultra-Trail. Elles recouvrent l’écran, mais le curseur clavier, lui, restait derrière : tu pouvais tabuler à l’aveugle dans le tableau de bord caché, et en fermant, le focus ne revenait pas au bouton d’où tu venais. Désormais le focus entre dans la page à l’ouverture, le tableau de bord derrière est réellement mis hors circuit (plus rien d’atteignable au clavier ni annoncé par un lecteur d’écran), et à la fermeture — bouton Retour ou touche Échap — tu retrouves exactement le bouton que tu avais quitté. Rien ne change à la souris ; c’est le parcours clavier qui redevient logique.' },
   { v: '2.0.179', emoji: '🎯', text: 'La carte de ton coach redevient vraiment brève. Elle gardait « deux phrases » quelle que soit leur longueur — une carte sur quatre dépassait donc encore 300 caractères, jusqu’à 420 : l’inverse d’un focus qu’on saisit d’un coup d’œil. Elle tient désormais dans un budget de caractères, et le message médian passe d’environ 270 à environ 60 caractères. Avec une nuance qui compte : ce budget ne s’applique qu’à l’ACCESSOIRE. Une alerte qui touche à ton intégrité physique ou à ta charge d’entraînement passe sur la carte MÊME si elle est longue — bref par défaut, long seulement quand ça le mérite. Et ton verdict du jour n’est jamais coupé en plein milieu.' },

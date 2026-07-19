@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.181');
+  assert.equal(L.CHANGELOG[0].v, '2.0.182');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10653,4 +10653,27 @@ test('coachNoteUrgency / orderCoachNotes : l’urgent passe devant l’anodin', 
   assert.equal(ph.length, 2, 'deux phrases réelles, pas quatre fragments');
   assert.match(ph[0], /coucher fixe\.$/, 'le verdict reste entier, parenthèse et abréviation incluses');
   assert.match(ph[1], /^Et la pente/);
+});
+
+test('jobStatusFromText : « pris » n’est une acceptation que dans une tournure d’acceptation', () => {
+  // RÉGRESSION #551 — le fix #446 (`pris` → `\bpris`) ne réglait QUE « entre-pris-e ». Restaient
+  // « PRISE de contact », « PRIS contact », « PRIS en compte », « rendez-vous PRIS » : tournures
+  // ultra-courantes d’une recherche d’alternance, toutes classées « accepté » → funnel et
+  // applicationStats corrompus, via la sync Sheets, sur le module prioritaire d’Adrien.
+  assert.equal(L.jobStatusFromText('Prise de contact avec le cabinet'), 'postule');
+  assert.equal(L.jobStatusFromText('J’ai pris contact par mail'), 'postule');
+  assert.equal(L.jobStatusFromText('Pris en compte, réponse sous 15 j'), 'postule');
+  assert.equal(L.jobStatusFromText('Rendez-vous pris pour mardi'), 'postule');
+  // …mais une VRAIE acceptation reste reconnue.
+  assert.equal(L.jobStatusFromText('J’ai été pris !'), 'accepte');
+  assert.equal(L.jobStatusFromText('Je suis prise'), 'accepte');
+  assert.equal(L.jobStatusFromText('Candidature retenue'), 'accepte');
+  assert.equal(L.jobStatusFromText('Embauché'), 'accepte');
+  // `accept` nu matchait « in-accept-able » : la frontière de mot tombe après « in ».
+  assert.notEqual(L.jobStatusFromText('Candidature inacceptable'), 'accepte');
+  // Non-régression des pièges déjà corrigés.
+  assert.equal(L.jobStatusFromText('Entretien en entreprise'), 'entretien', 'piège #446');
+  assert.equal(L.jobStatusFromText('Non retenu'), 'refus');
+  assert.equal(L.jobStatusFromText('Pas été retenue'), 'refus');
+  assert.equal(L.jobStatusFromText('Refusé après entretien'), 'refus', 'état terminal, pas « entretien »');
 });
