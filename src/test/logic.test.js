@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.136');
+  assert.equal(L.CHANGELOG[0].v, '2.0.137');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8241,6 +8241,55 @@ test('adaptiveCoachFocus : réconciliation objectif serré × pic de charge (loa
   assert.ok(loose.loadSpike != null, 'le pic est bien là');
   assert.equal(loose.loadOverGoal, null, 'objectif large → aucune pression à désamorcer');
   assert.ok(!/charge est en pic cette semaine/.test(loose.insight));
+});
+
+test('adaptiveCoachFocus : pic de charge × objectif serré RENFORCÉ par une forme qui glisse (loadOverGoalSlide)', () => {
+  const today = '2026-07-16'; // jeudi, semaine lundi 07-13 → dim 07-19
+  const spikeWk = [
+    { date: '2026-07-10', duration: 100, effort: 3 },
+    { date: '2026-07-12', duration: 100, effort: 3 },
+    { date: '2026-07-14', duration: 100, effort: 3 },
+    { date: '2026-07-05', duration: 30, effort: 1 },
+    { date: '2026-07-08', duration: 30, effort: 1 },
+    { date: '2026-06-28', duration: 30, effort: 1 },
+  ];
+  // Readiness EN GLISSADE finissant à 55 (zone [50,75)) : 100 → 85 → 70 → 63 → 55, chute -45 sur 5 check-ins.
+  const slideRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+    { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 }, // 85
+    { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 }, // 70
+    { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, // 63
+    { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 }, // 55
+  ];
+  // Pic de charge + objectif serré + forme qui glisse EN MÊME TEMPS → note FERME, loadOverGoalSlide = le delta.
+  const compound = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: spikeWk, recovery: slideRec }, today);
+  assert.equal(compound.pillar, 'sport');
+  assert.equal(compound.sessionGoalPace, 'tight');
+  assert.ok(compound.loadOverGoal != null && compound.loadOverGoal === compound.loadSpike, 'le conflit de charge est bien là');
+  assert.equal(compound.readinessSlide, -45, 'la forme glisse en parallèle');
+  assert.equal(compound.loadOverGoalSlide, -45, 'le delta de glissade est renvoyé quand les deux signaux coïncident');
+  assert.match(compound.insight, /ta forme glisse en parallèle \(-45 pts sur tes derniers check-ins\)/);
+  assert.match(compound.insight, /deux signaux de fatigue qui se cumulent/);
+  assert.match(compound.insight, /la seule option saine/);
+  assert.doesNotMatch(compound.insight, /tempérer prime sur le chiffre/, 'le registre doux est remplacé par le ferme');
+
+  // Pic + objectif serré mais forme STABLE (pas de glissade) → note DOUCE d'origine, loadOverGoalSlide null.
+  const flatRec = ['2026-07-04', '2026-07-06', '2026-07-10', '2026-07-13', '2026-07-16']
+    .map(date => ({ date, sleep: 8, fatigue: 3, soreness: 4 })); // 63 chacun, tendance plate
+  const stable = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: spikeWk, recovery: flatRec }, today);
+  assert.equal(stable.sessionGoalPace, 'tight');
+  assert.ok(stable.loadOverGoal != null, 'le conflit de charge est toujours là');
+  assert.equal(stable.readinessSlide, null, 'forme stable → pas de glissade');
+  assert.equal(stable.loadOverGoalSlide, null, 'sans glissade, pas de renfort');
+  assert.match(stable.insight, /tempérer prime sur le chiffre/, 'la note douce d’origine est conservée');
+  assert.doesNotMatch(stable.insight, /deux signaux de fatigue/);
+
+  // Sans conflit de charge du tout (charge régulière) → loadOverGoalSlide null même si la forme glisse.
+  const noSpike = L.adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: [
+    { date: '2026-07-14' }, { date: '2026-07-07' }, { date: '2026-07-03' },
+  ], recovery: slideRec }, today);
+  assert.equal(noSpike.loadOverGoal, null);
+  assert.equal(noSpike.loadOverGoalSlide, null, 'pas de pic → pas de renfort de charge');
 });
 
 test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jours restants)', () => {

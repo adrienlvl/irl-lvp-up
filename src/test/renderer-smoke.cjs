@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.136'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.137'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -974,6 +974,14 @@ app.whenReady().then(async () => {
           if (!(fLoadGoal.sessionGoalPace === 'tight' && fLoadGoal.loadOverGoal === fLoadGoal.loadSpike && fLoadGoal.loadOverGoal != null && /ta charge est en pic cette semaine/.test(fLoadGoal.insight) && /temp[ée]rer prime sur le chiffre/.test(fLoadGoal.insight))) return false;
           // Pic de charge mais objectif large (2 séances → onpace) → aucun conflit → loadOverGoal null.
           if (adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: spikeWk }, '2026-07-16').loadOverGoal !== null) return false;
+          // RENFORT (loadOverGoalSlide) : pic de charge × objectif serré ET forme qui glisse (-45 pts sur 5 check-ins) → note ferme (deux signaux cumulés).
+          const slideRecLG = [{ date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 }, { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 }, { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 }];
+          const fLoadSlide = adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: spikeWk, recovery: slideRecLG }, '2026-07-16');
+          if (!(fLoadSlide.sessionGoalPace === 'tight' && fLoadSlide.loadOverGoal != null && fLoadSlide.readinessSlide === -45 && fLoadSlide.loadOverGoalSlide === -45 && /deux signaux de fatigue qui se cumulent/.test(fLoadSlide.insight) && !/temp[ée]rer prime sur le chiffre/.test(fLoadSlide.insight))) return false;
+          // Même pic × objectif serré mais forme STABLE (63 constant) → note douce d'origine, loadOverGoalSlide null.
+          const stableRecLG = ['2026-07-04', '2026-07-06', '2026-07-10', '2026-07-13', '2026-07-16'].map(date => ({ date, sleep: 8, fatigue: 3, soreness: 4 }));
+          const fLoadStable = adaptiveCoachFocus({ goals: { sessions: 5 }, workouts: spikeWk, recovery: stableRecLG }, '2026-07-16');
+          if (!(fLoadStable.loadOverGoal != null && fLoadStable.loadOverGoalSlide === null && /temp[ée]rer prime sur le chiffre/.test(fLoadStable.insight))) return false;
           if (adaptiveCoachFocus({ workouts: spikeWk, agenda: [{ id: 'a', date: '2026-07-16', time: '09:00', durationMin: 60 }] }, '2026-07-16', { nowMinutes: 555 }).sportSlot !== null) return false;
           // Coach CONSCIENT de la TENDANCE de readiness : forme du jour « correcte » (55) mais qui GLISSE (-45 pts
           // sur 5 check-ins, sommeil constant sain) → l'action tempère (fatigue cumulée), et un jour au vert (85) non.

@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.136 (2026-07-19)
+## 📍 État actuel — build 2.0.137 (2026-07-19)
+
+> 🪫 **2.0.137** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **1ʳᵉ
+> « Suite possible » de #505** — croiser le conflit `loadOverGoal` (pic de charge qui écrase un objectif
+> hebdo **serré**) avec la **pente de readiness** (`readinessSlide`). Depuis #505, le coach tranche déjà
+> « tempérer prime sur le chiffre » quand l'objectif est serré ET la charge des 7 j en **pic** — mais il
+> traitait pareil **deux situations** : le pic sur une forme du jour **stable** (un instant) vs le pic
+> **pendant que la forme GLISSE** relevé après relevé (`readinessSlide` : chute ≥ 12 pts sur ≥ 4 check-ins,
+> readiness du jour dans [50, 75[). Le second cas est **plus sérieux** : deux signaux de fatigue
+> **concordants qui se cumulent** (charge cumulée haute + récup qui décroche), pas deux lectures d'un même
+> moment. Nouveau : quand — et **seulement** quand — le conflit `tight` × pic est retenu ET `readinessSlide`
+> non nul, la note appendue **durcit** de registre via un champ **`loadOverGoalSlide`** (le delta négatif,
+> ou `null`) : « Mais ta charge est en pic cette semaine (2,3× ton volume) ET ta forme glisse en parallèle
+> (-18 pts sur tes derniers check-ins) : deux signaux de fatigue qui se cumulent, pas un coup de mou isolé.
+> Laisser l'objectif hebdo glisser n'est plus prudent, c'est la seule option saine — consolide,
+> protège-toi, tu repars bien plus solide. » Sans glissade, la note douce d'origine de #505 est conservée à
+> l'identique ; l'action de charge reste **intacte**. Chevauchement **prouvé** : `loadOverGoal` (readiness
+> null ou ≥ 50) ∩ `readinessSlide` ([50, 75[) possible, alors que `restOverGoal` (readiness < 50) ne croise
+> jamais la pente — donc `loadOverGoal` seul pouvait être renforcé. Additif pur, réemploi total (zéro
+> nouvelle fonction). Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #506.
 
 > 🏋️ **2.0.136** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **1ʳᵉ
 > « Suite possible » de #504** — le conflit **jumeau** de `restOverGoal`, côté **CHARGE**. Le coach
