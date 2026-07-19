@@ -180,12 +180,21 @@ dans le recap et passer à la suivante.
       (`doable.length`) : « 1/3 fait**s** » alors qu'un seul est fait. `renderMyDay` (`app.js:200`)
       accorde correctement sur le **numérateur**. _(Valeur faible — à prendre en bouche-trou.)_
 
-### P3 — Tests & robustesse _(domaine à recadrer)_
+### P3 — Tests & robustesse _(⚠️ prémisse INVALIDÉE — voir recap #553)_
 
-L'audit de cette dimension **n'a pas pu tourner** (limite d'usage). À reprendre proprement : recenser
-les fonctions pures de `logic.js` **peu couvertes** (dates invalides, accents, chaînes vides, bornes,
-NaN, fuseaux) et les parseurs (CSV / ICS / sauvegarde / Sheets) face à des entrées hostiles, puis
-verrouiller par des tests. **Domaine idéal pour varier** : logique pure, aucun risque renderer.
+**Sondé en #553 : ce n'est PAS un gisement de bugs.** `jobDateFromText` (dates aberrantes),
+`recurrenceMatches` (fins de mois, 29/02, intervalles), `parseIcsDateTime`, `agendaMatch`,
+`normalizeApplication`+`mergeApplications` (espaces parasites → **0 doublon** à la sync) : tous
+**corrects** face à des entrées hostiles, et **déjà couverts** (34 / 23 / 20 / 11 assertions).
+
+Ne reprends ce sujet **que** sur une fonction précise dont tu as prouvé le manque — ne le prends pas
+pour un chantier ouvert, ça coûterait une boucle pour rien.
+
+> 🎯 **Le vrai gisement de qualité, lui, est identifié** : les **regex non ancrées** sur du français.
+> Trois occurrences dans la seule session du 2026-07-19, plus le bug #446 en production, plus le faux
+> positif corrigé en #551 (« prise de contact » classée « acceptée », funnel corrompu à chaque sync).
+> **Toute regex de classification de texte FR doit être ancrée** (`\b`, ou exiger une tournure
+> explicite) — un mot français en contient souvent un autre.
 
 ### 🚫 Ce qui n'est PAS à faire en autonomie
 
