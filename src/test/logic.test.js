@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.130');
+  assert.equal(L.CHANGELOG[0].v, '2.0.131');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8225,6 +8225,55 @@ test('adaptiveCoachFocus : focus nutrition — PENTE de poids (stagnation, déri
     { date: '2026-07-14', value: 81 },
   ] }, today);
   assert.match(gainStall.insight, /Mais la balance ne monte plus \(0 kg\/sem sur tes dernières pesées\) — ajoute un peu de calories pour relancer la prise/);
+});
+
+test('adaptiveCoachFocus : focus nutrition — plateau confirmé → cible calorique concrète', () => {
+  const today = '2026-07-16';
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 },
+    { date: '2026-07-15', protein: 100 },
+  ];
+  const flatWeights = [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 },
+    { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 },
+    { date: '2026-07-14', value: 82 },
+  ];
+  // PLATEAU perte + PROFIL complet → calorieAdjustment confirme sur 14 j → cible calorique CHIFFRÉE
+  // (au lieu du « baisse un peu tes calories » qualitatif). Poids récent 82, cible 79 → objectif perte.
+  const profile = { height: 180, age: 30, sex: 'homme', activityLevel: 'modere' };
+  const stallPro = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: flatWeights }, today);
+  assert.equal(stallPro.weightPace, 0);
+  assert.equal(typeof stallPro.calorieTarget, 'number', 'cible calorique concrète exposée');
+  assert.ok(stallPro.calorieTarget > 0);
+  assert.match(stallPro.insight, /Mais la balance ne descend plus \(0 kg\/sem sur tes dernières pesées\) — vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/);
+  assert.ok(!/baisse un peu tes calories/.test(stallPro.insight), 'plateau + profil : conseil chiffré, plus le message vague');
+  // DÉRIVE perte + profil → même conseil chiffré (calorieAdjustment couvre rate >= -0,1).
+  const driftPro = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82.2 },
+    { date: '2026-06-30', value: 82.4 }, { date: '2026-07-05', value: 82.6 }, { date: '2026-07-10', value: 82.8 },
+    { date: '2026-07-14', value: 83 },
+  ] }, today);
+  assert.match(driftPro.insight, /repartent à la hausse \(\+0,21 kg\/sem\) — vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/);
+  assert.ok(!/resserre tes calories/.test(driftPro.insight), 'dérive + profil : conseil chiffré');
+  // PRISE + profil → cible chiffrée « de plus » (jamais « de moins »).
+  const gainPro = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 85 }, weights: [
+    { date: '2026-05-01', value: 78 }, { date: '2026-06-10', value: 81 }, { date: '2026-06-20', value: 81 },
+    { date: '2026-06-30', value: 81 }, { date: '2026-07-05', value: 81 }, { date: '2026-07-10', value: 81 },
+    { date: '2026-07-14', value: 81 },
+  ] }, today);
+  assert.match(gainPro.insight, /ne monte plus \(0 kg\/sem sur tes dernières pesées\) — vise ~\d+ kcal\/j \(environ \d+ de plus\) pour relancer la prise/);
+  assert.ok(typeof gainPro.calorieTarget === 'number' && gainPro.calorieTarget > 0);
+  // PLANCHER calorique (petit gabarit déjà proche du plancher) → cardio, pas de nouvelle baisse.
+  const floorPro = L.adaptiveCoachFocus({ nutrition, profile: { height: 150, age: 25, sex: 'femme', activityLevel: 'sedentaire' }, goals: { targetWeight: 43 }, weights: [
+    { date: '2026-05-01', value: 47 }, { date: '2026-06-10', value: 45 }, { date: '2026-06-20', value: 45 },
+    { date: '2026-06-30', value: 45 }, { date: '2026-07-05', value: 45 }, { date: '2026-07-10', value: 45 },
+    { date: '2026-07-14', value: 45 },
+  ] }, today);
+  assert.match(floorPro.insight, /tu es déjà au plancher calorique \(~\d+ kcal\/j\), relance par le cardio/);
+  // Sans profil (BMR incalculable) → energyPlan null → on garde le message qualitatif, calorieTarget null.
+  const noProfile = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights }, today);
+  assert.equal(noProfile.calorieTarget, null);
+  assert.match(noProfile.insight, /baisse un peu tes calories ou ajoute du cardio/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

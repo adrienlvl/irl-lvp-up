@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.131', emoji: '🔥', text: 'Quand ton coach « Le focus du moment » repère que ta balance CALE (elle ne descend plus, ou repart à l’envers), il ne se contente plus d’un « baisse un peu tes calories » vague : il te donne maintenant le NOMBRE. En croisant ton plan calorique du jour avec la stagnation confirmée sur ~14 jours, il cite la cible concrète — « Mais la balance ne descend plus (0 kg/sem sur tes dernières pesées) — vise ~2126 kcal/j (environ 125 de moins) ou ajoute du cardio pour relancer. » Si tu es déjà au plancher calorique, il te réoriente honnêtement vers le cardio plutôt qu’une énième baisse. Ça marche dans les deux sens (perte comme prise : « ~X kcal/j de plus ») et reste silencieux tant que ton profil (taille, âge…) n’est pas assez complet pour calculer une vraie cible — dans ce cas le conseil qualitatif d’avant reste affiché. C’est le même chiffre que ta carte « Coach Poids » te propose déjà, désormais aussi dans le focus du jour.' },
   { v: '2.0.130', emoji: '⚖️', text: 'Quand ton coach « Le focus du moment » pousse ta NUTRITION, il ne regarde plus seulement le chemin déjà parcouru vers ton objectif de poids — il lit maintenant dans quelle DIRECTION va ta balance EN CE MOMENT. Son « 50% de ton objectif atteint » te disait le cumul depuis le départ, mais restait aveugle au présent : deux « 50% » n’appellent pas le même mot selon que ton poids PROGRESSE ENCORE ou STAGNE (le plateau classique, où le pourcentage global te rassure à tort). Désormais, quand tes dernières pesées vont dans le bon sens, il te projette : « À ton rythme récent (0,5 kg/sem), tu touches ta cible dans ~6 semaines — tiens le cap. » Et quand ça cale ou repart à l’envers, il recadre côté calories : « Mais la balance ne descend plus (0 kg/sem sur tes dernières pesées) — baisse un peu tes calories ou ajoute du cardio pour relancer », ou « Mais tes dernières pesées repartent à la hausse (+0,3 kg/sem) — resserre tes calories pour reprendre la perte » (adapté à ton sens d’objectif, perte comme prise). La note ne remplace jamais ton conseil protéines : elle l’enrichit, et n’apparaît qu’avec au moins deux pesées exploitables.' },
   { v: '2.0.129', emoji: '🧠', text: 'Ton coach « Le focus du moment » lit maintenant la PENTE de ton FOCUS — le seul pilier qui n’avait encore aucune conscience de tendance. Il te nommait déjà ton chantier phare et calait la durée de ton bloc, mais restait aveugle à ton VOLUME de concentration : deux « 3 jours actifs » n’appellent pas le même mot selon que tes minutes de focus montent ou s’effritent. Désormais, quand ton focus s’essouffle et que tes minutes RECULENT vs la semaine d’avant, il quantifie la chute et t’invite à inverser la pente : « Tes minutes de focus reculent : 300 → 90 min cette semaine (-210 min) — un bloc aujourd’hui inverse la pente. » Et quand ton focus monte en régime avec des minutes en HAUSSE, il crédite la montée : « Et le volume grimpe : 60 → 240 min de focus cette semaine (+180 min) — tu montes en puissance, garde le cap. » La note ne s’affiche que quand la pente va dans le même sens que le constat (jamais de contradiction), et seulement si la semaine précédente est renseignée.' },
   { v: '2.0.128', emoji: '🛏️', text: 'Ton coach « Le focus du moment » lit maintenant la PENTE de la RÉGULARITÉ de ton coucher, pas seulement celle de la durée. Il regardait déjà si tes nuits rallongent ou raccourcissent ; il ignorait un autre signal circadien : ton heure de coucher se resserre-t-elle sur un créneau fixe, ou s’éparpille-t-elle de plus en plus d’un soir à l’autre ? Désormais, quand ton sommeil a besoin de travail et que ta durée n’a rien signalé de franc, il regarde la dispersion de tes couchers vs la semaine d’avant : s’ils se DISPERSENT, il alerte (« Et ton coucher se disperse : de ±20 à ±75 min d’un soir à l’autre (+55 min) — ré-ancre une heure fixe avant que le rythme ne parte ») ; s’ils se RESSERRENT, il crédite (« Bon signe : ton coucher se régularise (de ±70 à ±25 min d’un soir à l’autre, -45 min) — l’ancre circadienne se pose, tiens le cap »). Une seule note de pente à la fois (la durée reste prioritaire), et rien ne change quand ton sommeil est déjà solide ou que tes couchers restent stables.' },
@@ -5307,7 +5308,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Additif pur : weightPace (kg/sem, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight, action
   // (protéines) intacte. Deux axes distincts (habitude nutrition vs résultat balance) → pas de
   // contradiction avec le ton. Données réelles seulement (≥ 2 pesées exploitables, sinon null).
-  let weightGoalPct = null, weightPace = null;
+  let weightGoalPct = null, weightPace = null, calorieTarget = null;
   if (chosen.pillar === 'nutrition' && typeof weightGoalProgress === 'function') {
     const tgtW = Number(s.goals && s.goals.targetWeight);
     const fbW = Number(s.profile && s.profile.weight);
@@ -5333,15 +5334,47 @@ function adaptiveCoachFocus(state, todayKey, opts) {
                 ? ` À ton rythme récent (${absR} kg/sem), tu touches ta cible dans ~${wt.weeksToTarget} semaine${wt.weeksToTarget > 1 ? 's' : ''} — tiens le cap.`
                 : ` Et tes dernières pesées vont dans le bon sens (${absR} kg/sem) — tiens le cap, le résultat suit.`;
             } else if (wt.onTrack === false) {
-              if (wt.direction === 'flat') {
-                insight += wp.direction === 'perte'
-                  ? ` Mais la balance ne descend plus (${absR} kg/sem sur tes dernières pesées) — baisse un peu tes calories ou ajoute du cardio pour relancer.`
-                  : ` Mais la balance ne monte plus (${absR} kg/sem sur tes dernières pesées) — ajoute un peu de calories pour relancer la prise.`;
-              } else {
-                insight += wp.direction === 'perte'
-                  ? ` Mais tes dernières pesées repartent à la hausse (+${absR} kg/sem) — resserre tes calories pour reprendre la perte.`
-                  : ` Mais tes dernières pesées repartent à la baisse (-${absR} kg/sem) — remonte tes calories pour reprendre la prise.`;
+              // Observation de la pente (plateau vs dérive), commune aux deux objectifs.
+              const obs = wt.direction === 'flat'
+                ? (wp.direction === 'perte'
+                    ? `Mais la balance ne descend plus (${absR} kg/sem sur tes dernières pesées)`
+                    : `Mais la balance ne monte plus (${absR} kg/sem sur tes dernières pesées)`)
+                : (wp.direction === 'perte'
+                    ? `Mais tes dernières pesées repartent à la hausse (+${absR} kg/sem)`
+                    : `Mais tes dernières pesées repartent à la baisse (-${absR} kg/sem)`);
+              // Conseil calorique CONCRET quand la stagnation est confirmée sur ~14 j (calorieAdjustment,
+              // avec sa fenêtre et ses critères propres). Jusqu'ici le coach ne disait que « baisse un peu
+              // tes calories » — vrai mais VAGUE. On calcule la cible calorique du jour (energyPlan depuis
+              // le profil ; poids récent = wt.current, déjà en main) et, si la stagnation est confirmée, on
+              // cite le NOMBRE exact (« vise ~1875 kcal/j, ~125 de moins ») — le même chiffre que la carte
+              // « Coach Poids » propose déjà (calorieAdjustment y est branché), sans le dupliquer. Actionnable
+              // plutôt que qualitatif. Dégrade proprement (profil incomplet, ou 14 j non confirmés → on garde
+              // le conseil qualitatif). Suite directe de #499 (Suite possible : « citer la cible calorique »).
+              const wantGoal = wp.direction === 'perte' ? 'perte' : 'prise';
+              let tail = wt.direction === 'flat'
+                ? (wantGoal === 'perte'
+                    ? ` — baisse un peu tes calories ou ajoute du cardio pour relancer.`
+                    : ` — ajoute un peu de calories pour relancer la prise.`)
+                : (wantGoal === 'perte'
+                    ? ` — resserre tes calories pour reprendre la perte.`
+                    : ` — remonte tes calories pour reprendre la prise.`);
+              if (typeof energyPlan === 'function' && typeof calorieAdjustment === 'function') {
+                const plan = energyPlan({ weight: wt.current, height: s.profile && s.profile.height, age: s.profile && s.profile.age, sex: s.profile && s.profile.sex, activityLevel: s.profile && s.profile.activityLevel, sessionsPerWeek: s.goals && s.goals.sessions, targetWeight: tgtW, todayKey });
+                if (plan && plan.goal === wantGoal) {
+                  const adj = calorieAdjustment(s.weights, plan.goal, plan.dailyTarget);
+                  if (adj && adj.stagnating) {
+                    calorieTarget = adj.newTarget;
+                    if (adj.delta > 0) {
+                      tail = wantGoal === 'perte'
+                        ? ` — vise ~${adj.newTarget} kcal/j (environ ${adj.delta} de moins) ou ajoute du cardio pour relancer.`
+                        : ` — vise ~${adj.newTarget} kcal/j (environ ${adj.delta} de plus) pour relancer la prise.`;
+                    } else {
+                      tail = ` — tu es déjà au plancher calorique (~${adj.newTarget} kcal/j), relance par le cardio ou plus d'activité plutôt qu'une nouvelle baisse.`;
+                    }
+                  }
+                }
               }
+              insight += ` ${obs}${tail}`;
             }
           }
         }
@@ -6002,7 +6035,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, sessionGoalPace, loadSpike, readinessSlide, readinessRebound, lowLoad, sleepTrend, sleepBedtimeTrend, focusTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, loadSpike, readinessSlide, readinessRebound, lowLoad, sleepTrend, sleepBedtimeTrend, focusTrend,
   };
 }
 

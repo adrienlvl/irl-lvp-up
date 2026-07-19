@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.130 (2026-07-19)
+## 📍 État actuel — build 2.0.131 (2026-07-19)
+
+> 🔥 **2.0.131** — Coaching adaptatif poussé à fond (priorité de la nuit) : quand le coach « Le focus du
+> moment » repère que la balance CALE (pente de poids `weightPace`, #499 — plateau « ne descend plus » ou
+> dérive « repartent à la hausse »), il ne se contente plus d'un « baisse un peu tes calories » **vague** :
+> il **CHIFFRE la cible calorique**. C'était la 1re « Suite possible » de #499. L'app sait déjà chiffrer ce
+> geste — la carte « Coach Poids » branche `calorieAdjustment` (fenêtre ~14 j + plancher calorique) et
+> affiche « Nouvelle cible : 2126 kcal/j » — mais le focus du jour, **surface la plus lue**, restait
+> qualitatif. La branche hors-piste calcule maintenant le plan calorique du jour (`energyPlan` depuis le
+> profil ; poids récent `wt.current` déjà en main) puis interroge `calorieAdjustment` (nouveau champ
+> **`calorieTarget`**) : marge sous la cible → nombre exact (« vise ~2126 kcal/j (environ 125 de moins) ou
+> ajoute du cardio ») ; **déjà au plancher** → réorientation honnête vers le cardio, pas d'énième baisse ;
+> profil incomplet ou 14 j non confirmés → **conseil qualitatif d'avant conservé**, `calorieTarget` null.
+> Réemploi sans duplication (mêmes fonctions pures, **même chiffre** que la carte poids) ; additif pur
+> (seule la queue du message change, action protéines intacte) ; deux fenêtres aux rôles distincts
+> (`weightTrend` 6 pesées DÉCLENCHE, `calorieAdjustment` 14 j CHIFFRE) ; adapté au sens perte/prise ;
+> plancher respecté. Check smoke bloquant `coachFocus` étendu. Recap #500.
 
 > ⚖️ **2.0.130** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » lit maintenant la **PENTE de ton POIDS** — le **dernier pilier dont l'enrichissement restait

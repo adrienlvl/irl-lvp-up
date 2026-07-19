@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.130'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.131'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -851,6 +851,11 @@ app.whenReady().then(async () => {
           // Plateau : 50 % fait mais dernières pesées plates → « ne descend plus » + recadrage calories.
           const fStall = adaptiveCoachFocus({ nutrition: fWeightNut, goals: { targetWeight: 79 }, weights: [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }] }, '2026-07-16');
           if (!(fStall.weightPace === 0 && /Mais la balance ne descend plus \\(0 kg\\/sem sur tes dernières pes[ée]es\\)/.test(fStall.insight))) return false;
+          // Plateau + PROFIL complet → cible calorique CONCRÈTE (calorieAdjustment) au lieu du conseil vague.
+          const fStallPro = adaptiveCoachFocus({ nutrition: fWeightNut, profile: { height: 180, age: 30, sex: 'homme', activityLevel: 'modere' }, goals: { targetWeight: 79 }, weights: [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }] }, '2026-07-16');
+          if (!(typeof fStallPro.calorieTarget === 'number' && fStallPro.calorieTarget > 0 && /vise ~\\d+ kcal\\/j \\(environ \\d+ de moins\\) ou ajoute du cardio/.test(fStallPro.insight))) return false;
+          // Sans profil (BMR incalculable) → energyPlan null → conseil qualitatif conservé, calorieTarget null.
+          if (fStall.calorieTarget !== null) return false;
           // Sans objectif de poids → pas d'enrichissement, champs null.
           if (adaptiveCoachFocus({ nutrition: fWeightNut }, '2026-07-16').weightGoalPct !== null) return false;
           if (adaptiveCoachFocus({ nutrition: fWeightNut }, '2026-07-16').weightPace !== null) return false;
