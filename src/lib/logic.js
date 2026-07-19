@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.172', emoji: '⚖️', text: 'Ton coach « Le focus du moment » regarde enfin l’ÉQUILIBRE entre ta course et ta muscu — un angle qu’il ignorait totalement (il ne lisait que la fréquence, ta forme du jour, ta charge et tes carburants, jamais la répartition entre les deux). Comme tu pratiques les deux, une semaine entièrement d’un seul côté est un vrai trou : tout-cardio et zéro renfo, tes gains de force fondent et les appuis que la course sollicite perdent le renfort qui les protège ; tout-muscu et zéro course, ta base aérobie s’érode. Désormais, quand ta semaine sport bascule à 100 % d’un côté (au moins 3 séances, et à condition que tu pratiques bien les deux d’habitude), il te le dit : « Et regarde l’équilibre de ta semaine : 4 sorties de course et zéro renfo, alors que tu pratiques les deux d’habitude — une semaine tout-cardio laisse filer tes gains de force et prive les appuis que la course sollicite du renfort qui les protège. Cale une séance de renfo pour rééquilibrer. » (et le miroir côté muscu). Honnête : il n’en parle que si tu es vraiment un athlète hybride (les deux modalités présentes sur le dernier mois), pas à un coureur pur ; et il se tait les jours où ta forme demande du repos, où ta charge est déjà en pic, ou si tu as déjà bougé aujourd’hui. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.171', emoji: '😌', text: 'Ton coach « Le focus du moment » ne te pousse plus vers un gros bloc de deep work les jours où ta tête est à plat mais où ton objectif focus est confortablement dans les temps. Jusqu’ici, quand tu avais de la MARGE sur ton objectif (« dans les temps, tu as la marge »), il ne regardait ta forme du matin QUE si elle était au vert (pour t’inviter à prendre de l’avance) — un matin où l’esprit était épuisé, il restait muet et t’invitait quand même à un bloc normal. Le garde-fou « cerveau à plat → focus léger » n’existait que les semaines SERRÉES. Désormais, si ton objectif est dans les temps ET qu’un check-in de récup du matin met ta forme à plat (readiness < 50), il te rassure : « Mais ton énergie mentale est basse ce matin (readiness 40/100) : justement, tu as de la marge sur l’objectif — aucune raison de forcer un gros bloc aujourd’hui. Un focus léger, ou même une vraie pause, suffit largement : ta marge encaisse ce jour au ralenti sans stress, et tu repartiras l’esprit bien plus tranchant. » C’est le cas où lever le pied coûte le moins : l’objectif est déjà à l’abri, un jour au ralenti se rattrape tout seul. Honnête : il n’en parle qu’avec un check-in du jour et une forme réellement basse. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.170', emoji: '🎁', text: 'Ton coach « Le focus du moment » sait maintenant, côté SPORT aussi, cadrer une séance de plus en bonus libre quand ton objectif de séances de la semaine est DÉJÀ bouclé. C’est le pendant exact de ce qu’il fait déjà côté deep work quand ton objectif de minutes est atteint. Jusqu’ici, une fois l’objectif hebdo de séances tenu (« Objectif hebdo déjà tenu : 2/2 séances 💪 »), il ne regardait plus ta forme du jour. Désormais, si ton objectif est bouclé, qu’un check-in de récup du matin met ton corps au vert (readiness ≥ 75) ET que tu n’as pas déjà bougé aujourd’hui, il ajoute : « Et ta forme est au top ce matin (readiness 88/100) : objectif de séances déjà dans la poche, aucune obligation de t’y remettre aujourd’hui — mais si l’envie de bouger est là, chaque séance en plus est du gain offert, du rab pris sans aucun compteur dans le dos. » Il ne te pousse pas à « lever le pied » (ton action du jour, elle, reste « prêt à pousser » si le corps suit) : il retire simplement la pression du calendrier — l’objectif est tenu, donc toute séance de plus est un pur bonus, pris par envie et sans culpabilité. Honnête : il n’en parle qu’au vert (objectif bouclé + forme moyenne ou basse = rien à ajouter), exige un check-in du jour et se tait si tu as déjà bougé aujourd’hui. La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.169', emoji: '🎁', text: 'Ton coach « Le focus du moment » ne laisse plus tes bons jours sans un mot quand ton objectif focus est DÉJÀ bouclé. Jusqu’ici, une fois l’objectif hebdo de minutes atteint (« Objectif hebdo atteint : 130/120 min 💪 »), il ne regardait plus ta forme du jour. Désormais, si ton objectif est bouclé ET qu’un check-in de récup du matin met ta tête au vert (readiness ≥ 75), il cadre honnêtement ce que ça veut dire : « Objectif bouclé et la forme est au rendez-vous ce matin (readiness 88/100) : plus aucune cible à tenir — un bloc de plus serait du pur bonus, sans la moindre pression, juste un peu d’avance offerte à ta semaine prochaine si l’envie te prend. » Ni une injonction, ni une invitation à « prendre de l’avance » comme quand il reste un objectif à sécuriser : l’objectif est tenu, donc tout bloc de plus est du PUR BONUS, à faire par envie et sans culpabilité. Honnête : il n’en parle qu’au vert (objectif bouclé + tête moyenne ou basse = rien à ajouter, l’objectif est tenu) et exige un check-in du jour. La note enrichit l’insight, ton action du jour reste intacte.' },
@@ -6325,6 +6326,46 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       }
     }
   }
+  // Coach CONSCIENT de l'ÉQUILIBRE course ↔ muscu — un axe de MODALITÉ, totalement neuf : jusqu'ici le
+  // pilier sport ne lisait que la FRÉQUENCE (jours actifs, allure hebdo), la FORME du jour (readiness), la
+  // CHARGE (ACWR) et les carburants chroniques — jamais la RÉPARTITION entre course et renforcement. Or
+  // Adrien est un athlète HYBRIDE (trail + renfo) : pour lui, une semaine entièrement d'un seul côté est un
+  // vrai trou. Tout-cardio, zéro renfo → les gains de force fondent et les appuis/tendons que la course
+  // sollicite perdent le renfort qui les protège (terrain à blessure). Tout-muscu, zéro course → la base
+  // aérobie patiemment construite s'érode. Le déséquilibre est invisible à tous les autres signaux (la
+  // fréquence peut être parfaite, la charge optimale, la forme au vert — et la semaine quand même 100 %
+  // course). On lit weekTrainingBalance (7 j récents) : la note ne parle QUE si la semaine est PURE d'un
+  // côté (runs === 0 XOR strength === 0) avec un vrai volume (total ≥ 3 séances — 1-2 séances d'un type ne
+  // font pas un déséquilibre) ET si Adrien pratique BEL ET BIEN les deux d'habitude (weekTrainingBalance sur
+  // 28 j : runs > 0 ET strength > 0) — sans cette preuve d'hybridité, pousser du renfo à un coureur pur (ou
+  // l'inverse) serait du bruit, pas du coaching. On NOMME le manque et le pilier à recaler. Additif pur :
+  // trainBalanceGuard ({ missing: 'run'|'strength', count } ou null) TOUJOURS renvoyé ; note APPENDUE à
+  // l'insight, action (séance/charge/repos) intacte. Garde-fous cohérents avec les autres notes sport :
+  // séance du jour pas déjà faite (!doneToday), pilier pas dormant (!reviveEligible → un micro-pas de
+  // reprise n'a pas à parler d'équilibre), forme du jour qui n'ordonne pas le repos (readiness null ou ≥ 50)
+  // et PAS en pic de charge (loadSpike null — « ajoute une séance » contredirait « allège »). Vocabulaire
+  // distinct (« l'équilibre de ta semaine », « tout-cardio/tout-muscu », « rééquilibrer ») — zéro collision
+  // à l'œil ni en regex avec les notes readiness/charge/carburant sport. Réemploi total (weekTrainingBalance,
+  // doneToday, readiness, loadSpike, reviveEligible) — zéro nouvelle fonction pure.
+  let trainBalanceGuard = null;
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+      && (readiness == null || readiness >= 50) && typeof weekTrainingBalance === 'function') {
+    const recent = weekTrainingBalance(s.workouts, todayKey, 7);
+    if (recent && recent.total >= 3 && (recent.runs === 0 || recent.strength === 0)) {
+      const span = weekTrainingBalance(s.workouts, todayKey, 28);
+      if (span && span.runs > 0 && span.strength > 0) {
+        if (recent.runs === 0) {
+          // Semaine 100 % muscu → il manque la course.
+          trainBalanceGuard = { missing: 'run', count: recent.strength };
+          insight += ` Et regarde l’équilibre de ta semaine : ${recent.strength} séance${recent.strength > 1 ? 's' : ''} de muscu et zéro course, alors que tu pratiques les deux d’habitude — une semaine tout-muscu érode la base aérobie que tu as construite. Cale une sortie de course pour rééquilibrer.`;
+        } else {
+          // Semaine 100 % course → il manque le renfo.
+          trainBalanceGuard = { missing: 'strength', count: recent.runs };
+          insight += ` Et regarde l’équilibre de ta semaine : ${recent.runs} sortie${recent.runs > 1 ? 's' : ''} de course et zéro renfo, alors que tu pratiques les deux d’habitude — une semaine tout-cardio laisse filer tes gains de force et prive les appuis que la course sollicite du renfort qui les protège. Cale une séance de renfo pour rééquilibrer.`;
+        }
+      }
+    }
+  }
   // Coach CONSCIENT du SOMMEIL comme CARBURANT de la CONCENTRATION — le pendant, côté FOCUS, de
   // sleepTrainGuard (#513, sport) et des guards nutrition (#511/#512). Avec lui, les QUATRE piliers
   // (nutrition ×2, sport, focus) croisent enfin le sommeil CHRONIQUE. Le pilier focus lit déjà l'allure
@@ -7103,7 +7144,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, focusMarginDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, trainBalanceGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, focusMarginDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.171 (2026-07-19)
+## 📍 État actuel — build 2.0.172 (2026-07-19)
+
+> ⚖️ **2.0.172** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach regarde enfin
+> l'**ÉQUILIBRE course ↔ muscu** (`trainBalanceGuard`) — un axe de **modalité** jusque-là totalement
+> ignoré. Le pilier sport lisait la **fréquence** (jours actifs, allure `sessionGoalPace`), la **forme
+> du jour** (`readiness`), la **charge** (ACWR `loadSpike`/`lowLoad`) et les **carburants chroniques**
+> (`*TrainGuard`), mais **jamais** la répartition entre course et renfo. Or Adrien est un athlète
+> **hybride** (trail + renfo) : une semaine 100 % d'un côté est un vrai trou, **invisible à tous les
+> autres signaux** (fréquence parfaite, charge optimale, forme au vert — et semaine quand même 100 %
+> course). Nouveau champ **`trainBalanceGuard`** (`{ missing, count }` ou `null`, toujours renvoyé) :
+> quand la semaine récente (7 j) bascule **à 100 % d'un côté** avec un vrai volume (≥ 3 séances), le
+> coach nomme le manque — tout-cardio → « une semaine tout-cardio laisse filer tes gains de force et
+> prive les appuis que la course sollicite du renfort qui les protège. Cale une séance de renfo pour
+> rééquilibrer. » (et le miroir tout-muscu → base aérobie). **Honnête** : ne parle qu'à un **hybride
+> prouvé** (les deux modalités présentes sur 28 j — jamais à un coureur pur), pas sur 1-2 séances, pas
+> les jours de repos (readiness < 50), ni en pic de charge (`loadSpike`), ni séance déjà faite. La note
+> **enrichit** l'insight, l'action du jour reste intacte. **Zéro** nouvelle fonction (réemploi
+> `weekTrainingBalance`, `doneToday`, `readiness`, `loadSpike`, `reviveEligible`), zéro collision regex.
+> Fonctions pures + testées (+7 assertions), check smoke bloquant `coachFocus` étendu. Recap #541.
 
 > 😌 **2.0.171** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach te fait **lever le
 > pied** les jours où le **cerveau est à plat** MAIS où l'objectif focus est **confortablement dans les

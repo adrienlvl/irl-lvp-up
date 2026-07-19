@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.171'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.172'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -910,6 +910,12 @@ app.whenReady().then(async () => {
           // Honnêteté : objectif de séances bouclé × readiness moyenne (6/3/3 → 60) → aucun mot bonus.
           const fSessBonusMid = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }], goals: { sessions: 2 }, recovery: [{ date: '2026-07-15', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-15');
           if (fSessBonusMid.sessionGoalBonus !== null || /du gain offert/.test(fSessBonusMid.insight)) return false;
+          // ÉQUILIBRE course ↔ muscu (trainBalanceGuard) : athlète hybride (muscu 06-25 + course sur 28 j) dont la semaine bascule à 100 % course (3 sorties, 0 renfo) → note « rééquilibrer » côté renfo.
+          const fBalance = adaptiveCoachFocus({ workouts: [{ date: '2026-06-25', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] }, { date: '2026-07-10', type: 'run' }, { date: '2026-07-12', type: 'run' }, { date: '2026-07-14', type: 'run' }] }, '2026-07-16');
+          if (!(fBalance.pillar === 'sport' && fBalance.trainBalanceGuard && fBalance.trainBalanceGuard.missing === 'strength' && fBalance.trainBalanceGuard.count === 3 && /tout-cardio/.test(fBalance.insight) && /Cale une séance de renfo pour rééquilibrer/.test(fBalance.insight))) return false;
+          // Coureur PUR (aucune muscu sur 28 j) → hybridité non prouvée → aucune note d'équilibre.
+          const fPureRun = adaptiveCoachFocus({ workouts: [{ date: '2026-07-10', type: 'run' }, { date: '2026-07-12', type: 'run' }, { date: '2026-07-14', type: 'run' }] }, '2026-07-16');
+          if (fPureRun.trainBalanceGuard !== null || /rééquilibrer/.test(fPureRun.insight)) return false;
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;

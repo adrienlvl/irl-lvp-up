@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.171');
+  assert.equal(L.CHANGELOG[0].v, '2.0.172');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9315,6 +9315,49 @@ test('adaptiveCoachFocus : focus sport — le SOMMEIL court, socle invisible des
   const done = L.adaptiveCoachFocus({ workouts: [...workouts, { date: today }], recovery: shortSleep }, today);
   assert.equal(done.sleepTrainGuard, null);
   assert.doesNotMatch(done.insight, /socle invisible/);
+});
+
+test('adaptiveCoachFocus : focus sport — ÉQUILIBRE course ↔ muscu déséquilibré (trainBalanceGuard)', () => {
+  const today = '2026-07-16';
+  const strengthDay = d => ({ date: d, exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] });
+  // Athlète HYBRIDE : muscu il y a 3 semaines (06-25) PUIS 3 sorties de course cette semaine (07-10/12/14).
+  // Semaine récente (7 j) = 100 % course → il manque le renfo. Le mois (28 j) contient bien les deux → hybridité prouvée.
+  const allRun = { workouts: [strengthDay('2026-06-25'), { date: '2026-07-10', type: 'run' }, { date: '2026-07-12', type: 'run' }, { date: '2026-07-14', type: 'run' }] };
+  const fRun = L.adaptiveCoachFocus(allRun, today);
+  assert.equal(fRun.pillar, 'sport');
+  assert.deepEqual(fRun.trainBalanceGuard, { missing: 'strength', count: 3 });
+  assert.match(fRun.insight, /3 sorties de course et zéro renfo/);
+  assert.match(fRun.insight, /tout-cardio laisse filer tes gains de force/);
+  assert.match(fRun.insight, /Cale une séance de renfo pour rééquilibrer/);
+  // Miroir : semaine 100 % muscu (3 séances) + une course il y a 3 semaines → il manque la course.
+  const allStrength = { workouts: [{ date: '2026-06-25', type: 'run' }, strengthDay('2026-07-10'), strengthDay('2026-07-12'), strengthDay('2026-07-14')] };
+  const fStr = L.adaptiveCoachFocus(allStrength, today);
+  assert.equal(fStr.pillar, 'sport');
+  assert.deepEqual(fStr.trainBalanceGuard, { missing: 'run', count: 3 });
+  assert.match(fStr.insight, /3 séances de muscu et zéro course/);
+  assert.match(fStr.insight, /tout-muscu érode la base aérobie/);
+  assert.match(fStr.insight, /Cale une sortie de course pour rééquilibrer/);
+  // Coureur PUR : aucune muscu sur le mois → hybridité NON prouvée → aucune note (ne pas pousser du renfo à un coureur pur).
+  const pureRun = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10', type: 'run' }, { date: '2026-07-12', type: 'run' }, { date: '2026-07-14', type: 'run' }] }, today);
+  assert.equal(pureRun.trainBalanceGuard, null);
+  assert.doesNotMatch(pureRun.insight, /rééquilibrer/);
+  // Seulement 2 séances d'un type cette semaine → pas un vrai déséquilibre (seuil ≥ 3) → null.
+  const thin = L.adaptiveCoachFocus({ workouts: [strengthDay('2026-06-25'), { date: '2026-07-12', type: 'run' }, { date: '2026-07-14', type: 'run' }] }, today);
+  assert.equal(thin.trainBalanceGuard, null);
+  // Séance DÉJÀ faite aujourd'hui (doneToday) → pas de conseil du jour → null.
+  const done = L.adaptiveCoachFocus({ workouts: [...allRun.workouts, { date: today, type: 'run' }] }, today);
+  assert.equal(done.trainBalanceGuard, null);
+  assert.doesNotMatch(done.insight, /rééquilibrer/);
+  // Forme du jour au plancher (readiness 40) → l'action ordonne le repos, on ne pousse pas une séance → null.
+  const tired = L.adaptiveCoachFocus({ ...allRun, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
+  assert.equal(tired.trainBalanceGuard, null);
+  assert.doesNotMatch(tired.insight, /rééquilibrer/);
+  // Charge en PIC (ACWR haut : 3 courses lourdes récentes vs base faible) → « allège » prime, la note d'équilibre se tait.
+  const spikeRun = d => ({ date: d, type: 'run', duration: 120, effort: 5 });
+  const spike = L.adaptiveCoachFocus({ workouts: [{ date: '2026-06-25', type: 'run', duration: 40, effort: 2 }, strengthDay('2026-06-26'), spikeRun('2026-07-10'), spikeRun('2026-07-12'), spikeRun('2026-07-14')] }, today);
+  assert.equal(spike.loadSpike !== null, true, 'setup : la charge doit bien être en pic');
+  assert.equal(spike.trainBalanceGuard, null);
+  assert.doesNotMatch(spike.insight, /rééquilibrer/);
 });
 
 test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de la concentration', () => {
