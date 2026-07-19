@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.159', emoji: '📏', text: 'Ton coach « Le focus du moment » ne se laisse plus tromper par la balance. Quand ton poids stagne sur un objectif de perte, il te conseillait de resserrer les calories — juste, sauf quand ta balance CACHE une vraie recomposition. Désormais, si ton tour de taille a fondu pendant que le poids ne bougeait plus, il le voit et te recadre : « Mais avant de resserrer : ton tour de taille a fondu de 3 cm sur les 65 derniers jours pendant que la balance stagnait — c’est de la recomposition (tu perds du gras en gardant le muscle), un progrès réel que le poids seul cache. La balance ne dit pas tout : tiens tes calories et tes protéines encore une semaine avant de couper, le résultat est déjà en cours. » Il t’évite ainsi de couper tes calories pour rien — et de saper ton muscle — alors que tu progresses déjà. Honnête : il ne parle que si tu as noté tes mensurations et que ta taille a vraiment baissé (≥ 1 cm). La note enrichit l’insight, sans effacer le repère de la balance.' },
   { v: '2.0.158', emoji: '🚀', text: 'Ton coach « Le focus du moment » ne sait plus seulement te dire quand ta force STAGNE — il te salue et te projette quand elle MONTE. C’est le pendant positif du plateau : quand un de tes exercices chargés (les mieux suivis) grimpe vraiment, il nomme le lift, son 1RM estimé, ta pente hebdo et surtout ton prochain cap : « Sur ta lancée : ton Squat gagne du terrain — 1RM estimé à 97,5 kg (+2,5 kg/sem). À ce rythme, tu passes la barre des 100 kg dans ~1 semaine — garde ce cap de surcharge progressive. » Cette projection vivait jusqu’ici seulement dans ton onglet Athlète — la voilà dans le coach du jour, pour transformer un chiffre en objectif motivant. Honnête : il ne parle que sur des exercices chargés avec une vraie pente positive, et jamais en même temps qu’une alerte de plateau (on ne te dit pas « ça stagne » et « ça grimpe » d’un même souffle — la correction du plateau passe d’abord). Ton action du jour reste intacte : la note enrichit l’insight, elle ne le remplace pas.' },
   { v: '2.0.157', emoji: '📈', text: 'Ton coach « Le focus du moment » regarde désormais si ta FORCE progresse vraiment. Il savait déjà te dire DE t’entraîner, QUAND (créneau libre) et QUOI travailler (groupe le plus reposé) — mais jamais si la charge avance. Maintenant, quand un de tes exercices chargés (les mieux suivis) stagne — son 1RM estimé ne dépasse plus son record sur tes 3 dernières séances —, il te le nomme et te donne le geste concret pour débloquer : « Côté progression : ton Squat marque le pas — son 1RM estimé stagne autour de 116,5 kg depuis 3 séances, sans nouveau record. Pour débloquer ça : ajoute une répétition à charge égale, ralentis la phase de descente, ou décharge une semaine avant de reprendre plus lourd. » Cette détection de plateau vivait jusqu’ici seulement dans ton onglet Athlète — la voilà dans le coach du jour. Honnête : il ne parle que sur des exercices chargés avec assez d’historique, et seulement quand ton entraînement est régulier (jamais quand le sport est décroché, ni un jour où ta séance est déjà faite). Ton action du jour reste intacte : la note enrichit l’insight, elle ne le remplace pas.' },
   { v: '2.0.156', emoji: '🔎', text: 'Ton coach « Le focus du moment » ne te donne plus seulement ton score de forme du jour — il te dit ce qui le PLOMBE. Jusqu’ici, sur un check-in de récup au-dessous du vert, il calait l’intensité (« readiness 63/100 — séance correcte, garde une marge ») sans jamais nommer POURQUOI ta forme est basse, alors que le bon geste diffère selon le frein. Désormais, quand un facteur domine nettement ton check-in, il le nomme et adapte le conseil : des courbatures → « Ce qui pèse le plus : tes courbatures (5/5) — épargne les groupes musculaires déjà douloureux et laisse-les récupérer plutôt que de forcer dessus. » ; une fatigue générale → « réduis le volume plutôt que l’intensité, et vise un vrai repos ce soir » ; une nuit courte → « garde léger, ce qui rechargera vraiment ta forme c’est le sommeil de ce soir, pas l’effort. » Il ne parle que quand un frein ressort clairement : si deux se valent (tout au rouge), il ne pointe pas un coupable au hasard. Un « pourquoi » tiré de tes vraies composantes de check-in, qui affine ton geste du jour sans jamais le remplacer.' },
@@ -5488,7 +5489,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Additif pur : weightPace (kg/sem, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight, action
   // (protéines) intacte. Deux axes distincts (habitude nutrition vs résultat balance) → pas de
   // contradiction avec le ton. Données réelles seulement (≥ 2 pesées exploitables, sinon null).
-  let weightGoalPct = null, weightPace = null, calorieTarget = null, sleepFatLossGuard = null, sleepGainGuard = null;
+  let weightGoalPct = null, weightPace = null, calorieTarget = null, sleepFatLossGuard = null, sleepGainGuard = null, recompFraming = null;
   if (chosen.pillar === 'nutrition' && typeof weightGoalProgress === 'function') {
     const tgtW = Number(s.goals && s.goals.targetWeight);
     const fbW = Number(s.profile && s.profile.weight);
@@ -5555,6 +5556,30 @@ function adaptiveCoachFocus(state, todayKey, opts) {
                 }
               }
               insight += ` ${obs}${tail}`;
+              // Coach du RÉ-CADRAGE par RECOMPOSITION — la balance ne dit pas tout. La note juste au-dessus
+              // conseille de RESSERRER les calories quand la balance stagne sur un objectif de PERTE. Mais un
+              // poids stable peut MASQUER une vraie recomposition (perte de gras + maintien du muscle) — invisible
+              // sur la balance, lisible seulement au TOUR DE TAILLE. Couper les calories dans ce cas serait une
+              // erreur : le corps progresse déjà, on saperait le muscle pour rien. On lit measurementRecentDelta
+              // ('waist', ~60 j) et on passe le duo (poids ~flat, delta taille) à recompositionInsight — deux
+              // fonctions PURES existantes qui vivaient dans l'onglet Progrès (carte « Coach Poids » + panneau
+              // mensurations), JAMAIS dans le coach du jour. Clé 'recomp' → on APPEND un recadrage qui NOMME le
+              // cm perdu et invite à NE PAS resserrer encore (« la balance ne dit pas tout »). C'est l'axe
+              // « adaptation dynamique aux PROGRÈS » : reconnaître un gain caché ET éviter un mauvais conseil.
+              // HONNÊTE : ne parle QUE dans la branche flat (weight ~stable garanti → w=0 fidèle) et QUE si le
+              // tour de taille a fondu d'au moins 1 cm (seuil porté par recompositionInsight, source unique).
+              // Additif pur : champ recompFraming ({ waistDelta, spanDays } ou null) TOUJOURS renvoyé. Vocabulaire
+              // distinct (« recomposition », « la balance ne dit pas tout », « tour de taille a fondu ») — zéro
+              // collision avec les guards sommeil (« frein caché/invisible ») ni la note flat (« resserre »).
+              if (wt.direction === 'flat' && wp.direction === 'perte' && typeof measurementRecentDelta === 'function'
+                  && typeof recompositionInsight === 'function') {
+                const wd = measurementRecentDelta(s.measurements, 'waist', 60);
+                const rec = wd ? recompositionInsight(0, wd.delta) : null;
+                if (rec && rec.key === 'recomp') {
+                  recompFraming = { waistDelta: wd.delta, spanDays: wd.spanDays };
+                  insight += ` Mais avant de resserrer : ton tour de taille a fondu de ${numW(Math.abs(wd.delta))} cm sur les ${wd.spanDays} derniers jours pendant que la balance stagnait — c’est de la recomposition (tu perds du gras en gardant le muscle), un progrès réel que le poids seul cache. La balance ne dit pas tout : tiens tes calories et tes protéines encore une semaine avant de couper, le résultat est déjà en cours.`;
+                }
+              }
             }
           }
         }
@@ -6743,7 +6768,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

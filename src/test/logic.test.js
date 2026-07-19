@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.158');
+  assert.equal(L.CHANGELOG[0].v, '2.0.159');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8876,6 +8876,50 @@ test('adaptiveCoachFocus : focus nutrition — plateau confirmé → cible calor
   const noProfile = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights }, today);
   assert.equal(noProfile.calorieTarget, null);
   assert.match(noProfile.insight, /baisse un peu tes calories ou ajoute du cardio/);
+});
+
+test('adaptiveCoachFocus : focus nutrition — balance flat + tour de taille qui fond → RECADRAGE recomposition', () => {
+  const today = '2026-07-16';
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 },
+    { date: '2026-07-15', protein: 100 },
+  ];
+  const flatWeights = [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 },
+    { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 },
+    { date: '2026-07-14', value: 82 },
+  ];
+  // RECOMP : balance plate (perte, « ne descend plus ») MAIS le tour de taille a fondu de 3 cm (~65 j).
+  const measurements = [{ date: '2026-05-10', waist: 92 }, { date: '2026-07-14', waist: 89 }];
+  const recomp = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights, measurements }, today);
+  assert.deepEqual(recomp.recompFraming, { waistDelta: -3, spanDays: 65 });
+  assert.match(recomp.insight, /ton tour de taille a fondu de 3 cm sur les 65 derniers jours/);
+  assert.match(recomp.insight, /recomposition.*tu perds du gras en gardant le muscle/);
+  assert.match(recomp.insight, /La balance ne dit pas tout/);
+  // La note flat (« baisse un peu tes calories ») reste — le recadrage l'AFFINE, ne l'efface pas.
+  assert.match(recomp.insight, /Mais la balance ne descend plus/);
+  // Sans mensuration → pas de recadrage.
+  const noMeas = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights }, today);
+  assert.equal(noMeas.recompFraming, null);
+  assert.ok(!/recomposition/.test(noMeas.insight), 'aucune mensuration : pas de note recomp');
+  // Tour de taille STABLE (delta 0) → recompositionInsight ne renvoie pas 'recomp' → muet.
+  const flatWaist = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights,
+    measurements: [{ date: '2026-05-10', waist: 90 }, { date: '2026-07-14', waist: 90 }] }, today);
+  assert.equal(flatWaist.recompFraming, null);
+  // Objectif de PRISE : la recomposition-perte n'a pas de sens ici → muet même si la taille baisse.
+  const gain = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 85 }, measurements, weights: [
+    { date: '2026-05-01', value: 78 }, { date: '2026-06-10', value: 81 }, { date: '2026-06-20', value: 81 },
+    { date: '2026-06-30', value: 81 }, { date: '2026-07-05', value: 81 }, { date: '2026-07-10', value: 81 },
+    { date: '2026-07-14', value: 81 },
+  ] }, today);
+  assert.equal(gain.recompFraming, null);
+  // Balance qui DESCEND vraiment (pas flat) → branche flat inactive → pas de recadrage (fatloss, pas recomp).
+  const losing = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, measurements, weights: [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 84 }, { date: '2026-06-20', value: 83.5 },
+    { date: '2026-06-30', value: 83 }, { date: '2026-07-05', value: 82.5 }, { date: '2026-07-10', value: 82 },
+    { date: '2026-07-14', value: 81.5 },
+  ] }, today);
+  assert.equal(losing.recompFraming, null);
 });
 
 test('adaptiveCoachFocus : focus nutrition — le SOMMEIL court, frein caché de la perte de gras', () => {

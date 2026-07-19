@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.158 (2026-07-19)
+## 📍 État actuel — build 2.0.159 (2026-07-19)
+
+> 📏 **2.0.159** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach ne se laisse plus
+> **tromper par la balance**. Sur un objectif de perte au poids stagnant, il déclenchait une note « balance
+> flat » conseillant de **resserrer les calories** (jusqu'à la cible chiffrée, #499) — juste, sauf quand la
+> balance **CACHE une recomposition** (poids stable, **tour de taille qui fond** : perte de gras + maintien
+> du muscle). Couper alors serait une **erreur** : le corps progresse déjà. Nouveau champ **`recompFraming`**
+> (`{ waistDelta, spanDays }` ou `null`) : dans la branche flat, réemploi de **`measurementRecentDelta`**
+> (taille ~60 j) + **`recompositionInsight`** (clé `'recomp'`) — deux fonctions pures qui ne vivaient que
+> dans l'onglet Progrès, **jamais** dans le coach du jour. Quand la taille a fondu pendant que la balance
+> stagnait, le coach recadre, appendu à la note flat : « Mais avant de resserrer : ton **tour de taille a
+> fondu de 3 cm** sur les 65 derniers jours pendant que la balance stagnait — c'est de la **recomposition**
+> (tu perds du gras en gardant le muscle)… **La balance ne dit pas tout** : tiens tes calories et tes
+> protéines encore une semaine avant de couper. » Axe « adaptation aux **progrès** » : reconnaître un gain
+> caché ET éviter un mauvais conseil (saper le muscle pour rien). **HONNÊTE** : branche flat uniquement
+> (`wt.direction === 'flat'` → poids vraiment stable, `w = 0` fidèle), objectif **perte** seulement, seuil
+> à source unique (`recompositionInsight`), données réelles (≥ 2 mensurations, taille ≥ 1 cm de baisse).
+> **Affine, ne remplace pas** : note flat + `calorieTarget` intacts. Vocabulaire distinct (« recomposition »,
+> « la balance ne dit pas tout ») — zéro collision regex. Réemploi total, **zéro** nouvelle fonction.
+> Fonctions pures + testées, check smoke bloquant `coachFocus` étendu. Recap #528.
 
 > 🚀 **2.0.158** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach sport savait dire
 > quand ta force **STAGNE** (`sportPlateau`, #526) — voici le **pendant positif**, quand elle **MONTE**.
