@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.154 (2026-07-19)
+## 📍 État actuel — build 2.0.155 (2026-07-19)
+
+> 🦵 **2.0.155** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach ne dit plus seulement
+> **DE** s'entraîner et **QUAND** (créneau `sportSlot`) — il dit désormais **QUOI travailler**. Nouveau champ
+> **`sportZoneFocus`** (`{zone, days, sets}` ou `null`) : sur le pilier SPORT, séance du jour pas encore faite
+> et vraie séance encouragée, le coach lit l'historique d'exercices réels via `suggestTrainingFocus` (repos en
+> jours + déficit vers le minimum hebdo de 10 séries, zones travaillées < 2 j écartées) et **nomme le groupe
+> musculaire le plus reposé et le moins servi** dans l'action — « Et cible en priorité **les jambes** : c'est
+> ton groupe le plus reposé (rien depuis 10 j, 0 série cette semaine) — de quoi équilibrer ta semaine. » Un
+> groupe encore jamais ciblé ? Il invite à l'**inaugurer**. **HONNÊTE** : muet tant qu'aucun exercice nommé n'a
+> jamais été loggé (`zoneFreshness` tout en `'never'` → on ne devine pas). Même gate que `sportSlot` (pilier
+> SPORT · `!doneToday` · `!reviveEligible` · pas de spike de charge · readiness pas au rouge) : on ne désigne un
+> groupe à **charger** que quand une vraie séance a du sens (jamais un jour récup/micro-pas). Vocabulaire distinct
+> (« groupe le plus reposé », « cible en priorité », « équilibrer ta semaine ») — zéro collision regex avec
+> `sportSlot` (« cale ta séance ») ni les guards récup. Additif pur, réemploi total (`suggestTrainingFocus`,
+> `zoneFreshness`, `TRAINING_GOALS`), **zéro** nouvelle fonction. Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #524.
 
 > 🏆 **2.0.154** — Coaching adaptatif poussé à fond (priorité de la nuit) : après une salve d'alertes de
 > **déficit** (guards sommeil/hydratation/mobilité/protéine, `habitAtRisk`), le coach renoue avec le

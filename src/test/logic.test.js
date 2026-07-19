@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.154');
+  assert.equal(L.CHANGELOG[0].v, '2.0.155');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9365,6 +9365,48 @@ test('adaptiveCoachFocus : cale la séance de sport dans un créneau libre de l�
   }, today, { nowMinutes: 8 * 60 });
   assert.equal(focus.pillar, 'focus');
   assert.equal(focus.sportSlot, null, 'le créneau séance ne concerne que le pilier sport');
+});
+
+test('adaptiveCoachFocus : nomme le GROUPE MUSCULAIRE à cibler en priorité (sportZoneFocus)', () => {
+  const today = '2026-07-16';
+  // Jambes travaillées il y a 10 j, tout le reste hier → jambes = groupe le plus reposé.
+  const wk = [
+    { date: '2026-07-06', exercises: [{ name: 'Chaise au mur', sets: 3 }] },
+    { date: '2026-07-15', exercises: [{ name: 'Pompes classiques', sets: 3 }, { name: 'Gainage planche', sets: 3 }, { name: 'Superman', sets: 3 }, { name: 'Pont fessier', sets: 3 }] },
+  ];
+  const f = L.adaptiveCoachFocus({ workouts: wk }, today);
+  assert.equal(f.pillar, 'sport');
+  assert.deepEqual(f.sportZoneFocus, { zone: 'legs', days: 10, sets: 0 }, 'zone reposée = jambes, 10 j, 0 série');
+  assert.match(f.action, /cible en priorité les jambes/, 'le groupe est nommé dans l’action');
+  assert.match(f.action, /le plus reposé \(rien depuis 10 j, 0 série cette semaine\)/, 'repos et volume hebdo cités');
+  // Zone JAMAIS ciblée (mais historique ailleurs) → libellé « inaugurer », days null.
+  const wkNew = [
+    { date: '2026-07-11', exercises: [{ name: 'Superman', sets: 2 }] },
+    { date: '2026-07-15', exercises: [{ name: 'Pompes classiques', sets: 3 }, { name: 'Gainage planche', sets: 3 }, { name: 'Pont fessier', sets: 3 }] },
+  ];
+  const fNew = L.adaptiveCoachFocus({ workouts: wkNew }, today);
+  assert.equal(fNew.sportZoneFocus.zone, 'legs');
+  assert.equal(fNew.sportZoneFocus.days, null, 'jamais ciblée → days null');
+  assert.match(fNew.action, /jamais ciblé ici — le bon jour pour l’inaugurer/, 'libellé zone inédite');
+  // Aucun exercice NOMMÉ jamais loggé → pas de données de zone → muet (on ne devine pas).
+  const fBlind = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-15' }] }, today);
+  assert.equal(fBlind.pillar, 'sport');
+  assert.equal(fBlind.sportZoneFocus, null, 'sans exercice nommé, aucune zone devinée');
+  assert.ok(!/cible en priorité/.test(fBlind.action), 'action générique inchangée');
+  // Séance déjà faite aujourd’hui → pas de zone à charger (on crédite, on ne pousse pas).
+  const fDone = L.adaptiveCoachFocus({ workouts: [...wk, { date: today, exercises: [{ name: 'Chaise au mur', sets: 3 }] }] }, today);
+  assert.equal(fDone.doneToday, true);
+  assert.equal(fDone.sportZoneFocus, null, 'séance faite → pas de recommandation de groupe');
+  // Readiness au rouge (récup prioritaire) sur un décrochage sport → pas de groupe à charger, cohérent avec « vas-y mollo ».
+  const pRed = d => ({ date: d, exercises: [{ name: 'Pompes classiques', sets: 3 }] });
+  const fRed = L.adaptiveCoachFocus({ workouts: [pRed('2026-07-05'), pRed('2026-07-06'), pRed('2026-07-07'), pRed('2026-07-14')], recovery: [{ date: today, sleep: 7, fatigue: 5, soreness: 5 }] }, today);
+  assert.equal(fRed.pillar, 'sport');
+  assert.ok(fRed.readiness != null && fRed.readiness < 50, 'readiness basse');
+  assert.equal(fRed.sportZoneFocus, null, 'jour récup → pas de groupe à charger');
+  // Autre pilier (focus) → sportZoneFocus toujours null.
+  const fFoc = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-07', minutes: 30 }, { date: '2026-07-14', minutes: 30 }] }, today);
+  assert.equal(fFoc.pillar, 'focus');
+  assert.equal(fFoc.sportZoneFocus, null, 'zone musculaire = pilier sport uniquement');
 });
 
 test('adaptiveCoachFocus : crédite le geste déjà fait aujourd’hui (sport/focus), pas sommeil/nutrition', () => {

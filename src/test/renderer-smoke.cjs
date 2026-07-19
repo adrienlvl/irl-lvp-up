@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.154'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.155'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -960,6 +960,15 @@ app.whenReady().then(async () => {
           // Protéines à la cible (140 ≥ 135) → aucune note matériau.
           const fProtOk = adaptiveCoachFocus({ workouts: fProtWk, profile: { weight: 75, goal: 'muscle' }, nutrition: fProtNut.map(n => ({ date: n.date, protein: 140 })) }, '2026-07-16');
           if (fProtOk.proteinTrainGuard !== null || /mat[ée]riau de tes gains/.test(fProtOk.insight)) return false;
+          // Coach du CONTENU de séance (sportZoneFocus) : jambes travaillées il y a 10 j, tout le reste hier → groupe le plus reposé nommé dans l'action.
+          const fZoneWk = [{ date: '2026-07-06', exercises: [{ name: 'Chaise au mur', sets: 3 }] }, { date: '2026-07-15', exercises: [{ name: 'Pompes classiques', sets: 3 }, { name: 'Gainage planche', sets: 3 }, { name: 'Superman', sets: 3 }, { name: 'Pont fessier', sets: 3 }] }];
+          const fZone = adaptiveCoachFocus({ workouts: fZoneWk }, '2026-07-16');
+          if (!(fZone.pillar === 'sport' && fZone.sportZoneFocus && fZone.sportZoneFocus.zone === 'legs' && fZone.sportZoneFocus.days === 10 && fZone.sportZoneFocus.sets === 0 && /cible en priorité les jambes : c.est ton groupe le plus repos[ée] \\(rien depuis 10 j, 0 série cette semaine\\)/.test(fZone.action))) return false;
+          // Aucun exercice nommé jamais loggé → aucune zone devinée (muet).
+          const fZoneBlind = adaptiveCoachFocus({ workouts: [{ date: '2026-07-05' }, { date: '2026-07-07' }, { date: '2026-07-15' }] }, '2026-07-16');
+          if (fZoneBlind.sportZoneFocus !== null || /cible en priorité/.test(fZoneBlind.action)) return false;
+          // Séance déjà faite aujourd'hui → pas de groupe à charger.
+          if (adaptiveCoachFocus({ workouts: [...fZoneWk, { date: '2026-07-16', exercises: [{ name: 'Chaise au mur', sets: 3 }] }] }, '2026-07-16').sportZoneFocus !== null) return false;
           // Coach INTER-PILIER : FORME du jour basse (readiness < 50, check-in du jour, sommeil 8 h → guards sommeil muets) × pilier NUTRITION → note « l'assiette dérape » (readinessNutriGuard).
           const fLowForm = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }], recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 5, soreness: 5 }] }, '2026-07-16');
           if (!(fLowForm.pillar === 'nutrition' && fLowForm.readinessNutriGuard === 40 && fLowForm.sleepFatLossGuard === null && fLowForm.sleepGainGuard === null && /ta forme est basse ce matin \\(readiness 40\\/100\\), et les jours de fatigue sont ceux o[ùu] l.assiette d[ée]rape le plus/.test(fLowForm.insight) && /te prot[èe]gent des fringales bien mieux que la volont[ée]/.test(fLowForm.insight))) return false;

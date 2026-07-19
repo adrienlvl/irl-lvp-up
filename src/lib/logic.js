@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.155', emoji: '🦵', text: 'Ton coach « Le focus du moment » ne se contente plus de te dire DE t’entraîner et QUAND (créneau libre du jour) — il te dit désormais QUOI travailler. À partir de ton historique d’exercices réels, il repère le groupe musculaire le plus reposé ET le moins servi cette semaine (repos en jours + séries manquantes vers le minimum hebdo, en écartant ce que tu as travaillé il y a moins de 2 jours) et te le nomme dans l’action : « Et cible en priorité les jambes : c’est ton groupe le plus reposé (rien depuis 10 j, 0 série cette semaine) — de quoi équilibrer ta semaine. » Un groupe encore jamais ciblé ? Il t’invite à l’inaugurer. La recommandation reste honnête : tant que tu n’as loggé aucun exercice nommé, il ne devine rien et se tait ; il ne pousse pas de groupe à charger un jour de récup (forme au rouge) ni si ta séance est déjà faite. Ton action du jour reste sinon intacte.' },
   { v: '2.0.154', emoji: '🏆', text: 'Ton coach « Le focus du moment » ne fait plus que t’avertir quand une chaîne d’habitude va tomber (« ne casse pas la chaîne ») — il te FÉLICITE quand une série vient d’atteindre un palier. Quand une habitude cochée aujourd’hui franchit pile un jalon (3, 7, 14, 30, 60, 100, 180 ou 365 jours), il le célèbre : « 🏆 Chaîne au sommet : ton habitude « Lecture » atteint une semaine complète (7 jours consécutifs) aujourd’hui — un vrai palier, l’automatisme s’installe. Savoure et enchaîne le prochain maillon. » Le pendant positif de l’alerte de série en jeu : après une salve de rappels côté déficit (sommeil, hydratation, mobilité, protéines), le coach renoue avec le renforcement du progrès. Il nomme le palier le plus impressionnant du jour, ne se répète pas (chaque jalon n’est franchi qu’une fois), et ton action du jour reste intacte.' },
   { v: '2.0.153', emoji: '🥩', text: 'Ton coach « Le focus du moment » lit enfin tes PROTÉINES quand il te pilote sur l’ENTRAÎNEMENT — le maillon qui manquait à sa lecture du sport. Il regardait déjà ta charge, ta forme du jour, ton sommeil, ton hydratation et ta récupération active (mobilité), mais restait aveugle au MATÉRIAU même de tes gains : l’entraînement ne fait que casser le muscle (microlésions), c’est la protéine de ton assiette qui fournit les briques pour le reconstruire plus fort. T’entraîner dur en mangeant chroniquement trop peu de protéines, c’est plafonner les gains de chaque séance — le stimulus est là, le matériau manque. Désormais, quand il te pilote sur le sport, que tu t’entraînes vraiment ces jours-ci, qu’aucune note de sommeil, d’hydratation ou de mobilité ne prime déjà, et que tes derniers jours renseignés montrent ta cible protéines atteinte sur moins de la moitié des jours, il te le dit : « Et pense au matériau de tes gains : sur tes 4 derniers jours renseignés, tu n’atteins ta cible protéines (135 g) que 0/4 — or l’entraînement ne fait que casser le muscle, c’est la protéine qui fournit les briques pour le reconstruire plus fort, et sans elle en quantité suffisante chaque séance rend moins. Vise 135 g aujourd’hui, répartis sur tes repas. » La cible est calée sur ton poids et ton objectif, exactement comme sur l’onglet Nutrition ; la note n’apparaît que sur ce cas précis et ton action du jour reste intacte.' },
   { v: '2.0.152', emoji: '🧘', text: 'Ton coach « Le focus du moment » voit enfin ton pilier BIEN-ÊTRE / MOBILITÉ — une donnée qu’il n’avait jamais lue : il ne regardait que ton sport, ton focus, ton sommeil, ta nutrition, tes habitudes, tes candidatures et ton poids. Sur le SPORT, il lisait déjà ta charge, ta forme du jour, ton sommeil et ton hydratation, mais restait aveugle à la RÉCUPÉRATION ACTIVE : quand tu t’entraînes régulièrement sans jamais relâcher (mobilité, étirements), tes tissus et articulations encaissent la charge sans contrepartie — c’est le terrain des tensions et des blessures de surcharge qui s’installent en silence, et la souplesse qui se perd bride ton amplitude. Désormais, quand il te pilote sur le sport, que tu t’entraînes vraiment ces jours-ci, qu’aucune note de sommeil ou d’hydratation ne prime déjà, et que ça fait au moins 4 jours sans routine bien-être (alors que tu en as déjà fait), il te le dit : « Un dernier levier, côté récupération : ça fait 6 jours sans routine mobilité alors que tu t’entraînes régulièrement en ce moment — les tissus et articulations encaissent la charge sans jamais relâcher, et c’est le terrain des tensions et des blessures de surcharge qui s’installent en silence. 5 min de mobilité ou d’étirements aujourd’hui entretiennent ce capital et accélèrent la récup entre les séances. » Il ne te relance jamais sur le bien-être si tu n’y as jamais touché, et ton action du jour reste intacte.' },
@@ -6164,6 +6165,44 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       }
     }
   }
+  // Coach du CONTENU de séance — jusqu'ici l'action sport disait DE s'entraîner (« programme une
+  // séance courte »), et sportSlot disait QUAND, mais jamais QUOI travailler. Or les données réelles
+  // savent quel groupe musculaire est le plus reposé ET le moins servi cette semaine :
+  // suggestTrainingFocus classe les zones par priorité = repos (jours depuis la dernière fois) + déficit
+  // vers le minimum hebdo de 10 séries, en EXCLUANT celles travaillées il y a < 2 j (pas encore récupérées).
+  // Le coach nomme donc le groupe à cibler EN PRIORITÉ aujourd'hui — la recommandation « concrète et
+  // actionnable » demandée, tirée de l'historique d'exercices d'Adrien, qui équilibre le corps au lieu de
+  // toujours retaper les mêmes muscles. MÊME gate que sportSlot (pilier SPORT, séance pas déjà faite,
+  // pas de ré-amorçage dormant, pas de spike de charge, readiness pas au rouge) : on ne désigne un groupe
+  // à CHARGER que quand une vraie séance est encouragée (pas un jour récup/micro-pas). HONNÊTE : muet tant
+  // qu'aucun exercice NOMMÉ n'a jamais été loggé (zoneFreshness tout en 'never' → on ne devine pas une
+  // zone sans données). Distingue « jamais ciblé ici » (zone inédite à inaugurer) de « le plus reposé
+  // depuis N j ». Additif pur : champ sportZoneFocus ({ zone, days, sets } ou null) TOUJOURS renvoyé ;
+  // note APPENDUE à l'action, aucune branche touchée. Réemploi total (suggestTrainingFocus, zoneFreshness)
+  // — zéro nouvelle fonction. Vocabulaire distinct (« groupe le plus reposé », « cible en priorité »,
+  // « équilibrer ta semaine ») — zéro collision regex avec sportSlot (« cale ta séance ») ni les guards
+  // récup (« socle invisible », « carburant », « matériau », « côté récupération »).
+  let sportZoneFocus = null;
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && (readiness == null || readiness >= 50)
+      && typeof suggestTrainingFocus === 'function' && typeof zoneFreshness === 'function') {
+    const fresh = zoneFreshness(s.workouts, todayKey);
+    const hasHistory = fresh.some(f => f.status === 'ready' || f.status === 'recent');
+    if (hasHistory) {
+      const foc = suggestTrainingFocus(s.workouts, todayKey);
+      if (foc.length) {
+        const top = foc[0];
+        const ZONE_FR = { abs: 'les abdos', arms: 'les bras', chest: 'les pectoraux', back: 'le dos', shoulders: 'les épaules', legs: 'les jambes', glutes: 'les fessiers' };
+        const zl = ZONE_FR[top.zone] || top.zone;
+        sportZoneFocus = { zone: top.zone, days: top.days, sets: top.sets };
+        if (top.days == null) {
+          action += ` Et cible en priorité ${zl} : un groupe que tu n’as encore jamais ciblé ici — le bon jour pour l’inaugurer et équilibrer ta semaine.`;
+        } else {
+          const setTxt = top.sets > 0 ? `${top.sets} série${top.sets > 1 ? 's' : ''} cette semaine` : '0 série cette semaine';
+          action += ` Et cible en priorité ${zl} : c’est ton groupe le plus reposé (rien depuis ${top.days} j, ${setTxt}) — de quoi équilibrer ta semaine.`;
+        }
+      }
+    }
+  }
   // Coach MÉTA-CONSCIENT du suivi : si ce MÊME pilier a déjà été poussé plusieurs fois récemment
   // (s.coachLog) SANS que rien ne bouge — conseil IGNORÉ, pas juste répété —, hausser le ton ne sert
   // à rien. Le coach change de registre : il propose une MICRO-marche (5-10 min) en le reconnaissant
@@ -6623,7 +6662,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 
