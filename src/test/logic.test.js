@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.149');
+  assert.equal(L.CHANGELOG[0].v, '2.0.150');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9024,6 +9024,46 @@ test('adaptiveCoachFocus : focus sport — hydratation basse, carburant oublié 
   const done = L.adaptiveCoachFocus({ workouts: [...workouts, { date: today }], recovery, nutrition }, today);
   assert.equal(done.hydrationTrainGuard, null);
   assert.doesNotMatch(done.insight, /un carburant qu’on oublie à l’effort/);
+});
+
+test('adaptiveCoachFocus : focus nutrition — forme du jour basse, l’assiette dérape (readinessNutriGuard)', () => {
+  const today = '2026-07-16';
+  // Nutrition = pilier (profil + protéines sous la cible, en décrochage récent).
+  const nutrition = [
+    { date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 },
+    { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 },
+  ];
+  // Check-in DATÉ DU JOUR, readiness au plancher SANS nuit courte (sommeil 8 h, fatigue + courbatures
+  // au max → score 40 < 50) : la note vise l’état AIGU du jour, pas un sommeil chronique.
+  const rec = [{ date: today, sleep: 8, fatigue: 5, soreness: 5 }];
+  const low = L.adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition, recovery: rec }, today);
+  assert.equal(low.pillar, 'nutrition');
+  assert.equal(low.readinessNutriGuard, 40, 'score de readiness du jour renvoyé');
+  assert.equal(low.sleepFatLossGuard, null);
+  assert.equal(low.sleepGainGuard, null);
+  assert.match(low.insight, /ta forme est basse ce matin \(readiness 40\/100\), et les jours de fatigue sont ceux où l’assiette dérape le plus/);
+  assert.match(low.insight, /te protègent des fringales bien mieux que la volonté sur une réserve vide/);
+  // Forme du jour OK (readiness ≥ 50) → champ null, note absente.
+  const ok = L.adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(ok.readinessNutriGuard, null);
+  assert.doesNotMatch(ok.insight, /l’assiette dérape/);
+  // Aucun check-in aujourd’hui (readiness d’hier seulement) → champ null (une forme d’hier ne dit rien).
+  const stale = L.adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition, recovery: [{ date: '2026-07-15', sleep: 8, fatigue: 5, soreness: 5 }] }, today);
+  assert.equal(stale.readinessNutriGuard, null);
+  assert.doesNotMatch(stale.insight, /l’assiette dérape/);
+  // RELAIS : sur un objectif de PERTE + sommeil chroniquement court, le frein caché (sleepFatLossGuard)
+  // prime — une seule note inter-pilier/jour, la note « assiette dérape » reste muette.
+  const shortNights = [];
+  for (const d of ['03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15']) shortNights.push({ date: `2026-07-${d}`, sleep: 6 });
+  shortNights.push({ date: today, sleep: 6, fatigue: 5, soreness: 5 });
+  const relay = L.adaptiveCoachFocus({ nutrition: [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 },
+    { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 },
+  ], goals: { targetWeight: 79 }, weights: [{ date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 82 }], recovery: shortNights }, today);
+  assert.equal(relay.pillar, 'nutrition');
+  assert.equal(relay.sleepFatLossGuard, 6, 'frein caché sommeil actif');
+  assert.equal(relay.readinessNutriGuard, null, 'note sommeil prime → l’assiette dérape muette');
+  assert.doesNotMatch(relay.insight, /l’assiette dérape/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

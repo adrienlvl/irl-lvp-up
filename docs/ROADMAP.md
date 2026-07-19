@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.149 (2026-07-19)
+## 📍 État actuel — build 2.0.150 (2026-07-19)
+
+> 🍽️ **2.0.150** — Coaching adaptatif poussé à fond (priorité de la nuit) : **readiness du JOUR × pilier
+> NUTRITION**, le dernier axe inter-pilier franc signalé (#513/#518). La branche nutrition croisait déjà
+> l'assiette, la balance et le sommeil **chronique** (`sleepFatLossGuard`/`sleepGainGuard`) mais restait
+> **aveugle à la readiness du matin** — pourtant un signal **aigu** décisif : un jour de forme basse, le
+> corps réclame du sucre rapide et la satiété se dérègle, c'est statistiquement LE jour où l'assiette
+> dérape. Nouveau champ **`readinessNutriGuard`** (le score, ou `null`) : quand le pilier poussé est la
+> **nutrition**, un check-in de récup **daté du jour** met la readiness au **plancher** (`< 50`) ET aucun
+> guard sommeil n'a parlé, une note s'append : « Un dernier repère pour aujourd'hui : ta forme est basse
+> ce matin (readiness 40/100), et les jours de fatigue sont ceux où l'assiette dérape le plus — le corps
+> réclame du sucre rapide et la satiété se dérègle. C'est justement aujourd'hui que tenir l'essentiel
+> compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales bien mieux que
+> la volonté sur une réserve vide. » **Distinct des guards sommeil** (chroniques, hormonaux) : ici l'état
+> AIGU du jour, sans besoin d'objectif de poids. **Relais, jamais concurrent** : une seule note
+> inter-pilier/jour, le sommeil chronique prime. Vocabulaire distinct (« l'assiette dérape », « des
+> fringales ») — zéro collision regex. Additif pur, réemploi total (`readinessScore`, `s.recovery`),
+> **zéro** nouvelle fonction. Fonctions pures + testées, check smoke bloquant `coachFocus` étendu.
+> Recap #519.
 
 > 🚰 **2.0.149** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant côté SPORT** de
 > l'hydratation-focus (#517), l'axe pointé par ce même recap. Le pilier sport croisait déjà le sommeil
