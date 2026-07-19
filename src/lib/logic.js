@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.120', emoji: '⚖️', text: 'Quand ton coach « Le focus du moment » pousse ta NUTRITION, il relie enfin ta discipline du jour à ton RÉSULTAT CORPOREL réel. Jusqu’ici il parlait cible protéines, collation, série — mais restait aveugle à ton objectif de poids et à sa progression, le « pourquoi » de tout l’effort. Désormais, si tu as fixé un poids cible et que tes pesées le permettent, il cite l’avancement réel : bien avancé, il te crédite (« Et ça paie : 62% de ton objectif de perte atteint (3,7 kg sur 6) — ta nutrition en est le moteur ») ; en chemin, il t’encourage (« Ton objectif de perte avance (28%…) — chaque jour réglé sur ta cible rapproche le résultat ») ; pas encore de résultat, il recadre sans culpabiliser et t’invite à te peser (« Ta cible de perte (6 kg) attend encore un premier résultat — ces jours de nutrition régulière sont exactement ce qui la débloque »). Un « pourquoi » chiffré et personnel motive plus qu’un compteur isolé. Sans objectif de poids ou sans pesée exploitable, rien ne change.' },
   { v: '2.0.119', emoji: '🏆', text: 'Ton coach « Le focus du moment » brandit maintenant ton RECORD PERSO quand ta série en jeu s’en approche. Il nommait déjà la série que tu risques de perdre et le palier fixe à décrocher, mais restait aveugle à ta plus longue série jamais tenue sur un pilier — le levier le plus intime. Désormais, quand cette série en jeu touche ton record (au moins une semaine d’affilée dans ton histoire), il le rappelle : si ton run actuel EST déjà ton record, « 🏆 Et là tu bats ton record perso sur ton entraînement : jamais tu n’avais tenu autant de jours d’affilée » ; s’il approche un record passé (à trois jours près), « Ton record perso ici est de 10 jours d’affilée — encore 2 jours pour l’égaler. » Battre sa propre meilleure série fait agir plus fort qu’un jalon générique. Il n’en parle que d’un record notable, et jamais le même jour qu’un palier (une seule carotte à la fois).' },
   { v: '2.0.118', emoji: '💚', text: 'Ton coach « Le focus du moment » adapte maintenant sa CONSOLATION à la TAILLE de la série que tu viens de casser. Il te réconfortait déjà quand un pilier retombait après une vraie série, mais du même ton pour 4 jours perdus que pour un mois. Désormais il gradue : une série qui avait franchi le palier de la semaine (au moins 7 jours d’affilée) pèse plus lourd, alors il nomme la magnitude et lui rend justice — « Tu tenais une semaine entière d’affilée sur ton entraînement avant cette pause — ça, c’est du solide : pas un échec, une vraie base à relancer. Un geste aujourd’hui et tu repars de haut. » Pour une série plus courte (4 à 6 jours), il garde le ton léger « une série vite relancée ». Reconnaître un vrai capital perdu à sa juste valeur motive plus qu’un mot passe-partout.' },
   { v: '2.0.117', emoji: '💚', text: 'Ton coach « Le focus du moment » te console au lieu de te gronder quand une belle SÉRIE vient de casser. Il savait déjà brandir une série encore vivante que tu risques de perdre ; côté correction, il ne faisait que constater le recul. Désormais, quand il te ramène sur un pilier que tu as laissé retomber APRÈS avoir tenu une vraie série (au moins 4 jours d’affilée, close il y a peu), il reconnaît l’acquis plutôt que de te reprocher la pause : « Tu tenais 5 jours d’affilée sur ton entraînement avant cette pause — pas un échec, une série à relancer : un geste aujourd’hui et tu repars. » Perdre une série n’est pas repartir de zéro : nommer ce que tu avais bâti transforme la culpabilité (« j’ai lâché ») en élan (« je repars de là »). Il n’en parle que si la série était réelle et la coupure encore fraîche.' },
@@ -5189,6 +5190,41 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       else if (prot > 0) action = `Cible protéines tenue (${prot}/${tgt} g) 💪 — verrouille l’eau et un fruit/légume.`;
     }
   }
+  // Coach CONSCIENT du RÉSULTAT CORPOREL — la nutrition ne se juge pas qu'au compteur protéines du
+  // jour : son VRAI mérite est le corps qui change. Jusqu'ici le focus nutrition parlait cible
+  // protéines / collation / série, mais restait AVEUGLE à l'objectif de poids d'Adrien et à sa
+  // progression réelle — le « pourquoi » de toute la discipline. Quand un objectif est fixé
+  // (s.goals.targetWeight) et qu'une pesée exploitable existe, le coach cite l'avancement RÉEL vers la
+  // cible (weightGoalProgress, l'outil déjà branché dans le plan « Coach & poids ») pour relier la
+  // régularité nutrition du jour à son résultat tangible — un « pourquoi » chiffré et personnel motive
+  // plus qu'un compteur isolé (même esprit que la preuve d'impact du sommeil, #460). Trois registres,
+  // « adaptation aux progrès ET aux écarts » :
+  //   • bien avancé (pct ≥ 50)   → on CRÉDITE : la nutrition PAIE, c'est le moteur du résultat.
+  //   • en chemin (0 < pct < 50) → on ENCOURAGE : le résultat se construit, chaque jour réglé compte.
+  //   • pas encore de résultat    → on RECADRE sans culpabiliser : la cible attend un premier mouvement,
+  //     et ces jours de nutrition régulière sont exactement ce qui la débloque (nudge à se peser aussi).
+  // weightGoalProgress renvoie déjà null si départ == cible (totalKg < 0,1). Additif pur : champ
+  // weightGoalPct (0-100, ou null) TOUJOURS renvoyé ; note APPENDUE à l'insight, action (protéines)
+  // intacte. Dégrade proprement (null) sans objectif de poids ou sans pesée/poids exploitable.
+  let weightGoalPct = null;
+  if (chosen.pillar === 'nutrition' && typeof weightGoalProgress === 'function') {
+    const tgtW = Number(s.goals && s.goals.targetWeight);
+    const fbW = Number(s.profile && s.profile.weight);
+    if (tgtW > 0) {
+      const wp = weightGoalProgress(s.weights, tgtW, fbW);
+      if (wp) {
+        weightGoalPct = wp.pct;
+        const numW = n => String(n).replace('.', ',');
+        if (wp.pct >= 50) {
+          insight += ` Et ça paie : ${wp.pct}% de ton objectif de ${wp.direction} atteint (${numW(wp.doneKg)} kg sur ${numW(wp.totalKg)}) — ta nutrition en est le moteur.`;
+        } else if (wp.pct > 0) {
+          insight += ` Ton objectif de ${wp.direction} avance (${wp.pct}%, ${numW(wp.doneKg)} kg sur ${numW(wp.totalKg)}) — chaque jour réglé sur ta cible rapproche le résultat.`;
+        } else {
+          insight += ` Ta cible de ${wp.direction} (${numW(wp.totalKg)} kg) attend encore un premier résultat — ces jours de nutrition régulière sont exactement ce qui la débloque.`;
+        }
+      }
+    }
+  }
   // Focus ENRICHI (le pilier focus était le SEUL encore générique — cf. #465/#466). Comme le sport
   // lit la readiness et la nutrition la cible protéines, le focus lit la RÉPARTITION réelle du temps
   // de concentration par tâche (focusByTask sur 14 j — même fenêtre que la dynamique). Quand une
@@ -5676,7 +5712,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, brokenStreak, brokenStreakTier,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, brokenStreak, brokenStreakTier, weightGoalPct,
   };
 }
 

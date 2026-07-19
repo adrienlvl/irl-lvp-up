@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.119');
+  assert.equal(L.CHANGELOG[0].v, '2.0.120');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7688,6 +7688,40 @@ test('adaptiveCoachFocus : focus nutrition enrichi (cible protéines réelle + c
   const noProfile = L.adaptiveCoachFocus({ nutrition: decline.nutrition }, today);
   assert.equal(noProfile.pillar, 'nutrition');
   assert.ok(!/Il te reste|cible protéines/.test(noProfile.action), 'sans profil : pas d’enrichissement, action générique conservée');
+});
+
+test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers l’objectif de poids', () => {
+  const today = '2026-07-16';
+  // Nutrition en décrochage (3 j la semaine passée, 1 récente), aucun autre pilier → nutrition = focus (ton rebuild).
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 },
+    { date: '2026-07-15', protein: 100 },
+  ];
+  // Objectif de perte 85 → 79 (6 kg). Pesées 85 puis 82 → 3 kg faits = 50% : le coach CRÉDITE.
+  const half = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 82 },
+  ] }, today);
+  assert.equal(half.pillar, 'nutrition');
+  assert.equal(half.weightGoalPct, 50);
+  assert.match(half.insight, /Et ça paie : 50% de ton objectif de perte atteint \(3 kg sur 6\)/);
+  assert.match(half.insight, /ta nutrition en est le moteur/);
+  // En chemin (< 50 %) : 85 → 84 sur une cible de 6 kg = 17% → le coach ENCOURAGE.
+  const onWay = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 84 },
+  ] }, today);
+  assert.equal(onWay.weightGoalPct, 17);
+  assert.match(onWay.insight, /Ton objectif de perte avance \(17%, 1 kg sur 6\)/);
+  // Pas encore de résultat (une seule pesée = départ == courant) → recadrage sans culpabiliser.
+  const none = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-07-14', value: 85 },
+  ] }, today);
+  assert.equal(none.weightGoalPct, 0);
+  assert.match(none.insight, /Ta cible de perte \(6 kg\) attend encore un premier résultat/);
+  // Sans objectif de poids → pas d’enrichissement, champ null et aucune note ajoutée.
+  const noGoal = L.adaptiveCoachFocus({ nutrition }, today);
+  assert.equal(noGoal.pillar, 'nutrition');
+  assert.equal(noGoal.weightGoalPct, null);
+  assert.ok(!/objectif de|attend encore un premier résultat/.test(noGoal.insight), 'sans objectif : insight nutrition intact');
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

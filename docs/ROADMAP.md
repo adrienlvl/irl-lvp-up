@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.119 (2026-07-19)
+## 📍 État actuel — build 2.0.120 (2026-07-19)
+
+> ⚖️ **2.0.120** — Coaching adaptatif poussé à fond (priorité de la nuit) : quand le coach « Le focus
+> du moment » pousse la **NUTRITION**, il relie enfin la discipline du jour au **RÉSULTAT CORPOREL
+> réel**. Il parlait cible protéines / collation / série (l'**intrant**) mais restait aveugle à
+> l'objectif de poids d'Adrien et à sa progression — le *pourquoi* de tout l'effort. Désormais, si un
+> poids cible est fixé (`goals.targetWeight`) et qu'une pesée est exploitable, il cite l'avancement
+> RÉEL vers la cible via **`weightGoalProgress`** (l'outil déjà branché dans « Coach & poids ») en
+> trois registres — « adaptation aux progrès ET aux écarts » : **bien avancé** (pct ≥ 50) → crédit
+> (« Et ça paie : 62% de ton objectif de perte atteint (3,7 kg sur 6) — ta nutrition en est le
+> moteur ») ; **en chemin** (0 < pct < 50) → encouragement ; **pas encore de résultat** (pct 0 / une
+> seule pesée) → recadrage sans culpabiliser + nudge à se peser. Un « pourquoi » chiffré et personnel
+> motive plus qu'un compteur d'intrant isolé (même esprit que la preuve d'impact du sommeil, #460).
+> Points de conception : **réutilise `weightGoalProgress`** (aucun nouveau calcul, `null` si départ
+> == cible) ; **additif pur** — champ `weightGoalPct` (0-100 ou `null`) TOUJOURS renvoyé, note
+> appendue à l'insight, action (protéines) intacte ; **dégrade proprement** sans objectif/pesée.
+> `adaptiveCoachFocus` pur + testé, check smoke bloquant `coachFocus` étendu. Recap #489.
 
 > 🏆 **2.0.119** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » **brandit ton RECORD PERSO de série** quand ta série en jeu s'en approche. Il nommait déjà
