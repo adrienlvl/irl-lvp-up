@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.162');
+  assert.equal(L.CHANGELOG[0].v, '2.0.163');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8629,11 +8629,33 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(fresh.focusGoalFresh, 100, 'readiness ≥ 75 le jour même → le score renvoyé');
   assert.match(fresh.insight, /ta forme est au vert ce matin \(readiness 100\/100\)/);
   assert.match(fresh.insight, /LE moment de pousser pour boucler l’objectif focus/);
+  // Tout au top (sleep 8 / fat 1 / sore 1) → trois forces à égalité → readinessDriver null → pas de moteur nommé.
+  assert.equal(fresh.focusFreshDriver, null, 'trois forces à égalité → aucun moteur unique nommé');
+  assert.ok(!/nourrit cette fraîcheur mentale/.test(fresh.insight));
+  // Nommer CE QUI porte la fraîcheur (focusFreshDriver) — pendant focus de readinessBoost (#531).
+  // Moteur SOMMEIL : sleep 8 / fat 2 / sore 2 → readinessScore 85 (≥ 75), driver sleep (frac 1 vs 0,75).
+  const freshSleep = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 8, fatigue: 2, soreness: 2 }] }, '2026-07-19');
+  assert.equal(freshSleep.focusGoalFresh, 85, 'readiness au vert');
+  assert.deepEqual(freshSleep.focusFreshDriver, { factor: 'sleep', value: 8 }, 'sommeil moteur dominant nommé');
+  assert.match(freshSleep.insight, /nourrit cette fraîcheur mentale : ta nuit de 8 h/);
+  assert.match(freshSleep.insight, /carburant du deep work/);
+  // Moteur ÉNERGIE : sleep 6 / fat 1 / sore 3 → readinessScore 75 (≥ 75), driver fatigue (frac 1 vs 0,75).
+  const freshEnergy = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 1, soreness: 3 }] }, '2026-07-19');
+  assert.equal(freshEnergy.focusGoalFresh, 75, 'readiness au vert');
+  assert.deepEqual(freshEnergy.focusFreshDriver, { factor: 'fatigue', value: 1 }, 'énergie moteur dominant nommé');
+  assert.match(freshEnergy.insight, /nourrit cette fraîcheur mentale : ton énergie est au top \(fatigue 1\/5\)/);
+  // Moteur COURBATURES dominant (sleep 6 / fat 2 / sore 1 → score 83 ≥ 75, driver soreness) → HONNÊTETÉ :
+  // des muscles frais ne portent pas le deep work → on se tait, focusFreshDriver null malgré le vert.
+  const freshSore = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 2, soreness: 1 }] }, '2026-07-19');
+  assert.equal(freshSore.focusGoalFresh, 83, 'readiness au vert');
+  assert.equal(freshSore.focusFreshDriver, null, 'muscles frais dominants → non crédités côté focus (deep work)');
+  assert.ok(!/nourrit cette fraîcheur mentale/.test(freshSore.insight));
   // Réconciliation du CONFLIT côté FOCUS : objectif serré + readiness AU PLANCHER (< 50) le jour même
   // → focusGoalDrained (le pendant OPPOSÉ de focusGoalFresh, symétrique focus de restOverGoal).
   // sleep 5 / fatigue 4 / soreness 4 → score 40 (< 50).
   const tired = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-19');
   assert.equal(tired.focusGoalFresh, null, 'readiness < 75 → aucun alignement');
+  assert.equal(tired.focusFreshDriver, null, 'forme à plat → aucun moteur de fraîcheur');
   assert.equal(tired.focusGoalDrained, 40, 'readiness < 50 le jour même → le score du conflit renvoyé');
   assert.match(tired.insight, /ta forme est à plat ce matin \(readiness 40\/100\)/);
   assert.match(tired.insight, /focus court et facile aujourd’hui/);

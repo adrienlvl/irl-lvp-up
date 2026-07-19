@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.162 (2026-07-19)
+## 📍 État actuel — build 2.0.163 (2026-07-19)
+
+> 🧠 **2.0.163** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach nomme, **côté FOCUS
+> aussi**, CE QUI porte ta **fraîcheur mentale**. Depuis #531, `readinessBoost` dit POURQUOI ta forme est
+> bonne côté **sport** ; le pendant côté **deep work** manquait (le recap #531 le signalait). `focusGoalFresh`
+> (#509) dit déjà « les deux signaux s'alignent, c'est LE moment de pousser » quand l'objectif focus hebdo est
+> **serré** × readiness ≥ 75 — mais restait **muet sur QUELLE composante** rend l'esprit clair. Nouveau champ
+> **`focusFreshDriver`** (`{ factor: 'sleep'|'fatigue', value }` ou `null`) : réemploi **total** de
+> `readinessDriver` (helper pur de #531) — quand un moteur **domine nette** le check-in, le coach le NOMME et
+> le relie au deep work, appendu à l'insight : « Et ce qui nourrit cette fraîcheur mentale : ta nuit de **8 h**
+> — un cerveau reposé est le vrai **carburant du deep work**, attaque d'abord ta tâche la plus exigeante. »
+> (ou énergie au top). **HONNÊTETÉ avant complétude** : on ne crédite que le **sommeil** ou l'**énergie** (les
+> vrais carburants d'un vrai bloc) — jamais des **muscles frais** (`soreness` dominant → muet), qui ne portent
+> pas la concentration ; un seul moteur net (sinon muet) ; mutuellement exclusif de `focusGoalDrained` (≥ 75
+> XOR < 50). **Affine, ne remplace pas** : note appendue, action intacte. Vocabulaire distinct (« nourrit cette
+> fraîcheur mentale ») — **zéro** collision regex avec `readinessBoost` (« Ce qui te porte aujourd'hui ») ni
+> `focusGoalFresh` (« les deux signaux s'alignent »). Réemploi total, **zéro** nouvelle fonction. Fonctions
+> pures + testées, check smoke bloquant `coachFocus` étendu. Recap #532.
 
 > 💚 **2.0.162** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach dit enfin POURQUOI
 > ta forme est **BONNE**. Depuis #525, `readinessDrag` nomme le frein DOMINANT quand la forme **bride**

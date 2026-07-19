@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.162'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.163'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -850,6 +850,14 @@ app.whenReady().then(async () => {
           // RÉCONCILIATION POSITIVE côté FOCUS (focusGoalFresh) : objectif focus serré + readiness au vert le jour même → note « LE moment de pousser », score renvoyé.
           const fFocusFresh = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-19');
           if (!(fFocusFresh.focusGoalPace === 'tight' && fFocusFresh.focusGoalFresh === 100 && /ta forme est au vert ce matin \\(readiness 100\\/100\\)/.test(fFocusFresh.insight) && /LE moment de pousser pour boucler l.objectif focus/.test(fFocusFresh.insight))) return false;
+          // Tout au top (8/1/1) → trois forces à égalité → focusFreshDriver null, pas de moteur nommé.
+          if (fFocusFresh.focusFreshDriver !== null || /nourrit cette fra[îi]cheur mentale/.test(fFocusFresh.insight)) return false;
+          // Nommer CE QUI porte la fraîcheur (focusFreshDriver, pendant focus de readinessBoost) : sleep 8/fat 2/sore 2 → score 85, sommeil moteur dominant nommé.
+          const fFreshDrv = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 8, fatigue: 2, soreness: 2 }] }, '2026-07-19');
+          if (!(fFreshDrv.focusGoalFresh === 85 && fFreshDrv.focusFreshDriver && fFreshDrv.focusFreshDriver.factor === 'sleep' && /nourrit cette fra[îi]cheur mentale : ta nuit de 8 h/.test(fFreshDrv.insight) && /carburant du deep work/.test(fFreshDrv.insight))) return false;
+          // HONNÊTETÉ : muscles frais dominants (6/2/1 → score 83, driver soreness) → non crédités côté focus, focusFreshDriver null.
+          const fFreshSore = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 2, soreness: 1 }] }, '2026-07-19');
+          if (!(fFreshSore.focusGoalFresh === 83 && fFreshSore.focusFreshDriver === null) || /nourrit cette fra[îi]cheur mentale/.test(fFreshSore.insight)) return false;
           // RÉCONCILIATION du CONFLIT côté FOCUS (focusGoalDrained) : objectif serré + readiness AU PLANCHER (< 50) le jour même → note « à plat / focus court », score renvoyé, PAS de feu vert. sleep 5/fat 4/sore 4 → 40.
           const fFocusDrained = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-19');
           if (fFocusDrained.focusGoalFresh !== null) return false;
