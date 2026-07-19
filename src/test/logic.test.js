@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.166');
+  assert.equal(L.CHANGELOG[0].v, '2.0.167');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8453,6 +8453,52 @@ test('adaptiveCoachFocus : réconciliation objectif serré × forme à plat (res
   assert.equal(loose.sessionGoalPace, 'onpace');
   assert.equal(loose.restOverGoal, null);
   assert.ok(!/forme est à plat/.test(loose.insight));
+});
+
+test('adaptiveCoachFocus : prendre de l’avance côté sport (sessionGoalAhead)', () => {
+  // Mardi 07-14 (semaine lundi 07-13 → dim 07-19). Objectif 4 séances, 1 faite (lundi) → 3 pour 6 j
+  // restants = allure LARGE (onpace). Check-in du jour AU VERT (readiness ≥ 75) et séance du jour PAS
+  // encore faite → le coach invite à engranger une séance d'avance (coussin).
+  const ahead = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-14');
+  assert.equal(ahead.pillar, 'sport');
+  assert.equal(ahead.sessionGoalPace, 'onpace');
+  assert.equal(ahead.sessionGoalAhead, 100);
+  assert.match(ahead.insight, /ton corps est au vert ce matin \(readiness 100\/100\)/);
+  assert.match(ahead.insight, /engranger une séance d’avance/);
+  assert.match(ahead.insight, /coussin qui met l’objectif à l’abri/);
+  // Forme MOYENNE le même jour large (6/3/3 → 60) → aucune invitation (au vert seulement).
+  const mid = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 3, soreness: 3 }],
+  }, '2026-07-14');
+  assert.equal(mid.sessionGoalPace, 'onpace');
+  assert.equal(mid.sessionGoalAhead, null);
+  assert.ok(!/engranger une séance d’avance/.test(mid.insight));
+  // Séance du jour DÉJÀ faite (07-14) × forme au vert → le coussin est pris, pas de 2ᵉ séance poussée.
+  const doneToday = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }],
+    recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-14');
+  assert.equal(doneToday.sessionGoalPace, 'onpace');
+  assert.equal(doneToday.sessionGoalAhead, null);
+  assert.ok(!/engranger une séance d’avance/.test(doneToday.insight));
+  // Sans check-in du jour → objectif large muet sur la forme, sessionGoalAhead null.
+  const noCheckin = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+  }, '2026-07-14');
+  assert.equal(noCheckin.sessionGoalPace, 'onpace');
+  assert.equal(noCheckin.sessionGoalAhead, null);
+  // Allure SERRÉE (vendredi 07-17) × forme au vert → branche tight, sessionGoalAhead null.
+  const tight = L.adaptiveCoachFocus({
+    goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
+    recovery: [{ date: '2026-07-17', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-17');
+  assert.equal(tight.sessionGoalPace, 'tight');
+  assert.equal(tight.sessionGoalAhead, null);
+  assert.ok(!/engranger une séance d’avance/.test(tight.insight));
 });
 
 test('adaptiveCoachFocus : réconciliation objectif serré × pic de charge (loadOverGoal)', () => {

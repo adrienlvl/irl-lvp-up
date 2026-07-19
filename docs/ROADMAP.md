@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.166 (2026-07-19)
+## 📍 État actuel — build 2.0.167 (2026-07-19)
+
+> 🏋️ **2.0.167** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach t'invite à
+> **prendre de l'avance côté SPORT** les bons jours de marge (`sessionGoalAhead`). C'est le pendant
+> EXACT, côté séances, de `focusGoalAhead` (#535, focus). La branche d'allure de l'objectif de séances
+> distinguait déjà serré/hors-de-portée/**large** (`onpace`, « tu as la marge »), et `restOverGoal`
+> (#504) gérait le **conflit** (tight × readiness au plancher → la récup prime) — mais l'**opportunité**
+> symétrique (allure large × readiness au vert) restait **muette** : le coach laissait filer les bons
+> jours confortables. Nouveau champ **`sessionGoalAhead`** (score du jour, ou `null`, toujours renvoyé) :
+> quand l'allure de séances est **large** (`onpace`), qu'un check-in **du jour** met la forme **au vert**
+> (readiness ≥ 75) ET que la séance du jour n'est **pas encore faite**, il ajoute « Et ton corps est au
+> vert ce matin (readiness 88/100) : rien ne t'oblige à t'entraîner aujourd'hui, mais profite de cette
+> forme pour engranger une séance d'avance — une de plus maintenant te fait un coussin qui met l'objectif
+> à l'abri si un jour creux tombe plus tard, sans sprint serré en fin de semaine. » **Honnête** : au vert
+> SEULEMENT (un jour moyen/bas × marge → muet) et seulement si Adrien n'a **pas déjà bougé** aujourd'hui
+> (inutile de pousser une 2ᵉ séance le même jour — ce serait contredire la readiness qui protège du
+> surmenage). On **invite**, sans injonction. Mutuellement exclusif de `restOverGoal` (branche onpace vs
+> tight) et des notes focus. Vocabulaire distinct (« ton corps est au vert ce matin », « engranger une
+> séance d'avance ») — **zéro** collision regex avec `focusGoalAhead` ni `readinessBoost`. **Zéro**
+> nouvelle fonction (réemploi de `readinessScore`). Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #536.
 
 > 🚀 **2.0.166** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach t'invite à
 > **prendre de l'avance** les bons jours où tu as de la **marge**. Depuis #509, `adaptiveCoachFocus`

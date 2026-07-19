@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.166'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.167'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -839,6 +839,15 @@ app.whenReady().then(async () => {
           const fPaceOut = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }], goals: { sessions: 4 } }, '2026-07-18'); // samedi : 3 pour 2 j → hors de portée
           if (!(fPaceOut.sessionGoalPace === 'unreachable' && /ne passera plus cette semaine/.test(fPaceOut.insight))) return false;
           if (adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }] }, '2026-07-17').sessionGoalPace !== null) return false; // sans objectif → pas d'allure
+          // PRENDRE DE L'AVANCE côté SPORT (sessionGoalAhead, pendant de focusGoalAhead) : objectif de séances LARGE (onpace, mardi 07-14) + readiness au vert (8/1/1 → 100) + séance du jour PAS faite → invitation à engranger une séance d'avance.
+          const fSessAhead = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }], goals: { sessions: 4 }, recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-14');
+          if (!(fSessAhead.pillar === 'sport' && fSessAhead.sessionGoalPace === 'onpace' && fSessAhead.sessionGoalAhead === 100 && /ton corps est au vert ce matin \\(readiness 100\\/100\\)/.test(fSessAhead.insight) && /engranger une séance d.avance/.test(fSessAhead.insight))) return false;
+          // Garde-fous : forme moyenne (6/3/3 → 60) → null ; séance du jour DÉJÀ faite (07-14) → null ; allure serrée (vendredi) → null.
+          const fSessMid = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }], goals: { sessions: 4 }, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 3, soreness: 3 }] }, '2026-07-14');
+          if (fSessMid.sessionGoalAhead !== null || /engranger une séance d.avance/.test(fSessMid.insight)) return false;
+          const fSessDone = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }], goals: { sessions: 4 }, recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-14');
+          if (fSessDone.sessionGoalAhead !== null || /engranger une séance d.avance/.test(fSessDone.insight)) return false;
+          if (fPaceTight.sessionGoalAhead !== null) return false;
           // Allure de l'objectif FOCUS (pendant de sessionGoalPace) : 30 min faites lundi 07-13, mardi 07-14 → 90 min / 6 j → ~15 min/jour → dans les temps.
           const fFocusPace = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }] }, '2026-07-14');
           if (!(fFocusPace.pillar === 'focus' && fFocusPace.focusGoalPace === 'onpace' && /Dans les temps : ~15 min\\/jour sur les 6 jours restants/.test(fFocusPace.insight))) return false;
