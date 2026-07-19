@@ -14,8 +14,8 @@ Toutes les vagues de la roadmap sont **terminées** ; la 2.0 acte la maturité d
 
 Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AUDIT-ET-ROADMAP-3.0.md](AUDIT-ET-ROADMAP-3.0.md)**) :
 
-1. 🤖 **Coaching adaptatif** _(← en cours)_ — logique locale, forte valeur, zéro risque infra.
-2. 🧱 **Fondations techniques** (IndexedDB, archi) — prérequis de la sync.
+1. 🤖 **Coaching adaptatif** — ✅ **terminé et GELÉ** le 2026-07-19 (voir « État actuel »).
+2. 🧱 **Fondations techniques** (IndexedDB, archi) _(← en cours)_ — prérequis de la sync.
 3. 🔒 **Sécurité & prêt pour le public** — socle sécu (chiffrement, CSP, audit) **avant** d'ouvrir la moindre surface réseau (App Store iOS + Google Play + site web ; aucune fuite de donnée critique).
 4. ☁️ **Sync multi-appareils** — chiffrée de bout en bout dès le jour 1.
 5. 🎓 **Planning multi-échéances (études)** — généralisable.
