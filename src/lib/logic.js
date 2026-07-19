@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.153', emoji: '🥩', text: 'Ton coach « Le focus du moment » lit enfin tes PROTÉINES quand il te pilote sur l’ENTRAÎNEMENT — le maillon qui manquait à sa lecture du sport. Il regardait déjà ta charge, ta forme du jour, ton sommeil, ton hydratation et ta récupération active (mobilité), mais restait aveugle au MATÉRIAU même de tes gains : l’entraînement ne fait que casser le muscle (microlésions), c’est la protéine de ton assiette qui fournit les briques pour le reconstruire plus fort. T’entraîner dur en mangeant chroniquement trop peu de protéines, c’est plafonner les gains de chaque séance — le stimulus est là, le matériau manque. Désormais, quand il te pilote sur le sport, que tu t’entraînes vraiment ces jours-ci, qu’aucune note de sommeil, d’hydratation ou de mobilité ne prime déjà, et que tes derniers jours renseignés montrent ta cible protéines atteinte sur moins de la moitié des jours, il te le dit : « Et pense au matériau de tes gains : sur tes 4 derniers jours renseignés, tu n’atteins ta cible protéines (135 g) que 0/4 — or l’entraînement ne fait que casser le muscle, c’est la protéine qui fournit les briques pour le reconstruire plus fort, et sans elle en quantité suffisante chaque séance rend moins. Vise 135 g aujourd’hui, répartis sur tes repas. » La cible est calée sur ton poids et ton objectif, exactement comme sur l’onglet Nutrition ; la note n’apparaît que sur ce cas précis et ton action du jour reste intacte.' },
   { v: '2.0.152', emoji: '🧘', text: 'Ton coach « Le focus du moment » voit enfin ton pilier BIEN-ÊTRE / MOBILITÉ — une donnée qu’il n’avait jamais lue : il ne regardait que ton sport, ton focus, ton sommeil, ta nutrition, tes habitudes, tes candidatures et ton poids. Sur le SPORT, il lisait déjà ta charge, ta forme du jour, ton sommeil et ton hydratation, mais restait aveugle à la RÉCUPÉRATION ACTIVE : quand tu t’entraînes régulièrement sans jamais relâcher (mobilité, étirements), tes tissus et articulations encaissent la charge sans contrepartie — c’est le terrain des tensions et des blessures de surcharge qui s’installent en silence, et la souplesse qui se perd bride ton amplitude. Désormais, quand il te pilote sur le sport, que tu t’entraînes vraiment ces jours-ci, qu’aucune note de sommeil ou d’hydratation ne prime déjà, et que ça fait au moins 4 jours sans routine bien-être (alors que tu en as déjà fait), il te le dit : « Un dernier levier, côté récupération : ça fait 6 jours sans routine mobilité alors que tu t’entraînes régulièrement en ce moment — les tissus et articulations encaissent la charge sans jamais relâcher, et c’est le terrain des tensions et des blessures de surcharge qui s’installent en silence. 5 min de mobilité ou d’étirements aujourd’hui entretiennent ce capital et accélèrent la récup entre les séances. » Il ne te relance jamais sur le bien-être si tu n’y as jamais touché, et ton action du jour reste intacte.' },
   { v: '2.0.151', emoji: '🔗', text: 'Ton coach « Le focus du moment » regarde enfin tes HABITUDES — jusqu’ici il ne lisait que tes 4 piliers (sport, focus, sommeil, nutrition) et restait aveugle à ton tracker d’habitudes. Or une habitude dont la série se joue AUJOURD’HUI (prévue ce jour, pas encore cochée) est le geste le plus urgent et le plus concret de la journée : elle tombe si tu ne la valides pas avant ce soir, là où une tendance de fond peut attendre. Désormais, quand une de tes habitudes porte une série d’au moins 3 jours et n’est pas encore cochée, il te le rappelle : « Ne casse pas la chaîne : ton habitude « Lecture » tient depuis 12 jours et n’est pas encore cochée aujourd’hui — un petit geste et elle continue. » Il prend la plus longue série menacée et te signale s’il en reste d’autres à cocher, pour que tu saches quoi verrouiller en premier. La note s’ajoute quel que soit le pilier du jour, sans jamais remplacer ton action ni la carte Alternance, toujours prioritaire.' },
   { v: '2.0.150', emoji: '🍽️', text: 'Ton coach « Le focus du moment » tient maintenant compte de ta FORME DU JOUR quand il te pilote sur la NUTRITION — un signal qu’il ignorait jusqu’ici de ce côté. Il lisait ton assiette, ta balance et ton sommeil sur la durée, mais restait aveugle à ta readiness du matin ; or le jour de fatigue est, statistiquement, celui où l’assiette dérape : le corps réclame du sucre rapide et la satiété se dérègle. Quand tu as fait ton check-in de récup aujourd’hui et que ta forme est au plancher (readiness < 50), et qu’aucune note de sommeil ne prime, il le nomme au lieu de te laisser subir le jour : « Un dernier repère pour aujourd’hui : ta forme est basse ce matin (readiness 40/100), et les jours de fatigue sont ceux où l’assiette dérape le plus — le corps réclame du sucre rapide et la satiété se dérègle. C’est justement aujourd’hui que tenir l’essentiel compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales bien mieux que la volonté sur une réserve vide. » La note n’apparaît que sur ce cas précis (coach sur la nutrition, check-in du jour au plancher, sans note de sommeil qui primerait) ; ton action du jour (protéines) reste intacte.' },
@@ -5961,6 +5962,52 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       insight += ` Un dernier levier, côté récupération : ça fait ${inact.days} jours sans routine mobilité alors que tu t’entraînes régulièrement en ce moment — les tissus et articulations encaissent la charge sans jamais relâcher, et c’est le terrain des tensions et des blessures de surcharge qui s’installent en silence, sans compter la souplesse qui se perd et bride ton amplitude. 5 min de mobilité ou d’étirements aujourd’hui entretiennent ce capital et accélèrent la récup entre les séances.`;
     }
   }
+  // Coach CONSCIENT de la PROTÉINE comme MATÉRIAU des GAINS d'entraînement — le maillon manquant du
+  // relais « socle/carburant/récup » du pilier SPORT (sommeil #513 → hydratation #518 → mobilité #521), et
+  // le pendant, côté SPORT, de la lecture protéines qui n'existait QUE dans le pilier nutrition (#500/#501 :
+  // proteinTrend/proteinStreak). Le sport lit la charge (ACWR), la forme du jour (readiness), le sommeil et
+  // l'hydratation chroniques et la récupération active (mobilité), mais restait AVEUGLE au MATÉRIAU même de
+  // la reconstruction musculaire : l'entraînement ne fait que CASSER le muscle (microlésions), et c'est la
+  // protéine alimentaire qui fournit les briques pour le reconstruire plus fort. S'entraîner dur en mangeant
+  // chroniquement trop peu de protéines, c'est plafonner les gains de chaque séance — le stimulus est là, le
+  // matériau manque. DISTINCT des carburants (sommeil « socle invisible », hydratation « carburant qu'on
+  // oublie ») et de la récup (mobilité « côté récupération ») : ici c'est le SUBSTRAT de construction, pas
+  // l'énergie ni la souplesse. DERNIER maillon du relais (une seule note récup/carburant par jour) : n'entre
+  // QUE si sleepTrainGuard/hydrationTrainGuard/mobilityTrainGuard sont tous muets, sur entraînement réellement
+  // actif (recentDays >= 2, le stimulus est bien là) et profil renseigné (cible proteinTarget calée sur poids
+  // + objectif, exactement comme le pilier nutrition). Données réelles seulement : ≥ 3 jours de protéines
+  // saisies (protein > 0) dans la fenêtre 7 j, agrégés au MAX par date comme l'hydratation, et cible atteinte
+  // sur MOINS de la moitié de ces jours (onTarget × 2 < loggedDays → manque CHRONIQUE, pas un simple jour
+  // creux). Vocabulaire distinct (« le matériau de tes gains », « casser le muscle », « briques »,
+  // « reconstruit plus fort ») — zéro collision regex avec les autres notes sport ni avec la note protéines
+  // du pilier nutrition (« cible protéines », « régularité grimpe »). Additif pur : proteinTrainGuard (nb de
+  // jours à la cible sur la fenêtre, 0 compris → toujours != null quand la note parle, comme les autres
+  // guards utilisés en == null) TOUJOURS renvoyé ; note APPENDUE à l'insight, action (séance / charge /
+  // repos) intacte. Réemploi total (daysAgo, proteinTarget, s.nutrition/s.profile) — zéro nouvelle fonction.
+  let proteinTrainGuard = null;
+  if (chosen.pillar === 'sport' && !doneToday && sleepTrainGuard == null && hydrationTrainGuard == null
+      && mobilityTrainGuard == null && chosen.recentDays >= 2 && s.profile && typeof proteinTarget === 'function') {
+    const tgt = proteinTarget(s.profile.weight, s.profile.goal).gramsPerDay;
+    if (tgt > 0) {
+      const protByDate = {};
+      for (const n of (Array.isArray(s.nutrition) ? s.nutrition : [])) {
+        if (!n) continue;
+        const d = daysAgo(n.date);
+        if (d === null || d > 6) continue;
+        const p = Number(n.protein) || 0;
+        if (p > 0) protByDate[n.date] = Math.max(protByDate[n.date] || 0, p);
+      }
+      const vals = Object.values(protByDate);
+      const loggedDays = vals.length;
+      if (loggedDays >= 3) {
+        const onTarget = vals.filter(v => v >= tgt).length;
+        if (onTarget * 2 < loggedDays) {
+          proteinTrainGuard = onTarget;
+          insight += ` Et pense au matériau de tes gains : sur tes ${loggedDays} derniers jours renseignés, tu n’atteins ta cible protéines (${tgt} g) que ${onTarget}/${loggedDays} — or l’entraînement ne fait que casser le muscle, c’est la protéine qui fournit les briques pour le reconstruire plus fort, et sans elle en quantité suffisante chaque séance rend moins. Vise ${tgt} g aujourd’hui, répartis sur tes repas.`;
+        }
+      }
+    }
+  }
   // Coach CONSCIENT du SOMMEIL comme CARBURANT de la CONCENTRATION — le pendant, côté FOCUS, de
   // sleepTrainGuard (#513, sport) et des guards nutrition (#511/#512). Avec lui, les QUATRE piliers
   // (nutrition ×2, sport, focus) croisent enfin le sommeil CHRONIQUE. Le pilier focus lit déjà l'allure
@@ -6547,7 +6594,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

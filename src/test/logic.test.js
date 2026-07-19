@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.152');
+  assert.equal(L.CHANGELOG[0].v, '2.0.153');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6807,6 +6807,57 @@ test('adaptiveCoachFocus : croise entraînement actif × bien-être lapsé (mobi
   assert.equal(sleepFirst.pillar, 'sport');
   assert.ok(sleepFirst.sleepTrainGuard != null, 'le sommeil court prime');
   assert.equal(sleepFirst.mobilityTrainGuard, null);
+});
+
+test('adaptiveCoachFocus : croise entraînement actif × protéines chroniquement basses (proteinTrainGuard)', () => {
+  // Sport en décrochage MAIS actif (prev 4 j : 03-05-07-09 ; recent 2 j : 11-15 → recentDays 2, tier rebuild)
+  // → pilier sport CHOISI malgré la nutrition présente (fix prioritaire), séance pas faite le 16.
+  const wk = ['2026-07-03', '2026-07-05', '2026-07-07', '2026-07-09', '2026-07-11', '2026-07-15'].map(d => ({ date: d }));
+  const profile = { weight: 75, goal: 'muscle' }; // proteinTarget → 135 g/j
+  // Protéines chroniquement sous la cible : 90 g sur 4 jours renseignés (0/4 à la cible < moitié) → note matériau.
+  const low = ['11', '12', '14', '15'].map(d => ({ date: `2026-07-${d}`, protein: 90 }));
+  const short = L.adaptiveCoachFocus({ workouts: wk, profile, nutrition: low }, '2026-07-16');
+  assert.equal(short.pillar, 'sport');
+  assert.equal(short.proteinTrainGuard, 0);
+  assert.equal(short.sleepTrainGuard, null);
+  assert.equal(short.hydrationTrainGuard, null);
+  assert.equal(short.mobilityTrainGuard, null);
+  assert.match(short.insight, /Et pense au matériau de tes gains : sur tes 4 derniers jours renseignés, tu n’atteins ta cible protéines \(135 g\) que 0\/4/);
+  assert.match(short.insight, /l’entraînement ne fait que casser le muscle/);
+  assert.match(short.insight, /reconstruire plus fort/);
+  // Aucune collision avec les autres notes du relais sport.
+  assert.doesNotMatch(short.insight, /socle invisible|carburant qu’on oublie|côté récupération/);
+  // Protéines à la cible (140 ≥ 135) → 4/4 → champ null, note absente.
+  const ok = L.adaptiveCoachFocus({ workouts: wk, profile, nutrition: low.map(n => ({ ...n, protein: 140 })) }, '2026-07-16');
+  assert.equal(ok.proteinTrainGuard, null);
+  assert.doesNotMatch(ok.insight, /matériau de tes gains/);
+  // Exactement la moitié à la cible (2/4) → PAS chronique → null (seuil honnête : moins de la moitié).
+  const half = L.adaptiveCoachFocus({ workouts: wk, profile, nutrition: [
+    { date: '2026-07-11', protein: 90 }, { date: '2026-07-12', protein: 90 },
+    { date: '2026-07-14', protein: 140 }, { date: '2026-07-15', protein: 140 } ] }, '2026-07-16');
+  assert.equal(half.proteinTrainGuard, null);
+  // Moins de 3 jours renseignés → données insuffisantes → null.
+  const thin = L.adaptiveCoachFocus({ workouts: wk, profile, nutrition: [
+    { date: '2026-07-15', protein: 90 }, { date: '2026-07-14', protein: 80 } ] }, '2026-07-16');
+  assert.equal(thin.proteinTrainGuard, null);
+  // Aucun profil → cible inconnue → null (rétrocompat).
+  const noProfile = L.adaptiveCoachFocus({ workouts: wk, nutrition: low }, '2026-07-16');
+  assert.equal(noProfile.proteinTrainGuard, null);
+  // Séance déjà faite aujourd’hui → doneToday → pas de note.
+  const done = L.adaptiveCoachFocus({ workouts: [...wk, { date: '2026-07-16' }], profile, nutrition: low }, '2026-07-16');
+  assert.equal(done.proteinTrainGuard, null);
+  // Sommeil court (sleepTrainGuard prime) → protéine en relais, muette ce jour-là.
+  const wkBusy = ['11', '12', '13', '14', '15'].map(d => ({ date: '2026-07-' + d }));
+  const recov = ['13', '14', '15'].map(d => ({ date: '2026-07-' + d, sleep: 6 }));
+  const sleepFirst = L.adaptiveCoachFocus({ workouts: wkBusy, profile, recovery: recov, nutrition: low }, '2026-07-16');
+  assert.equal(sleepFirst.pillar, 'sport');
+  assert.ok(sleepFirst.sleepTrainGuard != null, 'le sommeil court prime');
+  assert.equal(sleepFirst.proteinTrainGuard, null);
+  // Mobilité lapsée (mobilityTrainGuard prime) → protéine en relais, muette.
+  const mobFirst = L.adaptiveCoachFocus({ workouts: wk, profile, nutrition: low, wellnessDone: [{ date: '2026-07-10', key: 'mobilite-dos' }] }, '2026-07-16');
+  assert.equal(mobFirst.pillar, 'sport');
+  assert.ok(mobFirst.mobilityTrainGuard != null, 'la mobilité lapsée prime');
+  assert.equal(mobFirst.proteinTrainGuard, null);
 });
 
 test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {

@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.152 (2026-07-19)
+## 📍 État actuel — build 2.0.153 (2026-07-19)
+
+> 🥩 **2.0.153** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach lit enfin les
+> **PROTÉINES** quand il pilote sur le **SPORT** — le maillon manquant de sa lecture de l'entraînement. Il
+> voyait déjà la charge (ACWR), la forme du jour, le sommeil, l'hydratation et la récupération active
+> (mobilité), mais restait aveugle au **MATÉRIAU** même de la reconstruction musculaire (la lecture des
+> protéines n'existait **que** dans le pilier nutrition, #500/#501). L'entraînement ne fait que **casser**
+> le muscle (microlésions) ; c'est la protéine alimentaire qui fournit les briques pour le reconstruire
+> plus fort — s'entraîner dur en mangeant chroniquement trop peu de protéines plafonne les gains de chaque
+> séance. Nouveau champ **`proteinTrainGuard`** (nb de jours à la cible sur la fenêtre 7 j, `0` compris →
+> toujours `!= null` quand la note parle), **dernier maillon** du relais sport (sommeil → hydratation →
+> mobilité → **protéine**, une seule note récup/carburant par jour) : quand le sport est poussé, la séance
+> pas faite, aucun autre guard n'a parlé, l'entraînement **réellement actif** (`recentDays >= 2`), le
+> **profil renseigné** (cible via `proteinTarget`) et la protéine atteinte sur **moins de la moitié** des
+> jours renseignés (≥ 3 jours, `onTarget * 2 < loggedDays`), une note s'append : « Et pense au matériau de
+> tes gains : … tu n'atteins ta cible protéines (135 g) que 0/4 … c'est la protéine qui fournit les briques
+> pour le reconstruire plus fort … Vise 135 g aujourd'hui. » Vocabulaire distinct (« matériau de tes
+> gains », « casser le muscle », « briques ») — zéro collision regex avec les autres notes sport ni avec la
+> note protéines du pilier nutrition. Additif pur, réemploi total (`daysAgo`, `proteinTarget`,
+> `s.nutrition`/`s.profile`), **zéro** nouvelle fonction. Fonctions pures + testées, check smoke bloquant
+> `coachFocus` étendu. Recap #522.
 
 > 🧘 **2.0.152** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach devient conscient du
 > **pilier bien-être / mobilité** (`s.wellnessDone`) — une source de données **réelle et loggée** qu'il
