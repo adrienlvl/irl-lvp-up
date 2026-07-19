@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.139'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.140'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -845,6 +845,13 @@ app.whenReady().then(async () => {
           // Dimanche 07-19 (dernier jour), 90 min pour 1 seul jour → serré.
           const fFocusTight = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }] }, '2026-07-19');
           if (!(fFocusTight.focusGoalPace === 'tight' && /Serré : 90 min restantes pour 1 jour/.test(fFocusTight.insight))) return false;
+          // Sans check-in de récup du jour → aucun alignement, focusGoalFresh null.
+          if (fFocusTight.focusGoalFresh !== null) return false;
+          // RÉCONCILIATION POSITIVE côté FOCUS (focusGoalFresh) : objectif focus serré + readiness au vert le jour même → note « LE moment de pousser », score renvoyé.
+          const fFocusFresh = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-19');
+          if (!(fFocusFresh.focusGoalPace === 'tight' && fFocusFresh.focusGoalFresh === 100 && /ta forme est au vert ce matin \\(readiness 100\\/100\\)/.test(fFocusFresh.insight) && /LE moment de pousser pour boucler l.objectif focus/.test(fFocusFresh.insight))) return false;
+          // Readiness basse le jour même (< 75) → pas de feu vert → focusGoalFresh null.
+          if (adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }], recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-19').focusGoalFresh !== null) return false;
           // Focus nutrition ENRICHI : cible protéines réelle (poids/objectif) + collation concrète pour combler l'écart.
           const fNutri = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }] }, '2026-07-16');
           if (!(fNutri.pillar === 'nutrition' && /cible prot[ée]ines \\(150 g\\)/.test(fNutri.insight) && /Il te reste 150 g/.test(fNutri.action))) return false;

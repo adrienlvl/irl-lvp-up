@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.140', emoji: '🧠', text: 'Ton coach « Le focus du moment » sait enfin reconnaître l’alignement « tout est réuni » aussi côté FOCUS, pas seulement côté sport. Quand ton objectif hebdo de MINUTES de focus est SERRÉ (« cale un vrai bloc d’~90 min aujourd’hui pour tenir la cible ») ET qu’un check-in de récup du jour met ta forme au vert (readiness ≥ 75, l’esprit frais), le coach ne laisse plus passer la fenêtre : « Et bonne nouvelle : cette cadence serrée tombe pile — ta forme est au vert ce matin (readiness 82/100), l’esprit est frais pour tenir un vrai bloc. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif focus. » C’est le pendant EXACT, côté focus, de la note sport « objectif serré ET charge en sous-charge » : le focus n’a pas de charge, mais une tête reposée encaisse un gros bloc de concentration comme un corps frais encaisse une séance. La note n’apparaît que sur ce cas précis (objectif focus serré ET readiness au vert le jour même) ; rien d’autre ne change.' },
   { v: '2.0.139', emoji: '🟢', text: 'Quand ton coach « Le focus du moment » repère l’alignement « objectif serré ET charge en sous-charge » (nouveauté récente : deux feux verts, le calendrier presse pendant que ton corps a de la marge), il sait maintenant reconnaître le cas encore plus favorable : quand, EN PLUS, ta forme REMONTE franchement relevé après relevé. Ce ne sont alors plus deux lectures d’un même moment, mais TROIS signaux concordants qui se cumulent — charge basse (marge structurelle) + forme qui rebondit (ton corps réencaisse, en direct) + cadence serrée (le calendrier réclame). Le coach le dit alors plus enthousiaste : « Et bonne nouvelle : cette cadence serrée tombe pile — ta charge n’est qu’à 0,6× ton volume habituel ET ta forme remonte franchement (+30 pts sur tes derniers check-ins) : trois feux verts concordants (charge basse, forme qui rebondit, calendrier qui presse), pas un hasard — c’est LE moment de pousser pour boucler l’objectif, ton corps est prêt. » C’est le pendant POSITIF exact de la note « pic de charge ET forme qui glisse » (deux signaux de fatigue) : ici, deux/trois signaux de fraîcheur. Quand la forme ne remonte pas, le message reste le même qu’avant. L’action de sous-charge reste intacte.' },
   { v: '2.0.138', emoji: '🚀', text: 'Ton coach « Le focus du moment » ne sait pas que trancher les conflits : il sait aussi reconnaître quand tout s’ALIGNE. Quand ton objectif hebdo de séances est SERRÉ (« il en faut une chaque jour pour tenir l’objectif ») ET que ta charge des dernières semaines est en SOUS-charge (ton corps a de la marge pour remonter), les deux ne se contredisent plus — ils tirent dans le même sens. Le coach le nomme : « Et bonne nouvelle : cette cadence serrée tombe pile — ta charge n’est qu’à 0,6× ton volume habituel, ton corps a toute la marge pour enchaîner ces séances sans risque. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif. » C’est le pendant POSITIF exact de la note « pic de charge, lève le pied » : quand le calendrier presse ET que le corps est frais, c’est une fenêtre à saisir, pas un conflit. La note n’apparaît que sur ce cas précis (objectif serré ET sous-charge) ; l’action de sous-charge reste intacte.' },
   { v: '2.0.137', emoji: '🪫', text: 'Quand ton coach « Le focus du moment » tranche entre ton objectif serré et ta CHARGE en pic (nouveauté récente), il sait maintenant reconnaître le cas le plus sérieux : quand, EN PLUS du pic de charge, ta forme GLISSE relevé après relevé. Ce ne sont alors plus deux lectures d’un même instant, mais deux signaux de fatigue qui se CUMULENT — charge cumulée trop haute ET récup qui décroche. Le coach le dit alors plus fermement : « Mais ta charge est en pic cette semaine (2,3× ton volume habituel) ET ta forme glisse en parallèle (-18 pts sur tes derniers check-ins) : deux signaux de fatigue qui se cumulent, pas un coup de mou isolé. Laisser l’objectif hebdo glisser n’est plus prudent, c’est la seule option saine — consolide, protège-toi, tu repars bien plus solide. » Quand un seul des deux signaux est là, le message reste le même qu’avant. Rien d’autre ne change, l’action de charge reste intacte.' },
@@ -5081,7 +5082,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // date). Champ sessionGoalPace ('onpace' | 'tight' | 'unreachable' | null) TOUJOURS renvoyé ; note
   // APPENDUE au compteur, aucune autre branche touchée. Ne parle que quand un objectif existe et n'est
   // pas encore tenu (wc < g) : objectif atteint → le « déjà tenu 💪 » historique suffit.
-  let sessionGoalPace = null, focusGoalPace = null;
+  let sessionGoalPace = null, focusGoalPace = null, focusGoalFresh = null;
   {
     const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
     const monday = dateKey(mondayOf(new Date(+tm[1], +tm[2] - 1, +tm[3])));
@@ -5138,6 +5139,28 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         if (perDay > 60) {
           focusGoalPace = 'tight';
           insight += ` Serré : ${fw.remaining} min restantes pour ${daysLeftIncl} jour${sD} — cale un vrai bloc d’~${perDay} min chaque jour pour tenir la cible.`;
+          // Réconciliation POSITIVE côté FOCUS — le pendant EXACT, côté focus, de lowLoadUnderGoal (sport,
+          // #507). Là, une charge en sous-charge (ACWR bas) jouait le rôle de « feu vert corps » qui
+          // s'ALIGNE avec un objectif hebdo serré. Le focus n'a pas d'ACWR (les minutes s'accumulent, aucune
+          // notion de charge/récup), MAIS la readiness du matin — sommeil, fatigue, courbatures — mesure la
+          // FRAÎCHEUR d'esprit, et un cerveau reposé encaisse un gros bloc de concentration comme un corps
+          // frais encaisse une séance. Quand l'allure focus est SERRÉE (« cale ~90 min aujourd'hui ») ET
+          // qu'un check-in de récup DATÉ DU JOUR met la forme au vert (score ≥ 75, même seuil que le feu
+          // vert sport « prêt à pousser »), les deux signaux ne se contredisent pas : ils s'ALIGNENT — le
+          // calendrier réclame un vrai bloc ET la tête est exactement fraîche pour le tenir. On le NOMME
+          // (pas un conflit à désamorcer comme restOverGoal : une opportunité à souligner). Additif pur :
+          // focusGoalFresh (le score, ou null) TOUJOURS renvoyé ; note APPENDUE, aucune autre branche
+          // touchée. Mutuellement exclusif des notes sport (restOverGoal/lowLoadUnderGoal, branche
+          // chosen.pillar === 'sport') par construction. Données réelles seulement : exige un check-in de
+          // récup du jour ET un objectif focus rendu serré par le calendrier.
+          if (typeof readinessScore === 'function') {
+            const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
+            const rs = todayR ? readinessScore(todayR) : null;
+            if (rs && rs.score >= 75) {
+              focusGoalFresh = rs.score;
+              insight += ` Et bonne nouvelle : cette cadence serrée tombe pile — ta forme est au vert ce matin (readiness ${rs.score}/100), l’esprit est frais pour tenir un vrai bloc. Les deux signaux s’alignent : c’est LE moment de pousser pour boucler l’objectif focus.`;
+            }
+          }
         } else {
           focusGoalPace = 'onpace';
           insight += ` Dans les temps : ~${perDay} min/jour sur le${sD} ${daysLeftIncl} jour${sD} restant${sD} et l’objectif tombe — tu as la marge.`;
@@ -6200,7 +6223,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sessionGoalPace, focusGoalPace, focusGoalFresh, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 

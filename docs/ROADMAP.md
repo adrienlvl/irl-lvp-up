@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.139 (2026-07-19)
+## 📍 État actuel — build 2.0.140 (2026-07-19)
+
+> 🧠 **2.0.140** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **« Suite
+> possible » côté FOCUS**, notée de façon répétée depuis #504/#505 puis rappelée en tête par #507 et #508 — le
+> **pendant EXACT, côté focus, de `lowLoadUnderGoal`** (#507, alignement sport « objectif serré × sous-charge »).
+> Toute la lignée #504→#508 réconciliait objectif-serré × corps **côté SPORT** (conflits → le corps prime ;
+> alignements → on nomme la fenêtre). Mais l'allure focus `focusGoalPace === 'tight'` (« cale ~90 min
+> aujourd'hui ») ne croisait **aucun** signal de forme. Le focus n'a pas d'ACWR, mais la readiness du matin
+> mesure la **fraîcheur d'esprit** : un cerveau reposé encaisse un gros bloc comme un corps frais encaisse une
+> séance. Nouveau champ **`focusGoalFresh`** (score de readiness, ou `null`) : quand — et seulement quand —
+> l'allure focus est serrée ET qu'un check-in de récup **du jour même** met la forme au vert (score ≥ 75, même
+> seuil que le feu vert sport), la note s'ajoute : « Et bonne nouvelle : cette cadence serrée tombe pile — ta
+> forme est au vert ce matin (readiness 100/100), l'esprit est frais pour tenir un vrai bloc. Les deux signaux
+> s'alignent : c'est LE moment de pousser pour boucler l'objectif focus. » **Mutuellement exclusif** des notes
+> sport (branche `chosen.pillar === 'sport'` vs `'focus'`) par construction. Additif pur, réemploi total
+> (`readinessScore`, `s.recovery` déjà branchés — zéro nouvelle fonction). Fonctions pures + testées, check
+> smoke bloquant `coachFocus` étendu. Recap #509.
 
 > 🟢 **2.0.139** — Coaching adaptatif poussé à fond (priorité de la nuit) : on met en œuvre la **2ᵉ « Suite
 > possible » de #507** — le **pendant POSITIF exact** du compound `loadOverGoalSlide` (#506, côté PIC). Côté
