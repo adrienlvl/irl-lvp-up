@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.148 (2026-07-19)
+## 📍 État actuel — build 2.0.149 (2026-07-19)
+
+> 🚰 **2.0.149** — Coaching adaptatif poussé à fond (priorité de la nuit) : **pendant côté SPORT** de
+> l'hydratation-focus (#517), l'axe pointé par ce même recap. Le pilier sport croisait déjà le sommeil
+> chronique (`sleepTrainGuard`, #513), la readiness et l'ACWR, mais restait **aveugle à
+> `nutrition[].water`** — pourtant un levier de performance parmi les plus rapides : une déshydratation
+> légère (1-2 % du poids) fait chuter force/puissance/endurance, gêne thermorégulation et récupération,
+> gonfle la sensation d'effort. Nouveau champ **`hydrationTrainGuard`** (moyenne de verres récente, ou
+> `null`) : quand le pilier poussé est le **sport**, la séance du jour pas faite (`!doneToday`), la note
+> sommeil du sport muette (`sleepTrainGuard == null`) ET l'hydratation récente basse (moyenne < 6 verres
+> sur ≥ 3 jours d'eau saisis parmi les 7 derniers, sous la cible de 8), une note s'append : « Et pense à
+> un carburant qu'on oublie à l'effort : tu bois 4 verres d'eau par jour ces derniers jours, sous les 8
+> — même une déshydratation légère fait chuter la force, la puissance et l'endurance, gêne la
+> thermorégulation et la récupération, et gonfle la sensation d'effort. Ça se corrige tout de suite : un
+> grand verre avant de bouger, et une gourde à côté de toi pendant l'effort. » **Relais du sommeil,
+> jamais concurrent** : une seule note « carburant »/jour, le sommeil prime, l'hydratation en relais
+> (même motif que #517/#502). Vocabulaire distinct (« carburant qu'on oublie à l'effort », « force,
+> puissance et endurance », « thermorégulation », « avant de bouger ») — zéro collision regex avec
+> `sleepTrainGuard` ou `hydrationFocusGuard`. Les DEUX faces d'hydratation × pilier (focus #517, sport
+> #518) sont bouclées. Additif pur, réemploi total, **zéro** nouvelle fonction. Fonctions pures +
+> testées, check smoke bloquant `coachFocus` étendu. Recap #518.
 
 > 💧 **2.0.148** — Coaching adaptatif poussé à fond (priorité de la nuit) : **axe neuf** après six
 > boucles saturées de croisements sommeil × pilier (#511-#516) — l'**hydratation** comme levier AIGU

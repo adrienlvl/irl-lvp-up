@@ -2770,6 +2770,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.149', emoji: '🚰', text: 'Ton coach « Le focus du moment » regarde maintenant aussi ton HYDRATATION quand il te pilote sur l’ENTRAÎNEMENT — le pendant, côté SPORT, de la note d’hydratation ajoutée juste avant côté focus. Jusqu’ici, sur le sport, il lisait ta forme du jour (readiness), ta charge des 7 jours et ton sommeil, mais restait aveugle à l’eau — pourtant un des leviers de performance les plus RAPIDES : même une déshydratation légère (1 à 2 % du poids) fait chuter la force, la puissance et l’endurance, gêne la thermorégulation et la récupération, et gonfle la sensation d’effort. Quand tes derniers jours montrent une hydratation basse (moins de 6 verres/jour de moyenne, sous la cible de 8) et qu’aucune note de sommeil ne prime, il le dit : « Et pense à un carburant qu’on oublie à l’effort : tu bois 4 verres d’eau par jour ces derniers jours, sous les 8 — même une déshydratation légère fait chuter la force, la puissance et l’endurance, gêne la thermorégulation et la récupération, et gonfle la sensation d’effort. Ça se corrige tout de suite : un grand verre avant de bouger, et une gourde à côté de toi pendant l’effort. » La note n’apparaît que sur ce cas (coach sur le sport, hydratation basse, sans note de sommeil qui primerait) ; ton action du jour reste intacte.' },
   { v: '2.0.148', emoji: '💧', text: 'Ton coach « Le focus du moment » regarde maintenant aussi ton HYDRATATION quand il te pilote sur la concentration — un levier tout neuf, complémentaire du sommeil. Jusqu’ici, côté focus, il ne parlait que de ton sommeil (durée, régularité du coucher), qui se construit sur des jours. L’hydratation, elle, est le levier cognitif le plus RAPIDE : même une déshydratation légère (1 à 2 % du poids) émousse l’attention et la mémoire de travail et fait grimper la sensation d’effort — et ça se corrige en minutes. Quand tes derniers jours montrent une hydratation basse (moins de 6 verres/jour de moyenne, sous la cible de 8) et qu’aucune note de sommeil ne prime, il le dit : « Et un levier immédiat, souvent négligé : tu bois 4 verres d’eau par jour ces derniers jours, sous les 8 — même une déshydratation légère brouille l’attention et la mémoire de travail et fait grimper la sensation d’effort. Contrairement au sommeil, ça se corrige en minutes : un grand verre d’eau avant ton bloc, et garde une gourde à portée. » La note n’apparaît que sur ce cas (coach sur le focus, hydratation basse, sans note de sommeil qui primerait) ; ton action du jour reste intacte.' },
   { v: '2.0.147', emoji: '🌗', text: 'Ton coach « Le focus du moment » sait maintenant aussi te FÉLICITER quand ton rythme de coucher s’améliore — jusqu’ici, côté focus, il ne parlait de tes couchers que pour ALERTER (« ils partent dans tous les sens »). C’est le premier renfort POSITIF sur l’axe de l’horloge interne : quand tes couchers se RESSERRENT d’une semaine à l’autre (écart-type qui baisse d’au moins ~15 min), il le crédite : « Bonne nouvelle côté horloge interne : tes couchers se resserrent (±120 → ±40 min d’un soir à l’autre) — un rythme de coucher qui se stabilise réaligne l’horloge circadienne qui cadence la vigilance, et l’attention comme le temps de réaction vont suivre. Tiens ce cap, ta concentration a tout à y gagner. » Récompenser le progrès qui paie entretient l’élan mieux qu’une alerte de plus. La note n’apparaît que sur ce cas (coach sur le focus, couchers qui se stabilisent, sans note de sommeil court ou de couchers encore dispersés qui primerait) ; ton action du jour reste intacte.' },
   { v: '2.0.146', emoji: '⏰', text: 'Ton coach « Le focus du moment » regarde maintenant, côté FOCUS, non seulement COMBIEN tu dors mais À QUELLE HEURE tu te couches. La note « sommeil court » (ajoutée juste avant) ne voit que la durée : on peut dormir assez d’heures et pourtant se coucher à 22 h un soir, 3 h le lendemain — la durée paraît correcte, le rythme circadien est en miettes. C’est justement ton cas (endormissements erratiques, vers 6 h certains soirs). Quand tes nuits durent assez MAIS que tes couchers partent dans tous les sens (écart d’au moins ~1 h d’un soir à l’autre), il le nomme : « Ta durée de sommeil tient, mais tes couchers partent dans tous les sens (±90 min d’un soir à l’autre) : le cerveau ne tourne à plein régime cognitif que sur une horloge stable — un coucher erratique désynchronise l’horloge interne qui cadence la vigilance, et l’attention comme le temps de réaction décrochent même après une nuit assez longue. Se coucher à heure fixe compte ici autant que le nombre d’heures. » La note n’apparaît que sur ce cas subtil (coach sur le focus, durée correcte mais couchers dispersés, sans être déjà en alerte prioritaire) ; ton action du jour reste intacte.' },
@@ -5865,6 +5866,46 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     const detteTxt = (sleepIns.debt > 0) ? ` (dette de ${numW(sleepIns.debt)} h sur 14 j)` : '';
     insight += ` Et n’oublie pas le socle invisible de tes gains : tu dors ${numW(sleepIns.avg)} h en moyenne ces derniers jours${detteTxt}, sous les 7 h — c’est la nuit que le corps consolide l’entraînement (synthèse protéique, réparation, hormones), et dormir court plafonne les gains de chaque séance tout en augmentant le risque de blessure. Bien dormir démultiplie l’effort que tu fournis déjà.`;
   }
+  // Coach CONSCIENT de l'HYDRATATION comme CARBURANT de l'EFFORT — le pendant, côté SPORT, de
+  // hydrationFocusGuard (#517, focus), et le RELAIS d'hydratation de sleepTrainGuard (#513) exactement
+  // comme l'hydratation relaie le sommeil côté focus. Le pilier sport lit la forme du JOUR (readiness),
+  // la charge des 7 j (ACWR) et, depuis #513, le sommeil CHRONIQUE, mais restait AVEUGLE à l'HYDRATATION —
+  // pourtant un levier de performance parmi les plus RAPIDES : même une déshydratation légère (1-2 % du
+  // poids) fait chuter la force, la puissance et l'endurance, gêne la thermorégulation et la récupération,
+  // et gonfle la sensation d'effort. Sa force est d'être l'exact COMPLÉMENT du sommeil : là où mieux dormir
+  // se construit sur des nuits, mieux s'hydrater se corrige AVANT la séance — action du jour même. RELAIS
+  // du sommeil, jamais concurrent : n'entre QUE si sleepTrainGuard == null (le socle sommeil n'a pas parlé)
+  // — une seule note « carburant » par jour, le sommeil (levier primaire, combat documenté d'Adrien) prime,
+  // l'hydratation en relais, exactement le motif hydrationFocusGuard-en-relais-des-notes-sommeil (#517).
+  // Vocabulaire distinct (« carburant qu'on oublie à l'effort », « force, puissance et endurance »,
+  // « thermorégulation », « avant de bouger », « une gourde à côté de toi pendant l'effort ») — zéro
+  // collision à l'œil ni en regex avec les notes sport (sleepTrainGuard « socle invisible », lowLoad,
+  // readinessSlide) ni avec hydrationFocusGuard focus (« levier immédiat », « attention et mémoire de
+  // travail », « avant ton bloc »). Données réelles seulement : ≥ 3 jours d'hydratation saisie (water > 0)
+  // dans la fenêtre 7 j, agrégés au MAX par date comme hydrationFocusGuard, moyenne réellement < 6 verres
+  // (sous la cible de 8). Additif pur : hydrationTrainGuard (la moyenne de verres, ou null) TOUJOURS
+  // renvoyé ; note APPENDUE à l'insight, action (séance / charge / repos) intacte. Réemploi total (daysAgo,
+  // s.nutrition) — zéro nouvelle fonction pure.
+  let hydrationTrainGuard = null;
+  if (chosen.pillar === 'sport' && !doneToday && sleepTrainGuard == null) {
+    const waterByDate = {};
+    for (const n of (Array.isArray(s.nutrition) ? s.nutrition : [])) {
+      if (!n) continue;
+      const d = daysAgo(n.date);
+      if (d === null || d > 6) continue;
+      const w = Number(n.water) || 0;
+      if (w > 0) waterByDate[n.date] = Math.max(waterByDate[n.date] || 0, w);
+    }
+    const vals = Object.values(waterByDate);
+    if (vals.length >= 3) {
+      const avg = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+      if (avg > 0 && avg < 6) {
+        hydrationTrainGuard = avg;
+        const numW = n => String(n).replace('.', ',');
+        insight += ` Et pense à un carburant qu’on oublie à l’effort : tu bois ${numW(avg)} verres d’eau par jour ces derniers jours, sous les 8 — même une déshydratation légère (1 à 2 % du poids) fait chuter la force, la puissance et l’endurance, gêne la thermorégulation et la récupération, et gonfle la sensation d’effort. Ça se corrige tout de suite : un grand verre avant de bouger, et une gourde à côté de toi pendant l’effort.`;
+      }
+    }
+  }
   // Coach CONSCIENT du SOMMEIL comme CARBURANT de la CONCENTRATION — le pendant, côté FOCUS, de
   // sleepTrainGuard (#513, sport) et des guards nutrition (#511/#512). Avec lui, les QUATRE piliers
   // (nutrition ×2, sport, focus) croisent enfin le sommeil CHRONIQUE. Le pilier focus lit déjà l'allure
@@ -6425,7 +6466,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, sleepTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, weightGoalPct, weightPace, calorieTarget, sleepFatLossGuard, sleepGainGuard, sleepTrainGuard, hydrationTrainGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, focusGoalPace, focusGoalFresh, focusGoalDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend,
   };
 }
 
