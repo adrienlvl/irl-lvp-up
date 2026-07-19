@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.141');
+  assert.equal(L.CHANGELOG[0].v, '2.0.142');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8683,6 +8683,51 @@ test('adaptiveCoachFocus : focus nutrition — plateau confirmé → cible calor
   const noProfile = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights }, today);
   assert.equal(noProfile.calorieTarget, null);
   assert.match(noProfile.insight, /baisse un peu tes calories ou ajoute du cardio/);
+});
+
+test('adaptiveCoachFocus : focus nutrition — le SOMMEIL court, frein caché de la perte de gras', () => {
+  const today = '2026-07-16';
+  // Nutrition en décrochage (3 j la semaine passée, 1 récente) → nutrition = focus (ton rebuild).
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 },
+    { date: '2026-07-15', protein: 100 },
+  ];
+  // Objectif de PERTE 85 → 79. Sommeil COURT et RÉGULIER (14 nuits à 6 h → avg 6 < 7, stdev 0 → tone
+  // 'attention', PAS 'urgent' → le sommeil n'est pas forcé en tête, nutrition reste le focus). Debt = 14
+  // nuits × (7,5 − 6) = 21 h sur 14 j. → note « frein caché » APPENDUE, sleepFatLossGuard = 6.
+  const shortSleep = [];
+  for (const d of ['03','04','05','06','07','08','09','10','11','12','13','14','15','16']) shortSleep.push({ date: `2026-07-${d}`, sleep: 6 });
+  const weights = [{ date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 82 }];
+  const drained = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights, recovery: shortSleep }, today);
+  assert.equal(drained.pillar, 'nutrition', 'sommeil court mais non urgent → nutrition reste le focus');
+  assert.equal(drained.sleepFatLossGuard, 6);
+  assert.match(drained.insight, /Et surveille un frein caché : tu dors 6 h en moyenne ces derniers jours \(dette de 21 h sur 14 j\), sous les 7 h/);
+  assert.match(drained.insight, /ghréline.*cortisol.*freine la perte de gras/);
+  assert.match(drained.insight, /Mieux dormir fait partie du plan/);
+  // Le crédit de progression poids reste intact (les deux notes coexistent, leviers distincts).
+  assert.equal(drained.weightGoalPct, 50);
+  assert.match(drained.insight, /Et ça paie : 50%/);
+  // SOMMEIL SOLIDE (8 h) → aucun frein caché, champ null.
+  const rested = shortSleep.map(r => ({ ...r, sleep: 8 }));
+  const ok = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights, recovery: rested }, today);
+  assert.equal(ok.sleepFatLossGuard, null);
+  assert.doesNotMatch(ok.insight, /frein caché/);
+  // Objectif de PRISE (cible au-dessus) → le lien hormonal perte de gras ne s’applique pas, champ null.
+  const gain = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 90 }, weights: [
+    { date: '2026-06-01', value: 82 }, { date: '2026-07-14', value: 85 },
+  ], recovery: shortSleep }, today);
+  assert.equal(gain.sleepFatLossGuard, null, 'prise : pas de note frein-sommeil');
+  assert.doesNotMatch(gain.insight, /frein caché/);
+  // Moins de 3 nuits chiffrées → signal trop maigre, champ null.
+  const thin = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights, recovery: [
+    { date: '2026-07-15', sleep: 6 }, { date: '2026-07-16', sleep: 6 },
+  ] }, today);
+  assert.equal(thin.sleepFatLossGuard, null);
+  assert.doesNotMatch(thin.insight, /frein caché/);
+  // Aucune donnée de récup → sleepIns null → champ null, note absente.
+  const none = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights }, today);
+  assert.equal(none.sleepFatLossGuard, null);
+  assert.doesNotMatch(none.insight, /frein caché/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

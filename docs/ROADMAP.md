@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.141 (2026-07-19)
+## 📍 État actuel — build 2.0.142 (2026-07-19)
+
+> 🌙 **2.0.142** — Coaching adaptatif poussé à fond (priorité de la nuit) : **premier croisement de
+> PILIERS** du coach, filon neuf après la saturation du thème « objectif serré × forme » (#504→#510).
+> Jusqu'ici chaque pilier ne lisait que ses propres signaux ; la branche **nutrition** ne regardait
+> que l'assiette (protéines, hydratation, cible calorique) et la balance (progression, pente, plateau).
+> Or un objectif de **perte** peut caler pour une cause **hors nutrition** : le manque de sommeil, qui
+> pousse ghréline (faim) et cortisol (stockage) à la hausse. Nouveau champ **`sleepFatLossGuard`**
+> (moyenne h, ou `null`) : quand — et seulement quand — l'objectif est une **perte** (`wp.direction`)
+> ET que le sommeil récent est **court** (`sleepIns.avg < 7` sur ≥ 3 nuits, `sleepIns` déjà calculé en
+> tête), une note s'appende : « Et surveille un frein caché : tu dors 6 h en moyenne… (dette de 21 h
+> sur 14 j), sous les 7 h — le manque de sommeil pousse la faim (ghréline) et le stockage (cortisol) à
+> la hausse et freine la perte de gras autant qu'un écart d'assiette. Mieux dormir fait partie du plan,
+> pas seulement mieux manger. » **Compatible** avec le sommeil-pilier : si le sommeil est en alerte
+> (`tone 'urgent'`), il est déjà forcé en tête (tier −1) et devient le pilier choisi → on n'entre pas
+> dans la branche nutrition ; la note ne parle que dans le cas subtil (sommeil court sans être le focus
+> du jour). Additif pur, réemploi total (`sleepIns`), zéro nouvelle fonction. Fonctions pures + testées,
+> check smoke bloquant `coachFocus` étendu. Recap #511.
 
 > 🌫️ **2.0.141** — Coaching adaptatif poussé à fond (priorité de la nuit) : on ferme la **face
 > manquante** de #509. #509 avait nommé l'**alignement** côté FOCUS (`focusGoalFresh` : objectif focus
