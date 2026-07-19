@@ -23,7 +23,13 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.180 (2026-07-19)
+## 📍 État actuel — build 2.0.181 (2026-07-19)
+
+> 🔎 **2.0.181 — plus de zone blanche (P2.3, domaine `alternance`).** Le suivi Alternance filtré à
+> zéro rendait une chaîne vide (`app.js:268`) : compteur « 0 / 2 » mais liste **blanche**, de quoi
+> croire ses candidatures perdues — sur le module prioritaire d'Adrien. Idem `#questList` une fois
+> toutes les quêtes supprimées. Ces deux listes étaient les **seules** sans état vide (15 autres en
+> ont un). Check smoke **bloquant** `listEmptyStates`. Recap #550. _Domaine : alternance._
 
 > ⌨️ **2.0.180 — focus clavier des 3 overlays plein écran (P2.1, domaine `a11y` — rotation reprise).**
 > `#weekPage`/`#calendarPage`/`#ultraPage` recouvrent `<main>` mais étaient ouvertes par un simple
@@ -149,7 +155,7 @@ dans le recap et passer à la suivante.
       `#runPlanResult` l'ont (et c'est verrouillé par le check `a11yObjective`), mais `#wpResult`
       (« Générer ma semaine ») et `#quickSessionResult` **ne l'ont pas** → plan généré = silence au
       lecteur d'écran.
-- [ ] **P2.3 — États vides manquants** — `#altList` filtré à zéro rend `''` (`app.js:220`) : la zone
+- [x] **P2.3 — États vides manquants** ✅ _fait #550 (2.0.181) — piste VÉRIFIÉE exacte_ — `#altList` filtré à zéro rend `''` (`app.js:220`) : la zone
       devient **blanche** alors que des candidatures existent (l'utilisateur croit ses données
       perdues). Idem `#questList` (`app.js:506`) quand toutes les quêtes sont supprimées.
 - [ ] **P2.4 — Noms accessibles des champs de recherche** — `#exerciseSearch`, `#foodSearch`,
