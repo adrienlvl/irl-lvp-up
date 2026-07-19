@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.129 (2026-07-19)
+## 📍 État actuel — build 2.0.130 (2026-07-19)
+
+> ⚖️ **2.0.130** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
+> moment » lit maintenant la **PENTE de ton POIDS** — le **dernier pilier dont l'enrichissement restait
+> purement ponctuel**. Quand il pousse la NUTRITION, il relie déjà la discipline au **résultat corporel**
+> via `weightGoalProgress` (« 50 % de ton objectif de perte atteint ») — mais ce chiffre est un **cumul
+> depuis le départ**, **aveugle à la DIRECTION du moment** : deux « 50 % » n'appellent pas le même mot
+> selon que la balance **progresse encore** (projeter une arrivée) ou **stagne / repart** — le **plateau
+> classique**, où le pourcentage global rassure à tort. Le SPORT lisait déjà la pente de forme/charge, le
+> SOMMEIL celle de durée/coucher, le FOCUS celle du volume (#498) ; la NUTRITION avait le cumul, pas la
+> pente. La branche nutrition lit désormais **`weightTrend`** (fonction pure **déjà existante** : rythme
+> kg/sem sur 6 pesées, direction, `onTrack`, semaines estimées) et **NUANCE l'insight** (nouveau champ
+> **`weightPace`**) : bonne pente + ETA courte (≤ 26 sem) → crédit projeté (« À ton rythme récent
+> (0,49 kg/sem), tu touches ta cible dans ~6 semaines — tiens le cap ») ; bonne pente mais horizon
+> lointain → crédit de direction sans ETA irréaliste ; **plateau** → alerte calories orientée par le sens
+> de l'objectif (« Mais la balance ne descend plus (0 kg/sem…) — baisse un peu tes calories ou ajoute du
+> cardio ») ; **dérive** → recadrage (« repartent à la hausse (+0,21 kg/sem) — resserre tes calories »).
+> Additif pur (note appendue, action protéines intacte) ; deux axes distincts (habitude nutrition vs
+> résultat balance) → pas de contradiction ; messages perte/prise distincts ; ≥ 2 pesées + objectif
+> requis. `weightTrend` réemployée sans duplication, check smoke bloquant `coachFocus` étendu. Recap #499.
 
 > 🧠 **2.0.129** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach « Le focus du
 > moment » lit maintenant la **PENTE de ton FOCUS** — le **seul pilier qui n'avait encore AUCUNE

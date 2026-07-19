@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.129');
+  assert.equal(L.CHANGELOG[0].v, '2.0.130');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8160,6 +8160,9 @@ test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers 
   assert.equal(half.weightGoalPct, 50);
   assert.match(half.insight, /Et ça paie : 50% de ton objectif de perte atteint \(3 kg sur 6\)/);
   assert.match(half.insight, /ta nutrition en est le moteur/);
+  // PENTE de poids (weightPace) : ici la balance descend encore (~0,49 kg/sem) vers la cible → ETA projetée.
+  assert.equal(half.weightPace, -0.49);
+  assert.match(half.insight, /À ton rythme récent \(0,49 kg\/sem\), tu touches ta cible dans ~6 semaines/);
   // En chemin (< 50 %) : 85 → 84 sur une cible de 6 kg = 17% → le coach ENCOURAGE.
   const onWay = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
     { date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 84 },
@@ -8176,7 +8179,52 @@ test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers 
   const noGoal = L.adaptiveCoachFocus({ nutrition }, today);
   assert.equal(noGoal.pillar, 'nutrition');
   assert.equal(noGoal.weightGoalPct, null);
+  assert.equal(noGoal.weightPace, null);
   assert.ok(!/objectif de|attend encore un premier résultat/.test(noGoal.insight), 'sans objectif : insight nutrition intact');
+  // Une seule pesée → weightTrend null → weightPace null, aucune note de pente.
+  assert.equal(none.weightPace, null);
+  assert.ok(!/rythme récent|ne descend plus|repartent/.test(none.insight), 'une seule pesée : pas de note de pente');
+});
+
+test('adaptiveCoachFocus : focus nutrition — PENTE de poids (stagnation, dérive, horizon lointain)', () => {
+  const today = '2026-07-16';
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 },
+    { date: '2026-07-15', protein: 100 },
+  ];
+  // PLATEAU : 50 % du chemin fait (85→82) mais les 6 dernières pesées sont plates à 82 → « ne descend plus ».
+  const stall = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 },
+    { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 },
+    { date: '2026-07-14', value: 82 },
+  ] }, today);
+  assert.equal(stall.weightGoalPct, 50);
+  assert.equal(stall.weightPace, 0);
+  assert.match(stall.insight, /Et ça paie : 50%/);
+  assert.match(stall.insight, /Mais la balance ne descend plus \(0 kg\/sem sur tes dernières pesées\) — baisse un peu tes calories ou ajoute du cardio/);
+  // DÉRIVE : objectif de perte mais les dernières pesées remontent (82 → 83) → « repartent à la hausse ».
+  const drift = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82.2 },
+    { date: '2026-06-30', value: 82.4 }, { date: '2026-07-05', value: 82.6 }, { date: '2026-07-10', value: 82.8 },
+    { date: '2026-07-14', value: 83 },
+  ] }, today);
+  assert.equal(drift.weightPace, 0.21);
+  assert.match(drift.insight, /Mais tes dernières pesées repartent à la hausse \(\+0,21 kg\/sem\) — resserre tes calories pour reprendre la perte/);
+  // BON SENS mais HORIZON LOINTAIN (> 26 sem) : on crédite la direction sans ETA irréaliste.
+  const slow = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 81.94 },
+    { date: '2026-06-30', value: 81.88 }, { date: '2026-07-05', value: 81.82 }, { date: '2026-07-10', value: 81.76 },
+    { date: '2026-07-14', value: 81.7 },
+  ] }, today);
+  assert.match(slow.insight, /Et tes dernières pesées vont dans le bon sens \(0,06 kg\/sem\) — tiens le cap, le résultat suit/);
+  assert.ok(!/dans ~\d+ semaine/.test(slow.insight), 'horizon lointain : pas d’ETA chiffrée');
+  // PRISE (objectif inverse) : cible au-dessus, mais la balance ne monte plus → conseil « ajoute des calories ».
+  const gainStall = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 85 }, weights: [
+    { date: '2026-05-01', value: 78 }, { date: '2026-06-10', value: 81 }, { date: '2026-06-20', value: 81 },
+    { date: '2026-06-30', value: 81 }, { date: '2026-07-05', value: 81 }, { date: '2026-07-10', value: 81 },
+    { date: '2026-07-14', value: 81 },
+  ] }, today);
+  assert.match(gainStall.insight, /Mais la balance ne monte plus \(0 kg\/sem sur tes dernières pesées\) — ajoute un peu de calories pour relancer la prise/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

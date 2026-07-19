@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.129'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.130'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -846,8 +846,14 @@ app.whenReady().then(async () => {
           const fWeightNut = [{ date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 }];
           const fWeight = adaptiveCoachFocus({ nutrition: fWeightNut, goals: { targetWeight: 79 }, weights: [{ date: '2026-06-01', value: 85 }, { date: '2026-07-14', value: 82 }] }, '2026-07-16');
           if (!(fWeight.pillar === 'nutrition' && fWeight.weightGoalPct === 50 && /50% de ton objectif de perte atteint \\(3 kg sur 6\\)/.test(fWeight.insight))) return false;
-          // Sans objectif de poids → pas d'enrichissement, champ null.
+          // PENTE de poids (weightPace) : la balance descend encore vers la cible → ETA projetée dans l'insight.
+          if (!(fWeight.weightPace === -0.49 && /À ton rythme récent \\(0,49 kg\\/sem\\), tu touches ta cible dans ~6 semaines/.test(fWeight.insight))) return false;
+          // Plateau : 50 % fait mais dernières pesées plates → « ne descend plus » + recadrage calories.
+          const fStall = adaptiveCoachFocus({ nutrition: fWeightNut, goals: { targetWeight: 79 }, weights: [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }] }, '2026-07-16');
+          if (!(fStall.weightPace === 0 && /Mais la balance ne descend plus \\(0 kg\\/sem sur tes dernières pes[ée]es\\)/.test(fStall.insight))) return false;
+          // Sans objectif de poids → pas d'enrichissement, champs null.
           if (adaptiveCoachFocus({ nutrition: fWeightNut }, '2026-07-16').weightGoalPct !== null) return false;
+          if (adaptiveCoachFocus({ nutrition: fWeightNut }, '2026-07-16').weightPace !== null) return false;
           // Focus ENRICHI : le coach nomme la tâche PHARE réelle (focusByTask) dans l'action au lieu d'un « lance une session » aveugle.
           const fFocus = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30, task: 'Compta' }, { date: '2026-07-06', minutes: 30, task: 'Compta' }, { date: '2026-07-07', minutes: 30, task: 'Compta' }, { date: '2026-07-14', minutes: 25, task: 'Compta' }] }, '2026-07-16');
           if (!(fFocus.pillar === 'focus' && fFocus.focusTask === 'Compta' && /Reprends « Compta »/.test(fFocus.action) && /115 min sur 14 j/.test(fFocus.action))) return false;
