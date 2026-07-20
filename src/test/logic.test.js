@@ -5527,7 +5527,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.186');
+  assert.equal(L.CHANGELOG[0].v, '2.0.187');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9379,8 +9379,21 @@ test('adaptiveCoachFocus : focus nutrition — balance flat + tour de taille qui
   assert.match(recomp.insight, /ton tour de taille a fondu de 3 cm sur les 65 derniers jours/);
   assert.match(recomp.insight, /recomposition.*tu perds du gras en gardant le muscle/);
   assert.match(recomp.insight, /La balance ne dit pas tout/);
-  // La note flat (« baisse un peu tes calories ») reste — le recadrage l'AFFINE, ne l'efface pas.
+  // L'OBSERVATION du plateau reste (« Mais la balance ne descend plus »)…
   assert.match(recomp.insight, /Mais la balance ne descend plus/);
+  // …mais l'ORDRE DE COUPE est évincé : plus de « baisse tes calories » qui contredirait « tiens tes
+  // calories » du recadrage (deux ordres opposés dans la même phrase, corrigé #564).
+  assert.ok(!/baisse un peu tes calories/.test(recomp.insight), 'recomp : aucun ordre de coupe contradictoire');
+  assert.ok(!/vise ~\d+ kcal\/j/.test(recomp.insight), 'recomp : aucune cible de coupe chiffrée');
+  // MÊME avec profil complet (le plateau serait chiffré « vise ~X kcal de moins ») : la recomposition
+  // évince la cible calorique. Sans le fix, l'insight disait « vise ~1875 kcal de moins » PUIS « tiens
+  // tes calories avant de couper » — la contradiction la plus dangereuse (un nombre concret à couper).
+  const recompPro = L.adaptiveCoachFocus({ nutrition, profile: { height: 180, age: 30, sex: 'homme', activityLevel: 'modere' }, goals: { targetWeight: 79 }, weights: flatWeights, measurements }, today);
+  assert.deepEqual(recompPro.recompFraming, { waistDelta: -3, spanDays: 65 });
+  assert.equal(recompPro.calorieTarget, null, 'recomp : pas de cible de coupe exposée');
+  assert.ok(!/vise ~\d+ kcal\/j/.test(recompPro.insight), 'recomp + profil : la cible chiffrée est évincée');
+  assert.ok(!/baisse un peu tes calories/.test(recompPro.insight));
+  assert.match(recompPro.insight, /Avant de resserrer pour autant/);
   // Sans mensuration → pas de recadrage.
   const noMeas = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights }, today);
   assert.equal(noMeas.recompFraming, null);

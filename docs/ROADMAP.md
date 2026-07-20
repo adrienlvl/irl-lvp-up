@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.186 (2026-07-20)
+## 📍 État actuel — build 2.0.187 (2026-07-20)
+
+> ⚖️ **#564 — Coach : plus de contradiction « coupe tes calories » vs « tiens tes calories » (domaine
+> `coach`, build 2.0.187).** Rotation §4 bis (par n° de recap) : 2 derniers = #563 (tests) / #562 (etudes),
+> `coach` (#561) hors des 2 derniers et 1× dans les 5 derniers → **autorisé** ; priorité de nuit (coaching
+> à fond) et rotation **convergent**. Piste vérifiée en #561 (mémoire `coach-leads-contradictions-2guards`).
+> Focus nutrition, objectif de **perte**, balance **flat** + tour de taille qui fond (recomposition) :
+> l'insight donnait un **ordre de coupe** — vague (« baisse un peu tes calories ») ou **chiffré** avec profil
+> (« vise ~2126 kcal/j, ~125 de moins ») — **puis**, dans la même phrase, le recadrage « tiens tes calories…
+> **avant de couper** ». Deux ordres opposés collés ; avec profil, le premier portait un **nombre concret** à
+> retrancher (le plus dangereux). Fix : détecter la recomposition **AVANT** de formuler le conseil calorique
+> (`recompDetect`) → quand elle s'applique, **aucun ordre de coupe** (ni conseil vague, ni cible chiffrée :
+> `calorieTarget` reste `null`), on clôt l'observation et le recadrage porte **seul** — ouvreur « **Avant de
+> resserrer pour autant** : … » (supprime aussi le double « Mais »). Hors recomposition : **rien ne change**
+> (contrôle rendu §4ter : le plateau chiffré normal reste intact). **Aucune note ajoutée** (§3 qualité pas
+> volume). 526 tests + smoke verts, rendu cumulé relu (§4ter). Recap #564. _Domaine : coach._
 
 > 🧪 **#563 — P7.3 : parcours « onboarding complet » dans le smoke → SÉRIE P7 CLOSE (domaine `tests`,
 > pas de bump).** Rotation §4 bis : `coach` (priorité de nuit) est bloqué — il est dans le dernier

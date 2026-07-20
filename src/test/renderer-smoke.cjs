@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.186'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.187'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1079,6 +1079,8 @@ app.whenReady().then(async () => {
           const flatWRecomp = [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }];
           const fRecomp = adaptiveCoachFocus({ nutrition: nutRecomp, goals: { targetWeight: 79 }, weights: flatWRecomp, measurements: [{ date: '2026-05-10', waist: 92 }, { date: '2026-07-14', waist: 89 }] }, '2026-07-16');
           if (!(fRecomp.pillar === 'nutrition' && fRecomp.recompFraming && fRecomp.recompFraming.waistDelta === -3 && fRecomp.recompFraming.spanDays === 65 && /ton tour de taille a fondu de 3 cm sur les 65 derniers jours/.test(fRecomp.insight) && /La balance ne dit pas tout/.test(fRecomp.insight) && /Mais la balance ne descend plus/.test(fRecomp.insight))) return false;
+          // Le recadrage recomposition ÉVINCE l'ordre de coupe (plus de « baisse tes calories » vs « tiens tes calories » dans la même phrase).
+          if (/baisse un peu tes calories/.test(fRecomp.insight) || !/Avant de resserrer pour autant/.test(fRecomp.insight)) return false;
           // Sans mensuration → recadrage muet.
           const fRecompNo = adaptiveCoachFocus({ nutrition: nutRecomp, goals: { targetWeight: 79 }, weights: flatWRecomp }, '2026-07-16');
           if (fRecompNo.recompFraming !== null || /recomposition/.test(fRecompNo.insight)) return false;

@@ -2847,6 +2847,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.187', emoji: '⚖️', text: 'Ton coach « Le focus du moment » ne se contredit plus sur tes calories quand ton corps recompose. Quand ta balance stagne sur un objectif de perte alors que ton tour de taille fond (une vraie recomposition : tu perds du gras en gardant le muscle), il te recadrait bien — « tiens tes calories et tes protéines encore une semaine avant de couper » — mais quelques mots plus tôt, dans la même phrase, il venait de te dire « baisse un peu tes calories » (voire, profil complet, un chiffre précis : « vise ~1875 kcal/j, environ 125 de moins »). Deux ordres opposés collés l’un à l’autre : couper MAINTENANT, puis surtout ne pas couper. Il ne le fait plus : dès qu’il voit la recomposition en cours, il n’émet AUCUN ordre de coupe (ni le conseil vague, ni la cible chiffrée) et laisse le recadrage porter seul le conseil — « Mais la balance ne descend plus. Avant de resserrer pour autant : ton tour de taille a fondu de 3 cm… tiens tes calories, le résultat est déjà en cours. » Rien d’ajouté : c’est une contradiction — la plus risquée pour ta nutrition — en moins.' },
   { v: '2.0.186', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « fais un jour actif de plus » un jour où ta forme est au plancher. Quand il te FÉLICITE de bien suivre ses conseils (« Tu as tenu 3/3 de mes caps cette semaine »), il remplaçait ton conseil du jour par « Un jour actif de plus aujourd’hui : tu prouves que la régularité te ressemble. » — même les jours où, quelques lignes plus haut, il venait de te recommander du repos : readiness à 15/100, séance allégée, récupération prioritaire. Résultat : « repose-toi » et « fais un jour actif de plus » côte à côte, le coach parlant des deux coins de la bouche. Il ne le fait plus : les jours où ta forme demande de lever le pied (readiness basse, forme qui glisse ou charge en pic), il GARDE son conseil de récup et se contente de créditer ton élan dans le texte. Les autres jours, le message d’encouragement reste. Rien d’ajouté : c’est une contradiction en moins.' },
   { v: '2.0.185', emoji: '🧵', text: 'Ton coach « Le focus du moment » se lit mieux quand tu déplies « plus de contexte » : ses conseils à deux phrases ne se déchirent plus. Plusieurs de ses notes fonctionnent en couple — un constat (« … tu dors 5,5 h en moyenne ces derniers jours, sous les 7 h — dormir court plafonne les gains de chaque séance. ») suivi de sa morale (« Bien dormir démultiplie l’effort que tu fournis déjà. »). Le coach hiérarchise ses notes par urgence pour faire remonter l’essentiel ; mais ce reclassement travaillait phrase par phrase, si bien que la morale, jugée « neutre », se retrouvait éjectée tout en bas, orpheline, loin du constat qu’elle explique — un fil rompu dès qu’on ouvrait le détail. Désormais une phrase de conclusion reste SOUDÉE au constat qui la précède : le couple monte (ou descend) ensemble, à sa juste place. Rien n’est ajouté ni retiré à ce que dit le coach — c’est purement l’ordre d’affichage qui redevient lisible.' },
   { v: '2.0.184', emoji: '📅', text: 'Ton coach « Le focus du moment » connaît désormais TON JOUR d’entraînement — le jour de la semaine où tu t’entraînes le plus, un signal qu’il n’avait jamais lu. Il te parlait de charge, de zones, d’équilibre course/muscu et de progression (le QUOI et le COMBIEN), mais jamais du QUAND : sur quel jour repose ton habitude. Or s’appuyer sur une habitude qui existe déjà est le levier le plus solide pour lancer une séance — bien plus qu’une injonction abstraite. Désormais, quand AUJOURD’HUI est justement ce jour dominant, il te le rappelle : « Et c’est justement ton jour : sur les 8 dernières semaines, c’est le jeudi que tu t’entraînes le plus (6 séances sur 9, 67 %). Ton corps a déjà ce rendez-vous dans le rythme — honore-le aujourd’hui : t’appuyer sur une ancre d’habitude qui existe déjà rend la séance bien plus facile à lancer que de compter sur la seule volonté. » Honnête : il n’en parle que si tu as une VRAIE habitude (au moins 8 séances sur 8 semaines, un jour nettement dominant — au moins 30 % de tes séances, pas d’ex æquo), se tait si tu t’entraînes tous les jours (pas de jour fétiche), les jours où ta forme demande du repos ou ta charge est en pic, et si tu as déjà bougé aujourd’hui (l’habitude est déjà honorée). La note enrichit l’insight, ton action du jour reste intacte.' },
@@ -5930,6 +5931,19 @@ function adaptiveCoachFocus(state, todayKey, opts) {
               // plutôt que qualitatif. Dégrade proprement (profil incomplet, ou 14 j non confirmés → on garde
               // le conseil qualitatif). Suite directe de #499 (Suite possible : « citer la cible calorique »).
               const wantGoal = wp.direction === 'perte' ? 'perte' : 'prise';
+              // RECOMPOSITION détectée AVANT le conseil calorique. Sur objectif de perte, si la balance
+              // stagne (flat) mais que le tour de taille a fondu (≥ 1 cm, ~60 j), le corps recompose déjà :
+              // couper serait l'erreur. On le repère ICI pour NE PAS émettre d'ordre de coupe (le « baisse
+              // tes calories » vague OU la cible chiffrée « vise ~X kcal de moins ») qui contredirait
+              // frontalement le recadrage « tiens tes calories » ajouté juste après — deux ordres opposés
+              // dans la même phrase, corrigé boucle #564 (piège relevé en #561).
+              let recompDetect = null;
+              if (wt.direction === 'flat' && wp.direction === 'perte' && typeof measurementRecentDelta === 'function'
+                  && typeof recompositionInsight === 'function') {
+                const wd = measurementRecentDelta(s.measurements, 'waist', 60);
+                const rec = wd ? recompositionInsight(0, wd.delta) : null;
+                if (rec && rec.key === 'recomp') recompDetect = { waistDelta: wd.delta, spanDays: wd.spanDays };
+              }
               let tail = wt.direction === 'flat'
                 ? (wantGoal === 'perte'
                     ? ` — baisse un peu tes calories ou ajoute du cardio pour relancer.`
@@ -5937,7 +5951,11 @@ function adaptiveCoachFocus(state, todayKey, opts) {
                 : (wantGoal === 'perte'
                     ? ` — resserre tes calories pour reprendre la perte.`
                     : ` — remonte tes calories pour reprendre la prise.`);
-              if (typeof energyPlan === 'function' && typeof calorieAdjustment === 'function') {
+              if (recompDetect) {
+                // Recomposition en cours → aucun ordre de coupe : on clôt l'observation (« … dernières
+                // pesées. ») et on laisse le recadrage recomposition ci-dessous porter seul le conseil.
+                tail = `.`;
+              } else if (typeof energyPlan === 'function' && typeof calorieAdjustment === 'function') {
                 const plan = energyPlan({ weight: wt.current, height: s.profile && s.profile.height, age: s.profile && s.profile.age, sex: s.profile && s.profile.sex, activityLevel: s.profile && s.profile.activityLevel, sessionsPerWeek: s.goals && s.goals.sessions, targetWeight: tgtW, todayKey });
                 if (plan && plan.goal === wantGoal) {
                   const adj = calorieAdjustment(s.weights, plan.goal, plan.dailyTarget);
@@ -5954,8 +5972,8 @@ function adaptiveCoachFocus(state, todayKey, opts) {
                 }
               }
               insight += ` ${obs}${tail}`;
-              // Coach du RÉ-CADRAGE par RECOMPOSITION — la balance ne dit pas tout. La note juste au-dessus
-              // conseille de RESSERRER les calories quand la balance stagne sur un objectif de PERTE. Mais un
+              // Coach du RÉ-CADRAGE par RECOMPOSITION — la balance ne dit pas tout. Détecté plus haut
+              // (recompDetect, qui évince du même coup l'ordre de coupe) ; ici on POSE le recadrage. Un
               // poids stable peut MASQUER une vraie recomposition (perte de gras + maintien du muscle) — invisible
               // sur la balance, lisible seulement au TOUR DE TAILLE. Couper les calories dans ce cas serait une
               // erreur : le corps progresse déjà, on saperait le muscle pour rien. On lit measurementRecentDelta
@@ -5969,14 +5987,9 @@ function adaptiveCoachFocus(state, todayKey, opts) {
               // Additif pur : champ recompFraming ({ waistDelta, spanDays } ou null) TOUJOURS renvoyé. Vocabulaire
               // distinct (« recomposition », « la balance ne dit pas tout », « tour de taille a fondu ») — zéro
               // collision avec les guards sommeil (« frein caché/invisible ») ni la note flat (« resserre »).
-              if (wt.direction === 'flat' && wp.direction === 'perte' && typeof measurementRecentDelta === 'function'
-                  && typeof recompositionInsight === 'function') {
-                const wd = measurementRecentDelta(s.measurements, 'waist', 60);
-                const rec = wd ? recompositionInsight(0, wd.delta) : null;
-                if (rec && rec.key === 'recomp') {
-                  recompFraming = { waistDelta: wd.delta, spanDays: wd.spanDays };
-                  insight += ` Mais avant de resserrer : ton tour de taille a fondu de ${numW(Math.abs(wd.delta))} cm sur les ${wd.spanDays} derniers jours pendant que la balance stagnait — c’est de la recomposition (tu perds du gras en gardant le muscle), un progrès réel que le poids seul cache. La balance ne dit pas tout : tiens tes calories et tes protéines encore une semaine avant de couper, le résultat est déjà en cours.`;
-                }
+              if (recompDetect) {
+                recompFraming = recompDetect;
+                insight += ` Avant de resserrer pour autant : ton tour de taille a fondu de ${numW(Math.abs(recompDetect.waistDelta))} cm sur les ${recompDetect.spanDays} derniers jours pendant que la balance stagnait — c’est de la recomposition (tu perds du gras en gardant le muscle), un progrès réel que le poids seul cache. La balance ne dit pas tout : tiens tes calories et tes protéines encore une semaine avant de couper, le résultat est déjà en cours.`;
               }
             }
           }
