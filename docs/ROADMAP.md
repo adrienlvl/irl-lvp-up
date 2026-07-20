@@ -23,7 +23,15 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.209 (2026-07-20)
+## 📍 État actuel — build 2.0.210 (2026-07-20)
+
+> 📉 **#594 — Graphique du poids « Prévu vs Réel » enfin lisible (demande d'Adrien, build 2.0.210).**
+> `coachForecastSvg` calait l'échelle Y sur plan+réel → le réel (variations de quelques centaines de g)
+> écrasé sur ~10 % de la hauteur par le plan (trajet complet vers la cible). Nouveau helper pur
+> `weightForecastModel` : Y calé sur le RÉEL (amplitude verticale 6 → 38/100), graduations kg, repère
+> « auj. » séparant passé réel / futur prévu, plan qui sort du cadre. Axe kg + labels en overlay HTML
+> (pas de texte SVG déformé). Vérifié en thème sombre ET clair. Check smoke `coachForecast` étendu.
+> Recap #594. _Domaine : mesures._
 
 > 🗓️ **#593 — « Générer ma semaine » se pose sur la SEMAINE EN COURS (demande d'Adrien, build 2.0.209).**
 > `scheduleWeekProgram` démarrait à **lundi prochain** (`-dow+7`) → la semaine en cours était perdue.

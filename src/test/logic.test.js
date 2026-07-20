@@ -5687,7 +5687,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.209');
+  assert.equal(L.CHANGELOG[0].v, '2.0.210');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11389,5 +11389,25 @@ test('weekProgramSchedule : ancre le programme sur la SEMAINE EN COURS, saute le
   // Robustesse : entrées vides / date invalide → [].
   assert.deepEqual(L.weekProgramSchedule([], '2026-07-20', 4), []);
   assert.deepEqual(L.weekProgramSchedule(days, 'nope', 4), []);
+});
+
+test('weightForecastModel : échelle Y priorise le RÉEL pour qu’il soit lisible', () => {
+  // Cible LOINTAINE : plan 90→78 (12 kg), réel varie ~1,5 kg. L’ancienne échelle partagée écrasait le
+  // réel (~6/100) ; désormais Y est borné sur le réel → le réel remplit la hauteur.
+  const plan = []; for (let i = 0; i <= 12; i++) { const d = new Date('2026-07-11T12:00:00'); d.setDate(d.getDate() + i * 7); plan.push({ date: d.toISOString().slice(0, 10), value: Math.round((90 - i) * 10) / 10 }); }
+  const actual = [{ date: '2026-06-20', value: 91.4 }, { date: '2026-06-27', value: 91.0 }, { date: '2026-07-04', value: 90.5 }, { date: '2026-07-11', value: 90.0 }];
+  const m = L.weightForecastModel(plan, actual);
+  assert.ok(m, 'modèle renvoyé');
+  assert.ok(m.vMin >= 89 && m.vMax <= 92.5, `Y borné sur le réel, obtenu ${m.vMin}-${m.vMax}`);
+  const ys = m.actual.map(p => p.y); const ampl = Math.max(...ys) - Math.min(...ys);
+  assert.ok(ampl > 25, `le réel occupe une vraie amplitude verticale (${ampl.toFixed(1)}/100), plus écrasé`);
+  assert.ok(m.yTicks.length >= 2 && m.yTicks.every((t, i) => i === 0 || t.value > m.yTicks[i - 1].value), 'graduations kg croissantes');
+  assert.ok(m.yTicks.every(t => t.value >= m.vMin - 0.01 && t.value <= m.vMax + 0.01), 'graduations dans les bornes');
+  assert.equal(m.todayX, m.plan[0].x, 'todayX = début du plan');
+  assert.equal(m.targetInView, false, '78 hors du cadre réel → pas de ligne cible, le plan sort du bas');
+  const noAct = L.weightForecastModel(plan, []);
+  assert.ok(noAct.vMin <= 78.5 && noAct.vMax >= 89, 'sans réel, l’échelle couvre le plan');
+  assert.equal(L.weightForecastModel([{ date: '2026-07-01', value: 80 }], []), null, '<2 points de plan → null');
+  assert.equal(L.weightForecastModel(null, null), null);
 });
 
