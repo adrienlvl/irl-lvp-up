@@ -17,6 +17,14 @@
   (onglet 💼, sync Google Sheets, cible du jour) est sacré : on l'améliore, on ne le casse jamais.
 - **Cap 3.0** (ordre validé) : Vague 1 Coaching ✅ → **Vague 2 Fondations (en cours)** → Sécurité →
   Sync E2E → Planning études → Scans. Détail : `docs/AUDIT-ET-ROADMAP-3.0.md`.
+- 🏅 **MANDAT COACHING ÉLITE (Adrien, 2026-07-20)** : pousser TOUT le coaching (poids/nutrition, muscu,
+  running/trail, exercices) au **niveau élite** — coach d'un athlète visant le haut niveau, diététicien
+  du sport, kiné. **Méthode imposée** : chercher la **science d'abord** (WebSearch : ISSN, ACSM, NSCA,
+  Schoenfeld, Helms, Zourdos, Seiler, Lauersen, PubMed…), **citer les sources** dans le code + le
+  CHANGELOG, et rester **AMBITIEUX MAIS SÛR** (un vrai coach ne blesse ni ne carence — préservation du
+  muscle, planchers hormonaux/EA, cap de déficit, prévention). Le résultat scientifique est souvent
+  NUANCÉ → personnaliser, pas cranker les chiffres. Voir la SÉRIE COACHING en tête de « 🌙 DÉMARRAGE
+  VPS » (ROADMAP) : la finir a PRIORITÉ, avec exception de rotation assumée sur `athlete`/`nutrition`.
 
 ## 2. L'itération type (à exécuter UNE fois par run)
 

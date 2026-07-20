@@ -785,24 +785,56 @@ jusqu'à la rentrée, on l'améliore et on ne le casse jamais.
 
 ---
 
-## 🌙 DÉMARRAGE VPS — nuit du 2026-07-19 (lis ceci EN PREMIER)
+## 🌙 DÉMARRAGE VPS — nuit du 2026-07-20 (lis ceci EN PREMIER)
 
-**État au moment du relais** : `master` = **2.0.183**, publiée (tag `v2.0.183`). 519 tests + smoke
-verts. Rotation des domaines **amorcée** — les 7 derniers recaps sont étiquetés
-`coach · coach · a11y · alternance · robustesse · agenda · tests`.
+**État au relais** : `master` = **2.0.217** (⚠️ **NON publiée** ; dernière release `v2.0.183`). 547
+tests + smoke verts. Dernier recap **#601**. Depuis ta nuit précédente (#554→#591), la session locale
+d'Adrien a fait **#592** (audit adversarial de ta nuit : 8 régressions corrigées) puis une **SÉRIE
+COACHING #593→#601**. **Ta prochaine boucle est #602.**
 
-**Ta prochaine boucle est #554.** Domaines **interdits** au démarrage (§4 bis.3, apparaissent dans les
-5 derniers) : `tests`, `agenda`, `robustesse`.
+### 🎯 PRIORITÉ ABSOLUE cette nuit : FINIR la série « coaching élite », PUIS reprendre la roadmap
 
-**Ordre conseillé pour la nuit** (respecte la rotation d'une boucle à l'autre) :
+Adrien veut que le coaching (poids/nutrition, muscu, running/trail, exercices) atteigne le **niveau
+ÉLITE** : coach d'un athlète qui vise le haut niveau, **diététicien du sport**, **kiné**. Il te demande
+**explicitement de continuer les travaux commencés et non finis** (ci-dessous), **PUIS** de reprendre la
+roadmap normale.
 
-1. **#554 → `a11y`** : **P2.2** (ajouter `aria-live` à `#quickSessionResult` — **lui seul**) puis, une
-   autre boucle, **P2.4** (`aria-label` sur `#foodSearch` et `#agendaSearch` — **eux seuls**).
-2. **#555 → `etudes`** : **P6.1**, le modèle `examGoals[]` + migration. **C'est le plus utile à
-   Adrien** (BTS CG). Logique pure : aucun risque renderer.
-3. **#556 → `tests`** : **P7.1**, premier parcours scripté dans le smoke.
-4. Puis alterne librement entre **P6.2**, **P7.2/P7.3**, **P4** (regex non ancrées) et **P2**, en
-   changeant de domaine à chaque fois.
+**⚠️ EXCEPTION de rotation ASSUMÉE** : la série coaching enchaîne volontairement `athlete`/`nutrition`/
+`mesures` — c'est une **demande directe d'Adrien**, PAS une monomanie. Tu as le **droit d'enchaîner ces
+domaines** jusqu'à finir la série, malgré §4 bis. Série finie → **reprends la rotation normale**.
+
+**MÉTHODE OBLIGATOIRE (celle qui a marché #595→#601)** :
+1. **CHERCHE la science D'ABORD** (WebSearch : ISSN, ACSM, NSCA, Schoenfeld, Helms, Zourdos, Seiler,
+   Lauersen, PubMed…). Ne code jamais des chiffres « au pif ».
+2. **CITE les sources** dans le code (commentaire) ET le CHANGELOG (« (Seiler) », « (ACSM 2009) »).
+3. **AMBITIEUX MAIS SÛR** : un coach d'élite pousse fort **sans blesser ni carencer** (préservation du
+   muscle, planchers EA/hormones, cap de déficit, prévention). Le résultat scientifique est souvent
+   **nuancé** (ex. perdre trop vite fait *perdre* du muscle) → personnaliser, pas cranker.
+4. Logique pure → `logic.js` + test node ; rendu → check smoke **bloquant** ; vérifie en navigateur.
+
+### Travaux coaching NON FINIS (un par boucle, dans cet ordre conseillé) :
+
+- [ ] **#602 — VO2max / fractionné** : la « séance qualité » de #601 est un simple tempo/seuil. Étoffe :
+      vraies séances d'**intervalles VO2max** (ex. 5×3 min effort dur / 3 min récup ; 30/30 ; côtes),
+      variété + progression sur les semaines. Fonction pure `qualitySession(...)` + rendu + test.
+- [ ] **Affûtage (taper)** avant une course (`raceGoal`/`racePhase` existent) : sur les 1-2 dernières
+      semaines, **réduire le VOLUME ~40-50 % en gardant l'INTENSITÉ** (Bosquet 2007, méta). L'intégrer
+      au coach course / à la génération.
+- [ ] **Volume & DELOAD muscu** : landmarks **MEV≈10 → MRV≈20 séries/muscle/sem** (déjà
+      `weeklySetsPerZone`/`setLandmark`), + reco de **deload** toutes les ~4-6 sem ou sur signaux de
+      fatigue (−40-50 % volume). Un coach qui dit **quand décharger** (Israetel/RP, Helms).
+- [ ] **Trail spécifique** (`ultraPlan`) : dénivelé D+, côtes/descentes, renforcement spécifique coureur.
+- [ ] **Base d'exercices plus complète** (niveau Garmin/Strava/Apple Fitness) : plus d'exercices, cues
+      d'exécution plus riches, variantes par matériel. Data pure + tests.
+
+### PUIS, série finie → reprends la ROADMAP en rotation normale
+(P4 regex non ancrées, P2 a11y restant, P5 mesure ; P6/P7 si non finis — voir plus bas). Reviens à
+§4 bis (étiquette `Domaine :`, contrôle des 5 derniers recaps).
+
+**Contexte P1** _(tranché par Adrien le 2026-07-19, en partie déjà exécuté par toi)_ : **P1.3
+multi-examens BTS** et **P1.5 parcours E2E** ont été **faits** dans ta nuit précédente (#555/#562/#565,
+#556/#560/#563). Restent valides ci-dessous. Le **coach n'est PAS gelé** (Adrien a refusé le gel) :
+« qualité, pas volume » (§3).
 
 **✅ LES 6 PROPOSITIONS P1 SONT TRANCHÉES** (Adrien, 2026-07-19 — il a validé **la recommandation de
 chaque document**). Attention : **deux recommandations étaient des « non »**. Ce qui s'ouvre :
