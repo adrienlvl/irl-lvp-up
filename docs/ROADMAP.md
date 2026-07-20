@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.184 (2026-07-20)
+## 📍 État actuel — build 2.0.185 (2026-07-20)
+
+> 🧵 **2.0.185 — #558 : les conseils du coach à DEUX phrases ne se déchirent plus (domaine `coach`,
+> priorité de nuit).** Rotation §4 bis OK (`coach` absent des 5 derniers recaps). Piste prête depuis
+> #557 (mise de côté par §5 ce jour-là). Défaut réel attrapé en **rendu chargé (§4ter)** :
+> `orderCoachNotes` hiérarchisait les notes **phrase par phrase**, or plusieurs guards tiennent sur
+> deux phrases — un constat **classé** (ex. sommeil×sport, rang 2) + une conclusion **non classée**
+> (« Bien dormir démultiplie l'effort que tu fournis déjà. », rang 4). Le tri les **séparait** : la
+> conclusion tombait **orpheline tout en bas**, loin de sa prémisse → charabia dès qu'on dépliait
+> « plus de contexte ». Fix : une phrase non classée **hérite du rang de la dernière phrase classée
+> qui la précède** (bloc soudé, tri stable → ordre intra-bloc intact). **Ni ajout ni retrait** de
+> contenu, juste l'ordre d'affichage (curation au rendu, §3). Garde-fou : une note neutre SANS
+> prémisse (« Objectif hebdo », appendue AVANT les notes secondaires) reste au rang par défaut, jamais
+> tirée vers le haut — vérifié au rendu + test dédié. Test logique + assertion bloquante `coachCuration`.
+> 523 tests + smoke verts. Recap #558. _Domaine : coach._
 
 > 🔧 **#557 — Smoke DÉFLAKÉ (domaine `robustesse`, réparation §5, pas de bump).** `verify` était
 > rouge de façon **intermittente** (~1/5) AVANT tout changement → §5 impose « répare le harnais

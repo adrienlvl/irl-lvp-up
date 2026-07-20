@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.184'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.185'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1356,6 +1356,16 @@ app.whenReady().then(async () => {
             + 'tes tendons, tes os et tes articulations encaissent sans casser — première cause de fracture de fatigue chez le coureur, plafonne dès maintenant.';
           const u = splitCoachInsight(longUrgent);
           if (!/kilométrage/.test(u.primary)) return false;
+          // BLOC SOUDÉ (#558) : une note à 2 phrases (prémisse CLASSÉE + conclusion NON classée) ne doit
+          // PAS se déchirer au reclassement — la conclusion suit IMMÉDIATEMENT sa prémisse, pas orpheline
+          // en bas. Reproduit la note sommeil×sport réelle (« … risque de blessure. Bien dormir démultiplie… »).
+          const soude = orderCoachNotes('1 jour actif cette semaine, en hausse. Garde le rythme. '
+            + 'Et n’oublie pas le socle invisible de tes gains : tu dors 5,5 h en moyenne ces derniers jours, '
+            + 'sous les 7 h — dormir court plafonne les gains de chaque séance. '
+            + 'Bien dormir démultiplie l’effort que tu fournis déjà.');
+          const iP = soude.findIndex(p => /socle invisible/.test(p));
+          const iC = soude.findIndex(p => /démultiplie/.test(p));
+          if (!(iP >= 0 && iC === iP + 1)) return false;
           return true;
         })(),
         // ACCORD DU PARTICIPE en vue Jour (#552) : « fait(s) » s'accorde avec le nombre RÉALISÉ

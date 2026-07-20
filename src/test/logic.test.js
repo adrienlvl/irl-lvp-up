@@ -5479,7 +5479,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.184');
+  assert.equal(L.CHANGELOG[0].v, '2.0.185');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10722,6 +10722,35 @@ test('coachNoteUrgency / orderCoachNotes : l’urgent passe devant l’anodin', 
   assert.equal(ph.length, 2, 'deux phrases réelles, pas quatre fragments');
   assert.match(ph[0], /coucher fixe\.$/, 'le verdict reste entier, parenthèse et abréviation incluses');
   assert.match(ph[1], /^Et la pente/);
+});
+
+test('orderCoachNotes : une note à 2 phrases reste SOUDÉE (prémisse classée + conclusion non classée)', () => {
+  // BUG attrapé en NAVIGATEUR (§4ter) : plusieurs guards du coach tiennent sur DEUX phrases — une
+  // prémisse CLASSÉE (ici sommeil, rang 2) suivie d'une conclusion NON classée (rang par défaut).
+  // Le tri phrase par phrase les SÉPARAIT : la prémisse remontait au bon rang, la conclusion tombait
+  // ORPHELINE tout en bas, loin de ce qu'elle explique → charabia dès qu'on déplie « plus de contexte ».
+  // Reproduit à l'identique de l'assemblage réel (verdict sport en 2 phrases + note kilométrage rang 0
+  // + note sommeil×sport rang 2 avec sa conclusion « Bien dormir démultiplie… » rang 4).
+  const insight =
+    '1 jour actif cette semaine, en hausse. Garde le rythme.' +
+    ' Objectif hebdo : 2/4 séances.' +
+    ' Et surveille ta montée de kilométrage : tu es passé de 20 à 32 km de course cette semaine, ' +
+    'première cause de blessure du coureur (fracture de fatigue) — plafonne à +10 %.' +
+    ' Et n’oublie pas le socle invisible de tes gains : tu dors 5,5 h en moyenne ces derniers jours, ' +
+    'sous les 7 h — dormir court plafonne les gains de chaque séance. ' +
+    'Bien dormir démultiplie l’effort que tu fournis déjà.';
+  const ordered = L.orderCoachNotes(insight);
+  const iPremisse = ordered.findIndex(p => /socle invisible/.test(p));
+  const iConclusion = ordered.findIndex(p => /démultiplie/.test(p));
+  assert.ok(iPremisse >= 0 && iConclusion >= 0, 'les deux phrases sont présentes');
+  assert.equal(iConclusion, iPremisse + 1, 'la conclusion suit IMMÉDIATEMENT sa prémisse (bloc soudé)');
+  // La note kilométrage (rang 0) reste elle aussi en un seul bloc, avant le sommeil (rang 2).
+  assert.ok(ordered.findIndex(p => /kilométrage/.test(p)) < iPremisse, 'le rang 0 passe avant le rang 2');
+  // GARDE-FOU anti-régression : une note non classée SANS prémisse classée avant elle (« Objectif
+  // hebdo », appendue au cœur AVANT les notes secondaires) ne doit PAS être tirée vers le haut — elle
+  // reste au rang par défaut, donc APRÈS les notes classées kilométrage/sommeil.
+  const iObjectif = ordered.findIndex(p => /Objectif hebdo/.test(p));
+  assert.ok(iObjectif > iConclusion, 'une note neutre sans prémisse reste en bas, pas tirée au rang 2');
 });
 
 test('jobStatusFromText : « pris » n’est une acceptation que dans une tournure d’acceptation', () => {
