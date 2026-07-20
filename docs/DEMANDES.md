@@ -15,6 +15,16 @@
 
 ## En cours
 
+- **Avancer CAP 3.0 — proposition Sécurité (chantier 3) écrite, en attente de ta décision.** Le code
+  autonome du Cap 3.0 est épuisé (P6 multi-examens et P7 parcours smoke clos ; IndexedDB réservé au
+  supervisé ; es-modules/i18n fermés). Prochain chantier validé sans proposition = **Sécurité & prêt
+  pour le public**. Boucle #574 (2026-07-20) : `docs/proposals/securite-socle-public.md` — chiffrement
+  des données **au repos** (le réseau est déjà couvert par `SECURITE-RESEAU-S8.md`). Reco : **A**
+  (desktop via `safeStorage`, gain net sans UX) tout de suite, **B** (verrou web opt-in) en cible ; à
+  greffer sur la réécriture IndexedDB en **session supervisée**. ⏳ **4 décisions t'attendent** en fin
+  de doc (périmètre A/B/C · verrou web par phrase de passe · filet en cas de mot de passe oublié ·
+  confirmation « session supervisée »).
+
 ## Terminé
 
 - **Alternance : le statut posé n'était pas pris en compte + amélioration de l'onglet Sommeil.** ✅

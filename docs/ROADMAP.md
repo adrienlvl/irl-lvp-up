@@ -25,6 +25,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.196 (2026-07-20)
 
+> 🔒 **#574 — Proposition : socle sécurité « prêt pour le public » — chiffrement AU REPOS (domaine
+> `fondations`, docs, pas de bump).** Rotation §4 bis : les 5 derniers domaines = `coach · robustesse ·
+> a11y · coach · robustesse` → `coach` (2× + dans les 2 derniers) et `robustesse` (2× + dans les 2
+> derniers) **interdits** → priorité de nuit #1 (coaching) rotation-bloquée. **Quota §4 bis.4 déclenché** :
+> `docs/proposals/` inchangé depuis 20 recaps → l'itération DOIT être une proposition ; ROADMAP P1 est
+> épuisée (6/6 tranchées) et les 2 chantiers autonomes ouverts (P6/P7) sont **clos**, IndexedDB
+> **réservé au supervisé** → **le seul moyen d'avancer CAP 3.0 ce soir** (2ᵉ demande d'Adrien) = écrire
+> la proposition manquante. Chantier 3 « Sécurité & prêt pour le public » n'avait **aucune** proposition.
+> Fait factuel corrigeant une intuition : `safeStorage` **est** utilisé, mais **seulement** pour 2 petits
+> fichiers de secrets réseau (`calendar-subs.dat`, `travel-config` — principe S.8 n°6) ; le **gros blob**
+> (`localStorage['irl-level-up']`, backups disque JSON instantané + 14 copies, photos, miroir IDB) reste
+> **en clair**. La sécurité **réseau** est déjà couverte par `SECURITE-RESEAU-S8.md` → la proposition ne
+> la touche pas (§3), elle cadre le **stockage au repos** + la checklist de publication. Nœud décisionnel :
+> desktop a un trousseau OS (`safeStorage`, facile), le **web n'en a pas** (chiffrer exige une phrase de
+> passe → coût UX + risque de perte). Reco : **A** (desktop) tout de suite, **B** (verrou web opt-in) en
+> cible, **C** (obligatoire partout) écarté. Point clé : décider le chiffrement **avant** de bâtir la
+> persistance IDB (chantier 2, supervisé) pour la construire chiffrée d'emblée. `docs/proposals/securite-socle-public.md`.
+> Docs seuls → **pas de bump**, aucun code touché. Recap #574. _Domaine : fondations._
+
 > 🩹 **#573 — Coach : plus de « Garde le rythme » un jour où l'action dit de se reposer (domaine
 > `coach`, build 2.0.196).** Rotation §4 bis : les 5 derniers domaines = `robustesse · a11y · coach ·
 > robustesse · athlete` → `coach` (#570) absent des 2 derniers (#572 robustesse, #571 a11y) et 1× sur 5

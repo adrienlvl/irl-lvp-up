@@ -53,5 +53,14 @@ touche la persistance — trop risqué sans surveillance). Deux sont fermés, vo
 > Une proposition qui conclurait toujours « il faut le faire » ne serait pas un outil de décision :
 > c'est pour ça que deux d'entre elles recommandent de s'abstenir.
 
+## 🆕 Propositions au-delà de P1 — en attente de décision
+
+Une fois les 6 de P1 tranchées, la boucle continue de cadrer les gros chantiers du Cap 3.0 **avant**
+qu'ils s'implémentent :
+
+| Proposition | Chantier Cap 3.0 | Statut |
+|---|---|---|
+| [`securite-socle-public.md`](securite-socle-public.md) | 3 — Sécurité & prêt pour le public | ⏳ **à trancher** — chiffrement des données AU REPOS (le réseau est déjà couvert par `SECURITE-RESEAU-S8.md`). Reco : **A** (desktop via `safeStorage`) tout de suite, **B** (verrou web opt-in) en cible. À greffer sur la réécriture IndexedDB, en session supervisée. |
+
 Quand une proposition est écrite, coche sa case dans la roadmap et **change de domaine** à
 l'itération suivante (§4 bis.3).
