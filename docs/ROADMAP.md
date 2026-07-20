@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.220 (2026-07-20)
+## 📍 État actuel — build 2.0.221 (2026-07-20)
 
+> 🧭 **#607 — Coach « La priorité du jour » B.2 : branchement au rendu (dédup + recadrage), build
+> 2.0.221.** Suite du feu vert d'Adrien (périmètre B, proposition #602). Les **deux surfaces coach du
+> dashboard** sont enfin **arbitrées entre elles** : `renderCoachFocus` affiche la n°1 **arbitrée**
+> (`coachDayPriority.primary`) et `renderAttention` affiche `deduped` (« À rattraper » sans le doublon
+> du focus). Quand la **forme du jour est basse** alors que le coach allait pousser une séance, la carte
+> se **recadre** en « 😴 Priorité du jour : récupère ». **Curation pure §3** (zéro champ ajouté), calcul
+> **au même instant** pour les deux blocs (dédup cohérente), **garde-fou anti-sur-curation** (dédup
+> seulement si la carte focus est affichée), et **non-régression** `coachLog`/`coachFollowThrough`
+> (pilier journalisé = celui d'`adaptiveCoachFocus`). **Contrôle §4 ter** appliqué : le `why` recadré a
+> été resserré (« Récupérer fait plus progresser que forcer une séance ») pour lever une redondance
+> visible. Check smoke bloquant `coachDayPriority` (logique + rendu). 558 tests + smoke vert. Recap
+> #607. Reste **B.3** (affinage/affichage du `defer`, optionnel, dépend des décisions 3/4 d'Adrien).
+> _Domaine : coach._
+>
 > 🧭 **#606 — Coach « La priorité du jour » B.1 : le modèle pur `coachDayPriority` (logique + tests,
 > pas de bump).** Feu vert d'Adrien (`DEMANDES.md` : « T'as l'autorisation pour Coach Priority ») sur le
 > **périmètre B** de la proposition #602. Nouvelle **fonction pure** qui réconcilie `attentionDigest`

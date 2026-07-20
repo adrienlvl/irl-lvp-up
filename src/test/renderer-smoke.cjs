@@ -687,7 +687,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.220'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.221'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1439,6 +1439,37 @@ app.whenReady().then(async () => {
           if (!(iP >= 0 && iC === iP + 1)) return false;
           return true;
         })(),
+        // « La priorité du jour » (#607, B.2) : coachDayPriority arbitre les 2 surfaces coach du
+        // dashboard, et le RENDU est branché dessus (dédup transversale + recadrage santé↔momentum).
+        coachDayPriority: typeof coachDayPriority === 'function' && typeof renderAttention === 'function' && typeof renderCoachFocus === 'function' && !!document.getElementById('attentionDigest') && !!document.getElementById('coachFocus') && (() => {
+          const today = localDate();
+          // Volet LOGIQUE — dédup : un focus qui porte déjà le sport retire l'item sport d'« À rattraper ».
+          const focusSport = { pillar: 'sport', label: 'Entraînement', page: 'athlete', emoji: '🏋️', tone: 'rebuild', headline: 'Relance le sport', insight: 'Relance ton entraînement.', action: 'Programme une séance courte.' };
+          const dpDup = coachDayPriority({}, today, { focus: { ...focusSport, tone: 'reinforce' }, digest: [{ key: 'sport', emoji: '🏋️', text: '1 séance non faite récemment', page: 'athlete', sev: 'med' }, { key: 'habits', emoji: '🔥', text: 'habitude à relancer', page: 'dashboard', sev: 'med' }] });
+          if (!(dpDup.primary && dpDup.primary.source === 'focus' && dpDup.deduped.length === 1 && dpDup.deduped[0].key === 'habits')) return false;
+          // Volet LOGIQUE — recadrage : forme basse (high) VS focus sport qui pousse → n°1 « récupère ».
+          const dpRef = coachDayPriority({}, today, { focus: focusSport, digest: [{ key: 'readiness', emoji: '😴', text: 'Forme basse (20/100) — allège aujourd’hui', page: 'athlete', sev: 'high' }, { key: 'sport', emoji: '🏋️', text: '1 séance non faite récemment', page: 'athlete', sev: 'med' }] });
+          if (!(dpRef.reframed === true && dpRef.primary.source === 'health' && /récup[eè]re/.test(dpRef.primary.headline) && dpRef.deduped.length === 0)) return false;
+          // Volet RENDU (le branchement B.2) : sur un état chargé, la carte se recadre en « récupère » ET
+          // « À rattraper » ne répète plus « Forme basse » (promue en n°1). On restaure l'état ensuite.
+          const pad = n => (n < 10 ? '0' + n : '' + n);
+          const iso = off => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+          const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications, h: state.habits, ag: state.agenda, lb: state.lastBackup, cl: state.coachLog };
+          let ok = true;
+          try {
+            state.workouts = [{ date: iso(3) }, { date: iso(5) }, { date: iso(7) }, { date: iso(9) }, { date: iso(11) }];
+            state.focusSessions = []; state.nutrition = []; state.applications = []; state.habits = []; state.agenda = [];
+            state.recovery = [{ date: today, fatigue: 5, soreness: 5 }];
+            state.lastBackup = today; state.coachLog = [];
+            renderCoachFocus(); renderAttention();
+            const btn = document.getElementById('coachFocus'), panel = document.getElementById('coachFocusPanel');
+            ok = ok && !!panel && !panel.hidden && /récup[eè]re/.test(btn.textContent);
+            ok = ok && !/Forme basse/.test(document.getElementById('attentionDigest').textContent || '');
+          } catch (e) { ok = false; }
+          state.workouts = saved.w; state.focusSessions = saved.f; state.recovery = saved.r; state.nutrition = saved.n; state.applications = saved.a; state.habits = saved.h; state.agenda = saved.ag; state.lastBackup = saved.lb; state.coachLog = saved.cl;
+          try { renderCoachFocus(); renderAttention(); } catch (e) {}
+          return ok;
+        })(),
         // ACCORD DU PARTICIPE en vue Jour (#552) : « fait(s) » s'accorde avec le nombre RÉALISÉ
         // (numérateur), pas avec le total — « 1/3 faits » était faux.
         dayViewPlural: (() => {
@@ -2057,6 +2088,7 @@ app.whenReady().then(async () => {
     if (!checks.examListUI) errors.push('UI multi-épreuves KO (P6.3 : générer deux plannings à deux dates via #studyPlanForm doit CONSERVER les deux épreuves — pas écraser — les lister dans #examList avec un × chacune, et supprimer via ce × doit n\'en laisser qu\'une)');
     if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
+    if (!checks.coachDayPriority) errors.push('Priorité du jour KO (coachDayPriority : dédup transversale + recadrage santé↔momentum non branchés au rendu focus/« À rattraper »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
     if (!checks.altHideRejected) errors.push('Masquage des refusées KO (altRejectedToggle/hideRejected/rendu liste)');
     if (!checks.altFilter) errors.push('Recherche/filtre du suivi alternance KO (filterApplications/altSearch/altStatusFilter)');

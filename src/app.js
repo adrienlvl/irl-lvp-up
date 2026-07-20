@@ -161,7 +161,22 @@ function renderProfile() { const p=state.profile;$('#profileGoal').value=p.goal|
 function goToSection(page,selector){showPage(page);const target=$(selector);target?.scrollIntoView({behavior:'smooth',block:'start'});}
 // Digest « À rattraper » : ce qui a besoin d'attention aujourd'hui, agrégé à travers les domaines
 // (voir attentionDigest). Chaque ligne renvoie vers l'onglet concerné.
-function renderAttention(){const el=$('#attentionDigest'),panel=$('#attentionPanel');if(!el||!panel||typeof attentionDigest!=='function')return;const items=attentionDigest(state,localDate());if(!items.length){panel.hidden=true;el.innerHTML='';return;}panel.hidden=false;el.innerHTML=items.map(i=>`<button type="button" class="att-item att-${i.sev}" data-att-page="${i.page}" data-att-key="${i.key}"><span class="att-emo" aria-hidden="true">${i.emoji}</span><span class="att-text">${escapeHtml(i.text)}</span><span class="att-go" aria-hidden="true">→</span></button>`).join('');}
+// « La priorité du jour » (coachDayPriority) : arbitrage transversal des DEUX surfaces coach du
+// dashboard (« À rattraper » réactif + « Le focus du moment » proactif). Calculé au MÊME instant pour
+// les deux rendus, avec le MÊME focus (nowMinutes), pour que la dédup soit cohérente : le pilier que
+// porte la carte focus est retiré d'« À rattraper » (plus de doublon), et quand la forme basse prime
+// sur un focus « pousse une séance », la carte se recadre en « récupère ». Curation pure (§3), aucun
+// champ de données ajouté — le pilier JOURNALISÉ (coachLog) reste celui d'adaptiveCoachFocus.
+function coachDayPriorityNow(){
+  if(typeof coachDayPriority!=='function')return null;
+  const nowD=new Date();
+  const f=(typeof adaptiveCoachFocus==='function')?adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()}):null;
+  return coachDayPriority(state,localDate(),{focus:f});
+}
+function renderAttention(){const el=$('#attentionDigest'),panel=$('#attentionPanel');if(!el||!panel||typeof attentionDigest!=='function')return;const dp=coachDayPriorityNow();
+  // On n'applique la dédup que si la carte focus est réellement AFFICHÉE (primary de source focus/health) :
+  // sinon l'item promu en n°1 par coachDayPriority (cas « pas de focus proactif ») ne serait visible nulle part.
+  const items=(dp&&dp.primary&&dp.primary.source!=='digest')?dp.deduped:attentionDigest(state,localDate());if(!items.length){panel.hidden=true;el.innerHTML='';return;}panel.hidden=false;el.innerHTML=items.map(i=>`<button type="button" class="att-item att-${i.sev}" data-att-page="${i.page}" data-att-key="${i.key}"><span class="att-emo" aria-hidden="true">${i.emoji}</span><span class="att-text">${escapeHtml(i.text)}</span><span class="att-go" aria-hidden="true">→</span></button>`).join('');}
 // Coaching adaptatif : carte « Le focus du moment » sur l'accueil (proactif, lit la dynamique 2 semaines).
 // Curation de l'affichage du coach : adaptiveCoachFocus produit un insight RICHE (focus + « guards »
 // de contexte). Sur la CARTE on ne montre que le focus (≤ 2 phrases / ~200 car) ; le reste passe
@@ -230,9 +245,15 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
   {const today=localDate();if(!Array.isArray(state.coachLog))state.coachLog=[];const log=state.coachLog,last=log.length?log[log.length-1]:null;
    if(!last||last.date!==today){log.push({date:today,pillar:f.pillar});if(log.length>60)log.splice(0,log.length-60);save();}
    else if(last.pillar!==f.pillar){last.pillar=f.pillar;save();}}
-  panel.hidden=false;el.dataset.coachPage=f.page;el.className='coach-focus coach-'+f.tone;
-  const ci=(typeof splitCoachInsight==='function')?splitCoachInsight(f.insight):{primary:f.insight,extra:''};
-  el.innerHTML=`<span class="coach-emo" aria-hidden="true">${f.emoji}</span><span class="coach-body"><b class="coach-headline">${escapeHtml(f.headline)}</b><span class="coach-insight">${escapeHtml(ci.primary)}${ci.extra?' …':''}</span><span class="coach-action">${escapeHtml(f.action)}</span></span><span class="coach-go" aria-hidden="true">→</span>`;
+  // Priorité du jour (coachDayPriority) : la carte affiche la n°1 ARBITRÉE, pas le focus brut. Cas
+  // normal → c'est le focus lui-même (primary de source 'focus', mêmes champs) ; cas « forme basse VS
+  // focus qui pousse une séance » → elle se recadre en « récupère » (reframed, source 'health'), sans
+  // toucher au pilier JOURNALISÉ ci-dessus (coachLog reste calé sur adaptiveCoachFocus → coachFollowThrough intact).
+  const dp=(typeof coachDayPriority==='function')?coachDayPriority(state,localDate(),{focus:f}):null;
+  const p=(dp&&dp.primary)?dp.primary:{page:f.page,emoji:f.emoji,headline:f.headline,why:f.insight,action:f.action};
+  panel.hidden=false;el.dataset.coachPage=p.page;el.className='coach-focus coach-'+f.tone;
+  const ci=(typeof splitCoachInsight==='function')?splitCoachInsight(p.why):{primary:p.why,extra:''};
+  el.innerHTML=`<span class="coach-emo" aria-hidden="true">${p.emoji}</span><span class="coach-body"><b class="coach-headline">${escapeHtml(p.headline)}</b><span class="coach-insight">${escapeHtml(ci.primary)}${ci.extra?' …':''}</span><span class="coach-action">${escapeHtml(p.action)}</span></span><span class="coach-go" aria-hidden="true">→</span>`;
   // Le reste du contexte (guards) vit derrière « plus de contexte » SOUS la carte (hors du bouton) :
   // la carte reste un focus punchy, la richesse du coach reste accessible en un tap. État d'ouverture
   // préservé entre rendus (on lit mp.hidden).

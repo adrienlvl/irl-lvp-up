@@ -22,9 +22,13 @@
   - [x] **B.1** — fonction pure `coachDayPriority(state, todayKey, opts)` + 6 tests (dédup, tension
         santé↔momentum, alternance intacte, non-régression `coachLog`). Pas de bump (pur, non branché).
         Boucle #606 (2026-07-20). Recap : `docs/recaps/606-coach-day-priority-b1.md`.
-  - [ ] **B.2** — branchement au rendu (`renderCoachFocus` → `primary`, `renderAttention` → `deduped`),
-        check smoke bloquant + contrôle §4 ter (rendu **cumulé** relu sur état chargé). Bump ici.
+  - [x] **B.2** — branchement au rendu (`renderCoachFocus` → `primary`, `renderAttention` → `deduped`),
+        check smoke bloquant `coachDayPriority` + contrôle §4 ter (`why` recadré resserré sur état
+        chargé). Non-régression `coachLog` préservée. Build **2.0.221**, boucle #607 (2026-07-20).
+        Recap : `docs/recaps/607-coach-day-priority-b2.md`.
   - [ ] **B.3** — affinage du `defer` (affichage éventuel, seuils) selon décisions 3/4 restées ouvertes.
+        Étape **optionnelle** : le cœur de la demande (arbitrage + dédup + « quoi faire en premier ») est
+        livré et visible dès 2.0.221 ; B.3 dépend de tes réponses aux décisions 3 & 4 de la proposition #602.
 
 - **Avancer CAP 3.0 — 2 propositions écrites (chantiers 3 & 4), en attente de tes décisions.** Le code
   autonome du Cap 3.0 est épuisé (P6 multi-examens et P7 parcours smoke clos ; IndexedDB réservé au
