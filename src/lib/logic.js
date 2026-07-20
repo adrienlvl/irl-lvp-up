@@ -2895,6 +2895,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.200', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour de pic de charge où ta séance est DÉJÀ faite. La version précédente effaçait bien cette invitation à continuer quand ta charge d’entraînement était en pic (ACWR élevé) — mais seulement les jours où il te restait une séance à caler. Or un jour de pic est souvent un jour où tu viens justement de t’entraîner : dans ce cas, « Garde le rythme » restait affiché pendant que ton bilan de la semaine, lui, te disait « prévois une semaine plus légère pour éviter la blessure ». Les deux panneaux se contredisaient. Désormais, dès que ta charge est en pic, l’invitation à continuer s’efface — séance faite ou non — et les deux panneaux disent la même chose. Le constat « en hausse » reste, et une vraie montée SAINE garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.199', emoji: '♿', text: 'Accessibilité : six champs de saisie qui ne portaient qu’un texte d’exemple (« indice ») ont maintenant un vrai nom lu par les lecteurs d’écran — le prénom d’un anniversaire, le nom et le lien d’un calendrier synchronisé, l’adresse de départ des trajets, le poids du jour et l’envie du jour en cuisine. Un texte d’exemple disparaît dès qu’on tape et n’est pas un nom fiable pour qui navigue à la voix ou au clavier ; ces champs rejoignent ceux de recherche et du tableau de bord déjà corrigés. Rien ne change à l’écran.' },
   { v: '2.0.198', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » les autres jours où il te demande de lever le pied. La version précédente désamorçait déjà cette contradiction quand ta forme du jour était au plancher (readiness sous 50) ; mais son conseil bascule aussi en frein dans deux autres cas — quand ta forme, correcte le matin, GLISSE régulièrement sur tes derniers check-ins (fatigue qui s’installe → « séance allégée, soigne ta récup ») et quand ta charge d’entraînement est en PIC (ACWR élevé → « allège aujourd’hui, -30 % de volume »). Dans ces deux cas, « Garde le rythme » poussait pendant que le conseil freinait. Désormais l’invitation à continuer s’efface aussi ces jours-là ; le constat « en hausse » reste. Une vraie montée sans frein garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.197', emoji: '🏋️', text: 'Ton bilan de la semaine ne te félicite plus de « monter en volume » le jour même où il te dit d’alléger. Quand ta charge d’entraînement bondit d’un coup (ACWR en pic — le signal classique de risque de blessure après une grosse semaine), le bilan affiche « prévois une semaine plus légère pour éviter la blessure ». Or il pouvait, juste à côté, saluer « +X min vs semaine dernière — tu montes en volume » : deux messages qui se contredisaient et poussaient pile vers le risque signalé. Désormais, ces jours de pic, la félicitation de montée de volume s’efface — l’avertissement reste seul et cohérent. Une vraie montée SAINE (charge maîtrisée), elle, continue d’être célébrée. Rien d’ajouté : une contradiction de moins.' },
@@ -6352,6 +6353,25 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // readiness null ou ≥ 50). readinessSlide/loadSpike ne sont non nuls que pour le pilier sport, donc
   // aucun effet sur un reinforce focus (« Garde le rythme » y reste, sans action-frein qui la contredise).
   if (tone === 'reinforce' && (readinessSlide != null || loadSpike != null)) insight = insight.replace(' Garde le rythme.', '');
+  // ÉLARGIT le strip précédent au cas SÉANCE DÉJÀ FAITE (doneToday) — la contradiction inter-panneaux
+  // mesurée par le fuzzer P5.2 (recap #577). loadSpike n'est calculé que sous la garde de PRESCRIPTION
+  // sport (l.6300 : pilier sport, séance PAS déjà faite, readiness null/≥50) ; or le Bilan hebdo
+  // (weeklyInsights, l.2462) calcule l'ACWR INCONDITIONNELLEMENT et affiche « 🟥 Charge en pic … prévois
+  // une semaine plus légère » dès la zone 'high'. Résultat : un jour de pic où la séance du jour est DÉJÀ
+  // faite (doneToday), loadSpike reste null → le strip ci-dessus ne s'exécute pas → « Garde le rythme. »
+  // SURVIT dans le coach pendant que le Bilan ordonne d'alléger — et ce cas est le plus courant (un jour
+  // de pic de charge est souvent un jour où l'on vient de s'entraîner). On interroge donc l'ACWR
+  // INDÉPENDAMMENT de la garde de prescription, pour le pilier SPORT en reinforce (le seul où « Garde le
+  // rythme » parle bien de l'entraînement — sur un focus sommeil/focus l'injonction vise le rythme de CE
+  // pilier, pas la charge sportive, on n'y touche pas) : en zone 'high', on retire l'injonction. Le
+  // constat « en hausse » reste ; une montée SAINE (ACWR non-'high') garde son « Garde le rythme. »
+  // (non-régression, comme #576). readiness < 50 est déjà couvert par le strip #573 (l.5632). Curation,
+  // pas ajout (§3). On ne recalcule l'ACWR que dans le trou résiduel (loadSpike null + phrase présente).
+  if (tone === 'reinforce' && chosen.pillar === 'sport' && loadSpike == null
+      && insight.indexOf(' Garde le rythme.') !== -1 && typeof acuteChronicRatio === 'function') {
+    const acwr = acuteChronicRatio(s.workouts, todayKey);
+    if (acwr && acwr.zone === 'high') insight = insight.replace(' Garde le rythme.', '');
+  }
   // Coach CONSCIENT de la SOUS-CHARGE — le pendant POSITIF exact du loadSpike (#492), l'« adaptation
   // aux PROGRÈS » là où le pic était l'« adaptation aux écarts ». Le loadSpike tempère quand l'ACWR
   // grimpe en zone 'high' (risque de blessure) ; il restait muet dans le cas SYMÉTRIQUE, listé en

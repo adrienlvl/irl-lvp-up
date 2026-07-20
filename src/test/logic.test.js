@@ -5639,7 +5639,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.199');
+  assert.equal(L.CHANGELOG[0].v, '2.0.200');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8274,6 +8274,37 @@ test('adaptiveCoachFocus : reinforce × frein hors seuil (glisse/pic) retire aus
   assert.ok(spike.loadSpike != null, 'pic de charge détecté');
   assert.match(spike.action, /allège aujourd’hui/);
   assert.doesNotMatch(spike.insight, /Garde le rythme/, 'le pic de charge retire l’injonction contradictoire');
+  // CAS pic de charge AVEC séance DÉJÀ faite aujourd'hui (doneToday) — P5.2/#579. loadSpike n'est PAS
+  // calculé (garde de prescription : !doneToday), mais le Bilan hebdo verrait toujours le pic → « Garde
+  // le rythme. » doit quand même être retiré (contradiction inter-panneaux mesurée par le fuzzer #577).
+  const spikeDoneWk = [
+    { date: today, duration: 90, effort: 4 }, { date: dk(1), duration: 90, effort: 4 },
+    { date: dk(2), duration: 90, effort: 4 }, { date: dk(4), duration: 90, effort: 4 },
+    { date: dk(6), duration: 90, effort: 4 }, { date: dk(8), duration: 30, effort: 2 },
+    { date: dk(10), duration: 30, effort: 2 },
+  ];
+  const spikeDone = L.adaptiveCoachFocus({ workouts: spikeDoneWk }, today);
+  assert.equal(spikeDone.tone, 'reinforce');
+  assert.equal(spikeDone.doneToday, true, 'séance du jour déjà loggée');
+  assert.equal(spikeDone.loadSpike, null, 'loadSpike muet quand la séance est déjà faite (garde de prescription)');
+  assert.equal(L.acuteChronicRatio(spikeDoneWk, today).zone, 'high', 'préalable : le Bilan hebdo verrait bien un pic ce jour-là');
+  assert.doesNotMatch(spikeDone.insight, /Garde le rythme/, 'doneToday : le pic retire quand même l’injonction (cohérence avec le Bilan hebdo)');
+  assert.match(spikeDone.insight, /en hausse\./, 'le constat hebdo « en hausse » reste');
+  assert.doesNotMatch(spikeDone.insight, /\.\s{2,}/, 'pas de double espace après le retrait');
+  // NON-RÉGRESSION : montée SAINE (ACWR non-pic) un jour doneToday → « Garde le rythme. » CONSERVÉ.
+  const healthyDoneWk = [
+    { date: today, duration: 45, effort: 3 }, { date: dk(2), duration: 45, effort: 3 },
+    { date: dk(4), duration: 45, effort: 3 }, { date: dk(6), duration: 45, effort: 3 },
+    { date: dk(9), duration: 45, effort: 3 }, { date: dk(11), duration: 45, effort: 3 },
+    { date: dk(13), duration: 45, effort: 3 }, { date: dk(15), duration: 45, effort: 3 },
+    { date: dk(18), duration: 45, effort: 3 }, { date: dk(20), duration: 45, effort: 3 },
+    { date: dk(22), duration: 45, effort: 3 }, { date: dk(25), duration: 45, effort: 3 },
+  ];
+  const healthyDone = L.adaptiveCoachFocus({ workouts: healthyDoneWk }, today);
+  assert.equal(healthyDone.tone, 'reinforce');
+  assert.equal(healthyDone.doneToday, true);
+  assert.notEqual(L.acuteChronicRatio(healthyDoneWk, today).zone, 'high', 'préalable : charge régulière, pas de pic');
+  assert.match(healthyDone.insight, /Garde le rythme/, 'montée saine doneToday → l’injonction reste (non-régression)');
 });
 
 test('adaptiveCoachFocus : readinessBoost nomme le MOTEUR de la forme au vert (pendant positif)', () => {

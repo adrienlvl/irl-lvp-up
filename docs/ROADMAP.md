@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.199 (2026-07-20)
+## 📍 État actuel — build 2.0.200 (2026-07-20)
+
+> 🩹 **#579 — Coach : « Garde le rythme » ne survit plus un jour de pic où la séance est déjà faite
+> (domaine `coach`, build 2.0.200).** Rotation §4 bis : les 5 derniers domaines = `a11y · docs · coach ·
+> athlete · fondations` → `a11y`/`docs` (2 derniers) interdits ; `coach` (priorité de nuit #1, en
+> QUALITÉ §3) **absent des 2 derniers** et 1× sur 5 → **autorisé** → priorité de nuit et rotation
+> convergent. Corrige la **piste vérifiée #577** (P5.2) : le strip #576 n'efface « Garde le rythme. »
+> qu'en zone de pic **sous la garde de prescription** sport (`logic.js:6300` : `!doneToday`), alors que
+> le Bilan hebdo (`weeklyInsights`, l.2462) calcule l'ACWR **inconditionnellement** → un jour de pic **où
+> la séance est déjà faite** (`doneToday`, le cas le plus courant), `loadSpike` reste `null`, l'injonction
+> **survivait** pendant que le Bilan ordonnait d'alléger. Fix (curation §3) : complément qui interroge
+> l'ACWR **indépendamment** de la garde, pour le pilier **sport** en `reinforce`, dans le seul trou
+> résiduel (`loadSpike == null` + phrase présente) → en zone `high`, retrait. **Sport-only** assumé (§4 ter :
+> sur un focus sommeil/focus « Garde le rythme » vise CE pilier, pas la charge — le retirer serait une
+> sur-curation). Même source/seuil ACWR que le Bilan → panneaux cohérents par construction. Rendu cumulé
+> relu (§4 ter) ; non-régression : montée saine `doneToday` garde son « Garde le rythme. ». **Aucune note
+> ajoutée.** +1 cas au test #576. 532 tests + smoke verts. Recap #579. _Domaine : coach._
 
 > ♿ **#578 — A11y : noms accessibles sur 6 champs de saisie au placeholder seul (domaine `a11y`,
 > build 2.0.199).** Rotation §4 bis : 5 derniers domaines = `docs · coach · athlete · fondations ·
