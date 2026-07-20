@@ -5955,7 +5955,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.225');
+  assert.equal(L.CHANGELOG[0].v, '2.0.226');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7910,6 +7910,25 @@ test('studyBySubject : répartition par matière + priorité de révision', () =
   assert.equal(L.studyBySubject([{ kind: 'study', title: '', date: '2026-07-20' }], '2026-07-15')[0].subject, 'Révision');
   // agenda vide
   assert.deepEqual(L.studyBySubject([], '2026-07-15'), []);
+  // #613 : titre libre retapé avec une casse/accent/espace différents → UNE seule matière (pas 3),
+  // libellé = premier vu, compteurs agrégés. Sans ça le suivi par matière se fragmentait.
+  const folded = L.studyBySubject([
+    { kind: 'study', title: 'Droit',  date: '2026-07-10', completed: true },
+    { kind: 'study', title: 'droit ', date: '2026-07-12', completed: false }, // à venir
+    { kind: 'study', title: 'DROIT',  date: '2026-07-08', completed: false }, // en retard
+    { kind: 'study', title: 'Éco',    date: '2026-07-11', completed: true },
+    { kind: 'study', title: 'eco',    date: '2026-07-13', completed: false }, // à venir
+  ], '2026-07-11');
+  assert.deepEqual(folded.map(s => s.subject), ['Droit', 'Éco']); // 2 matières, libellé premier-vu
+  const d2 = folded.find(s => s.subject === 'Droit');
+  assert.deepEqual([d2.total, d2.done, d2.upcoming, d2.overdue], [3, 1, 1, 1]);
+  const e2 = folded.find(s => s.subject === 'Éco');
+  assert.deepEqual([e2.total, e2.done, e2.upcoming], [2, 1, 1]);
+  // matières RÉELLEMENT distinctes (au-delà de casse/accent) NON fusionnées
+  assert.equal(L.studyBySubject([
+    { kind: 'study', title: 'Droit civil',  date: '2026-07-20' },
+    { kind: 'study', title: 'Droit social', date: '2026-07-21' },
+  ], '2026-07-15').length, 2);
 });
 
 test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravité', () => {

@@ -1786,15 +1786,23 @@ function studyStats(agenda, todayKey) {
 // pas laquelle est négligée. On regroupe par titre et on trie par « priorité de révision » :
 // d'abord le plus de retard (prévu, passé, non fait), puis le plus faible taux de complétion, puis
 // le plus de séances à venir. Renvoie [{subject, total, done, upcoming, overdue, doneRate}]. Pur + testé.
+// #613 : le titre est un CHAMP LIBRE (`#studyTitle`, app.js) — Adrien retape la matière à chaque
+// génération de plan. Regrouper sur la chaîne EXACTE éclatait « Droit »/« droit »/« DROIT » (ou
+// « Éco »/« eco ») en matières distinctes : suivi fragmenté et « À prioriser » faux. On regroupe donc
+// sur une CLÉ REPLIÉE (minuscule + accents ôtés + espaces normalisés) tout en affichant le premier
+// libellé rencontré. Des matières réellement différentes (« Droit civil » ≠ « Droit social ») gardent
+// des clés distinctes — seules les variantes pures de casse/accent/espace fusionnent.
 function studyBySubject(agenda, todayKey) {
   const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
   const today = isKey(todayKey) ? todayKey : null;
+  const fold = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
   const groups = new Map();
   (Array.isArray(agenda) ? agenda : []).forEach(a => {
     if (!a || a.kind !== 'study') return;
     const subj = (String(a.title || '').trim()) || 'Révision';
-    if (!groups.has(subj)) groups.set(subj, { subject: subj, total: 0, done: 0, upcoming: 0, overdue: 0 });
-    const g = groups.get(subj);
+    const key = fold(subj) || 'revision';
+    if (!groups.has(key)) groups.set(key, { subject: subj, total: 0, done: 0, upcoming: 0, overdue: 0 });
+    const g = groups.get(key);
     g.total++;
     if (a.completed) g.done++;
     else if (today && isKey(a.date)) { if (a.date >= today) g.upcoming++; else g.overdue++; }
@@ -3089,6 +3097,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.226', emoji: '📚', text: 'Ton suivi de révisions BTS ne coupe plus une matière en deux à cause d’une majuscule. Le panneau « Révisions par matière » regroupe tes séances d’étude par leur intitulé — sauf que cet intitulé, tu le retapes à la main à chaque plan de révision. Résultat : « Droit » un jour, « droit » un autre, ou « Éco » puis « eco », et l’app croyait à DEUX matières différentes — ton avancement se retrouvait éclaté en deux compteurs, et le « 🎯 À prioriser » pouvait pointer sur un fantôme. Désormais la casse, les accents et les espaces en trop sont ignorés pour le regroupement : « Droit », « droit » et « DROIT » sont la même matière (le premier intitulé que tu as tapé sert d’affichage), tandis que deux vraies matières distinctes — « Droit civil » et « Droit social » — restent bien séparées. Ton suivi par matière redevient fiable.' },
   { v: '2.0.225', emoji: '🧭', text: 'Les jours où ta forme GLISSE, ton coach ne se contredit plus. Quand tes check-ins montrent une fatigue qui s’installe (readiness correcte mais en baisse régulière), le coach te dit « séance allégée aujourd’hui, soigne ta récup ». Le problème : dans le même bloc, d’autres conseils continuaient à te POUSSER — « cale une sortie de course pour rééquilibrer ta semaine », « ajoute du dos à ta prochaine séance », ou même « c’est ton jour d’entraînement, honore-le aujourd’hui ». Un coach qui te dit de récupérer ET de t’entraîner plus dans la même phrase, ça brouille le message. Désormais, dès que ta forme glisse, toutes ces incitations à en faire plus se taisent : il ne reste que le vrai signal du jour — récupère. Elles reviennent d’elles-mêmes dès que ta forme se stabilise ou remonte. Et la seule mise en garde qui RESTE, c’est « ne monte pas ton kilométrage trop vite » — parce que celle-là va dans le même sens que la récup. Rien d’ajouté à l’écran : trois contradictions en moins, un message clair.' },
   { v: '2.0.224', emoji: '⏸️', text: 'Ton Coach Poids sait maintenant te dire quand faire une PAUSE DIÈTE — le geste que les diététiciens du sport recommandent et que presque personne ne s’autorise. Quand tu es en perte de poids, un déficit calorique tenu trop longtemps finit par se retourner contre toi : ton corps s’adapte (le métabolisme de repos baisse, la faim monte, les hormones leptine et thyroïde ralentissent) et non seulement la perte cale, mais tu commences à grignoter ton muscle. La solution prouvée n’est pas de couper ENCORE plus : c’est d’insérer 1 à 2 semaines à ta maintenance (retour à l’équilibre calorique), puis de repartir. Les grandes études le montrent : MATADOR (2 semaines de déficit / 2 semaines de maintien : plus de gras perdu et moins d’effondrement du métabolisme qu’un régime continu) et ICECAP (une seule semaine de pause a fait GAGNER +0,7 kg de muscle chez des sportifs entraînés). L’app suit ta perte réelle semaine après semaine et, après ~10 semaines de déficit d’affilée (perte continue confirmée), affiche une carte « ⏸️ Pause diète » avec le nombre exact de kilos perdus et de combien remonter tes calories. Et surtout : ces semaines-là, le vieux message « ton poids stagne, coupe encore » s’efface — parce que si tu plafonnes après un long régime, c’est justement une pause qu’il te faut, pas un tour de vis de plus. Ambitieux mais jamais dangereux : on ne fond ni le muscle ni les hormones.' },
   { v: '2.0.223', emoji: '⛰️', text: 'Ton plan ultra-trail t’apprend enfin à DESCENDRE — le stress qui casse vraiment les jambes en trail, et que presque personne n’entraîne. En montée, on souffre et on le sent ; mais c’est la DESCENTE qui inflige les gros dégâts musculaires (le fameux travail « excentrique » : jambes en compote, courbatures, perte de force pendant des jours). La bonne nouvelle, prouvée par la science, c’est « l’effet de séance répétée » : une seule vraie séance de descente protège durablement contre la suivante (Frontiers Physiology 2018 — ~4 semaines de descente suffisent à muscler tes jambes contre les dommages). Ton panneau Ultra affiche donc une nouvelle carte « Descentes » qui s’adapte à ton objectif : loin d’une course, 1 séance par semaine pour habituer tes jambes ; quand ta course approche (≤ 8 semaines), 1 à 2 séances selon ton dénivelé, avec le protocole exact (pente douce, 4-6 × 60-90 s en descente contrôlée, foulée courte, on ajoute une répétition par semaine) ; et à moins de 10 jours, elle te dit de STOPPER les descentes cassantes pour arriver frais — la protection est déjà acquise, on ne se blesse pas la veille. Un vrai coach de trail te prépare à encaisser le D-, pas seulement à grimper.' },

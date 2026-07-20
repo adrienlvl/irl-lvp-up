@@ -23,8 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.225 (2026-07-20)
+## 📍 État actuel — build 2.0.226 (2026-07-21)
 
+> 📚 **#613 — Révisions par matière : « Droit » et « droit » ne font plus deux matières (build
+> 2.0.226).** Domaine `etudes` (rotation : coach/nutrition dans les 2 derniers recaps, athlete ×3 →
+> tous bloqués ; priorité de nuit coaching hors rotation ce tour). Manque prouvé : `#studyTitle` est un
+> **champ libre** (`app.js:969`) qu'Adrien retape à chaque plan, et `studyBySubject` regroupait sur la
+> chaîne **exacte** → « Droit »/« droit »/« DROIT » (ou « Éco »/« eco ») comptaient comme des matières
+> distinctes, avancement `done/total` éclaté et « 🎯 À prioriser » pointant sur un fantôme. Correctif §3
+> (curation, **zéro champ ajouté**) : regroupement sur une **clé repliée** (minuscule + accents ôtés +
+> espaces normalisés), affichage du premier intitulé vu ; les matières vraiment distinctes (« Droit
+> civil » ≠ « Droit social ») restent séparées. Contrôle §4 ter appliqué (panneau relu sur état BTS
+> chargé). 562 tests + smoke vert. Recap #613. _Domaine : etudes._
+>
 > 🧭 **#612 — Coach : les notes « pousse l'entraînement » se taisent quand la forme GLISSE (build
 > 2.0.225).** Piste nommée en queue de **P5.2** (close). La note littérale (`sportSlot`/`sportZoneFocus`
 > sans `readinessSlide`) était **périmée** : #585 les avait déjà gardés. Le vrai manque : la garde
