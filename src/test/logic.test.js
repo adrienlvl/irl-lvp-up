@@ -169,8 +169,26 @@ test('planStudySessions : lun/mer/ven entre deux dates, modèle study/planner', 
   assert.equal(events[0].date, '2026-07-06');
   assert.equal(events[0].kind, 'study');
   assert.equal(events[0].source, 'planner');
-  assert.equal(events[0].refId, 'planner-2026-07-06-17:30');
+  assert.equal(events[0].refId, 'planner-2026-07-06-17:30-revision compta');
   assert.equal(new Set(events.map(e => e.id)).size, 6, 'ids uniques');
+});
+
+test('planStudySessions : deux matières au même créneau ne se télescopent pas à la fusion', () => {
+  // Droit et Compta, même heure (17:30 « collant »), mêmes jours → avant le fix, refId identique
+  // (planner-<date>-17:30) → Compta écrasait les séances de Droit à la régénération. La matière est
+  // désormais dans le refId : les deux jeux coexistent, sans partager id ni completed.
+  const droit = L.planStudySessions({ title: 'Droit', time: '17:30', weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 100 });
+  const compta = L.planStudySessions({ title: 'Compta', time: '17:30', weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 200 });
+  assert.notEqual(droit[0].refId, compta[0].refId, 'refId distincts par matière');
+  let agenda = L.mergePlannedEvents([], droit);
+  agenda = L.mergePlannedEvents(agenda, compta);
+  const study = agenda.filter(e => e.kind === 'study');
+  assert.equal(study.length, droit.length + compta.length, 'les deux matières coexistent');
+  assert.equal(study.filter(e => e.title === 'Droit').length, droit.length, 'Droit préservé');
+  assert.equal(study.filter(e => e.title === 'Compta').length, compta.length, 'Compta ajouté sans écraser Droit');
+  // « Droit » et « droit » = même matière (repli casse/accents) → régénération idempotente
+  const droitMin = L.planStudySessions({ title: 'droit', time: '17:30', weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 300 });
+  assert.equal(droit[0].refId, droitMin[0].refId, '« Droit » et « droit » régénèrent le même créneau');
 });
 
 test('planStudySessions : config invalide → []', () => {
@@ -3446,11 +3464,11 @@ test('mergePlannedEvents : idempotent, préserve completed et id, garde le reste
   const plan1 = L.planStudySessions({ weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 100 });
   let agenda = L.mergePlannedEvents([manual], plan1);
   assert.equal(agenda.length, 3); // manuel + 2 lundis
-  agenda = agenda.map(e => e.refId === 'planner-2026-07-06-17:30' ? { ...e, completed: true } : e);
+  agenda = agenda.map(e => e.refId === 'planner-2026-07-06-17:30-revision' ? { ...e, completed: true } : e);
   const plan2 = L.planStudySessions({ weekdays: [1], startDate: '2026-07-06', examDate: '2026-07-13', baseId: 999 });
   const again = L.mergePlannedEvents(agenda, plan2);
   assert.equal(again.length, 3, 'pas de doublon après régénération');
-  const kept = again.find(e => e.refId === 'planner-2026-07-06-17:30');
+  const kept = again.find(e => e.refId === 'planner-2026-07-06-17:30-revision');
   assert.equal(kept.completed, true, 'statut validé préservé');
   assert.equal(kept.id, 100, 'id préservé');
   assert.ok(again.some(e => e.title === 'Muscu'), 'événement manuel intact');
@@ -5955,7 +5973,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.228');
+  assert.equal(L.CHANGELOG[0].v, '2.0.229');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

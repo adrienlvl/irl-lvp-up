@@ -1180,18 +1180,24 @@ function parseIcs(text, opts) {
 
 // Planificateur de révision : génère des événements `study` récurrents entre
 // startDate et examDate (incluses) sur les jours cochés (0=dim..6=sam).
-// refId = planner-<date>-<time> → régénération idempotente via mergePlannedEvents.
+// refId = planner-<date>-<time>-<matière repliée> → régénération idempotente via mergePlannedEvents.
+// La matière est DANS le refId : deux matières distinctes planifiées au même créneau (l'heure par
+// défaut 17:30 est « collante ») ne se télescopaient plus — avant ce fix, générer « Compta » après
+// « Droit » à 17:30 les mêmes jours écrasait silencieusement les séances de Droit (même refId, id +
+// completed hérités). Repli casse/accents identique à studyBySubject (#613) : « Droit »/« droit »
+// régénèrent le même créneau, tandis que « Droit » et « Compta » cohabitent.
 function planStudySessions(config) {
   const { title = 'Révision', time = '17:30', durationMin = 45, weekdays = [], startDate, examDate, baseId } = config || {};
   if (!startDate || !examDate || !Array.isArray(weekdays) || !weekdays.length) return [];
   const days = new Set(weekdays.map(Number));
   const start = new Date(`${startDate}T12:00:00`), end = new Date(`${examDate}T12:00:00`);
   if (isNaN(start) || isNaN(end) || start > end) return [];
+  const subjKey = String(title).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim() || 'revision';
   const events = []; const idBase = Number(baseId) || Date.now();
   for (let d = new Date(start), i = 0; d <= end && i < 400; d.setDate(d.getDate() + 1), i++) {
     if (!days.has(d.getDay())) continue;
     const date = dateKey(d);
-    events.push({ id: idBase + events.length, title, date, time, durationMin, kind: 'study', source: 'planner', refId: `planner-${date}-${time}`, completed: false });
+    events.push({ id: idBase + events.length, title, date, time, durationMin, kind: 'study', source: 'planner', refId: `planner-${date}-${time}-${subjKey}`, completed: false });
   }
   return events;
 }
@@ -3097,6 +3103,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.229', emoji: '📚', text: 'Tes plans de révision de deux matières différentes au même horaire ne s’effacent plus l’un l’autre. Le champ « heure » du planning garde la dernière valeur saisie (souvent 17:30) : si tu générais un plan « Droit » à 17:30 les lundis, puis un plan « Compta » à 17:30 les mêmes lundis, l’app rangeait les deux créneaux sous la même étiquette interne (elle ne regardait que la date et l’heure, jamais la matière) — et la régénération « sans doublon » écrasait purement et simplement tes séances de Droit par celles de Compta, en récupérant au passage leurs cases cochées. Désormais la matière fait partie de l’étiquette : Droit et Compta cohabitent, chacun avec son avancement. Régénérer LA MÊME matière reste sans doublon comme avant, et « Droit »/« droit » (casse, accents) restent bien la même matière. Une perte de séances silencieuse en moins pour ton suivi BTS multi-épreuves.' },
   { v: '2.0.228', emoji: '🌙', text: 'La barre de ton Plan de recalage du sommeil ne peut plus se remplir à 100 % tout en disant « objectif pas encore atteint, arrivée dans N jours ». Ça pouvait arriver dans un cas tordu : si le point de départ enregistré par le plan était déjà aussi tôt (ou plus tôt) que ton objectif, mais que tes couchers récents avaient glissé APRÈS l’objectif, la barre affichait « plein » alors que tu étais en réalité encore en retard — trois repères qui se contredisaient (barre pleine + « pas atteint » + « encore quelques jours »). Désormais la progression se mesure toujours sur le pire point réel entre ton départ et tes couchers récents : tant que tu n’as pas vraiment tenu l’objectif, la barre reste honnêtement en dessous de 100 %. Pour un plan normal (tu pars d’un coucher tardif vers un coucher plus tôt), rien ne change. Un repère faux en moins, zéro nouveau message.' },
   { v: '2.0.227', emoji: '🧭', text: 'Les jours où ta forme est basse mais que tu as DÉJÀ fait ta séance, ton coach ne te dit plus de « récupérer plutôt que de forcer un entraînement ». La « priorité du jour » sait mettre la récupération devant quand ta forme du jour est basse et que le coach s’apprêtait à te pousser vers une séance — c’est le bon réflexe. Mais si ta séance est déjà bouclée, il n’y a rien à reporter : te recadrer en « repos, tu relanceras l’entraînement dès que la forme remonte » laissait entendre de renoncer à un effort déjà fait, et effaçait au passage le petit « séance faite 💪 — verrouille avec 5 min d’étirements, c’est de la récup bien méritée » que tu avais mérité. Désormais, quand la séance du jour est faite, la carte garde ce message juste (qui va déjà dans le sens de la récup), et « À rattraper » continue d’afficher « forme basse — allège » : deux repères cohérents, sans injonction contradictoire. Un accroc de plus en moins, zéro nouveau message.' },
   { v: '2.0.226', emoji: '📚', text: 'Ton suivi de révisions BTS ne coupe plus une matière en deux à cause d’une majuscule. Le panneau « Révisions par matière » regroupe tes séances d’étude par leur intitulé — sauf que cet intitulé, tu le retapes à la main à chaque plan de révision. Résultat : « Droit » un jour, « droit » un autre, ou « Éco » puis « eco », et l’app croyait à DEUX matières différentes — ton avancement se retrouvait éclaté en deux compteurs, et le « 🎯 À prioriser » pouvait pointer sur un fantôme. Désormais la casse, les accents et les espaces en trop sont ignorés pour le regroupement : « Droit », « droit » et « DROIT » sont la même matière (le premier intitulé que tu as tapé sert d’affichage), tandis que deux vraies matières distinctes — « Droit civil » et « Droit social » — restent bien séparées. Ton suivi par matière redevient fiable.' },

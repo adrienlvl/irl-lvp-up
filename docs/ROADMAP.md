@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.228 (2026-07-21)
+## 📍 État actuel — build 2.0.229 (2026-07-21)
 
+> 📚 **#617 — Plan de révision : deux matières au même créneau ne s'écrasent plus (build 2.0.229).**
+> Domaine `etudes` (frais ; `coach`/`sommeil` bloqués par la rotation §4 bis — la priorité de nuit
+> coaching tombe sous §3 qui soumet `coach` à la rotation comme les autres). Défaut prouvé :
+> `planStudySessions` générait `refId = planner-<date>-<time>` **sans la matière**, alors que le champ
+> heure du planning est **collant** (défaut 17:30) et que le submit **ajoute** l'épreuve
+> (`upsertExamGoal`, multi-épreuves BTS). Résultat : planifier « Droit » puis « Compta » à 17:30 les
+> mêmes jours produisait le **même refId** → `mergePlannedEvents` **écrasait** les séances de Droit par
+> Compta (id + `completed` hérités) = perte silencieuse, en contradiction avec le design multi-matières
+> (`studyBySubject`, `examGoals[]`). Correctif §3 (**zéro champ ajouté**) : la **matière repliée**
+> (repli casse/accents identique à #613) entre dans le refId → deux matières cohabitent, régénérer la
+> **même** matière reste idempotent, « Droit »/« droit » = même créneau. Autres générateurs (`glc-…`,
+> ICS) à préfixe distinct → aucune collision croisée. +1 test (coexistence + idempotence), 2 assertions
+> refId mises à jour. 564 tests + smoke vert. Recap #617. _Domaine : etudes._
+>
 > 🔬 **#616 — Mesure P5 : pilier athlète / readiness sondé au fuzzer → propre (sans bump).** Backlog
 > nommé P1→P7 **entièrement coché** ; `coach`/`sommeil` bloqués par la rotation (§4 bis). Domaine frais
 > `athlete` (mandat élite muscu/course) sondé par la méthode **P5 (mesurer, pas supposer)** : ~14 000
