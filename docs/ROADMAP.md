@@ -23,7 +23,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.212 (2026-07-20)
+## 📍 État actuel — build 2.0.213 (2026-07-20)
+
+> ✨ **#597 — Séance guidée redessinée (demande d'Adrien « le design doit vraiment être beau, au niveau
+> du Coach Poids », build 2.0.213).** CSS pur, zéro logique touchée : séries en **cartes** (badge rond,
+> chiffres centrés, état « Validée ✓ » vert satisfaisant), exercice **héros** (nom en grand,
+> illustration sur fond dégradé), **chrono de repos en vedette** (décompte dégradé turquoise→indigo,
+> panneau assorti). Beau en sombre ET clair. 543 tests + smoke + css-lint verts. Recap #597.
+> _Domaine : athlete._
 
 > 🔍 **#596 — Graphique du poids : zoom sur « où tu es maintenant » (demande d'Adrien, build 2.0.212).**
 > `weightForecastModel` gagne `windowWeeks` (fenêtre ± autour d'aujourd'hui → « auj. » **au centre**, le
