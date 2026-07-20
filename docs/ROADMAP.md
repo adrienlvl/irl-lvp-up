@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.200 (2026-07-20)
+## 📍 État actuel — build 2.0.201 (2026-07-20)
+
+> 🥗 **#582 — Coach : le renfort nutrition ne radote plus un geste déjà noté aujourd'hui (domaine
+> `coach`, build 2.0.201).** Rotation §4 bis : 5 derniers domaines = `docs · a11y · coach · docs ·
+> fondations` (#577→#581) → `docs` (#580, 2×) et `fondations` (#581) **interdits** (2 derniers) ;
+> `coach` (#579, 1×, absent des 2 derniers) **autorisé** → priorité de nuit #1 (coaching en QUALITÉ,
+> §3) et rotation **convergent**. Traite la **piste vérifiée #580** (mémoire) : en ton `reinforce`,
+> l'action générique « **Encore un jour actif aujourd'hui pour ancrer l'habitude.** » (`logic.js:5255`)
+> radote sur un pilier où le geste est **déjà posé** ce jour, car `doneToday` n'est calculé que pour
+> sport/focus (`logic.js:6222`). **Correction de la piste (§4 bis.5)** : en rendu chargé, seule la
+> **nutrition** radote — le **sommeil**, dès qu'il est choisi, a ≥ 1 nuit → `sleepIns` truthy → son
+> action devient **toujours** le conseil de coucher **prospectif** (`logic.js:5764`), jamais le
+> générique ; l'inclure serait du **code mort**. Fix (curation, aucune note ajoutée) : pendant du crédit
+> `doneToday`, gardé `tone==='reinforce' && pillar==='nutrition' && action===<exact générique> &&`
+> entrée active datée du jour → « **Déjà noté aujourd'hui ✅ — l'habitude est ancrée…** ». La garde
+> `action===<générique>` laisse tout bloc nutrition plus spécifique gagner (cible protéines l.5865).
+> §4 ter : rendu cumulé relu, non-régression (sans entrée du jour, l'invitation générique reste). +1
+> test (3 volets). 533 tests + smoke verts. Recap #582. _Domaine : coach._
 
 > ☁️ **#581 — Proposition : Sync multi-appareils (chantier 4, cœur de la 3.0 ; domaine `fondations`,
 > docs, pas de bump).** Rotation §4 bis : 5 derniers domaines = `docs · coach · a11y · docs · coach` →

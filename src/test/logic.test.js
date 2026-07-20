@@ -5639,7 +5639,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.200');
+  assert.equal(L.CHANGELOG[0].v, '2.0.201');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8035,6 +8035,43 @@ test('adaptiveCoachFocus : crédite une journée multi-piliers (doneToday / rein
   assert.equal(ng.doneToday, false);
   assert.ok(ng.pillarsToday >= 1);
   assert.doesNotMatch(ng.insight, /piliers déjà cochés/, 'pas de crédit multi-piliers en contexte de correction');
+});
+
+test('adaptiveCoachFocus : le renfort nutrition ne radote pas « fais-le » un jour où c’est déjà noté', () => {
+  const today = '2026-07-20';
+  // Nutrition seule, en hausse, AVEC entrée active datée du jour → tone reinforce. L'action générique
+  // « Encore un jour actif aujourd'hui » serait un radotage (c'est déjà fait) → doit céder au crédit.
+  const notedToday = {
+    nutrition: [
+      { date: '2026-07-20', protein: 90, water: 2 }, { date: '2026-07-19', protein: 80 },
+      { date: '2026-07-18', protein: 85 }, { date: '2026-07-17', protein: 70 },
+      { date: '2026-07-12', protein: 60 }, { date: '2026-07-11', protein: 65 },
+    ],
+  };
+  const n = L.adaptiveCoachFocus(notedToday, today);
+  assert.equal(n.pillar, 'nutrition');
+  assert.equal(n.tone, 'reinforce');
+  assert.match(n.action, /Déjà noté aujourd’hui ✅/, 'le geste du jour est crédité, pas re-demandé');
+  assert.doesNotMatch(n.action, /Encore un jour actif/, 'plus l’ordre déjà exécuté');
+
+  // Même dynamique, mais RIEN saisi aujourd'hui → l'action générique « fais-en un » reste légitime.
+  const notToday = {
+    nutrition: [
+      { date: '2026-07-19', protein: 80 }, { date: '2026-07-18', protein: 85 },
+      { date: '2026-07-17', protein: 70 }, { date: '2026-07-16', protein: 75 },
+      { date: '2026-07-12', protein: 60 }, { date: '2026-07-11', protein: 65 },
+    ],
+  };
+  const nt = L.adaptiveCoachFocus(notToday, today);
+  assert.equal(nt.tone, 'reinforce');
+  assert.match(nt.action, /Encore un jour actif aujourd’hui/, 'sans entrée du jour, l’action générique reste');
+  assert.doesNotMatch(nt.action, /Déjà noté/);
+
+  // Sommeil : même choisi en renfort avec une nuit du jour, son action reste le conseil PROSPECTIF de
+  // coucher (sleepIns truthy → l.5764-5766) — jamais l'action générique, donc jamais ce crédit.
+  const som = L.adaptiveCoachFocus({ recovery: [{ date: '2026-07-20', sleep: 7.5 }, { date: '2026-07-19', sleep: 7 }] }, today);
+  assert.equal(som.pillar, 'sommeil');
+  assert.doesNotMatch(som.action, /Déjà noté/);
 });
 
 test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ piliers plusieurs jours de suite)', () => {

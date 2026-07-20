@@ -2895,6 +2895,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.201', emoji: '🥗', text: 'Ton coach « Le focus du moment » ne te demande plus « encore un jour actif aujourd’hui » côté nutrition un jour où tu as DÉJÀ noté tes apports. Quand ton suivi nutrition monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») et invitait à « encore un jour actif aujourd’hui pour ancrer l’habitude » — même les jours où tu venais justement de saisir tes protéines, ton eau ou un fruit. Il te redemandait un geste déjà fait. Désormais, ces jours-là, il le CRÉDITE : « Déjà noté aujourd’hui ✅ — l’habitude est ancrée. » Les jours où tu n’as encore rien saisi, l’invitation à t’y mettre reste inchangée. (Le sommeil, lui, garde son conseil de coucher du soir, qui porte sur ce qui reste à venir.) Rien d’ajouté : un ordre déjà exécuté en moins.' },
   { v: '2.0.200', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour de pic de charge où ta séance est DÉJÀ faite. La version précédente effaçait bien cette invitation à continuer quand ta charge d’entraînement était en pic (ACWR élevé) — mais seulement les jours où il te restait une séance à caler. Or un jour de pic est souvent un jour où tu viens justement de t’entraîner : dans ce cas, « Garde le rythme » restait affiché pendant que ton bilan de la semaine, lui, te disait « prévois une semaine plus légère pour éviter la blessure ». Les deux panneaux se contredisaient. Désormais, dès que ta charge est en pic, l’invitation à continuer s’efface — séance faite ou non — et les deux panneaux disent la même chose. Le constat « en hausse » reste, et une vraie montée SAINE garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.199', emoji: '♿', text: 'Accessibilité : six champs de saisie qui ne portaient qu’un texte d’exemple (« indice ») ont maintenant un vrai nom lu par les lecteurs d’écran — le prénom d’un anniversaire, le nom et le lien d’un calendrier synchronisé, l’adresse de départ des trajets, le poids du jour et l’envie du jour en cuisine. Un texte d’exemple disparaît dès qu’on tape et n’est pas un nom fiable pour qui navigue à la voix ou au clavier ; ces champs rejoignent ceux de recherche et du tableau de bord déjà corrigés. Rien ne change à l’écran.' },
   { v: '2.0.198', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » les autres jours où il te demande de lever le pied. La version précédente désamorçait déjà cette contradiction quand ta forme du jour était au plancher (readiness sous 50) ; mais son conseil bascule aussi en frein dans deux autres cas — quand ta forme, correcte le matin, GLISSE régulièrement sur tes derniers check-ins (fatigue qui s’installe → « séance allégée, soigne ta récup ») et quand ta charge d’entraînement est en PIC (ACWR élevé → « allège aujourd’hui, -30 % de volume »). Dans ces deux cas, « Garde le rythme » poussait pendant que le conseil freinait. Désormais l’invitation à continuer s’efface aussi ces jours-là ; le constat « en hausse » reste. Une vraie montée sans frein garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
@@ -7236,6 +7237,20 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     action = chosen.pillar === 'sport'
       ? 'Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée.'
       : 'Bloc de focus déjà posé aujourd’hui ✅ — savoure ; si l’énergie est là, un second bloc te rapproche de l’objectif.';
+  }
+  // Pendant du crédit doneToday pour la NUTRITION en renfort. doneToday exclut volontairement sommeil
+  // et nutrition (leur action pilier est PROSPECTIVE — « vise un coucher », « renseigne tes protéines »
+  // — v2.0.100). Mais l'action GÉNÉRIQUE de renfort « Encore un jour actif aujourd'hui… » est, elle,
+  // RÉTROSPECTIVE : un « jour actif » = une entrée active, donc si le pilier a déjà une entrée active
+  // datée du jour, l'ordre est déjà exécuté → radotage. Cas prouvé UNIQUEMENT pour la nutrition : le
+  // sommeil, lui, ne conserve jamais cette action générique (dès qu'il est choisi il a ≥ 1 nuit → sleepIns
+  // est truthy → l'action devient le conseil de coucher du soir, l.5764-5766), donc rien à créditer là.
+  // On ne touche QUE cette action générique (si un bloc nutrition l'a déjà remplacée par un conseil
+  // ciblé — cible protéines l.5865 — on la laisse) et QUE la nutrition. Curation, aucune note ajoutée.
+  if (tone === 'reinforce' && chosen.pillar === 'nutrition'
+      && action === 'Encore un jour actif aujourd’hui pour ancrer l’habitude.'
+      && (Array.isArray(chosen.list) ? chosen.list : []).some(e => e && e.date === todayKey && chosen.active(e))) {
+    action = 'Déjà noté aujourd’hui ✅ — l’habitude est ancrée, savoure : rien d’autre à cocher côté nutrition.';
   }
   // Crédit MULTI-PILIERS — le pendant POSITIF de la priorisation (alsoSlipping NOMME ce qui décroche ;
   // ici on reconnaît ce qui TIENT). Le coach savait pointer les faiblesses, jamais saluer une journée
