@@ -25,6 +25,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.217 (2026-07-20)
 
+> 🧭 **#602 — Proposition : « La priorité du jour » — arbitrer les 2 surfaces coach (docs, pas de
+> bump).** Quota §4 bis.4 déclenché (10 recaps sans proposition) + `athlete` rotation-bloqué (5×) +
+> priorité de nuit « coaching à fond, en curation §3 ». **2 pistes de profondeur réfutées avant
+> d'écrire** (hiérarchisation du rendu = déjà `orderCoachNotes` ; boucle fermée = déjà `coachLog`/
+> `coachFollowThrough`). Manque **réel et vérifié** : `attentionDigest` (réactif) et `adaptiveCoachFocus`
+> (proactif) sont rendus côte à côte **sans arbitrage croisé** (`renderAttention`/`renderCoachFocus`,
+> aucun état partagé) → redondance + avis en tension possibles, aucune synthèse « LA priorité du jour ».
+> Reco : **B** = fonction pure `coachDayPriority` qui dédup + désigne l'action n°1 (curation pure §3,
+> zéro champ ajouté), en étapes autonomes façon P6. 4 décisions attendent Adrien.
+> `docs/proposals/coach-priorite-du-jour-integree.md`. Recap #602. _Domaine : coach._
+
 > 🎽 **#601 — Courses générées polarisées 80/20 (série coaching, build 2.0.217).** `buildTrainingWeek`
 > classe les courses par intensité (Seiler) : majorité FACILE (zone 2, conversation), UNE séance
 > qualité (tempo/seuil) dès 3 courses, sortie longue en aisance. Champ `intensity` + conseil d'allure

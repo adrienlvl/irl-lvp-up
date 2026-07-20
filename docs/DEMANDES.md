@@ -25,6 +25,19 @@
     de suite, **B** (verrou web opt-in) en cible ; à greffer sur la réécriture IndexedDB en **session
     supervisée**. ⏳ **4 décisions t'attendent** en fin de doc (périmètre A/B/C · verrou web par phrase de
     passe · filet en cas de mot de passe oublié · confirmation « session supervisée »).
+  - **Chantier coach — « La priorité du jour » : arbitrer les 2 surfaces coach du dashboard.** Boucle
+    #602 (2026-07-20) : `docs/proposals/coach-priorite-du-jour-integree.md`. Réponse à ta priorité de
+    nuit « coaching à fond » **dans le cadre §3** (curation, pas volume) : toutes les capacités
+    unitaires de profondeur sont déjà bâties (hiérarchisation `orderCoachNotes`, boucle fermée
+    `coachLog`/`coachFollowThrough`, digest `attentionDigest`, focus `adaptiveCoachFocus`) — 2 pistes
+    d'« ajout » réfutées avant d'écrire. Le **seul** manque structurel vérifié : les 2 blocs coach du
+    dashboard (« À rattraper » réactif + « Focus du moment » proactif) sont rendus **sans arbitrage
+    croisé** → redondance/tension possibles, aucune synthèse « quoi faire en premier ». Reco : **B**
+    (fonction pure `coachDayPriority`, curation §3 sans nouveau champ, réalisable en étapes autonomes
+    B.1→B.3). ⏳ **4 décisions t'attendent** (périmètre A/B/C · garder 2 blocs distincts · afficher un
+    `defer` · règle santé↔momentum). Dès ton feu vert sur le périmètre, B.1 (le modèle pur testé) peut
+    démarrer en autonomie.
+
   - **Chantier 5 — Planning d'études multi-échéances (Cap 3.0, Vague C — AUTONOME).** Boucle #587
     (2026-07-20) : `docs/proposals/planning-etudes-multi-echeances.md` — la 3ᵉ brique de la Vague C
     (générateur de révision équilibrant plusieurs matières BTS jusqu'à leurs dates respectives **avec
