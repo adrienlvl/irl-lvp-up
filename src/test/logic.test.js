@@ -5639,7 +5639,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.197');
+  assert.equal(L.CHANGELOG[0].v, '2.0.198');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8243,6 +8243,37 @@ test('adaptiveCoachFocus : reinforce × readiness plancher retire « Garde le ry
   assert.equal(none.tone, 'reinforce');
   assert.equal(none.readiness, null);
   assert.match(none.insight, /Garde le rythme/, 'sans check-in du jour → l’injonction reste');
+});
+
+test('adaptiveCoachFocus : reinforce × frein hors seuil (glisse/pic) retire aussi « Garde le rythme »', () => {
+  const today = '2026-07-20';
+  const dk = off => { const d = new Date('2026-07-20T12:00:00'); d.setDate(d.getDate() - off); return d.toISOString().slice(0, 10); };
+  // Dynamique sport en hausse (4 j récents vs 2 j précédents) → ton reinforce, insight « … en hausse. Garde le rythme. ».
+  const workouts = [{ date: dk(1) }, { date: dk(2) }, { date: dk(4) }, { date: dk(6) }, { date: dk(8) }, { date: dk(10) }];
+  // CAS glisse : readiness du jour 60 (∈ [50,75)) mais tendance -40 sur 5 check-ins → readinessSlide, action « séance allégée ».
+  const slide = L.adaptiveCoachFocus({ workouts, recovery: [
+    { date: dk(7), sleep: 8, fatigue: 1, soreness: 1 }, { date: dk(5), sleep: 7.5, fatigue: 1, soreness: 2 },
+    { date: dk(3), sleep: 7, fatigue: 2, soreness: 2 }, { date: dk(1), sleep: 6.5, fatigue: 3, soreness: 2 },
+    { date: today, sleep: 6, fatigue: 3, soreness: 3 },
+  ] }, today);
+  assert.equal(slide.tone, 'reinforce');
+  assert.ok(slide.readiness >= 50 && slide.readiness < 75, 'readiness en zone médiane (hors seuil #573)');
+  assert.ok(slide.readinessSlide != null, 'forme qui glisse détectée');
+  assert.match(slide.action, /Séance allégée/);
+  assert.doesNotMatch(slide.insight, /Garde le rythme/, 'la glisse retire l’injonction contradictoire');
+  assert.match(slide.insight, /en hausse\./, 'le constat hebdo « en hausse » reste');
+  assert.doesNotMatch(slide.insight, /\.\s{2,}/, 'pas de double espace après le retrait');
+  // CAS pic de charge : sans check-in du jour (readiness null), ACWR en pic → loadSpike, action « allège ».
+  const spike = L.adaptiveCoachFocus({ workouts: [
+    { date: dk(1), duration: 90, effort: 4 }, { date: dk(2), duration: 90, effort: 4 },
+    { date: dk(4), duration: 90, effort: 4 }, { date: dk(6), duration: 90, effort: 4 },
+    { date: dk(8), duration: 30, effort: 2 }, { date: dk(10), duration: 30, effort: 2 },
+  ] }, today);
+  assert.equal(spike.tone, 'reinforce');
+  assert.equal(spike.readiness, null);
+  assert.ok(spike.loadSpike != null, 'pic de charge détecté');
+  assert.match(spike.action, /allège aujourd’hui/);
+  assert.doesNotMatch(spike.insight, /Garde le rythme/, 'le pic de charge retire l’injonction contradictoire');
 });
 
 test('adaptiveCoachFocus : readinessBoost nomme le MOTEUR de la forme au vert (pendant positif)', () => {

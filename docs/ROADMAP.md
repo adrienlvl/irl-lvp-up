@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.197 (2026-07-20)
+## 📍 État actuel — build 2.0.198 (2026-07-20)
+
+> 🩹 **#576 — Coach : plus de « Garde le rythme » quand la forme glisse ou que la charge est en pic
+> (domaine `coach`, build 2.0.198).** Rotation §4 bis : les 5 derniers domaines = `athlete · fondations ·
+> coach · robustesse · a11y` → `coach` (priorité de nuit) absent des 2 derniers (#575 athlete, #574
+> fondations) et 1× sur 5 → **autorisé** ; priorité de nuit (coaching en QUALITÉ, §3) et rotation
+> convergent. Suite de #573 : le ton `reinforce` écrit « … en hausse. **Garde le rythme.** », mais #573 ne
+> désamorçait cette injonction que sur readiness au plancher (< 50). Or l'action sport bascule aussi en
+> **frein** hors de ce seuil — `readinessSlide` (readiness 50-74 qui GLISSE → « Séance allégée, soigne ta
+> récup ») et `loadSpike` (ACWR en PIC → « allège aujourd'hui, -30 % ») : « Garde le rythme » POUSSE
+> pendant que l'action FREINE. **Prouvé en rendu chargé §4 ter** (readiness 60 qui glisse ; ACWR 3,69×
+> sans check-in). Fix (curation, pas ajout — §3) : un strip complémentaire après le calcul de `loadSpike`,
+> `if (tone === 'reinforce' && (readinessSlide != null || loadSpike != null)) insight = insight.replace(' Garde le rythme.', '')`.
+> Mutuellement exclusif du strip #573 (readinessSlide/loadSpike exigent readiness null ou ≥ 50). Le constat
+> « en hausse » reste ; une montée SANS frein garde son « Garde le rythme » (non-régression readiness 73
+> stable vérifiée). **Aucune note/champ ajouté.** +1 test (glisse + pic). 532 tests + smoke verts. Recap
+> #576. _Domaine : coach._
 
 > 🏋️ **#575 — Bilan hebdo : plus de « tu montes en volume » un jour où il faut alléger (domaine
 > `athlete`, build 2.0.197).** Rotation §4 bis : les 5 derniers domaines = `fondations · coach ·

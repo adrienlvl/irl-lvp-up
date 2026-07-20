@@ -2895,6 +2895,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.198', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » les autres jours où il te demande de lever le pied. La version précédente désamorçait déjà cette contradiction quand ta forme du jour était au plancher (readiness sous 50) ; mais son conseil bascule aussi en frein dans deux autres cas — quand ta forme, correcte le matin, GLISSE régulièrement sur tes derniers check-ins (fatigue qui s’installe → « séance allégée, soigne ta récup ») et quand ta charge d’entraînement est en PIC (ACWR élevé → « allège aujourd’hui, -30 % de volume »). Dans ces deux cas, « Garde le rythme » poussait pendant que le conseil freinait. Désormais l’invitation à continuer s’efface aussi ces jours-là ; le constat « en hausse » reste. Une vraie montée sans frein garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.197', emoji: '🏋️', text: 'Ton bilan de la semaine ne te félicite plus de « monter en volume » le jour même où il te dit d’alléger. Quand ta charge d’entraînement bondit d’un coup (ACWR en pic — le signal classique de risque de blessure après une grosse semaine), le bilan affiche « prévois une semaine plus légère pour éviter la blessure ». Or il pouvait, juste à côté, saluer « +X min vs semaine dernière — tu montes en volume » : deux messages qui se contredisaient et poussaient pile vers le risque signalé. Désormais, ces jours de pic, la félicitation de montée de volume s’efface — l’avertissement reste seul et cohérent. Une vraie montée SAINE (charge maîtrisée), elle, continue d’être célébrée. Rien d’ajouté : une contradiction de moins.' },
   { v: '2.0.196', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour où il te demande de te reposer. Quand ton entraînement monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») ; mais les jours où ta forme du jour est au plancher (readiness sous 50), son conseil bascule en « récupération prioritaire : vise mobilité ou marche plutôt qu’une grosse séance aujourd’hui ». Les deux côte à côte — « continue sur ta lancée » ET « lève le pied » — le faisaient parler des deux coins de la bouche. Désormais, ces jours-là, il retire l’invitation à continuer et garde le constat « en hausse » : le compliment reste, l’injonction qui contredit le repos s’efface. Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.195', emoji: '💼', text: 'Ton suivi Alternance ne compte plus comme « postulé » une candidature que tu n’as PAS encore envoyée. Quand une cellule de statut disait « pas encore postulé », « pas postulé » ou « candidature non envoyée », le suivi ne voyait que le mot « postulé »/« envoyé » et rangeait la candidature dans la colonne « Postulé » de ton entonnoir — à chaque synchronisation de ta feuille Google Sheets — alors qu’elle restait à faire. Ton nombre de candidatures envoyées (et donc ton taux de réponse) était gonflé à tort. Désormais une négation de l’action de candidater (« pas encore postulé », « non envoyée ») est bien classée « à postuler ». Un vrai « postulé » (même suivi de « pas de nouvelles ») reste « postulé », et « pas retenu » reste un refus. Rien d’ajouté : un entonnoir plus juste.' },
@@ -6337,6 +6338,19 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       }
     }
   }
+  // CONTRADICTION insight × action — PROLONGE le garde-fou #573 aux DEUX freins hors du seuil < 50. Le
+  // ton reinforce a écrit « … en hausse. Garde le rythme. » (l.5251), une injonction à continuer. #573
+  // retire cette phrase quand la readiness du jour est au PLANCHER (< 50 → action « récupération
+  // prioritaire »). Mais l'action bascule AUSSI en frein plus haut : readinessSlide (readiness 50-74 qui
+  // GLISSE → « Séance allégée aujourd'hui, soigne ta récup ») et loadSpike (charge en PIC → « allège
+  // aujourd'hui, -30 % de volume »). Dans ces deux cas, « Garde le rythme. » POUSSE pendant que l'action
+  // FREINE — même bug de crédibilité que #573, simplement hors du seuil < 50 (prouvé en rendu chargé
+  // §4 ter : readiness 60 qui glisse, et ACWR 3,69× sans check-in du jour). On retire la seule injonction
+  // qui contredit le frein ; le constat « en hausse » (stat hebdo vraie) et le crédit du volume restent.
+  // Curation, pas ajout (§3). Mutuellement exclusif du strip #573 (readinessSlide/loadSpike exigent une
+  // readiness null ou ≥ 50). readinessSlide/loadSpike ne sont non nuls que pour le pilier sport, donc
+  // aucun effet sur un reinforce focus (« Garde le rythme » y reste, sans action-frein qui la contredise).
+  if (tone === 'reinforce' && (readinessSlide != null || loadSpike != null)) insight = insight.replace(' Garde le rythme.', '');
   // Coach CONSCIENT de la SOUS-CHARGE — le pendant POSITIF exact du loadSpike (#492), l'« adaptation
   // aux PROGRÈS » là où le pic était l'« adaptation aux écarts ». Le loadSpike tempère quand l'ACWR
   // grimpe en zone 'high' (risque de blessure) ; il restait muet dans le cas SYMÉTRIQUE, listé en
