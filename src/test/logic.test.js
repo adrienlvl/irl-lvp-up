@@ -4241,6 +4241,44 @@ test('setLandmark : repères hypertrophie (<10 low, 10-20 ok, >20 high)', () => 
   assert.equal(L.setLandmark('bad').zone, 'low');
   assert.equal(typeof L.setLandmark(12).label, 'string');
 });
+test('deloadRecommendation : accumulation, semaine légère, fatigue, garde-fous', () => {
+  const hard = date => ({ date, exercises: [{ name: 'Gainage planche', sets: 18 }] }); // abs 18 = semaine dure
+  const light = date => ({ date, exercises: [{ name: 'Gainage planche', sets: 3 }] }); // décharge (< 15)
+  const today = '2026-07-29';
+  // 5 semaines dures complètes d'affilée (semaines 1..5) → décharge due (accumulation).
+  const acc = L.deloadRecommendation(
+    ['2026-07-22', '2026-07-15', '2026-07-08', '2026-07-01', '2026-06-24'].map(hard), today);
+  assert.equal(acc.due, true);
+  assert.equal(acc.reason, 'accumulation');
+  assert.equal(acc.hardWeeks, 5);
+  assert.equal(acc.emoji, '🧊');
+  assert.match(acc.advice, /40 à 50/);
+  // Une semaine légère récente casse le compteur (décharge déjà prise) → pas due.
+  const broken = L.deloadRecommendation(
+    [hard('2026-07-22'), hard('2026-07-15'), light('2026-07-08'), hard('2026-07-01'), hard('2026-06-24')], today);
+  assert.equal(broken.due, false);
+  assert.equal(broken.hardWeeks, 2, 'compteur cassé à la semaine légère');
+  // 3 semaines dures + forme basse (readiness 40) → décharge avancée (fatigue).
+  const fat = L.deloadRecommendation(
+    ['2026-07-22', '2026-07-15', '2026-07-08'].map(hard), today, { readiness: 40 });
+  assert.equal(fat.due, true);
+  assert.equal(fat.reason, 'fatigue');
+  assert.match(fat.advice, /forme baisse/);
+  // Mêmes 3 semaines sans signal de fatigue (readiness non fourni) → pas encore due.
+  const noFat = L.deloadRecommendation(['2026-07-22', '2026-07-15', '2026-07-08'].map(hard), today);
+  assert.equal(noFat.due, false);
+  assert.equal(noFat.hardWeeks, 3);
+  // Zone au-dessus du MRV (>20 séries) signalée dans overMrv (semaine en cours).
+  const over = L.deloadRecommendation(
+    [{ date: today, exercises: [{ name: 'Gainage planche', sets: 22 }] }, hard('2026-07-15')], today);
+  assert.equal(over.overMrv, true);
+  assert.equal(over.peakZone, 'abs');
+  assert.equal(over.peakSets, 22);
+  // Garde-fous : historique insuffisant (< 2 semaines avec séries) et date invalide → null.
+  assert.equal(L.deloadRecommendation([hard('2026-07-22')], today), null);
+  assert.equal(L.deloadRecommendation([], today), null);
+  assert.equal(L.deloadRecommendation(['2026-07-22'].map(hard), 'pas-une-date'), null);
+});
 test('muscleBalance : équilibre poussée (pecs+épaules) / tirage (dos) sur 28 j', () => {
   const w = [
     { date: '2026-07-08', exercises: [{ name: 'Pompes classiques', sets: 4 }] }, // push +4 (chest/shoulders)
@@ -5863,7 +5901,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.221');
+  assert.equal(L.CHANGELOG[0].v, '2.0.222');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

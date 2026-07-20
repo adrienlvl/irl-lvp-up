@@ -23,8 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.221 (2026-07-20)
+## 📍 État actuel — build 2.0.222 (2026-07-20)
 
+> 🧊 **#608 — Décharge (deload) muscu : le coach dit QUAND lever le pied (série coaching élite, build
+> 2.0.222).** `setLandmark` étiquetait le volume hebdo d'une zone mais **rien ne recommandait une
+> décharge** sur accumulation ; les décharges existantes sont d'un autre type (bloc objectif fixe
+> `currentBlock`, pic ACR course `loadAdvice`). Nouvelle fonction pure **`deloadRecommendation`** (Israetel/
+> RP + Helms) : agrège les séries hebdo par zone sur ~6 sem., compte les semaines **dures d'affilée**
+> (semaine en cours exclue, une semaine légère **casse le compteur** = décharge déjà prise) et conseille
+> une décharge (**−40 à −50 % de volume, 5-7 j, charges gardées**) après ~5 sem. d'accumulation OU plus
+> tôt sur **signal de fatigue** (readiness < 45 après ≥ 3 sem. dures). Carte « 🧊 Décharge conseillée »
+> au-dessus du bilan de séries (`#weeklySets`) ; **display-only** (aucun `coachLog`). Déclencheur
+> conservateur (ambitieux mais sûr : ne baisse jamais l'intensité). Check smoke bloquant `deloadReco`.
+> 559 tests + smoke vert. Recap #608. Item ROADMAP « Volume & DELOAD muscu » coché. _Domaine : athlete._
+>
 > 🧭 **#607 — Coach « La priorité du jour » B.2 : branchement au rendu (dédup + recadrage), build
 > 2.0.221.** Suite du feu vert d'Adrien (périmètre B, proposition #602). Les **deux surfaces coach du
 > dashboard** sont enfin **arbitrées entre elles** : `renderCoachFocus` affiche la n°1 **arbitrée**
@@ -888,9 +900,12 @@ domaines** jusqu'à finir la série, malgré §4 bis. Série finie → **reprend
       testé, Bosquet 2007) coupe le VOLUME 41-60 % en décroissance exponentielle (durée d'affûtage
       échelonnée par distance), **garde l'intensité ET la fréquence** ; intégré à `buildTrainingWeek`
       (option `raceDaysLeft`/`raceKm`) + bandeau `.wp-taper` dans « Programme de la semaine ». Smoke bloquant.
-- [ ] **Volume & DELOAD muscu** : landmarks **MEV≈10 → MRV≈20 séries/muscle/sem** (déjà
-      `weeklySetsPerZone`/`setLandmark`), + reco de **deload** toutes les ~4-6 sem ou sur signaux de
-      fatigue (−40-50 % volume). Un coach qui dit **quand décharger** (Israetel/RP, Helms).
+- [x] **Volume & DELOAD muscu** ✅ _fait #608 (2.0.222)_ : `deloadRecommendation(workouts, todayKey, opts)`
+      (pur, testé, Israetel/RP + Helms) regarde les séries hebdo par zone sur ~6 sem., compte les semaines
+      DURES d'affilée (semaine en cours exclue, une semaine légère casse le compteur) et conseille une
+      décharge (−40-50 % volume, 5-7 j) après ~5 sem. d'accumulation OU plus tôt si la forme baisse
+      (readiness < 45). Carte « 🧊 Décharge conseillée » au-dessus du bilan de séries (`#weeklySets`).
+      Smoke bloquant `deloadReco`.
 - [ ] **Trail spécifique** (`ultraPlan`) : dénivelé D+, côtes/descentes, renforcement spécifique coureur.
 - [ ] **Base d'exercices plus complète** (niveau Garmin/Strava/Apple Fitness) : plus d'exercices, cues
       d'exécution plus riches, variantes par matériel. Data pure + tests.
