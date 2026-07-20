@@ -5493,7 +5493,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.185');
+  assert.equal(L.CHANGELOG[0].v, '2.0.186');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7961,6 +7961,59 @@ test('adaptiveCoachFocus : action sport calée sur la readiness du jour', () => 
   assert.equal(none.pillar, 'sport');
   assert.equal(none.readiness, null);
   assert.match(none.action, /séance/);
+});
+
+test('adaptiveCoachFocus : le crédit de suivi (reinforce) n’écrase pas l’action « lève le pied »', () => {
+  const today = '2026-07-16';
+  // Sport en bon élan (série 13-14-15 finissant hier → tone reinforce) + suivi élevé des caps
+  // (coachLog sport les 3 jours, tous honorés → followThrough 100 %). Mais readiness AU PLANCHER
+  // aujourd'hui (15/100). Le crédit de suivi appendait « Un jour actif de plus aujourd'hui » PAR-DESSUS
+  // l'action de récup (l. 5533) : « repose-toi » vs « fais un jour actif de plus » le même jour. Son
+  // garde-fou ne testait que loadSpike, or loadSpike est MUTUELLEMENT EXCLUSIF de readiness < 50 → il ne
+  // couvrait jamais ce cas. L'action doit rester le conseil de récup ; le crédit reste dans l'insight.
+  const coachLog = [
+    { date: '2026-07-13', pillar: 'sport' },
+    { date: '2026-07-14', pillar: 'sport' },
+    { date: '2026-07-15', pillar: 'sport' },
+  ];
+  const workouts = [{ date: '2026-07-13' }, { date: '2026-07-14' }, { date: '2026-07-15' }];
+  const low = L.adaptiveCoachFocus({
+    workouts, coachLog,
+    recovery: [{ date: today, sleep: 3, fatigue: 5, soreness: 5 }],
+  }, today);
+  assert.equal(low.pillar, 'sport');
+  assert.equal(low.tone, 'reinforce');
+  assert.equal(low.readiness, 15);
+  assert.equal(low.followThrough, 100, 'le suivi est bien crédité');
+  assert.match(low.insight, /Tu as tenu 3\/3 de mes caps/, 'crédit du suivi conservé dans l’insight');
+  assert.match(low.action, /récupération prioritaire/, 'l’action reste le conseil de récup');
+  assert.doesNotMatch(low.action, /jour actif de plus/, 'le crédit ne réécrit plus l’action de récup');
+
+  // Forme qui GLISSE (readiness 60, tendance -12+ sur ≥ 4 check-ins → readinessSlide) : « séance
+  // allégée » ne doit pas non plus se faire écraser (2ᵉ des trois signaux « garde léger »).
+  const slide = L.adaptiveCoachFocus({
+    workouts, coachLog,
+    recovery: [
+      { date: '2026-07-09', sleep: 8, fatigue: 1, soreness: 1 },
+      { date: '2026-07-11', sleep: 7, fatigue: 2, soreness: 2 },
+      { date: '2026-07-13', sleep: 6, fatigue: 3, soreness: 3 },
+      { date: today, sleep: 6, fatigue: 3, soreness: 3 },
+    ],
+  }, today);
+  assert.equal(slide.tone, 'reinforce');
+  assert.ok(slide.readinessSlide != null, 'forme qui glisse détectée');
+  assert.match(slide.action, /Séance allégée aujourd’hui/, 'l’action « garde léger » reste');
+  assert.doesNotMatch(slide.action, /jour actif de plus/);
+
+  // Garde-fou anti-sur-correction : readiness AU VERT (pas un jour « lève le pied ») → le message de
+  // renfort « un jour actif de plus » reste bien affiché (comportement inchangé).
+  const green = L.adaptiveCoachFocus({
+    workouts, coachLog,
+    recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }],
+  }, today);
+  assert.equal(green.tone, 'reinforce');
+  assert.equal(green.readiness, 100);
+  assert.match(green.action, /jour actif de plus/, 'hors état « lève le pied » : le renfort reste');
 });
 
 test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du jour', () => {

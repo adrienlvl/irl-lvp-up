@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.185 (2026-07-20)
+## 📍 État actuel — build 2.0.186 (2026-07-20)
+
+> 🩹 **2.0.186 — #561 : le crédit de suivi du coach n'écrase plus l'action « lève le pied » (domaine
+> `coach`, priorité de nuit).** Rotation §4 bis OK (`coach` #558 hors des 2 derniers recaps, 1× dans les
+> 5 derniers). Contradiction entre deux guards, attrapée en **rendu chargé (§4ter)** : en ton `reinforce`
+> avec un suivi élevé des conseils, le coach crédite l'effort dans l'insight **et** réécrivait l'action en
+> « Un jour actif de plus aujourd'hui » — y compris les jours où readiness était **au plancher** (15/100,
+> « récupération prioritaire » venait d'être posé l. 5533). Son garde-fou ne testait qu'`if (loadSpike ==
+> null)`, or `loadSpike` (pic de charge, exige readiness null/≥50) est **mutuellement exclusif** des deux
+> autres signaux « garde léger » (readiness < 50 et `readinessSlide`, qui exigent readiness < 50 / 50-74) →
+> il ne les couvrait jamais. Résultat reproduit en vrai : « repose-toi » et « fais un jour actif de plus »
+> côte à côte. Fix : le garde-fou reprend la **définition canonique de `sportEase`** (l. ~7200) — les trois
+> signaux, pas le seul pic ; le crédit **reste dans l'insight**, seule l'écrasement de l'action cesse. **Ni
+> ajout ni retrait** de contenu (une contradiction en moins). Piliers non-sport inchangés. Nouveau test
+> logique (3 cas : readiness<50, forme qui glisse, readiness verte). 524 tests + smoke verts. Recap #561.
+> _Pistes coach vérifiées mises de côté : recompFraming vs coupe calorique, followThrough hors sport (détail
+> dans le recap)._ _Domaine : coach._
 
 > 🧪 **#560 — P7.2 : parcours « générer un planning de révision » dans le smoke (domaine `tests`, pas
 > de bump).** Rotation §4 bis : `coach` (priorité de nuit) est dans les 2 derniers recaps (#558) et
