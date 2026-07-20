@@ -337,7 +337,7 @@ function renderTargetAdvice(source){const blocs=[$('#targetAdvice'),$('#coachTar
   const target=saisi>0?saisi:Number(state.goals.targetWeight);
   const peindre=(html,cls)=>blocs.forEach(el=>{if(!html){el.hidden=true;el.innerHTML='';return;}el.hidden=false;el.className=cls;el.innerHTML=html;});
   const cur=state.weights.at(-1)?.value||Number(state.profile.weight);
-  const a=weightTargetAdvice({weight:cur,targetWeight:target,height:state.profile.height,age:state.profile.age,sex:state.profile.sex,fitnessObjective:state.fitnessObjective,sessionsPerWeek:state.goals.sessions});
+  const a=weightTargetAdvice({weight:cur,targetWeight:target,height:state.profile.height,age:state.profile.age,sex:state.profile.sex,activityLevel:state.profile.activityLevel,fitnessObjective:state.fitnessObjective,sessionsPerWeek:state.goals.sessions});
   if(!a){peindre('');return;}
   const num=n=>String(n).replace('.',',');
   const icone={ok:'✅',warn:'⚠️',stop:'⛔'};

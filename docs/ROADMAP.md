@@ -23,8 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.219 (2026-07-20)
+## 📍 État actuel — build 2.0.220 (2026-07-20)
 
+> ⚖️ **#605 — Coach Poids : rythme & durée cohérents entre le plan et le conseil (build 2.0.220).**
+> L'écran Coach Poids rendait côte à côte `energyPlan` (rythme personnalisé par corpulence 0,5–0,9 %/sem,
+> Garthe 2011 / Aragon 2017) et `weightTargetAdvice` (resté à **0,6 %/sem fixe**) → durée estimée
+> **divergente au même endroit** (ex. corpulent 92→78 kg : plan **21 sem** vs conseil **26 sem**) — la classe
+> de bug « deux verdicts opposés sur le même écran » (cf. 2.0.79/2.0.59/2.0.131). Nouvelle fonction pure
+> **`safeLossRate`** = SOURCE UNIQUE du rythme (ratePct par IMC + garde-fous déficit ≤ 25 % TDEE et apport
+> ≥ BMR) appelée par les DEUX ; `weightTargetAdvice` s'y aligne quand le profil le permet (repli 0,6 % borné
+> sinon) et `app.js` lui passe `activityLevel` pour une base TDEE identique. Résultat : rythme ET durée
+> strictement égaux entre plan et conseil. Aucun champ ajouté — une contradiction retirée. Check smoke
+> bloquant `targetAdvice` étendu. 552 tests + smoke. Recap #605. _Domaine : nutrition._
+>
 > 🎯 **#604 — Affûtage (taper) avant une course : « Programme de la semaine » allège tout seul le volume
 > (série coaching, build 2.0.219).** La phase `taper` n'existait qu'en **affichage** ; **aucun** générateur
 > ne réduisait vraiment le volume à l'approche d'une course. Nouvelle fonction pure **`taperPlan(daysLeft,

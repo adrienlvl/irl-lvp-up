@@ -1990,6 +1990,41 @@ test('weightTargetAdvice : réalisme de la cible et cohérence avec l’objectif
   assert.equal(L.weightTargetAdvice(null), null);
 });
 
+test('weightTargetAdvice ↔ energyPlan : rythme et durée COHÉRENTS (même écran Coach Poids)', () => {
+  // Le conseil (weightTargetAdvice) et le plan (energyPlan) sont rendus côte à côte : leur rythme
+  // et leur durée estimée doivent COÏNCIDER (source unique safeLossRate). Avant : energyPlan
+  // personnalisait par corpulence (0,5–0,9 %/sem) tandis que weightTargetAdvice restait à 0,6 % fixe
+  // → deux durées opposées au même endroit (ex. corpulent : 21 vs 26 semaines).
+  const profils = [
+    { weight: 92, height: 178, age: 30, sex: 'homme', activityLevel: 'modere', sessionsPerWeek: 4, targetWeight: 78 }, // IMC 29 → 0,9 % plafonné
+    { weight: 81, height: 174, age: 30, sex: 'homme', sessionsPerWeek: 4, targetWeight: 75 },                          // profil Adrien
+    { weight: 68, height: 172, age: 28, sex: 'femme', activityLevel: 'actif', sessionsPerWeek: 5, targetWeight: 64 },  // sec → 0,5 %
+  ];
+  for (const p of profils) {
+    const ep = L.energyPlan({ ...p, todayKey: '2026-07-20' });
+    const wta = L.weightTargetAdvice({ weight: p.weight, targetWeight: p.targetWeight, height: p.height, age: p.age, sex: p.sex, activityLevel: p.activityLevel, sessionsPerWeek: p.sessionsPerWeek });
+    assert.ok(ep && wta, 'les deux calculent');
+    assert.equal(wta.direction, 'perte');
+    assert.equal(wta.ratePerWeek, ep.ratePerWeek, `rythme aligné (${p.weight}→${p.targetWeight})`);
+    assert.equal(wta.weeks, ep.weeks, `durée alignée (${p.weight}→${p.targetWeight})`);
+  }
+  // Corpulence prise en compte : un corpulent perd plus vite (rythme ≥) qu'un sujet déjà sec.
+  const gros = L.weightTargetAdvice({ weight: 92, height: 178, age: 30, sex: 'homme', sessionsPerWeek: 4, targetWeight: 88 });
+  const sec = L.weightTargetAdvice({ weight: 62, height: 178, age: 30, sex: 'homme', sessionsPerWeek: 4, targetWeight: 60 });
+  assert.ok(gros.ratePerWeek > sec.ratePerWeek, 'rythme personnalisé par corpulence');
+
+  // Repli sûr quand le profil est incomplet (pas d'âge → BMR/TDEE incalculables) : rythme borné, non nul.
+  const repli = L.weightTargetAdvice({ weight: 90, height: 180, targetWeight: 80 });
+  assert.ok(repli.ratePerWeek >= 0.25 && repli.ratePerWeek <= 0.9, 'repli ~0,6 %/sem borné');
+  assert.ok(repli.weeks > 0);
+
+  // safeLossRate : garde-fous d'élite (déficit ≤ 25 % TDEE, apport ≥ BMR).
+  const r = L.safeLossRate(92, 29, 2800, 1900);
+  assert.ok(r && r.deficit <= Math.round(2800 * 0.25), 'déficit plafonné à 25 % du TDEE');
+  assert.ok(r.dailyTarget >= 1900, 'apport jamais sous le métabolisme de base');
+  assert.equal(L.safeLossRate(0, 24, 2500, 1600), null, 'null si données invalides');
+});
+
 test('splitDuration / combineDuration : saisie d’une durée en heures + minutes', () => {
   assert.deepEqual(L.splitDuration(45), { h: 0, m: 45 });
   assert.deepEqual(L.splitDuration(90), { h: 1, m: 30 }, '1 h 30');
@@ -5828,7 +5863,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.219');
+  assert.equal(L.CHANGELOG[0].v, '2.0.220');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
