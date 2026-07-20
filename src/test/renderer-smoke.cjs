@@ -641,6 +641,15 @@ app.whenReady().then(async () => {
           const fat = deloadRecommendation(['2026-07-22', '2026-07-15', '2026-07-08'].map(hard), '2026-07-29', { readiness: 40 });
           return broken && broken.due === false && broken.hardWeeks === 2 && fat && fat.due === true && fat.reason === 'fatigue' && deloadRecommendation([hard('2026-07-22')], '2026-07-29') === null;
         })(),
+        dietBreakReco: typeof dietBreakRecommendation === 'function' && !!document.getElementById('coachWeightBody') && (() => {
+          const dates = ['2026-07-22', '2026-07-15', '2026-07-08', '2026-07-01', '2026-06-24', '2026-06-17', '2026-06-10', '2026-06-03', '2026-05-27', '2026-05-20', '2026-05-13', '2026-05-06', '2026-04-29'];
+          const cont = dates.map((date, i) => ({ date, value: Math.round((78 + i * 0.5) * 10) / 10 }));
+          const r = dietBreakRecommendation(cont, 'perte', '2026-07-29', { deficit: 500 });
+          if (!r || r.due !== true || r.weeksDeficit !== 12 || r.netLossKg !== 6 || r.kcalBump !== 500 || r.emoji !== '⏸️') return false;
+          const regain = cont.slice(); regain[0] = { date: '2026-07-22', value: 79.6 };
+          const rr = dietBreakRecommendation(regain, 'perte', '2026-07-29');
+          return dietBreakRecommendation(cont, 'prise', '2026-07-29') === null && rr && rr.due === false && dietBreakRecommendation(cont.slice(0, 2), 'perte', '2026-07-29') === null;
+        })(),
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
         currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-08-10').done === true && currentBlock('', 'x') === null; })(),
@@ -697,7 +706,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.223'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.224'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2066,6 +2075,7 @@ app.whenReady().then(async () => {
     if (!checks.weekScheduleCurrent) errors.push('Programme de semaine mal ancré : doit se poser sur la SEMAINE EN COURS (jours restants), pas lundi prochain');
     if (!checks.weekProgramTaper) errors.push('Affûtage KO : buildTrainingWeek doit réduire le VOLUME des courses (~40-55 %) en gardant la FRÉQUENCE quand une course objectif approche (taperPlan/Bosquet 2007), et ne rien tapér quand elle est lointaine');
     if (!checks.deloadReco) errors.push('Décharge muscu KO : deloadRecommendation doit conseiller une décharge après ~5 semaines de charge soutenue (accumulation) OU plus tôt si la forme baisse (fatigue, readiness<45), une semaine légère cassant le compteur (Israetel/Helms), rendu dans #weeklySets');
+    if (!checks.dietBreakReco) errors.push('Pause diète KO : dietBreakRecommendation doit conseiller une pause (retour à la maintenance) après ~10 semaines de déficit continu prouvé par la perte de poids (MATADOR/ICECAP/Trexler), un regain récent cassant la série et goal≠perte renvoyant null, câblé dans #coachWeightBody');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');

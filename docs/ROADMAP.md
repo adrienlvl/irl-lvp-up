@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.223 (2026-07-20)
+## 📍 État actuel — build 2.0.224 (2026-07-20)
 
+> ⏸️ **#611 — Pause diète (diet break) : le coach dit QUAND remonter à la maintenance (build 2.0.224).**
+> Le pendant NUTRITION du deload muscu (#608), manquant : `grep` confirme zéro gestion de la DURÉE d'un
+> déficit (`refeed|diète|thermogenèse|leptine|MATADOR` absents), alors que le rythme/protéines/plateau
+> sont couverts. Un déficit tenu trop longtemps déclenche une adaptation métabolique (métabolisme,
+> leptine/thyroïde, faim) qui freine la perte ET menace le muscle → le geste correct n'est pas de couper
+> plus, c'est une PAUSE à la maintenance. Nouvelle fonction pure **`dietBreakRecommendation`** (science
+> citée : Trexler 2014 JISSN 11:7 ; MATADOR Byrne 2018 Int J Obes 42:129 ; ICECAP Peos 2021 MSSE — pause
+> 1 sem → +0,7 kg de masse maigre). Elle mesure le déficit par la **perte de poids réelle** (médiane
+> hebdo robuste, série cassée par un regain net ≥ 0,3 kg), déclenche après ~10 sem. de déficit continu
+> **avec** perte cumulée réelle (≥ 1,5 kg) et goal `perte`. Carte `⏸️ Pause diète` display-only dans le
+> Coach Poids (`#coachWeightBody`) qui **remplace** le message `calorieAdjustment` « coupe encore » quand
+> la pause est due (curation §3 anti-contradiction). Ambitieux mais sûr : n'accélère jamais le déficit.
+> Contrôle §4 ter appliqué (carte relue en entier, cohérente). Check smoke bloquant `dietBreakReco`.
+> 561 tests + smoke vert. Recap #611. _Domaine : nutrition._
+>
 > 🏋️ **#610 — Proposition : « Base d'exercices plus complète » — le verrou est graphique, pas logique
 > (docs seuls, pas de bump).** Dernier item non fini de la SÉRIE COACHING. Vérifié : la bibliothèque est
 > **déjà mûre** (47 exercices = 47 zones = 47 photos + animations ; fiches `cue/explain/goal/avoid`

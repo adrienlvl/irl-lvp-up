@@ -5298,6 +5298,37 @@ test('calorieAdjustment : stagnation → baisse/hausse calorique', () => {
   const gainNear = L.calorieAdjustment(gainFlat, 'prise', 1250);
   assert.equal(gainNear.delta, 125); assert.equal(gainNear.newTarget, 1375);
 });
+test('dietBreakRecommendation : déficit prolongé → pause diète (MATADOR/ICECAP)', () => {
+  const today = '2026-07-29';
+  // 13 pesées hebdo, perte continue ~0,5 kg/sem : 78 kg la semaine dernière ← 84 kg il y a 12 sem.
+  const dates = ['2026-07-22', '2026-07-15', '2026-07-08', '2026-07-01', '2026-06-24', '2026-06-17', '2026-06-10', '2026-06-03', '2026-05-27', '2026-05-20', '2026-05-13', '2026-05-06', '2026-04-29'];
+  const cont = dates.map((date, i) => ({ date, value: Math.round((78 + i * 0.5) * 10) / 10 }));
+  const r = L.dietBreakRecommendation(cont, 'perte', today, { deficit: 500 });
+  assert.equal(r.due, true);
+  assert.equal(r.weeksDeficit, 12);
+  assert.equal(r.netLossKg, 6);
+  assert.equal(r.kcalBump, 500);
+  assert.equal(r.emoji, '⏸️');
+  assert.match(r.advice, /PAUSE DIÈTE/);
+  assert.match(r.advice, /500 kcal/);
+  // Objectif ≠ perte → jamais de pause diète (on ne freine pas une prise / un maintien).
+  assert.equal(L.dietBreakRecommendation(cont, 'prise', today), null);
+  assert.equal(L.dietBreakRecommendation(cont, 'maintien', today), null);
+  // Historique trop court (< 3 semaines relevées) → null.
+  assert.equal(L.dietBreakRecommendation(cont.slice(0, 2), 'perte', today), null);
+  // Seulement 6 semaines de série (sous le seuil 10 par défaut) → pas due, mais le compteur est juste.
+  const shortCut = cont.slice(0, 7);
+  const rs = L.dietBreakRecommendation(shortCut, 'perte', today);
+  assert.equal(rs.due, false); assert.equal(rs.weeksDeficit, 6);
+  // Un REGAIN net sur la dernière semaine (pause/maintien déjà pris) casse la série → pas due.
+  const regain = cont.slice(); regain[0] = { date: '2026-07-22', value: 79.6 };   // +1,1 kg vs la sem. d'avant
+  const rr = L.dietBreakRecommendation(regain, 'perte', today);
+  assert.equal(rr.due, false); assert.equal(rr.weeksDeficit, 0);
+  // Sans deficit fourni : pas de chiffrage kcal, mais la reco tient.
+  const rNoKcal = L.dietBreakRecommendation(cont, 'perte', today);
+  assert.equal(rNoKcal.due, true); assert.equal(rNoKcal.kcalBump, 0);
+  assert.doesNotMatch(rNoKcal.advice, /kcal/);
+});
 test('weightForecast : trajectoire hebdo bornée à la cible', () => {
   const f = L.weightForecast(80, 72, 0.48, 17, '2026-07-12');
   assert.equal(f.length, 18, 'today + 17 semaines');
@@ -5924,7 +5955,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.223');
+  assert.equal(L.CHANGELOG[0].v, '2.0.224');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
