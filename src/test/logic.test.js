@@ -1739,6 +1739,42 @@ test('raceGoalStatus : course passée de 1 à 3 jours → « Course passée », 
   assert.equal(sUp.daysLeft, 1);
   assert.equal(sUp.phase.key, 'taper');
 });
+test('taperPlan : affûtage fondé Bosquet 2007 — volume réduit 41-60 %, intensité/fréquence gardées', () => {
+  // Hors fenêtre : course lointaine ou passée → null
+  assert.equal(L.taperPlan(60, 42), null, 'marathon à 60 j : pas encore en affûtage');
+  assert.equal(L.taperPlan(-2, 42), null, 'course passée : null');
+  assert.equal(L.taperPlan(null, 42), null, 'jours absents : null');
+  // Durée d'affûtage échelonnée par distance
+  assert.equal(L.taperPlan(9, 10), null, '10 km : affûtage ~7 j → à 9 j, pas encore');
+  assert.ok(L.taperPlan(6, 10), '10 km : à 6 j, en affûtage');
+  assert.ok(L.taperPlan(16, 100), 'ultra 100 km : affûtage long (~18 j) → à 16 j, déjà dedans');
+  // Multiplicateur de volume dans la bande optimale 41-60 % de coupe près de la course
+  const race = L.taperPlan(2, 42);
+  assert.ok(race && race.volumeMul > 0.4 && race.volumeMul < 0.65, 'coupe dans la bande Bosquet');
+  assert.ok(race.cutPct >= 40 && race.cutPct <= 60, `cutPct ${race.cutPct} % dans 41-60`);
+  assert.equal(race.raceWeek, true, 'J-2 = semaine de course');
+  assert.equal(race.source, 'Bosquet 2007');
+  // Décroissance EXPONENTIELLE : on coupe MOINS au début de l'affûtage qu'à l'approche
+  const early = L.taperPlan(14, 42), late = L.taperPlan(2, 42);
+  assert.ok(early.volumeMul > late.volumeMul, 'volume plus haut en début d\'affûtage (progressif)');
+  assert.ok(early.cutPct < late.cutPct, 'coupe plus légère à 2 semaines qu\'à la semaine de course');
+});
+test('buildTrainingWeek : affûtage réduit le VOLUME des courses en gardant la FRÉQUENCE', () => {
+  const kmOf = p => p.days.reduce((s, d) => s + (Number(d.km) || 0) + (d.runs || []).reduce((a, r) => a + (Number(r.km) || 0), 0), 0);
+  const full = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 40, week: 5 });
+  const tap = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 40, week: 5, raceDaysLeft: 4, raceKm: 42 });
+  const far = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 40, week: 5, raceDaysLeft: 60, raceKm: 42 });
+  assert.ok(full && tap && far);
+  assert.equal(full.taper, null, 'sans course proche : pas d\'affûtage');
+  assert.equal(far.taper, null, 'course lointaine : pas d\'affûtage');
+  assert.ok(tap.taper, 'course proche : affûtage actif');
+  assert.equal(tap.runs, full.runs, 'même nombre de courses (fréquence préservée)');
+  const fullKm = kmOf(full), tapKm = kmOf(tap);
+  assert.ok(tapKm > 0 && tapKm < fullKm * 0.8, `volume réduit (${tapKm} < 0,8×${fullKm})`);
+  // L'intensité est gardée : une séance qualité reste au programme quand il y a ≥ 3 courses
+  const allRuns = tap.days.filter(d => d.type === 'run');
+  assert.ok(allRuns.some(d => d.quality), 'la séance qualité (intensité) est conservée pendant l\'affûtage');
+});
 test('acuteChronicRatio : aiguë (7j) vs chronique (28j/4), zones', () => {
   const today = '2026-07-10';
   // charge répartie régulièrement : ~même charge chaque semaine → ratio ~1 (optimal)
@@ -5792,7 +5828,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.218');
+  assert.equal(L.CHANGELOG[0].v, '2.0.219');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
