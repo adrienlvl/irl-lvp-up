@@ -61,6 +61,7 @@ qu'ils s'implémentent :
 | Proposition | Chantier Cap 3.0 | Statut |
 |---|---|---|
 | [`securite-socle-public.md`](securite-socle-public.md) | 3 — Sécurité & prêt pour le public | ⏳ **à trancher** — chiffrement des données AU REPOS (le réseau est déjà couvert par `SECURITE-RESEAU-S8.md`). Reco : **A** (desktop via `safeStorage`) tout de suite, **B** (verrou web opt-in) en cible. À greffer sur la réécriture IndexedDB, en session supervisée. |
+| [`sync-multi-appareils.md`](sync-multi-appareils.md) | 4 — Sync multi-appareils (cœur de la 3.0) | ⏳ **à trancher** — 2 axes : granularité (blob LWW vs **par enregistrement horodaté**) × transport (**fichier cloud** vs backend E2E). Reco : **B** (fichier cloud + fusion par enregistrement, en généralisant `mergeApplications`). Point clé : ajouter `updatedAt`+clé par enregistrement **dans le schéma IndexedDB dès sa construction**. Session supervisée, APRÈS IDB + chiffrement. |
 
 Quand une proposition est écrite, coche sa case dans la roadmap et **change de domaine** à
 l'itération suivante (§4 bis.3).

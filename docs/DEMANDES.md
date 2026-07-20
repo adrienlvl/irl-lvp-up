@@ -15,15 +15,24 @@
 
 ## En cours
 
-- **Avancer CAP 3.0 — proposition Sécurité (chantier 3) écrite, en attente de ta décision.** Le code
+- **Avancer CAP 3.0 — 2 propositions écrites (chantiers 3 & 4), en attente de tes décisions.** Le code
   autonome du Cap 3.0 est épuisé (P6 multi-examens et P7 parcours smoke clos ; IndexedDB réservé au
-  supervisé ; es-modules/i18n fermés). Prochain chantier validé sans proposition = **Sécurité & prêt
-  pour le public**. Boucle #574 (2026-07-20) : `docs/proposals/securite-socle-public.md` — chiffrement
-  des données **au repos** (le réseau est déjà couvert par `SECURITE-RESEAU-S8.md`). Reco : **A**
-  (desktop via `safeStorage`, gain net sans UX) tout de suite, **B** (verrou web opt-in) en cible ; à
-  greffer sur la réécriture IndexedDB en **session supervisée**. ⏳ **4 décisions t'attendent** en fin
-  de doc (périmètre A/B/C · verrou web par phrase de passe · filet en cas de mot de passe oublié ·
-  confirmation « session supervisée »).
+  supervisé ; es-modules/i18n fermés). La boucle cadre donc les prochains chantiers **avant** qu'ils
+  s'implémentent :
+  - **Chantier 3 — Sécurité & prêt pour le public.** Boucle #574 (2026-07-20) :
+    `docs/proposals/securite-socle-public.md` — chiffrement des données **au repos** (le réseau est déjà
+    couvert par `SECURITE-RESEAU-S8.md`). Reco : **A** (desktop via `safeStorage`, gain net sans UX) tout
+    de suite, **B** (verrou web opt-in) en cible ; à greffer sur la réécriture IndexedDB en **session
+    supervisée**. ⏳ **4 décisions t'attendent** en fin de doc (périmètre A/B/C · verrou web par phrase de
+    passe · filet en cas de mot de passe oublié · confirmation « session supervisée »).
+  - **Chantier 4 — Sync multi-appareils (cœur de la 3.0).** Boucle #581 (2026-07-20) :
+    `docs/proposals/sync-multi-appareils.md` — PC ↔ iPhone sans export/import manuel. 2 axes à trancher :
+    **granularité de fusion** (blob « dernier gagne » vs **par enregistrement horodaté**, seul à ne pas
+    perdre une saisie faite sur l'autre appareil le même jour) × **transport** (**fichier dans ton cloud**
+    Drive/iCloud vs petit backend chiffré). Reco : **B** (fichier cloud + fusion par enregistrement, en
+    généralisant `mergeApplications` déjà en place). Point clé : décider **avant** de bâtir IndexedDB, pour
+    ajouter un `updatedAt`+clé par enregistrement **dès le schéma** (sinon re-migration). ⏳ **5 décisions
+    t'attendent** en fin de doc. À faire en session supervisée, APRÈS IDB + chiffrement.
 
 ## Terminé
 

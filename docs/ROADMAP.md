@@ -25,6 +25,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.200 (2026-07-20)
 
+> ☁️ **#581 — Proposition : Sync multi-appareils (chantier 4, cœur de la 3.0 ; domaine `fondations`,
+> docs, pas de bump).** Rotation §4 bis : 5 derniers domaines = `docs · coach · a11y · docs · coach` →
+> `docs` (#580/#577, 2×) et `coach` (#579/#576, 2×, priorité de nuit **rotation-bloquée**) **interdits** ;
+> `fondations` (absent des 5 derniers) autorisé → 2ᵉ demande d'Adrien (faire avancer CAP 3.0). Backlog
+> code nommé **épuisé** dans les domaines autorisés (P2/P3/P4/P6/P7 clos, P5 mesuré, piste coach en
+> réserve rotation-bloquée) → protocole §750 « backlog vide » = **écrire une proposition manquante**.
+> Quota §4 bis.4 non déclenché (#574 proposition dans les 10 derniers), mais la Sync (Vague A de l'audit,
+> « **LE** grand manque structurel ») n'avait **aucune** proposition. Comme la sécurité #574 doit décider
+> le chiffrement **avant** de bâtir IDB, la Sync doit décider la **granularité de fusion avant** de figer
+> le schéma IDB : construire le stockage **déjà horodaté** ou le re-migrer. Faits : état = **un seul blob**
+> (`localStorage['irl-level-up']`, `app.js:32/54`), import = **remplacement total** sans fusion
+> (`confirmBackupImport`, `app.js:991`), mais fusions **par enregistrement** déjà éprouvées
+> (`mergeApplications` rang-monotone `logic.js:1065`, `mergePlannedEvents`, `mergeRecurring`) — **trou
+> réel** : **aucun `updatedAt` par enregistrement** ni `schemaVersion`. Deux axes orthogonaux (granularité
+> blob-LWW vs par-enregistrement × transport fichier-cloud vs backend E2E). Reco : **B** (fichier cloud +
+> fusion par enregistrement généralisant `mergeApplications`), session supervisée APRÈS IDB + chiffrement.
+> 5 décisions attendent Adrien. `docs/proposals/sync-multi-appareils.md`. Docs seuls → **pas de bump**,
+> aucun code touché. Recap #581. _Domaine : fondations._
+
 > 📏 **#580 — P5.2 : cohérence coach ↔ « Ma journée » mesurée (domaine `docs`, pas de bump).**
 > Rotation §4 bis : 5 derniers domaines = `coach · a11y · docs · coach · athlete` → `coach` (priorité
 > de nuit, #579 + 2×) et `a11y` (#578) **interdits** ; `docs` (#577, hors 2 derniers) autorisé → 2ᵉ
