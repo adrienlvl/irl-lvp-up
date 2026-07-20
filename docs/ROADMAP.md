@@ -23,7 +23,12 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.216 (2026-07-20)
+## 📍 État actuel — build 2.0.217 (2026-07-20)
+
+> 🎽 **#601 — Courses générées polarisées 80/20 (série coaching, build 2.0.217).** `buildTrainingWeek`
+> classe les courses par intensité (Seiler) : majorité FACILE (zone 2, conversation), UNE séance
+> qualité (tempo/seuil) dès 3 courses, sortie longue en aisance. Champ `intensity` + conseil d'allure
+> `note` affiché sur la carte. n=3 → easy/quality/long. 547 tests + smoke. Recap #601. _Domaine : athlete._
 
 > 🏃 **#600 — Distance de course par objectif (série coaching, build 2.0.216).** `runDistances` répartit
 > le volume hebdo saisi (`state.goals.distance`) sur les courses générées : sortie longue = la plus

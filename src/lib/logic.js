@@ -2956,6 +2956,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.217', emoji: '🎽', text: 'Tes courses générées sont maintenant réparties par INTENSITÉ, comme le fait un vrai plan de course (modèle polarisé 80/20 des coureurs d’élite, Seiler). Concrètement : la grande majorité de tes sorties restent en endurance FACILE — zone 2, tu dois pouvoir tenir une conversation — parce que c’est à cette allure qu’on construit l’endurance sans s’épuiser ni se blesser. À partir de 3 courses par semaine, une seule devient une « séance qualité » (tempo/seuil) pour pousser le cardio, et ta sortie longue reste tout en aisance. Chaque course t’explique désormais son allure sur la carte. Résultat : tu progresses plus vite en t’entraînant… plus facile la plupart du temps.' },
   { v: '2.0.216', emoji: '🏃', text: 'Quand tu génères ta semaine, tes courses ont enfin une DISTANCE adaptée à ton objectif. Avant, le programme te disait juste « course facile / sortie longue » sans km. Maintenant il répartit ton volume hebdomadaire (celui que tu as entré, ou une base par défaut selon ton objectif) sur tes séances : les courses faciles se partagent le gros du volume, et ta sortie longue prend la plus grosse part — toujours la plus longue de la semaine, comme dans un vrai plan de course. Exemple pour 30 km/semaine sur 3 sorties : deux footings de ~8,5 km et une sortie longue de ~13 km, affichés directement sur chaque séance et dans ton agenda.' },
   { v: '2.0.215', emoji: '📈', text: 'Ta progression en muscu devient plus intelligente et fondée sur la science. Trois choses : (1) quand tu montes la charge, l’incrément s’adapte au mouvement — +5 kg sur les gros exercices du bas du corps (squat, soulevé, presse, fente), +2,5 kg sur le haut du corps et l’isolation, comme le recommande l’ACSM. (2) La règle « 2-for-2 » : si tu dépasses nettement la cible de reps (2 de plus), c’est que la charge est devenue trop légère — le coach te propose alors un saut de charge plus franc au lieu d’un micro-pas. (3) Chaque conseil de progression te rappelle de garder ~1-2 répétitions en réserve (RPE 8-9) plutôt que d’aller à l’échec : la science montre autant de muscle et de force, avec moins de fatigue et de risque de blessure.' },
   { v: '2.0.214', emoji: '🛡️', text: 'Ta séance guidée devient aussi un coach de PRÉVENTION, façon kiné. Un nouveau bloc « 🛡️ Prévention » propose, selon la zone travaillée, quelques exercices ciblés pour ne pas te blesser — et surtout du renforcement EXCENTRIQUE, dont la science a montré qu’il réduit d’environ moitié le risque de blessure (méta-analyse Lauersen 2014). Jour de jambes : Nordic hamstring curl (descente freinée) + pont fessier + mollets lents, pour protéger genoux et ischios. Jour de haut du corps : rotations de coiffe et face pulls pour l’épaule. Jour de course : mollets excentriques et proprioception de cheville. Chaque bloc dit POURQUOI. Un vrai coach ne te pousse pas seulement plus fort — il te garde en bonne santé pour durer.' },
@@ -9932,15 +9933,25 @@ function buildTrainingWeek(zones, strengthDays, runs, sameDay, opts) {
     ex = [...new Set(ex)].slice(0, 5);
     strengthSessions.push({ type: 'muscu', kind: 'sport', zones: zs, title: '💪 ' + zs.map(labelOf).join(' & '), exercises: ex });
   }
-  // Runs : faciles, la dernière devient « sortie longue » s'il y en a ≥ 2.
+  // Runs POLARISÉS (modèle 80/20, Seiler) : l'immense majorité en endurance FACILE (zone 2, on peut
+  // parler), la dernière en SORTIE LONGUE, et — dès 3 courses — UNE séance QUALITÉ (tempo/seuil) pour la
+  // stimulation cardio, jamais deux jours durs d'affilée. Chaque run porte son intensité + un conseil.
   const o = opts || {};
   const dist = runs > 0 ? runDistances(runs, o.weeklyKm, o.emphasis) : [];
+  const qualityIdx = runs >= 3 ? Math.max(1, Math.floor((runs - 1) / 2)) : -1; // un run du milieu, pas la longue
   const runSessions = [];
   for (let i = 0; i < runs; i++) {
     const long = runs >= 2 && i === runs - 1;
+    const quality = i === qualityIdx && !long;
+    const intensity = long ? 'long' : quality ? 'quality' : 'easy';
     const km = dist[i];
-    const base = long ? '🏃 Sortie longue' : '🏃 Course facile';
-    runSessions.push({ type: 'run', kind: 'sport', long, km, title: km ? `${base} · ${String(km).replace('.', ',')} km` : base, exercises: [] });
+    const base = quality ? '🏃 Séance qualité (tempo/seuil)' : long ? '🏃 Sortie longue' : '🏃 Course facile';
+    const note = intensity === 'quality'
+      ? 'Après 10 min d’échauffement facile : ~15-20 min à allure SOUTENUE mais tenable (seuil, respiration forte mais contrôlée), puis retour au calme. La seule séance « dure » de la semaine.'
+      : intensity === 'long'
+        ? 'Allure TRÈS facile, tout en aisance respiratoire (zone 2) — c’est la durée, pas la vitesse, qui construit l’endurance fondamentale.'
+        : 'Allure facile, tu dois pouvoir tenir une conversation (zone 2). ~80 % de ton volume doit rester à cette intensité (modèle polarisé).';
+    runSessions.push({ type: 'run', kind: 'sport', long, quality, intensity, km, note, title: km ? `${base} · ${String(km).replace('.', ',')} km` : base, exercises: [] });
   }
 
   if (sameDay) {

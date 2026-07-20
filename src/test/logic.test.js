@@ -4349,6 +4349,14 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   assert.ok(longKm >= maxEasy, 'la sortie longue est la plus longue');
   const total = runs.reduce((s, d) => s + d.km, 0);
   assert.ok(total >= 27 && total <= 33, `total ≈ 30 km, obtenu ${total}`);
+  // POLARISATION 80/20 (Seiler) : dès 3 courses, UNE séance qualité (tempo/seuil), le reste facile,
+  // la longue en dernier. Chaque course porte un conseil d'intensité (zone 2 pour les faciles).
+  const r3 = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 30 }).days.filter(d => d.type === 'run');
+  assert.deepEqual(r3.map(d => d.intensity), ['easy', 'quality', 'long']);
+  assert.match(r3.find(d => d.intensity === 'quality').title, /qualité|tempo|seuil/i);
+  assert.match(r3.find(d => d.intensity === 'easy').note, /zone 2|conversation|facile/i);
+  const r2 = L.buildTrainingWeek(['legs'], 2, 2, false, { weeklyKm: 24 }).days.filter(d => d.type === 'run');
+  assert.deepEqual(r2.map(d => d.intensity), ['easy', 'long'], '2 courses : pas de séance dure');
 });
 test('runDistances : répartit le volume hebdo, sortie longue en dernier et la plus grosse', () => {
   assert.deepEqual(L.runDistances(0, 30), []);
@@ -5751,7 +5759,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.216');
+  assert.equal(L.CHANGELOG[0].v, '2.0.217');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
