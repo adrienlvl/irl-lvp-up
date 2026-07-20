@@ -5602,7 +5602,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.195');
+  assert.equal(L.CHANGELOG[0].v, '2.0.196');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8182,6 +8182,30 @@ test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du 
   const focusPillar = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-06-20', minutes: 30 }] }, today);
   assert.notEqual(focusPillar.pillar, 'sport');
   assert.equal(focusPillar.readinessDrag, null);
+});
+
+test('adaptiveCoachFocus : reinforce × readiness plancher retire « Garde le rythme » (contradiction insight/action)', () => {
+  const today = '2026-07-16';
+  // Dynamique en hausse (3 j récents vs 1 j précédent) → ton reinforce, insight « … en hausse. Garde le rythme. ».
+  const workouts = [{ date: '2026-07-15' }, { date: '2026-07-14' }, { date: '2026-07-12' }, { date: '2026-07-09' }];
+  // Forme au plancher AUJOURD'HUI → l'action dit « récupération prioritaire, pas de grosse séance ».
+  const low = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 4, fatigue: 5, soreness: 4 }] }, today);
+  assert.equal(low.tone, 'reinforce');
+  assert.ok(low.readiness != null && low.readiness < 50, 'readiness plancher (< 50)');
+  assert.match(low.action, /récupération prioritaire/);
+  assert.doesNotMatch(low.insight, /Garde le rythme/, 'l’injonction à continuer est retirée quand l’action dit de se reposer');
+  assert.match(low.insight, /en hausse\./, 'le constat hebdo « en hausse » reste');
+  assert.doesNotMatch(low.insight, /\.\s{2,}/, 'pas de double espace après le retrait');
+  // Forme au vert → aucun conflit, « Garde le rythme » conservé.
+  const green = L.adaptiveCoachFocus({ workouts, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(green.tone, 'reinforce');
+  assert.ok(green.readiness >= 50);
+  assert.match(green.insight, /Garde le rythme/, 'readiness au vert → l’injonction reste');
+  // Pas de check-in du jour → readiness inconnu, aucun conflit à désamorcer → conservé.
+  const none = L.adaptiveCoachFocus({ workouts }, today);
+  assert.equal(none.tone, 'reinforce');
+  assert.equal(none.readiness, null);
+  assert.match(none.insight, /Garde le rythme/, 'sans check-in du jour → l’injonction reste');
 });
 
 test('adaptiveCoachFocus : readinessBoost nomme le MOTEUR de la forme au vert (pendant positif)', () => {

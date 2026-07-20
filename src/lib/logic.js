@@ -2890,6 +2890,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.196', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour où il te demande de te reposer. Quand ton entraînement monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») ; mais les jours où ta forme du jour est au plancher (readiness sous 50), son conseil bascule en « récupération prioritaire : vise mobilité ou marche plutôt qu’une grosse séance aujourd’hui ». Les deux côte à côte — « continue sur ta lancée » ET « lève le pied » — le faisaient parler des deux coins de la bouche. Désormais, ces jours-là, il retire l’invitation à continuer et garde le constat « en hausse » : le compliment reste, l’injonction qui contredit le repos s’efface. Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.195', emoji: '💼', text: 'Ton suivi Alternance ne compte plus comme « postulé » une candidature que tu n’as PAS encore envoyée. Quand une cellule de statut disait « pas encore postulé », « pas postulé » ou « candidature non envoyée », le suivi ne voyait que le mot « postulé »/« envoyé » et rangeait la candidature dans la colonne « Postulé » de ton entonnoir — à chaque synchronisation de ta feuille Google Sheets — alors qu’elle restait à faire. Ton nombre de candidatures envoyées (et donc ton taux de réponse) était gonflé à tort. Désormais une négation de l’action de candidater (« pas encore postulé », « non envoyée ») est bien classée « à postuler ». Un vrai « postulé » (même suivi de « pas de nouvelles ») reste « postulé », et « pas retenu » reste un refus. Rien d’ajouté : un entonnoir plus juste.' },
   { v: '2.0.194', emoji: '♿', text: 'Tes champs de recherche s’annoncent enfin correctement aux lecteurs d’écran. « Chercher un aliment » (Nutrition), la recherche de l’agenda et la recherche de la bibliothèque d’exercices n’avaient qu’un texte d’exemple à l’intérieur du champ (un « placeholder ») — or celui-ci disparaît dès qu’on tape et n’est pas un nom fiable pour l’accessibilité. Ils portent désormais un vrai nom accessible, comme la recherche de tes candidatures Alternance le faisait déjà. Rien de visible ne change à l’écran : un confort d’usage au clavier et au lecteur d’écran en plus.' },
   { v: '2.0.193', emoji: '🩹', text: 'Ton coach « Le focus du moment » n’affiche plus un chiffre FAUX. Quand sa carte était assez remplie pour être résumée, elle réordonnait ses phrases par ordre d’importance — et, à cette occasion, un nombre à décimale écrit avec un point (comme la moyenne de sommeil « moy. 5.3 h ») perdait son chiffre de tête : « moy. 5.3 h » devenait « moy. 3 h », et une phrase comme « Tu dors 5.3 h en moyenne » se réduisait à « 3 h en moyenne ». Le découpage en phrases prenait le point de la décimale pour une fin de phrase et jetait le morceau au passage. Corrigé : un point collé à un chiffre n’est plus une fin de phrase, et plus aucun caractère n’est perdu — le coach affiche le vrai nombre. Rien d’ajouté : une donnée enfin exacte.' },
@@ -5611,6 +5612,16 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     const rs = todayR ? readinessScore(todayR) : null;
     if (rs) {
       readiness = rs.score;
+      // CONTRADICTION insight × action — le ton reinforce a écrit « … en hausse. Garde le rythme. »
+      // (l. 5244), une INJONCTION à continuer sur sa lancée. Mais readiness < 50 fait basculer l'action
+      // en « récupération prioritaire : … plutôt qu'une grosse séance aujourd'hui » : les deux côte à
+      // côte, le coach POUSSE et FREINE le même jour (même défaut que restOverGoal l.5672 et le
+      // followThrough #561/#567, qui ne désamorcent ce conflit que lorsqu'un objectif hebdo SERRÉ le
+      // déclenche — le reinforce générique SANS objectif y échappait). On retire la seule injonction qui
+      // contredit le repos du jour ; le constat « en hausse » (stat hebdo vraie) et le crédit du volume
+      // restent. Curation, pas ajout (§3). Ne touche que le sport (seul pilier à porter une action
+      // readiness) et le ton reinforce (seul à écrire cette phrase) → « Garde le rythme. » y est unique.
+      if (rs.score < 50 && tone === 'reinforce') insight = insight.replace(' Garde le rythme.', '');
       if (rs.score < 50) action = `Readiness ${rs.score}/100 — récupération prioritaire : vise mobilité, marche ou technique légère plutôt qu’une grosse séance aujourd’hui.`;
       else if (rs.score >= 75) action = `Readiness ${rs.score}/100 — ton corps est prêt à pousser : c’est le jour d’une vraie séance, monte un peu l’intensité.`;
       else action = `Readiness ${rs.score}/100 — séance correcte, mais garde une marge : pas de record aujourd’hui.`;

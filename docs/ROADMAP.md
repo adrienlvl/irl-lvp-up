@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.195 (2026-07-20)
+## 📍 État actuel — build 2.0.196 (2026-07-20)
+
+> 🩹 **#573 — Coach : plus de « Garde le rythme » un jour où l'action dit de se reposer (domaine
+> `coach`, build 2.0.196).** Rotation §4 bis : les 5 derniers domaines = `robustesse · a11y · coach ·
+> robustesse · athlete` → `coach` (#570) absent des 2 derniers (#572 robustesse, #571 a11y) et 1× sur 5
+> → **autorisé** ; priorité de nuit (coaching à fond, en QUALITÉ) et rotation convergent. Défaut trouvé
+> en **rendu chargé (§4 ter)** : ton `reinforce` (« … en hausse. **Garde le rythme.** ») + readiness
+> < 50 (l'action bascule en « **récupération prioritaire**, plutôt qu'une grosse séance aujourd'hui »)
+> → le coach POUSSE et FREINE le même jour sur la carte. Les garde-fous existants (`restOverGoal`
+> 2.0.135, followThrough #561/#567) ne désamorcent ce conflit que sur objectif hebdo serré ; le
+> `reinforce` générique SANS objectif y échappait. Fix (curation, pas ajout — §3) : `if (rs.score < 50
+> && tone === 'reinforce') insight = insight.replace(' Garde le rythme.', '')` dans le bloc readiness
+> sport. Le constat « en hausse » reste, seule l'injonction contradictoire s'efface. **Aucune note/champ
+> ajouté.** +1 test (3 branches : plancher/vert/sans check-in). 530 tests + smoke verts. Recap #573.
+> _Domaine : coach._
 
 > 💼 **#572 — P4.3 : « pas encore postulé » n'est plus classé « postulé » (domaine `robustesse`, build
 > 2.0.195).** Rotation §4 bis : les 5 derniers domaines = `a11y · coach · robustesse · athlete · coach`
