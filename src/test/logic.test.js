@@ -2866,6 +2866,17 @@ test('warmupFor : échauffement adapté au type de séance', () => {
   assert.match(def.label, /général/i);
   assert.ok(def.moves.length >= 3);
   assert.deepEqual(L.warmupFor('').moves.length >= 3, true);
+  // P4.2 — motifs courts ancrés : faux positifs prouvés corrigés
+  // `haut` → `\bhaut\b` : « haute intensité » (cardio/HIIT) ne bascule plus en haut du corps
+  assert.match(L.warmupFor('Cardio haute intensité').label, /général/i);
+  assert.match(L.warmupFor('Séance haute intensité (HIIT)').label, /général/i);
+  // `press` → `\bpress\b` : la « presse à cuisses/jambes » (jambes) ne bascule plus en haut du corps…
+  assert.match(L.warmupFor('Presse à cuisses').label, /bas du corps/i);
+  assert.match(L.warmupFor('Presse à jambes').label, /bas du corps/i);
+  // …mais l'anglais « press » (whole word : floor/bench press) reste bien haut du corps
+  assert.match(L.warmupFor('Floor press kettlebell').label, /haut du corps/i);
+  // `cuisse` + `bas du corps` ajoutés : la séance GÉNÉRÉE « Bas du corps » a enfin son échauffement dédié
+  assert.match(L.warmupFor('Bas du corps').label, /bas du corps/i);
 });
 
 test('cooldownFor : retour au calme adapté au type de séance', () => {
@@ -2877,6 +2888,11 @@ test('cooldownFor : retour au calme adapté au type de séance', () => {
   assert.ok(def.moves.length >= 3, '≥ 3 mouvements');
   // des étirements/récup, pas de l'échauffement
   assert.match(L.cooldownFor('B · Jambes').moves.join(' '), /étirement/i);
+  // P4.2 — mêmes motifs ancrés côté retour au calme
+  assert.match(L.cooldownFor('Cardio haute intensité').label, /général/i);
+  assert.match(L.cooldownFor('Presse à cuisses').label, /bas du corps/i);
+  assert.match(L.cooldownFor('Floor press kettlebell').label, /haut du corps/i);
+  assert.match(L.cooldownFor('Bas du corps').label, /bas du corps/i);
 });
 
 test('volumeRamp : cas d’Adrien (15→50 km en 8 sem) = trop rapide, honnête', () => {
@@ -5554,7 +5570,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.190');
+  assert.equal(L.CHANGELOG[0].v, '2.0.191');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

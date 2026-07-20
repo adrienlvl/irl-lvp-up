@@ -2016,9 +2016,9 @@ function raceGoalStatus(goal, now) {
 // Renvoie { label, moves:[...] } — 3-4 mouvements, ~5 min, pas d'XP.
 function warmupFor(title) {
   const t = String(title || '').toLowerCase();
-  if (/poussée|tirage|haut|traction|pompes|press|militaire/.test(t))
+  if (/poussée|tirage|\bhaut\b|traction|pompes|\bpress\b|militaire/.test(t))
     return { label: 'Échauffement haut du corps · ~5 min', moves: ['Cercles de bras + rotations d’épaules · 30 s', 'Étirements dynamiques poitrine/dos · 30 s', 'Suspension passive à la barre · 20 s', '1 série de pompes faciles + tractions négatives lentes'] };
-  if (/jambe|chaîne|squat|fessier|fente|mollet/.test(t))
+  if (/jambe|chaîne|squat|fessier|fente|mollet|cuisse|bas du corps/.test(t))
     return { label: 'Échauffement bas du corps · ~5 min', moves: ['Mobilité hanches (balanciers) · 30 s/jambe', 'Mobilité chevilles (genou au mur) · 30 s/côté', '15 squats à vide en contrôle', 'Fentes marchées lentes · 6/jambe'] };
   if (/trail|côte|course|puissance|longue|swing|explos/.test(t))
     return { label: 'Échauffement trail/course · ~5 min', moves: ['Marche rapide ou trot très facile · 2 min', 'Montées de genoux + talons-fesses · 30 s chacun', 'Mobilité chevilles + fentes lentes · 30 s', 'Gainage planche léger · 20 s'] };
@@ -2029,9 +2029,9 @@ function warmupFor(title) {
 // tenus (~5 min) pour récupérer et entretenir la souplesse. Pas d'XP.
 function cooldownFor(title) {
   const t = String(title || '').toLowerCase();
-  if (/poussée|tirage|haut|traction|pompes|press|militaire/.test(t))
+  if (/poussée|tirage|\bhaut\b|traction|pompes|\bpress\b|militaire/.test(t))
     return { label: 'Retour au calme haut du corps · ~5 min', moves: ['Étirement pectoraux au cadre de porte · 30 s/côté', 'Étirement dorsaux/lats, bras tendu · 30 s/côté', 'Étirement triceps derrière la tête · 30 s/côté', 'Rotations lentes du cou + respirations profondes · 1 min'] };
-  if (/jambe|chaîne|squat|fessier|fente|mollet/.test(t))
+  if (/jambe|chaîne|squat|fessier|fente|mollet|cuisse|bas du corps/.test(t))
     return { label: 'Retour au calme bas du corps · ~5 min', moves: ['Étirement quadriceps debout · 30 s/jambe', 'Étirement ischios, jambe tendue · 30 s/jambe', 'Étirement fléchisseurs de hanche (fente basse) · 30 s/côté', 'Étirement mollets au mur · 30 s/jambe'] };
   if (/trail|côte|course|puissance|longue|swing|explos|prévention/.test(t))
     return { label: 'Retour au calme trail/course · ~5 min', moves: ['Marche lente · 2 min pour faire redescendre le cardio', 'Étirement mollets + tendon d’Achille au mur · 30 s/jambe', 'Étirement ischios et fléchisseurs de hanche · 30 s/côté', 'Étirement fessiers (figure 4 au sol) · 30 s/côté'] };
@@ -2872,6 +2872,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.191', emoji: '🏋️', text: 'Ton échauffement et ton retour au calme collent mieux au type de séance. Le tri se faisait sur des mots-clés du titre trop courts, qui se déclenchaient à tort : une séance « cardio haute intensité » héritait d’un échauffement HAUT DU CORPS (à cause de « hau(t)e »), et une séance de jambes intitulée « presse à cuisses / à jambes » aussi (à cause de « pre(ss)e »). Corrigé : « haute intensité » reçoit désormais un échauffement général, la « presse à cuisses/jambes » un échauffement BAS DU CORPS. Et ta séance générée « Bas du corps » obtient enfin son échauffement bas-du-corps dédié (mobilité hanches/chevilles, squats), au lieu d’un général. L’anglais « floor/bench press » reste bien classé haut du corps. Rien d’ajouté : des mots-clés simplement mieux ciblés.' },
   { v: '2.0.190', emoji: '🌙', text: 'Ton coach « Le focus du moment » ne te dit plus « fais un jour actif de plus » un jour où c’est ton SOMMEIL (ou ton focus, ta nutrition) qu’il met en avant. Quand il te FÉLICITE de bien suivre ses conseils (« Tu as tenu 3/3 de mes caps cette semaine »), il remplaçait ton conseil du jour par « Un jour actif de plus aujourd’hui… » — une formule pensée pour le sport, qui n’a aucun sens pour une nuit (une nuit ne se « fait » pas dans la journée) et qui écrasait un conseil bien plus utile qu’il venait de te donner, comme « Vise un coucher 30 min plus tôt ce soir ». Désormais ce message d’encouragement reste réservé au sport : sur un pilier sommeil / focus / nutrition, le coach GARDE son conseil concret du jour et se contente de créditer ton élan dans le texte. Rien d’ajouté : une incohérence de plus en moins.' },
   { v: '2.0.189', emoji: '🔊', text: 'Deux générateurs d’entraînement s’annoncent enfin aux lecteurs d’écran. Quand tu génères une « séance express » (page Athlète → bibliothèque d’exercices) ou « ma semaine d’entraînement » (coach intelligent), le circuit s’affichait bien à l’écran mais restait totalement muet pour VoiceOver / TalkBack : la personne qui navigue à la voix cliquait « Générer » et n’entendait rien, sans savoir si ça avait marché. Les deux zones de résultat annoncent désormais leur contenu dès qu’il apparaît (comme le faisaient déjà « Mon programme selon mon objectif » et le plan de course). Purement une amélioration d’accessibilité — rien ne change visuellement.' },
   { v: '2.0.188', emoji: '🎓', text: 'Tu peux enfin suivre PLUSIEURS épreuves de ton BTS à la fois. Jusqu’ici, générer un planning de révision pour une nouvelle date d’examen effaçait l’épreuve précédente : impossible de garder l’œil sur Droit et Compta à deux dates différentes. Désormais chaque planning que tu génères AJOUTE son épreuve à ta liste au lieu de remplacer l’ancienne (re-générer pour une même date corrige juste son libellé). Une nouvelle liste « 🎓 Mes épreuves » apparaît sous le planning de révision : chaque épreuve avec son compte à rebours (J-… / « passé »), triées par date, et un bouton × pour en retirer une quand elle n’est plus d’actualité. Tes compteurs, marqueurs de calendrier et le coach lisaient déjà la liste multi-épreuves (ils prennent « l’épreuve la plus proche ») — il ne manquait que le moyen de la remplir. C’est fait.' },

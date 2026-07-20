@@ -23,7 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.190 (2026-07-20)
+## 📍 État actuel — build 2.0.191 (2026-07-20)
+
+> 🏋️ **#568 — P4.2 : motifs courts ancrés dans `warmupFor`/`cooldownFor` (domaine `athlete`, build
+> 2.0.191).** Rotation §4 bis : les 5 derniers domaines = `coach · a11y · etudes · coach · tests` →
+> `coach` (priorité de nuit) dans le dernier recap ET 2× dans les 5 = **interdit**, `a11y` dans les 2
+> derniers = interdit → 2ᵉ demande d'Adrien (avancer Cap 3.0/qualité), tâche nommée **P4.2**, domaine
+> `athlete` (absent des 5 derniers) autorisé. **Faux positifs PROUVÉS** (méthode P4, fonctions rejouées) :
+> `haut` matchait « hau**t**e intensité » → un cardio/HIIT héritait d'un échauffement **haut du corps** ;
+> `press` matchait « pre**ss**e à cuisses/jambes » → une séance de **jambes** aussi. Fix : `\bhaut\b`,
+> `\bpress\b` (l'anglais « floor/bench press » reste haut du corps, correct) ; ajout de `cuisse` +
+> `bas du corps` au seau jambes → « presse à cuisses » et la séance **générée** « Bas du corps » (qui
+> tombait en général) obtiennent enfin l'échauffement bas-du-corps. Cible non retenue dite (§4 bis.5) :
+> « Leg press » anglais reste ambigu, non forcé. 10 assertions ajoutées. **Aucune note coach ajoutée.**
+> Table de vérité rejouée §4ter. 528 tests + smoke verts. Recap #568. _Domaine : athlete._
 
 > 🌙 **#567 — Coach : le crédit de suivi n'écrase plus l'action d'un pilier NON-sport (domaine
 > `coach`, build 2.0.190).** Rotation §4 bis : les 5 derniers domaines = `a11y · etudes · coach · tests ·
@@ -468,7 +481,8 @@ le dire dans le recap et passer à la cible suivante** — ne force pas.
 
 - [ ] **P4.1 — `jobStatusFromText`, motifs restants** (`logic.js:307` `/relanc/`, `:333`
       `/entretien|entrevue/`, et le seau `postule`). Le plus sensible : il alimente **ton entonnoir**.
-- [ ] **P4.2 — Classement des exercices par nom** (`logic.js:1930-1947`) : `/poussée|tirage|haut|
+- [x] **P4.2 — Classement des séances par nom** ✅ _fait #568 (2.0.191)_ (`logic.js:2019/2032` warmupFor
+      + `:2021/2034` cooldownFor) : `/poussée|tirage|haut|
       traction|pompes|press|militaire/`, `/jambe|chaîne|squat|fessier|fente|mollet/`,
       `/trail|côte|course|puissance|longue|swing|explos/`. Motifs courts (`haut`, `press`, `côte`,
       `course`) dans des noms d'exercices libres — vérifier chacun.
