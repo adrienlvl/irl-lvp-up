@@ -4351,12 +4351,45 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   assert.ok(total >= 27 && total <= 33, `total ≈ 30 km, obtenu ${total}`);
   // POLARISATION 80/20 (Seiler) : dès 3 courses, UNE séance qualité (tempo/seuil), le reste facile,
   // la longue en dernier. Chaque course porte un conseil d'intensité (zone 2 pour les faciles).
-  const r3 = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 30 }).days.filter(d => d.type === 'run');
+  const r3 = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 30, week: 1 }).days.filter(d => d.type === 'run');
   assert.deepEqual(r3.map(d => d.intensity), ['easy', 'quality', 'long']);
-  assert.match(r3.find(d => d.intensity === 'quality').title, /qualité|tempo|seuil/i);
+  // La séance qualité est un VRAI intervalle VO2max (plus le simple tempo/seuil) et porte sa séance.
+  const q = r3.find(d => d.intensity === 'quality');
+  assert.match(q.title, /VO2max/i, 'la séance qualité est une séance VO2max');
+  assert.equal(q.session.key, 'billat3030', 'semaine 1 → 30/30 Billat');
   assert.match(r3.find(d => d.intensity === 'easy').note, /zone 2|conversation|facile/i);
   const r2 = L.buildTrainingWeek(['legs'], 2, 2, false, { weeklyKm: 24 }).days.filter(d => d.type === 'run');
   assert.deepEqual(r2.map(d => d.intensity), ['easy', 'long'], '2 courses : pas de séance dure');
+});
+test('qualitySession : VO2max qui tourne (variété) et progresse d’un tour à l’autre', () => {
+  // Méso-cycle de 6 semaines : 3 familles (30/30 Billat, 4×4 Norvégien, côtes), chacune 2 fois avec
+  // plus de volume au 2ᵉ tour (progression). Sources citées dans chaque séance.
+  const keys = [1, 2, 3, 4, 5, 6].map(w => L.qualitySession(w).key);
+  assert.deepEqual(keys, ['billat3030', 'norv4x4', 'cotes', 'billat3030', 'norv4x4', 'cotes']);
+  const families = new Set([1, 2, 3].map(w => L.qualitySession(w).key));
+  assert.equal(families.size, 3, 'trois familles distinctes de séances dures');
+  // Progression : la même famille revient PLUS VOLUMINEUSE au tour suivant.
+  assert.ok(L.qualitySession(4).reps > L.qualitySession(1).reps, '30/30 : plus de répétitions au 2ᵉ tour');
+  assert.ok(L.qualitySession(5).reps > L.qualitySession(2).reps, '4×4 : un bloc de plus au 2ᵉ tour');
+  assert.ok(L.qualitySession(6).reps > L.qualitySession(3).reps, 'côtes : plus de côtes au 2ᵉ tour');
+  // Le modulo fait boucler le cycle : semaine 7 == semaine 1.
+  assert.equal(L.qualitySession(7).key, L.qualitySession(1).key, 'le cycle boucle (7 → 1)');
+  // Toutes centrées VO2max, toutes sourcées, entrées invalides → semaine 1 (jamais de crash).
+  [1, 2, 3, 4, 5, 6].forEach(w => {
+    const s = L.qualitySession(w);
+    assert.equal(s.family, 'VO2max');
+    assert.ok(s.source && s.title.includes('VO2max') && s.note.length > 40);
+  });
+  assert.equal(L.qualitySession(0).key, L.qualitySession(1).key, '0 → semaine 1');
+  assert.equal(L.qualitySession('x').key, L.qualitySession(1).key, 'invalide → semaine 1');
+});
+test('isoWeekNumber : numéro de semaine ISO, robuste aux entrées invalides', () => {
+  assert.equal(L.isoWeekNumber('2026-01-01'), 1, '1er janvier 2026 (jeudi) → semaine 1');
+  assert.equal(L.isoWeekNumber('2026-07-20'), 30, '20 juillet 2026 → semaine 30');
+  assert.equal(L.isoWeekNumber('2024-12-30'), 1, '30 déc. 2024 → semaine 1 de 2025 (règle ISO)');
+  assert.equal(L.isoWeekNumber(''), 1, 'vide → 1');
+  assert.equal(L.isoWeekNumber('pas-une-date'), 1, 'invalide → 1');
+  assert.ok(L.isoWeekNumber('2026-07-20') >= 1 && L.isoWeekNumber('2026-07-20') <= 53);
 });
 test('runDistances : répartit le volume hebdo, sortie longue en dernier et la plus grosse', () => {
   assert.deepEqual(L.runDistances(0, 30), []);
@@ -5759,7 +5792,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.217');
+  assert.equal(L.CHANGELOG[0].v, '2.0.218');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

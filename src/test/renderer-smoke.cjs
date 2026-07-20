@@ -587,6 +587,20 @@ app.whenReady().then(async () => {
         bodyGoals: typeof bodyGoalWorkout === 'function' && Array.isArray(BODY_GOALS) && BODY_GOALS.length === 7 && document.querySelectorAll('#bodyGoalsBar [data-bodygoal]').length === 7 && (() => { const w = bodyGoalWorkout('abs', exercises, { count: 5 }); const fb = bodyGoalWorkout('fullbody', exercises, { count: 5 }); return w && w.title === 'Abdos béton' && w.exercises.length >= 2 && w.exercises.every(e => exerciseZones(e.name).includes('abs') && e.sets > 0) && bodyGoalWorkout('legs', exercises).exercises.every(e => exerciseZones(e.name).some(z => z === 'legs' || z === 'glutes')) && fb.exercises.length === 5; })(),
         weekProgram: typeof buildTrainingWeek === 'function' && !!document.getElementById('wpGoals') && document.querySelectorAll('#wpGoals input').length === 7 && !!document.getElementById('wpGenerate') && !!document.getElementById('wpSchedule') && !!document.getElementById('wpSameDay'),
         // Programme de semaine posé sur la SEMAINE EN COURS (pas lundi prochain) — demande d'Adrien.
+        // La séance QUALITÉ de la semaine = de VRAIS intervalles VO2max qui TOURNENT (variété) et
+        // PROGRESSENT d'un tour à l'autre du méso-cycle (Billat 30/30, Norvégien 4×4, côtes).
+        qualitySessionVO2: typeof qualitySession === 'function' && typeof isoWeekNumber === 'function' && typeof buildTrainingWeek === 'function' && (() => {
+          const keys = [1, 2, 3, 4, 5, 6].map(w => qualitySession(w).key);
+          const distinct = new Set(keys).size >= 3; // au moins 3 familles de séances dures
+          const progresses = qualitySession(4).reps > qualitySession(1).reps && qualitySession(6).reps > qualitySession(3).reps;
+          const sourced = [1, 2, 3].every(w => { const s = qualitySession(w); return s.family === 'VO2max' && !!s.source && /VO2max/.test(s.title); });
+          const wraps = qualitySession(7).key === qualitySession(1).key && qualitySession(0).key === qualitySession(1).key;
+          const iso = isoWeekNumber('2026-07-20') === 30 && isoWeekNumber('bad') === 1;
+          const prog = buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 30, week: 1 });
+          const q = prog && prog.days.filter(d => d.type === 'run').find(d => d.intensity === 'quality');
+          const wired = !!q && /VO2max/.test(q.title) && !!q.session && q.session.family === 'VO2max';
+          return distinct && progresses && sourced && wraps && iso && wired;
+        })(),
         weekScheduleCurrent: typeof scheduleWeekProgram === 'function' && typeof weekProgramSchedule === 'function' && typeof buildTrainingWeek === 'function' && (() => {
           const savedAgenda = state.agenda, savedProg = (typeof lastWeekProgram !== 'undefined') ? lastWeekProgram : null;
           let ok = true;
@@ -663,7 +677,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.217'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.218'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1996,6 +2010,7 @@ app.whenReady().then(async () => {
     if (!checks.zonePlan) errors.push('Programme par zone absent (buildZonePlan/zoneTopExercises/zonePlanBtn/zonePlanDialog/zonePlanTable)');
     if (!checks.muscleBalance) errors.push('Équilibre poussée/tirage KO (muscleBalance : un exercice back+shoulders comme la suspension barre doit compter en tirage seul, pas des deux côtés)');
     if (!checks.weekProgram) errors.push('Planificateur semaine absent (buildTrainingWeek/wpGoals 7/wpGenerate/wpSchedule)');
+    if (!checks.qualitySessionVO2) errors.push('Séance qualité VO2max KO (qualitySession doit faire tourner Billat 30/30 / Norvégien 4×4 / côtes, progresser d\'un tour à l\'autre, et buildTrainingWeek doit l\'attacher au run qualité — isoWeekNumber sert de rotation)');
     if (!checks.weekScheduleCurrent) errors.push('Programme de semaine mal ancré : doit se poser sur la SEMAINE EN COURS (jours restants), pas lundi prochain');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');

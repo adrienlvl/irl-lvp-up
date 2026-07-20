@@ -23,7 +23,15 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.217 (2026-07-20)
+## 📍 État actuel — build 2.0.218 (2026-07-20)
+
+> 🫀 **#603 — Séance qualité de course = vrais intervalles VO2max qui tournent (série coaching, build
+> 2.0.218).** La « séance qualité » de #601 était un tempo/seuil **fixe**. Désormais `qualitySession(week)`
+> (pur, testé) fait tourner un **méso-cycle de 6 semaines** — 30/30 (Billat 2000), 4×4 « Norvégien »
+> (Helgerud 2007, +7-10 % VO2max/8 sem), côtes VO2 — avec **progression** (30/30 12→16, 4×4 4→5, côtes 6→8) ;
+> `isoWeekNumber(localDate())` sert de rotation **sans état persistant**. `buildTrainingWeek` attache la séance
+> au run qualité (titre + note riches, sourcés) ; modèle polarisé 80/20 préservé, 1 seule séance dure/sem.
+> Check smoke bloquant `qualitySessionVO2`. 549 tests + smoke. Recap #603. _Domaine : athlete._
 
 > 🧭 **#602 — Proposition : « La priorité du jour » — arbitrer les 2 surfaces coach (docs, pas de
 > bump).** Quota §4 bis.4 déclenché (10 recaps sans proposition) + `athlete` rotation-bloqué (5×) +
@@ -825,9 +833,10 @@ domaines** jusqu'à finir la série, malgré §4 bis. Série finie → **reprend
 
 ### Travaux coaching NON FINIS (un par boucle, dans cet ordre conseillé) :
 
-- [ ] **#602 — VO2max / fractionné** : la « séance qualité » de #601 est un simple tempo/seuil. Étoffe :
-      vraies séances d'**intervalles VO2max** (ex. 5×3 min effort dur / 3 min récup ; 30/30 ; côtes),
-      variété + progression sur les semaines. Fonction pure `qualitySession(...)` + rendu + test.
+- [x] **VO2max / fractionné** ✅ _fait #603 (2.0.218)_ : la « séance qualité » de #601 (simple tempo/seuil
+      fixe) devient de **vrais intervalles VO2max qui tournent** — `qualitySession(week)` fait rouler un
+      méso-cycle de 6 sem. (30/30 Billat · 4×4 Norvégien/Helgerud · côtes VO2), avec **progression** d'un tour
+      à l'autre. `isoWeekNumber` sert de rotation sans état persistant. Fonction pure + tests + smoke bloquant.
 - [ ] **Affûtage (taper)** avant une course (`raceGoal`/`racePhase` existent) : sur les 1-2 dernières
       semaines, **réduire le VOLUME ~40-50 % en gardant l'INTENSITÉ** (Bosquet 2007, méta). L'intégrer
       au coach course / à la génération.
