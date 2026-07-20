@@ -2783,6 +2783,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.184', emoji: '📅', text: 'Ton coach « Le focus du moment » connaît désormais TON JOUR d’entraînement — le jour de la semaine où tu t’entraînes le plus, un signal qu’il n’avait jamais lu. Il te parlait de charge, de zones, d’équilibre course/muscu et de progression (le QUOI et le COMBIEN), mais jamais du QUAND : sur quel jour repose ton habitude. Or s’appuyer sur une habitude qui existe déjà est le levier le plus solide pour lancer une séance — bien plus qu’une injonction abstraite. Désormais, quand AUJOURD’HUI est justement ce jour dominant, il te le rappelle : « Et c’est justement ton jour : sur les 8 dernières semaines, c’est le jeudi que tu t’entraînes le plus (6 séances sur 9, 67 %). Ton corps a déjà ce rendez-vous dans le rythme — honore-le aujourd’hui : t’appuyer sur une ancre d’habitude qui existe déjà rend la séance bien plus facile à lancer que de compter sur la seule volonté. » Honnête : il n’en parle que si tu as une VRAIE habitude (au moins 8 séances sur 8 semaines, un jour nettement dominant — au moins 30 % de tes séances, pas d’ex æquo), se tait si tu t’entraînes tous les jours (pas de jour fétiche), les jours où ta forme demande du repos ou ta charge est en pic, et si tu as déjà bougé aujourd’hui (l’habitude est déjà honorée). La note enrichit l’insight, ton action du jour reste intacte.' },
   { v: '2.0.183', emoji: '✍️', text: 'Petite faute d’accord corrigée dans ta vue Jour : le résumé affichait « 1/3 faits » alors qu’un seul bloc était réalisé — le pluriel se calait sur le total de la journée au lieu du nombre que tu as réellement coché. Il s’accorde désormais avec ce que tu as fait : « 1/3 fait », « 2/3 faits ». Le reste de l’app suivait déjà cette règle.' },
   { v: '2.0.182', emoji: '🩹', text: 'Correctif important sur ton suivi Alternance : des candidatures étaient marquées « acceptée » à tort. Le mot « pris » suffisait à déclencher une acceptation — or « PRISE de contact », « j’ai PRIS contact », « PRIS en compte » et « rendez-vous PRIS » sont parmi les formulations les plus courantes quand on cherche une alternance. Toutes basculaient en offre décrochée, ce qui gonflait faussement ton entonnoir et tes statistiques (taux de réponse, nombre d’acceptations) — y compris automatiquement, à chaque synchronisation de ton Google Sheets. Désormais « pris » ne vaut acceptation que dans une vraie tournure d’acceptation (« j’ai été pris », « je suis prise »), et ces quatre formulations sont correctement classées « candidature envoyée ». Au passage, « candidature inacceptable » n’est plus lue comme « acceptée ».' },
   { v: '2.0.181', emoji: '🔎', text: 'Plus jamais de liste vide sans explication. Dans le suivi Alternance, quand ta recherche ou ton filtre de statut ne trouvait aucune candidature, la liste devenait simplement BLANCHE — de quoi croire, une seconde de trop, que tes candidatures avaient disparu. Elle t’explique maintenant ce qui se passe et quoi faire : « Aucune candidature ne correspond à ce filtre. Efface la recherche ou choisis un autre statut. » Même correction pour tes quêtes du jour : une fois toutes supprimées, la zone t’invite à en ajouter une au lieu de rester muette. Ces deux listes étaient les seules de l’app à ne pas avoir leur message d’état vide.' },
@@ -6745,6 +6746,47 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       insight += ` Et surveille ta montée de kilométrage : tu es passé de ${numK(ramp.lastWeekKm)} à ${numK(ramp.thisWeekKm)} km de course cette semaine (+${ramp.rampPct} %), bien au-delà des +10 %/semaine que tes tendons, tes os et tes articulations encaissent sans casser — c’est le cardio qui suit vite, pas eux. Monter le mileage trop vite est la première cause de blessure du coureur (périostite, fracture de fatigue) : plafonne l’augmentation autour de +10 % la semaine prochaine, le temps que le corps s’adapte au volume.`;
     }
   }
+  // Coach de l'ANCRAGE D'HABITUDE — le JOUR d'entraînement de prédilection, un signal que le coach
+  // n'avait JAMAIS lu. Tous les autres guards sport parlent de CHARGE (loadSpike), de MODALITÉ
+  // (trainBalanceGuard), de ZONES (pushPullGuard/sportZoneFocus/sportNeglectGuard), de VOLUME de course
+  // (runVolumeGuard) ou de PROGRESSION (plateau/progress) — le QUOI et le COMBIEN. Aucun ne regarde le
+  // QUAND : sur quel jour de semaine Adrien s'entraîne le plus. trainingByWeekday (8 semaines : nombre de
+  // séances par jour de semaine + jour dominant) existait mais ne vivait QUE dans l'onglet Athlète (carte
+  // « Mes jours · 8 semaines ») — jamais dans le coach du jour (0 appel). Or l'ancrage à une habitude
+  // EXISTANTE est le levier de changement de comportement le plus solide (habit stacking) : rappeler
+  // « c'est aujourd'hui ton jour d'entraînement » le jour même où le corps a déjà le réflexe rend la
+  // séance bien plus probable qu'une injonction abstraite, et c'est un ton RPG qui célèbre une régularité
+  // acquise. Quand AUJOURD'HUI est justement ce jour dominant ET que la concentration est réelle, le coach
+  // le NOMME et invite à honorer le rendez-vous, note APPENDUE à l'insight. Additif pur : sportHabitDay
+  // ({ weekday, count, total, pct } ou null) TOUJOURS renvoyé ; action du jour intacte. Garde-fous :
+  // séance du jour PAS déjà faite (!doneToday — sinon l'habitude est déjà honorée, rien à rappeler), pas
+  // de ré-amorçage dormant (!reviveEligible), pas de pic de charge (loadSpike == null), forme qui
+  // n'ordonne pas le repos (readiness == null || >= 50). EXIGE une VRAIE habitude, sinon « ton jour »
+  // serait du bruit : total >= 8 séances sur 8 sem (~1/sem, une base réelle), jour dominant vu >= 3 fois,
+  // part >= 30 % des séances (le hasard sur 7 jours donnerait ~14 %) ET pic UNIQUE — pas d'ex æquo (qui
+  // s'entraîne tous les jours n'a pas de jour fétiche). N'est PAS subordonné aux guards de zone/charge :
+  // axe ORTHOGONAL (le QUAND, pas le QUOI) qui ne fire que ~1 j/sem (le jour dominant) → aucun
+  // sur-empilement. Vocabulaire distinct (« c'est justement ton jour », « tu t'entraînes le plus »,
+  // « ce rendez-vous », « ancre d'habitude ») — zéro collision à l'œil ni en regex avec les autres notes
+  // sport. Réemploi total (trainingByWeekday, doneToday, reviveEligible, loadSpike, readiness) — zéro
+  // nouvelle fonction pure.
+  let sportHabitDay = null;
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+      && (readiness == null || readiness >= 50) && typeof trainingByWeekday === 'function') {
+    const wd = trainingByWeekday(s.workouts, todayKey, 56);
+    if (wd && wd.total >= 8 && wd.bestCount >= 3) {
+      const tw = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
+      const todayIdx = (new Date(+tw[1], +tw[2] - 1, +tw[3]).getDay() + 6) % 7;
+      const sorted = wd.counts.slice().sort((a, b) => b - a);
+      const pct = Math.round(wd.bestCount / wd.total * 100);
+      if (todayIdx === wd.bestDay && pct >= 30 && sorted[0] > sorted[1]) {
+        const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+        const jour = JOURS[wd.bestDay];
+        sportHabitDay = { weekday: wd.bestDay, count: wd.bestCount, total: wd.total, pct };
+        insight += ` Et c’est justement ton jour : sur les 8 dernières semaines, c’est le ${jour} que tu t’entraînes le plus (${wd.bestCount} séance${wd.bestCount > 1 ? 's' : ''} sur ${wd.total}, ${pct} %). Ton corps a déjà ce rendez-vous dans le rythme — honore-le aujourd’hui : t’appuyer sur une ancre d’habitude qui existe déjà rend la séance bien plus facile à lancer que de compter sur la seule volonté.`;
+      }
+    }
+  }
   // Coach de la PROGRESSION DE FORCE — sportSlot dit QUAND, sportZoneFocus QUEL groupe, mais rien ne
   // regardait si la CHARGE progresse vraiment. Or l'app détecte déjà les plateaux : strengthPlateauAny
   // parcourt les exercices chargés les plus suivis, calcule leur 1RM estimé séance après séance, et
@@ -7330,7 +7372,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   return {
     pillar: chosen.pillar, label: chosen.label, emoji: chosen.emoji, page: chosen.page,
     trend: chosen.trend, tone, recentDays: chosen.recentDays, prevDays: chosen.prevDays,
-    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, trainBalanceGuard, pushPullGuard, sportNeglectGuard, runVolumeGuard, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, focusMarginDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend, fruitGuard,
+    lastActiveDays: chosen.lastActiveDays, headline, insight, action, rotated, microStep, followThrough, readiness, readinessDrag, readinessBoost, focusTask, focusBlockMin, focusSlot, sportSlot, sleepConflict, sleepConflictBedtime, reviveStep, comeback, comebackStage, doneToday, alsoSlipping, alsoSlippingPillars, pillarsToday, completeDayStreak, completeDayMilestone, streakAtRisk, streakMilestoneReach, streakRecordReach, streakRebuild, brokenStreak, brokenStreakTier, habitAtRisk, habitMilestone, sportZoneFocus, sportPlateau, sportProgress, sportRecordToday, sportRepRecordToday, weightGoalPct, weightPace, calorieTarget, recompFraming, sleepFatLossGuard, sleepGainGuard, readinessNutriGuard, sleepTrainGuard, hydrationTrainGuard, mobilityTrainGuard, proteinTrainGuard, trainBalanceGuard, pushPullGuard, sportNeglectGuard, runVolumeGuard, sportHabitDay, sleepFocusGuard, bedtimeFocusGuard, bedtimeFocusTrend, hydrationFocusGuard, sessionGoalPace, sessionGoalAhead, sessionGoalBonus, focusGoalPace, focusGoalFresh, focusGoalDrained, focusFreshDriver, focusDrainDriver, focusGoalSteady, focusGoalAhead, focusAheadDriver, focusGoalBonus, focusMarginDrained, restOverGoal, loadSpike, loadOverGoal, loadOverGoalSlide, readinessSlide, readinessRebound, lowLoad, lowLoadUnderGoal, lowLoadUnderGoalRebound, sleepTrend, sleepBedtimeTrend, focusTrend, proteinTrend, hydrationTrend, fruitGuard,
   };
 }
 

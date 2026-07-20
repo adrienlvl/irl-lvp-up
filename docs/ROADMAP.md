@@ -23,7 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.183 (2026-07-19)
+## 📍 État actuel — build 2.0.184 (2026-07-20)
+
+> 📅 **2.0.184** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach connaît enfin
+> **TON JOUR d'entraînement** (`sportHabitDay`) — le **QUAND**, un axe jamais lu. Tous les guards sport
+> parlaient de CHARGE (`loadSpike`), de MODALITÉ (`trainBalanceGuard`), de ZONES (`pushPullGuard` /
+> `sportZoneFocus` / `sportNeglectGuard`), de VOLUME de course (`runVolumeGuard`) ou de PROGRESSION —
+> le **QUOI** et le **COMBIEN**, jamais sur quel **jour de semaine** repose l'habitude. `trainingByWeekday`
+> (8 sem : séances par jour + jour dominant) existait mais ne vivait **QUE** dans l'onglet Athlète (0 appel
+> côté coach). Or l'ancrage à une habitude **existante** (habit stacking) est le levier de comportement le
+> plus solide : rappeler « c'est aujourd'hui ton jour » le jour même où le corps a le réflexe rend la séance
+> bien plus probable qu'une injonction abstraite — ton RPG qui **célèbre** une régularité acquise. Nouveau
+> champ **`sportHabitDay`** (`{ weekday, count, total, pct }` ou `null`, toujours renvoyé) : quand
+> AUJOURD'HUI est le jour dominant, le coach le **nomme** — « c'est le jeudi que tu t'entraînes le plus
+> (6 séances sur 9, 67 %)… honore-le aujourd'hui : t'appuyer sur une ancre d'habitude qui existe déjà rend
+> la séance bien plus facile à lancer. » **Honnête** : exige une VRAIE habitude (≥ 8 séances sur 8 sem, jour
+> vu ≥ 3 fois, part ≥ 30 %, **pic unique** — pas d'ex æquo), muet les autres jours, si la séance du jour est
+> **déjà faite** (habitude honorée), en ré-amorçage dormant, si la forme ordonne le repos (`readiness < 50`)
+> ou la charge est en pic (`loadSpike`). Axe **orthogonal** (~1 j/sem) → aucun sur-empilement, vocabulaire
+> distinct. Note **appendue**, action du jour intacte. **Zéro** nouvelle fonction (réemploi
+> `trainingByWeekday`, `doneToday`, `reviveEligible`, `loadSpike`, `readiness`). Tests + check smoke
+> `coachFocus`/`whatsNew`. Recap #554.
 
 > ✍️ **2.0.183 — accord de « fait(s) » en vue Jour (P2.5, domaine `agenda`).** Le pluriel se calait
 > sur le **dénominateur** → « 1/3 fait**s** » avec un seul bloc réalisé, alors que la convention

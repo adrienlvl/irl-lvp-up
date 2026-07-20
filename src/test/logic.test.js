@@ -5441,7 +5441,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.183');
+  assert.equal(L.CHANGELOG[0].v, '2.0.184');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9531,6 +9531,37 @@ test('adaptiveCoachFocus : focus sport — montée de kilométrage de course tro
   // Forme au plancher (readiness 40) → l'action ordonne le repos, on ne réclame pas de volume → null.
   const tired = L.adaptiveCoachFocus({ ...spike, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
   assert.equal(tired.runVolumeGuard, null);
+});
+
+test('adaptiveCoachFocus : focus sport — jour d’entraînement de prédilection = aujourd’hui (sportHabitDay)', () => {
+  const today = '2026-07-16'; // un JEUDI (Mon0=3)
+  const ex = d => ({ date: d, exercises: [{ name: 'Pompes classiques', sets: 5, reps: 12 }] });
+  // 6 séances le JEUDI (jour dominant) + 3 le mardi sur 8 semaines → jeudi 6/9 = 67 %, pic unique.
+  // Aucune séance aujourd'hui (!doneToday), exercices sans durée/effort → ACWR nul → loadSpike null.
+  const thu = ['2026-07-09', '2026-07-02', '2026-06-25', '2026-06-18', '2026-06-11', '2026-06-04'];
+  const tue = ['2026-07-14', '2026-06-30', '2026-06-16'];
+  const habit = { workouts: [...thu, ...tue].map(ex) };
+  const f = L.adaptiveCoachFocus(habit, today);
+  assert.equal(f.pillar, 'sport');
+  assert.equal(f.loadSpike, null, 'sans durée/effort → pas de pic de charge global');
+  assert.deepEqual(f.sportHabitDay, { weekday: 3, count: 6, total: 9, pct: 67 });
+  assert.match(f.insight, /c’est justement ton jour/);
+  assert.match(f.insight, /c’est le jeudi que tu t’entraînes le plus \(6 séances sur 9, 67 %\)/);
+  assert.match(f.insight, /ancre d’habitude/);
+  // Aujourd'hui n'est PAS le jour dominant (mercredi) → note muette même si l'habitude existe.
+  assert.equal(L.adaptiveCoachFocus(habit, '2026-07-15').sportHabitDay, null, 'jour ≠ jour dominant → null');
+  // Base trop maigre (< 8 séances sur 8 sem) : « ton jour » serait du bruit → null.
+  const thin = { workouts: thu.slice(0, 4).map(ex) }; // 4 jeudis seulement
+  assert.equal(L.adaptiveCoachFocus(thin, today).sportHabitDay, null, 'moins de 8 séances → pas de vraie habitude');
+  // Séance déjà faite aujourd'hui → l'habitude est honorée → null.
+  const doneToday = { workouts: [...habit.workouts, ex(today)] };
+  assert.equal(L.adaptiveCoachFocus(doneToday, today).sportHabitDay, null, 'séance du jour faite → null');
+  // Forme au plancher (readiness bas) → l'action ordonne le repos, on ne pousse pas la séance → null.
+  const tired = L.adaptiveCoachFocus({ ...habit, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
+  assert.equal(tired.sportHabitDay, null, 'forme au rouge → null');
+  // Aucun jour dominant (séances éparpillées, part < 30 %) → null.
+  const spread = { workouts: ['2026-07-09', '2026-07-02', '2026-06-25', '2026-07-13', '2026-06-29', '2026-07-14', '2026-06-30', '2026-07-08', '2026-06-24', '2026-07-10', '2026-06-26'].map(ex) };
+  assert.equal(L.adaptiveCoachFocus(spread, today).sportHabitDay, null, 'aucune concentration (< 30 %) → null');
 });
 
 test('adaptiveCoachFocus : focus focus — le SOMMEIL court, carburant caché de la concentration', () => {
