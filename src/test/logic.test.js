@@ -4988,12 +4988,21 @@ test('energyPlan : calories, macros, rythme et date d’atteinte (perte)', () =>
   const p = L.energyPlan({ weight: 80, height: 180, age: 30, sex: 'homme', sessionsPerWeek: 4, targetWeight: 72, todayKey: '2026-07-12' });
   assert.equal(p.bmr, 1780); assert.equal(p.tdee, 2759, '1780×1.55');
   assert.equal(p.goal, 'perte'); assert.equal(p.diff, 8);
-  assert.equal(p.ratePerWeek, 0.48, '~0,6 %/sem borné'); assert.equal(p.deficit, 528);
-  assert.equal(p.dailyTarget, 2231, 'TDEE − déficit, ≥ métabolisme de base');
-  assert.equal(p.proteinG, 160, '2 g/kg en perte'); assert.equal(p.fatG, 72);
-  assert.equal(p.carbG, 236, '(2231 − 640 − 648)/4');
-  assert.equal(p.weeks, 17, 'ceil(8 / 0,48)');
-  assert.equal(p.targetDate, '2026-11-08', '12/07 + 17 semaines');
+  // Rythme PERSONNALISÉ par IMC (proxy du %MG) : IMC 24,7 → 0,7 %/sem = 0,56 kg/sem (Aragon/ISSN 2017,
+  // Garthe 2011). Déficit ≤ 25 % du TDEE (ici 22 %). Protéines 2,4 g/kg en déficit (Longland 2016).
+  assert.equal(p.ratePerWeek, 0.56, '0,7 %/sem selon IMC 24,7'); assert.equal(p.deficit, 616);
+  assert.equal(p.dailyTarget, 2143, 'TDEE − déficit (≤ 25 % TDEE), ≥ métabolisme de base');
+  assert.equal(p.proteinG, 192, '2,4 g/kg en perte (préservation musculaire)'); assert.equal(p.fatG, 72);
+  assert.equal(p.carbG, 182, '(2143 − 768 − 648)/4');
+  assert.equal(p.weeks, 15, 'ceil(8 / 0,56)');
+  assert.equal(p.targetDate, '2026-10-25', '12/07 + 15 semaines');
+  // Déficit PLAFONNÉ à 25 % du TDEE (garde-fou ISSN) chez un sujet corpulent qui pourrait creuser plus.
+  const gros = L.energyPlan({ weight: 100, height: 178, age: 30, sex: 'homme', sessionsPerWeek: 3, targetWeight: 85, todayKey: '2026-07-12' });
+  assert.ok(gros.deficit <= Math.round(gros.tdee * 0.25) + 1, 'déficit borné à 25 % du TDEE');
+  assert.ok(gros.ratePerWeek > p.ratePerWeek, 'plus corpulent → rythme plus ambitieux');
+  // Sujet déjà sec (IMC bas) → rythme RALENTI pour préserver le muscle (Garthe 2011).
+  const sec = L.energyPlan({ weight: 68, height: 180, age: 25, sex: 'homme', sessionsPerWeek: 5, targetWeight: 64, todayKey: '2026-07-12' });
+  assert.ok(sec.ratePerWeek < p.ratePerWeek, 'plus sec → rythme plus lent, protège la masse maigre');
   // prise de masse : surplus + rythme 0,25
   const gain = L.energyPlan({ weight: 70, height: 175, age: 25, sex: 'homme', sessionsPerWeek: 4, targetWeight: 74, todayKey: '2026-07-12' });
   assert.equal(gain.goal, 'prise'); assert.equal(gain.ratePerWeek, 0.25); assert.ok(gain.dailyTarget > gain.tdee);
@@ -5687,7 +5696,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.210');
+  assert.equal(L.CHANGELOG[0].v, '2.0.211');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6226,10 +6235,12 @@ test('mealSplit : répartition calories/macros sur 4 repas', () => {
   assert.deepEqual(L.mealSplit(0, 100, 100, 100), []);
 });
 test('nutritionTips : conseils adaptés à l’objectif', () => {
-  assert.match(L.nutritionTips('perte')[0], /déficit/);
-  assert.match(L.nutritionTips('prise')[0], /surplus/);
-  assert.match(L.nutritionTips('maintien')[0], /stabiliser/);
+  assert.match(L.nutritionTips('perte')[0], /déficit/i);
+  assert.match(L.nutritionTips('prise')[0], /surplus/i);
+  assert.match(L.nutritionTips('maintien')[0], /stabiliser/i);
   assert.ok(L.nutritionTips('perte').length >= 4 && L.nutritionTips('perte').every(t => typeof t === 'string'));
+  // Le levier protéines en sèche est nommé (2,4 g/kg, préservation musculaire) — science, pas générique.
+  assert.ok(L.nutritionTips('perte').some(t => /2,4 g\/kg|protéines/i.test(t)));
 });
 test('mealIdea : exemple d’assiette par repas, rotation par seed', () => {
   const a = L.mealIdea('Petit-déjeuner', 500, 0);

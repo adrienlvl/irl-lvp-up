@@ -2940,6 +2940,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.211', emoji: '🔬', text: 'Ton Coach Poids passe au niveau d’un vrai nutritionniste du sport — chiffres fondés sur la science, pas au pif. Ton rythme de perte est désormais PERSONNALISÉ selon ta corpulence : plus tu as de marge, plus il pousse fort (jusqu’à ~0,9 %/semaine) ; plus tu es déjà sec, plus il ralentit pour PROTÉGER ton muscle et ta force — parce que perdre trop vite te fait fondre du muscle sans brûler plus de gras (étude Garthe 2011 sur des athlètes : 0,7 %/sem fait GAGNER de la force, 1,4 %/sem non). Deux garde-fous d’élite ajoutés : ton déficit ne dépasse jamais 25 % de ta dépense, et tes calories ne descendent jamais sous ton métabolisme de base. Tes protéines en sèche montent à ~2,4 g/kg (Longland 2016 : préserve le muscle même en gros déficit), et les conseils nutrition citent leurs sources (ISSN, répartition sur 3-4 repas, hydratation, fibres). Ambitieux ET sûr : un coach de haut niveau te pousse loin sans te blesser.' },
   { v: '2.0.210', emoji: '📉', text: 'Le graphique du Coach Poids « Prévu vs Réel » devient enfin LISIBLE. Avant, ta courbe de poids réel était écrasée : l’échelle verticale s’étirait sur tout le trajet jusqu’à ta cible (parfois 10 kg), si bien que tes variations réelles de quelques centaines de grammes se tassaient en une ligne presque plate, illisible. Désormais l’échelle se cale sur ton poids RÉEL récent : ta courbe remplit la hauteur et se lit vraiment. En prime : des repères en kg sur le côté (fini de deviner les valeurs), un trait « auj. » qui sépare ton passé réel de la trajectoire prévue, et ta dernière pesée affichée en clair sur la courbe. La ligne « Prévu » file toujours vers ta cible. Bien plus clair en un coup d’œil, en thème sombre comme clair.' },
   { v: '2.0.209', emoji: '🗓️', text: 'Quand tu programmes ta semaine d’entraînement (« Générer ma semaine » → « Ajouter à l’agenda »), elle se pose désormais sur la SEMAINE EN COURS, plus sur lundi prochain. Avant, même un mardi, tes séances étaient repoussées à la semaine suivante — tu perdais les jours restants. Maintenant les jours déjà passés de la semaine sont sautés, les jours restants sont remplis tout de suite, puis les semaines suivantes en entier. Et quand une muscu et une course tombent le même jour, la muscu est calée le matin (08:00) et la course le soir (18:00), comme tu l’avais demandé — plus l’inverse.' },
   { v: '2.0.208', emoji: '🛡️', text: 'Passe de fiabilité sur ton suivi Alternance, tes examens et ton coach (corrections d’un lot de nouveautés récentes). Côté Alternance : « relance pour entretien » n’est plus comptée comme un entretien déjà décroché, et « pas de retour, postulé le 3 » n’est plus reclassée « à postuler » — deux erreurs qui faussaient ton entonnoir et ton taux de réponse à chaque synchronisation. Côté BTS : deux épreuves tombant le MÊME jour (une le matin, une l’après-midi) ne sont plus fusionnées en une seule, et le rythme de révision conseillé ne s’affole plus quand tu suis deux examens à des dates différentes. Côté coach : une alerte importante (blessure, charge) ne peut plus se retrouver cachée derrière une note anodine, et un palier rare — comme une habitude tenue une année entière — est bien célébré même un jour où tu as déjà bouclé une belle série. Zéro fonctionnalité retirée, que du plus juste.' },
@@ -4945,9 +4946,19 @@ function energyPlan(opts) {
   // — deux verdicts opposés sur le même écran. Sous 0,5 kg = maintien (le poids bouge à peine).
   const goal = Math.abs(diff) < 0.5 ? 'maintien' : diff > 0 ? 'perte' : 'prise';
   let ratePerWeek = 0, deficit = 0, dailyTarget = tdee;
+  // Rythme de perte PERSONNALISÉ par corpulence — l'IMC sert de proxy du niveau de gras (le %MG n'est
+  // pas saisi). Fondé science : plus on est corpulent, plus on peut creuser vite sans fondre le muscle ;
+  // plus on est sec, plus on ralentit pour préserver la masse maigre (Aragon/ISSN 2017, JISSN 14:16 ;
+  // Garthe 2011, IJSNEM 21:97 : 0,7 %/sem fait GAGNER force + muscle, 1,4 %/sem non). Fourchette
+  // 0,5–0,9 %/sem du poids — plus ambitieux ET plus sûr que l'ancien 0,6 % fixe.
+  const h = Number(o.height) || 0;
+  const bmi = h > 0 ? weight / ((h / 100) * (h / 100)) : 24;
   if (goal === 'perte') {
-    const desired = Math.min(0.9, Math.max(0.25, Math.round(weight * 0.006 * 100) / 100));
-    deficit = Math.round(desired * 7700 / 7);
+    const ratePct = bmi >= 28 ? 0.009 : bmi >= 25 ? 0.008 : bmi >= 23 ? 0.007 : bmi >= 21 ? 0.006 : 0.005;
+    deficit = Math.round(weight * ratePct * 7700 / 7);
+    // Garde-fous : déficit ≤ 25 % du TDEE (ISSN — au-delà, fonte musculaire, adaptation métabolique,
+    // chute hormonale) ET apport ≥ métabolisme de base.
+    deficit = Math.min(deficit, Math.round(tdee * 0.25));
     dailyTarget = Math.max(bmr, tdee - deficit);
     const eff = tdee - dailyTarget;
     ratePerWeek = Math.round(eff * 7 / 7700 * 100) / 100; deficit = eff;
@@ -4956,8 +4967,10 @@ function energyPlan(opts) {
     dailyTarget = tdee + surplus; deficit = -surplus;
   }
   const weeks = goal === 'maintien' ? 0 : Math.max(1, Math.ceil(Math.abs(diff) / (ratePerWeek || 0.25)));
-  const proteinG = Math.round(weight * (goal === 'perte' ? 2 : 1.8));
-  const fatG = Math.round(weight * 0.9);
+  // Protéines : 2,4 g/kg EN DÉFICIT (Longland 2016, AJCN — préserve/gagne du muscle même à −40 %) ;
+  // 2,0 g/kg en prise (ISSN/Jäger 2017, JISSN 14:20). Lipides ≥ plancher hormonal 0,5 g/kg.
+  const proteinG = Math.round(weight * (goal === 'perte' ? 2.4 : goal === 'prise' ? 2.0 : 1.8));
+  const fatG = Math.max(Math.round(weight * 0.5), Math.round(weight * 0.9));
   const carbG = Math.max(0, Math.round((dailyTarget - (proteinG * 4 + fatG * 9)) / 4));
   const targetDate = weeks > 0 ? dateAfterWeeks(o.todayKey, weeks) : null;
   return { bmr, tdee, goal, diff: Math.abs(diff), ratePerWeek, deficit, dailyTarget, proteinG, fatG, carbG, weeks, targetDate };
@@ -8146,14 +8159,15 @@ function mealIdea(mealName, kcal, seed) {
 // Repères « quoi manger » selon l'objectif de poids. Renvoie une liste de conseils. Pur + testé.
 function nutritionTips(goal) {
   const base = [
-    'Une source de protéines à chaque repas (œufs, poulet, poisson, skyr, légumineuses, whey).',
-    'Remplis la moitié de l’assiette de légumes : rassasiants et peu caloriques.',
-    'Féculents complets (riz/pâtes complètes, patate douce, flocons d’avoine) plutôt que raffinés.',
-    'Bois de l’eau régulièrement : la faim est parfois de la soif.',
+    'Répartis tes protéines sur 3–4 repas d’au moins ~0,4 g/kg chacun (≈ 25–40 g) : bien plus efficace pour le muscle qu’un gros apport d’un coup (ISSN 2017).',
+    'Une source de protéines complète à chaque repas (œufs, poulet, poisson, skyr, légumineuses + céréale, whey).',
+    'Remplis la moitié de l’assiette de légumes et vise ~25–30 g de fibres/jour : satiété, digestion, micronutriments.',
+    'Féculents complets (riz/pâtes complètes, patate douce, flocons d’avoine) plutôt que raffinés — index glycémique plus bas, plus rassasiants.',
+    'Bois régulièrement : vise ~35 ml/kg/jour (plus s’il fait chaud ou après l’effort) ; la faim est parfois de la soif.',
   ];
-  if (goal === 'perte') return ['Mange à ta faim mais reste sous ta dépense : le déficit fait maigrir.', ...base, 'Limite boissons sucrées et alcool (calories « vides »).'];
-  if (goal === 'prise') return ['Ajoute un surplus modéré : collations denses (fruits secs, beurre de cacahuète, avoine).', ...base, 'Ne saute pas de repas ; répartis les protéines sur la journée.'];
-  return ['Mange autour de ta dépense pour stabiliser ton poids.', ...base];
+  if (goal === 'perte') return ['Reste en déficit MODÉRÉ (≈ 15–25 % sous ta dépense) : plus lent = plus de muscle et de force préservés (Garthe 2011), pas plus de gras perdu.', 'Garde les protéines HAUTES (~2,4 g/kg) : c’est le levier n°1 contre la fonte musculaire en sèche (Longland 2016).', ...base, 'Limite boissons sucrées et alcool (calories « vides », coupent la récup).'];
+  if (goal === 'prise') return ['Surplus MODÉRÉ (+10–15 % au-dessus du maintien) : au-delà, le gain part en gras, pas en muscle (ISSN 2017).', 'Protéines ~2 g/kg réparties, glucides suffisants (≥ 3–5 g/kg) pour alimenter les séances lourdes.', ...base, 'Collations denses aux moments creux (fruits secs, beurre de cacahuète, avoine + lait).'];
+  return ['Mange autour de ta dépense pour stabiliser ton poids ; c’est le moment idéal pour une recomposition (gagner du muscle en perdant un peu de gras).', ...base];
 }
 
 // Trajectoire de poids prévue vers la cible : un point par semaine de today → date cible,

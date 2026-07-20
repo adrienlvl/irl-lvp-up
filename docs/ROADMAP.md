@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.210 (2026-07-20)
+## 📍 État actuel — build 2.0.211 (2026-07-20)
+
+> 🔬 **#595 — Coach Poids niveau nutritionniste du sport (demande d'Adrien « pousse au max, sois au
+> niveau d'un diététicien », build 2.0.211).** Recherche scientifique (workflow WebSearch) puis code
+> sourcé. `energyPlan` : rythme de perte **personnalisé par corpulence** (0,5–0,9 %/sem selon IMC ;
+> plus corpulent = plus ambitieux, plus sec = plus lent pour protéger le muscle — Garthe 2011, ISSN
+> 2017), **déficit plafonné à 25 % du TDEE**, **protéines 2,4 g/kg en déficit** (Longland 2016).
+> `nutritionTips` enrichis et cités (répartition 0,4 g/kg × 3-4 repas, hydratation, fibres). Ambitieux
+> ET sûr. Recap #595. _Domaine : nutrition. Série coaching à poursuivre : muscu niveau kiné, running/trail,
+> exercices complets._
 
 > 📉 **#594 — Graphique du poids « Prévu vs Réel » enfin lisible (demande d'Adrien, build 2.0.210).**
 > `coachForecastSvg` calait l'échelle Y sur plan+réel → le réel (variations de quelques centaines de g)
