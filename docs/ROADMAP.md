@@ -25,6 +25,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.228 (2026-07-21)
 
+> 🔬 **#616 — Mesure P5 : pilier athlète / readiness sondé au fuzzer → propre (sans bump).** Backlog
+> nommé P1→P7 **entièrement coché** ; `coach`/`sommeil` bloqués par la rotation (§4 bis). Domaine frais
+> `athlete` (mandat élite muscu/course) sondé par la méthode **P5 (mesurer, pas supposer)** : ~14 000
+> tirages sur `strengthForecast`, `progressionSuggestion`, `readinessScore/Limiter/Driver`. **Aucun
+> défaut.** Écartés avec preuve : (1) une carte « interférence entraînement concurrent » serait
+> **redondante** (séquençage muscu AM/course PM #209 + charge `acuteChronicRatio`/`deloadRecommendation`
+> déjà couverts) ; (2) `weekTrainingBalance` ne rate **pas** les séances muscu legacy (`type:'strength'`
+> les capte) ; (3) les « contradictions » driver/limiter du fuzzer **n'atteignent jamais** le rendu — le
+> **score-gating vit chez l'appelant** (coach : driver derrière `score≥75`, limiter derrière `score<50/<75`),
+> pas dans les helpers purs. Résultat **négatif assumé et documenté** (§4 bis.5) pour éviter le
+> re-labourage. Recap #616. _Domaine : robustesse._
+>
 > 🌙 **#615 — Plan de recalage du sommeil : la barre ne peut plus être « pleine mais pas atteinte »
 > (build 2.0.228).** Domaine `sommeil` (frais ; `coach`/`etudes` bloqués par la rotation §4 bis — la
 > priorité de nuit coaching tombe sous §3 qui soumet `coach` à la rotation comme les autres). Méthode
