@@ -5687,7 +5687,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.208');
+  assert.equal(L.CHANGELOG[0].v, '2.0.209');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11373,5 +11373,21 @@ test('#592/#591 : un palier RARE n’est plus éteint par un palier plus courant
   const f = L.adaptiveCoachFocus(state, '2026-07-16');
   assert.equal(f.habitMilestone && f.habitMilestone.streak, 365, 'le palier 365 est bien détecté');
   assert.match(f.insight, /année entière|365 jours/, 'le palier RARE (365 j) est célébré malgré le palier de 7 j');
+});
+
+test('weekProgramSchedule : ancre le programme sur la SEMAINE EN COURS, saute les jours passés', () => {
+  const days = [{ weekday: 1, type: 'muscu' }, { weekday: 3, type: 'muscu' }, { weekday: 5, type: 'muscu' }];
+  // Jeudi 2026-07-23 (semaine lundi 20 → dimanche 26). Lundi 20 et mercredi 22 sont passés.
+  const occ = L.weekProgramSchedule(days, '2026-07-23', 2);
+  const dates = occ.map(o => o.date);
+  assert.ok(!dates.includes('2026-07-20') && !dates.includes('2026-07-22'), 'les jours passés de la semaine en cours sont sautés');
+  assert.ok(dates.includes('2026-07-24'), 'le vendredi 24 (à venir, CETTE semaine) est bien posé');
+  assert.deepEqual(dates, ['2026-07-24', '2026-07-27', '2026-07-29', '2026-07-31'], 'vendredi de cette semaine + semaine suivante complète, triés');
+  // Lundi de la semaine : tout est à venir → aucun jour sauté.
+  const full = L.weekProgramSchedule(days, '2026-07-20', 1).map(o => o.date);
+  assert.deepEqual(full, ['2026-07-20', '2026-07-22', '2026-07-24'], 'un lundi, toute la semaine est posée');
+  // Robustesse : entrées vides / date invalide → [].
+  assert.deepEqual(L.weekProgramSchedule([], '2026-07-20', 4), []);
+  assert.deepEqual(L.weekProgramSchedule(days, 'nope', 4), []);
 });
 

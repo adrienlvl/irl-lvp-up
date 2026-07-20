@@ -586,6 +586,27 @@ app.whenReady().then(async () => {
         quickSession: typeof quickSessionPlan === 'function' && !!document.getElementById('quickSessionBtn') && !!document.getElementById('quickSessionResult') && (() => { const p = quickSessionPlan(exercises, { minutes: 20, zone: 'abs', maxExercises: 8 }); return p.count >= 1 && p.count <= 8 && p.totalMinutes > 0 && p.exercises.every(x => exerciseZones(x.name).includes('abs')) && quickSessionPlan(exercises, { zone: 'zzz' }).count === 0; })(),
         bodyGoals: typeof bodyGoalWorkout === 'function' && Array.isArray(BODY_GOALS) && BODY_GOALS.length === 7 && document.querySelectorAll('#bodyGoalsBar [data-bodygoal]').length === 7 && (() => { const w = bodyGoalWorkout('abs', exercises, { count: 5 }); const fb = bodyGoalWorkout('fullbody', exercises, { count: 5 }); return w && w.title === 'Abdos béton' && w.exercises.length >= 2 && w.exercises.every(e => exerciseZones(e.name).includes('abs') && e.sets > 0) && bodyGoalWorkout('legs', exercises).exercises.every(e => exerciseZones(e.name).some(z => z === 'legs' || z === 'glutes')) && fb.exercises.length === 5; })(),
         weekProgram: typeof buildTrainingWeek === 'function' && !!document.getElementById('wpGoals') && document.querySelectorAll('#wpGoals input').length === 7 && !!document.getElementById('wpGenerate') && !!document.getElementById('wpSchedule') && !!document.getElementById('wpSameDay'),
+        // Programme de semaine posé sur la SEMAINE EN COURS (pas lundi prochain) — demande d'Adrien.
+        weekScheduleCurrent: typeof scheduleWeekProgram === 'function' && typeof weekProgramSchedule === 'function' && typeof buildTrainingWeek === 'function' && (() => {
+          const savedAgenda = state.agenda, savedProg = (typeof lastWeekProgram !== 'undefined') ? lastWeekProgram : null;
+          let ok = true;
+          try {
+            const prog = buildTrainingWeek(['chest', 'back', 'legs'], 3, 2, false);
+            if (!prog) return false;
+            state.agenda = [];
+            const n = scheduleWeekProgram(prog, 4);
+            const planned = state.agenda.filter(a => a.source === 'planner');
+            const today = localDate();
+            ok = ok && n > 0 && planned.length > 0;
+            ok = ok && planned.every(a => a.date >= today); // jamais dans le passé
+            // les dates posées correspondent EXACTEMENT à l'ancrage semaine-courante du helper pur
+            const expected = new Set(weekProgramSchedule(prog.days, today, 4).map(o => o.date));
+            const got = new Set(planned.map(a => a.date));
+            ok = ok && expected.size === got.size && [...got].every(d => expected.has(d));
+          } catch (e) { ok = false; }
+          state.agenda = savedAgenda;
+          return ok;
+        })(),
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
         currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-08-10').done === true && currentBlock('', 'x') === null; })(),
@@ -642,7 +663,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.208'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.209'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1973,6 +1994,7 @@ app.whenReady().then(async () => {
     if (!checks.zonePlan) errors.push('Programme par zone absent (buildZonePlan/zoneTopExercises/zonePlanBtn/zonePlanDialog/zonePlanTable)');
     if (!checks.muscleBalance) errors.push('Équilibre poussée/tirage KO (muscleBalance : un exercice back+shoulders comme la suspension barre doit compter en tirage seul, pas des deux côtés)');
     if (!checks.weekProgram) errors.push('Planificateur semaine absent (buildTrainingWeek/wpGoals 7/wpGenerate/wpSchedule)');
+    if (!checks.weekScheduleCurrent) errors.push('Programme de semaine mal ancré : doit se poser sur la SEMAINE EN COURS (jours restants), pas lundi prochain');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');

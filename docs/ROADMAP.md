@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.208 (2026-07-20)
+## 📍 État actuel — build 2.0.209 (2026-07-20)
+
+> 🗓️ **#593 — « Générer ma semaine » se pose sur la SEMAINE EN COURS (demande d'Adrien, build 2.0.209).**
+> `scheduleWeekProgram` démarrait à **lundi prochain** (`-dow+7`) → la semaine en cours était perdue.
+> Nouveau helper pur `weekProgramSchedule` : ancre sur le lundi de la semaine de `todayKey`, **saute les
+> jours passés**, remplit les jours restants tout de suite. Horaires corrigés : muscu **matin** (08:00),
+> course **soir** (18:00) le même jour. Check smoke **bloquant** `weekScheduleCurrent`. _Reste (chantier
+> coach/athlète) : distance de course par objectif, les 2 autres générateurs (`generateAutomaticWeek`
+> glissant, `scheduleObjectiveProgram` lundi prochain), suppression agenda, graphique poids._ Recap
+> #593. _Domaine : athlete._
 
 > 🛡️ **#592 — Audit adversarial de la nuit VPS (session locale) : 8 correctifs, build 2.0.208.** Les
 > 38 commits #554→#591 (suite verte) relus **diff par diff** par un workflow à 14 agents → 8 défauts
