@@ -23,8 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.226 (2026-07-21)
+## 📍 État actuel — build 2.0.227 (2026-07-21)
 
+> 🧭 **#614 — Coach « priorité du jour » : plus de recadrage « récupère » quand la séance est DÉJÀ faite
+> (build 2.0.227).** Priorité de nuit coaching (§3 qualité). Rotation OK avant de coder (`coach` absent
+> des 2 derniers recaps, 1× sur 5). Prouvé en **rendu chargé** (§4 ter) : un jour de forme basse
+> (readiness 40) avec la **séance du jour déjà faite**, `coachDayPriority` recadrait quand même en
+> « Priorité du jour : récupère — tu relanceras l'entraînement dès que la forme remonte » + un `defer`
+> « ça peut attendre » — alors qu'il n'y a **rien à reporter** et que la carte brute disait déjà mieux
+> (« Séance faite 💪 — verrouille avec des étirements, récup bien méritée »). La doc de `sportPush` le
+> réserve à un focus qui **« pousse une séance »** : `doneToday` ne pousse rien → guard déclenché à tort.
+> Correctif §3 (curation, **zéro champ ajouté**) : `sportPush` gardé `&& !focus.doneToday`. Chirurgical :
+> le recadrage RESTE quand la séance n'est pas faite (tension réelle, testée). +1 test, +1 volet dans le
+> check smoke bloquant `coachDayPriority`. 563 tests + smoke vert. Recap #614. _Domaine : coach._
+>
 > 📚 **#613 — Révisions par matière : « Droit » et « droit » ne font plus deux matières (build
 > 2.0.226).** Domaine `etudes` (rotation : coach/nutrition dans les 2 derniers recaps, athlete ×3 →
 > tous bloqués ; priorité de nuit coaching hors rotation ce tour). Manque prouvé : `#studyTitle` est un

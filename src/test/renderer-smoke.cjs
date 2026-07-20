@@ -706,7 +706,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.226'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.227'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1469,6 +1469,9 @@ app.whenReady().then(async () => {
           // Volet LOGIQUE — recadrage : forme basse (high) VS focus sport qui pousse → n°1 « récupère ».
           const dpRef = coachDayPriority({}, today, { focus: focusSport, digest: [{ key: 'readiness', emoji: '😴', text: 'Forme basse (20/100) — allège aujourd’hui', page: 'athlete', sev: 'high' }, { key: 'sport', emoji: '🏋️', text: '1 séance non faite récemment', page: 'athlete', sev: 'med' }] });
           if (!(dpRef.reframed === true && dpRef.primary.source === 'health' && /récup[eè]re/.test(dpRef.primary.headline) && dpRef.deduped.length === 0)) return false;
+          // Volet LOGIQUE (#614) — séance DÉJÀ faite : plus rien à reporter, aucune tension à recadrer.
+          const dpDone = coachDayPriority({}, today, { focus: { ...focusSport, tone: 'reinforce', doneToday: true }, digest: [{ key: 'readiness', emoji: '😴', text: 'Forme basse (20/100) — allège aujourd’hui', page: 'athlete', sev: 'high' }] });
+          if (!(dpDone.reframed === false && dpDone.primary.source === 'focus' && dpDone.defer === null && dpDone.deduped.some(d => d.key === 'readiness'))) return false;
           // Volet RENDU (le branchement B.2) : sur un état chargé, la carte se recadre en « récupère » ET
           // « À rattraper » ne répète plus « Forme basse » (promue en n°1). On restaure l'état ensuite.
           const pad = n => (n < 10 ? '0' + n : '' + n);

@@ -5955,7 +5955,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.226');
+  assert.equal(L.CHANGELOG[0].v, '2.0.227');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11796,6 +11796,19 @@ test('coachDayPriority : la santé (forme basse) prime sur un focus sport de mom
   assert.ok(r.defer && r.defer.pillar === 'sport', 'le focus sport est assumé comme reporté (defer)');
   assert.ok(!r.deduped.some(d => d.key === 'readiness'), 'la forme basse est promue en n°1 → plus dans le digest');
   assert.ok(!r.deduped.some(d => d.key === 'sport'), 'la séance manquée aussi retirée (cohérent avec le repos)');
+});
+
+test('coachDayPriority : séance DÉJÀ faite + forme basse → pas de recadrage (rien à reporter, #614)', () => {
+  // Focus sport reinforce mais la séance du jour est faite (doneToday) : l'action n'incite à rien, elle
+  // acquitte. Recadrer en « récupère, tu relanceras dès que la forme remonte » suggérerait de reporter un
+  // entraînement déjà fait et effacerait l'acquittement → on garde le focus brut, la forme basse reste en digest.
+  const focus = { pillar: 'sport', emoji: '🏋️', page: 'athlete', tone: 'reinforce', doneToday: true, headline: 'Ton entraînement monte en régime', insight: 'x', action: 'Séance déjà faite 💪 — verrouille avec 5 min d’étirements.' };
+  const digest = [{ key: 'readiness', emoji: '😴', text: 'Forme basse (40/100) — allège aujourd’hui', page: 'athlete', sev: 'high' }];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.equal(r.reframed, false, 'séance faite → aucune tension push↔repos à recadrer');
+  assert.equal(r.primary.source, 'focus', 'le focus brut (avec son acquittement) reste la n°1');
+  assert.equal(r.defer, null, 'rien à reporter : la séance est faite');
+  assert.ok(r.deduped.some(d => d.key === 'readiness'), 'la forme basse reste visible dans « À rattraper »');
 });
 
 test('coachDayPriority : pas de focus → la n°1 est l’item réactif le plus grave, retiré du digest', () => {
