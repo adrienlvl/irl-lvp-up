@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.185 (2026-07-20)
 
+> 🎓 **#559 — P6.2 (1/3) : les échéances clés lisent `examGoals[]` (domaine `etudes`, pas de bump).**
+> `coach` (priorité de nuit) est interdit par la rotation §4 bis (dans #558 ET 2× dans les 5 derniers) →
+> 2ᵉ demande d'Adrien (avancer CAP 3.0), tâche nommée **P6.2**. `upcomingKeyDates` (puces « Ma journée »)
+> et `keyDateMarkers` (marqueurs du calendrier) prenaient une **épreuve unique** ; ils acceptent
+> désormais un **tableau** d'épreuves (une puce/marqueur par épreuve — ce sont les 2 surfaces « où la
+> liste a du sens » pour un BTS multi-épreuves), avec **tolérance ascendante** (objet unique enveloppé →
+> tests/checks existants inchangés) et **départage stable par libellé** à date égale. `app.js` lit
+> `state.examGoals` ; le formulaire de planning (seul writer runtime) resynchronise la liste dans la
+> foulée (sans perte tant que P6.3 n'existe pas). **Aucun effet utilisateur** (seul l'état mono-épreuve
+> est atteignable sans l'UI P6.3) → **pas de bump** (§2.6, précédent #555). Tests logiques + checks
+> smoke `keyDateMarkers`/`upcomingDeadlines` étendus au chemin array. 523 tests + smoke verts. Recap
+> #559. _Reste 4 consommateurs mono-valués (`examCountdown`/`examReminderDue`/`studyPacing`/coach) →
+> prochaine boucle `etudes` avec un sélecteur « épreuve la plus proche »._ _Domaine : etudes._
+
 > 🧵 **2.0.185 — #558 : les conseils du coach à DEUX phrases ne se déchirent plus (domaine `coach`,
 > priorité de nuit).** Rotation §4 bis OK (`coach` absent des 5 derniers recaps). Piste prête depuis
 > #557 (mise de côté par §5 ce jour-là). Défaut réel attrapé en **rendu chargé (§4ter)** :
@@ -362,8 +376,9 @@ précédente** (`app.js:872`, affectation directe) : impossible de suivre Droit 
       ❗ `subject` en **texte libre** — aucune matière BTS ni date inventée.
 - [ ] **P6.2 — Porter les consommateurs** (6, un ou deux par boucle, avec leurs tests) :
       `examCountdown` (`logic.js:1770`), `examReminderDue` (`:1778`), `studyPacing` (`:1789`),
-      `upcomingKeyDates` (`:1702`), `keyDateMarkers` (`:1729`), le coach (`:4922`). Règle simple :
-      **prendre l'épreuve la plus proche** (ou itérer là où la liste a du sens).
+      ~~`upcomingKeyDates`~~ ✅ #559, ~~`keyDateMarkers`~~ ✅ #559, le coach (`:4922`). Règle simple :
+      **prendre l'épreuve la plus proche** (ou itérer là où la liste a du sens). _Reste (#559) : les 4
+      consommateurs **mono-valués** → sélecteur « épreuve la plus proche » + `state.examGoals`._
 - [ ] **P6.3 — UI ajouter / lister / supprimer une épreuve.** ⚠️ **Renderer → check smoke BLOQUANT
       obligatoire.** À ne faire qu'après P6.1 et P6.2 vertes.
 

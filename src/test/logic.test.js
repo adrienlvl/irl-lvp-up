@@ -2522,6 +2522,15 @@ test('upcomingKeyDates : examen + course triés dans l’horizon', () => {
   // date passée exclue
   assert.equal(L.upcomingKeyDates({ date: '2026-07-01' }, null, '2026-07-10', 60).length, 0);
   assert.deepEqual(L.upcomingKeyDates(null, null, '2026-07-10', 60), []);
+  // P6.2 : modèle multi-épreuves examGoals[] — chaque épreuve à venir devient une puce, triées par proximité
+  const multi = L.upcomingKeyDates(
+    [{ title: 'Droit', date: '2026-07-25' }, { title: 'Compta', date: '2026-07-12' }, { title: 'Passée', date: '2026-06-01' }],
+    { date: '2026-07-15' }, '2026-07-10', 60);
+  assert.deepEqual(multi.map(m => m.label), ['Compta', 'Course objectif', 'Droit'], 'Compta J-2, course J-5, Droit J-15 ; épreuve passée exclue');
+  // deux épreuves le MÊME jour → départage stable par libellé (déterministe)
+  const sameDay = L.upcomingKeyDates([{ title: 'Zzz', date: '2026-07-20' }, { title: 'Aaa', date: '2026-07-20' }], null, '2026-07-10', 60);
+  assert.deepEqual(sameDay.map(m => m.label), ['Aaa', 'Zzz']);
+  assert.deepEqual(L.upcomingKeyDates([], null, '2026-07-10', 60), [], 'liste vide → rien');
 });
 
 test('upcomingPriorityItems : échéances agenda prioritaires à venir', () => {
@@ -2552,6 +2561,11 @@ test('keyDateMarkers : examen et course sur un jour donné', () => {
   // les deux le même jour
   assert.equal(L.keyDateMarkers({ date: '2026-05-15' }, { date: '2026-05-15' }, '2026-05-15').length, 2);
   assert.deepEqual(L.keyDateMarkers(null, null, '2026-05-15'), []);
+  // P6.2 : modèle multi-épreuves examGoals[] — un marqueur par épreuve tombant ce jour
+  const goals = [{ title: 'Droit', date: '2026-05-15' }, { title: 'Compta', date: '2026-05-15' }, { title: 'Anglais', date: '2026-06-20' }];
+  assert.deepEqual(L.keyDateMarkers(goals, null, '2026-05-15'), [{ kind: 'exam', label: 'Droit' }, { kind: 'exam', label: 'Compta' }]);
+  assert.deepEqual(L.keyDateMarkers(goals, null, '2026-06-20'), [{ kind: 'exam', label: 'Anglais' }]);
+  assert.deepEqual(L.keyDateMarkers([], null, '2026-05-15'), [], 'liste vide → rien');
 });
 
 test('studyStats : total / faites / à venir des révisions', () => {

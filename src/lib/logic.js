@@ -1711,14 +1711,17 @@ function daysUntil(fromKey, toKey) {
   const db = new Date(+b[1], +b[2] - 1, +b[3]); db.setHours(0, 0, 0, 0);
   return Math.round((db - da) / 86400000);
 }
-// Échéances clés à venir dans l'horizon (jours) : examen + course, triées par proximité. Pur + testé.
-function upcomingKeyDates(examGoal, raceGoal, todayKey, horizon) {
+// Échéances clés à venir dans l'horizon (jours) : examen(s) + course, triées par proximité. Pur + testé.
+// `examGoals` accepte le modèle multi-épreuves examGoals[] (P6.2) — chaque épreuve à venir devient une
+// puce — mais tolère encore l'ancien objet unique { title, date } (enveloppé en liste). Pur + testé.
+function upcomingKeyDates(examGoals, raceGoal, todayKey, horizon) {
   const h = Math.max(1, Math.min(730, Math.round(Number(horizon) || 60)));
   const out = [];
   const add = (kind, label, date) => { const d = daysUntil(todayKey, date); if (d != null && d >= 0 && d <= h) out.push({ kind, label, daysLeft: d, date }); };
-  if (examGoal && examGoal.date) add('exam', String(examGoal.title || 'Examen').slice(0, 40), examGoal.date);
+  const exams = Array.isArray(examGoals) ? examGoals : (examGoals ? [examGoals] : []);
+  exams.forEach(g => { if (g && g.date) add('exam', String(g.title || 'Examen').slice(0, 40), g.date); });
   if (raceGoal && raceGoal.date) add('race', 'Course objectif', raceGoal.date);
-  return out.sort((a, b) => a.daysLeft - b.daysLeft);
+  return out.sort((a, b) => a.daysLeft - b.daysLeft || a.label.localeCompare(b.label));
 }
 
 // Prochaines échéances importantes de l'agenda : blocs non faits, priorité haute, à venir dans
@@ -1738,11 +1741,14 @@ function upcomingPriorityItems(agenda, todayKey, horizon, limit) {
   return out.sort((x, y) => x.daysLeft - y.daysLeft || x.title.localeCompare(y.title)).slice(0, cap);
 }
 
-// Marqueurs d'échéances clés tombant un jour donné (examen, course objectif). Pur + testé.
-function keyDateMarkers(examGoal, raceGoal, dateKey) {
+// Marqueurs d'échéances clés tombant un jour donné (examen(s), course objectif). `examGoals` accepte
+// le modèle multi-épreuves examGoals[] (P6.2) — un marqueur par épreuve tombant ce jour — mais tolère
+// encore l'ancien objet unique { title, date } (enveloppé en liste). Pur + testé.
+function keyDateMarkers(examGoals, raceGoal, dateKey) {
   const out = [];
   const isKey = /^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || ''));
-  if (isKey && examGoal && examGoal.date === dateKey) out.push({ kind: 'exam', label: String(examGoal.title || 'Examen').slice(0, 40) });
+  const exams = Array.isArray(examGoals) ? examGoals : (examGoals ? [examGoals] : []);
+  if (isKey) exams.forEach(g => { if (g && g.date === dateKey) out.push({ kind: 'exam', label: String(g.title || 'Examen').slice(0, 40) }); });
   if (isKey && raceGoal && raceGoal.date === dateKey) out.push({ kind: 'race', label: 'Course' });
   return out;
 }
