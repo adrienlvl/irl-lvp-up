@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.224 (2026-07-20)
+## 📍 État actuel — build 2.0.225 (2026-07-20)
 
+> 🧭 **#612 — Coach : les notes « pousse l'entraînement » se taisent quand la forme GLISSE (build
+> 2.0.225).** Piste nommée en queue de **P5.2** (close). La note littérale (`sportSlot`/`sportZoneFocus`
+> sans `readinessSlide`) était **périmée** : #585 les avait déjà gardés. Le vrai manque : la garde
+> `readinessSlide == null` de #585 n'avait **jamais été propagée** à la famille de guards ajoutée autour.
+> **Contradiction prouvée en rendu chargé** : un jour de glissade (readiness 55, tendance −45 pts →
+> action « Séance allégée aujourd'hui, soigne ta récup »), l'insight empilait _« Cale une sortie de
+> course »_ (`trainBalanceGuard`), _« ajoute des pecs »_ (`pushPullGuard`) et _« honore-le
+> aujourd'hui »_ (`sportHabitDay`) — le coach disait « récupère » ET « entraîne-toi plus ». Correctif
+> §3 (curation, **zéro champ ajouté**) : `&& readinessSlide == null` propagé aux 4 guards
+> `trainBalanceGuard`/`pushPullGuard`/`sportNeglectGuard`/`sportHabitDay`. **Gardé exprès** :
+> `runVolumeGuard` (« plafonne tes km ») = mise en garde **concordante** avec la récup. Gate
+> chirurgical (forme stable → les guards reparlent ; contrôle testé). Contrôle §4 ter appliqué.
+> 562 tests + smoke vert. Recap #612. _Domaine : coach._
+>
 > ⏸️ **#611 — Pause diète (diet break) : le coach dit QUAND remonter à la maintenance (build 2.0.224).**
 > Le pendant NUTRITION du deload muscu (#608), manquant : `grep` confirme zéro gestion de la DURÉE d'un
 > déficit (`refeed|diète|thermogenèse|leptine|MATADOR` absents), alors que le rythme/protéines/plateau
@@ -1138,9 +1152,11 @@ sur des centaines d'états réalistes et observer la distribution de ce qui sort
       #582** (2.0.201) : côté **nutrition**, crédit « Déjà noté aujourd'hui ✅ » dès qu'une entrée du jour
       existe ; côté **sommeil**, l'action est **toujours** le conseil de coucher prospectif (jamais le
       générique) → l'inclure eût été du code mort. **P5.2 close** — les 2 angles sont mesurés et les pistes
-      qu'ils ont fait sortir sont corrigées. _(La piste coach encore ouverte est **distincte** de P5.2 :
-      `sportSlot`/`sportZoneFocus` gardés `loadSpike==null` mais pas `readinessSlide` — mémoire, à confirmer
-      en rendu chargé lors de la prochaine boucle `coach`.)_
+      qu'ils ont fait sortir sont corrigées. _(La piste coach `readinessSlide` a été **close #612** (2.0.225) :
+      `sportSlot`/`sportZoneFocus` étaient déjà gardés depuis #585 — le vrai manque était la famille de guards
+      ajoutée autour (`trainBalanceGuard`/`pushPullGuard`/`sportNeglectGuard`/`sportHabitDay`), qui poussaient
+      l'entraînement un jour de glissade ; garde `readinessSlide == null` propagée, contradiction prouvée puis
+      curée §3.)_
 
 ### P6 — Multi-épreuves BTS `examGoals[]` _(P1.3 VALIDÉE — option A)_ ⭐ **le plus utile à Adrien**
 

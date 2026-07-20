@@ -5955,7 +5955,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.224');
+  assert.equal(L.CHANGELOG[0].v, '2.0.225');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10133,6 +10133,51 @@ test('adaptiveCoachFocus : focus sport — ÉQUILIBRE course ↔ muscu déséqui
   assert.equal(spike.loadSpike !== null, true, 'setup : la charge doit bien être en pic');
   assert.equal(spike.trainBalanceGuard, null);
   assert.doesNotMatch(spike.insight, /rééquilibrer/);
+});
+
+test('adaptiveCoachFocus : les notes « pousse l’entraînement » se taisent quand la forme GLISSE (readinessSlide)', () => {
+  // Contradiction curée (§3, cf. #585) : un jour où l'action dit « Séance allégée aujourd'hui, soigne ta
+  // récup » (readinessSlide), les guards qui poussent à ajouter du volume ou à honorer sa séance du jour ne
+  // doivent PAS nager à contre-courant. Ils étaient gardés loadSpike/readiness mais PAS readinessSlide.
+  const today = '2026-07-16'; // jeudi
+  // Readiness EN GLISSADE : 100 → 85 → 70 → 63 → 55 (auj. 55 ∈ [50,75), chute -45 pts sur 5 check-ins).
+  const slideRec = [
+    { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 },
+    { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 },
+    { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 },
+    { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 },
+    { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 },
+  ];
+  // Forme STABLE (63 constant → readinessSlide null) : même readiness ≥ 50, mais PAS de glissade → les
+  // guards doivent PARLER. Prouve que le gate est bien readinessSlide, pas un blocage aveugle.
+  const flatRec = ['2026-07-04', '2026-07-06', '2026-07-10', '2026-07-13', '2026-07-16']
+    .map(date => ({ date, sleep: 8, fatigue: 3, soreness: 4 }));
+
+  // A. trainBalanceGuard : semaine 100 % muscu chez un hybride → « Cale une sortie de course ».
+  const strengthDay = d => ({ date: d, exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 5 }] });
+  const hybrid = { workouts: [{ date: '2026-06-25', type: 'run' }, strengthDay('2026-07-10'), strengthDay('2026-07-12'), strengthDay('2026-07-14')] };
+  const balSlide = L.adaptiveCoachFocus({ ...hybrid, recovery: slideRec }, today);
+  assert.equal(balSlide.readinessSlide, -45, 'setup : la forme doit bien glisser');
+  assert.equal(balSlide.trainBalanceGuard, null, 'forme qui glisse → trainBalanceGuard se tait');
+  assert.doesNotMatch(balSlide.insight, /Cale une sortie de course/);
+  assert.match(balSlide.action, /Séance allégée aujourd’hui/);
+  const balFlat = L.adaptiveCoachFocus({ ...hybrid, recovery: flatRec }, today);
+  assert.equal(balFlat.readinessSlide, null, 'contrôle : forme stable, pas de glissade');
+  assert.deepEqual(balFlat.trainBalanceGuard, { missing: 'run', count: 3 }, 'forme stable ≥ 50 → trainBalanceGuard parle toujours');
+
+  // B. pushPullGuard + sportHabitDay : muscu jeudi-dominante, tout en tirage → deux notes qui poussent.
+  const w = d => ({ date: d, exercises: [{ name: 'Développé couché', sets: 4, reps: 8 }, { name: 'Tractions', sets: 4, reps: 8 }] });
+  const habit = { workouts: ['2026-05-28', '2026-06-04', '2026-06-11', '2026-06-18', '2026-06-25', '2026-07-02', '2026-07-09'].map(w).concat([w('2026-07-13'), w('2026-07-06')]) };
+  const habSlide = L.adaptiveCoachFocus({ ...habit, recovery: slideRec }, today);
+  assert.equal(habSlide.readinessSlide, -45, 'setup : la forme glisse');
+  assert.equal(habSlide.sportHabitDay, null, 'forme qui glisse → sportHabitDay se tait');
+  assert.equal(habSlide.pushPullGuard, null, 'forme qui glisse → pushPullGuard se tait');
+  assert.equal(habSlide.sportNeglectGuard, null, 'forme qui glisse → sportNeglectGuard se tait');
+  assert.doesNotMatch(habSlide.insight, /honore-le aujourd’hui|c’est justement ton jour/);
+  const habFlat = L.adaptiveCoachFocus({ ...habit, recovery: flatRec }, today);
+  assert.equal(habFlat.readinessSlide, null, 'contrôle : forme stable');
+  assert.ok(habFlat.sportHabitDay != null, 'forme stable → sportHabitDay parle toujours');
+  assert.ok(habFlat.pushPullGuard != null, 'forme stable → pushPullGuard parle toujours');
 });
 
 test('adaptiveCoachFocus : focus sport — balance POUSSÉE ↔ TIRAGE déséquilibrée (pushPullGuard)', () => {

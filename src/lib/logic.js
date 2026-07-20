@@ -3089,6 +3089,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.225', emoji: '🧭', text: 'Les jours où ta forme GLISSE, ton coach ne se contredit plus. Quand tes check-ins montrent une fatigue qui s’installe (readiness correcte mais en baisse régulière), le coach te dit « séance allégée aujourd’hui, soigne ta récup ». Le problème : dans le même bloc, d’autres conseils continuaient à te POUSSER — « cale une sortie de course pour rééquilibrer ta semaine », « ajoute du dos à ta prochaine séance », ou même « c’est ton jour d’entraînement, honore-le aujourd’hui ». Un coach qui te dit de récupérer ET de t’entraîner plus dans la même phrase, ça brouille le message. Désormais, dès que ta forme glisse, toutes ces incitations à en faire plus se taisent : il ne reste que le vrai signal du jour — récupère. Elles reviennent d’elles-mêmes dès que ta forme se stabilise ou remonte. Et la seule mise en garde qui RESTE, c’est « ne monte pas ton kilométrage trop vite » — parce que celle-là va dans le même sens que la récup. Rien d’ajouté à l’écran : trois contradictions en moins, un message clair.' },
   { v: '2.0.224', emoji: '⏸️', text: 'Ton Coach Poids sait maintenant te dire quand faire une PAUSE DIÈTE — le geste que les diététiciens du sport recommandent et que presque personne ne s’autorise. Quand tu es en perte de poids, un déficit calorique tenu trop longtemps finit par se retourner contre toi : ton corps s’adapte (le métabolisme de repos baisse, la faim monte, les hormones leptine et thyroïde ralentissent) et non seulement la perte cale, mais tu commences à grignoter ton muscle. La solution prouvée n’est pas de couper ENCORE plus : c’est d’insérer 1 à 2 semaines à ta maintenance (retour à l’équilibre calorique), puis de repartir. Les grandes études le montrent : MATADOR (2 semaines de déficit / 2 semaines de maintien : plus de gras perdu et moins d’effondrement du métabolisme qu’un régime continu) et ICECAP (une seule semaine de pause a fait GAGNER +0,7 kg de muscle chez des sportifs entraînés). L’app suit ta perte réelle semaine après semaine et, après ~10 semaines de déficit d’affilée (perte continue confirmée), affiche une carte « ⏸️ Pause diète » avec le nombre exact de kilos perdus et de combien remonter tes calories. Et surtout : ces semaines-là, le vieux message « ton poids stagne, coupe encore » s’efface — parce que si tu plafonnes après un long régime, c’est justement une pause qu’il te faut, pas un tour de vis de plus. Ambitieux mais jamais dangereux : on ne fond ni le muscle ni les hormones.' },
   { v: '2.0.223', emoji: '⛰️', text: 'Ton plan ultra-trail t’apprend enfin à DESCENDRE — le stress qui casse vraiment les jambes en trail, et que presque personne n’entraîne. En montée, on souffre et on le sent ; mais c’est la DESCENTE qui inflige les gros dégâts musculaires (le fameux travail « excentrique » : jambes en compote, courbatures, perte de force pendant des jours). La bonne nouvelle, prouvée par la science, c’est « l’effet de séance répétée » : une seule vraie séance de descente protège durablement contre la suivante (Frontiers Physiology 2018 — ~4 semaines de descente suffisent à muscler tes jambes contre les dommages). Ton panneau Ultra affiche donc une nouvelle carte « Descentes » qui s’adapte à ton objectif : loin d’une course, 1 séance par semaine pour habituer tes jambes ; quand ta course approche (≤ 8 semaines), 1 à 2 séances selon ton dénivelé, avec le protocole exact (pente douce, 4-6 × 60-90 s en descente contrôlée, foulée courte, on ajoute une répétition par semaine) ; et à moins de 10 jours, elle te dit de STOPPER les descentes cassantes pour arriver frais — la protection est déjà acquise, on ne se blesse pas la veille. Un vrai coach de trail te prépare à encaisser le D-, pas seulement à grimper.' },
   { v: '2.0.222', emoji: '🧊', text: 'Ta muscu sait maintenant te dire QUAND lever le pied — comme un vrai coach de prépa. En regardant tes séries hebdomadaires par groupe musculaire sur les dernières semaines, l’app repère quand tu enchaînes la charge sans jamais souffler : après ~5 semaines dures d’affilée (le mésocycle classique des méthodes Renaissance Periodization / Israetel et Helms), une carte « 🧊 Décharge conseillée » apparaît dans ton bilan de séries et te propose une semaine de décharge — coupe le volume de 40 à 50 % (moins de séries, mêmes charges) sur 5-7 jours. Le corps ne progresse pas PENDANT l’effort mais pendant la récupération : cette semaine allégée te fait surcompenser et repartir plus fort, au lieu de stagner ou de te blesser. Et si ta forme du jour est basse (readiness faible) alors que tu accumules déjà de la fatigue, la décharge est proposée plus tôt. Une semaine légère que tu prends de toi-même remet le compteur à zéro : le conseil ne réapparaît que si tu repars vraiment dans le dur. Rien à cocher, aucune donnée en plus : juste le bon signal au bon moment.' },
@@ -6845,13 +6846,16 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // trainBalanceGuard ({ missing: 'run'|'strength', count } ou null) TOUJOURS renvoyé ; note APPENDUE à
   // l'insight, action (séance/charge/repos) intacte. Garde-fous cohérents avec les autres notes sport :
   // séance du jour pas déjà faite (!doneToday), pilier pas dormant (!reviveEligible → un micro-pas de
-  // reprise n'a pas à parler d'équilibre), forme du jour qui n'ordonne pas le repos (readiness null ou ≥ 50)
-  // et PAS en pic de charge (loadSpike null — « ajoute une séance » contredirait « allège »). Vocabulaire
+  // reprise n'a pas à parler d'équilibre), forme du jour qui n'ordonne pas le repos (readiness null ou ≥ 50),
+  // PAS en pic de charge (loadSpike null — « ajoute une séance » contredirait « allège ») ET forme qui NE
+  // GLISSE PAS (readinessSlide null — un jour où l'action dit « séance allégée aujourd'hui, soigne ta récup »
+  // ne doit pas nager à contre-courant en poussant « cale une sortie de course » ; même garde que sportSlot /
+  // sportZoneFocus depuis #585, ici propagée à la famille des notes d'équilibre/habitude). Vocabulaire
   // distinct (« l'équilibre de ta semaine », « tout-cardio/tout-muscu », « rééquilibrer ») — zéro collision
   // à l'œil ni en regex avec les notes readiness/charge/carburant sport. Réemploi total (weekTrainingBalance,
   // doneToday, readiness, loadSpike, reviveEligible) — zéro nouvelle fonction pure.
   let trainBalanceGuard = null;
-  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && readinessSlide == null
       && (readiness == null || readiness >= 50) && typeof weekTrainingBalance === 'function') {
     const recent = weekTrainingBalance(s.workouts, todayKey, 7);
     if (recent && recent.total >= 3 && (recent.runs === 0 || recent.strength === 0)) {
@@ -6884,7 +6888,8 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // ok:false), le coach NOMME le penchant et le côté à recharger, note APPENDUE à l'insight. Additif pur :
   // pushPullGuard ({ zone, push, pull, ratio } ou null) TOUJOURS renvoyé ; action intacte. Mêmes garde-fous
   // que sportZoneFocus (pilier sport, séance du jour pas faite, pas de ré-amorçage dormant, forme qui
-  // n'ordonne pas le repos, pas de pic de charge) — on ne charge un côté que quand une vraie séance est
+  // n'ordonne pas le repos, forme qui NE GLISSE PAS (readinessSlide null, cf. #585), pas de pic de charge)
+  // — on ne charge un côté que quand une vraie séance est
   // encouragée. Et SUBORDONNÉ à trainBalanceGuard (n'entre que si celui-ci est null) : inutile d'affiner la
   // balance poussée/tirage le jour où on dit déjà « cale carrément une séance de renfo » — le signal grossier
   // (manque total d'un côté de la modalité) prime sur le fin. Vocabulaire distinct (« balance poussée/tirage
@@ -6894,7 +6899,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Réemploi total (muscleBalance, pushPullAdvice, doneToday, reviveEligible, loadSpike, readiness) — zéro
   // nouvelle fonction pure.
   let pushPullGuard = null;
-  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && readinessSlide == null
       && (readiness == null || readiness >= 50) && trainBalanceGuard == null
       && typeof muscleBalance === 'function' && typeof pushPullAdvice === 'function') {
     const bal = muscleBalance(s.workouts, todayKey, 28);
@@ -7123,7 +7128,8 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // délaissée du mois et invite à la remettre au programme, note APPENDUE à l'insight. Additif pur :
   // sportNeglectGuard ({ zone, sets, mean } ou null) TOUJOURS renvoyé ; action intacte. Mêmes garde-fous que
   // sportZoneFocus (pilier sport, séance du jour pas faite, pas de ré-amorçage dormant, forme qui n'ordonne
-  // pas le repos, pas de pic de charge) — on ne réclame une zone en plus que quand une vraie séance est
+  // pas le repos, forme qui NE GLISSE PAS (readinessSlide null, cf. #585), pas de pic de charge) — on ne
+  // réclame une zone en plus que quand une vraie séance est
   // encouragée. SUBORDONNÉ à trainBalanceGuard ET pushPullGuard (n'entre que si les deux sont null) : une
   // seule note d'équilibre à la fois, la plus grossière d'abord (modalité > poussée/tirage > zone délaissée) ;
   // si le trou EST dans l'axe poussée/tirage (dos délaissé), pushPullGuard parle déjà, et cette note se
@@ -7135,7 +7141,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // « coiffe des rotateurs ») ni trainBalanceGuard (« tout-cardio », « rééquilibrer »). Réemploi total
   // (neglectedZoneReport, doneToday, reviveEligible, loadSpike, readiness) — zéro nouvelle fonction pure.
   let sportNeglectGuard = null;
-  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && readinessSlide == null
       && (readiness == null || readiness >= 50) && trainBalanceGuard == null && pushPullGuard == null
       && typeof neglectedZoneReport === 'function') {
     const nz = neglectedZoneReport(s.workouts, todayKey, 28);
@@ -7206,7 +7212,9 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // ({ weekday, count, total, pct } ou null) TOUJOURS renvoyé ; action du jour intacte. Garde-fous :
   // séance du jour PAS déjà faite (!doneToday — sinon l'habitude est déjà honorée, rien à rappeler), pas
   // de ré-amorçage dormant (!reviveEligible), pas de pic de charge (loadSpike == null), forme qui
-  // n'ordonne pas le repos (readiness == null || >= 50). EXIGE une VRAIE habitude, sinon « ton jour »
+  // n'ordonne pas le repos (readiness == null || >= 50) ET forme qui NE GLISSE PAS (readinessSlide null —
+  // « honore-le aujourd'hui » contredirait « séance allégée aujourd'hui, soigne ta récup » ; cf. #585).
+  // EXIGE une VRAIE habitude, sinon « ton jour »
   // serait du bruit : total >= 8 séances sur 8 sem (~1/sem, une base réelle), jour dominant vu >= 3 fois,
   // part >= 30 % des séances (le hasard sur 7 jours donnerait ~14 %) ET pic UNIQUE — pas d'ex æquo (qui
   // s'entraîne tous les jours n'a pas de jour fétiche). N'est PAS subordonné aux guards de zone/charge :
@@ -7216,7 +7224,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // sport. Réemploi total (trainingByWeekday, doneToday, reviveEligible, loadSpike, readiness) — zéro
   // nouvelle fonction pure.
   let sportHabitDay = null;
-  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && readinessSlide == null
       && (readiness == null || readiness >= 50) && typeof trainingByWeekday === 'function') {
     const wd = trainingByWeekday(s.workouts, todayKey, 56);
     if (wd && wd.total >= 8 && wd.bestCount >= 3) {
