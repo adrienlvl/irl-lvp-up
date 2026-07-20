@@ -2903,6 +2903,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.207', emoji: '🏅', text: 'Ton coach « Le focus du moment » ne t’empile plus deux ou trois trophées « une semaine complète » le même jour. Les jours de grande forme, il pouvait afficher coup sur coup « 🏅 Palier franchi : une semaine complète de journées pleines ! » PUIS « 🏆 Chaîne au sommet : ton habitude … atteint une semaine complète … un vrai palier » — deux médailles qui disaient la même « semaine » et se diluaient l’une l’autre. Désormais, une seule carotte de palier par jour : le jalon le plus englobant (la semaine de journées complètes) est mis en avant, les autres restent comptabilisés en coulisse mais ne répètent plus la phrase. Rien d’ajouté : une célébration plus nette, pas trois qui se marchent dessus.' },
   { v: '2.0.206', emoji: '🏃', text: 'Petit accord de français dans ton Bilan hebdo intelligent : les semaines où tu as couru moins de 2 km, l’app écrivait « 1 km courus » ou « 1,5 km courus » au pluriel. Elle accorde désormais au singulier (« 1 km couru — objectif atteint », « 1,5 km couru »), et garde le pluriel dès 2 km. Rien d’autre ne change.' },
   { v: '2.0.205', emoji: '⏱️', text: 'La suggestion de pause longue du minuteur de focus affiche le bon numéro de bloc. Toutes les quatre sessions de concentration, l’app te propose une vraie coupure — mais son message était figé sur « Quatrième bloc d’affilée », y compris à ta 8ᵉ ou 12ᵉ session de la journée. Désormais il annonce le vrai compte (« 8ᵉ bloc d’affilée — accorde-toi une vraie coupure : marche, mange, éloigne-toi de l’écran »). La pause courte et sa durée conseillée ne changent pas.' },
   { v: '2.0.204', emoji: '🧠', text: 'Ton coach « Le focus du moment » ne te pousse plus à « caler un vrai bloc de focus » un jour où, deux lignes plus haut, il vient de te dire de te reposer. Quand ta forme mentale est à plat le matin (readiness sous 50), il pose à juste titre un frein : « un cerveau fatigué ne produit pas un vrai bloc profond — un focus court et facile aujourd’hui, soigne ta récup » (ou, quand ton objectif de la semaine a de la marge, « un focus léger, ou même une vraie pause, suffit »). Mais l’action, elle, continuait de te lancer « Reprends ton chantier phare, enchaîne un bloc de 45 min » et « Créneau libre à telle heure — cale ton bloc là », et la relance de reprise ajoutait « repasse à un vrai bloc, pas juste 10 min » : trois invitations à pousser qui contredisaient de front le « repose-toi » d’à côté. Désormais, ces jours de tête à plat, ces poussées s’effacent — l’action retombe sur un bloc COURT (« lance une session de 25 min »), cohérent avec le frein — exactement comme le coach le fait déjà côté séance de sport. Les jours où ta forme n’est pas à plat, le chantier phare, le créneau et la vraie reprise reviennent normalement. Rien d’ajouté : trois contradictions de moins.' },
@@ -7328,6 +7329,16 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // actionnable qui transforme la fierté d'hier en objectif de demain. Réutilise STREAK_MILESTONES,
   // aucune nouvelle échelle. Additif pur : champ completeDayMilestone (valeur du palier franchi
   // aujourd'hui, ou null) TOUJOURS renvoyé ; le libellé s'ajoute à la note de série existante.
+  // UNE SEULE carotte de PALIER par jour (curation §3 — hiérarchisation). Le code applique déjà ce
+  // principe LOCALEMENT (streakRecordReach se tait « si streakMilestoneReach a déjà parlé »), mais les
+  // trois familles de jalons — journées complètes (completeDayMilestone), série du pilier
+  // (streakMilestoneReach/streakRecordReach) et habitude (habitMilestone) — s'ignoraient entre elles et
+  // pouvaient EMPILER deux/trois lignes 🏅/🏆 « une semaine complète… un vrai palier » le même jour
+  // (prouvé en rendu chargé §4 ter : completeDayMilestone 7 + habitMilestone 7). On étend donc le même
+  // « une carotte/jour » à toute la fonction, dans l'ordre du code (journées complètes → série pilier →
+  // habitude) : le premier jalon franchi parle, les suivants gardent leur CHAMP (télémétrie/tests
+  // inchangés) mais n'ajoutent plus la phrase redondante. Retirer une note en vaut deux.
+  let milestoneShown = false;
   let completeDayMilestone = null;
   if ((doneToday || tone === 'reinforce') && pillarsToday >= 2) {
     if (pillarsToday >= 3 && completeDayStreak >= 2) {
@@ -7339,6 +7350,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           : completeDayStreak === 30 ? 'un mois complet'
           : `${completeDayStreak} jours`;
         insight += ` 🏅 Palier franchi : ${palier} de journées pleines !`;
+        milestoneShown = true;
       } else if (typeof nextStreakMilestone === 'function') {
         const nm = nextStreakMilestone(completeDayStreak);
         if (nm && nm.remaining === 1) insight += ` Encore 1 jour pour franchir le palier des ${nm.milestone}. 🎯`;
@@ -7455,11 +7467,14 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           const nm = nextStreakMilestone(streak);
           if (nm && nm.remaining === 1) {
             streakMilestoneReach = nm.milestone;
-            const palier = nm.milestone === 7 ? 'le palier d’une semaine'
-              : nm.milestone === 14 ? 'le palier de deux semaines'
-              : nm.milestone === 30 ? 'le palier d’un mois'
-              : `le palier des ${nm.milestone} jours`;
-            insight += ` Et ce geste décroche ${palier} ! 🏅`;
+            if (!milestoneShown) {
+              const palier = nm.milestone === 7 ? 'le palier d’une semaine'
+                : nm.milestone === 14 ? 'le palier de deux semaines'
+                : nm.milestone === 30 ? 'le palier d’un mois'
+                : `le palier des ${nm.milestone} jours`;
+              insight += ` Et ce geste décroche ${palier} ! 🏅`;
+              milestoneShown = true;
+            }
           }
         }
         // RECORD PERSO de série — battre sa propre meilleure série est le levier le plus intime : le
@@ -7478,7 +7493,10 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           if (best >= 7) {
             if (streak >= best) {
               streakRecordReach = 'break';
-              insight += ` 🏆 Et là tu bats ton record perso sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} : jamais tu n’avais tenu autant de jours d’affilée.`;
+              if (!milestoneShown) {
+                insight += ` 🏆 Et là tu bats ton record perso sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} : jamais tu n’avais tenu autant de jours d’affilée.`;
+                milestoneShown = true;
+              }
             } else if (best - streak <= 3) {
               streakRecordReach = 'near';
               const reste = best - streak;
@@ -7609,9 +7627,12 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     if (reached.length) {
       const top = reached.reduce((a, b) => (b.streak > a.streak ? b : a));
       habitMilestone = { name: top.name, streak: top.streak };
-      const named = { 7: 'une semaine complète', 14: 'deux semaines pleines', 30: 'un mois entier', 60: 'deux mois', 100: 'cent jours', 180: 'six mois', 365: 'une année entière' }[top.streak];
-      const label = named ? `${named} (${top.streak} jours consécutifs)` : `${top.streak} jours consécutifs`;
-      insight += ` 🏆 Chaîne au sommet : ton habitude « ${top.name} » atteint ${label} aujourd’hui — un vrai palier, l’automatisme s’installe. Savoure et enchaîne le prochain maillon.`;
+      if (!milestoneShown) {
+        const named = { 7: 'une semaine complète', 14: 'deux semaines pleines', 30: 'un mois entier', 60: 'deux mois', 100: 'cent jours', 180: 'six mois', 365: 'une année entière' }[top.streak];
+        const label = named ? `${named} (${top.streak} jours consécutifs)` : `${top.streak} jours consécutifs`;
+        insight += ` 🏆 Chaîne au sommet : ton habitude « ${top.name} » atteint ${label} aujourd’hui — un vrai palier, l’automatisme s’installe. Savoure et enchaîne le prochain maillon.`;
+        milestoneShown = true;
+      }
     }
   }
   if (rotated) insight += ' On varie les angles aujourd’hui.';

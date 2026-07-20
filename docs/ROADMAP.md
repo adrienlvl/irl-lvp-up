@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.206 (2026-07-20)
+## 📍 État actuel — build 2.0.207 (2026-07-20)
+
+> 🏅 **#591 — Coach : une seule carotte de palier par jour (fin de l'empilement « une semaine »)
+> (domaine `coach`, build 2.0.207).** Rotation §4 bis : 5 derniers domaines = `athlete · focus · coach ·
+> athlete · docs` (#590→#586) → `coach` **1×** (#588, hors des 2 derniers `athlete`/`focus`) **autorisé**
+> → priorité de nuit #1 (coaching **en QUALITÉ**, §3) et rotation **convergent**. **Angle NEUF** désigné
+> par le mémo `coach-leads-contradictions-2guards` (familles insight↔action closes SPORT #585 + FOCUS
+> #588) : les milestones « une semaine » **empilables le même jour**, jamais traités. Défaut **prouvé en
+> rendu chargé §4 ter** (`/tmp/coachrender.cjs`, 4 piliers × 7 j + habitude à 7 j) : `completeDayMilestone`
+> (« 🏅 Palier franchi : **une semaine complète** de journées pleines ! ») ET `habitMilestone` (« 🏆 Chaîne
+> au sommet : … **une semaine complète** … **un vrai palier** ») s'affichaient côte à côte — deux médailles
+> pour la **même semaine**. Fix **curation §3, aucune note ajoutée** : on **étend** le principe « une seule
+> carotte bonus/jour » **déjà présent localement** (streakRecordReach se tait si streakMilestoneReach a
+> parlé) à toute la fonction via un drapeau `milestoneShown`, dans l'ordre du code = priorité (journées
+> complètes → série pilier → habitude). Chaque famille **garde son CHAMP** (tests/télémétrie inchangés) ;
+> seule la **phrase** redondante est tue. Chirurgical : `streakRecordReach` 'near' (nudge factuel) reste
+> intact. §4 ter : rendu cumulé relu → 1 seule ligne trophée, 1 seule « une semaine complète ». Non-rég :
+> les tests isolent chaque milestone → drapeau `false` chez eux. +1 test + check smoke `coachFocus` étendu
+> (`fBothMile`). 538 tests + smoke verts. Recap #591. _Domaine : coach._
 
 > 🏃 **#590 — Bilan hebdo : « km couru(s) » accordé au singulier sous 2 km (domaine `athlete`,
 > build 2.0.206).** Rotation §4 bis : 5 derniers domaines = `focus · coach · etudes · docs · coach`

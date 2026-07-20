@@ -642,7 +642,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.206'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.207'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1335,6 +1335,9 @@ app.whenReady().then(async () => {
           if (!(fHabitDone.habitMilestone === null && !/Cha[îi]ne au sommet/.test(fHabitDone.insight))) return false;
           // Habitude pas cochée aujourd'hui → habitMilestone muet (c'est habitAtRisk qui parle).
           if (fHabit.habitMilestone !== null) return false;
+          // Coordination « une SEULE carotte de palier / jour » : palier de journées complètes (7) ET habitude au palier (7) le même jour → seul le palier englobant parle, le champ habitMilestone reste renseigné (télémétrie), la 2ᵉ ligne 🏆 « Chaîne au sommet » est tue.
+          const fBothMile = adaptiveCoachFocus({ workouts: wkDays.map(d => ({ date: d, duration: 45 })), focusSessions: wkDays.map(d => ({ date: d, minutes: 30, task: 'X' })), recovery: wkDays.map(d => ({ date: d, sleep: 7 })), nutrition: wkDays.map(d => ({ date: d, protein: 100 })), habits: [{ id: 1, name: 'Lecture', log: wkDays }] }, '2026-07-16');
+          if (!(fBothMile.completeDayMilestone === 7 && fBothMile.habitMilestone && fBothMile.habitMilestone.streak === 7 && /Palier franchi : une semaine complète/.test(fBothMile.insight) && !/Cha[îi]ne au sommet/.test(fBothMile.insight))) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
           const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };
