@@ -2585,6 +2585,44 @@ test('examCountdown : J-XX vers la date d’examen', () => {
   assert.equal(L.examCountdown({ date: '' }, '2026-07-10'), null, 'pas de date → null');
   assert.equal(L.examCountdown(null, '2026-07-10'), null);
 });
+test('normalizeExamGoal : coercion, bornes, id stable', () => {
+  const g = L.normalizeExamGoal({ title: '  BTS CG — Droit  ', subject: ' Droit ', date: '2026-06-15' });
+  assert.deepEqual(g, { id: 'exam-2026-06-15', subject: 'Droit', title: 'BTS CG — Droit', date: '2026-06-15' });
+  assert.equal(L.normalizeExamGoal({ date: 'pas-une-date' }).date, '', 'date invalide → vide');
+  assert.equal(L.normalizeExamGoal({ id: '  x9 ', title: 'T', date: '2026-01-02' }).id, 'x9', 'id fourni conservé + trim');
+  assert.equal(L.normalizeExamGoal({ title: 'Compta générale' }).id, 'exam-compta-generale', 'sans date → id slug du titre');
+  assert.deepEqual(L.normalizeExamGoal(null), { id: '', subject: '', title: '', date: '' });
+  assert.deepEqual(L.normalizeExamGoal([1, 2]), { id: '', subject: '', title: '', date: '' }, 'tableau → objet vide');
+});
+test('normalizeExamGoals : migration rétro-compatible examGoal → examGoals[]', () => {
+  // état neuf (examGoal par défaut vide) → []
+  assert.deepEqual(L.normalizeExamGoals({ examGoal: { title: '', date: '' } }), [], 'neuf → liste vide');
+  assert.deepEqual(L.normalizeExamGoals({}), [], 'rien → liste vide');
+  assert.deepEqual(L.normalizeExamGoals(null), [], 'null → liste vide');
+  // legacy unique → premier (et seul) élément, sans perte
+  const migrated = L.normalizeExamGoals({ examGoal: { title: 'BTS CG', date: '2026-06-15' } });
+  assert.deepEqual(migrated, [{ id: 'exam-2026-06-15', subject: '', title: 'BTS CG', date: '2026-06-15' }]);
+  // examGoals déjà présent → utilisé, legacy ignoré, entrées invalides écartées
+  const multi = L.normalizeExamGoals({
+    examGoal: { title: 'Vieux', date: '2020-01-01' },
+    examGoals: [
+      { id: 'a', subject: 'Droit', title: 'Épreuve 1', date: '2026-06-15' },
+      { title: '', date: '' },           // vide → écartée
+      { subject: 'Compta', title: 'Épreuve 2', date: '2026-06-18' },
+    ],
+  });
+  assert.equal(multi.length, 2, 'legacy ignoré + entrée vide écartée');
+  assert.deepEqual(multi[0], { id: 'a', subject: 'Droit', title: 'Épreuve 1', date: '2026-06-15' });
+  assert.equal(multi[1].id, 'exam-2026-06-18');
+  // dédoublonnage par id
+  const dup = L.normalizeExamGoals({ examGoals: [
+    { id: 'x', title: 'A', date: '2026-06-15' },
+    { id: 'x', title: 'B', date: '2026-06-16' },
+  ] });
+  assert.equal(dup.length, 1, 'même id → dédoublonné');
+  // examGoals non tableau → retombe sur legacy
+  assert.equal(L.normalizeExamGoals({ examGoals: 'oops', examGoal: { title: 'T', date: '2026-06-15' } }).length, 1);
+});
 test('studyPacing : rythme de révision vers l’examen', () => {
   const exam = { title: 'BTS CG', date: '2026-08-10' }; // J-28 depuis le 13/07
   // 5 révisions planifiées : 2 faites, 3 à venir → 3 restantes sur 4 semaines → 1/sem → tranquille

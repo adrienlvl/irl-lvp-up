@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.184 (2026-07-20)
 
+> 🎓 **#555 — P6.1 : le modèle multi-épreuves `examGoals[]` + sa migration (domaine `etudes`, pas de
+> bump).** Le coach étant le **dernier** domaine joué (#554), la rotation §4 bis l'interdit cette
+> boucle (et §3 dit que la rotation prime, même sur la demande de nuit) : j'ai donc servi la 2ᵉ
+> demande d'Adrien — **avancer la roadmap CAP 3.0** — avec la tâche nommée **P6.1** (⭐ « le plus
+> utile à Adrien », son BTS CG). `examGoal` était un **objet unique** que le formulaire de planning
+> **écrasait** à chaque envoi → impossible de suivre Droit et Compta à deux dates. Deux fonctions
+> **pures + testées** dans `logic.js` : `normalizeExamGoal` (`{id,subject,title,date}`, `subject`
+> texte libre, id stable `exam-<date>`/slug sans accents) et `normalizeExamGoals(state)` (migration
+> **rétro-compatible** : l'ancien `examGoal` unique devient le **premier élément sans perte** ; état
+> neuf → `[]` ; dédoublonnage par id). Câblage minimal : `examGoals: []` aux defaults +
+> `normalizeState` l'alimente, **`examGoal` toujours lu** pour compat. **Aucun consommateur porté**
+> (P6.2) ni UI (P6.3) → aucun effet utilisateur → **pas de bump** (§2.6). 522 tests + smoke verts.
+> Recap #555. _Domaine : etudes._
+
 > 📅 **2.0.184** — Coaching adaptatif poussé à fond (priorité de la nuit) : le coach connaît enfin
 > **TON JOUR d'entraînement** (`sportHabitDay`) — le **QUAND**, un axe jamais lu. Tous les guards sport
 > parlaient de CHARGE (`loadSpike`), de MODALITÉ (`trainBalanceGuard`), de ZONES (`pushPullGuard` /
@@ -299,13 +313,12 @@ Aujourd'hui `examGoal` est un **objet unique** et le formulaire de planning **é
 précédente** (`app.js:872`, affectation directe) : impossible de suivre Droit et Compta à deux dates.
 **Une étape par boucle**, chacune verte, dans cet ordre :
 
-- [ ] **P6.1 — Le modèle + la migration** _(logique pure, aucun risque renderer)_ : `examGoals: []`
-      de `{id, subject, title, date}` dans `defaults`, et migration **rétro-compatible** dans
-      `normalizeState` (l'ancien `examGoal` unique devient le **premier élément**, sans perte).
-      **Teste la migration EN PREMIER** : un utilisateur avec un examen unique doit continuer à
-      fonctionner **à l'identique**. `examGoal` reste lu pour compatibilité.
-      ❗ `subject` en **texte libre** — n'invente **aucune** matière BTS ni **aucune** date : Adrien
-      ne les a pas données, et `studyBySubject` (`logic.js:1750`) déduit déjà la matière du titre.
+- [x] **P6.1 — Le modèle + la migration** ✅ _fait #555 — logique pure testée, pas de bump_ :
+      `normalizeExamGoal` + `normalizeExamGoals(state)` dans `logic.js` (exportées), `examGoals: []`
+      aux `defaults`, alimenté par `normalizeState` — migration **rétro-compatible** (ancien
+      `examGoal` unique → premier élément sans perte ; état neuf → `[]`), `examGoal` **toujours lu**
+      pour compat. Migration testée en premier. Aucun consommateur porté (→ P6.2), aucune UI (→ P6.3).
+      ❗ `subject` en **texte libre** — aucune matière BTS ni date inventée.
 - [ ] **P6.2 — Porter les consommateurs** (6, un ou deux par boucle, avec leurs tests) :
       `examCountdown` (`logic.js:1770`), `examReminderDue` (`:1778`), `studyPacing` (`:1789`),
       `upcomingKeyDates` (`:1702`), `keyDateMarkers` (`:1729`), le coach (`:4922`). Règle simple :
