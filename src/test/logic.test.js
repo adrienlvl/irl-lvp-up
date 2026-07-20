@@ -11597,3 +11597,69 @@ test('weightForecastModel : échelle Y priorise le RÉEL pour qu’il soit lisib
   assert.equal(L.weightForecastModel(zPlan, zAct).current.value, zAct[zAct.length - 1].value, 'current exposé même sans zoom');
 });
 
+// coachDayPriority (#606, B.1) : arbitrage transversal entre « À rattraper » et « Le focus du moment ».
+test('coachDayPriority : date invalide → structure vide', () => {
+  const r = L.coachDayPriority({}, 'pas-une-date');
+  assert.deepEqual(r, { primary: null, deduped: [], defer: null, reframed: false });
+});
+
+test('coachDayPriority : le focus proactif devient la priorité n°1, pilier préservé (non-régression coachLog)', () => {
+  const focus = { pillar: 'sport', label: 'Entraînement', emoji: '🏋️', page: 'athlete', tone: 'reinforce', headline: 'Ton entraînement monte en régime', insight: '3 jours actifs cette semaine, en hausse.', action: 'Encore un jour actif.' };
+  const digest = [{ key: 'habits', emoji: '🔥', text: '1 habitude à relancer', page: 'dashboard', sev: 'med' }];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.equal(r.reframed, false);
+  assert.equal(r.primary.source, 'focus');
+  assert.equal(r.primary.pillar, 'sport', 'le pilier du focus est intact — coachLog reste la source de vérité');
+  assert.equal(r.primary.headline, focus.headline);
+  assert.equal(r.deduped.length, 1, 'un digest sur un autre pilier reste visible');
+  assert.equal(r.defer, null);
+});
+
+test('coachDayPriority : dédoublonne l’item digest déjà porté par le focus (même pilier)', () => {
+  const focus = { pillar: 'sport', label: 'Entraînement', emoji: '🏋️', page: 'athlete', tone: 'reinforce', headline: 'Ton entraînement monte en régime', insight: 'x', action: 'y' };
+  const digest = [
+    { key: 'sport', emoji: '🏋️', text: '2 séances non faites récemment', page: 'athlete', sev: 'med' },
+    { key: 'study', emoji: '📕', text: '1 révision en retard', page: 'calendar', sev: 'med' },
+  ];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.ok(!r.deduped.some(d => d.key === 'sport'), 'le sport est déjà porté par le focus → retiré du digest');
+  assert.ok(r.deduped.some(d => d.key === 'study'), 'les autres piliers restent');
+  assert.equal(r.deduped.length, 1);
+});
+
+test('coachDayPriority : la santé (forme basse) prime sur un focus sport de momentum + report assumé', () => {
+  const focus = { pillar: 'sport', label: 'Entraînement', emoji: '🏋️', page: 'athlete', tone: 'rebuild', headline: 'Ton entraînement s’essouffle', insight: 'x', action: 'Programme une séance.' };
+  const digest = [
+    { key: 'readiness', emoji: '😴', text: 'Forme basse (42/100) — allège aujourd’hui', page: 'athlete', sev: 'high' },
+    { key: 'sport', emoji: '🏋️', text: '1 séance non faite', page: 'athlete', sev: 'med' },
+  ];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.equal(r.reframed, true, 'tension santé↔momentum reconnue');
+  assert.equal(r.primary.source, 'health');
+  assert.ok(/récup/i.test(r.primary.headline), 'la n°1 recadre vers la récupération');
+  assert.ok(r.defer && r.defer.pillar === 'sport', 'le focus sport est assumé comme reporté (defer)');
+  assert.ok(!r.deduped.some(d => d.key === 'readiness'), 'la forme basse est promue en n°1 → plus dans le digest');
+  assert.ok(!r.deduped.some(d => d.key === 'sport'), 'la séance manquée aussi retirée (cohérent avec le repos)');
+});
+
+test('coachDayPriority : pas de focus → la n°1 est l’item réactif le plus grave, retiré du digest', () => {
+  const digest = [
+    { key: 'exam', emoji: '📚', text: 'Examen dans 3 j', page: 'calendar', sev: 'high' },
+    { key: 'habits', emoji: '🔥', text: '1 habitude à relancer', page: 'dashboard', sev: 'med' },
+  ];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus: null, digest });
+  assert.equal(r.primary.source, 'digest');
+  assert.equal(r.primary.headline, 'Examen dans 3 j');
+  assert.ok(!r.deduped.some(d => d.key === 'exam'), 'l’item promu n’est plus doublé dans « À rattraper »');
+  assert.equal(r.deduped.length, 1);
+});
+
+test('coachDayPriority : focus alternance (priorité absolue) passe intact, jamais recadré par la forme', () => {
+  const focus = { pillar: 'alternance', label: 'Alternance', emoji: '💼', page: 'alternance', tone: 'urgent', headline: 'Postule aujourd’hui pour ton alternance', insight: 'x', action: 'Ajoute une candidature.' };
+  const digest = [{ key: 'readiness', emoji: '😴', text: 'Forme basse (40/100) — allège', page: 'athlete', sev: 'high' }];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.equal(r.reframed, false, 'l’alternance n’est pas un momentum sport → pas de recadrage santé');
+  assert.equal(r.primary.pillar, 'alternance');
+  assert.ok(r.deduped.some(d => d.key === 'readiness'), 'la forme basse reste visible dans « À rattraper »');
+});
+

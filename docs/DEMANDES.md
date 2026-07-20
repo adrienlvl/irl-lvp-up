@@ -9,13 +9,22 @@
 
 ## À traiter
 
-- Ta l’autorisation pour Coach Priority _(ajouté le 2026-07-20 22:31 via le terminal)_
-
 - PRIORITÉ DE LA NUIT (passe AVANT la demande roadmap/Fondations) : pousse le Coaching adaptatif À FOND (CAP 3.0, étape 1). Toute la nuit, consacre chaque itération à enrichir et APPROFONDIR le coaching adaptatif : conseils vraiment personnalisés à partir des données réelles déjà saisies (entraînement, sommeil, nutrition, poids, habitudes, readiness, adhérence), adaptation dynamique aux progrès ET aux écarts, recommandation concrète et actionnable du jour, priorisation intelligente (quoi faire en premier aujourd’hui), ton RPG motivant cohérent avec l’existant. Vise la PROFONDEUR et la valeur réelle, pas des libellés : chaque itération doit ajouter une capacité de coaching neuve ou nettement plus fine, avec logique pure testée + checks smoke bloquants, verify 100% vert avant chaque commit, sans rien casser ni supprimer. Documente chaque avancée (recap + « État actuel » de ROADMAP). Continue tant qu’il reste des améliorations utiles ; si tu es à court d’idées à forte valeur, écris-les dans docs/proposals/ plutôt que d’inventer du remplissage. _(ajouté le 2026-07-18 22:25 via le terminal)_
 
 - Fais activement AVANCER la roadmap (docs/ROADMAP.md, CAP 3.0), pas seulement du polish 2.0.x. À chaque itération : repère la prochaine étape non terminée de la roadmap (actuellement Vague 2 « Fondations techniques » : IndexedDB, architecture), fais-la progresser d’UN pas concret et sûr (verify 100% vert), puis tiens à jour l’en-tête « État actuel » ET les cases correspondantes de docs/ROADMAP.md. Si l’étape est un gros chantier qui engage un choix structurant (schéma de données, migration), écris d’abord une proposition dans docs/proposals/ (problème, options, reco, risques) et signale-la ici, tout en avançant les sous-étapes sûres en attendant mon feu vert. Continue d’alterner avec un peu de robustesse/tests pour garder l’app stable. _(ajouté le 2026-07-18 22:22 via le terminal)_
 
 ## En cours
+
+- **Coach Priority — « La priorité du jour » (feu vert donné le 2026-07-20 22:31 : « T'as
+  l'autorisation pour Coach Priority »).** Périmètre **B** de la proposition #602
+  (`docs/proposals/coach-priorite-du-jour-integree.md`) : une couche pure d'arbitrage/dédup entre les
+  deux surfaces coach du dashboard, en curation §3 (zéro champ ajouté). Réalisé en étapes autonomes :
+  - [x] **B.1** — fonction pure `coachDayPriority(state, todayKey, opts)` + 6 tests (dédup, tension
+        santé↔momentum, alternance intacte, non-régression `coachLog`). Pas de bump (pur, non branché).
+        Boucle #606 (2026-07-20). Recap : `docs/recaps/606-coach-day-priority-b1.md`.
+  - [ ] **B.2** — branchement au rendu (`renderCoachFocus` → `primary`, `renderAttention` → `deduped`),
+        check smoke bloquant + contrôle §4 ter (rendu **cumulé** relu sur état chargé). Bump ici.
+  - [ ] **B.3** — affinage du `defer` (affichage éventuel, seuils) selon décisions 3/4 restées ouvertes.
 
 - **Avancer CAP 3.0 — 2 propositions écrites (chantiers 3 & 4), en attente de tes décisions.** Le code
   autonome du Cap 3.0 est épuisé (P6 multi-examens et P7 parcours smoke clos ; IndexedDB réservé au

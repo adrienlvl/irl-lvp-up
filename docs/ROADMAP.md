@@ -25,6 +25,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.220 (2026-07-20)
 
+> 🧭 **#606 — Coach « La priorité du jour » B.1 : le modèle pur `coachDayPriority` (logique + tests,
+> pas de bump).** Feu vert d'Adrien (`DEMANDES.md` : « T'as l'autorisation pour Coach Priority ») sur le
+> **périmètre B** de la proposition #602. Nouvelle **fonction pure** qui réconcilie `attentionDigest`
+> (réactif) et `adaptiveCoachFocus` (proactif) **sans ajouter aucun champ** (curation §3) : `primary`
+> (l'action **n°1 du jour**), `deduped` (« À rattraper » sans le doublon du focus/de la n°1), `defer`
+> (le focus reporté quand la santé prime), `reframed`. **Arbitrage** : une **forme basse** (readiness
+> `high`) prime sur un focus proactif « pousse une séance » (sport) et recadre vers la récupération ;
+> l'**alternance** passe **intacte**. **Non-régression** : display-only, `coachLog` reste alimenté par
+> `adaptiveCoachFocus` (taux de suivi non faussé). 6 tests neufs, 558 tests + smoke vert. Pas de bump
+> (pur, non branché). Suite : **B.2** = branchement au rendu + smoke bloquant + contrôle §4 ter (bump
+> là). Recap #606. _Domaine : coach._
+>
 > ⚖️ **#605 — Coach Poids : rythme & durée cohérents entre le plan et le conseil (build 2.0.220).**
 > L'écran Coach Poids rendait côte à côte `energyPlan` (rythme personnalisé par corpulence 0,5–0,9 %/sem,
 > Garthe 2011 / Aragon 2017) et `weightTargetAdvice` (resté à **0,6 %/sem fixe**) → durée estimée
