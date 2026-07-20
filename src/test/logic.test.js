@@ -5973,7 +5973,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.229');
+  assert.equal(L.CHANGELOG[0].v, '2.0.230');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8010,6 +8010,41 @@ test('attentionDigest : agrège ce qui a besoin d’attention, trié par gravit�
   assert.deepEqual(L.attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [] }, today), []);
   // date invalide → []
   assert.deepEqual(L.attentionDigest(state, 'nope'), []);
+});
+
+test('attentionDigest : sommeil URGENT (court + irrégulier) remonte même si readiness ≥ 50', () => {
+  const today = '2026-07-21';
+  // Sommeil court ET coucher en dents de scie (22 h ↔ 4 h) → sleepCoachInsight tone 'urgent',
+  // mais readiness du jour reste ≥ 50 (HRV/courbatures OK) → l'alerte forme-basse ne se déclenche pas.
+  const recovery = [
+    { date: '2026-07-16', sleep: 5.0, bedtime: '04:10', energy: 3, hrv: 60, soreness: 2 },
+    { date: '2026-07-17', sleep: 7.5, bedtime: '22:20', energy: 4, hrv: 65, soreness: 1 },
+    { date: '2026-07-18', sleep: 4.5, bedtime: '03:50', energy: 3, hrv: 62, soreness: 2 },
+    { date: '2026-07-19', sleep: 6.0, bedtime: '23:10', energy: 3, hrv: 60, soreness: 2 },
+    { date: '2026-07-20', sleep: 4.8, bedtime: '04:30', energy: 3, hrv: 61, soreness: 2 },
+    { date: today, sleep: 5.2, bedtime: '02:40', energy: 3, hrv: 60, soreness: 2 },
+  ];
+  const sci = L.sleepCoachInsight(recovery, today);
+  assert.equal(sci.tone, 'urgent');
+  const rs = L.readinessScore(recovery[recovery.length - 1]);
+  assert.ok(rs && rs.score >= 50, 'readiness reste ≥ 50 → l’alerte forme-basse ne couvre PAS ce cas');
+  const base = { recovery, agenda: [], workouts: [], habits: [] };
+  const d = L.attentionDigest(base, today);
+  const r = d.find(i => i.key === 'readiness');
+  assert.ok(r && r.sev === 'high' && r.page === 'athlete' && /[Ss]ommeil/.test(r.text), 'sommeil urgent remonté en high');
+  // Sommeil correct → aucune alerte readiness (pas de faux positif).
+  const okNights = [
+    { date: '2026-07-18', sleep: 7.6, bedtime: '23:00', fatigue: 1, soreness: 1 },
+    { date: '2026-07-19', sleep: 7.8, bedtime: '23:05', fatigue: 1, soreness: 1 },
+    { date: '2026-07-20', sleep: 7.5, bedtime: '22:55', fatigue: 1, soreness: 1 },
+    { date: today, sleep: 7.7, bedtime: '23:10', fatigue: 1, soreness: 1 },
+  ];
+  assert.ok(!L.attentionDigest({ recovery: okNights, agenda: [], workouts: [], habits: [] }, today).some(i => i.key === 'readiness'));
+  // Forme basse ET sommeil urgent le MÊME jour → une SEULE alerte readiness (celle de la forme basse), pas deux.
+  const lowRs = recovery.map(x => x.date === today ? { ...x, sleep: 4, fatigue: 5, soreness: 5 } : x);
+  const dd = L.attentionDigest({ recovery: lowRs, agenda: [], workouts: [], habits: [] }, today).filter(i => i.key === 'readiness');
+  assert.equal(dd.length, 1);
+  assert.ok(/Forme basse/.test(dd[0].text));
 });
 
 test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/ton', () => {

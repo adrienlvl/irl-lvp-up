@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.229 (2026-07-21)
+## 📍 État actuel — build 2.0.230 (2026-07-21)
 
+> 🌙 **#618 — « À rattraper » remonte enfin un sommeil URGENT invisible ailleurs (build 2.0.230).**
+> Priorité de nuit coaching (§3 qualité). Rotation OK avant de coder (`coach` absent des 2 derniers
+> recaps, 1× sur 5 ; candidat mémoire « milestones redondants » vérifié CLOS #558). Manque prouvé par
+> mesure (§4 ter) : un sommeil `urgent` (court **ET** coucher irrégulier → `sleepCoachInsight.tone`,
+> le pattern « endormissement 6 h » d'Adrien) avec readiness ≥ 50 et **alternance dominant le focus**
+> (cas normal chaque matin) était **totalement absent du dashboard** — `attentionDigest` vide (porte
+> readiness < 50 fermée), focus = alternance, `coachDayPriority` muet ; le signal santé n°1 ne vivait
+> QUE dans l'onglet Récupération. Correctif §3 (hiérarchisation, « faire remonter l'urgent ») : branche
+> `else` dans `attentionDigest` → item `🌙 Sommeil déréglé` (`key:'readiness'`, high). **Même clé** →
+> dédupliqué contre le focus sommeil (n'apparaît QUE quand le focus est ailleurs, jamais en doublon) ;
+> `else` → au plus **une** alerte readiness/jour. §4 ter relu (alternance dominante : Focus « Postule »
+> + « 🌙 Sommeil déréglé », cohérent ; postulé du jour : focus sommeil, item dédupliqué). +1 test, volet
+> smoke bloquant ajouté. 565 tests + smoke vert. Recap #618. _Domaine : coach._
+>
 > 📚 **#617 — Plan de révision : deux matières au même créneau ne s'écrasent plus (build 2.0.229).**
 > Domaine `etudes` (frais ; `coach`/`sommeil` bloqués par la rotation §4 bis — la priorité de nuit
 > coaching tombe sous §3 qui soumet `coach` à la rotation comme les autres). Défaut prouvé :

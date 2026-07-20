@@ -81,9 +81,24 @@ app.whenReady().then(async () => {
           const today = (typeof localDate === 'function') ? localDate() : '2026-07-15';
           const dm = (() => { const x = new Date(today + 'T12:00:00'); x.setDate(x.getDate() + 1); return { day: x.getDate(), month: x.getMonth() + 1 }; })();
           const bd = attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [], birthdays: [{ id: 1, name: 'Léa', day: dm.day, month: dm.month }] }, today);
+          // Sommeil URGENT (court + coucher en dents de scie) remonte en 'readiness' high même quand
+          // readiness ≥ 50 (le n°1 santé d'Adrien n'est plus invisible hors onglet Récupération).
+          const urgentSleep = { recovery: [
+            { date: '2026-07-16', sleep: 5.0, bedtime: '04:10', energy: 3, hrv: 60, soreness: 2 },
+            { date: '2026-07-17', sleep: 7.5, bedtime: '22:20', energy: 4, hrv: 65, soreness: 1 },
+            { date: '2026-07-18', sleep: 4.5, bedtime: '03:50', energy: 3, hrv: 62, soreness: 2 },
+            { date: '2026-07-19', sleep: 6.0, bedtime: '23:10', energy: 3, hrv: 60, soreness: 2 },
+            { date: '2026-07-20', sleep: 4.8, bedtime: '04:30', energy: 3, hrv: 61, soreness: 2 },
+            { date: '2026-07-21', sleep: 5.2, bedtime: '02:40', energy: 3, hrv: 60, soreness: 2 },
+          ], agenda: [], workouts: [], habits: [] };
+          const us = attentionDigest(urgentSleep, '2026-07-21');
+          const usR = us.find(i => i.key === 'readiness');
+          const sleepUrgentSurfaces = !!(usR && usR.sev === 'high' && /[Ss]ommeil/.test(usR.text))
+            && us.filter(i => i.key === 'readiness').length === 1;
           return keys.includes('exam') && keys.includes('study') && keys.indexOf('exam') < keys.indexOf('study')
             && d.every(i => i.emoji && i.text && i.page && i.sev)
             && bd.some(i => i.key === 'birthday' && i.page === 'agenda' && /Léa/.test(i.text))
+            && sleepUrgentSurfaces
             && attentionDigest({ recovery: [], agenda: [], workouts: [], habits: [] }, '2026-07-15').length === 0;
         })(),
         digestBackup: typeof attentionDigest === 'function' && ('lastBackup' in state) && (() => {
@@ -706,7 +721,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.229'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.230'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
