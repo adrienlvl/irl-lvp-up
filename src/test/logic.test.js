@@ -5554,7 +5554,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.189');
+  assert.equal(L.CHANGELOG[0].v, '2.0.190');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8075,6 +8075,35 @@ test('adaptiveCoachFocus : le crédit de suivi (reinforce) n’écrase pas l’a
   assert.equal(green.tone, 'reinforce');
   assert.equal(green.readiness, 100);
   assert.match(green.action, /jour actif de plus/, 'hors état « lève le pied » : le renfort reste');
+});
+
+test('adaptiveCoachFocus : le crédit de suivi (reinforce) n’écrase pas l’action d’un pilier NON-sport', () => {
+  const today = '2026-07-16';
+  // Sommeil en HAUSSE (5 nuits cette semaine vs 2 la précédente → tone reinforce, pilier sommeil) et
+  // suivi élevé des caps (coachLog sommeil ×3 tous honorés → followThrough 100 %). Le crédit du suivi
+  // réécrivait l’action en « Un jour actif de plus aujourd’hui… » — une saveur SPORTIVE qui n’a aucun
+  // sens pour le sommeil (une nuit ne se « fait » pas dans la journée) et écrasait l’action riche
+  // pilier-spécifique « Vise un coucher 30 min plus tôt ce soir ». On borne désormais l’écrasement au
+  // pilier sport : hors sport, l’action pilier reste, le crédit demeure dans l’insight.
+  const recovery = [
+    { date: '2026-07-03', sleep: 7 }, { date: '2026-07-04', sleep: 7 },
+    { date: '2026-07-10', sleep: 8, bedtime: '23:30' }, { date: '2026-07-11', sleep: 8, bedtime: '23:20' },
+    { date: '2026-07-12', sleep: 8, bedtime: '23:10' }, { date: '2026-07-13', sleep: 8, bedtime: '23:05' },
+    { date: '2026-07-14', sleep: 8, bedtime: '23:00' }, { date: '2026-07-15', sleep: 8, bedtime: '22:50' },
+  ];
+  const coachLog = [
+    { date: '2026-07-13', pillar: 'sommeil' },
+    { date: '2026-07-14', pillar: 'sommeil' },
+    { date: '2026-07-15', pillar: 'sommeil' },
+  ];
+  const sleep = L.adaptiveCoachFocus({ recovery, coachLog }, today);
+  assert.equal(sleep.pillar, 'sommeil');
+  assert.equal(sleep.tone, 'reinforce');
+  assert.equal(sleep.rotated, false);
+  assert.equal(sleep.followThrough, 100, 'le suivi est bien crédité');
+  assert.match(sleep.insight, /Tu as tenu 3\/3 de mes caps/, 'crédit du suivi conservé dans l’insight');
+  assert.match(sleep.action, /coucher 30 min plus tôt/, 'l’action pilier sommeil reste');
+  assert.doesNotMatch(sleep.action, /jour actif de plus/, 'plus de slogan sportif sur un pilier sommeil');
 });
 
 test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du jour', () => {

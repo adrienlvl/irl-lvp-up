@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.189 (2026-07-20)
+## 📍 État actuel — build 2.0.190 (2026-07-20)
+
+> 🌙 **#567 — Coach : le crédit de suivi n'écrase plus l'action d'un pilier NON-sport (domaine
+> `coach`, build 2.0.190).** Rotation §4 bis : les 5 derniers domaines = `a11y · etudes · coach · tests ·
+> etudes` → `coach` (priorité de nuit) **absent des 2 derniers** (#566 a11y, #565 etudes) et **1×** dans
+> les 5 → **autorisé** ; priorité de nuit (coaching à fond) et rotation convergent. Piste vérifiée #561
+> (mémoire `coach-leads-contradictions-2guards`). Depuis #561, le crédit de suivi (`reinforce` + `coachFollowThrough
+> ≥ 70 %`) ne réécrivait l'action « Un jour actif de plus… » que si le SPORT ne devait pas lever le pied —
+> mais `sportEaseToday` exige `pillar === 'sport'`, donc pour les piliers **non-sport** (sommeil/focus/nutrition)
+> la condition `!sportEaseToday` était **toujours vraie** → un **slogan sportif** écrasait l'action pilier
+> (rendu chargé : sommeil `reinforce` ft 100 → « Vise un coucher 30 min plus tôt ce soir » remplacé par « Un
+> jour actif de plus »). Fix : `if (chosen.pillar === 'sport' && !sportEaseToday)` — hors sport l'action riche
+> reste, le crédit demeure dans l'insight ; **sport strictement inchangé** (readiness vert/plancher préservés).
+> **Aucune note ajoutée** (§3 qualité). Rendu cumulé relu §4ter (5 états). 528 tests + smoke verts. Recap #567.
+> _Domaine : coach._
 
 > ♿ **#566 — P2.2 : `aria-live` sur les panneaux d'entraînement générés (domaine `a11y`, build
 > 2.0.189).** Rotation §4 bis : les 5 derniers domaines = `etudes · tests · coach · etudes · coach`
