@@ -25,6 +25,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.223 (2026-07-20)
 
+> 🏋️ **#610 — Proposition : « Base d'exercices plus complète » — le verrou est graphique, pas logique
+> (docs seuls, pas de bump).** Dernier item non fini de la SÉRIE COACHING. Vérifié : la bibliothèque est
+> **déjà mûre** (47 exercices = 47 zones = 47 photos + animations ; fiches `cue/explain/goal/avoid`
+> complètes → « cues plus riches » et « variantes par matériel » **déjà couverts**). J'ai implémenté 5
+> gap-fillers réels (adducteurs/copenhague, portage unilatéral, mollets 1 jambe, hip thrust, bas des
+> abdos) : **verify rouge** sur `icons.test.js:59/85` qui **exigent une vraie photo + une animation par
+> exercice** (sprite-sheets PNG). Donc « plus d'exercices » n'est **pas** « data pure » : ça **engage un
+> asset graphique** que le VPS ne peut pas produire → VPS-AUTOPILOT §5 (proposition + stop). Code
+> **intégralement reverté**. `docs/proposals/base-exercices-plus-complete.md` : reco **C** (clore : 47
+> suffisent, la série passe en ✅, la rotation reprend) **maintenant** / **A** (Adrien fournit les
+> planches) à la demande ; **B** (2ᵉ rang en figure SVG) si le volume prime sur l'uniformité « tout
+> photo ». **4 décisions t'attendent.** Recap #610. _Domaine : athlete._
+>
 > ⛰️ **#609 — Trail spécifique : préparer les DESCENTES (série coaching élite, build 2.0.223).** Le
 > trail se casse les jambes en DESCENTE (travail excentrique : DOMS, perte de force), pas en montée —
 > et **rien** ne la préparait (`qualitySession` ne fait que des **côtes** en montée ; le panneau Ultra
@@ -923,7 +936,11 @@ domaines** jusqu'à finir la série, malgré §4 bis. Série finie → **reprend
       (effet de séance répétée, Frontiers 2018) — le stress excentrique que rien n'entraînait ; carte
       « DESCENTES ⬇️ » sur le panneau Ultra, phases base/specific/race, protocole concret. Smoke bloquant.
 - [ ] **Base d'exercices plus complète** (niveau Garmin/Strava/Apple Fitness) : plus d'exercices, cues
-      d'exécution plus riches, variantes par matériel. Data pure + tests.
+      d'exécution plus riches, variantes par matériel. ⏸️ **PROPOSITION #610** (`proposals/base-exercices-
+      plus-complete.md`) : la formulation « Data pure + tests » est inexacte — `icons.test.js` exige une
+      **vraie photo + animation par exercice** (asset PNG non produisible en autonomie). Cues/variantes
+      **déjà couverts** pour les 47. Reco : **C** (clore, 47 suffisent) / **A** (Adrien fournit des planches).
+      **4 décisions attendent Adrien** — voir la proposition.
 
 ### PUIS, série finie → reprends la ROADMAP en rotation normale
 (P4 regex non ancrées, P2 a11y restant, P5 mesure ; P6/P7 si non finis — voir plus bas). Reviens à

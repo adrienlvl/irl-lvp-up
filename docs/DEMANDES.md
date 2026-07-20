@@ -30,6 +30,15 @@
         Étape **optionnelle** : le cœur de la demande (arbitrage + dédup + « quoi faire en premier ») est
         livré et visible dès 2.0.221 ; B.3 dépend de tes réponses aux décisions 3 & 4 de la proposition #602.
 
+- **Coaching de nuit — dernier item de la série « coaching élite » proposition-gated.** Boucle #610
+  (2026-07-20) : `docs/proposals/base-exercices-plus-complete.md`. La série coaching est finie SAUF
+  « Base d'exercices plus complète ». Vérifié : ce n'est **pas** un travail « data pure » — `icons.test.js`
+  exige une **vraie photo + animation par exercice** (asset PNG sprite-sheet, non produisible en
+  autonomie) ; cues & variantes sont **déjà couverts** pour les 47 exercices. Reco : **C** (clore : 47
+  suffisent, la série passe en ✅, la rotation reprend) maintenant / **A** (tu fournis des planches) à la
+  demande / **B** (2ᵉ rang en figure SVG animée, sans photo) si le volume prime sur l'uniformité « tout
+  photo ». ⏳ **4 décisions t'attendent** en fin de doc.
+
 - **Avancer CAP 3.0 — 2 propositions écrites (chantiers 3 & 4), en attente de tes décisions.** Le code
   autonome du Cap 3.0 est épuisé (P6 multi-examens et P7 parcours smoke clos ; IndexedDB réservé au
   supervisé ; es-modules/i18n fermés). La boucle cadre donc les prochains chantiers **avant** qu'ils
