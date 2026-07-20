@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.184 (2026-07-20)
 
+> 🧪 **#556 — P7.1 : premier PARCOURS scripté dans le smoke (domaine `tests`, pas de bump).** `coach`
+> (priorité de nuit) étant dans les 2 derniers domaines (#554), la rotation §4 bis l'interdit cette
+> boucle (§3 : elle prime même sur la demande de nuit) → tâche nommée **P7.1** de la 2ᵉ demande
+> (avancer CAP 3.0), exactement l'ordre conseillé au démarrage VPS. Le smoke était un **rendu
+> ponctuel** : aucun check ne jouait un **enchaînement** utilisateur. Nouveau check **bloquant**
+> `recordSessionJourney` qui enregistre une séance **de bout en bout** — clic `#addWorkoutButton` →
+> saisie → `dispatchEvent('submit')` → assertions : séance en tête de `state.workouts`, **XP** et
+> **santé** créditées du bon montant, dialogue refermé, et le **DOM suit** (`#historyList` contient
+> `[data-history-workout="<id>"]`). Piège traité : une 1ʳᵉ séance battrait un record → `haptic` →
+> `navigator.vibrate` bloqué par Chromium → warning console → SMOKE FAIL ; corrigé en pré-remplissant
+> l'historique d'un Squat plus lourd/plus de reps, donc aucune célébration. État **parfaitement
+> restauré** (workouts/xp/health/pendingPlanId). Motif de parcours réutilisable posé pour P7.2/P7.3.
+> 522 tests + smoke verts. Recap #556. _Domaine : tests._
+
 > 🎓 **#555 — P6.1 : le modèle multi-épreuves `examGoals[]` + sa migration (domaine `etudes`, pas de
 > bump).** Le coach étant le **dernier** domaine joué (#554), la rotation §4 bis l'interdit cette
 > boucle (et §3 dit que la rotation prime, même sur la demande de nuit) : j'ai donc servi la 2ᵉ
@@ -332,7 +346,8 @@ Le smoke est un rendu ponctuel ; **aucun test ne joue un enchaînement**. On y a
 scriptés (clic → saisie → assertion), **sans aucune dépendance** (Playwright reste interdit, §3).
 Un parcours par boucle, chacun en check **bloquant** :
 
-- [ ] **P7.1 — Enregistrer une séance** → historique et XP à jour.
+- [x] **P7.1 — Enregistrer une séance** → historique et XP à jour. ✅ _fait #556 — check bloquant
+      `recordSessionJourney` (clic → saisie → submit → assertions état + DOM), état restauré, pas de bump._
 - [ ] **P7.2 — Générer un planning de révision** → créneaux visibles dans l'agenda.
 - [ ] **P7.3 — Onboarding complet** → état cohérent en sortie.
 

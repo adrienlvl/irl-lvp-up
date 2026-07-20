@@ -1405,6 +1405,56 @@ app.whenReady().then(async () => {
           try { renderAlternance(); renderDashboardCore(); } catch (e) {}
           return ok;
         })(),
+        // PARCOURS SCRIPTÉ #556 (P7.1) : enregistrer une séance DE BOUT EN BOUT — ouvrir le
+        // formulaire comme l'utilisateur, saisir, valider — et vérifier que l'HISTORIQUE (le DOM,
+        // pas juste l'état), l'XP et la santé suivent. Premier test qui joue un ENCHAÎNEMENT
+        // (clic → saisie → submit → assertions), là où le reste du smoke est un rendu ponctuel.
+        recordSessionJourney: typeof render === 'function' && typeof save === 'function'
+          && !!document.getElementById('addWorkoutButton') && !!document.getElementById('workoutForm') && (() => {
+          const savedWorkouts = state.workouts, savedXp = state.xp, savedHealth = state.health;
+          const savedPending = (typeof pendingPlanId !== 'undefined') ? pendingPlanId : null;
+          let ok = true;
+          try {
+            // Historique de départ contenant DÉJÀ un Squat plus lourd et à plus de reps que celui
+            // qu'on va saisir : ainsi la séance ajoutée ne bat AUCUN record → pas de célébration
+            // (toast + haptic → navigator.vibrate, bloqué par Chromium sans geste utilisateur, ce qui
+            // ferait échouer le smoke). Le parcours teste l'enregistrement, pas la célébration.
+            state.workouts = [{ id: 12340001, type: 'strength', duration: 40, effort: 2, date: '2026-07-01', notes: '', exercise: 'Squat', load: 100, sets: 5, reps: 12, exercises: [{ name: 'Squat', load: 100, sets: 5, reps: 12, unit: 'reps' }], xp: 35 }];
+            // 1. Ouvrir le formulaire comme l'utilisateur (le clic remet pendingPlanId à null,
+            //    réinitialise le formulaire et pré-remplit la date du jour).
+            document.getElementById('addWorkoutButton').click();
+            const dlg = document.getElementById('workoutDialog');
+            ok = ok && !!dlg && dlg.open === true;
+            // 2. Saisir une séance de muscu : 45 min, dure, un exercice (sous les records existants).
+            document.getElementById('workoutType').value = 'strength';
+            document.getElementById('workoutHours').value = '0';
+            document.getElementById('workoutDuration').value = '45';
+            document.getElementById('workoutEffort').value = '3';
+            document.getElementById('workoutNotes').value = 'Parcours smoke #556';
+            document.getElementById('exerciseName').value = 'Squat';
+            document.getElementById('exerciseLoad').value = '80';
+            document.getElementById('exerciseSets').value = '4';
+            document.getElementById('exerciseReps').value = '8';
+            // 3. Valider : submit RÉEL → unshift dans state.workouts, XP, santé, save(), render().
+            document.getElementById('workoutForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            const w = state.workouts[0];
+            // 4a. Historique métier à jour : la séance saisie est ajoutée EN TÊTE, sans perdre l'ancienne.
+            ok = ok && state.workouts.length === 2 && !!w && w.type === 'strength' && w.duration === 45
+              && w.exercise === 'Squat' && w.load === 80 && Array.isArray(w.exercises) && w.exercises.length === 1
+              && typeof w.xp === 'number' && w.xp > 0;
+            // 4b. XP et santé crédités du bon montant.
+            ok = ok && state.xp === savedXp + (w ? w.xp : 0) && state.health === savedHealth + 1;
+            // 4c. Le dialogue s'est refermé après validation.
+            ok = ok && !!dlg && dlg.open === false;
+            // 4d. HISTORIQUE VISIBLE : render() a reconstruit #historyList avec la séance (le DOM suit).
+            ok = ok && !!w && !!document.querySelector('#historyList [data-history-workout="' + w.id + '"]');
+          } catch (e) { ok = false; }
+          // Restauration intégrale de l'état vivant + re-rendu + réécriture de la sauvegarde.
+          state.workouts = savedWorkouts; state.xp = savedXp; state.health = savedHealth;
+          if (typeof pendingPlanId !== 'undefined') pendingPlanId = savedPending;
+          try { save(); render(); } catch (e) {}
+          return ok;
+        })(),
         // A11Y des overlays plein écran (#549) : ouverture = focus DANS l'overlay + <main> neutralisé ;
         // fermeture = focus RESTITUÉ au déclencheur. Les <section> fixed ne le font pas gratuitement,
         // contrairement aux <dialog> showModal().
@@ -1727,6 +1777,7 @@ app.whenReady().then(async () => {
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
     if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
     if (!checks.listEmptyStates) errors.push('Liste sans état vide (#altList filtré / #questList) — zone blanche sans message');
+    if (!checks.recordSessionJourney) errors.push('Parcours « enregistrer une séance » KO (P7.1 : ouvrir le formulaire → saisir → valider doit ajouter la séance à l\'historique #historyList + créditer XP/santé)');
     if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
