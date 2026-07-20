@@ -2102,6 +2102,10 @@ test('breakSuggestion : pause proportionnelle + pause longue tous les 4 blocs', 
   assert.equal(L.breakSuggestion(50, 8).long, true, '8e bloc → encore une pause longue');
   assert.equal(L.breakSuggestion(50, 5).long, false, '5e bloc → pause courte');
   assert.match(b4.note, /coupure/i, 'la pause longue invite à décrocher');
+  // le numéro annoncé suit le vrai compte de blocs, pas un « Quatrième » figé (2.0.205)
+  assert.match(b4.note, /^4ᵉ bloc/, '4e bloc → « 4ᵉ bloc »');
+  assert.match(L.breakSuggestion(50, 8).note, /^8ᵉ bloc/, '8e bloc → « 8ᵉ bloc », plus « Quatrième »');
+  assert.match(L.breakSuggestion(50, 12).note, /^12ᵉ bloc/, '12e bloc → « 12ᵉ bloc »');
   assert.match(L.breakSuggestion(90, 1).note, /hydrat/i, 'bloc long → rappel hydratation');
   // entrées invalides / robustesse
   assert.equal(L.breakSuggestion(0, 1), null, 'durée nulle → null');
@@ -5657,7 +5661,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.204');
+  assert.equal(L.CHANGELOG[0].v, '2.0.205');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

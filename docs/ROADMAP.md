@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.204 (2026-07-20)
+## 📍 État actuel — build 2.0.205 (2026-07-20)
+
+> ⏱️ **#589 — Focus : la suggestion de pause longue affiche le bon numéro de bloc (domaine `focus`,
+> build 2.0.205).** Rotation §4 bis : 5 derniers domaines = `coach · docs · athlete · coach · etudes`
+> → 2 derniers (`coach`, `docs`) et `coach` (2×) **interdits** ; **priorité de nuit #1 (coach)
+> rotation-bloquée** ce tour (§3 gagne sur la demande). Backlog nommé P1–P7 **clos**, P4 épuisé,
+> familles de bugs purs closes → protocole « backlog vide » (§898, précédent #584) : chasser un défaut
+> **prouvable** dans un domaine **autorisé et neuf**. Chasse ciblée (focus/nutrition/sommeil/agenda/
+> alternance) = **zéro bug de calcul** (maturité), mais **une inexactitude de texte user-visible** dans
+> `focus`, jamais auditée : `breakSuggestion` (`logic.js:4588`) propose une vraie pause longue à
+> **chaque multiple de 4 blocs** (`n % 4 === 0`), mais sa note était **figée** « **Quatrième** bloc
+> d'affilée » — or le test existant prouve que le **8ᵉ** (12ᵉ…) bloc déclenche aussi la pause longue,
+> donc l'utilisateur lisait « Quatrième » à sa 8ᵉ session. Note rendue telle quelle dans
+> `#focusBreakSuggest` (`app.js:1002`). Fix chirurgical (§3 « formulation plus juste », **aucune note
+> ajoutée**) : numéro **dynamique** `${n}ᵉ bloc d'affilée` (n ≥ 4 sur la branche `long` → pas de piège
+> ordinal). §4 ter : surface = une seule note, rendu chargé relu (n=8 → « 8ᵉ bloc… », cohérent). +3
+> tests + check smoke bloquant `focusBreak` étendu (note du 8ᵉ bloc). 537 tests + smoke verts.
+> Recap #589. _Domaine : focus._
 
 > 🧠 **#588 — Coach : une tête à plat coupe la poussée de bloc focus ET le créneau (domaine `coach`,
 > build 2.0.204).** Rotation §4 bis : 5 derniers domaines (#587→#583) = `etudes · docs · coach ·
