@@ -34,3 +34,12 @@
 .vol-week.cut{background:rgba(94,234,212,.10);border-color:rgba(94,234,212,.28)}
 .vol-week.cut b{color:#5eead4}
 @media(max-width:700px){.volume-form{grid-template-columns:1fr 1fr}}
+
+/* Préparation aux descentes (repeated bout effect — série coaching trail) */
+#ultraDownhillBlock[hidden]{display:none}
+.dh-card{background:var(--input-bg);border:1px solid var(--line);border-left:3px solid #5eead4;border-radius:11px;padding:13px;margin-top:16px}
+.dh-card.race{border-left-color:#fbbf24}
+.dh-card b{display:block;font-size:.95rem}
+.dh-card p{margin:6px 0 0;font-size:.84rem;line-height:1.45}
+.dh-card small{display:block;margin-top:8px;color:var(--muted);font-size:.76rem;line-height:1.45}
+.dh-card small em{color:var(--accent);font-style:normal}

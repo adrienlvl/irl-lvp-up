@@ -1759,6 +1759,29 @@ test('taperPlan : affûtage fondé Bosquet 2007 — volume réduit 41-60 %, inte
   assert.ok(early.volumeMul > late.volumeMul, 'volume plus haut en début d\'affûtage (progressif)');
   assert.ok(early.cutPct < late.cutPct, 'coupe plus légère à 2 semaines qu\'à la semaine de course');
 });
+test('downhillPrep : préparation aux descentes (repeated bout effect) selon la phase de course', () => {
+  // Hors contexte trail (aucun D+) → null
+  assert.equal(L.downhillPrep(0, 30, 42), null, 'aucun D+ : pas de contexte trail');
+  assert.equal(L.downhillPrep(null, null, 0), null, 'D+ absent : null');
+  // Sans course : entretien de base, 1 séance/sem
+  const base = L.downhillPrep(600, null, 0);
+  assert.ok(base && base.window === 'base' && base.sessionsPerWeek === 1, 'base : 1 séance/sem');
+  assert.match(base.protocol, /descente CONTRÔLÉE/, 'protocole concret de descente');
+  // Course lointaine (> 8 sem) → toujours base
+  assert.equal(L.downhillPrep(600, 90, 80).window, 'base', 'course lointaine : phase base');
+  // Fenêtre spécifique (≤ 8 sem) : 1 séance si peu de D+, 2 si profil très vallonné
+  const spec = L.downhillPrep(500, 30, 42);
+  assert.ok(spec.window === 'specific' && spec.sessionsPerWeek === 1, 'spécifique peu vallonné : 1/sem');
+  const specHilly = L.downhillPrep(1500, 30, 80);
+  assert.equal(specHilly.sessionsPerWeek, 2, 'spécifique très vallonné (≥1000 m) : 2/sem');
+  assert.match(specHilly.why, /80 km/, 'la distance de course apparaît dans le pourquoi');
+  // À ≤ 10 j : STOP aux descentes cassantes (fraîcheur, cohérent avec l'affûtage)
+  const near = L.downhillPrep(1500, 8, 80);
+  assert.ok(near.window === 'race' && near.sessionsPerWeek === 0, 'J-8 : plus de descente cassante');
+  assert.match(near.protocol, /J-8/, 'le protocole mentionne le compte à rebours');
+  assert.equal(L.downhillPrep(600, 10, 42).window, 'race', 'J-10 inclus dans la fenêtre course');
+  assert.equal(L.downhillPrep(600, 11, 42).window, 'specific', 'J-11 encore en spécifique');
+});
 test('buildTrainingWeek : affûtage réduit le VOLUME des courses en gardant la FRÉQUENCE', () => {
   const kmOf = p => p.days.reduce((s, d) => s + (Number(d.km) || 0) + (d.runs || []).reduce((a, r) => a + (Number(r.km) || 0), 0), 0);
   const full = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 40, week: 5 });
@@ -5901,7 +5924,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.222');
+  assert.equal(L.CHANGELOG[0].v, '2.0.223');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

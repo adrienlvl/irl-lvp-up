@@ -23,8 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.222 (2026-07-20)
+## 📍 État actuel — build 2.0.223 (2026-07-20)
 
+> ⛰️ **#609 — Trail spécifique : préparer les DESCENTES (série coaching élite, build 2.0.223).** Le
+> trail se casse les jambes en DESCENTE (travail excentrique : DOMS, perte de force), pas en montée —
+> et **rien** ne la préparait (`qualitySession` ne fait que des **côtes** en montée ; le panneau Ultra
+> listait endurance/montée/longue/force, jamais la descente). Nouvelle fonction pure
+> **`downhillPrep(dplusPerWeek, raceDaysLeft, raceKm)`** fondée sur l'**effet de séance répétée**
+> (Frontiers Physiol. 2018 ; Nature 2020) : une séance de descente protège durablement contre la
+> suivante. Phases **base** (1/sem d'entretien) → **specific** (course ≤ 8 sem : 1/sem, ou **2** si
+> D+ ≥ 1000 m/sem) → **race** (≤ 10 j : **0** séance cassante, jambes fraîches — cohérent avec
+> l'affûtage). Protocole concret (pente 5-10 %, 4-6 × 60-90 s en descente contrôlée, +1 rép/sem).
+> Nouvelle carte « DESCENTES ⬇️ » sur le panneau Ultra (`#ultraDownhill`), display-only, **contrôle
+> §4 ter** appliqué. Check smoke bloquant `ultraDownhill`. 560 tests + smoke vert. Recap #609. Item
+> ROADMAP « Trail spécifique » coché. _Domaine : athlete._
+>
 > 🧊 **#608 — Décharge (deload) muscu : le coach dit QUAND lever le pied (série coaching élite, build
 > 2.0.222).** `setLandmark` étiquetait le volume hebdo d'une zone mais **rien ne recommandait une
 > décharge** sur accumulation ; les décharges existantes sont d'un autre type (bloc objectif fixe
@@ -906,7 +919,9 @@ domaines** jusqu'à finir la série, malgré §4 bis. Série finie → **reprend
       décharge (−40-50 % volume, 5-7 j) après ~5 sem. d'accumulation OU plus tôt si la forme baisse
       (readiness < 45). Carte « 🧊 Décharge conseillée » au-dessus du bilan de séries (`#weeklySets`).
       Smoke bloquant `deloadReco`.
-- [ ] **Trail spécifique** (`ultraPlan`) : dénivelé D+, côtes/descentes, renforcement spécifique coureur.
+- [x] **Trail spécifique** (`ultraPlan`) ✅ _fait #609 (2.0.223)_ : `downhillPrep` prépare les DESCENTES
+      (effet de séance répétée, Frontiers 2018) — le stress excentrique que rien n'entraînait ; carte
+      « DESCENTES ⬇️ » sur le panneau Ultra, phases base/specific/race, protocole concret. Smoke bloquant.
 - [ ] **Base d'exercices plus complète** (niveau Garmin/Strava/Apple Fitness) : plus d'exercices, cues
       d'exécution plus riches, variantes par matériel. Data pure + tests.
 
