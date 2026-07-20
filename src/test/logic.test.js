@@ -5657,7 +5657,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.202');
+  assert.equal(L.CHANGELOG[0].v, '2.0.203');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10476,6 +10476,54 @@ test('adaptiveCoachFocus : nomme le GROUPE MUSCULAIRE à cibler en priorité (sp
   const fFoc = L.adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-06', minutes: 30 }, { date: '2026-07-07', minutes: 30 }, { date: '2026-07-14', minutes: 30 }] }, today);
   assert.equal(fFoc.pillar, 'focus');
   assert.equal(fFoc.sportZoneFocus, null, 'zone musculaire = pilier sport uniquement');
+});
+
+test('adaptiveCoachFocus : une forme qui GLISSE coupe créneau ET groupe (readinessSlide vs sportSlot/sportZoneFocus)', () => {
+  const today = '2026-07-16';
+  // Décrochage sport avec exercices NOMMÉS (jambes il y a 10 j → groupe le plus reposé) + durées, ET un
+  // agenda horaire du jour → sportSlot et sportZoneFocus s'appliqueraient tous deux… sauf que la readiness
+  // GLISSE (55/100, -45 pts sur 5 check-ins → readinessSlide), donc l'action a basculé en « séance allégée,
+  // soigne ta récup ». « Cale ta séance là » et « cible en priorité les jambes pour équilibrer ta semaine »
+  // la contrediraient de front — même famille de contradiction que loadSpike (« allège »), qui les coupe déjà.
+  // Workouts espacés (dernier il y a 5 j) pour que le SPORT reste le pilier en retard, avec exercices
+  // NOMMÉS couvrant plusieurs zones (jambes = la plus reposée) → historique de zone exploitable.
+  const base = {
+    workouts: [
+      { date: '2026-07-03', duration: 45, exercises: [{ name: 'Chaise au mur', sets: 3 }] },
+      { date: '2026-07-05', duration: 45, exercises: [{ name: 'Pompes classiques', sets: 3 }] },
+      { date: '2026-07-07', duration: 45, exercises: [{ name: 'Gainage planche', sets: 3 }] },
+      { date: '2026-07-11', duration: 45, exercises: [{ name: 'Tractions', sets: 3 }] },
+    ],
+    recovery: [
+      { date: '2026-07-04', sleep: 8, fatigue: 1, soreness: 1 }, // 100
+      { date: '2026-07-06', sleep: 8, fatigue: 2, soreness: 2 }, // 85
+      { date: '2026-07-10', sleep: 8, fatigue: 3, soreness: 3 }, // 70
+      { date: '2026-07-13', sleep: 8, fatigue: 3, soreness: 4 }, // 63
+      { date: '2026-07-16', sleep: 8, fatigue: 4, soreness: 4 }, // 55
+    ],
+    agenda: [{ id: 'a', date: today, time: '14:00', durationMin: 60 }],
+  };
+  const slide = L.adaptiveCoachFocus(base, today, { nowMinutes: 8 * 60 });
+  assert.equal(slide.pillar, 'sport');
+  assert.equal(slide.readinessSlide, -45, 'forme qui glisse détectée');
+  assert.equal(slide.loadSpike, null, 'pas de pic de charge (aucun effort loggé)');
+  assert.match(slide.action, /Séance allégée aujourd’hui/, 'l’action a basculé en frein');
+  assert.equal(slide.sportSlot, null, 'forme qui glisse → pas de créneau à caler');
+  assert.equal(slide.sportZoneFocus, null, 'forme qui glisse → pas de groupe à charger');
+  assert.ok(!/Créneau libre/.test(slide.action), 'aucune note « cale ta séance là » appendue');
+  assert.ok(!/cible en priorité/.test(slide.action), 'aucune note « cible ce groupe » appendue');
+
+  // Contrôle : forme STABLE (readiness 63, non glissante) avec sommeil sain → même état, mais le coach
+  // RETROUVE créneau + groupe. La coupe ne mord QUE sur la contradiction (la glissade), elle n’étouffe
+  // pas le conseil quand il est cohérent.
+  const stableRec = ['2026-07-04', '2026-07-06', '2026-07-10', '2026-07-13', '2026-07-16']
+    .map(date => ({ date, sleep: 8, fatigue: 3, soreness: 4 })); // 63 chacun → pas de glissade
+  const okDay = L.adaptiveCoachFocus({ ...base, recovery: stableRec }, today, { nowMinutes: 8 * 60 });
+  assert.equal(okDay.pillar, 'sport');
+  assert.equal(okDay.readinessSlide, null, 'forme stable → pas de glissade');
+  assert.equal(okDay.sportSlot, '08:00', 'créneau rétabli quand la forme ne glisse pas');
+  assert.ok(okDay.sportZoneFocus && okDay.sportZoneFocus.zone, 'groupe rétabli quand la forme ne glisse pas');
+  assert.match(okDay.action, /cible en priorité/, 'la note groupe réapparaît sur un jour cohérent');
 });
 
 test('adaptiveCoachFocus : signale un PLATEAU de force sur un exercice chargé (sportPlateau)', () => {

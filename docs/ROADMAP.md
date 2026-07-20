@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.202 (2026-07-20)
+## 📍 État actuel — build 2.0.203 (2026-07-20)
+
+> 🩹 **#585 — Coach : une forme qui glisse coupe le créneau ET le groupe à charger (domaine `coach`,
+> build 2.0.203).** Rotation §4 bis : 5 derniers domaines (#584→#580) = `athlete · docs · coach ·
+> fondations · docs` → 2 derniers (`athlete`, `docs`) et `docs` (2×) **interdits** ; **`coach`** (1×
+> #582, absent des 2 derniers) **autorisé** → priorité de nuit #1 (coaching en QUALITÉ, §3) et
+> rotation **convergent**. Traite la **piste vérifiée en réserve #583** (mémoire) : `sportSlot`
+> (`logic.js:6793`) et `sportZoneFocus` (`logic.js:6838`) gardés `loadSpike == null` **mais pas**
+> `readinessSlide == null`. Manque **réel** : quand la readiness du jour est correcte (∈ [50,75)) mais
+> **glisse** (≥ 12 pts sur ≥ 4 check-ins), `readinessSlide` remplace l'action par un frein (« Séance
+> allégée aujourd'hui, soigne ta récup avant de taper dans le rouge ») — puis `sportSlot`/`sportZoneFocus`
+> **appendaient** « Créneau libre — cale ta séance là » et « cible en priorité les jambes… pour équilibrer
+> ta semaine », qui contredisent le « lève le pied » **de front**. Le commentaire de `loadSpike`
+> (`logic.js:6303`) nomme déjà cette contradiction (« "cale ta séance" contredirait "allège" ») et le
+> bloc voisin `lowLoad` (`logic.js:6400`) gate déjà sur `readinessSlide == null` : ces deux gardes
+> étaient les oublis. Fix (curation §3, **aucune note ajoutée**) : `&& readinessSlide == null` sur les
+> deux gardes. Chirurgical : `readinessRebound` (forme qui REMONTE) **ne coupe pas** (créneau + groupe
+> cohérents un jour de rebond). §4 ter : rendu cumulé relu — avec glissade les 2 notes s'effacent ;
+> contrôle sans glissade, elles reviennent. +1 test (2 volets). 535 tests + smoke verts. Recap #585.
+> _Domaine : coach._
 
 > 🏁 **#584 — Objectif de course : plus d'« Affûtage » une fois la course déjà passée (domaine
 > `athlete`, build 2.0.202).** Rotation §4 bis : 5 derniers domaines = `docs · coach · fondations ·

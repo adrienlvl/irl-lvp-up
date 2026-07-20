@@ -2900,6 +2900,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.203', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te propose plus, le même jour, de « t’alléger » et de « charger un groupe à fond ». Quand ta forme est correcte le matin mais GLISSE sur tes derniers check-ins (fatigue qui s’accumule), ton coach bascule à juste titre en frein : « séance allégée aujourd’hui, soigne ta récup avant de taper dans le rouge ». Mais il ajoutait ensuite, sur la même carte, « Créneau libre à telle heure — cale ta séance là » et surtout « Cible en priorité les jambes, ton groupe le plus reposé, pour équilibrer ta semaine » — deux invitations à pousser qui contredisaient de front le « lève le pied » de la ligne d’avant. Désormais, les jours où ta forme glisse, ces deux notes s’effacent (exactement comme elles s’effaçaient déjà les jours de pic de charge) : le message reste cohérent d’un bout à l’autre. Les jours où ta forme ne glisse pas, le créneau et le groupe à cibler reviennent normalement. Rien d’ajouté : deux contradictions de moins.' },
   { v: '2.0.202', emoji: '🏁', text: 'Ton objectif de course ne te conseille plus de « t’affûter pour arriver frais » une fois la course déjà passée. Les 1 à 3 jours suivant ta course, la carte d’objectif et ton coach du jour continuaient d’afficher la phase « Affûtage » (réduis le volume, arrive frais) et « Cap : dans 0 sem. » — alors que la course avait déjà eu lieu la veille ou l’avant-veille. Un arrondi ramenait ce délai négatif à zéro, faisant passer une course passée pour une course imminente. Désormais, dès le lendemain, la carte affiche « Cette date est passée — mets à jour ton objectif » et le rappel de cap disparaît, comme c’était déjà le cas à partir de 4 jours. Rien d’ajouté : une incohérence de calendrier corrigée.' },
   { v: '2.0.201', emoji: '🥗', text: 'Ton coach « Le focus du moment » ne te demande plus « encore un jour actif aujourd’hui » côté nutrition un jour où tu as DÉJÀ noté tes apports. Quand ton suivi nutrition monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») et invitait à « encore un jour actif aujourd’hui pour ancrer l’habitude » — même les jours où tu venais justement de saisir tes protéines, ton eau ou un fruit. Il te redemandait un geste déjà fait. Désormais, ces jours-là, il le CRÉDITE : « Déjà noté aujourd’hui ✅ — l’habitude est ancrée. » Les jours où tu n’as encore rien saisi, l’invitation à t’y mettre reste inchangée. (Le sommeil, lui, garde son conseil de coucher du soir, qui porte sur ce qui reste à venir.) Rien d’ajouté : un ordre déjà exécuté en moins.' },
   { v: '2.0.200', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour de pic de charge où ta séance est DÉJÀ faite. La version précédente effaçait bien cette invitation à continuer quand ta charge d’entraînement était en pic (ACWR élevé) — mais seulement les jours où il te restait une séance à caler. Or un jour de pic est souvent un jour où tu viens justement de t’entraîner : dans ce cas, « Garde le rythme » restait affiché pendant que ton bilan de la semaine, lui, te disait « prévois une semaine plus légère pour éviter la blessure ». Les deux panneaux se contredisaient. Désormais, dès que ta charge est en pic, l’invitation à continuer s’efface — séance faite ou non — et les deux panneaux disent la même chose. Le constat « en hausse » reste, et une vraie montée SAINE garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
@@ -6785,12 +6786,15 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // dans l'action : le « quand », pas seulement le « quoi ». Durée du bloc = médiane des durées de
   // séance réelles sur 14 j (défaut 45, arrondie à 5 min, bornée [20, 90]) — la séance type d'Adrien,
   // pas un chiffre arbitraire. Garde-fous : PAS un jour de récup (readiness < 50 → l'action dit
-  // « repose », caler une séance la contredirait), PAS quand la séance est déjà faite (doneToday), et
-  // un vrai planning horaire requis (sur une journée vide le « créneau » serait « maintenant »,
+  // « repose », caler une séance la contredirait), PAS un pic de charge (loadSpike, « allège ») NI une
+  // forme qui glisse (readinessSlide, « séance allégée, soigne ta récup ») — dans ces deux cas l'action
+  // a déjà basculé en frein et « cale ta séance là » la contredirait, exactement comme le bloc lowLoad
+  // plus bas refuse d'entrer si readinessSlide a tempéré. PAS quand la séance est déjà faite (doneToday),
+  // et un vrai planning horaire requis (sur une journée vide le « créneau » serait « maintenant »,
   // trivial). La micro-marche et le renfort, plus bas, écrasent l'action — donc le créneau — quand on
   // abaisse la barre ou qu'on félicite le suivi ; c'est voulu (pas de créneau à caler dans ces cas).
   let sportSlot = null;
-  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && (readiness == null || readiness >= 50)
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && readinessSlide == null && (readiness == null || readiness >= 50)
       && typeof nextFreeSlot === 'function') {
     const now = Math.round(Number(o.nowMinutes));
     if (Number.isFinite(now) && now >= 0 && now < 1440) {
@@ -6833,9 +6837,11 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // note APPENDUE à l'action, aucune branche touchée. Réemploi total (suggestTrainingFocus, zoneFreshness)
   // — zéro nouvelle fonction. Vocabulaire distinct (« groupe le plus reposé », « cible en priorité »,
   // « équilibrer ta semaine ») — zéro collision regex avec sportSlot (« cale ta séance ») ni les guards
-  // récup (« socle invisible », « carburant », « matériau », « côté récupération »).
+  // récup (« socle invisible », « carburant », « matériau », « côté récupération »). MÊME gate anti-frein
+  // que sportSlot : ni loadSpike ni readinessSlide (l'action dit alors « allège / séance allégée, soigne
+  // ta récup » — désigner un groupe à CHARGER « pour équilibrer ta semaine » la contredirait de front).
   let sportZoneFocus = null;
-  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && (readiness == null || readiness >= 50)
+  if (chosen.pillar === 'sport' && !doneToday && !reviveEligible && loadSpike == null && readinessSlide == null && (readiness == null || readiness >= 50)
       && typeof suggestTrainingFocus === 'function' && typeof zoneFreshness === 'function') {
     const fresh = zoneFreshness(s.workouts, todayKey);
     const hasHistory = fresh.some(f => f.status === 'ready' || f.status === 'recent');
