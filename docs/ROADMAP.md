@@ -14,7 +14,7 @@ Toutes les vagues de la roadmap sont **terminées** ; la 2.0 acte la maturité d
 
 Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AUDIT-ET-ROADMAP-3.0.md](AUDIT-ET-ROADMAP-3.0.md)**) :
 
-1. 🤖 **Coaching adaptatif** — ✅ **terminé et GELÉ** le 2026-07-19 (voir « État actuel »).
+1. 🤖 **Coaching adaptatif** — ✅ **base livrée (Vague 1)** ; reste un **chantier vivant en QUALITÉ, pas en volume** (arbitrage d'Adrien du 2026-07-19 : gel **refusé** — cf. `proposals/coach-freeze.md`), **soumis à la rotation des domaines comme les autres** (voir « État actuel » + VPS-AUTOPILOT §3). _Ne pas lire « gelé » : le coach continue de se travailler, à son tour._
 2. 🧱 **Fondations techniques** (IndexedDB, archi) _(← en cours)_ — prérequis de la sync.
 3. 🔒 **Sécurité & prêt pour le public** — socle sécu (chiffrement, CSP, audit) **avant** d'ouvrir la moindre surface réseau (App Store iOS + Google Play + site web ; aucune fuite de donnée critique).
 4. ☁️ **Sync multi-appareils** — chiffrée de bout en bout dès le jour 1.
@@ -24,6 +24,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
 ## 📍 État actuel — build 2.0.203 (2026-07-20)
+
+> 🧹 **#586 — Docs : le résumé CAP 3.0 ne dit plus « Coaching GELÉ » (le gel a été REFUSÉ) — domaine
+> `docs`, pas de bump.** Rotation §4 bis : 5 derniers domaines = `coach · athlete · docs · coach · —`
+> (#585→#581) → `coach` (#585, dernier recap **et** 2×, priorité de nuit **rotation-bloquée** ce tour,
+> §3, comme #583/#584) et `athlete` (#584, dernier−1) **interdits** ; `docs` (#583, 1×, hors des
+> 2 derniers) **autorisé**. Priorité de nuit #1 (coaching à fond) → **code coach ET proposition taguée
+> coach bloqués** ce tour par la rotation (lecture mécanique §4 bis.3, §3 gagne). Backlog nommé P1–P7
+> **clos**, chantiers Cap 3.0 restants **supervisés/tranchés**, familles de bugs purs **épuisées**
+> (spot-check nutrition/énergie/poids `weightForecast`/`weightMilestones`/`energyPlan`/`paceStatus` =
+> robustes). **Incohérence documentaire réelle trouvée** : le résumé CAP 3.0 (`ROADMAP.md:17`) disait
+> « Coaching adaptatif — ✅ terminé et **GELÉ** le 2026-07-19 », alors que la décision d'Adrien
+> (`proposals/coach-freeze.md` : « gel **REFUSÉ** → qualité, pas volume »), l'« État actuel » lui-même
+> (l. 585-597 : « refuse le gel dur »), le tableau P1.1 (l. 630) **et** VPS-AUTOPILOT §3 sont unanimes :
+> **le coach n'est PAS gelé**, c'est un chantier vivant soumis à la rotation. Danger concret : un futur
+> agent (ou Adrien) lisant **seulement** le résumé de tête pourrait refuser **tout** travail coach —
+> l'exact inverse de la priorité de nuit. Même classe de bug doc que #583 (un résumé qui contredit la
+> décision détaillée). Fix : ligne 17 reformulée « base livrée (Vague 1) · chantier vivant en QUALITÉ
+> pas en volume · soumis à la rotation », alignée mot pour mot sur l. 585-597/630 + renvoi à
+> `coach-freeze.md` et §3. Docs seuls, aucun code touché → pas de `verify` requis (§2.6, précédents
+> #574/#577/#580/#581/#583), pas de bump. Recap #586. _Domaine : docs._
 
 > 🩹 **#585 — Coach : une forme qui glisse coupe le créneau ET le groupe à charger (domaine `coach`,
 > build 2.0.203).** Rotation §4 bis : 5 derniers domaines (#584→#580) = `athlete · docs · coach ·
