@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.201 (2026-07-20)
+## 📍 État actuel — build 2.0.202 (2026-07-20)
+
+> 🏁 **#584 — Objectif de course : plus d'« Affûtage » une fois la course déjà passée (domaine
+> `athlete`, build 2.0.202).** Rotation §4 bis : 5 derniers domaines = `docs · coach · fondations ·
+> docs · coach` (#583→#579) → `docs` (#583, 2×) et `coach` (#582, 2× — priorité de nuit
+> **rotation-bloquée** ce tour, §3) **interdits** ; `fondations` (#581) = IndexedDB **supervisé**
+> (code autonome épuisé). **Backlog nommé P1–P7 tout coché** → protocole « backlog vide » (§805) :
+> chasser un **bug pur prouvable** dans un domaine autorisé, pas du remplissage → `athlete` (absent
+> des 5 derniers). **Bug prouvé** : `weeksBetween` (`logic.js:1345`, `Math.round`) ramène l'écart d'une
+> course passée de **1–3 j** (−0,14 à −0,43 sem) à **0**, contredisant son propre commentaire
+> (« négatif si to est passé ») ; `raceGoalStatus` (`logic.js:2017`) affichait alors `weeksLeft:0,
+> daysLeft:−1` → `racePhase(0)` = **« Affûtage »** (« arrive frais ») pour une course tenue **hier**,
+> et via app.js (`weeksLeft >= 0`) la carte gardait la phase + le coach du jour ajoutait « Cap dans
+> 0 sem. ». Fix **chirurgical** dans `raceGoalStatus` (pas dans `weeksBetween`, partagé avec
+> `renderVolumeGoal` et les countdowns positifs — §4 ter) : `if (weeksLeft === 0 && daysLeft < 0)
+> weeksLeft = -1`. §4 ter : les 2 surfaces app.js retombent sur leur branche « passée » **déjà
+> existante** (« Cette date est passée — mets à jour ton objectif », cap masqué) — aucun texte neuf.
+> Non-régression : course à venir 1 j garde « Affûtage », passée 4 j reste « done ». +1 test.
+> 534 tests + smoke verts. Recap #584. _Domaine : athlete._
 
 > 🧹 **#583 — Docs : la roadmap P5.2 ne renvoie plus vers une piste coach déjà close (#582) — domaine
 > `docs`, pas de bump.** Rotation §4 bis : 5 derniers domaines = `coach · fondations · docs · coach · a11y`

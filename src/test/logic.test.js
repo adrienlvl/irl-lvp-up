@@ -1702,6 +1702,24 @@ test('raceGoalStatus : ultra 150-200km à 2 ans → phase fondation', () => {
   assert.equal(s.km, 170);
   assert.ok(s.daysLeft > 630, 'daysLeft cohérent (~2 ans)');
 });
+test('raceGoalStatus : course passée de 1 à 3 jours → « Course passée », pas « Affûtage »', () => {
+  const now = new Date('2026-07-20T12:00:00');
+  // 1 à 3 jours : l'écart en semaines s'arrondit à 0 (Math.round) → le bug affichait « Affûtage ».
+  for (let d = 1; d <= 3; d++) {
+    const date = new Date('2026-07-20T12:00:00'); date.setDate(date.getDate() - d);
+    const s = L.raceGoalStatus({ type: 'trail', distanceKm: 20, date: L.dateKey(date) }, now);
+    assert.equal(s.daysLeft, -d, `daysLeft = -${d}`);
+    assert.equal(s.phase.key, 'done', `course d'il y a ${d} j → phase done`);
+    assert.ok(s.weeksLeft < 0, `weeksLeft négatif pour une course passée (d=${d})`);
+  }
+  // Non-régression : 4 jours passait déjà (Math.round(-4/7) = -1) → toujours « done ».
+  const s4 = L.raceGoalStatus({ type: 'trail', distanceKm: 20, date: '2026-07-16' }, now);
+  assert.equal(s4.phase.key, 'done');
+  // Non-régression : une course dans 1 jour reste « Affûtage » (daysLeft positif).
+  const sUp = L.raceGoalStatus({ type: 'trail', distanceKm: 20, date: '2026-07-21' }, now);
+  assert.equal(sUp.daysLeft, 1);
+  assert.equal(sUp.phase.key, 'taper');
+});
 test('acuteChronicRatio : aiguë (7j) vs chronique (28j/4), zones', () => {
   const today = '2026-07-10';
   // charge répartie régulièrement : ~même charge chaque semaine → ratio ~1 (optimal)
@@ -5639,7 +5657,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.201');
+  assert.equal(L.CHANGELOG[0].v, '2.0.202');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

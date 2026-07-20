@@ -2017,8 +2017,13 @@ function overdueStudy(agenda, todayKey, opts) {
 function raceGoalStatus(goal, now) {
   if (!goal || !goal.date) return null;
   const today = now instanceof Date ? dateKey(now) : (typeof now === 'string' ? now : localDate());
-  const weeksLeft = weeksBetween(today, goal.date);
+  let weeksLeft = weeksBetween(today, goal.date);
   const daysLeft = daysUntil(today, goal.date);
+  // Course passée de 1 à 3 jours : Math.round ramène l'écart (-0,14 à -0,43 sem) à 0, ce qui la
+  // ferait passer pour « à venir » (phase Affûtage « arrive frais ») alors que daysLeft est déjà
+  // négatif. On s'appuie sur le signe fiable de daysLeft pour la marquer passée. Cohérent aussi
+  // avec app.js, qui teste `weeksLeft >= 0` pour décider qu'une course est encore devant.
+  if (weeksLeft === 0 && daysLeft != null && daysLeft < 0) weeksLeft = -1;
   const phase = racePhase(weeksLeft);
   const km = Number(goal.distanceKm) || 0;
   const peakLong = Math.min(300, Math.max(60, Math.round(km * 3)));
@@ -2895,6 +2900,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.202', emoji: '🏁', text: 'Ton objectif de course ne te conseille plus de « t’affûter pour arriver frais » une fois la course déjà passée. Les 1 à 3 jours suivant ta course, la carte d’objectif et ton coach du jour continuaient d’afficher la phase « Affûtage » (réduis le volume, arrive frais) et « Cap : dans 0 sem. » — alors que la course avait déjà eu lieu la veille ou l’avant-veille. Un arrondi ramenait ce délai négatif à zéro, faisant passer une course passée pour une course imminente. Désormais, dès le lendemain, la carte affiche « Cette date est passée — mets à jour ton objectif » et le rappel de cap disparaît, comme c’était déjà le cas à partir de 4 jours. Rien d’ajouté : une incohérence de calendrier corrigée.' },
   { v: '2.0.201', emoji: '🥗', text: 'Ton coach « Le focus du moment » ne te demande plus « encore un jour actif aujourd’hui » côté nutrition un jour où tu as DÉJÀ noté tes apports. Quand ton suivi nutrition monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») et invitait à « encore un jour actif aujourd’hui pour ancrer l’habitude » — même les jours où tu venais justement de saisir tes protéines, ton eau ou un fruit. Il te redemandait un geste déjà fait. Désormais, ces jours-là, il le CRÉDITE : « Déjà noté aujourd’hui ✅ — l’habitude est ancrée. » Les jours où tu n’as encore rien saisi, l’invitation à t’y mettre reste inchangée. (Le sommeil, lui, garde son conseil de coucher du soir, qui porte sur ce qui reste à venir.) Rien d’ajouté : un ordre déjà exécuté en moins.' },
   { v: '2.0.200', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour de pic de charge où ta séance est DÉJÀ faite. La version précédente effaçait bien cette invitation à continuer quand ta charge d’entraînement était en pic (ACWR élevé) — mais seulement les jours où il te restait une séance à caler. Or un jour de pic est souvent un jour où tu viens justement de t’entraîner : dans ce cas, « Garde le rythme » restait affiché pendant que ton bilan de la semaine, lui, te disait « prévois une semaine plus légère pour éviter la blessure ». Les deux panneaux se contredisaient. Désormais, dès que ta charge est en pic, l’invitation à continuer s’efface — séance faite ou non — et les deux panneaux disent la même chose. Le constat « en hausse » reste, et une vraie montée SAINE garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.199', emoji: '♿', text: 'Accessibilité : six champs de saisie qui ne portaient qu’un texte d’exemple (« indice ») ont maintenant un vrai nom lu par les lecteurs d’écran — le prénom d’un anniversaire, le nom et le lien d’un calendrier synchronisé, l’adresse de départ des trajets, le poids du jour et l’envie du jour en cuisine. Un texte d’exemple disparaît dès qu’on tape et n’est pas un nom fiable pour qui navigue à la voix ou au clavier ; ces champs rejoignent ceux de recherche et du tableau de bord déjà corrigés. Rien ne change à l’écran.' },
