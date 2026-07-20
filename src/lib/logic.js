@@ -304,7 +304,6 @@ function parseApplicationsCsv(text) {
 function jobStatusFromText(t) {
   const x = String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   if (/a postuler|a envoyer|a faire|a contacter|a verifier|trouver le contact|todo|prospect/.test(x)) return 'a_postuler';
-  if (/relanc/.test(x)) return 'relance';
   // Rejet formulé par la NÉGATION d'un mot positif (« non retenu », « candidature non retenue »,
   // « pas (été) retenu(e) ») : la tournure standard d'un refus d'alternance. À tester AVANT `accepte`,
   // sinon son sous-motif « retenu » l'emporterait et inverserait le refus en offre acceptée — ce qui
@@ -331,6 +330,14 @@ function jobStatusFromText(t) {
   // simple mot « entretien » emportait le refus/l'accepté et laissait la candidature bloquée en
   // colonne « entretien » du funnel (et non-régressable au re-sync, `rankOf` entretien < refus).
   if (/entretien|entrevue/.test(x)) return 'entretien';
+  // `relance` (suivi EN COURS) APRÈS les états terminaux/avancés — même raison que `entretien` juste
+  // au-dessus : « relancé puis refusé », « relancé, sans suite », « relancé, j'ai été pris » ou
+  // « relancé, entretien décroché » sont refus / accepté / entretien, PAS une relance en cours. Placé
+  // en tête (avant refus/accepté/entretien), le simple mot « relancé » l'emportait → candidature figée
+  // en colonne « relance » du funnel (rang 2, jamais régressée au re-sync via mergeApplications) et
+  // exclue du « répondu » d'`applicationStats` (answered = entretien+accepté+refus) → taux de réponse
+  // sous-évalué. Reste AVANT le seau `postule` : une relance prime sur un simple « postulé ».
+  if (/relanc/.test(x)) return 'relance';
   // « prise de contact », « pris contact », « pris en compte », « rendez-vous pris » : le contact EST
   // établi — c'est un dossier envoyé/en cours, pas un « à postuler » (et surtout pas un « accepté »).
   if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)
@@ -2872,6 +2879,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.192', emoji: '💼', text: 'Ton suivi Alternance classe mieux les candidatures « relancées puis conclues ». Quand une cellule de statut disait à la fois que tu avais relancé ET que c’était fini — « relancé, sans suite », « relancé puis refusé », « relancé, entretien décroché » — le suivi ne retenait que la relance et laissait la candidature bloquée dans la colonne « Relancé », même une fois refusée ou décrochée. Elle échappait alors à ton taux de réponse (un refus compte comme une réponse, pas une relance). Désormais l’état FINAL l’emporte, comme c’était déjà le cas pour « refusé après entretien » : « relancé puis refusé » = refusé, « relancé, entretien décroché » = entretien, « j’ai été pris » = accepté. Une simple relance en cours reste bien « Relancé ». Rien d’ajouté : un classement d’entonnoir plus juste.' },
   { v: '2.0.191', emoji: '🏋️', text: 'Ton échauffement et ton retour au calme collent mieux au type de séance. Le tri se faisait sur des mots-clés du titre trop courts, qui se déclenchaient à tort : une séance « cardio haute intensité » héritait d’un échauffement HAUT DU CORPS (à cause de « hau(t)e »), et une séance de jambes intitulée « presse à cuisses / à jambes » aussi (à cause de « pre(ss)e »). Corrigé : « haute intensité » reçoit désormais un échauffement général, la « presse à cuisses/jambes » un échauffement BAS DU CORPS. Et ta séance générée « Bas du corps » obtient enfin son échauffement bas-du-corps dédié (mobilité hanches/chevilles, squats), au lieu d’un général. L’anglais « floor/bench press » reste bien classé haut du corps. Rien d’ajouté : des mots-clés simplement mieux ciblés.' },
   { v: '2.0.190', emoji: '🌙', text: 'Ton coach « Le focus du moment » ne te dit plus « fais un jour actif de plus » un jour où c’est ton SOMMEIL (ou ton focus, ta nutrition) qu’il met en avant. Quand il te FÉLICITE de bien suivre ses conseils (« Tu as tenu 3/3 de mes caps cette semaine »), il remplaçait ton conseil du jour par « Un jour actif de plus aujourd’hui… » — une formule pensée pour le sport, qui n’a aucun sens pour une nuit (une nuit ne se « fait » pas dans la journée) et qui écrasait un conseil bien plus utile qu’il venait de te donner, comme « Vise un coucher 30 min plus tôt ce soir ». Désormais ce message d’encouragement reste réservé au sport : sur un pilier sommeil / focus / nutrition, le coach GARDE son conseil concret du jour et se contente de créditer ton élan dans le texte. Rien d’ajouté : une incohérence de plus en moins.' },
   { v: '2.0.189', emoji: '🔊', text: 'Deux générateurs d’entraînement s’annoncent enfin aux lecteurs d’écran. Quand tu génères une « séance express » (page Athlète → bibliothèque d’exercices) ou « ma semaine d’entraînement » (coach intelligent), le circuit s’affichait bien à l’écran mais restait totalement muet pour VoiceOver / TalkBack : la personne qui navigue à la voix cliquait « Générer » et n’entendait rien, sans savoir si ça avait marché. Les deux zones de résultat annoncent désormais leur contenu dès qu’il apparaît (comme le faisaient déjà « Mon programme selon mon objectif » et le plan de course). Purement une amélioration d’accessibilité — rien ne change visuellement.' },

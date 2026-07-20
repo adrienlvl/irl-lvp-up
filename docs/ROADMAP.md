@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.191 (2026-07-20)
+## 📍 État actuel — build 2.0.192 (2026-07-20)
+
+> 💼 **#569 — P4.1 : `relanc` classé AVANT les états terminaux → funnel Alternance corrompu (domaine
+> `robustesse`, build 2.0.192).** Rotation §4 bis : les 5 derniers domaines = `athlete · coach · a11y ·
+> etudes · coach` → `coach` (priorité de nuit) dans le dernier recap ET 2× dans les 5 = **interdit**,
+> `athlete` dans les 2 derniers = interdit → 2ᵉ demande d'Adrien (avancer Cap 3.0/qualité), tâche nommée
+> **P4.1**, domaine `robustesse` (absent des 5 derniers) autorisé. Méthode P4 sur les 3 motifs :
+> `entretien`/`entrevue` et le seau `postule` **corrects** (ordre déjà protecteur, dit §4 bis.5) ;
+> `relanc` **faux positif d'ORDRE prouvé** — testé en 2ᵉ position, AVANT refus/accepté/entretien (rangs
+> 3-5 > relance rang 2), exactement le défaut corrigé pour `entretien`. « Relancé, sans suite » →
+> **relance** au lieu de refus ; « relancé, entretien décroché » → relance au lieu d'entretien. Double
+> corruption du module prioritaire : `mergeApplications` ne régresse jamais le rang → candidature **figée**
+> en colonne « Relancé » ; `applicationStats` (answered = entretien+accepté+refus) **exclut** relance →
+> **taux de réponse sous-évalué**. Fix : `relanc` déplacé juste avant le seau `postule` (reste rang 2 > 1,
+> « postulé puis relancé » = relance préservé). +9 assertions. **Aucune note coach ajoutée.** §4ter :
+> classement, pas prose. 528 tests + smoke verts. Recap #569. _Domaine : robustesse._
 
 > 🏋️ **#568 — P4.2 : motifs courts ancrés dans `warmupFor`/`cooldownFor` (domaine `athlete`, build
 > 2.0.191).** Rotation §4 bis : les 5 derniers domaines = `coach · a11y · etudes · coach · tests` →
@@ -479,8 +494,10 @@ dans un mot plus long ou dans un autre sens, exécuter, **prouver** le faux posi
 exiger une tournure explicite), verrouiller par un test. **Si aucun faux positif réaliste n'existe :
 le dire dans le recap et passer à la cible suivante** — ne force pas.
 
-- [ ] **P4.1 — `jobStatusFromText`, motifs restants** (`logic.js:307` `/relanc/`, `:333`
-      `/entretien|entrevue/`, et le seau `postule`). Le plus sensible : il alimente **ton entonnoir**.
+- [x] **P4.1 — `jobStatusFromText`, motifs restants** ✅ _fait #569 (2.0.192)_ (`/relanc/`,
+      `/entretien|entrevue/`, seau `postule`). `entretien`/`postule` **corrects** (ordre déjà protecteur) ;
+      `relanc` était classé AVANT les états terminaux (rang 2 sous refus/accepté/entretien) → « relancé,
+      sans suite » figé en « Relancé » et exclu du taux de réponse → **déplacé après** eux, avant `postule`.
 - [x] **P4.2 — Classement des séances par nom** ✅ _fait #568 (2.0.191)_ (`logic.js:2019/2032` warmupFor
       + `:2021/2034` cooldownFor) : `/poussée|tirage|haut|
       traction|pompes|press|militaire/`, `/jambe|chaîne|squat|fessier|fente|mollet/`,

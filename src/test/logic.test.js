@@ -772,6 +772,19 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   // …mais les vrais « pris/prise » restent bien « accepté ».
   assert.equal(L.jobStatusFromText('Candidature prise'), 'accepte');
   assert.equal(L.jobStatusFromText('Je suis pris'), 'accepte');
+  // Une relance SEULE reste bien « relance », et prime sur un simple « postulé ».
+  assert.equal(L.jobStatusFromText('Relancé'), 'relance');
+  assert.equal(L.jobStatusFromText('2e relance envoyée'), 'relance');
+  assert.equal(L.jobStatusFromText('Relancé sans réponse'), 'relance', 'sans réponse ≠ sans suite : pas encore un refus');
+  assert.equal(L.jobStatusFromText('Postulé puis relancé'), 'relance', 'la relance prime sur « postulé »');
+  // …mais un « relancé PUIS <état terminal/avancé> » est cet état-là, pas une relance en cours (même
+  // logique que « refusé après entretien ») : sinon la candidature reste figée en colonne « relance »
+  // du funnel et sort du « répondu » d'applicationStats → taux de réponse sous-évalué.
+  assert.equal(L.jobStatusFromText('Relancé, sans suite'), 'refus', 'relancé puis sans suite = refus');
+  assert.equal(L.jobStatusFromText('Relancé puis refusé'), 'refus', 'relancé puis refusé = refus');
+  assert.equal(L.jobStatusFromText('Relancé, finalement abandonné'), 'refus');
+  assert.equal(L.jobStatusFromText('Relancé, entretien décroché'), 'entretien', 'relancé puis entretien = entretien');
+  assert.equal(L.jobStatusFromText('Relancé, j’ai été pris'), 'accepte', 'relancé puis pris = accepté');
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
@@ -5570,7 +5583,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.191');
+  assert.equal(L.CHANGELOG[0].v, '2.0.192');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
