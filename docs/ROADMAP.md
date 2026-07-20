@@ -25,6 +25,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.203 (2026-07-20)
 
+> 🎓 **#587 — Proposition : planning d'études multi-échéances avec répétition espacée (Cap 3.0
+> Vague C) — domaine `etudes`, docs seuls, pas de bump/verify.** Rotation §4 bis : 5 derniers domaines
+> = `docs(586) · coach(585) · athlete(584) · docs(583) · coach(582)` → `coach` **interdit** (2 derniers
+> **et** 2×) et `docs` **interdit** (2×, dernier recap) → **priorité de nuit #1 coach rotation-bloquée**
+> ce tour (§3 gagne sur la demande, lecture mécanique §4 bis.3). Vérifié : P4 **épuisé aussi côté
+> `app.js`** (toutes les regex = gardes de format date/heure ancrées, aucun classificateur FR) ; couche
+> de hiérarchisation du coach **déjà mûre** (`orderCoachNotes`/`coachNoteUrgency`, 6 rangs ancrés → la
+> proposer eût été une **piste fausse**) ; `applicationStats` (Alternance, « sacré ») **cohérent**, pas
+> de défaut prouvable. Voie retenue via la demande #2 (avancer Cap 3.0) + le repli proposition de la
+> demande #1 : la **3ᵉ brique de la Vague C** — générateur de révision équilibrant **plusieurs
+> matières** jusqu'à leurs dates **avec répétition espacée** — est **prouvée non bâtie et non proposée**
+> (`planStudySessions` mono-matière, ignore `examGoals[]` ; **zéro** répétition espacée dans `logic.js`).
+> C'est le **seul chantier Cap 3.0 restant autonome** (zéro dépendance, contrairement à la Vague B) —
+> le résumé #586 « restants supervisés/tranchés » l'avait manqué. Doc : `proposals/planning-etudes-
+> multi-echeances.md` (3 options, reco **B**, étapes autonomes façon P6, **5 décisions** pour Adrien).
+> Recap #587. _Domaine : etudes._
+
 > 🧹 **#586 — Docs : le résumé CAP 3.0 ne dit plus « Coaching GELÉ » (le gel a été REFUSÉ) — domaine
 > `docs`, pas de bump.** Rotation §4 bis : 5 derniers domaines = `coach · athlete · docs · coach · —`
 > (#585→#581) → `coach` (#585, dernier recap **et** 2×, priorité de nuit **rotation-bloquée** ce tour,

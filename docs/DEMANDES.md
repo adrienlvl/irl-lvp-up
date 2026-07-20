@@ -25,6 +25,16 @@
     de suite, **B** (verrou web opt-in) en cible ; à greffer sur la réécriture IndexedDB en **session
     supervisée**. ⏳ **4 décisions t'attendent** en fin de doc (périmètre A/B/C · verrou web par phrase de
     passe · filet en cas de mot de passe oublié · confirmation « session supervisée »).
+  - **Chantier 5 — Planning d'études multi-échéances (Cap 3.0, Vague C — AUTONOME).** Boucle #587
+    (2026-07-20) : `docs/proposals/planning-etudes-multi-echeances.md` — la 3ᵉ brique de la Vague C
+    (générateur de révision équilibrant plusieurs matières BTS jusqu'à leurs dates respectives **avec
+    répétition espacée**) est prouvée **non bâtie** (`planStudySessions` mono-matière, ignore
+    `examGoals[]` ; zéro répétition espacée dans le code). C'est le **seul chantier Cap 3.0 restant
+    entièrement autonome** (aucune dépendance/compte/IA, contrairement à la Vague B). Reco : **B**
+    (équilibrage multi-matières + répétition espacée **par matière**), réalisable en **étapes autonomes**
+    façon P6 (B.1 logique pure testée → B.2 UI + smoke → B.3 affinage). ⏳ **5 décisions t'attendent**
+    en fin de doc (périmètre A/B/C · modèle d'espacement · source des matières · charge/jour · mode de
+    réalisation). Dès ton feu vert sur le périmètre, B.1 (le modèle pur) peut démarrer en autonomie.
   - **Chantier 4 — Sync multi-appareils (cœur de la 3.0).** Boucle #581 (2026-07-20) :
     `docs/proposals/sync-multi-appareils.md` — PC ↔ iPhone sans export/import manuel. 2 axes à trancher :
     **granularité de fusion** (blob « dernier gagne » vs **par enregistrement horodaté**, seul à ne pas
