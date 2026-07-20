@@ -1472,6 +1472,48 @@ app.whenReady().then(async () => {
           try { window.haptic = _oh; } catch (_) {}
           return ok;
         })(),
+        // P7.2 (#560) — PARCOURS « générer un planning de révision » : deuxième enchaînement scripté
+        // (après recordSessionJourney/P7.1). On remplit le formulaire du planning d'études, on SUBMIT
+        // pour de vrai, et on vérifie que les créneaux « Révision » atterrissent dans state.agenda, que
+        // le statut de confirmation affiche leur nombre, ET que le DOM suit : le calendrier du mois
+        // montre au moins un créneau généré. Zéro dépendance (comme tout le smoke).
+        studyPlanJourney: typeof save === 'function' && typeof planStudySessions === 'function'
+          && !!document.getElementById('studyPlanForm') && !!document.getElementById('monthCalendar') && (() => {
+          const savedAgenda = state.agenda, savedExamGoal = state.examGoal, savedExamGoals = state.examGoals;
+          const savedCursor = calendarCursor;
+          let ok = true;
+          try {
+            // Agenda vierge pour compter précisément les créneaux, et calendrier calé sur juillet 2026
+            // afin que les créneaux (lun/mer/ven de ce mois) soient VISIBLES dans #monthCalendar.
+            state.agenda = [];
+            calendarCursor = new Date('2026-07-15T12:00:00');
+            // 1. Remplir le formulaire comme l'utilisateur : titre, début, examen, heure, durée.
+            document.getElementById('studyTitle').value = 'Révision droit';
+            document.getElementById('studyStart').value = '2026-07-06';
+            document.getElementById('studyExam').value = '2026-07-31';
+            document.getElementById('studyTime').value = '18:00';
+            document.getElementById('studyDuration').value = '60';
+            // Jours cochés : lundi (1), mercredi (3), vendredi (5).
+            [...document.querySelectorAll('#studyDays input')].forEach(i => { i.checked = (i.value === '1' || i.value === '3' || i.value === '5'); });
+            const expected = planStudySessions({ title: 'Révision droit', time: '18:00', durationMin: 60, weekdays: [1, 3, 5], startDate: '2026-07-06', examDate: '2026-07-31', baseId: 1 }).length;
+            ok = ok && expected > 0;
+            // 2. Valider : submit RÉEL → planStudySessions + mergePlannedEvents + save() + renders.
+            document.getElementById('studyPlanForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            // 3a. Les créneaux sont dans l'agenda (kind study, source planner), au bon nombre.
+            const slots = state.agenda.filter(a => a && a.kind === 'study' && a.source === 'planner');
+            ok = ok && slots.length === expected;
+            // 3b. Le statut de confirmation affiche le nombre de créneaux générés.
+            const status = document.getElementById('studyPlanStatus');
+            ok = ok && !!status && status.textContent.indexOf('créneau') !== -1 && status.textContent.indexOf(String(expected)) !== -1;
+            // 3c. LE DOM SUIT : le calendrier du mois montre au moins un créneau « Révision » généré.
+            ok = ok && slots.some(s => !!document.querySelector('#monthCalendar [data-edit-agenda="' + s.id + '"]'));
+          } catch (e) { ok = false; }
+          // Restauration intégrale de l'état vivant + re-rendu + réécriture de la sauvegarde.
+          state.agenda = savedAgenda; state.examGoal = savedExamGoal; state.examGoals = savedExamGoals;
+          calendarCursor = savedCursor;
+          try { save(); renderMonthCalendar(); render(); } catch (e) {}
+          return ok;
+        })(),
         // A11Y des overlays plein écran (#549) : ouverture = focus DANS l'overlay + <main> neutralisé ;
         // fermeture = focus RESTITUÉ au déclencheur. Les <section> fixed ne le font pas gratuitement,
         // contrairement aux <dialog> showModal().
@@ -1795,6 +1837,7 @@ app.whenReady().then(async () => {
     if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
     if (!checks.listEmptyStates) errors.push('Liste sans état vide (#altList filtré / #questList) — zone blanche sans message');
     if (!checks.recordSessionJourney) errors.push('Parcours « enregistrer une séance » KO (P7.1 : ouvrir le formulaire → saisir → valider doit ajouter la séance à l\'historique #historyList + créditer XP/santé)');
+    if (!checks.studyPlanJourney) errors.push('Parcours « générer un planning de révision » KO (P7.2 : remplir #studyPlanForm → valider doit poser les créneaux « Révision » dans state.agenda + les afficher dans #monthCalendar + statut à jour)');
     if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');

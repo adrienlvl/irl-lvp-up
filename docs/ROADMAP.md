@@ -25,6 +25,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.185 (2026-07-20)
 
+> 🧪 **#560 — P7.2 : parcours « générer un planning de révision » dans le smoke (domaine `tests`, pas
+> de bump).** Rotation §4 bis : `coach` (priorité de nuit) est dans les 2 derniers recaps (#558) et
+> `etudes` apparaît 2× dans les 5 derniers (#555, #559) → **les deux interdits** ; `tests` (1× en
+> #556, hors 2 derniers) est autorisé → 2ᵉ demande d'Adrien (avancer CAP 3.0), tâche nommée **P7.2**
+> (P1.5 tranchée, option B). Le smoke n'avait qu'**un** parcours scripté (`recordSessionJourney`,
+> P7.1) ; les autres checks sont des rendus ponctuels. Nouveau check **bloquant** `studyPlanJourney`
+> qui remplit `#studyPlanForm` → `dispatchEvent('submit')` **réel** → assertions : les créneaux
+> « Révision » atterrissent dans `state.agenda` (`kind:'study'`, `source:'planner'`) au **bon
+> nombre** (recalculé via `planStudySessions`, pas figé), le **statut** `#studyPlanStatus` affiche
+> leur nombre, et **le DOM suit** (`#monthCalendar` contient un `[data-edit-agenda]` généré, avec
+> `calendarCursor` calé sur juillet 2026). État **intégralement restauré** (agenda/examGoal/
+> examGoals/cursor). Aucun award/haptic dans ce flux → pas de flakiness (#557) : 4 runs smoke verts.
+> Piège §6 respecté (concat + `indexOf`, zéro gabarit/regex dans les checks injectés). **Tests-only,
+> aucun effet utilisateur → pas de bump.** 523 tests + smoke verts. Recap #560. _Domaine : tests._
+
 > 🎓 **#559 — P6.2 (1/3) : les échéances clés lisent `examGoals[]` (domaine `etudes`, pas de bump).**
 > `coach` (priorité de nuit) est interdit par la rotation §4 bis (dans #558 ET 2× dans les 5 derniers) →
 > 2ᵉ demande d'Adrien (avancer CAP 3.0), tâche nommée **P6.2**. `upcomingKeyDates` (puces « Ma journée »)
@@ -390,7 +405,9 @@ Un parcours par boucle, chacun en check **bloquant** :
 
 - [x] **P7.1 — Enregistrer une séance** → historique et XP à jour. ✅ _fait #556 — check bloquant
       `recordSessionJourney` (clic → saisie → submit → assertions état + DOM), état restauré, pas de bump._
-- [ ] **P7.2 — Générer un planning de révision** → créneaux visibles dans l'agenda.
+- [x] **P7.2 — Générer un planning de révision** → créneaux visibles dans l'agenda. ✅ _fait #560 —
+      check bloquant `studyPlanJourney` (remplir #studyPlanForm → submit → créneaux `study/planner`
+      dans state.agenda + visibles dans #monthCalendar + statut à jour), état restauré, pas de bump._
 - [ ] **P7.3 — Onboarding complet** → état cohérent en sortie.
 
 _Restaure toujours l'état à la fin du check (voir `listEmptyStates` et `dayViewPlural` pour le motif)._
