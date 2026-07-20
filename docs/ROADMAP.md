@@ -25,6 +25,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.186 (2026-07-20)
 
+> 🧪 **#563 — P7.3 : parcours « onboarding complet » dans le smoke → SÉRIE P7 CLOSE (domaine `tests`,
+> pas de bump).** Rotation §4 bis : `coach` (priorité de nuit) est bloqué — il est dans le dernier
+> recap (#561) ET 2× dans les 5 derniers (#558/#561) ; `etudes` est 2× (#559/#562) et dans les 2
+> derniers → les deux interdits ; `tests` (1× en #560, hors 2 derniers) est **autorisé** → 2ᵉ demande
+> d'Adrien (avancer CAP 3.0), tâche nommée **P7.3** (P1.5 tranchée, option B). Le smoke ne jouait que
+> **deux** parcours scriptés (séance #556, planning #560) ; le **premier lancement** n'était couvert
+> par aucun test de bout en bout. Nouveau check **bloquant** `onboardingJourney` : remplir
+> `#onboardingDialog` → **clic réel** sur « Démarrer » → assertions **état cohérent en sortie** — profil
+> + objectif appliqués, programme placé dans `state.agenda` au **bon nombre** (recalculé, pas figé),
+> quêtes du jour + habitude de départ créées, `onboardingDone`/`blockStart` posés, **et le DOM suit**
+> (dialogue fermé, récap ouvert affichant le nombre de séances, page Athlète active). État
+> **intégralement restauré**. Piège attrapé pendant l'écriture : `normalizeAgendaItem` réécrit
+> `source:'objprog'` en `'manual'` (hors `AGENDA_SOURCES`) mais garde le `refId` → filtrage par
+> **refId `objprog-`**, pas par source. Aucune XP dans ce flux → pas de flakiness (#557) : **5 runs
+> smoke verts**. Piège §6 respecté (concat + `indexOf`, zéro gabarit/regex). **Tests-only, aucun effet
+> utilisateur → pas de bump.** 526 tests + smoke verts. Recap #563. _La série P7 (parcours scriptés)
+> est close ; restent P6.3 (`etudes`) et P4 (`robustesse`) côté rotation._ _Domaine : tests._
+
 > 🎓 **#562 — P6.2 terminé : les 4 consommateurs mono-valués lisent `examGoals[]` (domaine `etudes`,
 > pas de bump).** Rotation §4 bis : `coach` (priorité de nuit) est bloqué — il apparaît dans les 2
 > derniers recaps (#560) ET 2× dans les 5 derniers (#558/#560) → 2ᵉ demande d'Adrien (avancer CAP 3.0),
@@ -442,7 +460,10 @@ Un parcours par boucle, chacun en check **bloquant** :
 - [x] **P7.2 — Générer un planning de révision** → créneaux visibles dans l'agenda. ✅ _fait #560 —
       check bloquant `studyPlanJourney` (remplir #studyPlanForm → submit → créneaux `study/planner`
       dans state.agenda + visibles dans #monthCalendar + statut à jour), état restauré, pas de bump._
-- [ ] **P7.3 — Onboarding complet** → état cohérent en sortie.
+- [x] **P7.3 — Onboarding complet** → état cohérent en sortie. ✅ _fait #563 — check bloquant
+      `onboardingJourney` (remplir #onboardingDialog → « Démarrer » → profil/objectif appliqués,
+      programme placé dans state.agenda, quêtes + habitude créées, onboardingDone/blockStart posés,
+      récap ouvert sur la page Athlète), état restauré, pas de bump._ **Série P7 close.**
 
 _Restaure toujours l'état à la fin du check (voir `listEmptyStates` et `dayViewPlural` pour le motif)._
 

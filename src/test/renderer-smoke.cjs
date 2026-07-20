@@ -1514,6 +1514,94 @@ app.whenReady().then(async () => {
           try { save(); renderMonthCalendar(); render(); } catch (e) {}
           return ok;
         })(),
+        // P7.3 (#563) — PARCOURS « onboarding complet » : troisième enchaînement scripté (après
+        // recordSessionJourney/P7.1 et studyPlanJourney/P7.2). On remplit le formulaire de départ
+        // (#onboardingDialog), on clique « Démarrer » pour de vrai, et on vérifie que l'ÉTAT EN SORTIE
+        // est cohérent : profil + objectif appliqués, le programme placé dans state.agenda (source
+        // objprog, au bon nombre), les quêtes du jour créées, l'habitude de départ ajoutée,
+        // onboardingDone posé, blockStart initialisé — et que le DOM suit (dialogue fermé, récap ouvert
+        // affichant le nombre de séances placées, page Athlète active). Zéro dépendance (comme tout le
+        // smoke). Aucune XP créditée par ce flux → pas de célébration ; on neutralise tout de même le
+        // haptic par prudence (comme recordSessionJourney, l. ~1431). État intégralement restauré.
+        onboardingJourney: typeof onboardingSetup === 'function' && typeof onboardingInputs === 'function'
+          && typeof objectiveProgram === 'function' && typeof assignProgramDays === 'function'
+          && typeof suggestedQuests === 'function' && typeof starterHabitFor === 'function'
+          && !!document.getElementById('finishOnboarding') && !!document.getElementById('onboardingRecapDialog') && (() => {
+          const savedProfile = state.profile, savedGoals = state.goals, savedObjective = state.fitnessObjective;
+          const savedSeed = state.objectiveSeed, savedProgram = state.activeProgram, savedBlockStart = state.blockStart;
+          const savedBlockHistory = state.blockHistory, savedAgenda = state.agenda, savedQuests = state.quests;
+          const savedHabits = state.habits, savedDone = state.onboardingDone;
+          const savedPage = (document.querySelector('[data-page].active') || {}).dataset ? document.querySelector('[data-page].active').dataset.page : 'dashboard';
+          const _oh = window.haptic; try { window.haptic = () => {}; } catch (_) {}
+          let ok = true;
+          try {
+            // 1. Remplir le formulaire de départ comme l'utilisateur : objectif, mensurations, jours,
+            //    créneau, matériel complet, habitude de départ cochée.
+            document.getElementById('onboardingObjective').value = 'muscle';
+            document.getElementById('onbWeight').value = '80';
+            document.getElementById('onbHeight').value = '178';
+            document.getElementById('onbAge').value = '30';
+            document.getElementById('onbSex').value = 'homme';
+            document.getElementById('onbLevel').value = 'intermediaire';
+            document.getElementById('onbActivity').value = 'modere';
+            document.getElementById('onboardingSessions').value = '3';
+            [...document.querySelectorAll('#onbDays input')].forEach(c => { c.checked = (c.value === '1' || c.value === '3' || c.value === '5'); });
+            document.getElementById('onbSlot').value = 'soir';
+            document.getElementById('onboardingHandles').checked = true;
+            document.getElementById('onboardingVest').checked = true;
+            document.getElementById('onboardingKettlebell').checked = true;
+            document.getElementById('onboardingPullup').checked = true;
+            document.getElementById('onbStarterHabit').checked = true;
+            // 2. Recomputer le NOMBRE de séances attendu exactement comme le handler (4 semaines ×
+            //    le programme du jour dominant), à partir des mêmes entrées — pas un chiffre figé.
+            const patch = onboardingSetup(onboardingInputs());
+            const expProg = objectiveProgram(patch.fitnessObjective, exercises, { equipment: patch.profile.equipment, perSession: (typeof perSessionForLevel === 'function' ? perSessionForLevel(patch.profile.level) : 5) });
+            expProg.week = assignProgramDays(expProg.week, patch.profile.availableDays);
+            const expectedScheduled = expProg.week.length * 4;
+            ok = ok && patch.fitnessObjective === 'muscle' && expectedScheduled > 0;
+            // Agenda / quêtes / habitudes vierges et bloc à zéro pour compter précisément ce que
+            // l'onboarding pose (sinon des créneaux ou quêtes préexistants fausseraient le décompte).
+            state.agenda = []; state.quests = []; state.habits = [];
+            state.blockStart = ''; state.blockHistory = []; state.onboardingDone = false;
+            // 3. Valider : clic RÉEL sur « Démarrer » → onboardingSetup + scheduleObjectiveProgram +
+            //    suggestedQuests + habitude + save() + render() + showPage('athlete') + récap.
+            document.getElementById('finishOnboarding').click();
+            // 4a. Profil et objectif appliqués à l'état.
+            ok = ok && state.onboardingDone === true && state.fitnessObjective === 'muscle'
+              && Number(state.profile.weight) === 80 && state.profile.level === 'intermediaire';
+            // 4b. Le programme est placé dans l'agenda AU BON NOMBRE. On repère les créneaux par leur
+            //     refId « objprog-… » (source unique du planificateur d'objectif) : normalizeAgendaItem
+            //     réécrit le champ source='objprog' en 'manual' — non listé dans AGENDA_SOURCES — mais
+            //     conserve refId (spread) et kind:'sport'. Le refId est donc le marqueur fiable.
+            const slots = state.agenda.filter(a => a && typeof a.refId === 'string' && a.refId.indexOf('objprog-') === 0 && a.kind === 'sport');
+            ok = ok && slots.length === expectedScheduled && slots.length > 0;
+            // 4c. Les quêtes du jour et l'habitude de départ sont créées.
+            ok = ok && state.quests.length > 0
+              && state.habits.some(h => h && h.name === starterHabitFor('muscle').name);
+            // 4d. Le bloc d'entraînement est initialisé (clé de date AAAA-MM-JJ, sans regex — §6).
+            ok = ok && typeof state.blockStart === 'string' && state.blockStart.length === 10 && state.blockStart.indexOf('-') === 4;
+            // 4e. LE DOM SUIT : dialogue de départ fermé, récap ouvert affichant le nombre de séances,
+            //     page Athlète active.
+            const onbDlg = document.getElementById('onboardingDialog');
+            ok = ok && !!onbDlg && onbDlg.open === false;
+            const recap = document.getElementById('onboardingRecapDialog');
+            const recapBody = document.getElementById('onboardingRecapBody');
+            const athleteBtn = document.querySelector('[data-page="athlete"]');
+            ok = ok && !!recap && recap.open === true;
+            ok = ok && !!recapBody && recapBody.textContent.indexOf(String(expectedScheduled)) !== -1;
+            ok = ok && !!athleteBtn && athleteBtn.classList.contains('active');
+            try { if (recap && recap.open) recap.close(); } catch (_) {}
+          } catch (e) { ok = false; }
+          // Restauration intégrale de l'état vivant + re-rendu + réécriture de la sauvegarde.
+          state.profile = savedProfile; state.goals = savedGoals; state.fitnessObjective = savedObjective;
+          state.objectiveSeed = savedSeed; state.activeProgram = savedProgram; state.blockStart = savedBlockStart;
+          state.blockHistory = savedBlockHistory; state.agenda = savedAgenda; state.quests = savedQuests;
+          state.habits = savedHabits; state.onboardingDone = savedDone;
+          try { const r = document.getElementById('onboardingRecapDialog'); if (r && r.open) r.close(); } catch (_) {}
+          try { save(); render(); if (typeof showPage === 'function') showPage(savedPage || 'dashboard'); } catch (e) {}
+          try { window.haptic = _oh; } catch (_) {}
+          return ok;
+        })(),
         // A11Y des overlays plein écran (#549) : ouverture = focus DANS l'overlay + <main> neutralisé ;
         // fermeture = focus RESTITUÉ au déclencheur. Les <section> fixed ne le font pas gratuitement,
         // contrairement aux <dialog> showModal().
@@ -1838,6 +1926,7 @@ app.whenReady().then(async () => {
     if (!checks.listEmptyStates) errors.push('Liste sans état vide (#altList filtré / #questList) — zone blanche sans message');
     if (!checks.recordSessionJourney) errors.push('Parcours « enregistrer une séance » KO (P7.1 : ouvrir le formulaire → saisir → valider doit ajouter la séance à l\'historique #historyList + créditer XP/santé)');
     if (!checks.studyPlanJourney) errors.push('Parcours « générer un planning de révision » KO (P7.2 : remplir #studyPlanForm → valider doit poser les créneaux « Révision » dans state.agenda + les afficher dans #monthCalendar + statut à jour)');
+    if (!checks.onboardingJourney) errors.push('Parcours « onboarding complet » KO (P7.3 : remplir #onboardingDialog → « Démarrer » doit appliquer profil/objectif, placer le programme dans state.agenda (source objprog), créer quêtes + habitude, poser onboardingDone/blockStart, fermer le dialogue et ouvrir le récap sur la page Athlète)');
     if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
