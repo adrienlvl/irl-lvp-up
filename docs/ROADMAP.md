@@ -23,7 +23,13 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.213 (2026-07-20)
+## 📍 État actuel — build 2.0.214 (2026-07-20)
+
+> 🛡️ **#598 — Séance guidée : bloc PRÉVENTION/prehab niveau kiné (série coaching, build 2.0.214).**
+> Nouveau `prehabFor(title)` (sourcé Lauersen 2014 : renforcement excentrique = ~½ des blessures en
+> moins) : Nordic hamstring, coiffe des rotateurs/face pulls, mollets excentriques + proprioception,
+> gainage — ciblés par zone, avec le « pourquoi ». Bloc repliable bleu dans la séance. Check smoke
+> bloquant `prehab`. Recap #598. _Domaine : athlete. Suite : progression autorégulée par RIR (recherche prête)._
 
 > ✨ **#597 — Séance guidée redessinée (demande d'Adrien « le design doit vraiment être beau, au niveau
 > du Coach Poids », build 2.0.213).** CSS pur, zéro logique touchée : séries en **cartes** (badge rond,

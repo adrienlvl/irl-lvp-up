@@ -3011,6 +3011,18 @@ test('cooldownFor : retour au calme adapté au type de séance', () => {
   assert.match(L.cooldownFor('Floor press kettlebell').label, /haut du corps/i);
   assert.match(L.cooldownFor('Bas du corps').label, /bas du corps/i);
 });
+test('prehabFor : prévention/prehab niveau kiné, ciblée par zone (Lauersen 2014)', () => {
+  const bas = L.prehabFor('B · Jambes & chaîne postérieure');
+  assert.match(bas.label, /ischios|genou/i);
+  assert.match(JSON.stringify(bas.moves), /Nordic|excentri|freinée/i, 'excentrique ischios (Nordic)');
+  assert.ok(bas.moves.length >= 3 && bas.why && /Lauersen/.test(bas.why));
+  const haut = L.prehabFor('A · Tirage & poussée');
+  assert.match(JSON.stringify(haut), /coiffe|rotation|face pull/i, 'coiffe des rotateurs / face pulls');
+  const trail = L.prehabFor('Puissance & prévention');
+  assert.match(JSON.stringify(trail.moves), /mollet|proprioception|équilibre/i, 'coureur : mollets/proprio');
+  const def = L.prehabFor('Séance inconnue');
+  assert.ok(def.moves.length >= 3 && /gainage|planche|bird/i.test(JSON.stringify(def.moves)));
+});
 
 test('volumeRamp : cas d’Adrien (15→50 km en 8 sem) = trop rapide, honnête', () => {
   const r = L.volumeRamp(15, 50, 8);
@@ -5696,7 +5708,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.213');
+  assert.equal(L.CHANGELOG[0].v, '2.0.214');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -663,7 +663,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.213'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.214'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1849,6 +1849,7 @@ app.whenReady().then(async () => {
         weekPlanner: typeof buildWeekPlan === 'function' && typeof generateAutomaticWeek === 'function' && document.querySelectorAll('#availabilityDays input').length === 7,
         volume: typeof volumeRamp === 'function' && !!document.getElementById('volStart') && typeof renderVolumeGoal === 'function',
         warmup: typeof warmupFor === 'function' && !!document.getElementById('guidedWarmupList'),
+        prehab: typeof prehabFor === 'function' && !!document.getElementById('guidedPrehabList') && !!document.getElementById('guidedPrehab') && (() => { const u = prehabFor('Bas du corps jambes'), h = prehabFor('Haut du corps'); return u && Array.isArray(u.moves) && u.moves.length >= 3 && /Nordic|excentri|freinée/i.test(JSON.stringify(u)) && h && /coiffe|rotation|face pull/i.test(JSON.stringify(h)); })(),
         cooldown: typeof cooldownFor === 'function' && !!document.getElementById('guidedCooldownList') && !!document.getElementById('guidedCooldown'),
         restSound: typeof guidedRestCue === 'function' && typeof restSoundEnabled === 'function' && !!document.getElementById('restSoundToggle'),
         restAdjust: typeof restBarPct === 'function' && typeof adjustRestSeconds === 'function' && typeof adjustGuidedRest === 'function' && !!document.getElementById('guidedRestMinus') && !!document.getElementById('guidedRestPlus') && !!document.getElementById('guidedRestBar') && restBarPct(30, 60) === 50 && adjustRestSeconds(75, -15) === 60 && adjustRestSeconds(595, 30) === 600,
@@ -2046,6 +2047,7 @@ app.whenReady().then(async () => {
     if (!checks.weekPlanner) errors.push('Planificateur hebdo absent (buildWeekPlan/generateAutomaticWeek/7 cases jours)');
     if (!checks.volume) errors.push('Montée en volume absente (volumeRamp/volStart/renderVolumeGoal)');
     if (!checks.warmup) errors.push('Échauffement guidé absent (warmupFor/guidedWarmupList)');
+    if (!checks.prehab) errors.push('Bloc prévention/prehab absent (prehabFor/guidedPrehabList : mouvements kiné par zone, excentrique/coiffe)');
     if (!checks.cooldown) errors.push('Retour au calme absent (cooldownFor/guidedCooldownList)');
     if (checks.exCount < 37) errors.push('Bibliothèque incomplète : ' + checks.exCount + ' exercices (attendu ≥ 37)');
     if (!checks.libraryReset) errors.push('Réinitialisation des filtres bibliothèque KO (activeExerciseFilters / #exerciseFilterBar / reset)');
