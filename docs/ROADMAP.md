@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.196 (2026-07-20)
+## 📍 État actuel — build 2.0.197 (2026-07-20)
+
+> 🏋️ **#575 — Bilan hebdo : plus de « tu montes en volume » un jour où il faut alléger (domaine
+> `athlete`, build 2.0.197).** Rotation §4 bis : les 5 derniers domaines = `fondations · coach ·
+> robustesse · a11y · coach` → `coach` (priorité de nuit) interdit (2 derniers + 2×), `fondations`
+> interdit (dernier), `athlete` (absent des 5 derniers) **autorisé** → 2ᵉ demande d'Adrien (avancer
+> CAP 3.0 / cohérence), tâche nommée **P5.1** (« Mesurer avant de supposer — textes hors coach »).
+> Méthode P5 (400 états chargés) : `weeklySummaryText` (max 177 c), `weeklyInsights` (max 289 c, capé
+> `.slice(0,5)`) et `dayPlanText` (export presse-papier, 1 ligne/item) sont **structurellement
+> bornés** → **piste « pavé » réfutée** (résultat négatif, cf. #548). Mais la mesure a fait sortir une
+> **contradiction réelle** sur le Bilan hebdo (`weeklyInsights`, page Athlète, **pas** le coach) :
+> `📈 +X min — tu montes en volume` **et** `🟥 Charge en pic (ACWR …) : prévois une semaine plus
+> légère` côte à côte. Reproduit sur une rampe réaliste (3 sem. légères → 1 sem. chargée, ACWR 2.59) :
+> le 📈 félicite pile le risque que le 🟥 signale. Fix (curation, pas ajout — §3) : ACWR calculé avant
+> le bloc tendance, 📈 gardé `&& !loadSpiking` (pic → seule reste l'alerte). Montée **saine** (ACWR
+> non-pic) toujours célébrée ; constat de baisse 📉 conservé (pas de conflit). **Aucune note/champ
+> ajouté.** +1 test logique. Check smoke `weeklyInsights` **étendu** (état de pic → « Charge en pic »
+> et **pas** « montes en volume ») **et promu bloquant** (il était défini mais jamais poussé dans
+> `errors` — piège #566). 531 tests + smoke verts. Recap #575. _Domaine : athlete._
 
 > 🔒 **#574 — Proposition : socle sécurité « prêt pour le public » — chiffrement AU REPOS (domaine
 > `fondations`, docs, pas de bump).** Rotation §4 bis : les 5 derniers domaines = `coach · robustesse ·
@@ -596,8 +614,12 @@ La boucle #548 a trouvé un vrai défaut en **mesurant** plutôt qu'en devinant 
 sur des centaines d'états réalistes et observer la distribution de ce qui sort. Elle a aussi
 **invalidé** une piste (0 contradiction sur 1 260 scénarios) — un résultat négatif est un résultat.
 
-- [ ] **P5.1 — Longueur des textes utilisateur ailleurs que le coach** : mêmes mesures (p50/p90/max)
-      sur les résumés « Ma journée », la revue hebdo, les partages texte. Un pavé se corrige au rendu.
+- [x] **P5.1 — Longueur des textes utilisateur ailleurs que le coach** ✅ _fait #575 (2.0.197)_ —
+      mesure sur 400 états : `weeklySummaryText`/`weeklyInsights`/`dayPlanText` **structurellement
+      bornés** (piste « pavé » **réfutée**). Mais la mesure a révélé une **contradiction** de cohérence
+      sur le Bilan hebdo (`weeklyInsights`) : `📈 tu montes en volume` + `🟥 Charge en pic : allège`
+      côte à côte → 📈 gardé `&& !loadSpiking` (curation, pas d'ajout). +test, check smoke étendu &
+      promu bloquant.
 - [ ] **P5.2 — Cohérence des conseils entre panneaux** : un même jour, le coach, « Ma journée » et la
       revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer.
 

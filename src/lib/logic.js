@@ -2459,13 +2459,18 @@ function weeklyInsights(state, mondayKey, todayKey) {
   if (goalKm > 0 && cur.km > 0) out.push(cur.km >= goalKm
     ? { emoji: '🏃', tone: 'good', text: `${cur.km} km courus — objectif ${goalKm} km atteint.` }
     : { emoji: '🏃', tone: 'info', text: `${cur.km}/${goalKm} km courus cette semaine.` });
+  const acwr = acuteChronicRatio(s.workouts, todayKey || mondayKey);
+  const loadSpiking = !!(acwr && acwr.zone === 'high');
   if (prev && (prev.minutes > 0 || cur.minutes > 0)) {
     const d = cur.minutes - prev.minutes;
-    if (d >= 15) out.push({ emoji: '📈', tone: 'good', text: `+${d} min vs semaine dernière — tu montes en volume.` });
+    // Ne pas FÉLICITER la montée en volume quand la charge est en pic (ACWR haut) : l'insight 🟥
+    // ci-dessous ordonne d'ALLÉGER pour éviter la blessure — se réjouir du +volume le même jour se
+    // contredit et pousse pile vers le risque qu'on signale. Le constat de BAISSE (📉) n'entre pas
+    // en conflit avec « allège », on le garde.
+    if (d >= 15 && !loadSpiking) out.push({ emoji: '📈', tone: 'good', text: `+${d} min vs semaine dernière — tu montes en volume.` });
     else if (d <= -30) out.push({ emoji: '📉', tone: 'warn', text: `${d} min vs semaine dernière — volume en baisse, semaine plus légère ?` });
   }
-  const acwr = acuteChronicRatio(s.workouts, todayKey || mondayKey);
-  if (acwr && acwr.zone === 'high') out.push({ emoji: '🟥', tone: 'warn', text: `Charge en pic (ACWR ${acwr.ratio}) : prévois une semaine plus légère pour éviter la blessure.` });
+  if (loadSpiking) out.push({ emoji: '🟥', tone: 'warn', text: `Charge en pic (ACWR ${acwr.ratio}) : prévois une semaine plus légère pour éviter la blessure.` });
   if (cur.sleepAvg > 0 && cur.sleepAvg < 7) out.push({ emoji: '😴', tone: 'warn', text: `Sommeil moyen ${cur.sleepAvg} h — vise 7–8 h pour mieux récupérer et progresser.` });
   if (!out.length) out.push({ emoji: '🌱', tone: 'info', text: `Pas encore de données cette semaine — lance une séance pour démarrer ton bilan.` });
   return out.slice(0, 5);
@@ -2890,6 +2895,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.197', emoji: '🏋️', text: 'Ton bilan de la semaine ne te félicite plus de « monter en volume » le jour même où il te dit d’alléger. Quand ta charge d’entraînement bondit d’un coup (ACWR en pic — le signal classique de risque de blessure après une grosse semaine), le bilan affiche « prévois une semaine plus légère pour éviter la blessure ». Or il pouvait, juste à côté, saluer « +X min vs semaine dernière — tu montes en volume » : deux messages qui se contredisaient et poussaient pile vers le risque signalé. Désormais, ces jours de pic, la félicitation de montée de volume s’efface — l’avertissement reste seul et cohérent. Une vraie montée SAINE (charge maîtrisée), elle, continue d’être célébrée. Rien d’ajouté : une contradiction de moins.' },
   { v: '2.0.196', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour où il te demande de te reposer. Quand ton entraînement monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») ; mais les jours où ta forme du jour est au plancher (readiness sous 50), son conseil bascule en « récupération prioritaire : vise mobilité ou marche plutôt qu’une grosse séance aujourd’hui ». Les deux côte à côte — « continue sur ta lancée » ET « lève le pied » — le faisaient parler des deux coins de la bouche. Désormais, ces jours-là, il retire l’invitation à continuer et garde le constat « en hausse » : le compliment reste, l’injonction qui contredit le repos s’efface. Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.195', emoji: '💼', text: 'Ton suivi Alternance ne compte plus comme « postulé » une candidature que tu n’as PAS encore envoyée. Quand une cellule de statut disait « pas encore postulé », « pas postulé » ou « candidature non envoyée », le suivi ne voyait que le mot « postulé »/« envoyé » et rangeait la candidature dans la colonne « Postulé » de ton entonnoir — à chaque synchronisation de ta feuille Google Sheets — alors qu’elle restait à faire. Ton nombre de candidatures envoyées (et donc ton taux de réponse) était gonflé à tort. Désormais une négation de l’action de candidater (« pas encore postulé », « non envoyée ») est bien classée « à postuler ». Un vrai « postulé » (même suivi de « pas de nouvelles ») reste « postulé », et « pas retenu » reste un refus. Rien d’ajouté : un entonnoir plus juste.' },
   { v: '2.0.194', emoji: '♿', text: 'Tes champs de recherche s’annoncent enfin correctement aux lecteurs d’écran. « Chercher un aliment » (Nutrition), la recherche de l’agenda et la recherche de la bibliothèque d’exercices n’avaient qu’un texte d’exemple à l’intérieur du champ (un « placeholder ») — or celui-ci disparaît dès qu’on tape et n’est pas un nom fiable pour l’accessibilité. Ils portent désormais un vrai nom accessible, comme la recherche de tes candidatures Alternance le faisait déjà. Rien de visible ne change à l’écran : un confort d’usage au clavier et au lecteur d’écran en plus.' },

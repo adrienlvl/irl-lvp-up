@@ -1638,6 +1638,43 @@ test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   assert.equal(empty.length, 1);
 });
 
+test('weeklyInsights : pas de « tu montes en volume » quand la charge est en pic (cohérence)', () => {
+  // Rampe réaliste : 3 semaines légères puis une semaine chargée → ACWR haut ET volume +vs sem. préc.
+  // Le bilan ne doit PAS féliciter la montée (📈) et ordonner d'alléger (🟥) le même jour.
+  const spike = {
+    workouts: [
+      { date: '2026-06-23', type: 'muscu', duration: 30, effort: 2 },
+      { date: '2026-06-26', type: 'muscu', duration: 30, effort: 2 },
+      { date: '2026-06-30', type: 'muscu', duration: 30, effort: 2 },
+      { date: '2026-07-03', type: 'muscu', duration: 35, effort: 2 },
+      { date: '2026-07-07', type: 'muscu', duration: 35, effort: 2 },
+      { date: '2026-07-09', type: 'muscu', duration: 35, effort: 2 },
+      { date: '2026-07-13', type: 'muscu', duration: 60, effort: 3 },
+      { date: '2026-07-14', type: 'muscu', duration: 60, effort: 3 },
+      { date: '2026-07-15', type: 'muscu', duration: 60, effort: 3 },
+      { date: '2026-07-16', type: 'muscu', duration: 60, effort: 3 },
+    ],
+    goals: { sessions: 4 },
+  };
+  const acwr = L.acuteChronicRatio(spike.workouts, '2026-07-17');
+  assert.equal(acwr.zone, 'high', 'préalable : ACWR bien en pic');
+  const ins = L.weeklyInsights(spike, '2026-07-13', '2026-07-17');
+  assert.ok(ins.some(i => /Charge en pic/.test(i.text)), 'l’avertissement de pic est présent');
+  assert.ok(!ins.some(i => /montes en volume/.test(i.text)), 'aucune félicitation de montée de volume quand la charge est en pic');
+  // Non-régression : montée SAINE (ACWR non-pic) → la félicitation 📈 reste
+  const healthy = {
+    workouts: [
+      { date: '2026-06-22', type: 'muscu', duration: 40, effort: 2 }, { date: '2026-06-23', type: 'muscu', duration: 40, effort: 2 }, { date: '2026-06-24', type: 'muscu', duration: 40, effort: 2 },
+      { date: '2026-06-29', type: 'muscu', duration: 45, effort: 2 }, { date: '2026-06-30', type: 'muscu', duration: 45, effort: 2 }, { date: '2026-07-01', type: 'muscu', duration: 45, effort: 2 },
+      { date: '2026-07-06', type: 'muscu', duration: 50, effort: 2 }, { date: '2026-07-07', type: 'muscu', duration: 50, effort: 2 }, { date: '2026-07-08', type: 'muscu', duration: 50, effort: 2 },
+      { date: '2026-07-13', type: 'muscu', duration: 55, effort: 2 }, { date: '2026-07-14', type: 'muscu', duration: 55, effort: 2 }, { date: '2026-07-15', type: 'muscu', duration: 55, effort: 2 }, { date: '2026-07-16', type: 'muscu', duration: 55, effort: 2 },
+    ],
+    goals: { sessions: 4 },
+  };
+  assert.notEqual(L.acuteChronicRatio(healthy.workouts, '2026-07-17').zone, 'high', 'préalable : montée saine, pas de pic');
+  assert.ok(L.weeklyInsights(healthy, '2026-07-13', '2026-07-17').some(i => /montes en volume/.test(i.text)), 'la montée saine est toujours célébrée');
+});
+
 test('weeksBetween : compte les semaines, négatif si passé', () => {
   assert.equal(L.weeksBetween('2026-07-06', '2026-07-20'), 2);
   assert.equal(L.weeksBetween('2026-07-06', '2028-07-06'), 104); // ~2 ans
@@ -5602,7 +5639,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.196');
+  assert.equal(L.CHANGELOG[0].v, '2.0.197');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
