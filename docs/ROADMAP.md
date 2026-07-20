@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.194 (2026-07-20)
+## 📍 État actuel — build 2.0.195 (2026-07-20)
+
+> 💼 **#572 — P4.3 : « pas encore postulé » n'est plus classé « postulé » (domaine `robustesse`, build
+> 2.0.195).** Rotation §4 bis : les 5 derniers domaines = `a11y · coach · robustesse · athlete · coach`
+> → `a11y` (2 derniers) et `coach` (2 derniers + 2×) interdits ; `robustesse` (#569, 1×, hors 2 derniers)
+> autorisé → 2ᵉ demande d'Adrien (avancer CAP 3.0/qualité), tâche nommée **P4.3** (balayage regex non
+> ancrées). Balayage §2.3 : les deux seuls classificateurs de texte FR libre sont `jobStatusFromText`
+> (statut Alternance) et `warmupFor`/`cooldownFor` (déjà P4.2) ; `exerciseZones` est un lookup exact.
+> **Faux positif PROUVÉ** (piste mémoire #446) : « pas encore postulé » / « pas postulé » / « non envoyée »
+> → le verbe `postule`/`envoye` est capté DANS une **négation** → la candidature basculait en « Postulé »
+> du funnel et gonflait `applicationStats` (answered/responseRate) à **chaque sync du Sheets**, alors
+> qu'elle est **à faire** (module sacré 💼). Fix : garde `\b(pas|non|jamais)\b…(postul|envoy)` → `a_postuler`,
+> placé APRÈS refus/accepté/entretien/relance (ils gardent la priorité) ; **seuls** les verbes d'action
+> (`candidat` ambigu — « pas un bon candidat » = refus — et `retenu` déjà en refus sont écartés). L'ordre
+> protège le positif (« postulé, pas de nouvelles » reste postulé). 11 assertions (faux positifs +
+> non-régression), 17/17 au rejeu. **Aucune note/texte ajouté** (§4 ter : classement, pas prose). 529 tests
+> + smoke verts. Recap #572. **Les deux classificateurs FR sont désormais durcis** (P4.1/#569, P4.2/#568,
+> P4.3/#572). _Domaine : robustesse._
 
 > ♿ **#571 — P2.4 : noms accessibles des champs de recherche (domaine `a11y`, build 2.0.194).**
 > Rotation §4 bis : les 5 derniers domaines = `coach · robustesse · athlete · coach · a11y` → `coach`
@@ -533,9 +550,12 @@ le dire dans le recap et passer à la cible suivante** — ne force pas.
       traction|pompes|press|militaire/`, `/jambe|chaîne|squat|fessier|fente|mollet/`,
       `/trail|côte|course|puissance|longue|swing|explos/`. Motifs courts (`haut`, `press`, `côte`,
       `course`) dans des noms d'exercices libres — vérifier chacun.
-- [ ] **P4.3 — Balayage du reste de `logic.js`** : `grep -n "\.test(" lib/logic.js`, écarter les
-      regex structurelles (dates, ISO, CSV) et ne garder que celles qui classent du **texte FR saisi
-      par Adrien**. Une cible par boucle.
+- [x] **P4.3 — Balayage du reste de `logic.js`** ✅ _fait #572 (2.0.195)_ : balayage complet des
+      `.test(`/`.match(` — les **deux seuls** classificateurs de texte FR libre sont `jobStatusFromText`
+      (déjà P4.1/#569) et `warmupFor`/`cooldownFor` (P4.2/#568) ; `exerciseZones` = lookup exact, les
+      autres `.includes` = recherches de sous-chaîne intentionnelles. Dernier faux positif de
+      `jobStatusFromText` corrigé : « pas encore postulé » (négation de l'action) → `a_postuler` au lieu
+      de `postule`. **Les classificateurs FR du fichier sont durcis** ; plus de cible P4 ouverte.
 
 ### P5 — Mesurer avant de supposer _(méthode qui a marché, à réemployer)_
 

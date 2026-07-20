@@ -788,6 +788,25 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
+test('jobStatusFromText : une NÉGATION de l’action de candidater = à postuler (pas « postulé »)', () => {
+  // « pas encore postulé » : le mot « postulé » est capté DANS une négation → la candidature n’est PAS
+  // encore envoyée. Sans le garde, le seau `postule` l’emportait → funnel + applicationStats gonflés à
+  // chaque sync du Sheets. Motif P4 (un verbe pris dans une tournure qui l’inverse).
+  assert.equal(L.jobStatusFromText('Pas encore postulé'), 'a_postuler', 'pas encore postulé = à postuler');
+  assert.equal(L.jobStatusFromText('pas postulé'), 'a_postuler');
+  assert.equal(L.jobStatusFromText('Pas encore envoyé'), 'a_postuler', 'pas envoyé = pas candidaté');
+  assert.equal(L.jobStatusFromText('Candidature non envoyée'), 'a_postuler');
+  assert.equal(L.jobStatusFromText('Je n’ai pas encore postulé'), 'a_postuler');
+  // Non-régression : un vrai « postulé/envoyé » (sans négation) reste « postulé », même suivi d’un « pas ».
+  assert.equal(L.jobStatusFromText('Postulé le 12/03'), 'postule');
+  assert.equal(L.jobStatusFromText('Postulé, pas de nouvelles'), 'postule', 'négation APRÈS le verbe → reste postulé');
+  assert.equal(L.jobStatusFromText('2e relance envoyée'), 'relance', 'la relance prime toujours');
+  assert.equal(L.jobStatusFromText('Candidature envoyée puis refusée'), 'refus', 'refus prime sur envoyé');
+  // Non-régression : la négation d’un REFUS (« pas retenu ») reste un refus (verbe « retenu » hors garde).
+  assert.equal(L.jobStatusFromText('Pas retenu'), 'refus');
+  assert.equal(L.jobStatusFromText('Vous n’avez pas été retenu'), 'refus');
+});
+
 test('jobDateFromText : lit ISO/JJ-MM-AAAA, borne mois/jour, ignore les dates aberrantes', () => {
   // Cas nominaux (inchangés)
   assert.equal(L.jobDateFromText('2026-07-16'), '2026-07-16');
@@ -5583,7 +5602,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.194');
+  assert.equal(L.CHANGELOG[0].v, '2.0.195');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

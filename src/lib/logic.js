@@ -338,6 +338,17 @@ function jobStatusFromText(t) {
   // exclue du « répondu » d'`applicationStats` (answered = entretien+accepté+refus) → taux de réponse
   // sous-évalué. Reste AVANT le seau `postule` : une relance prime sur un simple « postulé ».
   if (/relanc/.test(x)) return 'relance';
+  // NÉGATION de l'action de candidater (« pas encore postulé », « pas postulé », « non envoyée »,
+  // « candidature pas encore envoyée ») : la candidature n'a PAS encore été envoyée → à postuler, PAS
+  // « postulé ». Sans ce garde, le simple mot « postulé »/« envoyé » du seau `postule` juste en dessous
+  // l'emportait → la candidature basculait en « postulé » dans le funnel et gonflait applicationStats
+  // (answered/responseRate) à CHAQUE sync du Sheets, alors qu'elle reste à faire. Placé APRÈS les états
+  // terminaux/avancés (refus/accepté/entretien/relance) : un « pas encore postulé, finalement refusé »
+  // reste un refus. On n'exige QUE les verbes d'action de candidature (postul/envoy) : « candidat » est
+  // ambigu (« pas un bon candidat » = refus, pas une candidature à envoyer) et « retenu » est un refus
+  // (« pas (été) retenu », déjà capté plus haut). Négation collée au verbe (« pas encore postulé » :
+  // court intervalle toléré), l'ordre protège le positif (« postulé, pas de nouvelles » reste postulé).
+  if (/\b(?:pas|non|jamais)\b[\s\S]{0,12}(?:postul|envoy)/.test(x)) return 'a_postuler';
   // « prise de contact », « pris contact », « pris en compte », « rendez-vous pris » : le contact EST
   // établi — c'est un dossier envoyé/en cours, pas un « à postuler » (et surtout pas un « accepté »).
   if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)
@@ -2879,6 +2890,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.195', emoji: '💼', text: 'Ton suivi Alternance ne compte plus comme « postulé » une candidature que tu n’as PAS encore envoyée. Quand une cellule de statut disait « pas encore postulé », « pas postulé » ou « candidature non envoyée », le suivi ne voyait que le mot « postulé »/« envoyé » et rangeait la candidature dans la colonne « Postulé » de ton entonnoir — à chaque synchronisation de ta feuille Google Sheets — alors qu’elle restait à faire. Ton nombre de candidatures envoyées (et donc ton taux de réponse) était gonflé à tort. Désormais une négation de l’action de candidater (« pas encore postulé », « non envoyée ») est bien classée « à postuler ». Un vrai « postulé » (même suivi de « pas de nouvelles ») reste « postulé », et « pas retenu » reste un refus. Rien d’ajouté : un entonnoir plus juste.' },
   { v: '2.0.194', emoji: '♿', text: 'Tes champs de recherche s’annoncent enfin correctement aux lecteurs d’écran. « Chercher un aliment » (Nutrition), la recherche de l’agenda et la recherche de la bibliothèque d’exercices n’avaient qu’un texte d’exemple à l’intérieur du champ (un « placeholder ») — or celui-ci disparaît dès qu’on tape et n’est pas un nom fiable pour l’accessibilité. Ils portent désormais un vrai nom accessible, comme la recherche de tes candidatures Alternance le faisait déjà. Rien de visible ne change à l’écran : un confort d’usage au clavier et au lecteur d’écran en plus.' },
   { v: '2.0.193', emoji: '🩹', text: 'Ton coach « Le focus du moment » n’affiche plus un chiffre FAUX. Quand sa carte était assez remplie pour être résumée, elle réordonnait ses phrases par ordre d’importance — et, à cette occasion, un nombre à décimale écrit avec un point (comme la moyenne de sommeil « moy. 5.3 h ») perdait son chiffre de tête : « moy. 5.3 h » devenait « moy. 3 h », et une phrase comme « Tu dors 5.3 h en moyenne » se réduisait à « 3 h en moyenne ». Le découpage en phrases prenait le point de la décimale pour une fin de phrase et jetait le morceau au passage. Corrigé : un point collé à un chiffre n’est plus une fin de phrase, et plus aucun caractère n’est perdu — le coach affiche le vrai nombre. Rien d’ajouté : une donnée enfin exacte.' },
   { v: '2.0.192', emoji: '💼', text: 'Ton suivi Alternance classe mieux les candidatures « relancées puis conclues ». Quand une cellule de statut disait à la fois que tu avais relancé ET que c’était fini — « relancé, sans suite », « relancé puis refusé », « relancé, entretien décroché » — le suivi ne retenait que la relance et laissait la candidature bloquée dans la colonne « Relancé », même une fois refusée ou décrochée. Elle échappait alors à ton taux de réponse (un refus compte comme une réponse, pas une relance). Désormais l’état FINAL l’emporte, comme c’était déjà le cas pour « refusé après entretien » : « relancé puis refusé » = refusé, « relancé, entretien décroché » = entretien, « j’ai été pris » = accepté. Une simple relance en cours reste bien « Relancé ». Rien d’ajouté : un classement d’entonnoir plus juste.' },
