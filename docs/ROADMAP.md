@@ -23,7 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.198 (2026-07-20)
+## 📍 État actuel — build 2.0.199 (2026-07-20)
+
+> ♿ **#578 — A11y : noms accessibles sur 6 champs de saisie au placeholder seul (domaine `a11y`,
+> build 2.0.199).** Rotation §4 bis : 5 derniers domaines = `docs · coach · athlete · fondations ·
+> coach` → `coach` (priorité de nuit, 2 derniers + 2×) et `docs` (dernier) **interdits** ; `a11y`
+> (absent des 5 derniers) autorisé → 2ᵉ demande d'Adrien (« prêt pour le public » : l'a11y conditionne
+> App Store + Play), prolongement de la ligne a11y #549/#550/#566/#571. Piste mémoire (audit #463)
+> **vérifiée** (`grep for=` = 0, aucun `<label>` englobant) : `birthdayName`, `calSubName`, `calSubUrl`,
+> `travelHome`, `weightInput`, `envieText` n'avaient qu'un `placeholder` (WCAG 3.3.2/4.1.2 : disparaît à
+> la saisie, pas un nom accessible fiable). `aria-label` ajouté aux 6 ; placeholders inchangés →
+> **aucun texte visible** (§4 ter sans objet). Nouveau check smoke **bloquant** `formFieldLabels`.
+> 532 tests + smoke verts, `formFieldLabels:true`. Recap #578. _Domaine : a11y._
 
 > 📏 **#577 — P5.2 (mesure) : le coach dit « Garde le rythme » quand le Bilan hebdo dit « allège »
 > (domaine `docs`, pas de bump).** Rotation §4 bis : les 5 derniers domaines = `coach · athlete ·

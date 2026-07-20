@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.198'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.199'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -686,6 +686,13 @@ app.whenReady().then(async () => {
           // A11y (WCAG 3.3.2) : les champs de recherche n'ont qu'un placeholder, qui disparait
           // a la saisie et n'est pas un nom accessible fiable → aria-label obligatoire, comme altSearch.
           const ids = ['foodSearch', 'agendaSearch', 'exerciseSearch', 'altSearch'];
+          return ids.every(id => { const el = document.getElementById(id); return el && (el.getAttribute('aria-label') || '').trim().length > 0; });
+        })(),
+        formFieldLabels: (() => {
+          // A11y (WCAG 3.3.2/4.1.2) : champs de saisie agenda/calendrier/poids/cuisine au
+          // placeholder seul (aucun <label> englobant ni for=) → aria-label obligatoire, le
+          // placeholder disparait a la saisie et n'est pas un nom accessible fiable.
+          const ids = ['birthdayName', 'calSubName', 'calSubUrl', 'travelHome', 'weightInput', 'envieText'];
           return ids.every(id => { const el = document.getElementById(id); return el && (el.getAttribute('aria-label') || '').trim().length > 0; });
         })(),
         calorieFloor: typeof calorieAdjustment === 'function' && (() => { const flat = [{ date: '2026-06-21', value: 80 }, { date: '2026-07-01', value: 80.1 }, { date: '2026-07-12', value: 80 }]; const near = calorieAdjustment(flat, 'perte', 1250); const norm = calorieAdjustment(flat, 'perte', 2000); const floor = calorieAdjustment(flat, 'perte', 1200); return near.newTarget === 1200 && near.delta === 50 && near.message.indexOf('50 kcal/jour') !== -1 && near.message.indexOf('125 kcal') === -1 && norm.delta === 125 && norm.newTarget === 1875 && floor.delta === 0 && floor.newTarget === 1200 && floor.message.indexOf('plancher') !== -1; })(),
@@ -1963,6 +1970,7 @@ app.whenReady().then(async () => {
     if (!checks.objectiveRunPlural) errors.push('En-tête programme auto KO (runObjectiveProgram doit accorder « course » au pluriel quand runs > 1 : « 4 courses/sem. » et non « 4 course/sem. »)');
     if (!checks.dashboardInputLabels) errors.push('A11y tableau de bord KO (todoInput/habitInput/lifeGoalOne..Three/focusTaskInput doivent avoir un aria-label — nom accessible, placeholder insuffisant)');
     if (!checks.searchFieldLabels) errors.push('A11y champs de recherche KO (foodSearch/agendaSearch/exerciseSearch/altSearch doivent avoir un aria-label — placeholder insuffisant, WCAG 3.3.2)');
+    if (!checks.formFieldLabels) errors.push('A11y champs de saisie KO (birthdayName/calSubName/calSubUrl/travelHome/weightInput/envieText doivent avoir un aria-label — placeholder insuffisant, WCAG 3.3.2)');
     if (!checks.calorieFloor) errors.push('Ajustement calorique KO (calorieAdjustment : baisse annoncée ≠ baisse réelle près du plancher 1200)');
     if (!checks.recurring) errors.push('Récurrence KO (recurrenceMatches/normalizeRecurring/recurringForm/recFreq/recurringList)');
     if (!checks.habits) errors.push('Habitudes KO (habitsForDay/habitStreak/habitForm/habitList/habitDays 7 jours)');
