@@ -23,7 +23,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.211 (2026-07-20)
+## 📍 État actuel — build 2.0.212 (2026-07-20)
+
+> 🔍 **#596 — Graphique du poids : zoom sur « où tu es maintenant » (demande d'Adrien, build 2.0.212).**
+> `weightForecastModel` gagne `windowWeeks` (fenêtre ± autour d'aujourd'hui → « auj. » **au centre**, le
+> lointain rogné) + expose `current` (dernière pesée). Rendu : **point qui pulse** + étiquette
+> « 📍 poids · aujourd'hui », reduced-motion respecté. **Bonus** : le check smoke `coachWeight` avait
+> silencieusement pourri (anciennes valeurs energyPlan, non-bloquant) → corrigé **et rendu bloquant**.
+> Recap #596. _Domaine : mesures._
 
 > 🔬 **#595 — Coach Poids niveau nutritionniste du sport (demande d'Adrien « pousse au max, sois au
 > niveau d'un diététicien », build 2.0.211).** Recherche scientifique (workflow WebSearch) puis code

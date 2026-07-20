@@ -5696,7 +5696,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.211');
+  assert.equal(L.CHANGELOG[0].v, '2.0.212');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11420,5 +11420,13 @@ test('weightForecastModel : échelle Y priorise le RÉEL pour qu’il soit lisib
   assert.ok(noAct.vMin <= 78.5 && noAct.vMax >= 89, 'sans réel, l’échelle couvre le plan');
   assert.equal(L.weightForecastModel([{ date: '2026-07-01', value: 80 }], []), null, '<2 points de plan → null');
   assert.equal(L.weightForecastModel(null, null), null);
+  // ZOOM (#596) : fenêtre autour d'aujourd'hui → todayX centré (~50), point courant exposé, plan rogné.
+  const zPlan = []; for (let i = 0; i <= 15; i++) { const d = new Date('2026-07-11T12:00:00'); d.setDate(d.getDate() + i * 7); zPlan.push({ date: d.toISOString().slice(0, 10), value: 90 - i * 0.8 }); }
+  const zAct = []; for (let i = 6; i >= 0; i--) { const d = new Date('2026-07-11T12:00:00'); d.setDate(d.getDate() - i * 7); zAct.push({ date: d.toISOString().slice(0, 10), value: 91.5 - (6 - i) * 0.2 }); }
+  const zoom = L.weightForecastModel(zPlan, zAct, { windowWeeks: 8 });
+  assert.equal(zoom.todayX, 50, 'aujourd’hui au centre quand on zoome');
+  assert.ok(zoom.plan.length < zPlan.length, 'le plan lointain est rogné par la fenêtre');
+  assert.ok(zoom.current && zoom.current.value === zAct[zAct.length - 1].value, 'le point courant = dernière pesée');
+  assert.equal(L.weightForecastModel(zPlan, zAct).current.value, zAct[zAct.length - 1].value, 'current exposé même sans zoom');
 });
 

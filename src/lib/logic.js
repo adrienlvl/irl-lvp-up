@@ -2940,6 +2940,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.212', emoji: '🔍', text: 'Le graphique du Coach Poids ZOOME maintenant sur là où tu en es. Avant, l’axe du temps s’étirait jusqu’à ta cible parfois lointaine, tassant tes pesées récentes dans un coin. Désormais il se cale sur une fenêtre autour d’AUJOURD’HUI (placé au centre) : ton passé récent et ta trajectoire proche remplissent l’écran, gros et lisibles. Et « où tu es maintenant » est marqué net : un point qui pulse avec une étiquette « 📍 ton poids · aujourd’hui ». En un coup d’œil tu vois exactement ta position et où ça va. (Corrige aussi un contrôle interne du Coach Poids qui ne se déclenchait plus.)' },
   { v: '2.0.211', emoji: '🔬', text: 'Ton Coach Poids passe au niveau d’un vrai nutritionniste du sport — chiffres fondés sur la science, pas au pif. Ton rythme de perte est désormais PERSONNALISÉ selon ta corpulence : plus tu as de marge, plus il pousse fort (jusqu’à ~0,9 %/semaine) ; plus tu es déjà sec, plus il ralentit pour PROTÉGER ton muscle et ta force — parce que perdre trop vite te fait fondre du muscle sans brûler plus de gras (étude Garthe 2011 sur des athlètes : 0,7 %/sem fait GAGNER de la force, 1,4 %/sem non). Deux garde-fous d’élite ajoutés : ton déficit ne dépasse jamais 25 % de ta dépense, et tes calories ne descendent jamais sous ton métabolisme de base. Tes protéines en sèche montent à ~2,4 g/kg (Longland 2016 : préserve le muscle même en gros déficit), et les conseils nutrition citent leurs sources (ISSN, répartition sur 3-4 repas, hydratation, fibres). Ambitieux ET sûr : un coach de haut niveau te pousse loin sans te blesser.' },
   { v: '2.0.210', emoji: '📉', text: 'Le graphique du Coach Poids « Prévu vs Réel » devient enfin LISIBLE. Avant, ta courbe de poids réel était écrasée : l’échelle verticale s’étirait sur tout le trajet jusqu’à ta cible (parfois 10 kg), si bien que tes variations réelles de quelques centaines de grammes se tassaient en une ligne presque plate, illisible. Désormais l’échelle se cale sur ton poids RÉEL récent : ta courbe remplit la hauteur et se lit vraiment. En prime : des repères en kg sur le côté (fini de deviner les valeurs), un trait « auj. » qui sépare ton passé réel de la trajectoire prévue, et ta dernière pesée affichée en clair sur la courbe. La ligne « Prévu » file toujours vers ta cible. Bien plus clair en un coup d’œil, en thème sombre comme clair.' },
   { v: '2.0.209', emoji: '🗓️', text: 'Quand tu programmes ta semaine d’entraînement (« Générer ma semaine » → « Ajouter à l’agenda »), elle se pose désormais sur la SEMAINE EN COURS, plus sur lundi prochain. Avant, même un mardi, tes séances étaient repoussées à la semaine suivante — tu perdais les jours restants. Maintenant les jours déjà passés de la semaine sont sautés, les jours restants sont remplis tout de suite, puis les semaines suivantes en entier. Et quand une muscu et une course tombent le même jour, la muscu est calée le matin (08:00) et la course le soir (18:00), comme tu l’avais demandé — plus l’inverse.' },
@@ -8202,10 +8203,22 @@ function weightForecastModel(planned, actual, opts) {
   if (pl.length < 2) return null;
   const o = opts || {}, pad = Number.isFinite(o.padKg) ? o.padKg : 0.4;
   const topPad = 8, botPad = 12; // % réservés en haut/bas pour respirer
-  const act = (Array.isArray(actual) ? actual : []).filter(p => p && Number.isFinite(p.value) && /^\d{4}-\d{2}-\d{2}$/.test(p.date)).slice().sort((a, b) => a.date.localeCompare(b.date));
   const px = d => Date.parse(d + 'T12:00:00');
-  const all = [...pl, ...act], xs = all.map(p => px(p.date));
-  const xMin = Math.min(...xs), xMax = Math.max(...xs), xr = Math.max(1, xMax - xMin);
+  const actAll = (Array.isArray(actual) ? actual : []).filter(p => p && Number.isFinite(p.value) && /^\d{4}-\d{2}-\d{2}$/.test(p.date)).slice().sort((a, b) => a.date.localeCompare(b.date));
+  // ZOOM sur la PÉRIODE ACTUELLE (demande d'Adrien) : au lieu d'étaler l'axe du temps jusqu'à une cible
+  // lointaine — ce qui tasse « où tu es » dans un coin — on fixe une fenêtre de ±`windowWeeks` autour
+  // d'aujourd'hui (= début du plan). L'axe X est BORNÉ à cette fenêtre → « aujourd'hui » tombe au centre
+  // (todayX ~50 %), le passé récent et la trajectoire proche remplissent le cadre, le reste est rogné
+  // (overflow:hidden). Y se cale sur le réel VISIBLE dans la fenêtre. windowWeeks null = tout afficher.
+  const win = Number.isFinite(o.windowWeeks) && o.windowWeeks > 0 ? o.windowWeeks : 0;
+  const todayMs = px(pl[0].date);
+  const inWin = p => !win || (px(p.date) >= todayMs - win * 7 * 864e5 && px(p.date) <= todayMs + win * 7 * 864e5);
+  let plW = pl.filter(inWin); if (plW.length < 2) plW = pl.slice(0, 2);
+  const act = actAll.filter(inWin);
+  const all = [...plW, ...act], xs = all.map(p => px(p.date));
+  const xMin = win ? todayMs - win * 7 * 864e5 : Math.min(...xs);
+  const xMax = win ? todayMs + win * 7 * 864e5 : Math.max(...xs);
+  const xr = Math.max(1, xMax - xMin);
   // Échelle Y prioritaire au RÉEL quand il existe (≥ 2 pesées) : sinon le plan (tout le trajet vers une
   // cible parfois lointaine) écrase le réel sur ~10 % de la hauteur = illisible. Le réel remplit alors
   // l'espace vertical, le plan garde sa pente près d'« aujourd'hui » puis sort du cadre (rogné par le
@@ -8221,7 +8234,10 @@ function weightForecastModel(planned, actual, opts) {
   const yTicks = [];
   for (let i = 0; vMin + i * step <= vMax + 1e-9; i++) { const v = Math.round((vMin + i * step) * 10) / 10; yTicks.push({ value: v, y: +Y(v).toFixed(2) }); }
   const target = pl[pl.length - 1].value;
-  return { vMin, vMax, yTicks, todayX: +X(pl[0].date).toFixed(2), plan: proj(pl), actual: proj(act), target, targetY: +Y(target).toFixed(2), targetInView: target >= vMin && target <= vMax };
+  const planProj = proj(plW), actProj = proj(act);
+  // Point COURANT (« où tu es maintenant ») = ta dernière pesée, à marquer nettement sur la carte.
+  const current = actProj.length ? actProj[actProj.length - 1] : null;
+  return { vMin, vMax, yTicks, todayX: +X(pl[0].date).toFixed(2), plan: planProj, actual: actProj, current, target, targetY: +Y(target).toFixed(2), targetInView: target >= vMin && target <= vMax };
 }
 
 // Paliers intermédiaires vers la cible de poids : plutôt qu'un seul objectif lointain (« jusqu'à

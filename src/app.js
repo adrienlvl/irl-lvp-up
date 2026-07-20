@@ -305,7 +305,9 @@ function renderTrainingCompanion(){const today=localDate(),week=thisWeekWorkouts
 function renderFocusParking(){const parked=state.focusParkings.filter(p=>p.date===localDate()).slice(-4).reverse();$('#focusParkingList').innerHTML=parked.map(p=>`<span title="${escapeHtml(p.text)}">${escapeHtml(p.text)}</span>`).join('');$('#focusParkingStatus').textContent=parked.length?`${parked.length} pensée${parked.length>1?'s':''} déposée${parked.length>1?'s':''} : tu peux y revenir après ton bloc.`:'Ton parking reste local et ne coupe pas ton élan.';}
 function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
 function coachForecastSvg(planned,actual){
-  const m=(typeof weightForecastModel==='function')?weightForecastModel(planned,actual):null;
+  // windowWeeks : ZOOM sur la période actuelle (aujourd'hui au centre), au lieu d'étaler jusqu'à la
+  // cible lointaine. « Où tu es maintenant » devient gros et central, plus un point dans un coin.
+  const m=(typeof weightForecastModel==='function')?weightForecastModel(planned,actual,{windowWeeks:9}):null;
   if(!m)return '';
   const pts=arr=>arr.map(p=>`${p.x},${p.y}`).join(' ');
   const grid=m.yTicks.map(t=>`<line class="cw-grid" x1="0" y1="${t.y}" x2="100" y2="${t.y}"/>`).join('');
@@ -316,10 +318,11 @@ function coachForecastSvg(planned,actual){
   // Axe kg + « aujourd'hui » en HTML positionné en % (pas de texte SVG déformé).
   const yl=m.yTicks.map(t=>`<span class="cw-yl" style="top:${t.y}%">${String(t.value).replace('.',',')}</span>`).join('');
   const dots=m.actual.map(p=>`<span class="cw-dot" style="left:${p.x}%;top:${p.y}%"></span>`).join('');
-  const last=m.actual.length?m.actual[m.actual.length-1]:null;
-  const lastChip=last?`<span class="cw-last" style="left:${Math.min(last.x,86).toFixed(1)}%;top:${last.y}%">${String(last.value).replace('.',',')} kg</span>`:'';
+  // Point COURANT mis en avant : anneau « TU ES ICI » + valeur, là où tu en es aujourd'hui.
+  const cur=m.current;
+  const curMark=cur?`<span class="cw-now" style="left:${cur.x}%;top:${cur.y}%"></span><span class="cw-now-chip" style="left:${Math.min(Math.max(cur.x,14),86).toFixed(1)}%;top:${cur.y}%">📍 ${String(cur.value).replace('.',',')} kg<small>aujourd’hui</small></span>`:'';
   const todayLbl=`<span class="cw-tdl" style="left:${m.todayX}%">auj.</span>`;
-  return `<div class="cw-chart" role="img" aria-label="Poids réel vs prévu, en kg">${svg}<span class="cw-yaxis">${yl}</span>${dots}${lastChip}${todayLbl}</div>`;
+  return `<div class="cw-chart" role="img" aria-label="Poids réel vs prévu, en kg, zoomé sur aujourd'hui">${svg}<span class="cw-yaxis">${yl}</span>${dots}${curMark}${todayLbl}</div>`;
 }
 let coachMenuSeed=0,lastCoachPlan=null;
 // Évalue le RÉALISME de la cible avant de dérouler un plan. Se met à jour en direct pendant la
