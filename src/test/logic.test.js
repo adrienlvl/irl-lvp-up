@@ -5955,7 +5955,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.227');
+  assert.equal(L.CHANGELOG[0].v, '2.0.228');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7593,6 +7593,20 @@ test('sleepPlanDay : cible du jour, décalage progressif, adaptation aux écarts
   assert.equal(near.stepsLeft, 0);
   assert.equal(near.daysLeft, 0, 'atteint → 0 jour restant, pas d’arrivée dans le futur');
   assert.equal(near.arrivalKey, '2026-07-30', 'arrivée = aujourd’hui quand atteint');
+
+  // Plan DÉGÉNÉRÉ (départ déjà ≤ objectif) + coucher réel encore APRÈS l'objectif : la barre ne doit
+  // PLUS mentir. Avant correctif, le raccourci « totalShift ≤ 0 → 100 » affichait progress=100 alors
+  // que reached=false et daysLeft>0 (barre pleine ET « pas atteint » ET « arrivée dans N jours »).
+  const degen = { active: true, targetTime: '23:30', startTime: '23:12', startKey: '2026-07-21', stepMin: 25, stepDays: 1 };
+  const dd = L.sleepPlanDay(degen, [{ date: '2026-07-21', sleep: 6, bedtime: '23:56' }], '2026-07-21');
+  assert.equal(dd.reached, false, 'coucher 23:56 > objectif 23:30 → pas atteint');
+  assert.ok(dd.daysLeft > 0, 'encore des jours avant l’objectif');
+  assert.ok(dd.progress < 100, 'plan dégénéré non atteint → barre non pleine (plus de verdict contradictoire)');
+  // Le même plan dégénéré, mais coucher réel DANS l'objectif : atteint, barre pleine, cohérent.
+  const degenOk = L.sleepPlanDay(degen, [{ date: '2026-07-21', sleep: 7, bedtime: '23:20' }], '2026-07-21');
+  assert.equal(degenOk.reached, true);
+  assert.equal(degenOk.progress, 100);
+  assert.equal(degenOk.daysLeft, 0);
 });
 
 test('sleepEveningTips : conseils du soir calés sur le coucher visé', () => {

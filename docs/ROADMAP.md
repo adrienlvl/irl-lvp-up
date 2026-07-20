@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.227 (2026-07-21)
+## 📍 État actuel — build 2.0.228 (2026-07-21)
 
+> 🌙 **#615 — Plan de recalage du sommeil : la barre ne peut plus être « pleine mais pas atteinte »
+> (build 2.0.228).** Domaine `sommeil` (frais ; `coach`/`etudes` bloqués par la rotation §4 bis — la
+> priorité de nuit coaching tombe sous §3 qui soumet `coach` à la rotation comme les autres). Méthode
+> **P5 (mesurer, pas supposer)** : un fuzzer de 8 000 plans « à la Adrien » a sorti **395 cas** où
+> `sleepPlanDay` renvoyait `progress:100` **avec** `reached:false` **et** `daysLeft>0` — barre pleine +
+> « pas atteint » + « arrivée dans N jours », trois repères contradictoires (miroir du défaut `reached`
+> déjà corrigé). Cause : le raccourci `totalShift ≤ 0 → 100` (plan dont le départ est déjà ≤ objectif)
+> ignorait que le coucher réel récent pouvait avoir glissé APRÈS l'objectif. Correctif §4 (robustesse,
+> **zéro champ ajouté**) : progression re-mesurée sur le **pire point réel** entre départ et coucher
+> récent (`effShift`/`remainPos`) — **mathématiquement identique** pour tout plan normal (`totalShift>0`),
+> donc aucune assertion existante touchée ; seul le cas dégénéré passe de 100 à une valeur honnête < 100
+> tant que l'objectif n'est pas tenu. +test (plan dégénéré coucher en retard → barre non pleine), fuzzer
+> re-passé **0 anomalie**. 563 tests + smoke vert. Recap #615. _Domaine : sommeil._
+>
 > 🧭 **#614 — Coach « priorité du jour » : plus de recadrage « récupère » quand la séance est DÉJÀ faite
 > (build 2.0.227).** Priorité de nuit coaching (§3 qualité). Rotation OK avant de coder (`coach` absent
 > des 2 derniers recaps, 1× sur 5). Prouvé en **rendu chargé** (§4 ter) : un jour de forme basse
