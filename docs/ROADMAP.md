@@ -25,6 +25,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.201 (2026-07-20)
 
+> 🧹 **#583 — Docs : la roadmap P5.2 ne renvoie plus vers une piste coach déjà close (#582) — domaine
+> `docs`, pas de bump.** Rotation §4 bis : 5 derniers domaines = `coach · fondations · docs · coach · a11y`
+> (#582→#578) → `coach` (#582, dernier recap **et** 2×, priorité de nuit **rotation-bloquée** ce tour, §3)
+> et `fondations` (#581, dernier−1) **interdits** ; `docs` (#580, 1×, hors des 2 derniers) **autorisé**.
+> Backlog code **nommé** épuisé dans les domaines autorisés : hunt de l'itération = a11y (tous les boutons
+> icône ont déjà un nom accessible), fonctions pures anniversaires/dates/BMI (robustes, cas 29 févr. géré,
+> déjà couvertes), accords singulier/pluriel des textes utilisateur (bien accordés) → aucun bug prouvable →
+> §783 option 3 (**curation docs**). **Incohérence interne réelle corrigée** : le header #582 acte la
+> correction de la piste coach « Encore un jour actif » (nutrition radote un geste déjà posé), mais la
+> checklist **P5.2** la présentait encore comme « **piste vérifiée en réserve, à appliquer en prochaine
+> boucle coach-ouverte** » — trace **périmée** qui pousserait une future itération coach à re-chasser une
+> piste déjà close (l'anti-pattern « 60 itérations » que §4 bis combat). Fix : P5.2 marque la piste
+> **corrigée #582** et **close** (2 angles mesurés, leurs pistes résolues) ; la mémoire
+> `coach-leads-contradictions-2guards` voit sa description réconciliée (nutrition/sommeil close #582 ;
+> reste ouverte la piste **distincte** `sportSlot`/`sportZoneFocus`, gardés `loadSpike==null` mais pas
+> `readinessSlide` — `logic.js:6787/6832` — à confirmer en rendu chargé). Docs seuls → **pas de bump**,
+> aucun code touché ; verify 100 % vert. Recap #583. _Domaine : docs._
+
 > 🥗 **#582 — Coach : le renfort nutrition ne radote plus un geste déjà noté aujourd'hui (domaine
 > `coach`, build 2.0.201).** Rotation §4 bis : 5 derniers domaines = `docs · a11y · coach · docs ·
 > fondations` (#577→#581) → `docs` (#580, 2×) et `fondations` (#581) **interdits** (2 derniers) ;
@@ -734,10 +752,14 @@ sur des centaines d'états réalistes et observer la distribution de ce qui sort
       _Angle coach ↔ Bilan hebdo (#577)_ : contradiction réelle trouvée (coach « Garde le rythme. » vs
       `weeklyInsights` « 🟥 Charge en pic … allège » un jour `doneToday`) → **corrigée #579** (2.0.200).
       _Angle coach ↔ « Ma journée » (#580)_ : **factuellement cohérent** (exam/révision 0/20 000, crédit
-      `doneToday` couvre le sport). Reste **une piste coach vérifiée** en réserve (rotation-bloquée) :
-      l'action `reinforce` « Encore un jour actif aujourd'hui » radote sur nutrition/sommeil un jour où
-      le geste est déjà posé (`doneToday` non calculé pour ces piliers, `logic.js:6222`) → recap #580 +
-      mémoire, à appliquer en prochaine boucle coach-ouverte.
+      `doneToday` couvre le sport). La **piste coach** que #580 avait sortie (action `reinforce` « Encore
+      un jour actif aujourd'hui » radotant un geste **déjà posé** un jour `doneToday`) a été **corrigée
+      #582** (2.0.201) : côté **nutrition**, crédit « Déjà noté aujourd'hui ✅ » dès qu'une entrée du jour
+      existe ; côté **sommeil**, l'action est **toujours** le conseil de coucher prospectif (jamais le
+      générique) → l'inclure eût été du code mort. **P5.2 close** — les 2 angles sont mesurés et les pistes
+      qu'ils ont fait sortir sont corrigées. _(La piste coach encore ouverte est **distincte** de P5.2 :
+      `sportSlot`/`sportZoneFocus` gardés `loadSpike==null` mais pas `readinessSlide` — mémoire, à confirmer
+      en rendu chargé lors de la prochaine boucle `coach`.)_
 
 ### P6 — Multi-épreuves BTS `examGoals[]` _(P1.3 VALIDÉE — option A)_ ⭐ **le plus utile à Adrien**
 
