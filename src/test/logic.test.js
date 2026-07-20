@@ -5657,7 +5657,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.203');
+  assert.equal(L.CHANGELOG[0].v, '2.0.204');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10390,6 +10390,72 @@ test('adaptiveCoachFocus : le coach cale le bloc focus dans un créneau libre de
   }, today, { nowMinutes: 8 * 60 });
   assert.equal(sport.pillar, 'sport');
   assert.equal(sport.focusSlot, null, 'le créneau ne concerne que le pilier focus');
+});
+
+test('adaptiveCoachFocus : une tête à plat coupe la poussée de bloc focus ET le créneau (pendant focus de #585)', () => {
+  const today = '2026-07-19'; // dimanche, dernier jour de semaine → objectif focus serré
+  // État CHARGÉ : 4 sessions « Compta » nommées (dont 1 seule cette semaine → objectif serré) + agenda
+  // horaire + heure du jour → sans frein, l'action nomme la tâche phare, cale un bloc et un créneau.
+  const base = {
+    focusSessions: [
+      { date: '2026-07-07', minutes: 30, task: 'Compta' }, { date: '2026-07-08', minutes: 30, task: 'Compta' },
+      { date: '2026-07-09', minutes: 30, task: 'Compta' }, { date: '2026-07-13', minutes: 30, task: 'Compta' },
+    ],
+    agenda: [{ id: 'a', date: today, time: '09:00', durationMin: 60 }],
+  };
+  // Jour À PLAT (sleep 5 / fat 4 / sore 4 → readiness 40 < 50) : l'insight pose le frein focusGoalDrained
+  // (« un focus court, soigne ta récup »). L'action ne doit PLUS pousser un bloc habituel ni un créneau.
+  const drained = L.adaptiveCoachFocus({ ...base, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today, { nowMinutes: 8 * 60 + 30 });
+  assert.equal(drained.pillar, 'focus');
+  assert.equal(drained.focusGoalDrained, 40, 'objectif serré × readiness < 50 → frein posé');
+  assert.match(drained.insight, /focus court et facile aujourd’hui/, 'le frein « focus court » reste dans l’insight');
+  assert.equal(drained.focusTask, null, 'jour à plat : on ne cite plus la tâche phare (contredirait le frein)');
+  assert.equal(drained.focusSlot, null, 'jour à plat : pas de créneau où « caler ton bloc »');
+  assert.ok(!/Créneau libre|Reprends « Compta »|enchaîne un bloc/.test(drained.action), 'aucune poussée de bloc dans l’action');
+  assert.match(drained.action, /Lance une session de focus de 25 min maintenant/, 'action ramenée au bloc COURT de base, cohérent avec « focus court »');
+  // Même frein via la branche LARGE (focusMarginDrained, objectif onpace × < 50) : même coupe.
+  const looseDrained = L.adaptiveCoachFocus({
+    focusSessions: [
+      { date: '2026-07-15', minutes: 30, task: 'Compta' }, { date: '2026-07-16', minutes: 30, task: 'Compta' },
+      { date: '2026-07-17', minutes: 30, task: 'Compta' },
+    ],
+    agenda: base.agenda, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }],
+  }, today, { nowMinutes: 8 * 60 + 30 });
+  assert.ok(looseDrained.focusMarginDrained != null, 'objectif large × < 50 → frein margin');
+  assert.equal(looseDrained.focusSlot, null, 'frein margin coupe aussi le créneau');
+  assert.ok(!/Créneau libre/.test(looseDrained.action), 'pas de créneau non plus sur la branche large');
+  // CONTRÔLE : même état, forme non basse (aucun check-in du jour) → la poussée et le créneau REVIENNENT.
+  const ok = L.adaptiveCoachFocus(base, today, { nowMinutes: 8 * 60 + 30 });
+  assert.equal(ok.focusGoalDrained, null, 'sans check-in du jour, pas de frein');
+  assert.equal(ok.focusTask, 'Compta', 'forme correcte : la tâche phare est de nouveau citée');
+  assert.equal(ok.focusSlot, '08:30', 'forme correcte : le créneau est de nouveau proposé');
+  assert.match(ok.action, /Créneau libre à 08:30/, 'la coupe n’étouffe pas le conseil quand il est légitime');
+});
+
+test('adaptiveCoachFocus : la relance comeback focus se ménage quand la tête est à plat', () => {
+  const today = '2026-07-19';
+  // Geste isolé le 15 juin, long trou (≥ 14 j), puis reprise 18-19 juil (recentDays 2 → building).
+  const st = {
+    focusSessions: [
+      { date: '2026-06-15', minutes: 30, task: 'Compta' },
+      { date: '2026-07-18', minutes: 30, task: 'Compta' }, { date: '2026-07-19', minutes: 30, task: 'Compta' },
+    ],
+  };
+  // Jour à plat → focusMarginDrained : la relance ne doit PLUS dire « repasse à un vrai bloc, pas 10 min ».
+  const eased = L.adaptiveCoachFocus({ ...st, recovery: [{ date: today, sleep: 5, fatigue: 4, soreness: 4 }] }, today);
+  assert.equal(eased.pillar, 'focus');
+  assert.equal(eased.comeback, true); assert.equal(eased.comebackStage, 'building');
+  assert.ok(eased.focusMarginDrained != null, 'jour à plat → frein posé');
+  assert.match(eased.action, /garde un bloc court aujourd’hui, ta tête est à plat/, 'la relance se ménage');
+  assert.ok(!/repasse à un vrai bloc de focus/.test(eased.action), 'plus de « repasse à un vrai bloc » un jour à plat');
+  // CONTRÔLE : reprise sans frein → la relance pousse de nouveau vers un vrai bloc.
+  const push = L.adaptiveCoachFocus({ focusSessions: [
+    { date: '2026-06-15', minutes: 30, task: 'Compta' },
+    { date: '2026-07-17', minutes: 30, task: 'Compta' }, { date: '2026-07-18', minutes: 30, task: 'Compta' },
+  ] }, today);
+  assert.equal(push.comeback, true);
+  assert.equal(push.focusMarginDrained, null); assert.equal(push.focusGoalDrained, null);
+  assert.match(push.action, /repasse à un vrai bloc de focus, pas juste 10 min/, 'sans frein, la relance pousse');
 });
 
 test('adaptiveCoachFocus : cale la séance de sport dans un créneau libre de l’agenda', () => {

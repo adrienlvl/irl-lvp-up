@@ -2900,6 +2900,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.204', emoji: '🧠', text: 'Ton coach « Le focus du moment » ne te pousse plus à « caler un vrai bloc de focus » un jour où, deux lignes plus haut, il vient de te dire de te reposer. Quand ta forme mentale est à plat le matin (readiness sous 50), il pose à juste titre un frein : « un cerveau fatigué ne produit pas un vrai bloc profond — un focus court et facile aujourd’hui, soigne ta récup » (ou, quand ton objectif de la semaine a de la marge, « un focus léger, ou même une vraie pause, suffit »). Mais l’action, elle, continuait de te lancer « Reprends ton chantier phare, enchaîne un bloc de 45 min » et « Créneau libre à telle heure — cale ton bloc là », et la relance de reprise ajoutait « repasse à un vrai bloc, pas juste 10 min » : trois invitations à pousser qui contredisaient de front le « repose-toi » d’à côté. Désormais, ces jours de tête à plat, ces poussées s’effacent — l’action retombe sur un bloc COURT (« lance une session de 25 min »), cohérent avec le frein — exactement comme le coach le fait déjà côté séance de sport. Les jours où ta forme n’est pas à plat, le chantier phare, le créneau et la vraie reprise reviennent normalement. Rien d’ajouté : trois contradictions de moins.' },
   { v: '2.0.203', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te propose plus, le même jour, de « t’alléger » et de « charger un groupe à fond ». Quand ta forme est correcte le matin mais GLISSE sur tes derniers check-ins (fatigue qui s’accumule), ton coach bascule à juste titre en frein : « séance allégée aujourd’hui, soigne ta récup avant de taper dans le rouge ». Mais il ajoutait ensuite, sur la même carte, « Créneau libre à telle heure — cale ta séance là » et surtout « Cible en priorité les jambes, ton groupe le plus reposé, pour équilibrer ta semaine » — deux invitations à pousser qui contredisaient de front le « lève le pied » de la ligne d’avant. Désormais, les jours où ta forme glisse, ces deux notes s’effacent (exactement comme elles s’effaçaient déjà les jours de pic de charge) : le message reste cohérent d’un bout à l’autre. Les jours où ta forme ne glisse pas, le créneau et le groupe à cibler reviennent normalement. Rien d’ajouté : deux contradictions de moins.' },
   { v: '2.0.202', emoji: '🏁', text: 'Ton objectif de course ne te conseille plus de « t’affûter pour arriver frais » une fois la course déjà passée. Les 1 à 3 jours suivant ta course, la carte d’objectif et ton coach du jour continuaient d’afficher la phase « Affûtage » (réduis le volume, arrive frais) et « Cap : dans 0 sem. » — alors que la course avait déjà eu lieu la veille ou l’avant-veille. Un arrondi ramenait ce délai négatif à zéro, faisant passer une course passée pour une course imminente. Désormais, dès le lendemain, la carte affiche « Cette date est passée — mets à jour ton objectif » et le rappel de cap disparaît, comme c’était déjà le cas à partir de 4 jours. Rien d’ajouté : une incohérence de calendrier corrigée.' },
   { v: '2.0.201', emoji: '🥗', text: 'Ton coach « Le focus du moment » ne te demande plus « encore un jour actif aujourd’hui » côté nutrition un jour où tu as DÉJÀ noté tes apports. Quand ton suivi nutrition monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») et invitait à « encore un jour actif aujourd’hui pour ancrer l’habitude » — même les jours où tu venais justement de saisir tes protéines, ton eau ou un fruit. Il te redemandait un geste déjà fait. Désormais, ces jours-là, il le CRÉDITE : « Déjà noté aujourd’hui ✅ — l’habitude est ancrée. » Les jours où tu n’as encore rien saisi, l’invitation à t’y mettre reste inchangée. (Le sommeil, lui, garde son conseil de coucher du soir, qui porte sur ce qui reste à venir.) Rien d’ajouté : un ordre déjà exécuté en moins.' },
@@ -6170,11 +6171,24 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     const blkTxt = focusBlockMin ? `${blk} min (ta durée habituelle)` : `${blk} min`;
     const fb = (typeof focusByTask === 'function') ? focusByTask(s.focusSessions, todayKey, { days: 14 }) : { tasks: [] };
     const top = (fb.tasks || []).find(t => t && t.task && t.task !== 'Sans titre');
-    if (top) {
+    // Coach CONSCIENT du frein FOCUS — le pendant, côté focus, du garde-fou SPORT de #585 (sportSlot /
+    // sportZoneFocus gardés `readinessSlide == null`). Quand la readiness du JOUR est au plancher,
+    // l'insight a DÉJÀ posé un frein explicite — « un focus court, soigne ta récup » (focusGoalDrained,
+    // objectif serré) ou « un focus léger, ou même une vraie pause, suffit » (focusMarginDrained,
+    // objectif large). Pousser en parallèle le bloc HABITUEL (« enchaîne un bloc de 45 min ») puis le
+    // créneau où le caler CONTREDIT ce frein de front — exact anti-pattern §4 ter (chaque clause testée
+    // seule, personne ne lit le cumulé), le pendant focus de la contradiction sport corrigée en #585.
+    // On garde alors l'action de BASE (« Lance une session de focus de 25 min maintenant » — un bloc
+    // COURT, cohérent avec « focus court/léger ») et on coupe la citation de la tâche phare + le créneau.
+    // Aucune note ajoutée : deux poussées en moins les jours de tête à plat (« retirer une note en vaut
+    // souvent deux ajoutées », §3). `readinessRebound` n'a pas d'équivalent focus ici : seuls ces deux
+    // freins du JOUR coupent, jamais une simple zone médiane (focusGoalSteady) ni une avance (Ahead).
+    const focusRested = focusGoalDrained != null || focusMarginDrained != null;
+    if (top && !focusRested) {
       focusTask = top.task;
       if (tone === 'reinforce') action = `Ta concentration va surtout à « ${top.task} » (${top.minutes} min sur 14 j) — enchaîne un bloc de ${blkTxt} dessus aujourd’hui.`;
       else action = `Reprends « ${top.task} », ton chantier de focus phare (${top.minutes} min sur 14 j) — un bloc de ${blkTxt} suffit à relancer.`;
-    } else if (focusBlockMin && (tone === 'rebuild' || tone === 'revive')) {
+    } else if (focusBlockMin && !focusRested && (tone === 'rebuild' || tone === 'revive')) {
       // Pas de tâche nommée mais une durée habituelle connue → on personnalise quand même l'action générique.
       action = `Lance une session de focus de ${blkTxt} maintenant.`;
     }
@@ -6187,7 +6201,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     // vrai planning horaire du jour : sur une journée vide, le « créneau » serait « maintenant » (trivial
     // et parfois déjà passé) ; on ne veut le conseil que quand il apporte l'info d'un jour structuré.
     const now = Math.round(Number(o.nowMinutes));
-    if (typeof nextFreeSlot === 'function' && !reviveEligible && Number.isFinite(now) && now >= 0 && now < 1440) {
+    if (typeof nextFreeSlot === 'function' && !reviveEligible && !focusRested && Number.isFinite(now) && now >= 0 && now < 1440) {
       const agenda = Array.isArray(s.agenda) ? s.agenda : [];
       const hasTimed = agenda.some(a => a && a.date === todayKey && !a.allDay && !a.completed && timeToMinutes(a.time) != null);
       if (hasTimed) {
@@ -7382,13 +7396,17 @@ function adaptiveCoachFocus(state, todayKey, opts) {
         // pic (loadSpike) — dans les deux cas, « repasse à une vraie séance » serait dangereux.
         const sportEase = chosen.pillar === 'sport' && ((readiness != null && readiness < 50) || loadSpike != null || readinessSlide != null);
         const sportEaseWhy = loadSpike != null ? 'charge déjà élevée cette semaine, garde léger' : readinessSlide != null ? 'ta forme glisse ces jours-ci, garde léger' : 'readiness bas aujourd’hui, garde léger';
+        // Même garde-fou côté FOCUS : quand la readiness du JOUR est au plancher, l'insight a posé un
+        // frein « focus court / vraie pause » (focusGoalDrained ou focusMarginDrained) — « repasse à un
+        // vrai bloc, pas juste 10 min » le contredirait exactement comme sportEase l'évite côté séance.
+        const focusEase = chosen.pillar === 'focus' && (focusGoalDrained != null || focusMarginDrained != null);
         const escal = comebackStage === 'spark' ? {
           sport: 'Ne force pas le rythme : un 2e jour actif cette semaine ancre l’étincelle mieux qu’une grosse séance.',
           focus: 'Ne force pas le rythme : un 2e bloc cette semaine ancre l’étincelle mieux qu’une journée marathon.',
           nutrition: 'Ne force pas le rythme : un 2e jour de suivi cette semaine réancre le réflexe, pas besoin de tout tracker.',
         } : {
           sport: `La reprise tient (${n} jours cette semaine) — ${sportEase ? sportEaseWhy + ', tu pousseras à la prochaine.' : 'tu as regagné le droit à une vraie séance aujourd’hui.'}`,
-          focus: `La reprise tient (${n} jours cette semaine) — repasse à un vrai bloc de focus, pas juste 10 min.`,
+          focus: `La reprise tient (${n} jours cette semaine) — ${focusEase ? 'garde un bloc court aujourd’hui, ta tête est à plat, tu pousseras à la prochaine.' : 'repasse à un vrai bloc de focus, pas juste 10 min.'}`,
           nutrition: `La reprise tient (${n} jours cette semaine) — vise ta cible protéines pleine aujourd’hui, plus juste un apport.`,
         };
         if (escal[chosen.pillar]) action += ' ' + escal[chosen.pillar];

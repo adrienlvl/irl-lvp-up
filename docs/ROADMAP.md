@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.203 (2026-07-20)
+## 📍 État actuel — build 2.0.204 (2026-07-20)
+
+> 🧠 **#588 — Coach : une tête à plat coupe la poussée de bloc focus ET le créneau (domaine `coach`,
+> build 2.0.204).** Rotation §4 bis : 5 derniers domaines (#587→#583) = `etudes · docs · coach ·
+> athlete · docs` → 2 derniers (`etudes`, `docs`) et `docs` (2×) **interdits** ; **`coach`** (1× #585,
+> absent des 2 derniers) **autorisé** → priorité de nuit #1 (coaching à fond, en QUALITÉ, §3) et
+> rotation **convergent**. Angle **NEUF** (le mémo/#585 interdisaient de re-labourer « guards sport ↔
+> frein », déjà close) : même classe de bug — contradiction **insight ↔ action** — mais sur le pilier
+> **FOCUS**, jamais gardé. Les jours de tête à plat (readiness < 50), l'insight pose un frein
+> (`focusGoalDrained` « un focus court, soigne ta récup » ou `focusMarginDrained` « un focus léger, ou
+> même une vraie pause, suffit »), mais **trois** surfaces d'action poussaient encore un bloc : l'action
+> `focusTask` (« enchaîne un bloc de 45 min »), le créneau `focusSlot` (« cale ton bloc là ») et la
+> relance comeback focus (« repasse à un vrai bloc, pas juste 10 min »). Preuve que c'est un oubli
+> parallèle : la relance comeback **sport** a déjà un garde `sportEase`, la focus n'avait **rien**. Fix
+> (curation §3, **aucune note ajoutée**) : `focusRested` coupe les trois poussées → l'action retombe sur
+> le bloc COURT de base, cohérent avec le frein, exactement comme #585 côté sport. Chirurgical : seuls
+> les deux freins du JOUR coupent (zone médiane / avance / feu vert **ne coupent pas**). §4 ter : rendu
+> cumulé relu — jour à plat = plus aucune poussée dans l'action ; contrôle sans frein = tâche phare +
+> créneau + vraie reprise **rétablis**. +2 tests + 1 check smoke bloquant (`coachFocus`). 537 tests +
+> smoke verts. Recap #588. _Domaine : coach._
 
 > 🎓 **#587 — Proposition : planning d'études multi-échéances avec répétition espacée (Cap 3.0
 > Vague C) — domaine `etudes`, docs seuls, pas de bump/verify.** Rotation §4 bis : 5 derniers domaines
