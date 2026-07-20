@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.193 (2026-07-20)
+## 📍 État actuel — build 2.0.194 (2026-07-20)
+
+> ♿ **#571 — P2.4 : noms accessibles des champs de recherche (domaine `a11y`, build 2.0.194).**
+> Rotation §4 bis : les 5 derniers domaines = `coach · robustesse · athlete · coach · a11y` → `coach`
+> (priorité de nuit) dans le dernier recap ET 2× dans les 5 = **interdit** (§3 : la rotation prime même
+> sur la demande de nuit), `robustesse` dans les 2 derniers = interdit → 2ᵉ demande d'Adrien (avancer
+> CAP 3.0), tâche nommée **P2.4**, domaine `a11y` (1×, hors 2 derniers) autorisé. Vérif §2.3 : trois
+> champs de recherche n'ont qu'un `placeholder` (WCAG 3.3.2 : pas un nom accessible, disparaît à la
+> saisie) — `#foodSearch`, `#agendaSearch` **et `#exerciseSearch`**. **La roadmap se trompait** : elle
+> disait `#exerciseSearch` déjà doté d'un `aria-label` — il n'en a **aucun** (ni `<label>`, ni
+> `aria-labelledby`) → piste corrigée (§4 bis.5), champ inclus. `aria-label` ajouté aux **trois**, comme
+> `#altSearch` déjà correct. **Aucun texte visible** (aria-label non rendu) → §4 ter sans objet ; a11y
+> bumpe (précédents #549/#550/#566). Check smoke **bloquant** `searchFieldLabels` (les 4 champs, altSearch
+> inclus pour verrouiller l'existant). 528 tests + smoke verts. Recap #571. **Toutes les pistes P2 sont
+> traitées.** _Domaine : a11y._
 
 > 🩹 **#570 — Coach : une décimale à point n'est plus tronquée → nombre FAUX sur la carte (domaine
 > `coach`, build 2.0.193).** Rotation §4 bis : les 5 derniers domaines (mtime) = `robustesse · athlete ·
@@ -472,11 +486,12 @@ dans le recap et passer à la suivante.
 - [x] **P2.3 — États vides manquants** ✅ _fait #550 (2.0.181) — piste VÉRIFIÉE exacte_ — `#altList` filtré à zéro rend `''` (`app.js:220`) : la zone
       devient **blanche** alors que des candidatures existent (l'utilisateur croit ses données
       perdues). Idem `#questList` (`app.js:506`) quand toutes les quêtes sont supprimées.
-- [ ] **P2.4 — Noms accessibles des champs de recherche** _(périmètre CORRIGÉ le 2026-07-19)_ —
-      ⚠️ l'audit citait trois champs : **`#exerciseSearch` a déjà un `aria-label`**. Restent
-      **`#foodSearch`** et **`#agendaSearch`**, qui n'ont qu'un `placeholder` (WCAG 3.3.2 : un
-      placeholder n'est pas un nom accessible). Même règle que `#altSearch`, déjà appliquée et
-      verrouillée ailleurs par `dashboardInputLabels` — étendre ce check.
+- [x] **P2.4 — Noms accessibles des champs de recherche** ✅ _fait #571 (2.0.194)_ — le périmètre
+      « corrigé » du 2026-07-19 se trompait : **`#exerciseSearch` n'avait PAS d'`aria-label`** (ni
+      `<label>`, ni `aria-labelledby`), tout comme **`#foodSearch`** et **`#agendaSearch`** — les
+      trois n'avaient qu'un `placeholder` (WCAG 3.3.2 : un placeholder n'est pas un nom accessible).
+      `aria-label` ajouté aux **trois**, comme `#altSearch` déjà correct. Nouveau check smoke
+      **bloquant** `searchFieldLabels` (les 4 champs, altSearch inclus pour verrouiller l'existant).
 - [x] **P2.5 — Accord de « fait(s) » en vue Jour** ✅ _fait #552 (2.0.183)_ — `app.js:487` accorde sur le **dénominateur**
       (`doable.length`) : « 1/3 fait**s** » alors qu'un seul est fait. `renderMyDay` (`app.js:200`)
       accorde correctement sur le **numérateur**. _(Valeur faible — à prendre en bouche-trou.)_
