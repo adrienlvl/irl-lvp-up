@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.188 (2026-07-20)
+## 📍 État actuel — build 2.0.189 (2026-07-20)
+
+> ♿ **#566 — P2.2 : `aria-live` sur les panneaux d'entraînement générés (domaine `a11y`, build
+> 2.0.189).** Rotation §4 bis : les 5 derniers domaines = `etudes · tests · coach · etudes · coach`
+> → `coach` (priorité de nuit) 2× dans les 5 derniers = **interdit** (§3 : la rotation prime même sur
+> la demande de nuit) ; `etudes`/`tests` aussi (2 derniers) → 2ᵉ demande d'Adrien (avancer CAP 3.0),
+> tâche nommée **P2.2**, domaine `a11y` (absent des 5 derniers) autorisé. Vérif §2.3 : deux
+> générateurs — `#quickSessionResult` (séance express, `app.js:379`) et `#wpResult` (ma semaine,
+> `app.js:720`) — remplacent leur `innerHTML` au clic **sans rien annoncer** au lecteur d'écran,
+> alors que leurs voisins `#objectiveResult`/`#runPlanResult` ont `aria-live="polite"`. **La roadmap
+> affirmait à tort que `#wpResult` l'avait déjà** (piste corrigée, §4 bis.5). Fix : `aria-live="polite"`
+> ajouté aux **deux**. Bonus révélé : le check smoke `a11yObjective` était **défini mais jamais poussé
+> dans `errors`** (non bloquant) → **étendu aux 4 panneaux + rendu bloquant** (nouveau `errors.push`).
+> Aucun texte visible ajouté (juste l'attribut) → §4ter sans objet ; a11y bumpe (précédents #549/#550).
+> 527 tests + smoke verts, `a11yObjective:true`. Recap #566. _Domaine : a11y._
 
 > 🎓 **#565 — P6.3 : UI multi-épreuves (ajouter / lister / supprimer) → SÉRIE P6 CLOSE (domaine
 > `etudes`, build 2.0.188).** Rotation §4 bis : `coach` (priorité de nuit) est dans les 2 derniers
@@ -393,11 +407,11 @@ dans le recap et passer à la suivante.
       **aucune** restitution au déclencheur à la fermeture, `<main>` jamais `inert`. Au clavier on
       reste donc dans le dashboard **caché derrière**. (Les vrais `<dialog>` en `showModal` gèrent ça
       tout seuls — d'où l'écart.) Check smoke **bloquant** obligatoire.
-- [ ] **P2.2 — `aria-live` manquant sur 1 panneau de résultat** _(périmètre CORRIGÉ le 2026-07-19)_ —
-      ⚠️ l'audit annonçait deux panneaux : **c'était faux**. Vérifié dans `index.html` :
-      `#objectiveResult`, `#runPlanResult` **et `#wpResult`** ont déjà `aria-live`. **Seul
-      `#quickSessionResult` en manque** → circuit généré = silence au lecteur d'écran. Ajouter
-      `aria-live="polite"` + étendre le check smoke `a11yObjective`.
+- [x] **P2.2 — `aria-live` manquant sur les panneaux générés** ✅ _fait #566 (2.0.189)_ — vérif du
+      code : **`#quickSessionResult` ET `#wpResult`** en manquaient (la note « `#wpResult` l'a déjà »
+      était **fausse**), là où `#objectiveResult`/`#runPlanResult` l'avaient → circuit généré = silence
+      au lecteur d'écran. `aria-live="polite"` ajouté aux deux ; check smoke `a11yObjective` **étendu
+      aux 4 panneaux et rendu bloquant** (il était défini mais jamais poussé dans `errors`).
 - [x] **P2.3 — États vides manquants** ✅ _fait #550 (2.0.181) — piste VÉRIFIÉE exacte_ — `#altList` filtré à zéro rend `''` (`app.js:220`) : la zone
       devient **blanche** alors que des candidatures existent (l'utilisateur croit ses données
       perdues). Idem `#questList` (`app.js:506`) quand toutes les quêtes sont supprimées.
