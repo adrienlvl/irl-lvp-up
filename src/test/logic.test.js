@@ -2599,6 +2599,40 @@ test('examCountdown : J-XX vers la date d’examen', () => {
   assert.equal(L.examCountdown({ date: '' }, '2026-07-10'), null, 'pas de date → null');
   assert.equal(L.examCountdown(null, '2026-07-10'), null);
 });
+test('nearestExam : l’épreuve la plus proche (P6.2)', () => {
+  const list = [
+    { id: 'a', title: 'Droit', date: '2026-06-30' },
+    { id: 'b', title: 'Compta', date: '2026-06-12' },
+    { id: 'c', title: 'Éco', date: '2026-05-01' }, // passé au 2026-06-01
+  ];
+  assert.equal(L.nearestExam(list, '2026-06-01').id, 'b', 'à venir : la plus proche (Compta)');
+  // toutes passées → la plus récemment passée
+  assert.equal(L.nearestExam(list, '2026-07-15').id, 'a', 'toutes passées → la plus récente (Droit)');
+  // départage stable par titre à date égale
+  const tie = [{ title: 'Zoo', date: '2026-06-12' }, { title: 'Anglais', date: '2026-06-12' }];
+  assert.equal(L.nearestExam(tie, '2026-06-01').title, 'Anglais', 'date égale → tri alpha stable');
+  // objet unique toléré, entrées invalides écartées, aucune datée → null
+  assert.equal(L.nearestExam({ title: 'BTS', date: '2026-06-15' }, '2026-06-01').title, 'BTS');
+  assert.equal(L.nearestExam([{ date: '' }, null, 5], '2026-06-01'), null, 'aucune épreuve datée → null');
+  assert.equal(L.nearestExam(list, 'pas-une-date'), null, 'todayKey invalide → null');
+});
+test('examCountdown/examReminderDue/studyPacing acceptent examGoals[] (P6.2)', () => {
+  const exams = [
+    { title: 'Droit', date: '2026-07-25' },
+    { title: 'Compta', date: '2026-07-12' }, // la plus proche au 2026-07-05
+  ];
+  // examCountdown vise la plus proche (Compta)
+  const c = L.examCountdown(exams, '2026-07-05');
+  assert.equal(c.title, 'Compta'); assert.equal(c.daysLeft, 7);
+  // examReminderDue tombe sur le palier de la plus proche
+  assert.match(L.examReminderDue(exams, '2026-07-05'), /Compta.*dans 7 jours/);
+  // studyPacing calcule le rythme vers la plus proche
+  const agenda = [{ kind: 'study', date: '2026-07-08', completed: false }, { kind: 'study', date: '2026-07-10', completed: false }];
+  const p = L.studyPacing(agenda, exams, '2026-07-05');
+  assert.equal(p.daysLeft, 7); assert.equal(p.remaining, 2);
+  // liste vide → null partout (repli sûr)
+  assert.equal(L.examCountdown([], '2026-07-05'), null);
+});
 test('normalizeExamGoal : coercion, bornes, id stable', () => {
   const g = L.normalizeExamGoal({ title: '  BTS CG — Droit  ', subject: ' Droit ', date: '2026-06-15' });
   assert.deepEqual(g, { id: 'exam-2026-06-15', subject: 'Droit', title: 'BTS CG — Droit', date: '2026-06-15' });

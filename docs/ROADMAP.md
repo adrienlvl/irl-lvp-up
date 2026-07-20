@@ -25,6 +25,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.186 (2026-07-20)
 
+> 🎓 **#562 — P6.2 terminé : les 4 consommateurs mono-valués lisent `examGoals[]` (domaine `etudes`,
+> pas de bump).** Rotation §4 bis : `coach` (priorité de nuit) est bloqué — il apparaît dans les 2
+> derniers recaps (#560) ET 2× dans les 5 derniers (#558/#560) → 2ᵉ demande d'Adrien (avancer CAP 3.0),
+> tâche nommée **P6.2 (fin)**. `etudes` autorisé (1× en #559, hors 2 derniers). #559 avait porté les 2
+> surfaces « liste » (`upcomingKeyDates`/`keyDateMarkers`) ; restaient 4 consommateurs **mono-valués**
+> qui lisaient l'ancien `examGoal` unique : `examCountdown`, `examReminderDue`, `studyPacing` (rendu
+> Études) et `attentionDigest` (coach). Nouveau sélecteur **pur `nearestExam(examGoals, todayKey)`** —
+> « l'épreuve à venir la plus proche » (repli sur la plus récemment passée pour que le compte à rebours
+> dise encore « examen passé »), départage stable par titre à date égale, tolère l'objet unique.
+> `examCountdown` accepte désormais une **liste** (le résout via `nearestExam`) ; `examReminderDue` et
+> `studyPacing` en héritent (ils délèguent). `app.js` (Études) et `attentionDigest` passent
+> `state.examGoals` avec **repli sûr** sur `examGoal` (tests/états legacy inchangés). **Aucun effet
+> utilisateur** : sans l'UI P6.3, le formulaire écrase `examGoal` → `examGoals` n'a jamais > 1 épreuve →
+> sortie identique → **pas de bump** (§2.6, précédents #559/#555). 3 nouveaux tests logiques (sélection,
+> passé, départage, liste sur les 3 fns) + check smoke `examCountdown` étendu au chemin liste. 526 tests
+> + smoke verts. Recap #562. _Domaine : etudes._
+
 > 🩹 **2.0.186 — #561 : le crédit de suivi du coach n'écrase plus l'action « lève le pied » (domaine
 > `coach`, priorité de nuit).** Rotation §4 bis OK (`coach` #558 hors des 2 derniers recaps, 1× dans les
 > 5 derniers). Contradiction entre deux guards, attrapée en **rendu chargé (§4ter)** : en ton `reinforce`
@@ -405,11 +422,12 @@ précédente** (`app.js:872`, affectation directe) : impossible de suivre Droit 
       `examGoal` unique → premier élément sans perte ; état neuf → `[]`), `examGoal` **toujours lu**
       pour compat. Migration testée en premier. Aucun consommateur porté (→ P6.2), aucune UI (→ P6.3).
       ❗ `subject` en **texte libre** — aucune matière BTS ni date inventée.
-- [ ] **P6.2 — Porter les consommateurs** (6, un ou deux par boucle, avec leurs tests) :
-      `examCountdown` (`logic.js:1770`), `examReminderDue` (`:1778`), `studyPacing` (`:1789`),
-      ~~`upcomingKeyDates`~~ ✅ #559, ~~`keyDateMarkers`~~ ✅ #559, le coach (`:4922`). Règle simple :
-      **prendre l'épreuve la plus proche** (ou itérer là où la liste a du sens). _Reste (#559) : les 4
-      consommateurs **mono-valués** → sélecteur « épreuve la plus proche » + `state.examGoals`._
+- [x] **P6.2 — Porter les consommateurs** ✅ _fait #559 (list) + #562 (mono-valués), pas de bump_ :
+      ~~`upcomingKeyDates`~~ ✅ #559, ~~`keyDateMarkers`~~ ✅ #559 (itèrent la liste) ;
+      ~~`examCountdown`~~ ~~`examReminderDue`~~ ~~`studyPacing`~~ ✅ #562 (sélecteur `nearestExam`
+      « l'épreuve la plus proche »), ~~le coach (`attentionDigest`)~~ ✅ #562. Règle appliquée :
+      **prendre l'épreuve à venir la plus proche** (repli sur la plus récemment passée). Reste **P6.3**
+      (UI) pour rendre l'état multi-épreuves atteignable.
 - [ ] **P6.3 — UI ajouter / lister / supprimer une épreuve.** ⚠️ **Renderer → check smoke BLOQUANT
       obligatoire.** À ne faire qu'après P6.1 et P6.2 vertes.
 
