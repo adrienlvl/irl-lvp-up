@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.200 (2026-07-20)
 
+> 📏 **#580 — P5.2 : cohérence coach ↔ « Ma journée » mesurée (domaine `docs`, pas de bump).**
+> Rotation §4 bis : 5 derniers domaines = `coach · a11y · docs · coach · athlete` → `coach` (priorité
+> de nuit, #579 + 2×) et `a11y` (#578) **interdits** ; `docs` (#577, hors 2 derniers) autorisé → 2ᵉ
+> demande d'Adrien (cohérence), dernier angle ouvert de **P5.2** (coach ↔ « Ma journée »). 3 fuzzers
+> (~120 000 états) : l'axe factuel exam/révision est **cohérent par construction** (0/20 000 —
+> `normalizeState` peuple `examGoals`, sélecteurs alignés) ; le radotage sport-du-jour est **déjà couvert**
+> (crédit `doneToday`, `logic.js:7235`). **Constat négatif** : aucune contradiction inter-panneaux du type
+> #575/#577 sur cet angle → les **deux** angles de P5.2 sont mesurés. **Mais** le fuzzer a fait sortir une
+> **piste coach vérifiée** : en ton `reinforce`, l'action générique « Encore un jour actif aujourd'hui »
+> (`logic.js:5255`) radote sur **nutrition/sommeil** un jour où le geste est déjà posé, car le crédit
+> `doneToday` n'est calculé que pour sport/focus (`logic.js:6222`). Fix = domaine `coach` →
+> **rotation-bloqué** ; documenté (recap #580 + mémoire) pour la prochaine boucle coach-ouverte, comme #577
+> avant #579. Aucun code touché, fuzzers supprimés. Recap #580. _Domaine : docs._
+
 > 🩹 **#579 — Coach : « Garde le rythme » ne survit plus un jour de pic où la séance est déjà faite
 > (domaine `coach`, build 2.0.200).** Rotation §4 bis : les 5 derniers domaines = `a11y · docs · coach ·
 > athlete · fondations` → `a11y`/`docs` (2 derniers) interdits ; `coach` (priorité de nuit #1, en
@@ -679,13 +693,15 @@ sur des centaines d'états réalistes et observer la distribution de ce qui sort
       sur le Bilan hebdo (`weeklyInsights`) : `📈 tu montes en volume` + `🟥 Charge en pic : allège`
       côte à côte → 📈 gardé `&& !loadSpiking` (curation, pas d'ajout). +test, check smoke étendu &
       promu bloquant.
-- [ ] **P5.2 — Cohérence des conseils entre panneaux** : un même jour, le coach, « Ma journée » et la
-      revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer. _Mesure #577 (angle coach ↔ Bilan
-      hebdo)_ : contradiction réelle trouvée — coach « Garde le rythme. » vs `weeklyInsights` « 🟥 Charge
-      en pic … allège » un jour `doneToday` (le strip #576 ne s'exécute pas hors garde de prescription
-      sport, `logic.js:6299`). **Fix = domaine `coach`, rotation-bloqué** → piste vérifiée documentée
-      (recap #577 + mémoire), à appliquer en boucle coach-ouverte. Angle coach ↔ « Ma journée » non
-      encore fuzzé.
+- [x] **P5.2 — Cohérence des conseils entre panneaux** : un même jour, le coach, « Ma journée » et la
+      revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer. **Les deux angles sont mesurés.**
+      _Angle coach ↔ Bilan hebdo (#577)_ : contradiction réelle trouvée (coach « Garde le rythme. » vs
+      `weeklyInsights` « 🟥 Charge en pic … allège » un jour `doneToday`) → **corrigée #579** (2.0.200).
+      _Angle coach ↔ « Ma journée » (#580)_ : **factuellement cohérent** (exam/révision 0/20 000, crédit
+      `doneToday` couvre le sport). Reste **une piste coach vérifiée** en réserve (rotation-bloquée) :
+      l'action `reinforce` « Encore un jour actif aujourd'hui » radote sur nutrition/sommeil un jour où
+      le geste est déjà posé (`doneToday` non calculé pour ces piliers, `logic.js:6222`) → recap #580 +
+      mémoire, à appliquer en prochaine boucle coach-ouverte.
 
 ### P6 — Multi-épreuves BTS `examGoals[]` _(P1.3 VALIDÉE — option A)_ ⭐ **le plus utile à Adrien**
 
