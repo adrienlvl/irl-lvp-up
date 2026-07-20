@@ -2671,6 +2671,33 @@ test('normalizeExamGoals : migration rétro-compatible examGoal → examGoals[]'
   // examGoals non tableau → retombe sur legacy
   assert.equal(L.normalizeExamGoals({ examGoals: 'oops', examGoal: { title: 'T', date: '2026-06-15' } }).length, 1);
 });
+test('upsertExamGoal / removeExamGoal / sortExamGoals : CRUD multi-épreuves (P6.3)', () => {
+  // Ajout successif SANS écraser (le bug que P6.3 corrige : le formulaire remplaçait la liste)
+  let list = L.upsertExamGoal([], { title: 'Compta', date: '2026-06-18' });
+  list = L.upsertExamGoal(list, { title: 'Droit', date: '2026-06-15' });
+  assert.equal(list.length, 2, 'deux dates distinctes → deux épreuves conservées');
+  // tri par date croissante : Droit (15) avant Compta (18)
+  assert.deepEqual(list.map(g => g.title), ['Droit', 'Compta'], 'triées par date croissante');
+  // re-soumettre la MÊME date remplace le libellé (upsert par id), sans dupliquer
+  list = L.upsertExamGoal(list, { title: 'Droit fiscal', date: '2026-06-15' });
+  assert.equal(list.length, 2, 'même date (même id) → pas de doublon');
+  assert.equal(list.find(g => g.id === 'exam-2026-06-15').title, 'Droit fiscal', 'le nouveau titre gagne');
+  // entrée vide → liste inchangée
+  assert.equal(L.upsertExamGoal(list, { title: '', date: '' }).length, 2, 'entrée vide ignorée');
+  // liste absente / non tableau tolérée
+  assert.equal(L.upsertExamGoal(null, { title: 'Solo', date: '2026-07-01' }).length, 1, 'liste null tolérée');
+  // suppression par id
+  const after = L.removeExamGoal(list, 'exam-2026-06-15');
+  assert.deepEqual(after.map(g => g.title), ['Compta'], 'retire l’épreuve visée, garde l’autre');
+  assert.equal(L.removeExamGoal(list, 'inconnu').length, 2, 'id inconnu → liste inchangée');
+  assert.deepEqual(L.removeExamGoal([{ title: 'A', date: '2026-01-01' }], 'exam-2026-01-01'), [], 'dernière retirée → []');
+  // sortExamGoals : sans-date en dernier, départage alpha stable à date égale
+  const sorted = L.sortExamGoals([
+    { title: 'Zebre', date: '' }, { title: 'B', date: '2026-05-10' }, { title: 'A', date: '2026-05-10' },
+  ]);
+  assert.deepEqual(sorted.map(g => g.title), ['A', 'B', 'Zebre'], 'date puis titre, sans-date à la fin');
+  assert.deepEqual(L.sortExamGoals(null), [], 'null → []');
+});
 test('studyPacing : rythme de révision vers l’examen', () => {
   const exam = { title: 'BTS CG', date: '2026-08-10' }; // J-28 depuis le 13/07
   // 5 révisions planifiées : 2 faites, 3 à venir → 3 restantes sur 4 semaines → 1/sem → tranquille
@@ -5527,7 +5554,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.187');
+  assert.equal(L.CHANGELOG[0].v, '2.0.188');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

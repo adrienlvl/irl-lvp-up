@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.187 (2026-07-20)
+## 📍 État actuel — build 2.0.188 (2026-07-20)
+
+> 🎓 **#565 — P6.3 : UI multi-épreuves (ajouter / lister / supprimer) → SÉRIE P6 CLOSE (domaine
+> `etudes`, build 2.0.188).** Rotation §4 bis : `coach` (priorité de nuit) est dans les 2 derniers
+> recaps (#564) ET 2× dans les 5 (#561/#564), `tests` idem (#560/#563) → les deux interdits ; `etudes`
+> (1× en #562, hors des 2 derniers) **autorisé** → 2ᵉ demande d'Adrien (avancer CAP 3.0), tâche nommée
+> **P6.3**. **Débloque** enfin le travail P6.1 (#555) + P6.2 (#559/#562) qui était **dormant** : le submit
+> de `#studyPlanForm` **écrasait** `examGoals[]` à une seule épreuve (impossible de suivre Droit ET Compta
+> à deux dates), et aucune UI ne listait/supprimait. 3 fonctions pures testées : `upsertExamGoal`
+> (ajoute/met à jour par id — même date remplace le libellé, pas de doublon), `removeExamGoal`,
+> `sortExamGoals` (tri date puis titre). Le submit **ajoute** désormais son épreuve au lieu d'écraser ;
+> nouvelle carte **« 🎓 Mes épreuves (N) »** (`renderExamList`, sous le planning) : une ligne par épreuve
+> (date · titre · **J-…**/« passé »), triées, avec un **×** (suppression immédiate, ne touche pas les
+> créneaux agenda ; resync du `examGoal` legacy pour qu'une épreuve supprimée ne ressuscite pas). Check
+> smoke **bloquant** `examListUI` (2 plannings à 2 dates → **coexistence** → liste → suppression → 1
+> restante) : **3 runs verts**, état restauré. Contrôle §4ter : rendu cumulé relu, court/clair, aucune
+> note coach ajoutée. 527 tests + smoke verts. Recap #565. **Série P6 close.** _Domaine : etudes._
 
 > ⚖️ **#564 — Coach : plus de contradiction « coupe tes calories » vs « tiens tes calories » (domaine
 > `coach`, build 2.0.187).** Rotation §4 bis (par n° de recap) : 2 derniers = #563 (tests) / #562 (etudes),
@@ -461,8 +477,10 @@ précédente** (`app.js:872`, affectation directe) : impossible de suivre Droit 
       « l'épreuve la plus proche »), ~~le coach (`attentionDigest`)~~ ✅ #562. Règle appliquée :
       **prendre l'épreuve à venir la plus proche** (repli sur la plus récemment passée). Reste **P6.3**
       (UI) pour rendre l'état multi-épreuves atteignable.
-- [ ] **P6.3 — UI ajouter / lister / supprimer une épreuve.** ⚠️ **Renderer → check smoke BLOQUANT
-      obligatoire.** À ne faire qu'après P6.1 et P6.2 vertes.
+- [x] **P6.3 — UI ajouter / lister / supprimer une épreuve.** ✅ _fait #565 (2.0.188)_ — le submit du
+      planning **ajoute** l'épreuve (`upsertExamGoal`, ne l'écrase plus) ; carte « 🎓 Mes épreuves (N) »
+      (`renderExamList`) listant date · titre · J-… avec un **×** par épreuve (`removeExamGoal`). Check
+      smoke **bloquant** `examListUI` (coexistence de 2 épreuves + liste + suppression). **Série P6 close.**
 
 ### P7 — Parcours utilisateur dans le smoke _(P1.5 VALIDÉE — option B, zéro dépendance)_
 

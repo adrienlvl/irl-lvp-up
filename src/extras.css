@@ -240,6 +240,17 @@ details.calendar-setting[open]{padding-bottom:14px}
 .setting-eyebrow{color:var(--accent);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .exam-countdown{margin:8px 0 4px;font-size:.85rem;font-weight:800;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:9px 12px}
 .exam-countdown.exam-soon{border-left-color:#f59e0b;color:#f59e0b}
+.exam-list{margin:2px 0 8px;display:flex;flex-direction:column;gap:5px}
+.exam-list .exam-list-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.exam-list .exam-row{display:flex;align-items:center;gap:9px;font-size:.82rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
+.exam-list .exam-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exam-list .exam-when{color:var(--muted);font-size:.74rem;font-weight:650;white-space:nowrap}
+.exam-list .exam-cd{font-size:.72rem;font-weight:800;color:var(--muted);white-space:nowrap}
+.exam-list .exam-cd.soon{color:#f59e0b}
+.exam-list .exam-cd.past{color:var(--muted);font-weight:650;font-style:italic}
+.exam-list .exam-row button{flex:none;width:24px;height:24px;line-height:1;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:1.1rem;cursor:pointer}
+.exam-list .exam-row button:hover{background:rgba(248,113,113,.14);color:#f87171}
+.exam-list small.local-note{color:var(--muted);font-size:.7rem}
 .study-progress{margin:2px 0 6px;font-size:.78rem;color:var(--muted);font-weight:650}
 .study-pacing{margin:2px 0 8px;font-size:.8rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--blue,#60a5fa);border-radius:9px;padding:8px 12px;line-height:1.4}
 .overdue-study{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:2px 0 8px;padding:9px 12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-left:3px solid #f87171;border-radius:9px}

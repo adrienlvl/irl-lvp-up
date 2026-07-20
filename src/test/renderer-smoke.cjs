@@ -640,7 +640,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.187'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.188'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1516,6 +1516,52 @@ app.whenReady().then(async () => {
           try { save(); renderMonthCalendar(); render(); } catch (e) {}
           return ok;
         })(),
+        // P6.3 (#565) — UI MULTI-ÉPREUVES : ajouter / lister / supprimer. Le vrai test de la valeur
+        // débloquée : avant, générer un planning pour une 2e date ÉCRASAIT la 1re (examGoals limité à
+        // une épreuve, tout le travail P6.1/P6.2 dormant). On génère DEUX plannings à deux dates via le
+        // formulaire réel, on vérifie que les DEUX épreuves coexistent (upsert, pas écrasement) et que
+        // #examList les affiche, puis on clique le × d'une épreuve et on vérifie qu'il n'en reste qu'une.
+        // Aucun award/XP dans ce flux (planStudySessions ne crédite rien) → pas de flakiness (#557).
+        // État intégralement restauré (agenda/examGoal/examGoals). Zéro dépendance, zéro regex injectée.
+        examListUI: typeof upsertExamGoal === 'function' && typeof removeExamGoal === 'function'
+          && typeof renderExamList === 'function' && !!document.getElementById('examList')
+          && !!document.getElementById('studyPlanForm') && (() => {
+          const savedAgenda = state.agenda, savedExamGoal = state.examGoal, savedExamGoals = state.examGoals;
+          let ok = true;
+          try {
+            state.agenda = []; state.examGoals = []; state.examGoal = { title: '', date: '' };
+            const submitPlan = (title, examDate) => {
+              document.getElementById('studyTitle').value = title;
+              document.getElementById('studyStart').value = '2026-07-06';
+              document.getElementById('studyExam').value = examDate;
+              document.getElementById('studyTime').value = '18:00';
+              document.getElementById('studyDuration').value = '60';
+              [...document.querySelectorAll('#studyDays input')].forEach(i => { i.checked = (i.value === '1' || i.value === '3' || i.value === '5'); });
+              document.getElementById('studyPlanForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            };
+            // 1. Deux plannings à deux dates distinctes.
+            submitPlan('Revision droit', '2026-07-31');
+            submitPlan('Revision compta', '2026-08-15');
+            // 2. LES DEUX épreuves coexistent (upsert, pas écrasement) — le coeur de P6.3.
+            ok = ok && Array.isArray(state.examGoals) && state.examGoals.length === 2;
+            // 3. #examList les liste : visible, deux lignes, deux boutons de suppression, triées par date.
+            const box = document.getElementById('examList');
+            ok = ok && !box.hidden;
+            const rows = box.querySelectorAll('.exam-row');
+            ok = ok && rows.length === 2;
+            const delBtns = box.querySelectorAll('[data-del-exam]');
+            ok = ok && delBtns.length === 2;
+            ok = ok && delBtns[0].dataset.delExam === 'exam-2026-07-31' && delBtns[1].dataset.delExam === 'exam-2026-08-15';
+            // 4. Supprimer la première épreuve via son × → il n'en reste qu'une (l'autre), DOM suivi.
+            const delId = delBtns[0].dataset.delExam;
+            delBtns[0].click();
+            ok = ok && state.examGoals.length === 1 && state.examGoals[0].id !== delId;
+            ok = ok && document.getElementById('examList').querySelectorAll('.exam-row').length === 1;
+          } catch (e) { ok = false; }
+          state.agenda = savedAgenda; state.examGoal = savedExamGoal; state.examGoals = savedExamGoals;
+          try { save(); render(); } catch (e) {}
+          return ok;
+        })(),
         // P7.3 (#563) — PARCOURS « onboarding complet » : troisième enchaînement scripté (après
         // recordSessionJourney/P7.1 et studyPlanJourney/P7.2). On remplit le formulaire de départ
         // (#onboardingDialog), on clique « Démarrer » pour de vrai, et on vérifie que l'ÉTAT EN SORTIE
@@ -1929,6 +1975,7 @@ app.whenReady().then(async () => {
     if (!checks.recordSessionJourney) errors.push('Parcours « enregistrer une séance » KO (P7.1 : ouvrir le formulaire → saisir → valider doit ajouter la séance à l\'historique #historyList + créditer XP/santé)');
     if (!checks.studyPlanJourney) errors.push('Parcours « générer un planning de révision » KO (P7.2 : remplir #studyPlanForm → valider doit poser les créneaux « Révision » dans state.agenda + les afficher dans #monthCalendar + statut à jour)');
     if (!checks.onboardingJourney) errors.push('Parcours « onboarding complet » KO (P7.3 : remplir #onboardingDialog → « Démarrer » doit appliquer profil/objectif, placer le programme dans state.agenda (source objprog), créer quêtes + habitude, poser onboardingDone/blockStart, fermer le dialogue et ouvrir le récap sur la page Athlète)');
+    if (!checks.examListUI) errors.push('UI multi-épreuves KO (P6.3 : générer deux plannings à deux dates via #studyPlanForm doit CONSERVER les deux épreuves — pas écraser — les lister dans #examList avec un × chacune, et supprimer via ce × doit n\'en laisser qu\'une)');
     if (!checks.overlayFocus) errors.push('Focus non géré sur les overlays plein écran (weekPage/calendarPage/ultraPage) — clavier bloqué derrière');
     if (!checks.coachCuration) errors.push('Curation coach KO (splitCoachInsight/carte essentielle + « plus de contexte »)');
     if (!checks.sheetSync) errors.push('Sync Google Sheets KO (normalizeSheetCsvUrl/mergeApplications/UI/rendu)');
