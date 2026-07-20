@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.205 (2026-07-20)
+## 📍 État actuel — build 2.0.206 (2026-07-20)
+
+> 🏃 **#590 — Bilan hebdo : « km couru(s) » accordé au singulier sous 2 km (domaine `athlete`,
+> build 2.0.206).** Rotation §4 bis : 5 derniers domaines = `focus · coach · etudes · docs · coach`
+> → 2 derniers (`focus`, `coach`) et `coach` (2×) **interdits** ; **priorité de nuit #1 (coach)
+> rotation-bloquée** ce tour (§3 gagne sur la demande). Backlog nommé P1–P7 **clos**, P4 épuisé,
+> propositions Cap 3.0 en attente d'Adrien → protocole « backlog vide » (§915, précédents #584/#589) :
+> chasser un défaut **prouvable** dans un domaine **autorisé et neuf** (`athlete`, absent des 5
+> derniers). Chasse ciblée (agent read-only, domaines autorisés) = **zéro bug de calcul** (maturité),
+> mais **un défaut d'accord user-visible** dans `weeklyInsights` (`logic.js:2464`), jamais audité : la
+> puce course du « Bilan hebdo intelligent » écrivait « **km courus** » **figé au pluriel**, alors que
+> `cur.km` est décimal (`Math.round(km*10)/10`) et qu'une quantité < 2 impose le singulier en français
+> (« 1,5 km **couru** », « 1 km couru — objectif atteint »). Le garde `> 1` de la puce « séance » deux
+> lignes plus haut avait été **oublié** ici. Fix chirurgical (§3 « formulation plus juste », **aucune
+> note ajoutée**) : `couru${cur.km >= 2 ? 's' : ''}` sur les deux branches — seuil **`>= 2`** (pas
+> `> 1`, qui laisserait « 1,5 km courus »), accord sur la distance **parcourue** (`cur.km`). §4 ter :
+> puces indépendantes, rendu chargé relu (1,5 → singulier ; 5 → pluriel ; ratio idem). +5 tests +
+> check smoke bloquant `weeklyInsights` étendu (« 1.5 km couru », jamais « km courus »). 537 tests +
+> smoke verts. Recap #590. _Domaine : athlete._
 
 > ⏱️ **#589 — Focus : la suggestion de pause longue affiche le bon numéro de bloc (domaine `focus`,
 > build 2.0.205).** Rotation §4 bis : 5 derniers domaines = `coach · docs · athlete · coach · etudes`

@@ -1622,6 +1622,19 @@ test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   assert.ok(ins.some(i => i.tone === 'good' && /séances/.test(i.text)));
   // 12 km >= 10 → objectif course atteint
   assert.ok(ins.some(i => /km/.test(i.text)));
+  // accord de « couru(s) » sur la distance parcourue (cur.km), pluriel ssi ≥ 2 km — cur.km est
+  // arrondi au dixième donc peut valoir 1,5 (le garde entier `> 1` d'ailleurs ne conviendrait pas).
+  const km1 = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'run', duration: 10, distance: 1, effort: 2 }], goals: { distance: 1 } }, '2026-07-06', '2026-07-11');
+  assert.ok(km1.some(i => i.text === '1 km couru — objectif 1 km atteint.'), '1 km couru (singulier, objectif atteint)');
+  assert.ok(!km1.some(i => /km courus/.test(i.text)), 'pas de « km courus » fautif à 1 km');
+  const kmDec = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'run', duration: 12, distance: 1.5, effort: 2 }], goals: { distance: 1 } }, '2026-07-06', '2026-07-11');
+  assert.ok(kmDec.some(i => i.text === '1.5 km couru — objectif 1 km atteint.'), '1,5 km couru (singulier : valeur < 2)');
+  const kmPlur = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'run', duration: 30, distance: 5, effort: 2 }], goals: { distance: 3 } }, '2026-07-06', '2026-07-11');
+  assert.ok(kmPlur.some(i => i.text === '5 km courus — objectif 3 km atteint.'), '5 km courus (pluriel ≥ 2)');
+  const kmRatioSing = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'run', duration: 12, distance: 1.5, effort: 2 }], goals: { distance: 20 } }, '2026-07-06', '2026-07-11');
+  assert.ok(kmRatioSing.some(i => i.text === '1.5/20 km couru cette semaine.'), 'ratio : 1,5 km couru (singulier, distance parcourue < 2)');
+  const kmRatioPlur = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'run', duration: 20, distance: 3, effort: 2 }], goals: { distance: 20 } }, '2026-07-06', '2026-07-11');
+  assert.ok(kmRatioPlur.some(i => i.text === '3/20 km courus cette semaine.'), 'ratio : 3 km courus (pluriel ≥ 2)');
   // sommeil 5 h → alerte
   assert.ok(ins.some(i => /[Ss]ommeil/.test(i.text) && i.tone === 'warn'));
   // accord au singulier quand l'objectif hebdo est d'UNE seule séance (valeur réelle : app.js clampe à Math.max(1,…))
@@ -5661,7 +5674,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.205');
+  assert.equal(L.CHANGELOG[0].v, '2.0.206');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
