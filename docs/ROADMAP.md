@@ -25,6 +25,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.198 (2026-07-20)
 
+> 📏 **#577 — P5.2 (mesure) : le coach dit « Garde le rythme » quand le Bilan hebdo dit « allège »
+> (domaine `docs`, pas de bump).** Rotation §4 bis : les 5 derniers domaines = `coach · athlete ·
+> fondations · coach · robustesse` → `coach` (priorité de nuit, #576 + 2× sur 5) et `athlete` (#575, 2
+> derniers) **interdits** ; `docs` (absent des 5 derniers) autorisé → 2ᵉ demande d'Adrien (cohérence),
+> tâche nommée **P5.2**. Fuzzer de ~8 000 états comparant coach / Bilan hebdo / digest le même jour :
+> **une contradiction inter-panneaux réelle et reproductible** — coach `reinforce` « … en hausse. **Garde
+> le rythme.** » pendant que `weeklyInsights` affiche « 🟥 **Charge en pic (ACWR 3,71)** : prévois une
+> semaine plus légère ». Cause racine : `weeklyInsights` calcule l'ACWR **inconditionnellement**
+> (`logic.js:2462`), mais le coach ne retire « Garde le rythme. » (strip #576, `logic.js:6353`) que sous
+> la garde de **prescription** sport `logic.js:6299` (`pillar==='sport' && !doneToday && readiness≥50`) →
+> un jour **où la séance est déjà faite** (`doneToday`), `loadSpike` reste `null` et l'injonction survit.
+> Fix (découpler le strip de la garde de prescription) = domaine `coach` → **rotation-bloqué cette
+> boucle** ; piste **vérifiée documentée** (recap #577 + mémoire) pour la prochaine boucle coach-ouverte
+> (§5 : une piste vérifiée vaut mieux qu'un commit rotation-violant). Angle coach ↔ « Ma journée » non
+> encore fuzzé → **P5.2 reste ouvert**. Aucun code touché. Recap #577. _Domaine : docs._
+
 > 🩹 **#576 — Coach : plus de « Garde le rythme » quand la forme glisse ou que la charge est en pic
 > (domaine `coach`, build 2.0.198).** Rotation §4 bis : les 5 derniers domaines = `athlete · fondations ·
 > coach · robustesse · a11y` → `coach` (priorité de nuit) absent des 2 derniers (#575 athlete, #574
@@ -637,7 +653,12 @@ sur des centaines d'états réalistes et observer la distribution de ce qui sort
       côte à côte → 📈 gardé `&& !loadSpiking` (curation, pas d'ajout). +test, check smoke étendu &
       promu bloquant.
 - [ ] **P5.2 — Cohérence des conseils entre panneaux** : un même jour, le coach, « Ma journée » et la
-      revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer.
+      revue hebdo peuvent-ils se **contredire** ? Fuzzer et comparer. _Mesure #577 (angle coach ↔ Bilan
+      hebdo)_ : contradiction réelle trouvée — coach « Garde le rythme. » vs `weeklyInsights` « 🟥 Charge
+      en pic … allège » un jour `doneToday` (le strip #576 ne s'exécute pas hors garde de prescription
+      sport, `logic.js:6299`). **Fix = domaine `coach`, rotation-bloqué** → piste vérifiée documentée
+      (recap #577 + mémoire), à appliquer en boucle coach-ouverte. Angle coach ↔ « Ma journée » non
+      encore fuzzé.
 
 ### P6 — Multi-épreuves BTS `examGoals[]` _(P1.3 VALIDÉE — option A)_ ⭐ **le plus utile à Adrien**
 
