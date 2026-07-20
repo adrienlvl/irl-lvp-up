@@ -23,7 +23,13 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.214 (2026-07-20)
+## 📍 État actuel — build 2.0.215 (2026-07-20)
+
+> 📈 **#599 — Progression muscu autorégulée, fondée science (série coaching, build 2.0.215).**
+> `progressionIncrement` : +5 kg bas du corps (squat/soulevé/presse/fente), +2,5 kg haut/isolation
+> (ACSM 2009). Règle **2-for-2** : dépasser la cible de ≥2 reps → saut de charge franc (`overshoot`).
+> **Guidance RIR/RPE** (~1-2 reps en réserve, RPE 8-9 ; Zourdos 2016) dans chaque conseil. Branché dans
+> la séance guidée + détail exercice. 546 tests + smoke. Recap #599. _Domaine : athlete._
 
 > 🛡️ **#598 — Séance guidée : bloc PRÉVENTION/prehab niveau kiné (série coaching, build 2.0.214).**
 > Nouveau `prehabFor(title)` (sourcé Lauersen 2014 : renforcement excentrique = ~½ des blessures en

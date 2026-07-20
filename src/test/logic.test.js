@@ -4932,6 +4932,26 @@ test('progressionText : phrases FR selon l’action', () => {
   assert.match(L.progressionText({ action: 'weight', lastReps: 12, lastLoad: 40, nextLoad: 42.5, nextReps: 8, increment: 2.5, maxReps: 12 }), /42,5 kg/);
   assert.match(L.progressionText({ action: 'reps', lastReps: 9, lastLoad: 12, nextLoad: 12, nextReps: 10, increment: 2.5, maxReps: 12 }), /vise 10 reps/);
   assert.equal(L.progressionText(null), '');
+  // Guidance RIR/RPE présente (Zourdos 2016 / ACSM) dans les deux cas.
+  assert.match(L.progressionText({ action: 'reps', lastReps: 9, lastLoad: 12, nextLoad: 12, nextReps: 10, increment: 2.5, maxReps: 12 }), /réserve|RPE/i);
+  assert.match(L.progressionText({ action: 'weight', lastReps: 14, lastLoad: 12, nextLoad: 17, nextReps: 8, increment: 2.5, maxReps: 12, overshoot: true }), /au-dessus de la cible/);
+});
+test('progressionIncrement : +5 kg bas du corps, +2,5 kg haut/isolation (ACSM 2009)', () => {
+  assert.equal(L.progressionIncrement('Squat barre'), 5);
+  assert.equal(L.progressionIncrement('Soulevé de terre'), 5);
+  assert.equal(L.progressionIncrement('Presse à cuisses'), 5);
+  assert.equal(L.progressionIncrement('Fente avant'), 5);
+  assert.equal(L.progressionIncrement('Développé couché'), 2.5);
+  assert.equal(L.progressionIncrement('Curl biceps'), 2.5);
+  assert.equal(L.progressionIncrement(''), 2.5);
+});
+test('progressionSuggestion : règle 2-for-2 (dépasser la cible de ≥2 reps → saut de charge franc)', () => {
+  // 14 reps alors que la cible haute est 12 → charge trop légère → double incrément.
+  const os = L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Curl', load: 12, reps: 14 }] }], 'Curl', { minReps: 8, maxReps: 12, increment: 2.5 });
+  assert.equal(os.action, 'weight'); assert.equal(os.overshoot, true); assert.equal(os.nextLoad, 17, '12 + 2×2,5');
+  // Pile au sommet (12) → incrément simple, pas d'overshoot.
+  const top = L.progressionSuggestion([{ date: '2026-06-08', exercises: [{ name: 'Curl', load: 12, reps: 12 }] }], 'Curl', { minReps: 8, maxReps: 12, increment: 2.5 });
+  assert.equal(top.overshoot, false); assert.equal(top.nextLoad, 14.5);
 });
 test('basalMetabolicRate : Mifflin-St Jeor homme/femme + garde-fous', () => {
   assert.equal(L.basalMetabolicRate(80, 180, 30, 'homme'), 1780, '10·80+6.25·180−5·30+5');
@@ -5708,7 +5728,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.214');
+  assert.equal(L.CHANGELOG[0].v, '2.0.215');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
