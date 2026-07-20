@@ -2879,6 +2879,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.193', emoji: '🩹', text: 'Ton coach « Le focus du moment » n’affiche plus un chiffre FAUX. Quand sa carte était assez remplie pour être résumée, elle réordonnait ses phrases par ordre d’importance — et, à cette occasion, un nombre à décimale écrit avec un point (comme la moyenne de sommeil « moy. 5.3 h ») perdait son chiffre de tête : « moy. 5.3 h » devenait « moy. 3 h », et une phrase comme « Tu dors 5.3 h en moyenne » se réduisait à « 3 h en moyenne ». Le découpage en phrases prenait le point de la décimale pour une fin de phrase et jetait le morceau au passage. Corrigé : un point collé à un chiffre n’est plus une fin de phrase, et plus aucun caractère n’est perdu — le coach affiche le vrai nombre. Rien d’ajouté : une donnée enfin exacte.' },
   { v: '2.0.192', emoji: '💼', text: 'Ton suivi Alternance classe mieux les candidatures « relancées puis conclues ». Quand une cellule de statut disait à la fois que tu avais relancé ET que c’était fini — « relancé, sans suite », « relancé puis refusé », « relancé, entretien décroché » — le suivi ne retenait que la relance et laissait la candidature bloquée dans la colonne « Relancé », même une fois refusée ou décrochée. Elle échappait alors à ton taux de réponse (un refus compte comme une réponse, pas une relance). Désormais l’état FINAL l’emporte, comme c’était déjà le cas pour « refusé après entretien » : « relancé puis refusé » = refusé, « relancé, entretien décroché » = entretien, « j’ai été pris » = accepté. Une simple relance en cours reste bien « Relancé ». Rien d’ajouté : un classement d’entonnoir plus juste.' },
   { v: '2.0.191', emoji: '🏋️', text: 'Ton échauffement et ton retour au calme collent mieux au type de séance. Le tri se faisait sur des mots-clés du titre trop courts, qui se déclenchaient à tort : une séance « cardio haute intensité » héritait d’un échauffement HAUT DU CORPS (à cause de « hau(t)e »), et une séance de jambes intitulée « presse à cuisses / à jambes » aussi (à cause de « pre(ss)e »). Corrigé : « haute intensité » reçoit désormais un échauffement général, la « presse à cuisses/jambes » un échauffement BAS DU CORPS. Et ta séance générée « Bas du corps » obtient enfin son échauffement bas-du-corps dédié (mobilité hanches/chevilles, squats), au lieu d’un général. L’anglais « floor/bench press » reste bien classé haut du corps. Rien d’ajouté : des mots-clés simplement mieux ciblés.' },
   { v: '2.0.190', emoji: '🌙', text: 'Ton coach « Le focus du moment » ne te dit plus « fais un jour actif de plus » un jour où c’est ton SOMMEIL (ou ton focus, ta nutrition) qu’il met en avant. Quand il te FÉLICITE de bien suivre ses conseils (« Tu as tenu 3/3 de mes caps cette semaine »), il remplaçait ton conseil du jour par « Un jour actif de plus aujourd’hui… » — une formule pensée pour le sport, qui n’a aucun sens pour une nuit (une nuit ne se « fait » pas dans la journée) et qui écrasait un conseil bien plus utile qu’il venait de te donner, comme « Vise un coucher 30 min plus tôt ce soir ». Désormais ce message d’encouragement reste réservé au sport : sur un pilier sommeil / focus / nutrition, le coach GARDE son conseil concret du jour et se contente de créditer ton élan dans le texte. Rien d’ajouté : une incohérence de plus en moins.' },
@@ -9707,14 +9708,27 @@ function coachNoteUrgency(sentence) {
 }
 // Découpe l'insight en phrases et renvoie l'ordre d'affichage : verdict d'abord (jamais déplacé),
 // puis les notes triées par urgence — à rang égal, l'ordre d'origine est conservé (tri stable).
-// Découpe en phrases RÉELLES. Le simple /[^.!?]+[.!?]+/ coupe au mauvais endroit sur « (moy. 5 h… » ou
-// « ~69 min. d'un soir » : tant que l'ordre était préservé le texte se relisait quand même à la suite,
-// mais dès qu'on RECLASSE les notes, ces fragments se retrouvent séparés et la phrase devient du
-// charabia (« Sommeil court et coucher irrégulier (moy. Et la pente s'enfonce… »). On refuse donc une
-// coupure quand une parenthèse reste ouverte, ou quand la suite ne commence pas par une majuscule.
+// Découpe en phrases RÉELLES. Une frontière = un ou plusieurs .!? SUIVIS d'un espace ou de la fin —
+// un point NON suivi d'espace n'en est pas une. Décisif : l'ancien /[^.!?]+[.!?]+(?:\s+|$)/ coupait
+// à CHAQUE point, y compris à l'intérieur d'une décimale « 5.3 », et — pire — le fragment « 5. »
+// tombait dans un TROU entre deux captures de match() (le « . » de « 5.3 » n'étant pas suivi d'espace,
+// la 2ᵉ capture ne démarrait qu'à « 3 h ») → il était PUREMENT PERDU : « moy. 5.3 h » → « moy. 3 h »,
+// « Tu dors 5.3 h » devenait « 3 h » (nombre FAUX + tête de phrase escamotée) dès que l'insight
+// dépassait le budget de la carte et passait par orderCoachNotes. Le découpage par frontières
+// « terminateur + espace/fin » ne casse jamais une décimale et ne jette aucun caractère. Le reste est
+// inchangé : « (moy. 5 h… » ou « ~69 min. d'un soir » ne sont pas des fins de phrase (on refuse une
+// coupure quand une parenthèse reste ouverte, ou quand la suite ne commence pas par une majuscule).
 function splitCoachSentences(text) {
-  const raw = String(text || '').match(/[^.!?]+[.!?]+(?:\s+|$)/g);
-  if (!raw) return [];
+  const str = String(text || '');
+  const raw = [];
+  const re = /[.!?]+(?=\s|$)/g;
+  let last = 0, m;
+  while ((m = re.exec(str))) {
+    const end = m.index + m[0].length;
+    raw.push(str.slice(last, end));
+    last = end;
+  }
+  if (last < str.length) raw.push(str.slice(last)); // reliquat sans terminateur : jamais jeté
   const out = [];
   for (const part of raw) {
     const prev = out.length ? out[out.length - 1] : null;

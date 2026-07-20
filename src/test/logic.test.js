@@ -5583,7 +5583,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.192');
+  assert.equal(L.CHANGELOG[0].v, '2.0.193');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10921,6 +10921,19 @@ test('coachNoteUrgency / orderCoachNotes : l’urgent passe devant l’anodin', 
   assert.equal(ph.length, 2, 'deux phrases réelles, pas quatre fragments');
   assert.match(ph[0], /coucher fixe\.$/, 'le verdict reste entier, parenthèse et abréviation incluses');
   assert.match(ph[1], /^Et la pente/);
+  // DÉCIMALE À POINT (régression attrapée en NAVIGATEUR, §4ter) : le « . » de « 5.3 » n'est PAS une
+  // fin de phrase. L'ancien match() coupait à ce point puis PERDAIT le fragment « 5. » dans le trou
+  // entre deux captures (le point n'étant pas suivi d'un espace) → la carte du coach affichait un
+  // NOMBRE FAUX (« moy. 5.3 h » → « moy. 3 h », « Tu dors 5.3 h » → « 3 h ») dès que l'insight passait
+  // par orderCoachNotes. On ne casse plus une décimale et on ne jette aucun caractère.
+  assert.deepEqual(L.splitCoachSentences('Sommeil court (moy. 5.3 h, écart 1.5 h) — stabilise.'),
+    ['Sommeil court (moy. 5.3 h, écart 1.5 h) — stabilise.'], 'décimale à point préservée, rien perdu');
+  assert.deepEqual(L.splitCoachSentences('Tu dors 5.3 h en moyenne. Garde le cap.'),
+    ['Tu dors 5.3 h en moyenne.', 'Garde le cap.'], 'la tête de phrase ne disparaît plus');
+  // Le verdict sommeil réel (« moy. 5.3 h » avec un POINT, non converti en virgule) survit au reclassement.
+  const dec = L.orderCoachNotes('Sommeil court (moy. 5.3 h, dette 6.5 h) — vise un coucher plus tôt. '
+    + 'Et la pente s’enfonce : enraye avant que la dette ne s’installe.');
+  assert.match(dec[0], /moy\. 5\.3 h/, 'le nombre exact est affiché, pas « moy. 3 h »');
 });
 
 test('orderCoachNotes : une note à 2 phrases reste SOUDÉE (prémisse classée + conclusion non classée)', () => {

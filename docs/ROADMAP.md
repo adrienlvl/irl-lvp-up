@@ -23,7 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.192 (2026-07-20)
+## 📍 État actuel — build 2.0.193 (2026-07-20)
+
+> 🩹 **#570 — Coach : une décimale à point n'est plus tronquée → nombre FAUX sur la carte (domaine
+> `coach`, build 2.0.193).** Rotation §4 bis : les 5 derniers domaines (mtime) = `robustesse · athlete ·
+> a11y · coach · etudes` → `coach` (#567) absent des 2 derniers (#569 robustesse, #568 athlete) et **1×**
+> dans les 5 → **autorisé** ; priorité de nuit (coaching à fond) et rotation convergent. Attrapé en **rendu
+> chargé (§4ter)**, pas en test unitaire : insight sommeil de 322 c → carte résumée → « moy. **5.3 h** »
+> devenait « moy. **3 h** ». `splitCoachSentences` découpait avec `match(/[^.!?]+.../g)` : `[^.!?]+`
+> s'arrête au point **interne** de « 5.3 », et comme ce point n'est pas suivi d'un espace, le fragment
+> « 5. » **tombait dans le trou entre deux captures et était PERDU** (« Tu dors 5.3 h » → « 3 h » : tête
+> escamotée aussi). Cas courant : le verdict `sleepCoachInsight` écrit « moy. `${week.avg}` h » avec un
+> **point**. Fix : frontière = `.!?` **suivi d'un espace/fin** (`/[.!?]+(?=\s|$)/`) — un point collé à un
+> chiffre n'en est plus une — et découpage **par offsets** (aucun caractère jeté). Recollage
+> parenthèses/minuscule **inchangé** (« (moy. 5 h… » reste une phrase). **Aucune note ajoutée** (§3 :
+> curation, on répare un nombre inexact). +3 assertions. 528 tests + smoke verts. Recap #570. _Domaine :
+> coach._
 
 > 💼 **#569 — P4.1 : `relanc` classé AVANT les états terminaux → funnel Alternance corrompu (domaine
 > `robustesse`, build 2.0.192).** Rotation §4 bis : les 5 derniers domaines = `athlete · coach · a11y ·
