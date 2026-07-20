@@ -25,6 +25,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.184 (2026-07-20)
 
+> 🔧 **#557 — Smoke DÉFLAKÉ (domaine `robustesse`, réparation §5, pas de bump).** `verify` était
+> rouge de façon **intermittente** (~1/5) AVANT tout changement → §5 impose « répare le harnais
+> d'abord, rien d'autre ». Cause : le parcours `recordSessionJourney` (#556) évitait la célébration
+> de **record** (pré-remplissage d'un Squat lourd) mais pas celle de **niveau** — le +XP de la séance
+> pouvait franchir un palier de 100 → `renderDashboardCore` (`app.js:551`) `haptic('levelUp')` →
+> `navigator.vibrate` bloqué par Chromium → warning console → SMOKE FAIL, selon l'XP du moment (run
+> rouge : `levelSet 90/100` ; run vert : `20/100`). Préexistant à mes changements (master propre :
+> 1 échec sur 4 runs). Fix : neutraliser **tout** `haptic` pendant le journey (`window.haptic = ()
+> => {}`, restauré après), comme le check `overlayFocus` (l. ~794) — aucune assertion affaiblie.
+> Preuve : **6 runs smoke consécutifs verts** (contre ~1/5 rouge). Recap #557. _Domaine : robustesse._
+> _Piste coach mise de côté (§5) : `orderCoachNotes` déchire les guards à 2 phrases → conclusion
+> orpheline en bas ; correctif prêt (héritage de rang intra-bloc), à reprendre. Détail dans le recap._
+
 > 🧪 **#556 — P7.1 : premier PARCOURS scripté dans le smoke (domaine `tests`, pas de bump).** `coach`
 > (priorité de nuit) étant dans les 2 derniers domaines (#554), la rotation §4 bis l'interdit cette
 > boucle (§3 : elle prime même sur la demande de nuit) → tâche nommée **P7.1** de la 2ᵉ demande

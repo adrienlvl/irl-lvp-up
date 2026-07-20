@@ -1413,6 +1413,12 @@ app.whenReady().then(async () => {
           && !!document.getElementById('addWorkoutButton') && !!document.getElementById('workoutForm') && (() => {
           const savedWorkouts = state.workouts, savedXp = state.xp, savedHealth = state.health;
           const savedPending = (typeof pendingPlanId !== 'undefined') ? pendingPlanId : null;
+          // FLAKY corrigé : l'historique lourd évite la célébration de RECORD, mais le +XP de la séance
+          // pouvait franchir un PALIER DE NIVEAU (renderDashboardCore → haptic('levelUp')) selon l'XP
+          // du moment — vibrate bloqué sans geste → warning console → smoke rouge ~1 run sur 5. On
+          // neutralise donc TOUT haptic pendant le parcours (comme le check overlayFocus, l. ~794),
+          // le journey teste l'enregistrement, pas les célébrations. Restauré dans le finally.
+          const _oh = window.haptic; try { window.haptic = () => {}; } catch (_) {}
           let ok = true;
           try {
             // Historique de départ contenant DÉJÀ un Squat plus lourd et à plus de reps que celui
@@ -1453,6 +1459,7 @@ app.whenReady().then(async () => {
           state.workouts = savedWorkouts; state.xp = savedXp; state.health = savedHealth;
           if (typeof pendingPlanId !== 'undefined') pendingPlanId = savedPending;
           try { save(); render(); } catch (e) {}
+          try { window.haptic = _oh; } catch (_) {}
           return ok;
         })(),
         // A11Y des overlays plein écran (#549) : ouverture = focus DANS l'overlay + <main> neutralisé ;
