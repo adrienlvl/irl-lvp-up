@@ -4339,6 +4339,29 @@ test('buildTrainingWeek : combine objectifs + runs, jours espacés, repos restan
   assert.equal(L.buildTrainingWeek([], 3, 2), null, 'sans objectif → null');
   const clamp = L.buildTrainingWeek(['legs'], 6, 5);
   assert.ok(clamp.strengthDays + clamp.runs <= 6, 'au moins 1 jour de repos');
+  // DISTANCE par objectif : chaque course reçoit un km, la sortie longue est la plus longue,
+  // le total ≈ volume hebdo saisi (30 km ici), affiché dans le titre.
+  const km = L.buildTrainingWeek(['legs'], 2, 3, false, { weeklyKm: 30 });
+  const runs = km.days.filter(d => d.type === 'run');
+  assert.ok(runs.every(d => d.km > 0), 'chaque course a une distance');
+  assert.match(runs.find(d => d.long).title, /km/, 'le km est dans le titre');
+  const longKm = runs.find(d => d.long).km, maxEasy = Math.max(...runs.filter(d => !d.long).map(d => d.km));
+  assert.ok(longKm >= maxEasy, 'la sortie longue est la plus longue');
+  const total = runs.reduce((s, d) => s + d.km, 0);
+  assert.ok(total >= 27 && total <= 33, `total ≈ 30 km, obtenu ${total}`);
+});
+test('runDistances : répartit le volume hebdo, sortie longue en dernier et la plus grosse', () => {
+  assert.deepEqual(L.runDistances(0, 30), []);
+  assert.equal(L.runDistances(1, 30)[0], 12, 'une seule séance : run modéré plafonné');
+  const d3 = L.runDistances(3, 30);
+  assert.equal(d3.length, 3);
+  assert.ok(d3[2] >= d3[0] && d3[2] >= d3[1], 'la longue (dernière) est la plus grosse');
+  assert.ok(d3.every(k => k >= 3), 'jamais sous 3 km');
+  // n=2 : la longue reste plus grosse que la facile (bug corrigé).
+  const d2 = L.runDistances(2, 14);
+  assert.ok(d2[1] > d2[0], 'longue > facile même à petit volume');
+  // sans volume saisi → défaut par accent
+  assert.ok(L.runDistances(2, 0, 'facile').reduce((a, b) => a + b, 0) > 0);
 });
 test('agendaMatch : recherche titre/lieu/notes, insensible à la casse et aux accents', () => {
   const it = { title: 'RDV Kiné', location: 'Cabinet Lorient', notes: 'ordonnance' };
@@ -5728,7 +5751,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.215');
+  assert.equal(L.CHANGELOG[0].v, '2.0.216');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

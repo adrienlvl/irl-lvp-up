@@ -23,7 +23,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.215 (2026-07-20)
+## 📍 État actuel — build 2.0.216 (2026-07-20)
+
+> 🏃 **#600 — Distance de course par objectif (série coaching, build 2.0.216).** `runDistances` répartit
+> le volume hebdo saisi (`state.goals.distance`) sur les courses générées : sortie longue = la plus
+> grosse part (toujours la plus longue), faciles se partagent le reste ; défaut par accent d'objectif
+> sinon. `buildTrainingWeek` attache le km à chaque course + l'affiche dans le titre (jusqu'à l'agenda).
+> Ex. 30 km/3 sorties → 8,5 + 8,5 + longue 13. Le gap repéré en #593 est comblé. 547 tests + smoke.
+> Recap #600. _Domaine : athlete._
 
 > 📈 **#599 — Progression muscu autorégulée, fondée science (série coaching, build 2.0.215).**
 > `progressionIncrement` : +5 kg bas du corps (squat/soulevé/presse/fente), +2,5 kg haut/isolation
