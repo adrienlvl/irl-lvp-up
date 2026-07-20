@@ -325,19 +325,18 @@ function jobStatusFromText(t) {
     || /\b(?:ete|suis|est|etes|sommes|sont)\s+prise?s?\b/.test(x)
     || /candidature prise/.test(x)) return 'accepte';
   if (/refus|negati|decline|abandonn|ecart|sans suite/.test(x)) return 'refus';
-  // `entretien` APRÈS les états terminaux (refus/accepté) : un « refusé après entretien » ou un
-  // « retenu à l'issue de l'entretien » est un état FINAL, pas un entretien en cours. Placé avant, le
-  // simple mot « entretien » emportait le refus/l'accepté et laissait la candidature bloquée en
-  // colonne « entretien » du funnel (et non-régressable au re-sync, `rankOf` entretien < refus).
-  if (/entretien|entrevue/.test(x)) return 'entretien';
-  // `relance` (suivi EN COURS) APRÈS les états terminaux/avancés — même raison que `entretien` juste
-  // au-dessus : « relancé puis refusé », « relancé, sans suite », « relancé, j'ai été pris » ou
-  // « relancé, entretien décroché » sont refus / accepté / entretien, PAS une relance en cours. Placé
-  // en tête (avant refus/accepté/entretien), le simple mot « relancé » l'emportait → candidature figée
-  // en colonne « relance » du funnel (rang 2, jamais régressée au re-sync via mergeApplications) et
-  // exclue du « répondu » d'`applicationStats` (answered = entretien+accepté+refus) → taux de réponse
-  // sous-évalué. Reste AVANT le seau `postule` : une relance prime sur un simple « postulé ».
+  // `relance` AVANT `entretien`, mais APRÈS refus/accepté (correctif #592, régression #569). Raison :
+  // « relance pour entretien », « relancé pour obtenir un entretien », « relancé, toujours pas
+  // d'entretien » sont des relances EN COURS, pas des entretiens. `entretien` est un motif NU (aucune
+  // garde de négation) : placé avant `relance`, il capterait l'entretien SOUHAITÉ ou NIÉ et figerait
+  // la candidature en rang 3. Ordre fail-safe : un sous-classement en `relance` (rang 2) est rattrapé
+  // au re-sync par mergeApplications dès que la cellule dira « entretien » ; un sur-classement en
+  // `entretien` (rang 3) est DÉFINITIF (jamais régressé). Reste APRÈS refus/accepté, donc « relancé
+  // puis refusé » = refus et « relancé, j'ai été pris » = accepté (les vrais gains de #569 conservés).
   if (/relanc/.test(x)) return 'relance';
+  // `entretien` APRÈS les états terminaux (refus/accepté) et `relance` : un « refusé après entretien »
+  // ou un « retenu à l'issue de l'entretien » est un état FINAL, pas un entretien en cours.
+  if (/entretien|entrevue/.test(x)) return 'entretien';
   // NÉGATION de l'action de candidater (« pas encore postulé », « pas postulé », « non envoyée »,
   // « candidature pas encore envoyée ») : la candidature n'a PAS encore été envoyée → à postuler, PAS
   // « postulé ». Sans ce garde, le simple mot « postulé »/« envoyé » du seau `postule` juste en dessous
@@ -346,9 +345,12 @@ function jobStatusFromText(t) {
   // terminaux/avancés (refus/accepté/entretien/relance) : un « pas encore postulé, finalement refusé »
   // reste un refus. On n'exige QUE les verbes d'action de candidature (postul/envoy) : « candidat » est
   // ambigu (« pas un bon candidat » = refus, pas une candidature à envoyer) et « retenu » est un refus
-  // (« pas (été) retenu », déjà capté plus haut). Négation collée au verbe (« pas encore postulé » :
-  // court intervalle toléré), l'ordre protège le positif (« postulé, pas de nouvelles » reste postulé).
-  if (/\b(?:pas|non|jamais)\b[\s\S]{0,12}(?:postul|envoy)/.test(x)) return 'a_postuler';
+  // (« pas (été) retenu », déjà capté plus haut). CORRECTIF #592 (régression #572) : la négation doit
+  // VRAIMENT porter sur le verbe. `[\s\S]{0,12}` traversait la ponctuation et un complément étranger →
+  // « PAS de retour, POSTULÉ le 03/03 » basculait à tort en « à postuler » (la candidature EST envoyée,
+  // elle sortait du funnel à chaque sync). On n'autorise plus entre la négation et le verbe qu'une
+  // liste blanche de mots de liaison (jamais de virgule, de point, ni de complément arbitraire).
+  if (/\b(?:pas|non|jamais)\b(?:\s+(?:encore|du|tout|vraiment|toujours|ete|etre|de|la|ma|mon|candidature))*\s+(?:postul|envoy)/.test(x)) return 'a_postuler';
   // « prise de contact », « pris contact », « pris en compte », « rendez-vous pris » : le contact EST
   // établi — c'est un dossier envoyé/en cours, pas un « à postuler » (et surtout pas un « accepté »).
   if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)
@@ -1813,9 +1815,14 @@ function normalizeExamGoal(item) {
   const subject = typeof g.subject === 'string' ? g.subject.trim().slice(0, 60) : '';
   const date = (typeof g.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(g.date)) ? g.date : '';
   const slug = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+  // CORRECTIF #592 (perte de donn\u00e9es #555) : l'id d\u00e9riv\u00e9 d\u00e9pendait de la DATE SEULE, donc deux \u00e9preuves
+  // le m\u00eame jour (courant en BTS CG : une \u00e9crite le matin, une l'apr\u00e8s-midi) partageaient un id et la
+  // 2\u1d49 \u00e9tait SILENCIEUSEMENT \u00e9cras\u00e9e au d\u00e9doublonnage \u2014 perte persist\u00e9e \u00e0 chaque chargement/import.
+  // L'identit\u00e9 d'une \u00e9preuve = date + intitul\u00e9. Un id EXPLICITE d\u00e9j\u00e0 persist\u00e9 reste prioritaire (branche
+  // ci-dessous), donc l'\u00e9preuve existante d'Adrien ne change pas d'id.
+  const key = [date, slug].filter(Boolean).join('-');
   const id = (typeof g.id === 'string' && g.id.trim()) ? g.id.trim()
-    : date ? 'exam-' + date
-    : slug ? 'exam-' + slug
+    : key ? 'exam-' + key
     : '';
   return { id, subject, title, date };
 }
@@ -1913,7 +1920,12 @@ function studyPacing(agenda, examGoal, todayKey) {
   const total = list.length;
   if (!total) return null;
   const done = list.filter(a => a.completed).length;
-  const remaining = list.filter(a => !a.completed && /^\d{4}-\d{2}-\d{2}$/.test(String(a.date || '')) && a.date >= todayKey).length;
+  // CORRECTIF #592 (régression #562) : `daysLeft` vient de l'épreuve la plus PROCHE (examCountdown),
+  // mais `remaining` comptait TOUTES les révisions de l'agenda, tous examens confondus. En multi-
+  // épreuves, on divisait donc ~43 révisions (Droit + Compta) par les 12 jours jusqu'à Droit →
+  // « vise ~26/semaine », alarme absurde. On borne les révisions comptées à l'horizon de CETTE épreuve
+  // (`a.date <= c.date`). Sans effet en mono-épreuve : les séances planifiées sont toutes ≤ examDate.
+  const remaining = list.filter(a => !a.completed && /^\d{4}-\d{2}-\d{2}$/.test(String(a.date || '')) && a.date >= todayKey && a.date <= c.date).length;
   if (remaining === 0) return { remaining: 0, daysLeft: c.daysLeft, perWeek: 0, done, total, status: 'done' };
   const weeksLeft = Math.max(1, c.daysLeft / 7);
   const perWeek = Math.ceil(remaining / weeksLeft);
@@ -2903,13 +2915,14 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.208', emoji: '🛡️', text: 'Passe de fiabilité sur ton suivi Alternance, tes examens et ton coach (corrections d’un lot de nouveautés récentes). Côté Alternance : « relance pour entretien » n’est plus comptée comme un entretien déjà décroché, et « pas de retour, postulé le 3 » n’est plus reclassée « à postuler » — deux erreurs qui faussaient ton entonnoir et ton taux de réponse à chaque synchronisation. Côté BTS : deux épreuves tombant le MÊME jour (une le matin, une l’après-midi) ne sont plus fusionnées en une seule, et le rythme de révision conseillé ne s’affole plus quand tu suis deux examens à des dates différentes. Côté coach : une alerte importante (blessure, charge) ne peut plus se retrouver cachée derrière une note anodine, et un palier rare — comme une habitude tenue une année entière — est bien célébré même un jour où tu as déjà bouclé une belle série. Zéro fonctionnalité retirée, que du plus juste.' },
   { v: '2.0.207', emoji: '🏅', text: 'Ton coach « Le focus du moment » ne t’empile plus deux ou trois trophées « une semaine complète » le même jour. Les jours de grande forme, il pouvait afficher coup sur coup « 🏅 Palier franchi : une semaine complète de journées pleines ! » PUIS « 🏆 Chaîne au sommet : ton habitude … atteint une semaine complète … un vrai palier » — deux médailles qui disaient la même « semaine » et se diluaient l’une l’autre. Désormais, une seule carotte de palier par jour : le jalon le plus englobant (la semaine de journées complètes) est mis en avant, les autres restent comptabilisés en coulisse mais ne répètent plus la phrase. Rien d’ajouté : une célébration plus nette, pas trois qui se marchent dessus.' },
   { v: '2.0.206', emoji: '🏃', text: 'Petit accord de français dans ton Bilan hebdo intelligent : les semaines où tu as couru moins de 2 km, l’app écrivait « 1 km courus » ou « 1,5 km courus » au pluriel. Elle accorde désormais au singulier (« 1 km couru — objectif atteint », « 1,5 km couru »), et garde le pluriel dès 2 km. Rien d’autre ne change.' },
   { v: '2.0.205', emoji: '⏱️', text: 'La suggestion de pause longue du minuteur de focus affiche le bon numéro de bloc. Toutes les quatre sessions de concentration, l’app te propose une vraie coupure — mais son message était figé sur « Quatrième bloc d’affilée », y compris à ta 8ᵉ ou 12ᵉ session de la journée. Désormais il annonce le vrai compte (« 8ᵉ bloc d’affilée — accorde-toi une vraie coupure : marche, mange, éloigne-toi de l’écran »). La pause courte et sa durée conseillée ne changent pas.' },
   { v: '2.0.204', emoji: '🧠', text: 'Ton coach « Le focus du moment » ne te pousse plus à « caler un vrai bloc de focus » un jour où, deux lignes plus haut, il vient de te dire de te reposer. Quand ta forme mentale est à plat le matin (readiness sous 50), il pose à juste titre un frein : « un cerveau fatigué ne produit pas un vrai bloc profond — un focus court et facile aujourd’hui, soigne ta récup » (ou, quand ton objectif de la semaine a de la marge, « un focus léger, ou même une vraie pause, suffit »). Mais l’action, elle, continuait de te lancer « Reprends ton chantier phare, enchaîne un bloc de 45 min » et « Créneau libre à telle heure — cale ton bloc là », et la relance de reprise ajoutait « repasse à un vrai bloc, pas juste 10 min » : trois invitations à pousser qui contredisaient de front le « repose-toi » d’à côté. Désormais, ces jours de tête à plat, ces poussées s’effacent — l’action retombe sur un bloc COURT (« lance une session de 25 min »), cohérent avec le frein — exactement comme le coach le fait déjà côté séance de sport. Les jours où ta forme n’est pas à plat, le chantier phare, le créneau et la vraie reprise reviennent normalement. Rien d’ajouté : trois contradictions de moins.' },
   { v: '2.0.203', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te propose plus, le même jour, de « t’alléger » et de « charger un groupe à fond ». Quand ta forme est correcte le matin mais GLISSE sur tes derniers check-ins (fatigue qui s’accumule), ton coach bascule à juste titre en frein : « séance allégée aujourd’hui, soigne ta récup avant de taper dans le rouge ». Mais il ajoutait ensuite, sur la même carte, « Créneau libre à telle heure — cale ta séance là » et surtout « Cible en priorité les jambes, ton groupe le plus reposé, pour équilibrer ta semaine » — deux invitations à pousser qui contredisaient de front le « lève le pied » de la ligne d’avant. Désormais, les jours où ta forme glisse, ces deux notes s’effacent (exactement comme elles s’effaçaient déjà les jours de pic de charge) : le message reste cohérent d’un bout à l’autre. Les jours où ta forme ne glisse pas, le créneau et le groupe à cibler reviennent normalement. Rien d’ajouté : deux contradictions de moins.' },
   { v: '2.0.202', emoji: '🏁', text: 'Ton objectif de course ne te conseille plus de « t’affûter pour arriver frais » une fois la course déjà passée. Les 1 à 3 jours suivant ta course, la carte d’objectif et ton coach du jour continuaient d’afficher la phase « Affûtage » (réduis le volume, arrive frais) et « Cap : dans 0 sem. » — alors que la course avait déjà eu lieu la veille ou l’avant-veille. Un arrondi ramenait ce délai négatif à zéro, faisant passer une course passée pour une course imminente. Désormais, dès le lendemain, la carte affiche « Cette date est passée — mets à jour ton objectif » et le rappel de cap disparaît, comme c’était déjà le cas à partir de 4 jours. Rien d’ajouté : une incohérence de calendrier corrigée.' },
-  { v: '2.0.201', emoji: '🥗', text: 'Ton coach « Le focus du moment » ne te demande plus « encore un jour actif aujourd’hui » côté nutrition un jour où tu as DÉJÀ noté tes apports. Quand ton suivi nutrition monte en régime, il salue l’élan (« 4 jours actifs cette semaine, en hausse. Garde le rythme. ») et invitait à « encore un jour actif aujourd’hui pour ancrer l’habitude » — même les jours où tu venais justement de saisir tes protéines, ton eau ou un fruit. Il te redemandait un geste déjà fait. Désormais, ces jours-là, il le CRÉDITE : « Déjà noté aujourd’hui ✅ — l’habitude est ancrée. » Les jours où tu n’as encore rien saisi, l’invitation à t’y mettre reste inchangée. (Le sommeil, lui, garde son conseil de coucher du soir, qui porte sur ce qui reste à venir.) Rien d’ajouté : un ordre déjà exécuté en moins.' },
+  { v: '2.0.201', emoji: '🧹', text: 'Sous le capot : un petit ajustement du coach côté nutrition qui, après vérification, ne changeait rien de visible pour toi (le message qu’il ajoutait n’apparaissait jamais dans l’app réelle, masqué par ton conseil protéines). Il a été retiré depuis. Aucun changement d’usage — mentionné par transparence.' },
   { v: '2.0.200', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » un jour de pic de charge où ta séance est DÉJÀ faite. La version précédente effaçait bien cette invitation à continuer quand ta charge d’entraînement était en pic (ACWR élevé) — mais seulement les jours où il te restait une séance à caler. Or un jour de pic est souvent un jour où tu viens justement de t’entraîner : dans ce cas, « Garde le rythme » restait affiché pendant que ton bilan de la semaine, lui, te disait « prévois une semaine plus légère pour éviter la blessure ». Les deux panneaux se contredisaient. Désormais, dès que ta charge est en pic, l’invitation à continuer s’efface — séance faite ou non — et les deux panneaux disent la même chose. Le constat « en hausse » reste, et une vraie montée SAINE garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.199', emoji: '♿', text: 'Accessibilité : six champs de saisie qui ne portaient qu’un texte d’exemple (« indice ») ont maintenant un vrai nom lu par les lecteurs d’écran — le prénom d’un anniversaire, le nom et le lien d’un calendrier synchronisé, l’adresse de départ des trajets, le poids du jour et l’envie du jour en cuisine. Un texte d’exemple disparaît dès qu’on tape et n’est pas un nom fiable pour qui navigue à la voix ou au clavier ; ces champs rejoignent ceux de recherche et du tableau de bord déjà corrigés. Rien ne change à l’écran.' },
   { v: '2.0.198', emoji: '🩹', text: 'Ton coach « Le focus du moment » ne te dit plus « garde le rythme » les autres jours où il te demande de lever le pied. La version précédente désamorçait déjà cette contradiction quand ta forme du jour était au plancher (readiness sous 50) ; mais son conseil bascule aussi en frein dans deux autres cas — quand ta forme, correcte le matin, GLISSE régulièrement sur tes derniers check-ins (fatigue qui s’installe → « séance allégée, soigne ta récup ») et quand ta charge d’entraînement est en PIC (ACWR élevé → « allège aujourd’hui, -30 % de volume »). Dans ces deux cas, « Garde le rythme » poussait pendant que le conseil freinait. Désormais l’invitation à continuer s’efface aussi ces jours-là ; le constat « en hausse » reste. Une vraie montée sans frein garde son « Garde le rythme ». Rien d’ajouté : une contradiction de plus en moins.' },
@@ -7270,20 +7283,11 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       ? 'Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée.'
       : 'Bloc de focus déjà posé aujourd’hui ✅ — savoure ; si l’énergie est là, un second bloc te rapproche de l’objectif.';
   }
-  // Pendant du crédit doneToday pour la NUTRITION en renfort. doneToday exclut volontairement sommeil
-  // et nutrition (leur action pilier est PROSPECTIVE — « vise un coucher », « renseigne tes protéines »
-  // — v2.0.100). Mais l'action GÉNÉRIQUE de renfort « Encore un jour actif aujourd'hui… » est, elle,
-  // RÉTROSPECTIVE : un « jour actif » = une entrée active, donc si le pilier a déjà une entrée active
-  // datée du jour, l'ordre est déjà exécuté → radotage. Cas prouvé UNIQUEMENT pour la nutrition : le
-  // sommeil, lui, ne conserve jamais cette action générique (dès qu'il est choisi il a ≥ 1 nuit → sleepIns
-  // est truthy → l'action devient le conseil de coucher du soir, l.5764-5766), donc rien à créditer là.
-  // On ne touche QUE cette action générique (si un bloc nutrition l'a déjà remplacée par un conseil
-  // ciblé — cible protéines l.5865 — on la laisse) et QUE la nutrition. Curation, aucune note ajoutée.
-  if (tone === 'reinforce' && chosen.pillar === 'nutrition'
-      && action === 'Encore un jour actif aujourd’hui pour ancrer l’habitude.'
-      && (Array.isArray(chosen.list) ? chosen.list : []).some(e => e && e.date === todayKey && chosen.active(e))) {
-    action = 'Déjà noté aujourd’hui ✅ — l’habitude est ancrée, savoure : rien d’autre à cocher côté nutrition.';
-  }
+  // CORRECTIF #592 (code mort #582) : un crédit nutrition « Déjà noté aujourd'hui ✅ » vivait ici, mais
+  // il était INATTEIGNABLE — il exigeait que `action` soit encore la chaîne générique de renfort, or le
+  // bloc « cible protéines » (l.~5865) réécrit TOUJOURS `action` avant lui dès qu'un profil existe, ce
+  // que `normalizeState` garantit (defaults.profile). Retiré : le cas « cible tenue » est déjà crédité
+  // ailleurs (« Cible protéines tenue 💪 »), et « il te reste X g » est un conseil prospectif légitime.
   // Crédit MULTI-PILIERS — le pendant POSITIF de la priorisation (alsoSlipping NOMME ce qui décroche ;
   // ici on reconnaît ce qui TIENT). Le coach savait pointer les faiblesses, jamais saluer une journée
   // bien remplie. Quand le contexte est bon — le geste du pilier poussé est DÉJÀ posé (doneToday) OU le
@@ -7338,7 +7342,12 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // « une carotte/jour » à toute la fonction, dans l'ordre du code (journées complètes → série pilier →
   // habitude) : le premier jalon franchi parle, les suivants gardent leur CHAMP (télémétrie/tests
   // inchangés) mais n'ajoutent plus la phrase redondante. Retirer une note en vaut deux.
+  // CORRECTIF #592 (régression #591) : `milestoneShown` (booléen) hiérarchisait les paliers par ORDRE
+  // DU CODE — un palier de 7 j de journées complètes éteignait un palier d'habitude de 365 j, célébré
+  // une seule fois dans une vie. On garde en plus l'AMPLITUDE du palier déjà montré : un jalon ne se
+  // tait que face à un jalon déjà célébré d'ampleur ≥ (le 7 vs 7 reste dédupliqué, le 7 vs 365 parle).
   let milestoneShown = false;
+  let milestoneShownAt = 0;
   let completeDayMilestone = null;
   if ((doneToday || tone === 'reinforce') && pillarsToday >= 2) {
     if (pillarsToday >= 3 && completeDayStreak >= 2) {
@@ -7350,7 +7359,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           : completeDayStreak === 30 ? 'un mois complet'
           : `${completeDayStreak} jours`;
         insight += ` 🏅 Palier franchi : ${palier} de journées pleines !`;
-        milestoneShown = true;
+        milestoneShown = true; milestoneShownAt = completeDayStreak;
       } else if (typeof nextStreakMilestone === 'function') {
         const nm = nextStreakMilestone(completeDayStreak);
         if (nm && nm.remaining === 1) insight += ` Encore 1 jour pour franchir le palier des ${nm.milestone}. 🎯`;
@@ -7473,7 +7482,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
                 : nm.milestone === 30 ? 'le palier d’un mois'
                 : `le palier des ${nm.milestone} jours`;
               insight += ` Et ce geste décroche ${palier} ! 🏅`;
-              milestoneShown = true;
+              milestoneShown = true; milestoneShownAt = nm.milestone;
             }
           }
         }
@@ -7493,10 +7502,14 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           if (best >= 7) {
             if (streak >= best) {
               streakRecordReach = 'break';
-              if (!milestoneShown) {
-                insight += ` 🏆 Et là tu bats ton record perso sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} : jamais tu n’avais tenu autant de jours d’affilée.`;
-                milestoneShown = true;
-              }
+              // CORRECTIF #592 (régression #591, mineur) : le RECORD PERSO n'est pas une redite d'un
+              // palier de journées complètes (autre sujet, autre vocabulaire) et c'est la note la plus
+              // motivante du jour (appendue à streakAtRisk, un jour où le geste n'est PAS encore posé).
+              // Il ne se tait QUE devant streakMilestoneReach (même sujet, via le `if (!streakMilestone
+              // Reach)` englobant). On pose le drapeau d'ampleur (streak) pour éviter d'empiler avec un
+              // palier d'habitude de rang inférieur en aval.
+              insight += ` 🏆 Et là tu bats ton record perso sur ${POSSESSIF[chosen.pillar] || 'ce pilier'} : jamais tu n’avais tenu autant de jours d’affilée.`;
+              milestoneShown = true; milestoneShownAt = Math.max(milestoneShownAt, streak);
             } else if (best - streak <= 3) {
               streakRecordReach = 'near';
               const reste = best - streak;
@@ -7627,7 +7640,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     if (reached.length) {
       const top = reached.reduce((a, b) => (b.streak > a.streak ? b : a));
       habitMilestone = { name: top.name, streak: top.streak };
-      if (!milestoneShown) {
+      if (top.streak > milestoneShownAt) {
         const named = { 7: 'une semaine complète', 14: 'deux semaines pleines', 30: 'un mois entier', 60: 'deux mois', 100: 'cent jours', 180: 'six mois', 365: 'une année entière' }[top.streak];
         const label = named ? `${named} (${top.streak} jours consécutifs)` : `${top.streak} jours consécutifs`;
         insight += ` 🏆 Chaîne au sommet : ton habitude « ${top.name} » atteint ${label} aujourd’hui — un vrai palier, l’automatisme s’installe. Savoure et enchaîne le prochain maillon.`;
@@ -9888,11 +9901,20 @@ function orderCoachNotes(insight) {
   // le tri stable (a.u puis a.i) préserve l'ordre prémisse→conclusion à l'intérieur du bloc. Une note
   // non classée SANS prémisse classée avant elle (ex. « Objectif hebdo : 2/4 », appendue au cœur
   // AVANT les notes secondaires) garde le rang par défaut — elle n'est jamais tirée vers le haut.
-  let blockRank = COACH_URGENCY_DEFAULT;
+  // CORRECTIF #592 (régression #558) : l'héritage de rang ne doit lier qu'une prémisse à SA conclusion
+  // (2 phrases d'un MÊME guard), jamais franchir la frontière vers une AUTRE note. Deux garde-fous :
+  //  (1) une phrase qui OUVRE une note (« Et … », « Bonne nouvelle … » — la marque d'append de tous les
+  //      guards) est un nouveau sujet : elle n'hérite JAMAIS, elle garde son rang propre ;
+  //  (2) `prevRank` retombe au défaut après toute phrase non classée, donc l'héritage ne se propage pas
+  //      de note en note (sans quoi « Et c'est ton jour de jambes », rang propre 4, héritait du rang 0
+  //      de la note blessure qui la précédait et passait DEVANT une vraie alerte sommeil rang 2).
+  let prevRank = COACH_URGENCY_DEFAULT;
   const rest = parts.slice(1).map((p, i) => {
     const own = coachNoteUrgency(p);
-    if (own !== COACH_URGENCY_DEFAULT) blockRank = own;
-    return { text: p.trim(), i, u: own === COACH_URGENCY_DEFAULT ? blockRank : own };
+    const opensNote = /^\s*(?:Et|Bonne nouvelle)\b/.test(p);
+    const u = (own === COACH_URGENCY_DEFAULT && !opensNote) ? prevRank : own;
+    prevRank = own === COACH_URGENCY_DEFAULT ? COACH_URGENCY_DEFAULT : own;
+    return { text: p.trim(), i, u };
   }).sort((a, b) => (a.u - b.u) || (a.i - b.i));
   return [head, ...rest.map(r => r.text)].filter(Boolean);
 }

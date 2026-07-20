@@ -23,7 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.207 (2026-07-20)
+## 📍 État actuel — build 2.0.208 (2026-07-20)
+
+> 🛡️ **#592 — Audit adversarial de la nuit VPS (session locale) : 8 correctifs, build 2.0.208.** Les
+> 38 commits #554→#591 (suite verte) relus **diff par diff** par un workflow à 14 agents → 8 défauts
+> que les tests laissaient passer, dont **2 majeurs** : perte de données (deux épreuves BTS le même jour
+> fusionnées, #555) et **funnel Alternance faussé** (« relance pour entretien » figée en entretien #569,
+> « pas de retour, postulé » sortie du funnel #572). Plus : inversion de priorité du coach (#558),
+> rythme de révision absurde en multi-épreuves (#562), palier rare/record perso éteints (#591), code
+> mort nutrition (#582). Tous corrigés + 4 tests de non-régression + navigateur. Interdictions dures du
+> VPS **toutes respectées**. **Non publié** (attend « publie »). Recap #592. _Domaine : robustesse._
 
 > 🏅 **#591 — Coach : une seule carotte de palier par jour (fin de l'empilement « une semaine »)
 > (domaine `coach`, build 2.0.207).** Rotation §4 bis : 5 derniers domaines = `athlete · focus · coach ·

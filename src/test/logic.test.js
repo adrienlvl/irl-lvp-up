@@ -783,8 +783,14 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText('Relancé, sans suite'), 'refus', 'relancé puis sans suite = refus');
   assert.equal(L.jobStatusFromText('Relancé puis refusé'), 'refus', 'relancé puis refusé = refus');
   assert.equal(L.jobStatusFromText('Relancé, finalement abandonné'), 'refus');
-  assert.equal(L.jobStatusFromText('Relancé, entretien décroché'), 'entretien', 'relancé puis entretien = entretien');
-  assert.equal(L.jobStatusFromText('Relancé, j’ai été pris'), 'accepte', 'relancé puis pris = accepté');
+  // CORRECTIF #592 (régression #569) : `relance` repasse AVANT `entretien` pour ne plus capter
+  // « relance POUR entretien » / « relancé, toujours pas d'entretien » en rang 3 (fige irréversible).
+  // Contrepartie assumée : « Relancé, entretien décroché » → 'relance' (rang 2, récupérable au re-sync
+  // dès que la cellule dira « Entretien »), là où un sur-classement en 'entretien' serait définitif.
+  assert.equal(L.jobStatusFromText('Relancé, entretien décroché'), 'relance', 'ambigu → relance (récupérable), pas entretien (définitif)');
+  assert.equal(L.jobStatusFromText('Relance pour entretien'), 'relance', 'une relance POUR obtenir un entretien reste une relance');
+  assert.equal(L.jobStatusFromText('Relancé, toujours pas d’entretien'), 'relance');
+  assert.equal(L.jobStatusFromText('Relancé, j’ai été pris'), 'accepte', 'relancé puis pris = accepté (gain #569 conservé)');
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
@@ -2739,7 +2745,9 @@ test('examCountdown/examReminderDue/studyPacing acceptent examGoals[] (P6.2)', (
 });
 test('normalizeExamGoal : coercion, bornes, id stable', () => {
   const g = L.normalizeExamGoal({ title: '  BTS CG — Droit  ', subject: ' Droit ', date: '2026-06-15' });
-  assert.deepEqual(g, { id: 'exam-2026-06-15', subject: 'Droit', title: 'BTS CG — Droit', date: '2026-06-15' });
+  // CORRECTIF #592 (perte de données #555) : id = date + slug du titre (plus la date seule), pour que
+  // deux épreuves le même jour ne se fusionnent plus.
+  assert.deepEqual(g, { id: 'exam-2026-06-15-bts-cg-droit', subject: 'Droit', title: 'BTS CG — Droit', date: '2026-06-15' });
   assert.equal(L.normalizeExamGoal({ date: 'pas-une-date' }).date, '', 'date invalide → vide');
   assert.equal(L.normalizeExamGoal({ id: '  x9 ', title: 'T', date: '2026-01-02' }).id, 'x9', 'id fourni conservé + trim');
   assert.equal(L.normalizeExamGoal({ title: 'Compta générale' }).id, 'exam-compta-generale', 'sans date → id slug du titre');
@@ -2753,7 +2761,7 @@ test('normalizeExamGoals : migration rétro-compatible examGoal → examGoals[]'
   assert.deepEqual(L.normalizeExamGoals(null), [], 'null → liste vide');
   // legacy unique → premier (et seul) élément, sans perte
   const migrated = L.normalizeExamGoals({ examGoal: { title: 'BTS CG', date: '2026-06-15' } });
-  assert.deepEqual(migrated, [{ id: 'exam-2026-06-15', subject: '', title: 'BTS CG', date: '2026-06-15' }]);
+  assert.deepEqual(migrated, [{ id: 'exam-2026-06-15-bts-cg', subject: '', title: 'BTS CG', date: '2026-06-15' }]);
   // examGoals déjà présent → utilisé, legacy ignoré, entrées invalides écartées
   const multi = L.normalizeExamGoals({
     examGoal: { title: 'Vieux', date: '2020-01-01' },
@@ -2765,7 +2773,7 @@ test('normalizeExamGoals : migration rétro-compatible examGoal → examGoals[]'
   });
   assert.equal(multi.length, 2, 'legacy ignoré + entrée vide écartée');
   assert.deepEqual(multi[0], { id: 'a', subject: 'Droit', title: 'Épreuve 1', date: '2026-06-15' });
-  assert.equal(multi[1].id, 'exam-2026-06-18');
+  assert.equal(multi[1].id, 'exam-2026-06-18-epreuve-2');
   // dédoublonnage par id
   const dup = L.normalizeExamGoals({ examGoals: [
     { id: 'x', title: 'A', date: '2026-06-15' },
@@ -2782,19 +2790,24 @@ test('upsertExamGoal / removeExamGoal / sortExamGoals : CRUD multi-épreuves (P6
   assert.equal(list.length, 2, 'deux dates distinctes → deux épreuves conservées');
   // tri par date croissante : Droit (15) avant Compta (18)
   assert.deepEqual(list.map(g => g.title), ['Droit', 'Compta'], 'triées par date croissante');
-  // re-soumettre la MÊME date remplace le libellé (upsert par id), sans dupliquer
-  list = L.upsertExamGoal(list, { title: 'Droit fiscal', date: '2026-06-15' });
-  assert.equal(list.length, 2, 'même date (même id) → pas de doublon');
-  assert.equal(list.find(g => g.id === 'exam-2026-06-15').title, 'Droit fiscal', 'le nouveau titre gagne');
+  // CORRECTIF #592 : identité = date + titre. Re-soumettre la même date avec le MÊME titre remplace.
+  list = L.upsertExamGoal(list, { title: 'Droit', date: '2026-06-15' });
+  assert.equal(list.length, 2, 'même date + même titre → remplacement, pas de doublon');
   // entrée vide → liste inchangée
   assert.equal(L.upsertExamGoal(list, { title: '', date: '' }).length, 2, 'entrée vide ignorée');
   // liste absente / non tableau tolérée
   assert.equal(L.upsertExamGoal(null, { title: 'Solo', date: '2026-07-01' }).length, 1, 'liste null tolérée');
   // suppression par id
-  const after = L.removeExamGoal(list, 'exam-2026-06-15');
+  const after = L.removeExamGoal(list, 'exam-2026-06-15-droit');
   assert.deepEqual(after.map(g => g.title), ['Compta'], 'retire l’épreuve visée, garde l’autre');
   assert.equal(L.removeExamGoal(list, 'inconnu').length, 2, 'id inconnu → liste inchangée');
-  assert.deepEqual(L.removeExamGoal([{ title: 'A', date: '2026-01-01' }], 'exam-2026-01-01'), [], 'dernière retirée → []');
+  assert.deepEqual(L.removeExamGoal([{ title: 'A', date: '2026-01-01' }], 'exam-2026-01-01-a'), [], 'dernière retirée → []');
+  // CORRECTIF #592 (perte de données #555) : deux épreuves le MÊME jour, titres distincts → coexistent
+  // (BTS CG : une écrite le matin, une l'après-midi) au lieu d'être fusionnées silencieusement.
+  let sameDay = L.upsertExamGoal([], { title: 'Droit', date: '2027-05-11' });
+  sameDay = L.upsertExamGoal(sameDay, { title: 'Compta', date: '2027-05-11' });
+  assert.equal(sameDay.length, 2, 'deux épreuves le même jour conservées');
+  assert.notEqual(sameDay[0].id, sameDay[1].id, 'ids distincts à date égale');
   // sortExamGoals : sans-date en dernier, départage alpha stable à date égale
   const sorted = L.sortExamGoals([
     { title: 'Zebre', date: '' }, { title: 'B', date: '2026-05-10' }, { title: 'A', date: '2026-05-10' },
@@ -5674,7 +5687,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.207');
+  assert.equal(L.CHANGELOG[0].v, '2.0.208');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8070,43 +8083,6 @@ test('adaptiveCoachFocus : crédite une journée multi-piliers (doneToday / rein
   assert.equal(ng.doneToday, false);
   assert.ok(ng.pillarsToday >= 1);
   assert.doesNotMatch(ng.insight, /piliers déjà cochés/, 'pas de crédit multi-piliers en contexte de correction');
-});
-
-test('adaptiveCoachFocus : le renfort nutrition ne radote pas « fais-le » un jour où c’est déjà noté', () => {
-  const today = '2026-07-20';
-  // Nutrition seule, en hausse, AVEC entrée active datée du jour → tone reinforce. L'action générique
-  // « Encore un jour actif aujourd'hui » serait un radotage (c'est déjà fait) → doit céder au crédit.
-  const notedToday = {
-    nutrition: [
-      { date: '2026-07-20', protein: 90, water: 2 }, { date: '2026-07-19', protein: 80 },
-      { date: '2026-07-18', protein: 85 }, { date: '2026-07-17', protein: 70 },
-      { date: '2026-07-12', protein: 60 }, { date: '2026-07-11', protein: 65 },
-    ],
-  };
-  const n = L.adaptiveCoachFocus(notedToday, today);
-  assert.equal(n.pillar, 'nutrition');
-  assert.equal(n.tone, 'reinforce');
-  assert.match(n.action, /Déjà noté aujourd’hui ✅/, 'le geste du jour est crédité, pas re-demandé');
-  assert.doesNotMatch(n.action, /Encore un jour actif/, 'plus l’ordre déjà exécuté');
-
-  // Même dynamique, mais RIEN saisi aujourd'hui → l'action générique « fais-en un » reste légitime.
-  const notToday = {
-    nutrition: [
-      { date: '2026-07-19', protein: 80 }, { date: '2026-07-18', protein: 85 },
-      { date: '2026-07-17', protein: 70 }, { date: '2026-07-16', protein: 75 },
-      { date: '2026-07-12', protein: 60 }, { date: '2026-07-11', protein: 65 },
-    ],
-  };
-  const nt = L.adaptiveCoachFocus(notToday, today);
-  assert.equal(nt.tone, 'reinforce');
-  assert.match(nt.action, /Encore un jour actif aujourd’hui/, 'sans entrée du jour, l’action générique reste');
-  assert.doesNotMatch(nt.action, /Déjà noté/);
-
-  // Sommeil : même choisi en renfort avec une nuit du jour, son action reste le conseil PROSPECTIF de
-  // coucher (sleepIns truthy → l.5764-5766) — jamais l'action générique, donc jamais ce crédit.
-  const som = L.adaptiveCoachFocus({ recovery: [{ date: '2026-07-20', sleep: 7.5 }, { date: '2026-07-19', sleep: 7 }] }, today);
-  assert.equal(som.pillar, 'sommeil');
-  assert.doesNotMatch(som.action, /Déjà noté/);
 });
 
 test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ piliers plusieurs jours de suite)', () => {
@@ -11342,3 +11318,60 @@ test('jobStatusFromText : « pris » n’est une acceptation que dans une tournu
   assert.equal(L.jobStatusFromText('Pas été retenue'), 'refus');
   assert.equal(L.jobStatusFromText('Refusé après entretien'), 'refus', 'état terminal, pas « entretien »');
 });
+
+// ── CORRECTIFS #592 (audit adversarial de la nuit VPS #554→#591) ─────────────────────────────────
+test('#592/#572 : une négation ÉTRANGÈRE avant « postulé » ne dégrade plus en « à postuler »', () => {
+  // Régression #572 : `[\s\S]{0,12}` traversait la ponctuation → « pas de retour, postulé » = à postuler,
+  // donc la candidature ENVOYÉE sortait du funnel à chaque sync. La négation doit porter sur le verbe.
+  assert.equal(L.jobStatusFromText('Pas de retour, postulé le 03/03'), 'postule');
+  assert.equal(L.jobStatusFromText('Pas de news, envoyé le 3'), 'postule');
+  assert.equal(L.jobStatusFromText('Mail non lu, postulé le 12/03'), 'postule');
+  assert.equal(L.jobStatusFromText('Poste non pourvu, CV envoyé'), 'postule');
+  // …mais une vraie négation de l'action reste « à postuler ».
+  assert.equal(L.jobStatusFromText('Pas encore postulé'), 'a_postuler');
+  assert.equal(L.jobStatusFromText('Candidature non envoyée'), 'a_postuler');
+  assert.equal(L.jobStatusFromText('toujours pas envoyé'), 'a_postuler');
+});
+test('#592/#558 : orderCoachNotes n’étend plus le rang d’une note à une AUTRE note qui suit', () => {
+  // Régression #558 : une note autonome (« Et c’est ton jour de jambes », rang propre 4) héritait du
+  // rang 0 de la note blessure précédente et passait DEVANT une vraie alerte sommeil (rang 2).
+  const ins = 'Verdict sport du jour. Et surveille ta montée de kilométrage : tes tendons encaissent mal, '
+    + 'risque de fracture de fatigue. Et c’est justement ton jour de jambes aujourd’hui, profites-en. '
+    + 'Et surveille un frein caché : tu dors 5 h en moyenne ces derniers jours, sous les 7 h.';
+  const o = L.orderCoachNotes(ins);
+  const iKm = o.findIndex(p => /kilométrage/.test(p));
+  const iSommeil = o.findIndex(p => /frein caché/.test(p));
+  const iJour = o.findIndex(p => /jour de jambes/.test(p));
+  assert.ok(iKm < iSommeil, 'la blessure (rang 0) reste devant le sommeil (rang 2)');
+  assert.ok(iSommeil < iJour, 'le sommeil (rang 2) passe devant la note neutre (rang 4), plus tirée au rang 0');
+  // La prémisse→conclusion d'un MÊME guard (conclusion sans « Et ») reste soudée, elle.
+  const soud = L.orderCoachNotes('Cœur du jour. Et n’oublie pas le socle invisible : tu dors 5,5 h en moyenne '
+    + 'ces derniers jours, sous les 7 h. Bien dormir démultiplie ton effort.');
+  const iP = soud.findIndex(p => /socle invisible/.test(p)), iC = soud.findIndex(p => /démultiplie/.test(p));
+  assert.equal(iC, iP + 1, 'la conclusion suit immédiatement sa prémisse');
+});
+test('#592/#562 : studyPacing borne les révisions à l’épreuve la plus proche (multi-épreuves)', () => {
+  const agenda = [];
+  for (let i = 1; i <= 6; i++) agenda.push({ kind: 'study', date: `2026-07-${20 + i}`, completed: false }); // avant Droit
+  for (let i = 1; i <= 30; i++) agenda.push({ kind: 'study', date: `2026-1${i < 10 ? '0-0' + i : '0-' + (i - 20)}`, completed: false }); // vers Compta (lointain)
+  const exams = [{ id: 'd', subject: 'Droit', title: 'Droit', date: '2026-08-01' }, { id: 'c', subject: 'Compta', title: 'Compta', date: '2026-12-15' }];
+  const p = L.studyPacing(agenda, exams, '2026-07-20');
+  assert.ok(p && p.perWeek <= 7, `rythme plausible (≤7/sem), pas gonflé par l’autre épreuve — obtenu ${p && p.perWeek}`);
+  // Mono-épreuve : borne sans effet (toutes les séances ≤ examDate) → statut inchangé.
+  const solo = L.studyPacing([{ kind: 'study', date: '2026-07-25', completed: false }], { title: 'X', date: '2026-08-10' }, '2026-07-20');
+  assert.ok(solo && solo.remaining === 1, 'mono-épreuve : la révision à venir reste comptée');
+});
+test('#592/#591 : un palier RARE n’est plus éteint par un palier plus courant du même jour', () => {
+  const iso = off => { const d = new Date('2026-07-16T12:00:00'); d.setDate(d.getDate() - off); return d.toISOString().slice(0, 10); };
+  // Habitude à 365 j pile aujourd'hui + série de 7 journées complètes (3+ piliers) → les DEUX doivent parler.
+  const log = []; for (let i = 0; i < 365; i++) log.push(iso(i));
+  const state = {
+    habits: [{ id: 1, name: 'Lecture', log }],
+    workouts: [], focusSessions: [], nutrition: [], recovery: [],
+  };
+  for (let i = 0; i < 7; i++) { state.workouts.push({ date: iso(i) }); state.focusSessions.push({ date: iso(i), minutes: 30 }); state.nutrition.push({ date: iso(i), protein: 80 }); }
+  const f = L.adaptiveCoachFocus(state, '2026-07-16');
+  assert.equal(f.habitMilestone && f.habitMilestone.streak, 365, 'le palier 365 est bien détecté');
+  assert.match(f.insight, /année entière|365 jours/, 'le palier RARE (365 j) est célébré malgré le palier de 7 j');
+});
+
