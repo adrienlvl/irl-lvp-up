@@ -1899,6 +1899,27 @@ test('loadAdvice : combine ACWR + forme du jour → recommandation', () => {
   assert.ok(L.loadAdvice({ zone: 'high' }, null).advice.length > 10);
 });
 
+test('weekLoadNote : la récup basse prime sur le signal ACWR bas (pas de repos↔pousse)', () => {
+  const low = { ratio: 0.72, zone: 'low' };
+  // CŒUR : fragile + zone low → « garde la séance facile » NE doit pas cohabiter avec « tu peux remonter »
+  const clash = L.weekLoadNote(true, 300, low);
+  assert.match(clash, /garde la prochaine séance facile/);
+  assert.doesNotMatch(clash, /tu peux remonter/);
+  assert.match(clash, /remonte quand la forme sera revenue/);
+  assert.match(clash, /Aiguë\/chronique 0\.72/); // le ratio chiffré reste affiché (diagnostic)
+  // Non-régression : PAS fragile + zone low → le conseil de remontée revient tel quel
+  const rested = L.weekLoadNote(false, 300, low);
+  assert.match(rested, /tu peux remonter progressivement/);
+  assert.doesNotMatch(rested, /remonte quand la forme sera revenue/);
+  // fragile + zone high → déjà cohérent (les deux disent « allège »), inchangé
+  const highFragile = L.weekLoadNote(true, 300, { ratio: 1.8, zone: 'high' });
+  assert.match(highFragile, /garde la prochaine séance facile/);
+  assert.match(highFragile, /pic de charge/);
+  // sans ACWR (null) → seulement le verdict récup ; charge dense/nulle → libellés attendus
+  assert.equal(L.weekLoadNote(false, 600, null), 'Semaine dense : protège au moins une vraie journée légère.');
+  assert.match(L.weekLoadNote(false, 0, null), /apparaîtra après ta première séance/);
+});
+
 test('trainingHeatmap : grille w*7 alignée lundi, comptes et futur', () => {
   // aujourd'hui = vendredi 10/07/2026
   const hm = L.trainingHeatmap([{ date: '2026-07-08' }, { date: '2026-07-08' }, { date: '2026-07-06' }], '2026-07-10', 1);
@@ -6131,7 +6152,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.259');
+  assert.equal(L.CHANGELOG[0].v, '2.0.260');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

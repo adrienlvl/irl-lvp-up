@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.259 (2026-07-21)
+## 📍 État actuel — build 2.0.260 (2026-07-21)
 
+> 💪 **#652 — Charge de la semaine : la récup basse ne cohabite plus avec « tu peux remonter »
+> (build 2.0.260).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par domaine : `coach,
+> sommeil, athlete, focus, coach`) → `coach`/`sommeil` (2 derniers) et `coach` (2×) exclus ; **`athlete`**
+> pris (1× sur 5, hors 2 derniers). Exploration neuve (agent Explore) → contradiction §3 **intra-phrase**
+> prouvée sur `#weekLoadAdvice` (`app.js:143`, `renderAthlete`) : la ligne concatène **sans arbitrage** un
+> verdict récup (`fragile`) et un verdict de charge ACWR (`acuteChronicRatio`). Cas prouvé (Node+smoke) :
+> `fragile=true` + zone `low` (ratio < 0,8) affichait « Récupération basse : garde la prochaine séance
+> facile… · Aiguë/chronique 0,72 (charge en baisse — **tu peux remonter progressivement**) » → repos puis
+> pousse, dos à dos dans la même phrase. Correctif (curation §3, zéro champ) : extraction en fonction pure
+> `weekLoadNote(fragile, load, acwr)` (même patron que `loadAdvice`) ; la récup PRIME (comme `loadAdvice`) →
+> sous fatigue la zone `low` devient « remonte quand la forme sera revenue », le ratio chiffré reste (diagnostic).
+> Non-régression : reposé → « tu peux remonter progressivement » à l'identique. §4 ter : ligne relue → une
+> seule voix. 577 tests (+1) + smoke `weekLoadNote` bloquant (pilote `renderAthlete`). Recap #652.
+> _Domaine : athlete._
+>
 > 🔗 **#651 — Priorité du jour : l'habitude en jeu n'est plus rappelée deux fois (build 2.0.259).**
 > Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `sommeil, athlete, focus, coach,
 > athlete`) → `sommeil`/`athlete` (2 derniers) et `athlete` (2×) exclus ; `focus` (1×) et **`coach`** (1×,
