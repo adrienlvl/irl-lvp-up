@@ -23,8 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.254 (2026-07-21)
+## 📍 État actuel — build 2.0.255 (2026-07-21)
 
+> 🌙 **#647 — Coach Focus : la consigne de coucher ne se répète plus dans l'insight ET l'action
+> (build 2.0.255).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `sommeil,
+> athlete, coach, nutrition, athlete`) → `nutrition`/`athlete` (2 derniers + athlete 2×) exclus ;
+> **`coach`** pris (1× sur 5, hors 2 derniers, aligné priorité de nuit), angle NEUF. Redondance
+> insight↔action **intra-carte** prouvée en rendu chargé (§4 ter, sans plan de recalage) : sur le pilier
+> sommeil, `insight = sleepIns.verdict` (`logic.js:6091`) où `sleepCoachInsight` était appelé **sans opts**
+> (`logic.js:5549`) → le verdict gardait sa consigne générique en queue, alors que la branche réémet
+> **toujours** sa propre action de coucher juste en dessous → « … vise un coucher 30 min plus tôt. » (insight)
+> puis « Vise un coucher 30 min plus tôt ce soir. » (action), doublon dos à dos (idem « heure fixe » en
+> urgent). Distinct de #642 (exigeait un plan actif + opposait à une AUTRE carte, laissait le coach
+> inchangé) et #627 (contradiction du seul ton `ok`). Correctif (curation §3, zéro champ) :
+> `sleepCoachInsight` gagne `opts.actionCarried` (synonyme de `planActive`), l'appel coach passe
+> `{ actionCarried: true }` → la queue générique est amputée, le DIAGNOSTIC chiffré conservé. Ripple zéro
+> (`sleepIns` lu ailleurs par `.tone`/`.avg`/… jamais `.verdict` ; `attentionDigest` `logic.js:5417` lit
+> `.tone` seul ; Bilan sommeil `app.js:615` garde son `planActive` → sans plan, seul à guider, consigne
+> conservée). §4 ter : insight = constat, action = geste, plus de répétition. 574 tests (bloc étendu, +
+> non-régression bilan) + smoke `coachFocus` étendu (volet urgent). Recap #647. _Domaine : coach._
+>
 > 🩹 **#646 — Forme du jour : le label ne dit plus « Prêt à pousser » quand un frein est au rouge
 > (build 2.0.254).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par domaine : `nutrition,
 > coach, athlete, sommeil, focus`) → `nutrition`/`coach` (2 derniers) exclus ; **`athlete`** pris (1× sur

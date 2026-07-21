@@ -3145,6 +3145,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.255', emoji: '🌙', text: 'Ta carte « Le focus du moment » (le coach adaptatif) ne répète plus deux fois de suite la même consigne de coucher les jours où ton sommeil est le sujet. Quand tes nuits sont courtes ou ton coucher irrégulier, cette carte affiche un diagnostic chiffré (« Sommeil court : moy. 6 h, dette de 9 h sur 14 j… ») puis, juste en dessous, l’action du jour (« Vise un coucher 30 min plus tôt ce soir » / « Couche-toi à heure fixe ce soir »). Or le diagnostic se terminait LUI AUSSI par cette même consigne (« … — vise un coucher 30 min plus tôt. »), si bien que la carte te disait deux fois dos à dos exactement la même chose. Désormais le diagnostic s’arrête au constat chiffré et laisse l’action porter seule le « quoi faire ce soir » : une seule voix, sans doublon. Le « Bilan sommeil » de l’onglet Récupération (qui, lui, n’a pas d’action à côté quand aucun plan de recalage n’est actif) garde bien sa consigne. (hygiène du sommeil / une seule instruction actionnable prime)' },
   { v: '2.0.254', emoji: '🩹', text: 'Ta carte « Forme du jour » (onglet Athlète → Récupération) ne dit plus « Prêt à pousser » quand le conseil juste en dessous te demande de lever le pied. Ton score de forme (0–100) est une moyenne de trois signaux — sommeil, fatigue, courbatures. Problème : un seul de ces signaux au rouge (courbatures 4/5, grosse fatigue, ou nuit courte) pouvait rester noyé dans une bonne moyenne. Exemple réel : bien dormi, pas fatigué, mais courbatures 4/5 → score 78/100, badge « Prêt à pousser »… alors que le conseil récupération affichait « privilégie une séance facile, la mobilité ou le repos ». Deux messages voisins qui se contredisaient. Désormais, dès qu’un signal est vraiment au rouge, l’étiquette se borne à « Correct — garde une marge » : une seule voix, cohérente avec le conseil. Le CHIFFRE, lui, ne bouge pas (78 reste 78) — donc rien ne change côté charge, décharge ou routines qui s’appuient dessus. Le sommeil non renseigné n’est pas compté comme un frein (une case vide ne te pénalise pas). (autorégulation par le frein limitant — Halson 2014 ; courbatures élevées → alléger le muscle, Cheung 2003)' },
   { v: '2.0.253', emoji: '🥗', text: 'Ton coach nutrition ne te pousse plus à couper les calories ou à ajouter du cardio un jour où tu es à plat. Quand ta perte de poids stagne, il te conseille à raison de resserrer un peu (« vise ~X kcal/j » ou « ajoute du cardio pour relancer »). Mais si, le même matin, ton check-in indique une forme basse (readiness < 50, jour de fatigue), il ajoutait juste après « ta forme est basse, tiens l’essentiel » : deux messages qui se contredisaient dans le même conseil — pousser un effort en plus alors que ton corps réclame de la récup. Désormais, un jour de fatigue, il CONSTATE le plateau (« la balance ne descend plus ») sans t’ordonner de couper ni d’ajouter du cardio, et laisse la note « jour de fatigue » porter seule la consigne : protège tes protéines, ton eau et des repas réguliers, tu ajusteras une fois remis. Sur un objectif de PRISE (le conseil est alors « mange plus », jamais contre-indiqué) et les jours où ta forme est bonne, rien ne change. (récupération / gestion de la fatigue, principes ACSM)' },
   { v: '2.0.252', emoji: '🏁', text: 'Ta carte « Objectif de course » (onglet Ultra) affiche enfin la phase d’AFFÛTAGE au bon moment pour TA distance, en accord avec le reste de l’app. Jusqu’ici, la phase basculait sur « Affûtage — arrive frais, réduis le volume » dès qu’il restait 2 semaines, peu importe la course. Mais ton « Programme de la semaine » et le conseil « descentes », eux, calent l’affûtage sur la distance : ~1 semaine pour un 10 km, ~2,5 semaines pour un ultra. Résultat, deux surfaces qui se contredisaient : sur un 10 km, la carte criait « affûte, allège » dès J-14 alors que tu devais encore t’entraîner à fond (et le programme ne montrait aucun affûtage) ; sur un ultra, la carte disait encore « spécifique, sorties longues » à J-18 alors que le programme avait déjà lancé l’affûtage. Désormais la phase suit la même fenêtre que le programme (courte pour une course courte, longue pour un ultra) : une seule vérité, plus de « arrive frais » prématuré ni tardif. (affûtage échelonné par distance, Bosquet 2007 / Mujika 2003)' },
@@ -5546,7 +5547,10 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // → on force le pilier sommeil en tête des corrections (tier -1), tout en le laissant soumis à la
   // rotation anti-radotage (pas de nag mot pour mot 3 j de suite). Les deux systèmes profonds d'Adrien
   // (coach + service Sommeil) se parlent enfin. (L'alternance, plus prioritaire, a déjà `return` au-dessus.)
-  const sleepIns = (typeof sleepCoachInsight === 'function') ? sleepCoachInsight(s.recovery, todayKey) : null;
+  // actionCarried : la branche sommeil (plus bas, ~l.6134-6143) porte TOUJOURS sa propre action de
+  // coucher juste sous cet insight → on ampute la consigne générique redondante de la queue du verdict
+  // (le DIAGNOSTIC chiffré est intégralement conservé). Curation §3, zéro champ ajouté.
+  const sleepIns = (typeof sleepCoachInsight === 'function') ? sleepCoachInsight(s.recovery, todayKey, { actionCarried: true }) : null;
   const sommeilCand = cands.find(c => c.pillar === 'sommeil' && c.ever);
   const fixes = cands.map(c => ({ c, tier: tierOf(c) })).filter(x => x.tier < 9);
   if (sleepIns && sleepIns.tone === 'urgent' && sommeilCand) {
@@ -10065,6 +10069,11 @@ function focusMinutesTrend(focusSessions, todayKey, windowDays) {
 // générique (« vise un coucher 30 min plus tôt », « stabilise une heure fixe », « se coucher à heure
 // fixe compte autant ») qui ferait doublon — et concurrencerait, en plus vague, la cible précise du
 // plan. §3 : fusionner/supprimer les notes redondantes, hiérarchiser (le plan porte l'action).
+// `opts.actionCarried` : MÊME raison que planActive, mais côté COACH. Dans la carte Coach Focus, la
+// branche sommeil réémet TOUJOURS sa propre action de coucher (cible du plan / maintien / consigne
+// générique, `adaptiveCoachFocus` ~l.6134-6143) juste sous l'insight = ce même verdict → la queue
+// générique du verdict y ferait doublon dos à dos (« … vise un coucher 30 min plus tôt. » puis
+// « Vise un coucher 30 min plus tôt ce soir. »). On clôt alors aussi le diagnostic par un point.
 function sleepCoachInsight(recovery, todayKey, opts) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''))) return null;
   const pad = n => String(n).padStart(2, '0');
@@ -10079,8 +10088,8 @@ function sleepCoachInsight(recovery, todayKey, opts) {
   const nightsWord = n => `nuit${n > 1 ? 's' : ''}`;
   // Avec un plan actif, l'action de coucher est déjà portée (et chiffrée) par le plan voisin : on clôt
   // le diagnostic par un simple point au lieu de répéter une consigne de coucher générique et redondante.
-  const planActive = !!(opts && opts.planActive);
-  const act = tail => planActive ? '.' : tail;
+  const bedtimeCarried = !!(opts && (opts.planActive || opts.actionCarried));
+  const act = tail => bedtimeCarried ? '.' : tail;
   let tone, verdict;
   if (week.status === 'court' && irregular) {
     tone = 'urgent';

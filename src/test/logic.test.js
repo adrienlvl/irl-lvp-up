@@ -6131,7 +6131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.254');
+  assert.equal(L.CHANGELOG[0].v, '2.0.255');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8962,6 +8962,25 @@ test('adaptiveCoachFocus : sommeil solide (tone ok) → action de maintien, jama
   const fShort = L.adaptiveCoachFocus({ recovery: short }, today);
   assert.equal(fShort.pillar, 'sommeil');
   assert.match(fShort.action, /coucher 30 min plus tôt/, 'sommeil court+régulier garde son action corrective');
+  // Anti-redondance (curation §3) : la carte Coach Focus porte TOUJOURS sa propre action de coucher
+  // juste sous l’insight = ce verdict → la queue générique du verdict ferait doublon dos à dos.
+  // L’insight garde le DIAGNOSTIC chiffré mais NE répète PLUS la consigne portée par l’action.
+  assert.match(fShort.insight, /Sommeil court : moy\. 6 h/, 'diagnostic chiffré conservé dans l’insight');
+  assert.doesNotMatch(fShort.insight, /vise un coucher 30 min plus tôt/, 'consigne non répétée dans l’insight (déjà dans l’action)');
+  // Cas urgent (court + irrégulier) : même dédup — insight sans « heure fixe », action la porte.
+  const jagged = [
+    { date: '2026-07-10', sleep: 5, bedtime: '03:00' }, { date: '2026-07-11', sleep: 5, bedtime: '06:00' },
+    { date: '2026-07-12', sleep: 6, bedtime: '02:30' }, { date: '2026-07-13', sleep: 5, bedtime: '05:30' },
+    { date: '2026-07-14', sleep: 6, bedtime: '03:00' }, { date: '2026-07-15', sleep: 5, bedtime: '06:00' },
+  ];
+  const fJag = L.adaptiveCoachFocus({ recovery: jagged }, today);
+  assert.equal(fJag.pillar, 'sommeil');
+  assert.equal(L.sleepCoachInsight(jagged, today).tone, 'urgent');
+  assert.match(fJag.insight, /coucher irrégulier/, 'diagnostic d’irrégularité conservé');
+  assert.doesNotMatch(fJag.insight, /heure (de coucher )?fixe/, 'consigne « heure fixe » non répétée dans l’insight');
+  assert.match(fJag.action, /heure fixe ce soir/, 'l’action porte la consigne « heure fixe »');
+  // Non-régression : le Bilan sommeil (onglet Récup, sans plan) reste SEUL à guider → garde sa consigne.
+  assert.match(L.sleepCoachInsight(short, today).verdict, /vise un coucher 30 min plus tôt/, 'bilan sans opts garde sa consigne');
 });
 
 test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du jour', () => {
