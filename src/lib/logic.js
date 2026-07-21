@@ -3103,6 +3103,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.231', emoji: '📈', text: 'Quand ton coach « Le focus du moment » repère que ta force stagne (un exercice chargé dont le 1RM estimé plafonne sur 3 séances, « sans nouveau record »), ce conseil ne se fait plus reléguer derrière les félicitations. Jusqu’ici, un mot mal placé le trahissait : la carte du coach range ses notes de la plus urgente à la plus anodine, et le classement traitait toute phrase contenant « record » comme une félicitation — y compris « … stagne … sans nouveau record. Pour débloquer ça : … », qui est une VRAIE action. Résultat : les jours où ton objectif de séances était déjà bouclé, la carte pouvait afficher « chaque séance en plus est du pur bonus » en tête et cacher le conseil « voici comment débloquer ton plateau » derrière « ＋ plus de contexte ». C’est corrigé : seules les vraies célébrations (« tu viens de battre ton record », « ton record perso ») restent classées anodines ; le conseil de plateau remonte à sa juste place, juste après le diagnostic. Rien d’autre ne change — un mot mieux ciblé, une carte plus utile.' },
   { v: '2.0.230', emoji: '🌙', text: 'Quand ton sommeil déraille pour de bon, ton coach ne le garde plus caché dans l’onglet Récupération : il le fait remonter dans « À rattraper » sur ton tableau de bord. C’est TON signal santé n°1 (tu t’endors souvent vers 6 h) — mais jusqu’ici, les matins où le coach était occupé à te pousser vers l’alternance (le cas normal tant que tu n’as pas posté ta candidature du jour), une vraie nuit détraquée — courte ET avec des horaires de coucher en dents de scie — n’apparaissait NULLE PART sur le dashboard, sauf si ta « forme » chutait aussi sous 50/100. Or on peut très bien avoir un rythme de sommeil en vrille avec une forme correcte le jour même. Désormais, ce cas déclenche une alerte « 🌙 Sommeil déréglé — nuit courte et coucher irrégulier » dans « À rattraper ». Elle reste discrète quand elle ferait doublon (les jours où ton coach met justement le sommeil en priorité, elle ne s’affiche pas deux fois), et il n’y a jamais deux alertes de forme le même jour. Un signal important qui ne t’échappe plus, sans un mot en trop.' },
   { v: '2.0.229', emoji: '📚', text: 'Tes plans de révision de deux matières différentes au même horaire ne s’effacent plus l’un l’autre. Le champ « heure » du planning garde la dernière valeur saisie (souvent 17:30) : si tu générais un plan « Droit » à 17:30 les lundis, puis un plan « Compta » à 17:30 les mêmes lundis, l’app rangeait les deux créneaux sous la même étiquette interne (elle ne regardait que la date et l’heure, jamais la matière) — et la régénération « sans doublon » écrasait purement et simplement tes séances de Droit par celles de Compta, en récupérant au passage leurs cases cochées. Désormais la matière fait partie de l’étiquette : Droit et Compta cohabitent, chacun avec son avancement. Régénérer LA MÊME matière reste sans doublon comme avant, et « Droit »/« droit » (casse, accents) restent bien la même matière. Une perte de séances silencieuse en moins pour ton suivi BTS multi-épreuves.' },
   { v: '2.0.228', emoji: '🌙', text: 'La barre de ton Plan de recalage du sommeil ne peut plus se remplir à 100 % tout en disant « objectif pas encore atteint, arrivée dans N jours ». Ça pouvait arriver dans un cas tordu : si le point de départ enregistré par le plan était déjà aussi tôt (ou plus tôt) que ton objectif, mais que tes couchers récents avaient glissé APRÈS l’objectif, la barre affichait « plein » alors que tu étais en réalité encore en retard — trois repères qui se contredisaient (barre pleine + « pas atteint » + « encore quelques jours »). Désormais la progression se mesure toujours sur le pire point réel entre ton départ et tes couchers récents : tant que tu n’as pas vraiment tenu l’objectif, la barre reste honnêtement en dessous de 100 %. Pour un plan normal (tu pars d’un coucher tardif vers un coucher plus tôt), rien ne change. Un repère faux en moins, zéro nouveau message.' },
@@ -10394,7 +10395,12 @@ const COACH_URGENCY_TIERS = [
   { rank: 1, re: /pic de charge|charge est en pic|tempérer prime|lève le pied|surmenage|zone de blessure/i },
   { rank: 2, re: /dette|pente s’enfonce|sous les 7 h|en moyenne ces derniers jours|se disperse/i }, // sommeil/récup
   { rank: 3, re: /protéines|hydratation|fruits et légumes|calorique|carburant/i },        // intrants
-  { rank: 5, re: /bonus|du rab|sans (?:la moindre )?pression|aucune obligation|offert|record|bravo/i }, // anodin
+  // ⚠️ « record » NU relègue à tort : la note corrective de plateau (« … stagne … sans nouveau record.
+  // Pour débloquer ça : … ») est une ACTION, pas une félicitation — un bare /record/ la classait anodin
+  // (rang 5), DERRIÈRE « c'est du pur bonus ». On n'ancre donc que les célébrations réelles, qui disent
+  // toutes « ton record » (« tu viens de battre ton record ») ou « record perso ». Le plateau retombe
+  // ainsi au défaut (4), à parité avec son pendant positif « ta force monte » (sportProgress).
+  { rank: 5, re: /bonus|du rab|sans (?:la moindre )?pression|aucune obligation|offert|ton record|record perso|bravo/i }, // anodin
 ];
 const COACH_URGENCY_DEFAULT = 4;
 // Rang d'urgence d'une phrase du coach. Le plus urgent gagne si plusieurs motifs matchent.
@@ -10457,15 +10463,18 @@ function orderCoachNotes(insight) {
   // AVANT les notes secondaires) garde le rang par défaut — elle n'est jamais tirée vers le haut.
   // CORRECTIF #592 (régression #558) : l'héritage de rang ne doit lier qu'une prémisse à SA conclusion
   // (2 phrases d'un MÊME guard), jamais franchir la frontière vers une AUTRE note. Deux garde-fous :
-  //  (1) une phrase qui OUVRE une note (« Et … », « Bonne nouvelle … » — la marque d'append de tous les
-  //      guards) est un nouveau sujet : elle n'hérite JAMAIS, elle garde son rang propre ;
+  //  (1) une phrase qui OUVRE une note (« Et … », « Bonne nouvelle … » — la marque d'append de la plupart
+  //      des guards ; PLUS les deux notes de progression sport, « Côté progression … » plateau et « Sur ta
+  //      lancée … » sportProgress, qui ouvrent SANS « Et ») est un nouveau sujet : elle n'hérite JAMAIS,
+  //      elle garde son rang propre. Sans elles, la prémisse d'un plateau (défaut 4 depuis #621) héritait
+  //      du rang d'une note bonus qui la précède (anodin 5) et se retrouvait DÉCHIRÉE de sa conclusion ;
   //  (2) `prevRank` retombe au défaut après toute phrase non classée, donc l'héritage ne se propage pas
   //      de note en note (sans quoi « Et c'est ton jour de jambes », rang propre 4, héritait du rang 0
   //      de la note blessure qui la précédait et passait DEVANT une vraie alerte sommeil rang 2).
   let prevRank = COACH_URGENCY_DEFAULT;
   const rest = parts.slice(1).map((p, i) => {
     const own = coachNoteUrgency(p);
-    const opensNote = /^\s*(?:Et|Bonne nouvelle)\b/.test(p);
+    const opensNote = /^\s*(?:Et|Bonne nouvelle|Côté progression|Sur ta lancée)\b/.test(p);
     const u = (own === COACH_URGENCY_DEFAULT && !opensNote) ? prevRank : own;
     prevRank = own === COACH_URGENCY_DEFAULT ? COACH_URGENCY_DEFAULT : own;
     return { text: p.trim(), i, u };

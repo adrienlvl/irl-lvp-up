@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.230 (2026-07-21)
+## 📍 État actuel — build 2.0.231 (2026-07-21)
 
+> 📈 **#621 — Le conseil de plateau de force ne se fait plus reléguer derrière les félicitations (build
+> 2.0.231).** Priorité de nuit coaching (§3 QUALITÉ : hiérarchisation). Rotation OK avant de coder
+> (`coach` absent des 2 derniers recaps, 1× sur 5). Manque prouvé par lecture : le classement d'urgence
+> de la carte coach (`coachNoteUrgency`) rangeait la note **corrective** de plateau de force (« … 1RM
+> estimé stagne … **sans nouveau record**. Pour débloquer ça : … ») dans le palier **anodin** (rang 5,
+> réservé aux félicitations) — à cause d'un `record` NU dans le motif. Résultat : les jours où l'objectif
+> de séances est déjà bouclé, la carte pouvait afficher « chaque séance en plus est du **pur bonus** » et
+> cacher le conseil de déblocage derrière « ＋ plus de contexte ». Correctif §3 (**zéro champ ajouté**) :
+> (1) `record` → `ton record|record perso` (les 5 vraies célébrations les disent toutes → restent
+> anodines ; le plateau retombe au défaut 4, à parité avec son pendant positif `sportProgress`) ; (2) le
+> contrôle §4 ter (rendu sur état chargé) a révélé que la note plateau (2 phrases) se **déchirait** — sa
+> prémisse héritait du rang de la note précédente car `orderCoachNotes` ne reconnaissait que « Et … »
+> comme ouvreur → ajout de « Côté progression » et « Sur ta lancée » aux ouvreurs. §4 ter relu : verdict
+> → plateau soudé (prémisse+conclusion) → bonus en dernier. 566 tests + smoke verts, test dédié ajouté.
+> Recap #621. _Domaine : coach._
+>
 > 🔬 **#620 — Mesure P5 : arbitrage coach (`coachDayPriority`) + moteur alternance sondés → propres (sans
 > bump).** Priorité de nuit coaching (§3 qualité) ; `nutrition`/`etudes` bloqués par la rotation (§4 bis),
 > `coach`/`robustesse`/`sommeil` 1× → autorisés. Backlog nommé P1→P7 coché, propositions coaching (#619/#610)

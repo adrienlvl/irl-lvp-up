@@ -5973,7 +5973,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.230');
+  assert.equal(L.CHANGELOG[0].v, '2.0.231');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11666,6 +11666,42 @@ test('coachNoteUrgency / orderCoachNotes : l’urgent passe devant l’anodin', 
   const dec = L.orderCoachNotes('Sommeil court (moy. 5.3 h, dette 6.5 h) — vise un coucher plus tôt. '
     + 'Et la pente s’enfonce : enraye avant que la dette ne s’installe.');
   assert.match(dec[0], /moy\. 5\.3 h/, 'le nombre exact est affiché, pas « moy. 3 h »');
+});
+
+test('coachNoteUrgency : « sans nouveau record » (plateau de force) n’est PAS anodin — les félicitations, si', () => {
+  // BUG attrapé à la lecture du code (#621, §3 hiérarchisation) : le motif anodin (rang 5) contenait
+  // un « record » NU, qui attrapait la note corrective de plateau — « … 1RM estimé stagne … sans
+  // nouveau record. Pour débloquer ça : … » — une VRAIE action, reléguée à tort DERRIÈRE « c'est du
+  // pur bonus ». Le plateau doit tomber au défaut (4), à parité avec son pendant positif sportProgress.
+  const plateau = 'Côté progression : ton développé couché marque le pas — son 1RM estimé stagne autour '
+    + 'de 116,5 kg depuis 3 séances, sans nouveau record.';
+  assert.equal(L.coachNoteUrgency(plateau), 4,
+    'la note « stagne, sans nouveau record » est une action, pas une félicitation → défaut, pas anodin');
+  // Les célébrations réelles restent anodin (rang 5) : elles disent « ton record » / « record perso ».
+  assert.equal(L.coachNoteUrgency('🏆 Et pas n’importe quelle séance : tu viens de battre ton record '
+    + 'sur le Squat — 110 kg × 5, ta meilleure perf à ce jour.'), 5, 'battre TON record = anodin');
+  assert.equal(L.coachNoteUrgency('🏆 Et là tu bats ton record perso sur ton entraînement : jamais tu '
+    + 'n’avais tenu autant de jours d’affilée.'), 5, 'record PERSO = anodin');
+  // Effet réel sur la carte (§4ter) : le plateau (2 phrases) passe DEVANT le bonus anodin ET reste SOUDÉ
+  // (prémisse « Côté progression » immédiatement suivie de sa conclusion « Pour débloquer »). Le bonus est
+  // appendu AVANT le plateau dans le vrai insight (sessionGoalBonus ~L5589 < plateau ~L7300) : sans l'ajout
+  // de « Côté progression » aux ouvreurs d'orderCoachNotes, la prémisse héritait du rang 5 du bonus et se
+  // retrouvait DÉCHIRÉE de sa conclusion (prémisse tout en bas, conclusion remontée seule).
+  const ordered = L.orderCoachNotes(
+    'Ton entrainement monte en régime. Et ta forme est au top : chaque séance en plus est du gain offert, '
+    + 'du rab sans pression. Côté progression : ton développé couché marque le pas — son 1RM estimé stagne '
+    + 'autour de 116,5 kg depuis 3 séances, sans nouveau record. Pour débloquer ça : ajoute une répétition.');
+  assert.match(ordered[0], /monte en régime/, 'le verdict reste en tête');
+  assert.match(ordered[1], /marque le pas/, 'le correctif de plateau remonte devant l’anodin');
+  assert.match(ordered[2], /Pour débloquer/, 'sa conclusion reste SOUDÉE juste après la prémisse');
+  assert.match(ordered[3], /gain offert/, 'le « c’est du rab » part bien en dernier');
+  // Pendant positif sportProgress (« Sur ta lancée … ») : même ouvreur sans « Et », même soudage attendu.
+  const prog = L.orderCoachNotes(
+    'Ta forme tient la route. Et ta forme est au top : chaque séance en plus est du gain offert, sans pression. ' +
+    'Sur ta lancée : ton squat gagne du terrain — 1RM estimé à 120 kg. À ce rythme, tu passes la barre des 130 kg.');
+  assert.match(prog[1], /Sur ta lancée/, 'la progression remonte devant l’anodin');
+  assert.match(prog[2], /À ce rythme/, 'sa conclusion reste soudée');
+  assert.match(prog[3], /gain offert/, 'l’anodin en dernier');
 });
 
 test('orderCoachNotes : une note à 2 phrases reste SOUDÉE (prémisse classée + conclusion non classée)', () => {
