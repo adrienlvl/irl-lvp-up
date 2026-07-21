@@ -5991,7 +5991,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.233');
+  assert.equal(L.CHANGELOG[0].v, '2.0.234');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7354,6 +7354,33 @@ test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
   // Hors pilier focus → focusTrend null (sport seul actif).
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10' }, { date: '2026-07-12' }] }, '2026-07-16');
   assert.equal(sport.focusTrend, null);
+});
+
+test('adaptiveCoachFocus : accorde le déterminant du headline (genre + élision)', () => {
+  // « nutrition » est FÉMININ → « Ta nutrition » / « Reprends la nutrition » (jamais « Ton »/« le »).
+  const nutRebuild = { nutrition: [
+    { date: '2026-07-03', protein: 150 }, { date: '2026-07-04', protein: 150 }, { date: '2026-07-05', protein: 150 }, { date: '2026-07-06', protein: 150 },
+    { date: '2026-07-11', protein: 120 }, { date: '2026-07-13', protein: 120 } ] };
+  const fNutRb = L.adaptiveCoachFocus(nutRebuild, '2026-07-16');
+  assert.equal(fNutRb.pillar, 'nutrition');
+  assert.equal(fNutRb.headline, 'Ta nutrition s’essouffle');
+  const fNutRev = L.adaptiveCoachFocus({ nutrition: [{ date: '2026-07-01', protein: 150 }] }, '2026-07-16');
+  assert.equal(fNutRev.pillar, 'nutrition');
+  assert.equal(fNutRev.headline, 'Reprends la nutrition');
+  const fNutReinf = L.adaptiveCoachFocus({ nutrition: [
+    { date: '2026-07-14', protein: 150 }, { date: '2026-07-15', protein: 150 }, { date: '2026-07-16', protein: 150 } ] }, '2026-07-16');
+  assert.equal(fNutReinf.pillar, 'nutrition');
+  assert.equal(fNutReinf.headline, 'Ta nutrition monte en régime');
+  // « entraînement » commence par une voyelle → élision « Reprends l’entraînement » (pas « le »).
+  const fSportRev = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-01' }] }, '2026-07-16');
+  assert.equal(fSportRev.pillar, 'sport');
+  assert.equal(fSportRev.headline, 'Reprends l’entraînement');
+  // Piliers masculins à consonne : « Ton … » / « Reprends le … » inchangés.
+  const fSportRb = L.adaptiveCoachFocus({ workouts: [
+    { date: '2026-07-03' }, { date: '2026-07-04' }, { date: '2026-07-05' }, { date: '2026-07-06' }, { date: '2026-07-11' } ] }, '2026-07-16');
+  assert.equal(fSportRb.headline, 'Ton entraînement s’essouffle');
+  const fSleepRev = L.adaptiveCoachFocus({ recovery: [{ date: '2026-07-01', sleep: 7 }] }, '2026-07-16');
+  assert.equal(fSleepRev.headline, 'Reprends le sommeil');
 });
 
 test('adaptiveCoachFocus : surveille la chaîne d’une habitude à risque (habitAtRisk)', () => {

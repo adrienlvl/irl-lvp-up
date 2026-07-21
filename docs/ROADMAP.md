@@ -23,8 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.233 (2026-07-21)
+## 📍 État actuel — build 2.0.234 (2026-07-21)
 
+> ✍️ **#624 — Coach « Le focus du moment » : le headline accorde enfin son déterminant (build
+> 2.0.234).** Priorité de nuit = coaching (§3 QUALITÉ : formulation plus juste). Rotation OK avant de
+> coder (`coach` absent des 2 derniers recaps, 1× sur 5 ; `sommeil`/`robustesse` bloqués). Défaut
+> prouvé par rendu (P5) : le titre de la carte coach construisait son déterminant en dur — `Ton ${L}`
+> et `Reprends le ${L}` — sans accord de genre ni élision → trois formes fautives quand le pilier était
+> la **nutrition** (féminin) ou l'**entraînement** (voyelle) : « Ton nutrition s'essouffle », « Reprends
+> le nutrition », « Reprends le entraînement ». Oubli avéré : le fichier écrit déjà « ta nutrition »
+> ailleurs (`POSSESSIF`, hors portée des headlines). Correctif §3 (zéro champ) : dérivation `Poss`
+> (Ta/Ton, « ton » maintenu devant voyelle) + `art` (l'/la/le) selon genre du pilier et voyelle
+> initiale → « Ta nutrition s'essouffle », « Reprends la nutrition », « Reprends l'entraînement » ;
+> piliers masculins inchangés. §4 ter : carte cumulée relue (nutrition rebuild + hydratation) →
+> cohérente. 568 tests (+1 dédié) + smoke verts. Recap #624. _Domaine : coach._
+>
 > 🌙 **#623 — Le « Bilan sommeil » ne certifie plus un « rythme régulier » qu'il n'a pas mesuré (build
 > 2.0.233).** Priorité de nuit = coaching, mais **`coach` ET `robustesse` bloqués** par la rotation §4 bis
 > (les 2 derniers recaps ; chacun 2× sur 5). Domaine pris : **`sommeil`** (absent des 5 derniers). Après

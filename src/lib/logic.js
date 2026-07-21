@@ -3110,6 +3110,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.234', emoji: '✍️', text: 'Ton coach « Le focus du moment » accorde enfin ses titres. Quand il mettait ta NUTRITION en avant, il écrivait « Ton nutrition s’essouffle » ou « Reprends le nutrition » — deux fautes de genre, « nutrition » étant féminin. Et sur l’entraînement, « Reprends le entraînement » oubliait l’élision. C’est corrigé : « Ta nutrition s’essouffle », « Reprends la nutrition », « Reprends l’entraînement ». Les autres piliers (« Ton entraînement », « Reprends le focus », « Ton sommeil ») ne changent pas. Le fond du conseil est identique — juste un français correct, comme le coach l’écrivait déjà ailleurs (« ta nutrition (en recul) »).' },
   { v: '2.0.233', emoji: '🌙', text: 'Ton « Bilan sommeil » ne te certifie plus un « rythme régulier » qu’il n’a pas encore mesuré. Quand ta durée de sommeil est correcte, il concluait « Sommeil solide : moy. X h, rythme régulier » — même s’il ne disposait que d’UNE ou DEUX nuits chiffrées. Or on ne juge pas une régularité sur une seule nuit : il faut au moins 3 nuits (ou 3 heures de coucher saisies) pour que l’écart-type veuille dire quelque chose. Affirmer « rythme régulier » dès la première nuit, c’est te promettre un constat que le coach n’a pas fait — exactement le genre de flatterie qu’un vrai coach s’interdit. Désormais, tant qu’il y a moins de 3 nuits, le bilan salue honnêtement la durée (« Bon sommeil : moy. X h ») et t’invite à continuer tes check-ins pour pouvoir juger ton rythme. Dès 3 nuits (ou 3 couchers) renseignés, le verdict « rythme régulier » revient — mais cette fois il est réellement mesuré. Un mot juste à la place d’une certitude prématurée.' },
   { v: '2.0.232', emoji: '🩹', text: 'Ta toute première semaine d’entraînement ne déclenche plus une fausse alerte « pic de charge — allège, risque de blessure ». L’app suit ton ratio charge aiguë/chronique (ACWR) : la charge des 7 derniers jours comparée à ta moyenne des 4 dernières semaines — un vrai indicateur de surmenage. Mais tant que TOUTE ta charge tient dans les 7 derniers jours (tu viens de commencer, aucun historique avant), il n’y a pas de « moyenne des 4 semaines » à comparer : le calcul se retrouvait à diviser ta charge récente par un quart d’elle-même, ce qui donne TOUJOURS le même chiffre (4,0) et te classait automatiquement en « pic dangereux ». Résultat : un débutant s’entendait dire « allège cette semaine, risque de blessure » et se voyait proposer un déload… dès sa première semaine. C’est corrigé : sans base d’entraînement plus ancienne que 7 jours, l’ACWR est considéré comme indéfini (il réapparaît dès ta première séance datée d’avant la semaine en cours), et le conseil de charge reste neutre et encourageant au lieu de crier au danger. Les vrais pics de charge (quand tu as bien une base et que tu bondis) restent détectés comme avant. Un faux signal démotivant en moins.' },
   { v: '2.0.231', emoji: '📈', text: 'Quand ton coach « Le focus du moment » repère que ta force stagne (un exercice chargé dont le 1RM estimé plafonne sur 3 séances, « sans nouveau record »), ce conseil ne se fait plus reléguer derrière les félicitations. Jusqu’ici, un mot mal placé le trahissait : la carte du coach range ses notes de la plus urgente à la plus anodine, et le classement traitait toute phrase contenant « record » comme une félicitation — y compris « … stagne … sans nouveau record. Pour débloquer ça : … », qui est une VRAIE action. Résultat : les jours où ton objectif de séances était déjà bouclé, la carte pouvait afficher « chaque séance en plus est du pur bonus » en tête et cacher le conseil « voici comment débloquer ton plateau » derrière « ＋ plus de contexte ». C’est corrigé : seules les vraies célébrations (« tu viens de battre ton record », « ton record perso ») restent classées anodines ; le conseil de plateau remonte à sa juste place, juste après le diagnostic. Rien d’autre ne change — un mot mieux ciblé, une carte plus utile.' },
@@ -5524,19 +5525,28 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   }
 
   const L = chosen.label.toLowerCase();
+  // Accord du déterminant dans les headlines : « nutrition » est FÉMININ (comme le sait déjà POSSESSIF
+  // plus bas → « ta nutrition ») et « entraînement » commence par une voyelle → il faut « Ta nutrition »
+  // et l'élision « Reprends l'entraînement ». En dur, la carte affichait « Ton nutrition », « Reprends
+  // le nutrition » et « Reprends le entraînement ». Seule la nutrition est féminine parmi les piliers ;
+  // « ton » se maintient devant une voyelle (« ton entraînement »), d'où le garde-fou !vowelL sur « Ta ».
+  const femPillar = chosen.pillar === 'nutrition';
+  const vowelL = /^[aeiouâàäéèêëîïôöûü]/i.test(L);
+  const Poss = femPillar && !vowelL ? 'Ta' : 'Ton';
+  const art = vowelL ? 'l’' : (femPillar ? 'la ' : 'le ');
   const jour = n => `${n} jour${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}`;
   let headline, insight, action;
   if (tone === 'rebuild') {
-    headline = `Ton ${L} s’essouffle`;
+    headline = `${Poss} ${L} s’essouffle`;
     insight = `${jour(chosen.recentDays)} cette semaine, contre ${chosen.prevDays} la précédente. Un petit geste suffit à repartir.`;
     action = chosen.action;
   } else if (tone === 'revive') {
     const d = chosen.lastActiveDays;
-    headline = `Reprends le ${L}`;
+    headline = `Reprends ${art}${L}`;
     insight = d != null ? `Rien depuis ${d} jour${d > 1 ? 's' : ''} — le bon moment pour relancer avant de perdre l’élan.` : 'Pas d’activité récente — relance dès aujourd’hui.';
     action = chosen.action;
   } else {
-    headline = `Ton ${L} monte en régime`;
+    headline = `${Poss} ${L} monte en régime`;
     insight = `${jour(chosen.recentDays)} cette semaine, en hausse. Garde le rythme.`;
     action = 'Encore un jour actif aujourd’hui pour ancrer l’habitude.';
   }
