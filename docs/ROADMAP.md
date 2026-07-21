@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.262 (2026-07-21)
+## 📍 État actuel — build 2.0.263 (2026-07-21)
 
+> 🧭 **#655 — Navigation principale redessinée : tuiles icône + libellé (build 2.0.263).** Retour direct
+> d'Adrien : « le design et l'UI est toujours mauvaise, continue les boucles ». **1ʳᵉ itération d'une passe
+> qualité UI** (écran par écran). App ouverte en navigateur → défaut le plus visible et universel : la nav
+> `.app-nav` (9 onglets) encadre tous les écrans mais (a) n'avait d'icône que sur 3/9 onglets (mélange
+> « bricolé »), (b) sur mobile = pastilles texte transparentes serrées + actif en aplat vert massif, (c) CSS
+> mort (`.app-nav a{…}` ciblait des `<a>` alors que le markup est en `<button>`). Correctif : chaque onglet =
+> `<span class="nav-ico">`+`<span class="nav-lbl">`, **icône propre pour les 9** (🏠🗓️💪⚖️📚🥗🎯💼⚙️) ;
+> mobile → vraie **grille de tuiles** (fond `--surface-2` + bordure discrète), actif = **halo lime tinté**
+> (fini l'aplat) ; desktop → rangée compacte 56px icône+libellé. Zéro impact fonctionnel (`showPage`/`data-page`/
+> `aria-current` intacts, Agenda garde `id=openWeekPage`, focus clavier préservé). Capture bloquée cette session
+> → **vérif par styles calculés** (grille 3×3, 9/9 icônes, aucun libellé tronqué, nav 180px mobile / 56px desktop)
+> + Artifact avant/après pour Adrien. 577 tests + smoke (`navAriaCurrent`, `whatsNew` verts). Recap #655.
+> _Domaine : fondations._ **Publication : non taguée cette itération** (release espacée ~1/j ; v2.0.262 déjà
+> publiée ce matin — ce lot partira au prochain tag).
+>
 > ⚖️ **#654 — Coach Poids : plus de double message sur un plateau (build 2.0.262).** Priorité de nuit =
 > coaching. Rotation §4 bis (5 derniers : `focus, athlete, coach, sommeil, athlete`) → `focus`/`athlete`
 > (2 derniers) et `athlete` (2×) exclus ; **`nutrition`** pris (0× sur 5, le plus frais), angle NEUF
