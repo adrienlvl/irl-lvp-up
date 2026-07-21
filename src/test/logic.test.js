@@ -6131,7 +6131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.253');
+  assert.equal(L.CHANGELOG[0].v, '2.0.254');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6985,6 +6985,20 @@ test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
   assert.equal(L.readinessScore({ sleep: 0, fatigue: 2, soreness: 2 }).score, 75, 'sleep:0 traité comme non renseigné');
   // sommeil renseigné → strictement inchangé (rétro-compatibilité)
   assert.equal(L.readinessScore({ sleep: 8, fatigue: 3, soreness: 3 }).score, 70);
+  // Frein isolé au maximum : score ≥ 75 MAIS un signal rouge → le label ne dit plus « Prêt à
+  // pousser » (il contredirait « privilégie une séance facile » de la même carte). Le SCORE, lui,
+  // ne bouge pas — seule l'étiquette est bornée.
+  const soreHigh = L.readinessScore({ sleep: 8, fatigue: 1, soreness: 4 }); // 40+30+7.5 = 78
+  assert.equal(soreHigh.score, 78, 'le score chiffré reste 78');
+  assert.equal(soreHigh.label, 'Correct — garde une marge', 'courbatures 4/5 → plus de « Prêt à pousser »');
+  const tiredHigh = L.readinessScore({ sleep: 8, fatigue: 4, soreness: 1 }); // 40+7.5+30 = 78
+  assert.equal(tiredHigh.score, 78); assert.equal(tiredHigh.label, 'Correct — garde une marge', 'fatigue 4/5 → borné');
+  const shortNight = L.readinessScore({ sleep: 5.5, fatigue: 1, soreness: 1 }); // 27.5+30+30 = 88
+  assert.equal(shortNight.score, 88); assert.equal(shortNight.label, 'Correct — garde une marge', 'nuit < 6 h renseignée → borné');
+  // Non-régression : aucun frein rouge → « Prêt à pousser » conservé même avec un score juste ≥ 75.
+  assert.equal(L.readinessScore({ sleep: 7, fatigue: 2, soreness: 2 }).label, 'Prêt à pousser', 'sans frein rouge, label intact');
+  // Le sommeil ABSENT (0) n'est pas un frein rouge (même convention que le score) → non borné à tort.
+  assert.equal(L.readinessScore({ fatigue: 1, soreness: 1 }).label, 'Prêt à pousser', 'sommeil vide ≠ frein rouge');
 });
 test('readinessLimiter : nomme le frein DOMINANT du check-in (ou null si aucun net)', () => {
   // Courbatures seules élevées (5) → déficit 30, fatigue/sommeil 0 → soreness dominant.

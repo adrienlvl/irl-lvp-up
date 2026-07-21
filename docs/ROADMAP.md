@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.253 (2026-07-21)
+## 📍 État actuel — build 2.0.254 (2026-07-21)
 
+> 🩹 **#646 — Forme du jour : le label ne dit plus « Prêt à pousser » quand un frein est au rouge
+> (build 2.0.254).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par domaine : `nutrition,
+> coach, athlete, sommeil, focus`) → `nutrition`/`coach` (2 derniers) exclus ; **`athlete`** pris (1× sur
+> 5, hors 2 derniers), piste NEUVE cadrée en mémoire, alignée priorité de nuit. Contradiction insight↔action
+> prouvée sur la même carte (§3, catégorie encouragée) : `readinessScore` (`logic.js:9699`) dérive son label
+> de la seule MOYENNE (`score ≥ 75 → « Prêt à pousser »`), si bien qu'un frein isolé au maximum reste noyé —
+> `{sleep:8, fatigue:1, soreness:4}` → 78/100 « Prêt à pousser » alors que `#recoveryAdvice` (`app.js:427`)
+> affiche « privilégie une séance facile ». Correctif (curation §3, zéro champ) : le label se **borne** à
+> « Correct — garde une marge » dès qu'un frein rouge est levé (`sleep>0 && sleep<6`, `fatigue≥4`, `soreness≥4`).
+> Le SCORE chiffré ne bouge pas → aucun ripple (le label n'est jamais un branchement de décision, seul usage
+> `app.js:426` en affichage ; `loadAdvice`/décharge/wellness lisent `.score`). Le sommeil absent (0) n'est pas
+> un frein (même convention que le score) → bug `sleep:0` laissé à la proposition #631 (non préempté). §4 ter :
+> panneau rendu → « 78/100 · Correct — garde une marge » + « séance facile » = cohérent. Science : autorégulation
+> par le frein limitant (Halson 2014 ; DOMS → Cheung 2003). 574 tests (bloc `readinessScore` étendu, 2
+> non-régressions) + smoke verts ; logique pure → pas de nouveau check smoke. Recap #646. _Domaine : athlete._
+>
 > 🍚 **#645 — Proposition : glucides, un plancher « carburant » plutôt qu'un pur reliquat (pas de build).**
 > Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `coach, athlete, sommeil, focus,
 > athlete`) → `coach`/`athlete` (2 derniers + athlete 2×) exclus ; **`nutrition`** pris (0× sur 5, domaine de
