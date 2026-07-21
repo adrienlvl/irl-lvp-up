@@ -25,6 +25,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.270 (2026-07-22)
 
+> 🛡️ **#663 — Proposition : robustesse des classificateurs & import Alternance (pas de bump, docs).**
+> Quota §4 bis.4 déclenché (dernière proposition = #645, 10 recaps sans) → l'itération doit être une
+> proposition ; sujet aligné sur la priorité nuit n°1 (robustesse FR, dette n°1). Audit read-only + **10
+> findings tous re-exécutés moi-même** (« vert ≠ bon ») : 5 GRAVES prouvés dans le module Alternance
+> **sacré** (`pas le candidat retenu`→accepté l.328 ; `pas encore contacté`→postulé l.380 ; virgule dans
+> un champ `;`→colonnes décalées l.281 ; ids en collision à l'import en lot l.165 ; dates FR vidées
+> l.391) + 5 moyens/design. Reco **A** : correctifs sûrs (#1/#2/#10/#5/BOM) en étapes autonomes
+> test-échoue-avant, les 4 choix de design (clé fusion, refus↔accepte, décline, format US) attendent
+> Adrien car ils reclassent des cellules réelles au sync (§5). `docs/proposals/robustesse-classificateurs-import-alternance.md`,
+> 5 décisions attendent Adrien. Recap #663. _Domaine : robustesse._ Master seulement.
+>
 > 🎯 **#662 — Alternance : barre-pipeline visuelle des candidatures (build 2.0.270).** Passe qualité UI **8/N** —
 > une **page** (la plus importante pour Adrien) plutôt qu'un composant. La donnée du pipeline existait
 > (`applicationStats().byStatus`) mais n'était affichée qu'en texte. Ajout : `applicationFunnel(stats)` (logique
