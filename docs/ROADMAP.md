@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.258 (2026-07-21)
+## 📍 État actuel — build 2.0.259 (2026-07-21)
 
+> 🔗 **#651 — Priorité du jour : l'habitude en jeu n'est plus rappelée deux fois (build 2.0.259).**
+> Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `sommeil, athlete, focus, coach,
+> athlete`) → `sommeil`/`athlete` (2 derniers) et `athlete` (2×) exclus ; `focus` (1×) et **`coach`** (1×,
+> hors 2 derniers) permis → **`coach`** pris, angle NEUF (exploration Explore). Redondance §3 inter-cartes
+> prouvée en rendu chargé (§4 ter) : `coachDayPriority` (dédup de la « priorité du jour », #606/#607)
+> débarrasse le bandeau « À rattraper » de ce que la carte « Le focus du moment » porte déjà, via
+> `covered = focus.pillar` — mais la note d'**habitude en jeu** (`habitAtRisk`, `logic.js:8006`+`8044`) est
+> **orthogonale au pilier** (appendée quel que soit le pilier), et le coach ne choisit **jamais** le pilier
+> `'habits'` → `KEY_TO_PILLAR['habits']='habits'` ne vaut jamais `covered`, la ligne `habits` du digest
+> (`attentionDigest`, `logic.js:5432`) survivait **toujours** au filtre. Résultat : carte « Ne casse pas la
+> chaîne : ton habitude « Méditation »… » **ET** bandeau « 1 habitude à relancer avant de perdre la série »,
+> dos à dos. Cas prouvé (Node) : pilier focus + série 12 non cochée → `deduped` contenait encore `habits`.
+> Correctif (curation §3, zéro champ) : la ligne `habits` est retirée quand `focus.habitAtRisk` est posé **et**
+> `primary.source === 'focus'` — garde essentielle : en recadrage santé (`reframed`, source `health`) la carte
+> montre « récupère » (pas l'insight du focus), la note d'habitude n'y est plus → la ligne digest reste alors
+> le **seul** rappel (non-régression vérifiée). §4 ter : bandeau relu → un seul rappel d'habitude. 576 tests
+> (+2) + smoke `coachDayPriority` étendu (3 volets logique + 1 volet rendu réel, bloquant). Recap #651.
+> _Domaine : coach._
+>
 > 🌙 **#650 — Plan de recalage sommeil : plus de double « Objectif atteint » (build 2.0.258).**
 > Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `nutrition, athlete, coach,
 > focus, athlete`) → `focus`/`athlete` (2 derniers) et `athlete` (2×) exclus ; `coach`/`nutrition` permis

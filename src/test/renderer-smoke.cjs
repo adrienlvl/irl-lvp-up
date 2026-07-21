@@ -837,7 +837,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.258'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.259'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1630,6 +1630,17 @@ app.whenReady().then(async () => {
           // Volet LOGIQUE (#614) — séance DÉJÀ faite : plus rien à reporter, aucune tension à recadrer.
           const dpDone = coachDayPriority({}, today, { focus: { ...focusSport, tone: 'reinforce', doneToday: true }, digest: [{ key: 'readiness', emoji: '😴', text: 'Forme basse (20/100) — allège aujourd’hui', page: 'athlete', sev: 'high' }] });
           if (!(dpDone.reframed === false && dpDone.primary.source === 'focus' && dpDone.defer === null && dpDone.deduped.some(d => d.key === 'readiness'))) return false;
+          // Volet LOGIQUE (#651) — habitude en jeu : quand la carte focus la PORTE (habitAtRisk, note
+          // orthogonale au pilier), la ligne 'habits' du digest est retirée (plus de double rappel) ; sans
+          // note sur la carte, elle survit ; en recadrage santé (source 'health', l'insight du focus n'est
+          // plus rendu) elle reste aussi le seul rappel.
+          const habDigest = [{ key: 'habits', emoji: '🔥', text: 'habitude à relancer', page: 'dashboard', sev: 'med' }, { key: 'backup', emoji: '💾', text: 'Sauvegarde', page: 'settings', sev: 'med' }];
+          const dpHab = coachDayPriority({}, today, { focus: { ...focusSport, pillar: 'focus', tone: 'reinforce', habitAtRisk: { name: 'Méditation', streak: 12 } }, digest: habDigest });
+          if (dpHab.deduped.some(d => d.key === 'habits') || !dpHab.deduped.some(d => d.key === 'backup')) return false;
+          const dpHabNo = coachDayPriority({}, today, { focus: { ...focusSport, pillar: 'focus', tone: 'reinforce', habitAtRisk: null }, digest: habDigest });
+          if (!dpHabNo.deduped.some(d => d.key === 'habits')) return false;
+          const dpHabRef = coachDayPriority({}, today, { focus: { ...focusSport, tone: 'rebuild', habitAtRisk: { name: 'Méditation', streak: 12 } }, digest: [{ key: 'readiness', emoji: '😴', text: 'Forme basse (20/100) — allège aujourd’hui', page: 'athlete', sev: 'high' }].concat(habDigest) });
+          if (!(dpHabRef.primary.source === 'health' && dpHabRef.deduped.some(d => d.key === 'habits'))) return false;
           // Volet RENDU (le branchement B.2) : sur un état chargé, la carte se recadre en « récupère » ET
           // « À rattraper » ne répète plus « Forme basse » (promue en n°1). On restaure l'état ensuite.
           const pad = n => (n < 10 ? '0' + n : '' + n);
@@ -1645,6 +1656,20 @@ app.whenReady().then(async () => {
             const btn = document.getElementById('coachFocus'), panel = document.getElementById('coachFocusPanel');
             ok = ok && !!panel && !panel.hidden && /récup[eè]re/.test(btn.textContent);
             ok = ok && !/Forme basse/.test(document.getElementById('attentionDigest').textContent || '');
+            // Scénario RENDU (#651) — habitude en jeu PORTÉE par la carte focus (pilier 'focus', pas de
+            // check-in du jour → pas de recadrage santé) : « À rattraper » ne répète plus le rappel
+            // d'habitude, alors que la carte focus le porte bien (visible ou sous « plus de contexte »).
+            const fss = []; for (let o = 1; o <= 14; o++) fss.push({ date: iso(o), minutes: o <= 7 ? 60 : 30, task: 'Écriture' });
+            const hlog = []; for (let o = 1; o <= 12; o++) hlog.push(iso(o));
+            state.workouts = []; state.focusSessions = fss; state.recovery = []; state.nutrition = []; state.applications = [];
+            state.habits = [{ id: 1, name: 'Méditation', weekdays: [], xp: 10, log: hlog }]; state.agenda = [];
+            state.lastBackup = ''; state.coachLog = [];
+            renderCoachFocus(); renderAttention();
+            const digTxt = document.getElementById('attentionDigest').textContent || '';
+            const cardTxt = (document.getElementById('coachFocus').textContent || '') + ' ' + (document.getElementById('coachMore').textContent || '');
+            ok = ok && digTxt.indexOf('habitude') === -1;              // plus de double rappel côté « À rattraper »
+            ok = ok && digTxt.indexOf('Sauvegarde') !== -1;            // les autres items du digest restent (dédup ciblée)
+            ok = ok && cardTxt.indexOf('Ne casse pas la chaîne') !== -1; // la carte focus porte bien l'habitude
           } catch (e) { ok = false; }
           state.workouts = saved.w; state.focusSessions = saved.f; state.recovery = saved.r; state.nutrition = saved.n; state.applications = saved.a; state.habits = saved.h; state.agenda = saved.ag; state.lastBackup = saved.lb; state.coachLog = saved.cl;
           try { renderCoachFocus(); renderAttention(); } catch (e) {}

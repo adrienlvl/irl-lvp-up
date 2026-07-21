@@ -6131,7 +6131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.258');
+  assert.equal(L.CHANGELOG[0].v, '2.0.259');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -12372,5 +12372,39 @@ test('coachDayPriority : focus alternance (priorité absolue) passe intact, jama
   assert.equal(r.reframed, false, 'l’alternance n’est pas un momentum sport → pas de recadrage santé');
   assert.equal(r.primary.pillar, 'alternance');
   assert.ok(r.deduped.some(d => d.key === 'readiness'), 'la forme basse reste visible dans « À rattraper »');
+});
+
+test('coachDayPriority : l’habitude en jeu portée par la carte focus est retirée du digest (plus de double rappel)', () => {
+  // habitAtRisk est une note ORTHOGONALE au pilier : le focus la porte quel que soit le pilier choisi.
+  // Le mécanisme `covered` (KEY_TO_PILLAR[key] === focus.pillar) ne peut PAS la dédupliquer car le coach
+  // ne choisit jamais le pilier 'habits'. Sans garde dédiée, la carte « Ne casse pas la chaîne… » ET la
+  // ligne digest « N habitude(s) à relancer » nageaient en double sur le dashboard.
+  const focus = { pillar: 'focus', emoji: '🧠', page: 'dashboard', tone: 'rebuild', headline: 'Reprends ta concentration', insight: 'x', action: 'y', habitAtRisk: { name: 'Méditation', streak: 12 } };
+  const digest = [
+    { key: 'habits', emoji: '🔥', text: '1 habitude à relancer avant de perdre la série', page: 'dashboard', sev: 'med' },
+    { key: 'backup', emoji: '💾', text: 'Sauvegarde tes données', page: 'settings', sev: 'med' },
+  ];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.equal(r.primary.source, 'focus');
+  assert.ok(!r.deduped.some(d => d.key === 'habits'), 'l’habitude déjà portée par la carte focus est retirée du digest');
+  assert.ok(r.deduped.some(d => d.key === 'backup'), 'les autres items du digest restent');
+  // Non-régression : sans habitAtRisk sur le focus, la ligne digest 'habits' reste (la carte ne la porte pas).
+  const rNo = L.coachDayPriority({}, '2026-07-20', { focus: { ...focus, habitAtRisk: null }, digest });
+  assert.ok(rNo.deduped.some(d => d.key === 'habits'), 'sans note d’habitude sur la carte, la ligne digest survit');
+});
+
+test('coachDayPriority : recadrage santé → l’habitude RESTE dans le digest (la carte montre « récupère », pas l’insight du focus)', () => {
+  // Quand la forme basse recadre la n°1 en « récupère » (source 'health'), la carte n'affiche PLUS
+  // l'insight du focus → la note d'habitude n'y est plus visible. La ligne digest 'habits' est alors le
+  // SEUL rappel : elle doit survivre (sinon le signal disparaît des deux surfaces).
+  const focus = { pillar: 'sport', emoji: '🏋️', page: 'athlete', tone: 'rebuild', headline: 'Ton entraînement s’essouffle', insight: 'x', action: 'Programme une séance.', habitAtRisk: { name: 'Méditation', streak: 12 } };
+  const digest = [
+    { key: 'readiness', emoji: '😴', text: 'Forme basse (42/100) — allège aujourd’hui', page: 'athlete', sev: 'high' },
+    { key: 'habits', emoji: '🔥', text: '1 habitude à relancer avant de perdre la série', page: 'dashboard', sev: 'med' },
+  ];
+  const r = L.coachDayPriority({}, '2026-07-20', { focus, digest });
+  assert.equal(r.reframed, true);
+  assert.equal(r.primary.source, 'health');
+  assert.ok(r.deduped.some(d => d.key === 'habits'), 'la carte ne portant pas l’insight du focus, la ligne habitude reste le seul rappel');
 });
 

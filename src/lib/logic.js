@@ -3145,6 +3145,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.259', emoji: '🔗', text: 'Ton coach ne te rappelle plus DEUX fois la même habitude en jeu. Quand une de tes séries d’habitude risque de tomber (prévue aujourd’hui, pas encore cochée), ta carte « Le focus du moment » te le dit déjà — « Ne casse pas la chaîne : ton habitude « Méditation » tient depuis 12 jours… ». Mais le bandeau « À rattraper » juste à côté ajoutait, lui aussi, « 1 habitude à relancer avant de perdre la série » : deux rappels du même geste, dos à dos sur le tableau de bord. C’était un angle mort de la dédup : le rappel d’habitude est attaché à la carte quel que soit son sujet du jour (sport, focus, sommeil…), or la dédup ne savait retirer du bandeau que le SUJET principal de la carte — jamais cette note « en plus ». Désormais, dès que la carte porte le rappel d’habitude, le bandeau ne le répète plus (il garde ses autres alertes). Un seul rappel, pas un doublon. Exception voulue : les jours où ta forme basse recadre la carte en « récupère » (elle n’affiche alors plus le rappel d’habitude), le bandeau le conserve pour ne pas perdre le signal. (curation : retirer une redondance vaut mieux qu’ajouter du texte)' },
   { v: '2.0.258', emoji: '🌙', text: 'Ta carte « Plan de recalage du sommeil » ne t’annonce plus deux fois de suite que ton objectif est atteint. Quand tu te couches enfin à ton heure cible, la carte affichait « Objectif 23:30 atteint. » puis, juste en dessous, le bandeau festif « 🎉 Objectif atteint : tu te couches désormais vers ton heure cible (23:30). Tiens ce rythme… » — deux fois « objectif atteint » et deux fois l’heure, dos à dos. Désormais la ligne d’arrivée laisse le bandeau 🎉 porter seul la nouvelle : elle ne garde que l’info distincte (« Coucher réel récent : 23:35. »), et disparaît si elle n’a rien d’autre à dire. Une seule célébration, pas un doublon. (curation : retirer une redondance vaut mieux qu’ajouter du texte)' },
   { v: '2.0.257', emoji: '💪', text: 'Ta carte « Fraîcheur musculaire » (onglet Athlète) ne te suggère plus une « journée légère » alors qu’il te reste des groupes jamais travaillés. Sa ligne de synthèse listait les groupes « Prêts aujourd’hui » (reposés ≥ 2 j) et, à défaut, affichait « Tous les groupes travaillés récemment — pense à une journée légère ». Le hic : un groupe JAMAIS entraîné n’était compté ni comme « prêt », ni comme « récent » — il disparaissait. Résultat, quand tu n’avais ciblé qu’un ou deux groupes, la carte disait « journée légère » (repos) juste au-dessus de « À privilégier aujourd’hui : Bras — jamais travaillé encore » (entraîne-toi) : deux messages voisins qui se contredisaient. Désormais un groupe jamais travaillé compte comme disponible aujourd’hui, exactement comme la ligne « À privilégier » le voit déjà : la synthèse dit « Prêt aujourd’hui : Bras, Dos, … » et ne conseille le repos que si tous tes groupes ont bien été travaillés ces deux derniers jours. Une seule voix, cohérente.' },
   { v: '2.0.256', emoji: '🧠', text: 'Ta carte « Le focus du moment » ne te pousse plus à « faire un bloc aujourd’hui » un jour où elle vient de te dire de lever le pied. Quand ton pilier concentration décroche ET que tes minutes de focus reculent semaine après semaine, le coach le signalait avec « un bloc aujourd’hui inverse la pente ». Mais si le même matin ton check-in de récup était au plancher (readiness < 50), il avait déjà tranché juste au-dessus : « un focus court et facile aujourd’hui, soigne ta récup — l’esprit frais rattrapera ces minutes bien plus vite » (ou « un focus léger, ou même une vraie pause, suffit »). Deux phrases dos à dos qui se contredisaient : repose-toi… puis force un bloc. Désormais, les jours de tête à plat, le coach TAIT cette poussée et laisse le conseil de récup porter seul — il constate toujours la baisse de volume ailleurs, mais ne t’ordonne pas de forcer quand ton cerveau réclame du repos. Les jours où ta forme suit, rien ne change : « un bloc aujourd’hui inverse la pente » revient. (le pendant, côté diagnostic, du garde-fou qui coupait déjà l’action ces jours-là)' },
@@ -8102,8 +8103,23 @@ function coachDayPriority(state, todayKey, opts) {
     primaryKey = top.key;
     primary = { source: 'digest', pillar: KEY_TO_PILLAR[top.key] || top.key, emoji: top.emoji, page: top.page, headline: top.text, why: '', action: '' };
   }
+  // Dédup de l'HABITUDE EN JEU — le trou du mécanisme `covered` ci-dessus. `habitAtRisk` est une note
+  // ORTHOGONALE au pilier : `adaptiveCoachFocus` l'APPEND à l'insight quel que soit le pilier choisi
+  // (l.7998), donc le focus la PORTE déjà quand elle est non nulle — mais `covered = focus.pillar` ne
+  // vaut JAMAIS 'habits' (le coach ne choisit jamais ce pilier), si bien que la ligne 'habits' du digest
+  // (« N habitude(s) à relancer avant de perdre la série », attentionDigest l.5432) survivait au filtre
+  // et NAGUAIT en double : la carte focus disait « Ne casse pas la chaîne : ton habitude "X"… » ET la
+  // ligne « À rattraper » répétait le même rappel, dos à dos sur le dashboard. On la retire donc quand le
+  // focus la porte — MAIS uniquement quand la n°1 rendue EST le focus (`source === 'focus'`) : dans le
+  // recadrage santé (`reframed`, source 'health'), la carte montre « récupère », PAS l'insight du focus →
+  // la note d'habitude n'y est plus visible, la ligne du digest reste alors le seul rappel (à conserver).
+  // Curation §3 pure : zéro champ ajouté, on lit le `habitAtRisk` déjà renvoyé. Seuils compatibles (carte
+  // ≥ 3, digest ≥ 2 : quand habitAtRisk est posé la série est ≥ 3, donc la ligne digest est un sur-ensemble
+  // sûr à masquer).
+  const focusCarriesHabit = !!(focus && focus.habitAtRisk && primary && primary.source === 'focus');
   // « À rattraper » débarrassé de ce que le focus porte déjà ET de l'item promu en n°1 (plus de doublon).
-  const deduped = digest.filter(d => d && KEY_TO_PILLAR[d.key] !== covered && d.key !== primaryKey);
+  const deduped = digest.filter(d => d && KEY_TO_PILLAR[d.key] !== covered && d.key !== primaryKey
+    && !(d.key === 'habits' && focusCarriesHabit));
   return { primary, deduped, defer, reframed };
 }
 
