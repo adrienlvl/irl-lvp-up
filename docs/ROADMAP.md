@@ -23,8 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.268 (2026-07-22)
+## 📍 État actuel — build 2.0.269 (2026-07-22)
 
+> 👆 **#661 — Boutons : retour tactile (état pressé + survol lime) (build 2.0.269).** Passe qualité UI **7/N**.
+> Scan des feuilles : `.primary-button`/`.secondary-button`/`.icon-button` n'avaient **aucun `:active`** (seuls
+> quelques boutons de niche en avaient) → aucun retour tactile à l'appui, juste le survol global. Ajout (pages.css) :
+> `:active{transform:translateY(0) scale(.96)}` (enfoncement, spécificité 0,2,0 > `button:hover` 0,1,1), survol
+> secondaire = contour lime (`border-color rgba(171,255,85,.35)`), transitions élargies (box-shadow/border-color).
+> Purement CSS additif. Vérif styles calculés : règles présentes + bien scopées, transition primaire enrichie.
+> Pas de check smoke (pseudo-état `:active` non testable) mais garde-fou CSS vert. 577 tests + SMOKE OK. Artifact
+> **interactif**. _Domaine : fondations_ (série UI). **Lot 2.0.263→269 en attente de release (Adrien contrôle).**
+>
 > 📊 **#660 — Graphes en barres : dégradé vertical (build 2.0.268).** Passe qualité UI **6/N**. `barChartSvg`
 > (app.js, utilisé partout : grille 5 graphes, adhérence, volume, 1RM, forme) dessinait des barres en aplat. SVG
 > `preserveAspectRatio=none` → coins arrondis par path distordus (invérifiables sans capture) → choix **sûr sans
