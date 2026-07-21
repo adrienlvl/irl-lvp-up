@@ -3110,6 +3110,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.235', emoji: '🎯', text: 'Sur ta carte « Coach Poids », quand ta cible de perte est importante (au moins 10 % de ton poids) et que ton objectif est l’endurance ou l’athlétisme, le conseil ne te répétait plus deux fois la même chose à la suite. Il affichait « … garde 2 g de protéines/kg et maintiens la musculation pour ne pas fondre du muscle. » puis, juste en dessous, « Pour perdre sans fondre : garde la musculation, vise ~2 g de protéines/kg… » — deux notes quasi identiques collées l’une à l’autre. C’est nettoyé : une seule note désormais, qui réunit tout (protéines, musculation ET « ne descends pas sous ton métabolisme de base »). Rien perdu, une redite en moins. Les autres cas (perte plus modérée, sèche, prise de muscle) gardent exactement leurs conseils.' },
   { v: '2.0.234', emoji: '✍️', text: 'Ton coach « Le focus du moment » accorde enfin ses titres. Quand il mettait ta NUTRITION en avant, il écrivait « Ton nutrition s’essouffle » ou « Reprends le nutrition » — deux fautes de genre, « nutrition » étant féminin. Et sur l’entraînement, « Reprends le entraînement » oubliait l’élision. C’est corrigé : « Ta nutrition s’essouffle », « Reprends la nutrition », « Reprends l’entraînement ». Les autres piliers (« Ton entraînement », « Reprends le focus », « Ton sommeil ») ne changent pas. Le fond du conseil est identique — juste un français correct, comme le coach l’écrivait déjà ailleurs (« ta nutrition (en recul) »).' },
   { v: '2.0.233', emoji: '🌙', text: 'Ton « Bilan sommeil » ne te certifie plus un « rythme régulier » qu’il n’a pas encore mesuré. Quand ta durée de sommeil est correcte, il concluait « Sommeil solide : moy. X h, rythme régulier » — même s’il ne disposait que d’UNE ou DEUX nuits chiffrées. Or on ne juge pas une régularité sur une seule nuit : il faut au moins 3 nuits (ou 3 heures de coucher saisies) pour que l’écart-type veuille dire quelque chose. Affirmer « rythme régulier » dès la première nuit, c’est te promettre un constat que le coach n’a pas fait — exactement le genre de flatterie qu’un vrai coach s’interdit. Désormais, tant qu’il y a moins de 3 nuits, le bilan salue honnêtement la durée (« Bon sommeil : moy. X h ») et t’invite à continuer tes check-ins pour pouvoir juger ton rythme. Dès 3 nuits (ou 3 couchers) renseignés, le verdict « rythme régulier » revient — mais cette fois il est réellement mesuré. Un mot juste à la place d’une certitude prématurée.' },
   { v: '2.0.232', emoji: '🩹', text: 'Ta toute première semaine d’entraînement ne déclenche plus une fausse alerte « pic de charge — allège, risque de blessure ». L’app suit ton ratio charge aiguë/chronique (ACWR) : la charge des 7 derniers jours comparée à ta moyenne des 4 dernières semaines — un vrai indicateur de surmenage. Mais tant que TOUTE ta charge tient dans les 7 derniers jours (tu viens de commencer, aucun historique avant), il n’y a pas de « moyenne des 4 semaines » à comparer : le calcul se retrouvait à diviser ta charge récente par un quart d’elle-même, ce qui donne TOUJOURS le même chiffre (4,0) et te classait automatiquement en « pic dangereux ». Résultat : un débutant s’entendait dire « allège cette semaine, risque de blessure » et se voyait proposer un déload… dès sa première semaine. C’est corrigé : sans base d’entraînement plus ancienne que 7 jours, l’ACWR est considéré comme indéfini (il réapparaît dès ta première séance datée d’avant la semaine en cours), et le conseil de charge reste neutre et encourageant au lieu de crier au danger. Les vrais pics de charge (quand tu as bien une base et que tu bondis) restent détectés comme avant. Un faux signal démotivant en moins.' },
@@ -8194,6 +8195,7 @@ function weightTargetAdvice(opts) {
   };
 
   const notes = [];
+  let muscleAdvised = false;   // la préservation du muscle (protéines + musculation + plancher BMR) a-t-elle déjà été dite ?
   const num = n => String(n).replace('.', ',');
 
   // 1) La cible elle-même est-elle saine ? (catégorie jugée sur l'IMC RÉEL, pas l'affiché arrondi)
@@ -8226,15 +8228,21 @@ function weightTargetAdvice(opts) {
   } else if (obj === 'seche' && direction === 'prise') {
     notes.push({ tone: 'stop', text: `Contradiction : ton objectif est la sèche, mais ta cible demande de prendre ${num(absKg)} kg. Aligne l’un sur l’autre.` });
   } else if ((obj === 'endurance' || obj === 'athletique') && direction === 'perte' && deltaPct >= 10) {
-    notes.push({ tone: 'warn', text: `Perdre ${num(deltaPct)} % de ton poids pèsera sur tes performances et ta récupération. Vise le bas de la fourchette de rythme, garde 2 g de protéines/kg et maintiens la musculation pour ne pas fondre du muscle.` });
+    // Cette note couvre déjà protéines + musculation + « ne pas fondre du muscle » : on y agrège le
+    // plancher métabolique (seule info neuve de la note générique n° 5) pour NE PAS afficher juste en
+    // dessous une seconde note quasi identique (§4 ter : redondance lue à la suite). `muscleAdvised`
+    // coupe alors la note 5.
+    notes.push({ tone: 'warn', text: `Perdre ${num(deltaPct)} % de ton poids pèsera sur tes performances et ta récupération. Vise le bas de la fourchette de rythme, garde 2 g de protéines/kg, maintiens la musculation pour ne pas fondre du muscle et ne descends pas sous ton métabolisme de base.` });
+    muscleAdvised = true;
   } else if (obj === 'muscle' && direction === 'prise') {
     notes.push({ tone: 'ok', text: `Cohérent avec ton objectif : prise de masse progressive. Reste sur un surplus léger pour limiter le gras.` });
   } else if (direction === 'maintien') {
     notes.push({ tone: 'ok', text: `Cible proche de ton poids actuel : c’est une recomposition. Le poids bougera peu, la composition oui — suis plutôt tes mensurations et tes performances.` });
   }
 
-  // 5) Toujours : préserver le muscle en perte
-  if (direction === 'perte' && !notes.some(n => n.tone === 'stop')) {
+  // 5) Toujours : préserver le muscle en perte — SAUF si la note n° 4 l'a déjà dit (muscleAdvised),
+  //    sinon deux notes quasi identiques se suivraient (§4 ter).
+  if (direction === 'perte' && !notes.some(n => n.tone === 'stop') && !muscleAdvised) {
     notes.push({ tone: 'ok', text: `Pour perdre sans fondre : garde la musculation, vise ~2 g de protéines/kg, et ne descends pas sous ton métabolisme de base.` });
   }
 

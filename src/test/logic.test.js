@@ -2027,6 +2027,15 @@ test('weightTargetAdvice : réalisme de la cible et cohérence avec l’objectif
   const endur = av(70, 'endurance');   // 11 kg = 13,6 % du poids
   assert.equal(endur.level, 'warn');
   assert.ok(endur.notes.some(n => /performances/i.test(n.text)));
+  // #625 — la préservation du muscle (protéines/kg + musculation) n'est plus dite DEUX fois de suite :
+  // la note « performances » agrège le plancher métabolique et la note générique n° 5 est supprimée
+  // dans ce cas (§4 ter : deux notes quasi identiques lues à la suite).
+  assert.equal(endur.notes.filter(n => /protéines\/kg/.test(n.text)).length, 1, 'un seul rappel protéines/kg');
+  assert.ok(!endur.notes.some(n => /Pour perdre sans fondre/.test(n.text)), 'note générique n° 5 retirée (redondante)');
+  assert.ok(endur.notes.some(n => /métabolisme de base/.test(n.text)), 'le plancher métabolique reste dit');
+  // Non-régression : quand la note 4 endurance/athlétique ne se déclenche PAS (perte < 10 %),
+  // la note générique n° 5 de préservation du muscle est bien conservée.
+  assert.ok(ok.notes.some(n => /Pour perdre sans fondre/.test(n.text)), 'note 5 conservée si la note 4 ne fire pas');
 
   // cible = poids actuel → recomposition
   const maint = av(81, 'athletique');
@@ -5991,7 +6000,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.234');
+  assert.equal(L.CHANGELOG[0].v, '2.0.235');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

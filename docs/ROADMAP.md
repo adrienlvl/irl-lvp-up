@@ -23,8 +23,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.234 (2026-07-21)
+## 📍 État actuel — build 2.0.235 (2026-07-21)
 
+> 🎯 **#625 — Coach Poids : la préservation du muscle n'est plus dite deux fois de suite (build
+> 2.0.235).** Domaine `nutrition` (frais ; `coach`/`sommeil`/`robustesse` bloqués par la rotation §4 bis —
+> la priorité de nuit coaching tombe sous §3 qui soumet `coach` à la rotation). Redondance §4 ter prouvée
+> par rendu : dans `weightTargetAdvice`, un objectif `endurance`/`athletique` en perte ≥ 10 % faisait
+> suivre deux notes quasi identiques — la note « performances » (« garde 2 g de protéines/kg et maintiens
+> la musculation ») puis la note générique n° 5 (« Pour perdre sans fondre : garde la musculation, vise
+> ~2 g de protéines/kg… »). Correctif §3 (curation, zéro champ) : la note 4 **agrège** la seule info neuve
+> de la note 5 (plancher métabolique) et un drapeau `muscleAdvised` **coupe** la note 5 dans ce seul cas →
+> une note complète au lieu de deux. Tous les autres cas inchangés (perte < 10 % garde la note 5 ;
+> seche/forme ; muscle en perte = `stop`). §4 ter : rendu cumulé relu sur 5 états → non redondant. 568
+> tests (assertions dédiées + non-régression) + smoke verts. Recap #625. _Domaine : nutrition._
+>
 > ✍️ **#624 — Coach « Le focus du moment » : le headline accorde enfin son déterminant (build
 > 2.0.234).** Priorité de nuit = coaching (§3 QUALITÉ : formulation plus juste). Rotation OK avant de
 > coder (`coach` absent des 2 derniers recaps, 1× sur 5 ; `sommeil`/`robustesse` bloqués). Défaut
