@@ -790,6 +790,15 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   // …mais les vrais « pris/prise » restent bien « accepté ».
   assert.equal(L.jobStatusFromText('Candidature prise'), 'accepte');
   assert.equal(L.jobStatusFromText('Je suis pris'), 'accepte');
+  // Rejet nié, tournure JUMELLE de « non retenu » : « (pas/non) (été) pris(e) » NE doit PAS être lu
+  // comme la tournure d'acceptation « (été) pris » (sinon un refus s'affiche « Accepté 🎉 » et gonfle
+  // applicationStats à chaque sync — bug symétrique du garde « retenu »).
+  assert.equal(L.jobStatusFromText('Je n’ai pas été pris'), 'refus', 'pas été pris = refus, pas accepté');
+  assert.equal(L.jobStatusFromText('Pas été pris'), 'refus');
+  assert.equal(L.jobStatusFromText('Vous n’avez pas été prise'), 'refus', 'pas été prise = refus');
+  // …sans casser l'acceptation positive ni transformer une prospection en cours en refus.
+  assert.equal(L.jobStatusFromText('J’ai été pris'), 'accepte', 'été pris positif reste accepté');
+  assert.equal(L.jobStatusFromText('Pas encore pris contact'), 'postule', 'prise de contact (pris nu) ≠ refus : ma garde ne la happe pas');
   // Une relance SEULE reste bien « relance », et prime sur un simple « postulé ».
   assert.equal(L.jobStatusFromText('Relancé'), 'relance');
   assert.equal(L.jobStatusFromText('2e relance envoyée'), 'relance');
@@ -6039,7 +6048,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.243');
+  assert.equal(L.CHANGELOG[0].v, '2.0.244');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

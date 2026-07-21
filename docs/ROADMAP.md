@@ -23,8 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.243 (2026-07-21)
+## 📍 État actuel — build 2.0.244 (2026-07-21)
 
+> 💼 **#635 — Alternance : « pas été pris » (un refus) n'est plus classé « accepté » (build 2.0.244).**
+> Priorité de nuit = coaching, mais rotation §4 bis bloquante (5 derniers : coach/nutrition/coach/
+> athlete/athlete → ces 3 domaines interdits ; le coach relève pleinement de la rotation, §3). Domaine
+> neuf pris : **`alternance`** (module sacré, absent des 5 derniers), piste **P4** (négation FR non
+> gardée). Défaut prouvé : `jobStatusFromText` (logic.js:304) reconnaît la tournure d'acceptation
+> `(été|suis|est…) pris(e)` **sans garde de négation**, alors que sa jumelle `retenu` en a une (l.312).
+> Donc « je n'ai pas été pris » / « pas été prise » → `accepte` : un refus affiché « Accepté 🎉 » qui
+> gonflait `applicationStats` (accepted, entretiens) à **chaque sync** du Sheets. Correctif (curation §3,
+> zéro champ) : garde jumelle `\b(non|pas)\b[\s\S]{0,12}(été…) pris → refus` placée avant le bucket
+> `accepte`, ciblant **uniquement** la tournure avec auxiliaire — les vraies acceptations et une prise
+> de contact en cours (« pas encore pris contact » → `postule`) ne bougent pas. 570 tests (+6 :
+> 3 négations → refus, non-régression accepté + prospection) + smoke verts. Recap #635. _Domaine : alternance._
+>
 > 😴 **#634 — « À rattraper » : « Forme basse — allège aujourd'hui » exige un check-in daté du jour (build
 > 2.0.243).** Priorité de nuit = coaching ; rotation §4 bis vérifiée avant de coder : `athlete`/`nutrition`
 > bloqués (633/631 & 632/629) → domaine **`coach`** (630, 1×, absent des 2 derniers). Angle neuf : surface
