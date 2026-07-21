@@ -23,8 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.265 (2026-07-21)
+## 📍 État actuel — build 2.0.266 (2026-07-21)
 
+> 📊 **#658 — Stats du dashboard : disques colorés + libellés capitales (build 2.0.266).** Passe qualité UI **4/N**.
+> Cible visée = séance guidée (demande Adrien) mais inspection navigateur → **déjà bien traitée** (hero, repos
+> dégradé, lignes de séries à badge, next lime) → pivot vers surface plus faible : les cartes `.stat`
+> (Vitalité/Focus/Équilibre). Symbole nu ♥◉✦ → **disque teinté de la couleur sémantique** (rose/violet/lime, fond
+> 15 %), chiffre 1,5rem, libellé petites capitales. Purement CSS ciblé `.stat`. Vérif styles calculés : 3/3 disques
+> 40px + bon fond, glyphe couleur, libellé uppercase. 577 tests + smoke. Artifact avant/après. _Domaine : fondations_
+> (série UI). **Note : séance guidée déjà au niveau, ne pas la refondre sans raison.** Master seulement.
+>
 > 🏷️ **#657 — Hiérarchie : les « eyebrows » de panneaux/pages redeviennent lime (build 2.0.265).** Passe qualité
 > UI **3/N**. Défaut de cascade trouvé au rendu : les kickers `<p class="eyebrow">` (« AUJOURD'HUI », « TON COACH »,
 > en-têtes de page « OBJECTIF CORPS »…), censés être lime 0,7rem (classe `.eyebrow`, comme le hero), rendaient
