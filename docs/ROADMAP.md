@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.260 (2026-07-21)
+## 📍 État actuel — build 2.0.261 (2026-07-21)
 
+> 🧠 **#653 — Coach Focus : plus de « fais un bloc aujourd'hui » un jour où le bloc est DÉJÀ posé
+> (build 2.0.261).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `athlete,
+> coach, sommeil, athlete, focus`) → `athlete`/`coach` (2 derniers) et `athlete` (2×) exclus ; **`focus`**
+> pris (1× sur 5, hors 2 derniers), angle NEUF (exploration agent Explore). Contradiction §3 **intra-carte**
+> prouvée en rendu chargé (§4 ter) : sur le pilier focus, la note de pente `focusMinutesTrend` (branche
+> `down`) appendait à l'insight « Tes minutes de focus reculent : 160 → 60 min (-100 min) — **un bloc
+> aujourd'hui inverse la pente.** », gardée seulement par `!focusRested` (#648). Mais le crédit du jour
+> (`doneToday`, `logic.js:7691`) réécrit l'action en « **Bloc de focus déjà posé aujourd'hui ✅ — savoure** »
+> — et `doneToday` était calculé APRÈS la note, sans y être branché → « fais-en un » et « c'est déjà fait »
+> dos à dos. Cas prouvé (Node) : sem. réc. 2 j × 30 min dont aujourd'hui vs sem. préc. 4 j × 40 min →
+> `rebuild` + `focusTrend=-100` + `doneToday`. Correctif (curation §3, zéro champ) : `doneToday` **hoisté**
+> avant le bloc focus, garde `!focusRested && !doneToday` sur la note ; `focusTrend` reste renvoyé
+> (diagnostic), commentaire du crédit recadré. Non-régression : bloc fait HIER (07-15) → note « inverse la
+> pente » revient. §4 ter : insight cumulé relu → une seule voix (constat de semaine + crédit du geste).
+> 578 tests (+1) + smoke `coachFocus` étendu (`fFocusDownDone`, bloquant, pilote `renderCoachFocus`).
+> Recap #653. _Domaine : focus._
+>
 > 💪 **#652 — Charge de la semaine : la récup basse ne cohabite plus avec « tu peux remonter »
 > (build 2.0.260).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par domaine : `coach,
 > sommeil, athlete, focus, coach`) → `coach`/`sommeil` (2 derniers) et `coach` (2×) exclus ; **`athlete`**

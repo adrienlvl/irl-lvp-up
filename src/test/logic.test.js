@@ -6152,7 +6152,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.260');
+  assert.equal(L.CHANGELOG[0].v, '2.0.261');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7595,6 +7595,26 @@ test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
   assert.ok(rested.focusTrend < 0, 'focusTrend renvoyé même reposé');
   assert.doesNotMatch(rested.insight, /minutes de focus reculent/);
   assert.doesNotMatch(rested.insight, /inverse la pente/);
+  // Garde-fou §4 ter (#653) : un JOUR OÙ LE BLOC EST DÉJÀ POSÉ (doneToday), l'action bascule sur
+  // « Bloc de focus déjà posé aujourd'hui ✅ — savoure » ; la note de pente « un bloc aujourd'hui
+  // inverse la pente » la contredirait dos à dos (fais-en un vs c'est déjà fait). Elle est donc tue,
+  // mais focusTrend reste renvoyé (diagnostic factuel). Même volume que `down`, mais la 2ᵉ session
+  // récente est datée D'AUJOURD'HUI (07-16) au lieu d'avant-hier.
+  const doneToday = { focusSessions: [
+    { date: '2026-07-03', minutes: 40 }, { date: '2026-07-04', minutes: 40 }, { date: '2026-07-05', minutes: 40 }, { date: '2026-07-06', minutes: 40 },
+    { date: '2026-07-14', minutes: 30 }, { date: '2026-07-16', minutes: 30 } ] };
+  const fDone = L.adaptiveCoachFocus(doneToday, '2026-07-16');
+  assert.equal(fDone.pillar, 'focus');
+  assert.match(fDone.action, /déjà posé aujourd’hui/, 'action = crédit du bloc du jour');
+  assert.ok(fDone.focusTrend < 0, 'focusTrend renvoyé même bloc déjà posé');
+  assert.doesNotMatch(fDone.insight, /minutes de focus reculent/);
+  assert.doesNotMatch(fDone.insight, /inverse la pente/);
+  // Non-régression : même volume mais dernière session HIER (07-15) → doneToday false → la note revient.
+  const notDone = { focusSessions: [
+    { date: '2026-07-03', minutes: 40 }, { date: '2026-07-04', minutes: 40 }, { date: '2026-07-05', minutes: 40 }, { date: '2026-07-06', minutes: 40 },
+    { date: '2026-07-14', minutes: 30 }, { date: '2026-07-15', minutes: 30 } ] };
+  const fNotDone = L.adaptiveCoachFocus(notDone, '2026-07-16');
+  assert.match(fNotDone.insight, /inverse la pente/, 'la note de pente revient quand le bloc n’est pas déjà posé');
 });
 
 test('adaptiveCoachFocus : accorde le déterminant du headline (genre + élision)', () => {

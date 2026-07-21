@@ -3167,6 +3167,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.261', emoji: '🧠', text: 'Ton coach Focus ne te dit plus « fais un bloc aujourd’hui » un jour où tu en as DÉJÀ posé un. Quand ton temps de concentration recule d’une semaine à l’autre, il ajoutait dans son constat « Tes minutes de focus reculent : 160 → 60 min cette semaine (-100 min) — un bloc aujourd’hui inverse la pente. ». Mais si tu avais déjà bouclé un bloc de focus dans la journée, son conseil basculait juste en dessous sur « Bloc de focus déjà posé aujourd’hui ✅ — savoure ; si l’énergie est là, un second bloc te rapproche de l’objectif. » : « fais-en un » et « c’est déjà fait », dos à dos sur la même carte. Cette note de pente n’était protégée que contre les jours de tête à plat, pas contre le bloc déjà fait. Désormais elle se tait aussi ce jour-là (le coach crédite ton geste au lieu de radoter un ordre déjà exécuté) ; le chiffre de tendance reste calculé, et la note revient normalement les jours où tu n’as pas encore travaillé. (curation : une seule voix cohérente, retirer une contradiction vaut mieux qu’ajouter du texte)' },
   { v: '2.0.260', emoji: '💪', text: 'Ta carte « Charge de la semaine » (onglet Athlète) ne te dit plus, dans la même phrase, de te reposer ET de forcer. Quand ton dernier check-in est en récup basse (nuit courte, fatigue ou courbatures élevées) ET que ta charge récente est en baisse (ratio aigu/chronique bas), elle affichait « Récupération basse : garde la prochaine séance facile ou raccourcie. · Aiguë/chronique 0,72 (charge en baisse — tu peux remonter progressivement). » : « garde la séance facile » (repos) suivi aussitôt de « tu peux remonter progressivement » (pousse), deux moitiés qui se contredisaient. Les deux moitiés venaient de signaux indépendants (une nuit vs une tendance de charge) concaténés sans arbitrage. Désormais la récup prime — comme le fait déjà le conseil de charge de l’onglet : les jours de forme basse, la charge en baisse devient « remonte quand la forme sera revenue » au lieu d’une invitation à remonter tout de suite. Le ratio chiffré reste affiché (c’est un diagnostic), et rien ne change les jours où tu es reposé : « tu peux remonter progressivement » revient tel quel. (curation : une seule voix cohérente, la récup avant la charge)' },
   { v: '2.0.259', emoji: '🔗', text: 'Ton coach ne te rappelle plus DEUX fois la même habitude en jeu. Quand une de tes séries d’habitude risque de tomber (prévue aujourd’hui, pas encore cochée), ta carte « Le focus du moment » te le dit déjà — « Ne casse pas la chaîne : ton habitude « Méditation » tient depuis 12 jours… ». Mais le bandeau « À rattraper » juste à côté ajoutait, lui aussi, « 1 habitude à relancer avant de perdre la série » : deux rappels du même geste, dos à dos sur le tableau de bord. C’était un angle mort de la dédup : le rappel d’habitude est attaché à la carte quel que soit son sujet du jour (sport, focus, sommeil…), or la dédup ne savait retirer du bandeau que le SUJET principal de la carte — jamais cette note « en plus ». Désormais, dès que la carte porte le rappel d’habitude, le bandeau ne le répète plus (il garde ses autres alertes). Un seul rappel, pas un doublon. Exception voulue : les jours où ta forme basse recadre la carte en « récupère » (elle n’affiche alors plus le rappel d’habitude), le bandeau le conserve pour ne pas perdre le signal. (curation : retirer une redondance vaut mieux qu’ajouter du texte)' },
   { v: '2.0.258', emoji: '🌙', text: 'Ta carte « Plan de recalage du sommeil » ne t’annonce plus deux fois de suite que ton objectif est atteint. Quand tu te couches enfin à ton heure cible, la carte affichait « Objectif 23:30 atteint. » puis, juste en dessous, le bandeau festif « 🎉 Objectif atteint : tu te couches désormais vers ton heure cible (23:30). Tiens ce rythme… » — deux fois « objectif atteint » et deux fois l’heure, dos à dos. Désormais la ligne d’arrivée laisse le bandeau 🎉 porter seul la nouvelle : elle ne garde que l’info distincte (« Coucher réel récent : 23:35. »), et disparaît si elle n’a rien d’autre à dire. Une seule célébration, pas un doublon. (curation : retirer une redondance vaut mieux qu’ajouter du texte)' },
@@ -6552,6 +6553,21 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     readinessNutriGuard = todayReadiness;
     insight += ` Un dernier repère pour aujourd’hui : ta forme est basse ce matin (readiness ${todayReadiness}/100), et les jours de fatigue sont ceux où l’assiette dérape le plus — le corps réclame du sucre rapide et la satiété se dérègle. C’est justement aujourd’hui que tenir l’essentiel compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales bien mieux que la volonté sur une réserve vide.`;
   }
+  // Coach CONSCIENT du « déjà fait aujourd'hui » : quand le pilier choisi a une entrée ACTIVE datée
+  // d'AUJOURD'HUI, lui ordonner « fais-le aujourd'hui » est contradictoire — Adrien vient de le faire.
+  // Le coach crédite alors le geste du jour et réoriente vers la consolidation, au lieu de radoter un
+  // ordre déjà exécuté (le pire bug de crédibilité d'un coach). Limité au SPORT et au FOCUS : là, une
+  // entrée du jour = l'activité est faite, rien de plus n'est requis aujourd'hui. Volontairement EXCLUS :
+  // le SOMMEIL (une nuit notée = celle d'HIER ; l'action porte sur le coucher de CE SOIR, encore à venir)
+  // et la NUTRITION (« actif » y est trop lâche — protéines > 0 ne veut pas dire cible atteinte ; son
+  // bloc enrichi gère déjà l'état du jour vis-à-vis de la cible). On calcule tôt (AVANT le bloc focus)
+  // pour couper à la fois la micro-marche ET la note de pente « un bloc aujourd'hui inverse la pente »
+  // (§4 ter, cf. plus bas) : inutile de dire « fais un bloc » un jour où le geste est justement posé.
+  let doneToday = false;
+  if (chosen.pillar === 'sport' || chosen.pillar === 'focus') {
+    const list = Array.isArray(chosen.list) ? chosen.list : [];
+    doneToday = list.some(e => e && e.date === todayKey && chosen.active(e));
+  }
   // Focus ENRICHI (le pilier focus était le SEUL encore générique — cf. #465/#466). Comme le sport
   // lit la readiness et la nutrition la cible protéines, le focus lit la RÉPARTITION réelle du temps
   // de concentration par tâche (focusByTask sur 14 j — même fenêtre que la dynamique). Quand une
@@ -6644,29 +6660,18 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           // de trancher « un focus court et facile aujourd'hui, soigne ta récup — l'esprit frais rattrapera
           // ces minutes bien plus vite ». Enchaîner « un bloc aujourd'hui inverse la pente » CONTREDIT ce
           // frein de front (pousse vs freine le même jour) — exact anti-pattern §4 ter, invisible tant que
-          // chaque clause est testée seule. On garde focusTrend (diagnostic factuel TOUJOURS renvoyé) mais
-          // on TAIT la poussée les jours reposés : « retirer une note en vaut souvent deux ajoutées » (§3).
-          if (!focusRested) insight += ` Tes minutes de focus reculent : ${ft.prev} → ${ft.recent} min cette semaine (${ft.delta} min) — un bloc aujourd’hui inverse la pente.`;
+          // chaque clause est testée seule. DEUXIÈME garde `!doneToday` : un jour où un bloc de focus EST
+          // DÉJÀ posé (entrée active du jour), l'action bascule plus bas sur « Bloc déjà posé ✅ — savoure »
+          // (crédit du jour) ; « un bloc aujourd'hui inverse la pente » la contredit dos à dos (fais-en un
+          // vs c'est déjà fait). On garde focusTrend (diagnostic factuel TOUJOURS renvoyé) mais on TAIT la
+          // poussée les jours reposés OU déjà bouclés : « retirer une note en vaut souvent deux » (§3).
+          if (!focusRested && !doneToday) insight += ` Tes minutes de focus reculent : ${ft.prev} → ${ft.recent} min cette semaine (${ft.delta} min) — un bloc aujourd’hui inverse la pente.`;
         } else if (ft.dir === 'up' && tone === 'reinforce') {
           focusTrend = ft.delta;
           insight += ` Et le volume grimpe : ${ft.prev} → ${ft.recent} min de focus cette semaine (+${ft.delta} min) — tu montes en puissance, garde le cap.`;
         }
       }
     }
-  }
-  // Coach CONSCIENT du « déjà fait aujourd'hui » : quand le pilier choisi a une entrée ACTIVE datée
-  // d'AUJOURD'HUI, lui ordonner « fais-le aujourd'hui » est contradictoire — Adrien vient de le faire.
-  // Le coach crédite alors le geste du jour et réoriente vers la consolidation, au lieu de radoter un
-  // ordre déjà exécuté (le pire bug de crédibilité d'un coach). Limité au SPORT et au FOCUS : là, une
-  // entrée du jour = l'activité est faite, rien de plus n'est requis aujourd'hui. Volontairement EXCLUS :
-  // le SOMMEIL (une nuit notée = celle d'HIER ; l'action porte sur le coucher de CE SOIR, encore à venir)
-  // et la NUTRITION (« actif » y est trop lâche — protéines > 0 ne veut pas dire cible atteinte ; son
-  // bloc enrichi gère déjà l'état du jour vis-à-vis de la cible). On calcule tôt pour couper aussi la
-  // micro-marche : inutile de dire « tu ignores mes caps » un jour où le geste est justement posé.
-  let doneToday = false;
-  if (chosen.pillar === 'sport' || chosen.pillar === 'focus') {
-    const list = Array.isArray(chosen.list) ? chosen.list : [];
-    doneToday = list.some(e => e && e.date === todayKey && chosen.active(e));
   }
   // Coach CONSCIENT de la TENDANCE de readiness — le pendant CUMULATIF, côté RÉCUP, de la readiness
   // du jour (#463). readinessScore lit la forme d'AUJOURD'HUI, sur UNE nuit ; readinessTrend lit la
@@ -7687,7 +7692,8 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   }
   // Crédit du jour (placé EN DERNIER pour primer sur les actions « fais X » — génériques, readiness,
   // tâche phare, renfort) : le geste étant posé, l'action devient une consolidation légère. L'insight
-  // (tendance hebdo) reste vrai et intact ; seule l'action, qui donnait un ordre déjà exécuté, change.
+  // ne pousse plus « fais un bloc » — la note de pente est gardée `!doneToday` en amont (cf. bloc focus)
+  // pour ne pas contredire ce crédit ; seule l'action, qui donnait un ordre déjà exécuté, change ici.
   if (doneToday) {
     action = chosen.pillar === 'sport'
       ? 'Séance déjà faite aujourd’hui 💪 — verrouille avec 5 min d’étirements, le reste c’est de la récup bien méritée.'
