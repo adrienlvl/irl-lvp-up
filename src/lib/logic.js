@@ -3873,8 +3873,11 @@ function programWeekSummary(week) {
 // données absentes. Pur + testé.
 function macroBreakdown(nutri) {
   const n = nutri && typeof nutri === 'object' ? nutri : null;
-  if (!n || !(Number(n.proteinG) > 0)) return [];
-  const kcal = Math.max(1, Number(n.dailyTarget) || 0);
+  // Sans cible calorique positive, le % n'a pas de dénominateur : plutôt que de retomber sur 1 kcal
+  // (→ des pourcentages absurdes façon 60000 %), on rend [] comme pour un objet vide. Contrat cohérent
+  // avec les autres garde-fous ({proteinG:0}, {dailyTarget} seul → []).
+  if (!n || !(Number(n.proteinG) > 0) || !(Number(n.dailyTarget) > 0)) return [];
+  const kcal = Number(n.dailyTarget);
   const pctOf = (g, perG) => Math.round((Number(g) || 0) * perG / kcal * 100);
   return [
     { key: 'protein', emoji: '🥩', label: 'Protéines', grams: Math.round(Number(n.proteinG) || 0), role: 'construit et répare le muscle', pct: pctOf(n.proteinG, 4) },

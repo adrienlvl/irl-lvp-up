@@ -5648,6 +5648,10 @@ test('macroBreakdown : détail des macros avec rôle et % des calories', () => {
   assert.deepEqual(L.macroBreakdown(null), []);
   assert.deepEqual(L.macroBreakdown({ dailyTarget: 2000 }), []);
   assert.deepEqual(L.macroBreakdown({ proteinG: 0 }), []);
+  // Cible calorique absente ou nulle → [] (pas de dénominateur) : sinon le % retombait sur 1 kcal
+  // et sortait des valeurs absurdes (60000 %). Complète le contrat défensif de la fonction.
+  assert.deepEqual(L.macroBreakdown({ proteinG: 150, carbG: 200, fatG: 60 }), []);
+  assert.deepEqual(L.macroBreakdown({ proteinG: 150, dailyTarget: 0 }), []);
 });
 test('wellnessRoutine : routines de mobilité/récup en secondes', () => {
   assert.ok(Array.isArray(L.WELLNESS_ROUTINES) && L.WELLNESS_ROUTINES.length >= 5);

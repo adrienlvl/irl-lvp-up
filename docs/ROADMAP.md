@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.271 (2026-07-22)
 
+> 🧪 **#665 — `macroBreakdown` : le contrat défensif exige enfin une cible calorique (pas de bump).**
+> Mission nuit = robustesse/tests, PAS de design. Rotation §4 bis (5 derniers : `athlete, robustesse,
+> alternance, fondations, fondations`) → priorité n°1 robustesse **bloquée** (#663) → pris priorité n°2
+> **couverture de tests** (domaine `tests`, libre). Chasse au bug cas-limite (sous-agent + revue perso,
+> chaque candidat recalculé à la main « vert ≠ bon ») : code exceptionnellement gardé, **aucun bug
+> atteignable**. Seul défaut observable retenu : un **trou dans le contrat défensif** de `macroBreakdown`
+> (`logic.js:3874`) — il rend `[]` pour `null`/`{dailyTarget}` seul/`{proteinG:0}` mais laissait passer
+> `{proteinG:150}` **sans `dailyTarget`** → `kcal` retombe sur `Math.max(1,…)=1` → `pct = [60000, 80000,
+> 54000] %`. **Inatteignable en prod** (seul appelant `renderOnboardingPreview` passe `objectiveNutrition`
+> où `dailyTarget = max(bmr,…) > 0`) → aucun effet utilisateur → **pas de bump** (§2.6). Garde-fou ajouté
+> (`… || !(Number(n.dailyTarget) > 0)) return []`), `Math.max(1,…)` mort remplacé par la valeur ; +2 tests
+> verrouillant le contrat (échouent avant, passent après). 578 tests + SMOKE OK. Recap #665.
+> _Domaine : tests._ Master seulement. **Lot 2.0.263→271 en attente de release (Adrien contrôle).**
+>
 > 🏋️ **#664 — Séance guidée : la cible suit la récup LIVE à la reprise (build 2.0.271).** Priorité de nuit =
 > coaching, mission non-visuelle. Rotation §4 bis (5 derniers par domaine : `robustesse, alternance, fondations,
 > fondations, fondations`) → `athlete` libre. Candidat #652 resté ouvert, prouvé par lecture : `renderGuidedWorkout`
