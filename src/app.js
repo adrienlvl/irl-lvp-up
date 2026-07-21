@@ -645,7 +645,11 @@ function renderSleepPlan(){const el=$('#sleepPlan');if(!el||typeof sleepPlanDay!
   if(day.reached){statusHtml=`<div class="sp-status sp-reached">🎉 Objectif atteint : tu te couches désormais vers ton heure cible (${goal}). Tiens ce rythme — la régularité est ce qui l’ancre.</div>`;}
   else if(day.status==='behind'){statusHtml=`<div class="sp-status sp-behind">On adapte : tu es un peu en retard sur le plan, alors on ne vise qu’un pas depuis ton rythme actuel. Pas de culpabilité — l’arrivée recule juste un peu.</div>`;}
   else if(day.status==='ahead'){statusHtml=`<div class="sp-status sp-ahead">En avance sur le plan 💪 — tu peux tenir cette cible tranquillement, inutile de forcer davantage.</div>`;}
-  const arrival=day.daysLeft>0?`Objectif <b>${goal}</b> · arrivée estimée le <b>${ddmm(day.arrivalKey)}</b> (dans ${day.daysLeft} jour${day.daysLeft>1?'s':''}).`:`Objectif <b>${goal}</b> atteint.`;
+  // Quand l'objectif est atteint (daysLeft=0), le bandeau festif « 🎉 Objectif atteint » (sp-reached)
+  // juste en dessous porte déjà l'info : la ligne d'arrivée ne répète PAS « Objectif … atteint »
+  // (doublon dos à dos, §3/§4 ter) — elle ne garde que le coucher réel récent, chiffré et distinct.
+  const arrival=day.daysLeft>0?`Objectif <b>${goal}</b> · arrivée estimée le <b>${ddmm(day.arrivalKey)}</b> (dans ${day.daysLeft} jour${day.daysLeft>1?'s':''}).`:'';
+  const arrivalLine=[arrival,day.recentTime?`Coucher réel récent : ${day.recentTime}.`:''].filter(Boolean).join(' ');
   const adh=(typeof sleepPlanAdherence==='function')?sleepPlanAdherence(state.sleepPlan,state.recovery,today,7):null;
   const adhHtml=(adh&&adh.nights>0)?`<div class="sp-adherence">🌙 Nuits dans le plan : <b>${adh.met}/${adh.nights}</b> (${adh.rate} %)${adh.streak>=2?`<span class="sp-streak">🔥 ${adh.streak} d’affilée</span>`:''}</div>`:'';
   const aim=day.reached?goal:day.targetTime;
@@ -654,7 +658,7 @@ function renderSleepPlan(){const el=$('#sleepPlan');if(!el||typeof sleepPlanDay!
   el.innerHTML=`<div class="sp-head"><b>🌙 Plan de recalage</b><small>départ ${startT} · −${day.stepMin} min / ${day.stepDays>1?day.stepDays+' j':'jour'}</small></div>`
     +(day.reached?'':`<div class="sp-target"><span class="sp-time">${day.targetTime}</span><span class="sp-time-lbl">coucher cible ce soir${day.adapted?' (adapté)':''}</span></div>`)
     +`<div class="sp-bar"><i style="width:${day.progress}%"></i></div>`
-    +`<p class="sp-arrival">${arrival}${day.recentTime?` Coucher réel récent : ${day.recentTime}.`:''}</p>`
+    +(arrivalLine?`<p class="sp-arrival">${arrivalLine}</p>`:'')
     +statusHtml+adhHtml+tipsHtml
     +`<div class="sp-actions"><button id="spEditBtn" class="secondary-button">⚙️ Ajuster</button><button id="spStopBtn" class="secondary-button">Arrêter</button></div>`;
   $('#spEditBtn').onclick=()=>{sleepPlanEditing=true;renderSleepPlan();};

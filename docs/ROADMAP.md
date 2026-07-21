@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.257 (2026-07-21)
+## 📍 État actuel — build 2.0.258 (2026-07-21)
 
+> 🌙 **#650 — Plan de recalage sommeil : plus de double « Objectif atteint » (build 2.0.258).**
+> Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `nutrition, athlete, coach,
+> focus, athlete`) → `focus`/`athlete` (2 derniers) et `athlete` (2×) exclus ; `coach`/`nutrition` permis
+> (nutrition proposition-gated #645/#619) ; **`sommeil`** pris (0× sur 5, domaine de coaching le plus
+> frais, angle NEUF). Redondance §3 **intra-carte** prouvée en rendu chargé (§4 ter) : sur la carte
+> « 🌙 Plan de recalage » (`renderSleepPlan`), quand l'objectif est atteint (`sleepPlanDay(...).reached`,
+> `logic.js:10301` → `daysLeft=0`), la ligne d'arrivée disait « Objectif **23:30** atteint. » juste
+> au-dessus du bandeau festif « 🎉 **Objectif atteint** : … heure cible **(23:30)**. » (`app.js:645`) —
+> deux fois « atteint », deux fois l'heure, dos à dos, sans garde. Distinct de #642 (opposait bilan↔plan,
+> exigeait plan actif) et #647 (dédup insight↔action). Correctif (curation §3, zéro champ, rendu seul) :
+> la ligne d'arrivée n'émet plus « Objectif … atteint » quand `daysLeft=0` (le bandeau 🎉 le porte déjà) et
+> ne garde que le coucher réel récent chiffré (info distincte), `<p>` masqué s'il est vide. Aucune fonction
+> pure touchée. §4 ter : carte relue → une seule célébration. Nouveau check smoke bloquant
+> `sleepReachedDedup` (« atteint » 1× dans `#sleepPlan` + coucher récent conservé). 574 tests + smoke verts.
+> Recap #650. _Domaine : sommeil._
+>
 > 💪 **#649 — Fraîcheur musculaire : plus de « journée légère » quand des groupes n'ont jamais été
 > travaillés (build 2.0.257).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro :
 > `focus, coach, athlete, nutrition, coach`) → `focus`/`coach` (2 derniers) et `coach` (2×) exclus ;
