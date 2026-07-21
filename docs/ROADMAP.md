@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.235 (2026-07-21)
+## 📍 État actuel — build 2.0.236 (2026-07-21)
 
+> 🏃 **#626 — La montée de kilométrage ne crie plus « risque de blessure » sur base minuscule (build
+> 2.0.236).** Priorité de nuit = coaching, mais **`nutrition` ET `coach` bloqués** par la rotation §4 bis
+> (les 2 derniers recaps ; `coach` 2× sur 5). Domaine pris : **`athlete`** (absent des 5 derniers), au
+> service du MANDAT COACHING ÉLITE (running/trail). Défaut prouvé par lecture + rendu : `weeklyKmRamp`
+> classe `zone: 'high'` dès `rampPct > 30` **sans plancher de base**, et les DEUX surfaces d'affichage
+> (`#trailRamp` app.js:158, `#runWeekGoal` app.js:666) rendaient ce `high` brut en alerte blessure — si
+> bien qu'un **4 → 9 km** (+125 % par arithmétique) déclenchait le même « ⚠️ risque de blessure, lève le
+> pied » qu'un 20 → 30 km, alors que le coach (`runVolumeGuard`) exige **déjà** `lastWeekKm >= 10`. Faux
+> pic jumeau de l'ACWR 1re semaine (#622) + incohérence entre surfaces. Correctif (curation, plancher
+> réutilisé) : `weeklyKmRamp` gagne `onBase = lastWk >= 10` (`RUN_RAMP_BASE_KM`, `zone` **inchangée**) ;
+> quand `high && !onBase`, les 2 bannières basculent en « 📈 tu bâtis ta base — augmente en douceur
+> (~+10%/sem.) » (classe build, plus de rouge). Dès `lastWeekKm ≥ 10`, l'alerte blessure revient à
+> l'identique. Coach non touché (aucun ripple). §4 ter : rendus cumulés relus (base 4 vs base 20) →
+> honnêtes. 568 tests (test `weeklyKmRamp` étendu) + 2 checks smoke bloquants (`kmRamp`+`onBase`,
+> `runRampSoften` qui pilote le rendu) verts. Recap #626. _Domaine : athlete._
+>
 > 🎯 **#625 — Coach Poids : la préservation du muscle n'est plus dite deux fois de suite (build
 > 2.0.235).** Domaine `nutrition` (frais ; `coach`/`sommeil`/`robustesse` bloqués par la rotation §4 bis —
 > la priorité de nuit coaching tombe sous §3 qui soumet `coach` à la rotation). Redondance §4 ter prouvée

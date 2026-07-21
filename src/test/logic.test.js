@@ -4982,11 +4982,17 @@ test('weeklyKmRamp : progression du kilométrage semaine sur semaine', () => {
   const rm = L.weeklyKmRamp(w, '2026-07-10');
   assert.equal(rm.thisWeekKm, 25); assert.equal(rm.lastWeekKm, 20);
   assert.equal(rm.rampPct, 25, '(25-20)/20'); assert.equal(rm.zone, 'build');
-  // hausse rapide
-  assert.equal(L.weeklyKmRamp([{ type: 'run', date: '2026-07-09', distance: 30 }, { type: 'run', date: '2026-07-01', distance: 10 }], '2026-07-10').zone, 'high');
-  // pas de semaine précédente → start
+  assert.equal(rm.onBase, true, 'base 20 km ≥ 10 → onBase');
+  // hausse rapide sur VRAIE base (10 km la semaine passée) → high + onBase
+  const highBase = L.weeklyKmRamp([{ type: 'run', date: '2026-07-09', distance: 30 }, { type: 'run', date: '2026-07-01', distance: 10 }], '2026-07-10');
+  assert.equal(highBase.zone, 'high'); assert.equal(highBase.onBase, true);
+  // même % de hausse sur base MINUSCULE (4 km) : zone 'high' par arithmétique, mais onBase false
+  // → à afficher comme construction de base, pas comme risque de blessure (jumeau du faux pic #622).
+  const highTiny = L.weeklyKmRamp([{ type: 'run', date: '2026-07-09', distance: 9 }, { type: 'run', date: '2026-07-01', distance: 4 }], '2026-07-10');
+  assert.equal(highTiny.zone, 'high'); assert.equal(highTiny.rampPct, 125); assert.equal(highTiny.onBase, false);
+  // pas de semaine précédente → start (onBase false, base 0)
   const start = L.weeklyKmRamp([{ type: 'run', date: '2026-07-09', distance: 8 }], '2026-07-10');
-  assert.equal(start.zone, 'start'); assert.equal(start.rampPct, null);
+  assert.equal(start.zone, 'start'); assert.equal(start.rampPct, null); assert.equal(start.onBase, false);
   assert.equal(L.weeklyKmRamp([], '2026-07-10'), null);
   assert.equal(L.weeklyKmRamp(w, 'x'), null);
 });
@@ -6000,7 +6006,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.235');
+  assert.equal(L.CHANGELOG[0].v, '2.0.236');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -3110,6 +3110,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.236', emoji: '🏃', text: 'Ta bannière de montée de kilométrage de course ne crie plus « risque de blessure » quand tu débutes. Sur tes cartes « Course cette semaine » et « Course · données réelles », dès que ta semaine dépassait de +30 % la précédente, elle affichait « ⚠️ hausse rapide — risque de blessure, lève le pied ». Le hic : passer de 4 à 9 km (un + 125 % énorme en pourcentage) déclenchait la MÊME alerte alarmante que passer de 20 à 30 km — alors que 9 km de course dans la semaine ne met tes tendons et tes os en danger à peu près jamais. C’est de l’arithmétique sur une petite base, pas un vrai risque (le même piège que le faux « pic de charge » de la première semaine, déjà corrigé). Désormais, tant que la semaine précédente est sous 10 km (le seuil que ton coach utilise déjà), une forte hausse s’affiche comme ce qu’elle est vraiment : « 📈 tu bâtis ta base — augmente en douceur (~+10 %/sem.) ». Dès que tu cours sur une vraie base (≥ 10 km/sem.), le vrai garde-fou blessure revient à l’identique. Encourageant quand tu construis, prudent quand ça compte.' },
   { v: '2.0.235', emoji: '🎯', text: 'Sur ta carte « Coach Poids », quand ta cible de perte est importante (au moins 10 % de ton poids) et que ton objectif est l’endurance ou l’athlétisme, le conseil ne te répétait plus deux fois la même chose à la suite. Il affichait « … garde 2 g de protéines/kg et maintiens la musculation pour ne pas fondre du muscle. » puis, juste en dessous, « Pour perdre sans fondre : garde la musculation, vise ~2 g de protéines/kg… » — deux notes quasi identiques collées l’une à l’autre. C’est nettoyé : une seule note désormais, qui réunit tout (protéines, musculation ET « ne descends pas sous ton métabolisme de base »). Rien perdu, une redite en moins. Les autres cas (perte plus modérée, sèche, prise de muscle) gardent exactement leurs conseils.' },
   { v: '2.0.234', emoji: '✍️', text: 'Ton coach « Le focus du moment » accorde enfin ses titres. Quand il mettait ta NUTRITION en avant, il écrivait « Ton nutrition s’essouffle » ou « Reprends le nutrition » — deux fautes de genre, « nutrition » étant féminin. Et sur l’entraînement, « Reprends le entraînement » oubliait l’élision. C’est corrigé : « Ta nutrition s’essouffle », « Reprends la nutrition », « Reprends l’entraînement ». Les autres piliers (« Ton entraînement », « Reprends le focus », « Ton sommeil ») ne changent pas. Le fond du conseil est identique — juste un français correct, comme le coach l’écrivait déjà ailleurs (« ta nutrition (en recul) »).' },
   { v: '2.0.233', emoji: '🌙', text: 'Ton « Bilan sommeil » ne te certifie plus un « rythme régulier » qu’il n’a pas encore mesuré. Quand ta durée de sommeil est correcte, il concluait « Sommeil solide : moy. X h, rythme régulier » — même s’il ne disposait que d’UNE ou DEUX nuits chiffrées. Or on ne juge pas une régularité sur une seule nuit : il faut au moins 3 nuits (ou 3 heures de coucher saisies) pour que l’écart-type veuille dire quelque chose. Affirmer « rythme régulier » dès la première nuit, c’est te promettre un constat que le coach n’a pas fait — exactement le genre de flatterie qu’un vrai coach s’interdit. Désormais, tant qu’il y a moins de 3 nuits, le bilan salue honnêtement la durée (« Bon sommeil : moy. X h ») et t’invite à continuer tes check-ins pour pouvoir juger ton rythme. Dès 3 nuits (ou 3 couchers) renseignés, le verdict « rythme régulier » revient — mais cette fois il est réellement mesuré. Un mot juste à la place d’une certitude prématurée.' },
@@ -9123,9 +9124,17 @@ function trailReadiness(workouts, todayKey) {
   return { weekKm: Math.round(week * 10) / 10, monthKm: Math.round(month * 10) / 10, runs, longRun };
 }
 
+// Plancher de kilométrage sous lequel un % de hausse n'est PAS un signal de blessure : à faible volume
+// absolu (quelques km), la charge sur les tendons/os reste triviale et un « +125 % » n'est que de
+// l'arithmétique sur une petite base (même piège que le faux pic ACWR de la 1re semaine, #622). 10 km
+// est le seuil déjà retenu par le coach (`runVolumeGuard`, « au moins 10 km la semaine précédente »,
+// cf. règle des +10 %/sem. — Nielsen 2014, périostite/fracture de fatigue liées au VOLUME réel).
+const RUN_RAMP_BASE_KM = 10;
 // Progression du volume de course semaine sur semaine (règle des +10 %/sem).
-// this = km sur 0-6 j, last = km sur 7-13 j. Renvoie {thisWeekKm, lastWeekKm, rampPct, zone}
+// this = km sur 0-6 j, last = km sur 7-13 j. Renvoie {thisWeekKm, lastWeekKm, rampPct, zone, onBase}
 // zone : start (pas de semaine précédente) · high (>30 %) · build (10-30 %) · steady (-10..10 %) · down (<-10 %).
+// onBase : la semaine précédente atteint-elle un vrai volume (≥ RUN_RAMP_BASE_KM) ? Un « high » à onBase
+// false est une montée sur base minuscule → à afficher comme construction de base, pas comme risque.
 // Null si aucun km sur les deux semaines. Pur + testé.
 function weeklyKmRamp(workouts, todayKey) {
   const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
@@ -9142,10 +9151,10 @@ function weeklyKmRamp(workouts, todayKey) {
   });
   thisWk = Math.round(thisWk * 10) / 10; lastWk = Math.round(lastWk * 10) / 10;
   if (thisWk === 0 && lastWk === 0) return null;
-  if (lastWk === 0) return { thisWeekKm: thisWk, lastWeekKm: 0, rampPct: null, zone: 'start' };
+  if (lastWk === 0) return { thisWeekKm: thisWk, lastWeekKm: 0, rampPct: null, zone: 'start', onBase: false };
   const rampPct = Math.round((thisWk - lastWk) / lastWk * 100);
   const zone = rampPct > 30 ? 'high' : rampPct >= 10 ? 'build' : rampPct >= -10 ? 'steady' : 'down';
-  return { thisWeekKm: thisWk, lastWeekKm: lastWk, rampPct, zone };
+  return { thisWeekKm: thisWk, lastWeekKm: lastWk, rampPct, zone, onBase: lastWk >= RUN_RAMP_BASE_KM };
 }
 // Progression du volume de course de la semaine (lundi→aujourd'hui) vers l'objectif hebdo (goalKm, en km).
 // Renvoie { km, goalKm, pct (0-100), remaining, reached } ou null si objectif absent (≤ 0) ou date invalide.
