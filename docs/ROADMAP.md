@@ -23,8 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.266 (2026-07-21)
+## 📍 État actuel — build 2.0.267 (2026-07-21)
 
+> 📉 **#659 — Sparklines : aire dégradée sous la courbe (build 2.0.267).** Passe qualité UI **5/N**. `sparkLineSvg`
+> (app.js) ne traçait qu'un trait → ajout d'une **aire remplie par un `<linearGradient>`** vertical (opacity 0,28→0)
+> de la couleur de la donnée, id unique par appel (`_sparkUid`) contre les collisions ; trait net conservé ; pas de
+> point terminal (svg `preserveAspectRatio=none` → cercle deviendrait ellipse). 2 usages (taille, sommeil). Nouveau
+> check smoke **bloquant `sparkArea`**. **Piège rejoué et documenté** : 1ʳᵉ version du check en regex passait au
+> navigateur mais échouait en smoke Electron — la template literal des checks **mange les backslashes** (`\d`/`\(`),
+> exactement le piège VPS-AUTOPILOT §6 ; réécrit sans regex (`includes`/`split`). 577 tests + SMOKE OK. Artifact
+> avant/après. _Domaine : fondations_ (série UI). **Note : `barChartSvg` (bien plus d'usages) = itération dédiée
+> future.** Master seulement.
+>
 > 📊 **#658 — Stats du dashboard : disques colorés + libellés capitales (build 2.0.266).** Passe qualité UI **4/N**.
 > Cible visée = séance guidée (demande Adrien) mais inspection navigateur → **déjà bien traitée** (hero, repos
 > dégradé, lignes de séries à badge, next lime) → pivot vers surface plus faible : les cartes `.stat`

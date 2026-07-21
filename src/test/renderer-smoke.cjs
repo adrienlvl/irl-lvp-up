@@ -506,6 +506,14 @@ app.whenReady().then(async () => {
           return s.length === 3 && s[0].value === 88 && s[2].value === 84
             && /<path/.test(sparkLineSvg(s.map(p => ({ label: p.date, value: p.value })))) && sparkLineSvg([{ value: 1 }]) === '';
         })(),
+        sparkArea: typeof sparkLineSvg === 'function' && (() => {
+          const svg = sparkLineSvg([{ value: 1 }, { value: 3 }, { value: 2 }], { color: '#818cf8' });
+          // aire dégradée sous la courbe + trait : linearGradient référencé par un fill url(#sk…), 2 <path>, id unique par appel.
+          // NB : pas de regex ici — ce bloc est une template literal, qui mange les backslashes (\d/\( cassés). includes/split only.
+          const a = sparkLineSvg([{ value: 1 }, { value: 2 }]), b = sparkLineSvg([{ value: 1 }, { value: 2 }]);
+          return svg.includes('<linearGradient') && svg.includes('fill="url(#sk') && (svg.split('<path').length - 1) === 2
+            && a !== b && sparkLineSvg([{ value: 1 }]) === '';
+        })(),
         kitchen: typeof generateMeals === 'function' && !!document.getElementById('pantryList') && !!document.getElementById('mealSuggestions') && !!document.getElementById('envieStyles'),
         shopping: typeof buildShoppingList === 'function' && !!document.getElementById('shoppingBlock') && !!document.getElementById('shoppingList') && !!document.getElementById('copyShoppingBtn'),
         shoppingCheck: typeof remainingShopping === 'function' && !!document.getElementById('shoppingRemaining') && remainingShopping([{ label: 'a' }, { label: 'b' }], { a: true }) === 1,
@@ -861,7 +869,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.266'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.267'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2304,6 +2312,7 @@ app.whenReady().then(async () => {
     if (!checks.weightUpsertShared) errors.push('Dédup pesée/jour KO (upsertWeight non partagé par #addWeightButton)');
     if (!checks.measureUpsert) errors.push('Mensuration/jour KO (upsertMeasurement : doublon de date ou fusion des champs cassée)');
     if (!checks.measureSpark) errors.push('Sparkline mensurations KO (measurementSeries / sparkLineSvg / #measurementsSpark)');
+    if (!checks.sparkArea) errors.push('Sparkline sans aire dégradée (sparkLineSvg : linearGradient/fill url(#…)/2 <path>/id unique)');
     if (!checks.sleepSpark) errors.push('Sparkline sommeil KO (sleepSeries / sparkLineSvg / #sleepSpark)');
     if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / bedtimeRegularity / #sleepCoach)');
     if (!checks.sleepImpact) errors.push('Effet du coucher KO (sleepImpactReport / #sleepImpact / rendu)');
