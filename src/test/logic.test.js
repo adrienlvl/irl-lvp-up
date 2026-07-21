@@ -6131,7 +6131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.255');
+  assert.equal(L.CHANGELOG[0].v, '2.0.256');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7564,6 +7564,16 @@ test('adaptiveCoachFocus : nuance le focus par la pente de son volume', () => {
   // Hors pilier focus → focusTrend null (sport seul actif).
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-10' }, { date: '2026-07-12' }] }, '2026-07-16');
   assert.equal(sport.focusTrend, null);
+  // Garde-fou §4 ter (#648) : un JOUR DE TÊTE À PLAT (readiness < 50 → focusMarginDrained/Drained) coupe la
+  // POUSSÉE de la note de pente, comme #588 l'a fait côté action. Le frein vient de dire « un focus léger, une
+  // vraie pause suffit » ; « un bloc aujourd'hui inverse la pente » le contredirait de front. focusTrend reste
+  // renvoyé (diagnostic factuel), mais le texte de poussée disparaît.
+  const rested = L.adaptiveCoachFocus({ focusSessions: down.focusSessions, recovery: [{ date: '2026-07-16', sleep: 5, fatigue: 4, soreness: 4 }] }, '2026-07-16');
+  assert.equal(rested.pillar, 'focus');
+  assert.ok(rested.focusMarginDrained != null || rested.focusGoalDrained != null, 'frein readiness levé');
+  assert.ok(rested.focusTrend < 0, 'focusTrend renvoyé même reposé');
+  assert.doesNotMatch(rested.insight, /minutes de focus reculent/);
+  assert.doesNotMatch(rested.insight, /inverse la pente/);
 });
 
 test('adaptiveCoachFocus : accorde le déterminant du headline (genre + élision)', () => {

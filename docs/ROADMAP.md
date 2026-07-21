@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.255 (2026-07-21)
+## 📍 État actuel — build 2.0.256 (2026-07-21)
 
+> 🧠 **#648 — Coach Focus : plus de « fais un bloc aujourd'hui » un jour de tête à plat (build 2.0.256).**
+> Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `coach, athlete, nutrition, coach,
+> athlete`) → `coach`/`athlete` (2×) exclus ; `nutrition` permis mais proposition-gated (#645/#619 en
+> attente) ; **`focus`** pris (0× sur 5, domaine de coaching frais), angle NEUF. Contradiction dos-à-dos
+> **DANS l'insight** prouvée en rendu chargé (§4 ter) : le garde-fou `focusRested` de #588
+> (`logic.js:6574`) coupe les poussées côté ACTION un jour de readiness au plancher, mais la note de pente
+> `focusMinutesTrend` (branche `down`, `logic.js:6613`) vit dans l'INSIGHT et n'avait aucune garde → sur
+> minutes en recul + tone `rebuild` + check-in récup < 50 (`focusMarginDrained`/`focusGoalDrained`), le
+> coach disait « un focus léger, ou même une vraie pause, suffit » puis, deux phrases plus bas, « un bloc
+> aujourd'hui inverse la pente » (repose-toi… puis force). Correctif (curation §3, zéro champ) : branche
+> `down` gardée par `!focusRested` — `focusTrend` reste renvoyé (diagnostic factuel), seul le texte de
+> poussée est tu les jours reposés ; aucune note miroir ajoutée (le frein dit déjà « l'esprit frais
+> rattrapera ces minutes »). Non-régression : sans check-in, la note revient (cas `fDown` intact). §4 ter :
+> insight cumulé relu → une seule voix. 574 tests (bloc pente étendu) + smoke `coachFocus` étendu
+> (`fFocusDownRested`, bloquant). Recap #648. _Domaine : focus._
+>
 > 🌙 **#647 — Coach Focus : la consigne de coucher ne se répète plus dans l'insight ET l'action
 > (build 2.0.255).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `sommeil,
 > athlete, coach, nutrition, athlete`) → `nutrition`/`athlete` (2 derniers + athlete 2×) exclus ;
