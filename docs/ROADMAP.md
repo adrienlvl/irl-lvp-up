@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.236 (2026-07-21)
+## 📍 État actuel — build 2.0.237 (2026-07-21)
 
+> 😴 **#627 — Sommeil solide : le coach ne prescrit plus « coucher 30 min plus tôt » contre son propre
+> verdict (build 2.0.237).** Priorité de nuit = coaching (§3 QUALITÉ : contradiction insight↔action).
+> Rotation OK avant de coder : `coach` absent des 2 derniers recaps et 1× sur 5 → autorisé (`athlete`,
+> `nutrition` bloqués). Défaut prouvé par rendu : sur « Le focus du moment », quand le sommeil est le
+> pilier **sans plan de recalage**, l'action tombait toujours sur « Vise un coucher 30 min plus tôt ce
+> soir » — **y compris** quand le verdict certifie « Sommeil solide : moy. 8 h, rythme régulier »
+> (`sleepIns.tone === 'ok'` ⟹ durée ≥ 7 h ET non irrégulier). Le coach félicitait un sommeil suffisant
+> puis exigeait de le corriger : contradiction franche, jumelle de celles closes côté sport (#561→#585)
+> et focus (#588), mais **jamais traitée côté sommeil** — défaut même verrouillé par un test. Correctif
+> (curation §3, zéro champ) : une branche `else if (sleepIns.tone === 'ok')` donne une action de
+> **maintien** « Rien à corriger côté sommeil : garde cette même heure de coucher ce soir. » ; les tons
+> court/irrégulier et le plan de recalage gardent leur action corrective légitime. §4 ter : carte cumulée
+> relue (sommeil solide + série célébrée) → action alignée sur le verdict. 569 tests (+1 dédié, #8670
+> ajusté) + 1 check smoke bloquant verts. Recap #627. _Domaine : coach._
+>
 > 🏃 **#626 — La montée de kilométrage ne crie plus « risque de blessure » sur base minuscule (build
 > 2.0.236).** Priorité de nuit = coaching, mais **`nutrition` ET `coach` bloqués** par la rotation §4 bis
 > (les 2 derniers recaps ; `coach` 2× sur 5). Domaine pris : **`athlete`** (absent des 5 derniers), au

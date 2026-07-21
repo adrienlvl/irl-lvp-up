@@ -6006,7 +6006,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.236');
+  assert.equal(L.CHANGELOG[0].v, '2.0.237');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8692,8 +8692,38 @@ test('adaptiveCoachFocus : le crédit de suivi (reinforce) n’écrase pas l’a
   assert.equal(sleep.rotated, false);
   assert.equal(sleep.followThrough, 100, 'le suivi est bien crédité');
   assert.match(sleep.insight, /Tu as tenu 3\/3 de mes caps/, 'crédit du suivi conservé dans l’insight');
-  assert.match(sleep.action, /coucher 30 min plus tôt/, 'l’action pilier sommeil reste');
+  // Sommeil solide+régulier (sleepIns.tone 'ok') → action de MAINTIEN, pas une correction contradictoire.
+  assert.match(sleep.action, /garde cette même heure de coucher/, 'l’action pilier sommeil de maintien reste');
+  assert.doesNotMatch(sleep.action, /coucher 30 min plus tôt/, 'pas de correction quand le sommeil est déjà solide');
   assert.doesNotMatch(sleep.action, /jour actif de plus/, 'plus de slogan sportif sur un pilier sommeil');
+});
+
+test('adaptiveCoachFocus : sommeil solide (tone ok) → action de maintien, jamais « coucher 30 min plus tôt »', () => {
+  const today = '2026-07-16';
+  // Sommeil solide et régulier, en HAUSSE (pilier sommeil, tone reinforce ; sleepIns.tone 'ok'). Le
+  // verdict certifie « Sommeil solide … rythme régulier » : l’action ne doit pas prescrire de correction.
+  const recovery = [
+    { date: '2026-07-03', sleep: 7 }, { date: '2026-07-04', sleep: 7 },
+    { date: '2026-07-10', sleep: 8, bedtime: '23:10' }, { date: '2026-07-11', sleep: 8, bedtime: '23:05' },
+    { date: '2026-07-12', sleep: 8, bedtime: '23:00' }, { date: '2026-07-13', sleep: 8, bedtime: '22:55' },
+    { date: '2026-07-14', sleep: 8, bedtime: '22:50' }, { date: '2026-07-15', sleep: 8, bedtime: '22:45' },
+  ];
+  const f = L.adaptiveCoachFocus({ recovery }, today);
+  assert.equal(f.pillar, 'sommeil');
+  const si = L.sleepCoachInsight(recovery, today);
+  assert.equal(si.tone, 'ok', 'verdict sommeil solide');
+  assert.match(f.insight, /Sommeil solide/);
+  assert.match(f.action, /Rien à corriger côté sommeil : garde cette même heure de coucher/);
+  assert.doesNotMatch(f.action, /coucher 30 min plus tôt/);
+  // Contre-preuve : sommeil COURT mais régulier → l’action corrective légitime « coucher 30 min plus tôt » reste.
+  const short = [
+    { date: '2026-07-10', sleep: 6, bedtime: '01:00' }, { date: '2026-07-11', sleep: 6, bedtime: '01:05' },
+    { date: '2026-07-12', sleep: 6, bedtime: '00:55' }, { date: '2026-07-13', sleep: 6, bedtime: '01:00' },
+    { date: '2026-07-14', sleep: 6, bedtime: '01:00' }, { date: '2026-07-15', sleep: 6, bedtime: '00:58' },
+  ];
+  const fShort = L.adaptiveCoachFocus({ recovery: short }, today);
+  assert.equal(fShort.pillar, 'sommeil');
+  assert.match(fShort.action, /coucher 30 min plus tôt/, 'sommeil court+régulier garde son action corrective');
 });
 
 test('adaptiveCoachFocus : readinessDrag nomme le frein DOMINANT de la forme du jour', () => {
