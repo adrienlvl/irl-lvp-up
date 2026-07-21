@@ -25,6 +25,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.230 (2026-07-21)
 
+> 🔬 **#620 — Mesure P5 : arbitrage coach (`coachDayPriority`) + moteur alternance sondés → propres (sans
+> bump).** Priorité de nuit coaching (§3 qualité) ; `nutrition`/`etudes` bloqués par la rotation (§4 bis),
+> `coach`/`robustesse`/`sommeil` 1× → autorisés. Backlog nommé P1→P7 coché, propositions coaching (#619/#610)
+> et Cap 3.0 gated → méthode **P5 (mesurer, pas supposer)** plutôt qu'inventer. (1) `coachDayPriority` rendu
+> en **§4 ter sur état chargé** (couchers ~5 h, sommeil `urgent`, entretien au pipeline, examen BTS) : carte
+> **courte, non redondante, hiérarchisée** — alternance en n°1, sommeil déréglé remonté en « À rattraper »
+> sans doublon, `insight` 73 car. → **rien à curer** (le pavé §4 ter n'existe pas ici). (2) Fuzzer
+> d'invariants **30 000 états** sur `coachDayPriority` (dédup pilier couvert · `defer ⇒ reframed` · `reframed
+> ⇒ primary recup + defer` · readiness promu jamais en `deduped`) → **0 anomalie**. (3) Fuzzer **40 000
+> états** sur `applicationStats` (`weekReached`/`weekPct`/`responseRate` bornés · `streak > 0 ⇒ candidature
+> aujourd'hui/hier`) → **0 anomalie**. Deux observations de hiérarchisation remontées mais **délibérément
+> non modifiées** (elles engagent Adrien, §5) : l'ordre « postule » avant « prépare ton entretien » (le plus
+> sûr **sans date d'entretien** — statut `entretien` figé sinon ânonné), et l'absence de champ date
+> d'entretien (chantier UI/modèle). Résultat **négatif assumé** (§4 bis.5) documenté pour ne pas re-labourer.
+> 565 tests verts, aucun `src/` touché. Recap #620. _Domaine : robustesse._
+>
 > 🥩 **#619 — Proposition : la cible protéines ne monte pas en sèche active (préservation du muscle).**
 > Domaine `nutrition` (frais ; `coach`/`etudes` bloqués par la rotation §4 bis). Mandat coaching élite
 > (diététicien du sport, §1) + priorité de nuit. Manque prouvé : `proteinTarget` (barème générique de
