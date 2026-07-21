@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.248 (2026-07-21)
+## 📍 État actuel — build 2.0.249 (2026-07-21)
 
+> 🧊 **#640 — La décharge muscu « sur fatigue » se déclenche enfin (build 2.0.249).** Priorité de nuit =
+> coaching. Rotation §4 bis (5 derniers par mtime : `nutrition, coach, athlete, nutrition, alternance`) →
+> `nutrition` (2×) et `coach` (dans les 2 derniers) exclus ; **`athlete`** pris (1× sur 5, absent des 2
+> derniers), le mieux aligné avec la priorité de nuit (muscu) ; angle NEUF (les 2 pistes athlète #631 sont
+> closes en #633/#637). Bug de câblage prouvé (branche coach morte en prod) : `deloadRecommendation` (Bilan
+> hebdo) déclenche une décharge sur **accumulation** (5 sem. dures) OU **fatigue** (≥ 3 sem. dures + forme
+> basse `readiness < 45`). Or `app.js:494` lui passait l'**objet** `readinessScore({score,label})` là où la
+> fonction attend le **score** → `Number(objet)=NaN` → `readiness=null` → branche `fatigue` **jamais**
+> déclenchée (seule l'accumulation restait). Les 3 autres appels de `readinessScore` passent bien `.score` :
+> `app.js:494` était l'outlier. Cas nominal (3 sem. à 18 séries + check-in `{sleep:5,fatigue:5,soreness:5}`,
+> readiness ≈ 25) : la carte « 🧊 Décharge conseillée — ta forme baisse » ne s'affichait jamais. Correctif
+> (curation §3, zéro champ, des deux côtés) : fonction pure durcie (accepte nombre OU `{score}`) + appelant
+> aligné sur `.score`. §4 ter : carte rendue sur état fatigué chargé (advice « coupe le volume 40-50 % »,
+> cohérent). 571 tests (bloc `deloadRecommendation` étendu : forme objet) + check smoke **bloquant**
+> `deloadWiring` (rend `renderWeeklyReview`, exige « Décharge conseillée » + « forme baisse ») verts.
+> Recap #640. _Domaine : athlete._
+>
 > 🍽️ **#639 — Coach Poids : la cible d'ajustement ne descend plus jamais sous le métabolisme de base (build
 > 2.0.248).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers **par numéro** : `coach, athlete,
 > nutrition, alternance, coach`) → `coach` (2×, dont le dernier) et `athlete` (avant-dernier) exclus ;

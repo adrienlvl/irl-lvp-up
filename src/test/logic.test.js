@@ -4356,6 +4356,16 @@ test('deloadRecommendation : accumulation, semaine légère, fatigue, garde-fous
   assert.equal(fat.due, true);
   assert.equal(fat.reason, 'fatigue');
   assert.match(fat.advice, /forme baisse/);
+  // readiness accepté aussi en OBJET {score,label} (ce que readinessScore renvoie et que la carte
+  // du bilan hebdo passe) : Number(objet) donnait NaN → la branche 'fatigue' était morte en prod.
+  const fatObj = L.deloadRecommendation(
+    ['2026-07-22', '2026-07-15', '2026-07-08'].map(hard), today, { readiness: { score: 40, label: 'x' } });
+  assert.equal(fatObj.due, true);
+  assert.equal(fatObj.reason, 'fatigue');
+  // Objet sans score (readinessScore renvoie null si pas de check-in) → readiness ignoré, pas de fatigue.
+  const fatNullObj = L.deloadRecommendation(
+    ['2026-07-22', '2026-07-15', '2026-07-08'].map(hard), today, { readiness: { score: null } });
+  assert.equal(fatNullObj.due, false);
   // Mêmes 3 semaines sans signal de fatigue (readiness non fourni) → pas encore due.
   const noFat = L.deloadRecommendation(['2026-07-22', '2026-07-15', '2026-07-08'].map(hard), today);
   assert.equal(noFat.due, false);
@@ -6092,7 +6102,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.248');
+  assert.equal(L.CHANGELOG[0].v, '2.0.249');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

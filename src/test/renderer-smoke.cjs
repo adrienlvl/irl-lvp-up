@@ -316,6 +316,21 @@ app.whenReady().then(async () => {
           return rw && rw.xp === 15 && sleepBedtimeReward(plan, rec, '2026-07-18', '07:00') === null;
         })(),
         readiness: typeof readinessScore === 'function' && !!document.getElementById('recoveryScore') && readinessScore({ sleep: 8, fatigue: 1, soreness: 1 }).score === 100 && readinessScore(null) === null && readinessScore({ fatigue: 3, soreness: 3 }).score === 50 && readinessScore({ sleep: 8, fatigue: 3, soreness: 3 }).score === 70,
+        deloadWiring: typeof deloadRecommendation === 'function' && typeof renderWeeklyReview === 'function' && !!document.getElementById('weeklySets') && (() => {
+          // La décharge muscu « sur fatigue » (3 sem. dures + forme basse) doit s'afficher : le rendu
+          // passait l'OBJET readinessScore({score,label}) là où deloadRecommendation attend le score →
+          // Number(objet)=NaN → branche 'fatigue' morte, l'athlète fatigué ne voyait jamais l'alerte.
+          const pad = n => (n < 10 ? '0' + n : '' + n);
+          const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+          const hardWk = [7, 14, 21].map(off => ({ date: iso(off), exercises: [{ name: 'Gainage planche', sets: 18 }] }));
+          const lowRec = [{ date: localDate(), sleep: 5, fatigue: 5, soreness: 5 }];
+          const saved = { w: state.workouts, r: state.recovery };
+          state.workouts = hardWk; state.recovery = lowRec; renderWeeklyReview();
+          const el = document.getElementById('weeklySets');
+          const ok = !!el && /Décharge conseillée/.test(el.textContent) && /forme baisse/.test(el.textContent);
+          state.workouts = saved.w; state.recovery = saved.r; renderWeeklyReview();
+          return ok;
+        })(),
         readinessTrend: typeof readinessTrend === 'function' && !!document.getElementById('readinessTrend') && (() => { const rt = readinessTrend([{ date: '2026-07-06', sleep: 5, fatigue: 4, soreness: 4 }, { date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 1 }], 8); if (!(rt && rt.points.length === 2 && rt.delta === 60 && rt.direction === 'up' && readinessTrend([], 8) === null)) return false; const dup = readinessTrend([{ date: '2026-07-06', sleep: 5, fatigue: 4, soreness: 4 }, { date: '2026-07-06', sleep: 8, fatigue: 1, soreness: 1 }, { date: '2026-07-10', sleep: 8, fatigue: 1, soreness: 1 }], 8); return dup && dup.points.length === 2 && dup.delta === 0 && dup.latest === 100; })(),
         morningEnergy: typeof morningEnergyTrend === 'function' && !!document.getElementById('morningEnergyTrend') && (() => { const t = morningEnergyTrend([{ date: '2026-07-14', energy: 2 }, { date: '2026-07-12', energy: 3 }, { date: '2026-07-09', energy: 3 }, { date: '2026-07-05', energy: 4 }, { date: '2026-07-02', energy: 4 }], '2026-07-14', 7); return t && t.count === 3 && t.avg === 2.7 && t.prevAvg === 4 && t.dir === 'down' && t.level === 'low' && morningEnergyTrend([], '2026-07-14', 7) === null; })(),
         morningStreak: typeof morningStreak === 'function' && !!document.getElementById('morningStreak') && (() => {
@@ -779,7 +794,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.248'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.249'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2224,6 +2239,7 @@ app.whenReady().then(async () => {
     if (!checks.questPerfectCelebrate) errors.push('Célébration journée parfaite KO (celebrateQuestsIfPerfect / showFlashToast)');
     if (!checks.morningStreak) errors.push('Série check-in matinal KO (morningStreak / #morningStreak)');
     if (!checks.readinessTrend) errors.push('Tendance de forme KO (readinessTrend / #readinessTrend — doublon de date compté deux fois ?)');
+    if (!checks.deloadWiring) errors.push('Décharge muscu KO (deloadRecommendation reçoit l\'objet readinessScore au lieu du score → branche fatigue morte, carte « Décharge conseillée » jamais affichée)');
     if (!checks.wellnessBestStreak) errors.push('Record série bien-être KO (wellnessBestStreak — date impossible gonfle le record ?)');
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
   } catch (e) {
