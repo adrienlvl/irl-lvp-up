@@ -23,8 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.264 (2026-07-21)
+## 📍 État actuel — build 2.0.265 (2026-07-21)
 
+> 🏷️ **#657 — Hiérarchie : les « eyebrows » de panneaux/pages redeviennent lime (build 2.0.265).** Passe qualité
+> UI **3/N**. Défaut de cascade trouvé au rendu : les kickers `<p class="eyebrow">` (« AUJOURD'HUI », « TON COACH »,
+> en-têtes de page « OBJECTIF CORPS »…), censés être lime 0,7rem (classe `.eyebrow`, comme le hero), rendaient
+> **gris 0,9rem** — `.panel p`/`.page-title p` (0,1,1) écrasaient `.eyebrow` (0,1,0) sur 47 panneaux + toutes les
+> pages, aplatissant la hiérarchie. Correctif `pages.css` : `p.eyebrow{color:accent;font-size:.7rem;font-weight:800;
+> letter-spacing:.14em}` — spécificité égale mais déclarée après → gagne à l'ordre source, zéro `!important`. Ciblé
+> `p.eyebrow` → descriptions sous titres restent grises. Vérif styles calculés : 47/47 eyebrows lime 11,2px, en-tête
+> page lime, description grise. 577 tests + smoke. Artifact avant/après. Recap #657. _Domaine : fondations_ (série UI,
+> exception rotation). Master seulement.
+>
 > ⚡ **#656 — Carte joueur : anneau de progression XP autour de l'avatar (build 2.0.264).** Passe qualité UI
 > **2/N** (mandat Adrien, voir mémoire `passe-qualite-ui`). Cœur du dashboard (`#today.player-card`) : l'avatar
 > carré + barre XP linéaire plate → **avatar rond dans un anneau conic-gradient lime** (masqué en donut) qui se
