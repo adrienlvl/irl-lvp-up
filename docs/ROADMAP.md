@@ -23,8 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.247 (2026-07-21)
+## 📍 État actuel — build 2.0.248 (2026-07-21)
 
+> 🍽️ **#639 — Coach Poids : la cible d'ajustement ne descend plus jamais sous le métabolisme de base (build
+> 2.0.248).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers **par numéro** : `coach, athlete,
+> nutrition, alternance, coach`) → `coach` (2×, dont le dernier) et `athlete` (avant-dernier) exclus ;
+> **`nutrition`** pris (1× sur 5, absent des 2 derniers), domaine le mieux aligné avec la priorité de nuit
+> (diététique du sport), précédent des correctifs Coach Poids. Angle NEUF (`calorieAdjustment` × plancher
+> BMR). Défaut prouvé (contradiction inter-surfaces + violation de borne, cas nominal) : sur la carte « Coach
+> Poids », `calorieAdjustment` proposait « Nouvelle cible : X kcal/j » avec un plancher **figé à 1200 kcal**
+> découplé du BMR — alors qu'`energyPlan` garantit « calories jamais sous le métabolisme de base » et affiche
+> ce BMR **juste en dessous** sur la même carte. Profil sec/sédentaire calé au BMR (ex. 60 kg/165 cm/30 a →
+> BMR 1486 = dailyTarget) en plateau : « Nouvelle cible : **1361 kcal/j** » sous « Métabolisme de base **1486
+> kcal** » — conseil de manger sous le minimum vital, deux chiffres contradictoires. Correctif (curation §3,
+> zéro champ) : `calorieAdjustment(…, floor)` — 4ᵉ arg optionnel (= `energyPlan.bmr`), plancher effectif
+> `max(1200, bmr)`, **rétro-compatible** (repli 1200 sans arg). Câblage minimal : seule la carte passe
+> `plan.bmr` ; l'appel dans `adaptiveCoachFocus` reste au défaut → **zéro ripple coach**. §4 ter : rendu
+> cumulé relu (cible = BMR, plus de coupe sous le minimum). 571 tests (bloc `calorieAdjustment` étendu) +
+> check smoke **bloquant** `coachAdjustNotBelowBmr` (toute « Nouvelle cible » >= BMR affiché) verts.
+> Recap #639. _Domaine : nutrition._
+>
 > 🏋️ **#638 — Coach : « aucune obligation de t'entraîner » ne contredit plus « repars » (build 2.0.247).**
 > Priorité de nuit = coaching. Rotation §4 bis (5 derniers : `athlete, alternance, athlete, nutrition,
 > coach`) → `athlete` (2×) et `alternance` (récent) exclus ; **`coach`** pris (1× sur 5, absent des 2

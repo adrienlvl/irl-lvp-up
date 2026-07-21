@@ -5416,6 +5416,24 @@ test('calorieAdjustment : stagnation → baisse/hausse calorique', () => {
   assert.ok(falling.ratePerWeek < -0.1, 'rythme franchement négatif (mauvais sens)');
   assert.match(falling.message, /recule/);
   assert.doesNotMatch(falling.message, /stagne/);
+  // Plancher = MÉTABOLISME DE BASE (4ᵉ arg) : la cible d'ajustement ne descend JAMAIS sous le BMR affiché
+  // sur la même carte Coach Poids. Profil sec/sédentaire déjà calé au BMR (dailyTarget = bmr = 1486) :
+  const atBmr = L.calorieAdjustment(flat, 'perte', 1486, 1486);
+  assert.equal(atBmr.stagnating, true); assert.equal(atBmr.delta, 0);
+  assert.equal(atBmr.newTarget, 1486, 'jamais sous le métabolisme de base');
+  assert.match(atBmr.message, /plancher calorique \(~1486/); assert.match(atBmr.message, /cardio/);
+  // Sans le plancher BMR, la même situation conseillait de manger 125 kcal SOUS le BMR (le défaut corrigé).
+  const noFloor = L.calorieAdjustment(flat, 'perte', 1486);
+  assert.equal(noFloor.newTarget, 1361, 'ancien comportement : cible sous le BMR (repli 1200)');
+  assert.ok(atBmr.newTarget > noFloor.newTarget, 'le plancher BMR relève la cible au-dessus du repli 1200');
+  // Un peu au-dessus du BMR : la coupe est réelle mais BORNÉE au BMR (114, pas 125) — cible = BMR exact.
+  const nearBmr = L.calorieAdjustment(flat, 'perte', 1600, 1486);
+  assert.equal(nearBmr.newTarget, 1486); assert.equal(nearBmr.delta, 114);
+  assert.match(nearBmr.message, /114 kcal\/jour/);
+  // BMR sous le garde-fou générique (cas dégénéré) → on garde le plancher absolu 1200.
+  assert.equal(L.calorieAdjustment(flat, 'perte', 1300, 1100).newTarget, 1200);
+  // Rétro-compatible : 4ᵉ arg omis → repli 1200 inchangé (cf. cas `near`/`atFloor` ci-dessus).
+  assert.equal(L.calorieAdjustment(flat, 'perte', 1250).newTarget, 1200);
 });
 test('dietBreakRecommendation : déficit prolongé → pause diète (MATADOR/ICECAP)', () => {
   const today = '2026-07-29';
@@ -6074,7 +6092,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.247');
+  assert.equal(L.CHANGELOG[0].v, '2.0.248');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

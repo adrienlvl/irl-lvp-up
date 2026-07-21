@@ -3130,6 +3130,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.248', emoji: '🍽️', text: 'Ta carte « Coach Poids » ne te conseille plus jamais de manger SOUS ton métabolisme de base. Quand ta perte cale (14 j sans bouger), l’app propose de baisser un peu les calories (~125/jour) — sauf que ce plancher de sécurité était figé à 1200 kcal, sans lien avec TON métabolisme. Pour un gabarit sec ou peu actif déjà calé à son métabolisme de base (le plancher que le plan calcule pour toi), la carte pouvait afficher « Nouvelle cible : X kcal/j » avec X 125 kcal EN DESSOUS du « Métabolisme de base X kcal » écrit juste en bas de la même carte — deux chiffres qui se contredisent, et un conseil de manger moins que ton minimum vital. Désormais la cible d’ajustement ne descend jamais sous ton métabolisme de base : si tu y es déjà, l’app te renvoie vers le cardio / plus d’activité (« tu es déjà au plancher calorique ») au lieu de te faire couper encore. Le plancher générique de 1200 kcal reste comme filet quand le métabolisme n’est pas calculable. (Mifflin-St Jeor · déficit ≤ 25 % TDEE, apport ≥ métabolisme de base, ISSN 2017)' },
   { v: '2.0.247', emoji: '🏋️', text: 'Ton coach « Le focus du moment » ne te dit plus « aucune obligation de t’entraîner aujourd’hui » un jour où il vient, dans la même phrase, de t’inviter à repartir. Quand ton entraînement s’essouffle (moins de jours actifs que la semaine d’avant), il te cadre en « repart doucement » : « Ton entraînement s’essouffle… un petit geste suffit à repartir. » Mais si, en parallèle, ton objectif de séances de la semaine calendaire était déjà atteint et ta forme du matin au vert, il ajoutait juste après : « objectif de séances déjà dans la poche, aucune obligation de t’y remettre aujourd’hui ». Deux messages opposés collés l’un à l’autre — « repars » puis « tu n’as pas à t’y remettre » — et c’est un cas courant, parce que le « momentum » se mesure sur 7 jours glissants tandis que l’objectif se compte sur la semaine du lundi : l’un peut baisser pendant que l’autre est tenu. Désormais ce « bonus séance libre » n’apparaît que les jours où ton coach salue déjà ton élan (« garde le rythme »), le seul contexte où il ne contredit rien. Le « Objectif hebdo déjà tenu 💪 » (un simple constat) reste affiché quoi qu’il arrive. Rien d’ajouté : une contradiction de plus en moins.' },
   { v: '2.0.246', emoji: '💪', text: 'Ta séance guidée arrête de te donner deux conseils de progression contradictoires en même temps. Sous l’exercice, deux lignes coexistaient : un « conseil » et une « Cible du jour ». Quand tout allait bien, le conseil disait « +0,5 kg » pendant que la cible, elle, disait « monte la charge » de +2,5 ou +5 kg (la vraie double progression, appuyée sur la science ACSM/Zourdos) — deux chiffres incompatibles côte à côte. Pire : les jours de récupération basse (mauvaise nuit, courbatures, fatigue), le conseil te disait à juste titre « répète le format, allège si besoin »… mais la Cible du jour continuait quand même de crier « monte la charge 💪 ». Désormais les deux lignes parlent d’une seule voix : quand la forme est basse ou la dernière séance dure/incomplète, la cible passe à « consolide ce format en technique parfaite, tu monteras d’un cran quand la forme reviendra » (autorégulation — on n’ajoute pas de charge sur une récup basse). Et quand tout est au vert, le conseil renvoie simplement à la Cible du jour, qui donne le seul objectif chiffré, sans le « +0,5 kg » qui la contredisait. (double progression ACSM 2009 · autorégulation RIR Zourdos 2016)' },
   { v: '2.0.245', emoji: '⏸️', text: 'Ta carte « Coach Poids » arrête de se contredire quand une pause diète est recommandée. Après plusieurs semaines de déficit avec une perte qui ralentit, l’app te conseille (à juste titre) une PAUSE DIÈTE : 1 à 2 semaines à ta maintenance, en remontant d’environ +700 kcal/jour, pour restaurer ton métabolisme et protéger ton muscle. Mais juste en dessous, la ligne « À ton rythme réel » voyait ce même ralentissement et te disait l’inverse : « plus lent que prévu : resserre un peu le déficit ou bouge plus ». Deux conseils opposés côte à côte, dans le cas EXACT où la pause est le bon geste (c’est précisément parce que la perte ralentit que la pause se déclenche). Désormais, quand la pause diète est affichée, cette ligne ne te pousse plus à couper davantage : elle renvoie vers la pause (« ne resserre pas le déficit : ta pause diète ci-dessus est la bonne réponse »). Hors pause, le conseil de rythme reste inchangé.' },
@@ -8728,8 +8729,11 @@ function unwrapBackup(parsed) {
 
 // Détecte une stagnation du poids sur ≥ 14 jours (≥ 3 pesées) et propose un ajustement calorique
 // (~125 kcal/j) selon l'objectif : perte qui ne descend plus → baisser ; prise qui ne monte plus → monter.
-// Renvoie { stagnating, suggestion:'reduce'|'increase'|null, delta, newTarget, ratePerWeek, message }. Pur + testé.
-function calorieAdjustment(weights, goal, dailyTarget) {
+// `floor` (optionnel) = plancher calorique du profil, typiquement le métabolisme de base (energyPlan.bmr) :
+// la cible d'ajustement ne descend JAMAIS sous max(1200, floor). Sans `floor`, repli sur le garde-fou
+// générique 1200 kcal (rétro-compatible). Renvoie { stagnating, suggestion:'reduce'|'increase'|null, delta,
+// newTarget, ratePerWeek, message }. Pur + testé.
+function calorieAdjustment(weights, goal, dailyTarget, floor) {
   const list = (Array.isArray(weights) ? weights : [])
     .filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')) && Number.isFinite(Number(w.value)))
     .map(w => ({ date: w.date, value: Number(w.value) }))
@@ -8747,7 +8751,14 @@ function calorieAdjustment(weights, goal, dailyTarget) {
   if (!a) return { stagnating: false, suggestion: null };
   const days = daysTo(a);
   const ratePerWeek = Math.round(((b.value - a.value) / days * 7) * 100) / 100;
-  const delta = 125, d = Math.round(days), FLOOR = 1200;
+  // Plancher calorique : jamais sous le métabolisme de base quand il est connu. `energyPlan` garantit déjà
+  // « calories jamais sous le BMR » (dailyTarget = max(bmr, …)) et la carte Coach Poids affiche ce BMR juste
+  // à côté de l'ajustement : rendus sur la MÊME carte, ils ne peuvent pas se contredire. Sans ce plancher, un
+  // profil sec/sédentaire déjà calé au BMR (dailyTarget = bmr) se voyait proposer « Nouvelle cible : bmr − 125 »
+  // — soit manger SOUS le métabolisme de base affiché juste au-dessus. On prend le plus haut de 1200 (garde-fou
+  // générique absolu) et du BMR fourni ; sans `floor`, on garde 1200 (rétro-compatible).
+  const FLOOR = Math.max(1200, Math.round(Number(floor) || 0));
+  const delta = 125, d = Math.round(days);
   const rateTxt = `${ratePerWeek >= 0 ? '+' : ''}${ratePerWeek} kg/sem sur ${d} j`;
   if (goal === 'perte' && ratePerWeek >= -0.1) {
     // La cible ne descend jamais sous le plancher calorique (1200) : la baisse RÉELLE est ce qui

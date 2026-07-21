@@ -701,6 +701,28 @@ app.whenReady().then(async () => {
           state.weights = savedW; state.goals = savedGoals; state.profile = savedProfile; renderCoachWeight();
           return pauseShown && slowShown && noTighten;
         })(),
+        coachAdjustNotBelowBmr: !!document.getElementById('coachWeightBody') && typeof renderCoachWeight === 'function' && (() => {
+          // La cible d'ajustement calorique (calorieAdjustment) est rendue sur la carte Coach Poids juste
+          // AU-DESSUS du « Métabolisme de base N kcal » (footnote). Un profil sec/sédentaire est calé AU BMR
+          // par energyPlan (déficit plafonné à 25 % TDEE → apport ~0,9×BMR < BMR → dailyTarget = BMR). Sans
+          // passer plan.bmr comme plancher à calorieAdjustment, la carte proposait « Nouvelle cible : BMR − 125 »
+          // = manger SOUS le métabolisme de base affiché juste en dessous. On rend le scénario et on vérifie
+          // que toute « Nouvelle cible » reste >= au BMR affiché sur la même carte.
+          const savedW = state.weights, savedGoals = JSON.parse(JSON.stringify(state.goals)), savedProfile = JSON.parse(JSON.stringify(state.profile));
+          const today = (typeof localDate === 'function') ? localDate() : new Date().toISOString().slice(0, 10);
+          const dk = n => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+          // Plateau ~10 semaines à 60,0 kg (rythme ~0 → stagnation). Ordre CHRONOLOGIQUE (le rendu lit .at(-1)).
+          state.weights = Array.from({ length: 11 }, (_, i) => ({ date: dk(70 - 7 * i), value: 60.0 }));
+          state.goals = { ...state.goals, targetWeight: 55 };
+          state.profile = { ...state.profile, weight: 60, height: 165, age: 30, sex: 'homme', activityLevel: 'sedentaire' };
+          renderCoachWeight();
+          const html = document.getElementById('coachWeightBody').innerHTML;
+          const bmrM = html.match(/M[ée]tabolisme de base (\\d+) kcal/);
+          const tgtM = html.match(/Nouvelle cible : (\\d+) kcal/);
+          const ok = !!bmrM && (!tgtM || Number(tgtM[1]) >= Number(bmrM[1]));
+          state.weights = savedW; state.goals = savedGoals; state.profile = savedProfile; renderCoachWeight();
+          return ok;
+        })(),
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
         currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-08-10').done === true && currentBlock('', 'x') === null; })(),
@@ -757,7 +779,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.247'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.248'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2141,6 +2163,7 @@ app.whenReady().then(async () => {
     if (!checks.deloadReco) errors.push('Décharge muscu KO : deloadRecommendation doit conseiller une décharge après ~5 semaines de charge soutenue (accumulation) OU plus tôt si la forme baisse (fatigue, readiness<45), une semaine légère cassant le compteur (Israetel/Helms), rendu dans #weeklySets');
     if (!checks.dietBreakReco) errors.push('Pause diète KO : dietBreakRecommendation doit conseiller une pause (retour à la maintenance) après ~10 semaines de déficit continu prouvé par la perte de poids (MATADOR/ICECAP/Trexler), un regain récent cassant la série et goal≠perte renvoyant null, câblé dans #coachWeightBody');
     if (!checks.coachDietBreakNoTighten) errors.push('Coach Poids contradictoire : quand la PAUSE DIÈTE est due (déficit long + plateau), la ligne « rythme réel » lente ne doit PLUS conseiller de « resserre un peu le déficit » — elle contredirait le « remonte à ta maintenance » juste au-dessus. Doit déférer à la pause.');
+    if (!checks.coachAdjustNotBelowBmr) errors.push('Coach Poids contradictoire : l\'ajustement calorique (« Nouvelle cible ») ne doit JAMAIS descendre sous le « Métabolisme de base » affiché sur la même carte. calorieAdjustment doit recevoir plan.bmr comme plancher (energyPlan garantit déjà « calories jamais sous le BMR »).');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');
