@@ -782,6 +782,29 @@ app.whenReady().then(async () => {
           state.weights = savedW; state.goals = savedGoals; state.profile = savedProfile; renderCoachWeight();
           return ok;
         })(),
+        coachPlateauDedup: !!document.getElementById('coachWeightBody') && typeof renderCoachWeight === 'function' && (() => {
+          // Redondance inter-surfaces sur « Coach Poids » : sur un plateau (objectif perte, poids plat ≥ 14 j,
+          // cible non atteinte, PAS de pause diète due), DEUX notes portaient le même message — l'ajustement
+          // calorique (« Ton poids stagne… Baisse d'environ X kcal/jour », AVEC le chiffre concret) ET la realLine
+          // générique off-track (« Ta tendance récente ne va pas encore vers la cible — ajuste calories/activité »,
+          // SANS chiffre). La seconde est entièrement subsumée par la première → on la coupe quand l'ajustement
+          // s'affiche (curation §3). On rend le scénario exact et on vérifie : ajustement présent, generique absent.
+          const savedW = state.weights, savedGoals = JSON.parse(JSON.stringify(state.goals)), savedProfile = JSON.parse(JSON.stringify(state.profile));
+          const today = (typeof localDate === 'function') ? localDate() : new Date().toISOString().slice(0, 10);
+          const dk = n => { const d = new Date(today + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+          // Plateau ~4 semaines à 80,0 kg (rythme ~0 → stagnation), AUCUNE perte antérieure → pas de pause diète due.
+          // Ordre CHRONOLOGIQUE (le rendu lit .at(-1)) ; la plus ancienne est à 14 j pile → fenêtre calorieAdjustment ouverte.
+          state.weights = Array.from({ length: 5 }, (_, i) => ({ date: dk(28 - 7 * i), value: 80.0 }));
+          state.goals = { ...state.goals, targetWeight: 76 };
+          state.profile = { ...state.profile, weight: 80, height: 180, age: 30, sex: 'homme', activityLevel: 'modere' };
+          renderCoachWeight();
+          const html = document.getElementById('coachWeightBody').innerHTML;
+          const adjustShown = /Nouvelle cible/.test(html);                    // la note d'ajustement (avec chiffre) s'affiche
+          const genericGone = !/ne va pas encore vers la cible/.test(html);   // …et la realLine générique redondante est coupée
+          const noDietBreak = !/PAUSE DIÈTE/.test(html);                      // garde : ce scénario ne déclenche pas la pause diète
+          state.weights = savedW; state.goals = savedGoals; state.profile = savedProfile; renderCoachWeight();
+          return adjustShown && genericGone && noDietBreak;
+        })(),
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
         currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-08-10').done === true && currentBlock('', 'x') === null; })(),
@@ -838,7 +861,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.261'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.262'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2303,6 +2326,7 @@ app.whenReady().then(async () => {
     if (!checks.dietBreakReco) errors.push('Pause diète KO : dietBreakRecommendation doit conseiller une pause (retour à la maintenance) après ~10 semaines de déficit continu prouvé par la perte de poids (MATADOR/ICECAP/Trexler), un regain récent cassant la série et goal≠perte renvoyant null, câblé dans #coachWeightBody');
     if (!checks.coachDietBreakNoTighten) errors.push('Coach Poids contradictoire : quand la PAUSE DIÈTE est due (déficit long + plateau), la ligne « rythme réel » lente ne doit PLUS conseiller de « resserre un peu le déficit » — elle contredirait le « remonte à ta maintenance » juste au-dessus. Doit déférer à la pause.');
     if (!checks.coachAdjustNotBelowBmr) errors.push('Coach Poids contradictoire : l\'ajustement calorique (« Nouvelle cible ») ne doit JAMAIS descendre sous le « Métabolisme de base » affiché sur la même carte. calorieAdjustment doit recevoir plan.bmr comme plancher (energyPlan garantit déjà « calories jamais sous le BMR »).');
+    if (!checks.coachPlateauDedup) errors.push('Coach Poids redondant : sur un plateau (ajustement calorique « Nouvelle cible » affiché), la realLine générique « ne va pas encore vers la cible — ajuste calories/activité » fait doublon avec l\'ajustement (qui porte déjà le message AVEC le chiffre) → elle doit être coupée quand l\'ajustement s\'affiche.');
     if (!checks.birthdays) errors.push('Anniversaires absents (birthdaysForDay/normalizeBirthday/birthdayForm/birthdayList)');
     if (!checks.ux2pass2) errors.push('UX#2 passe 2 KO (3 details.calendar-setting / trail-plan retiré / collapse-toggle sur article.panel)');
     if (!checks.ux3) errors.push('D2/B3 KO (upcomingBirthdays / birthdayUpcoming / trail-panel regroupé dans training-grid)');

@@ -23,8 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.261 (2026-07-21)
+## 📍 État actuel — build 2.0.262 (2026-07-21)
 
+> ⚖️ **#654 — Coach Poids : plus de double message sur un plateau (build 2.0.262).** Priorité de nuit =
+> coaching. Rotation §4 bis (5 derniers : `focus, athlete, coach, sommeil, athlete`) → `focus`/`athlete`
+> (2 derniers) et `athlete` (2×) exclus ; **`nutrition`** pris (0× sur 5, le plus frais), angle NEUF
+> (exploration agent Explore sur les surfaces nutrition/poids). Redondance §3 inter-surfaces prouvée en
+> rendu chargé (§4 ter) sur la carte « Coach Poids » (`renderCoachWeight`) : sur un plateau (objectif perte,
+> poids plat ≥ 14 j, cible non atteinte, **pas** de pause diète due), deux notes portaient le même message —
+> `cw-adjust` (`app.js:383`, via `calorieAdjustment`) « Ton poids stagne… Baisse d'environ 125 kcal/jour ou
+> ajoute du cardio · Nouvelle cible : 1875 kcal/j. » (AVEC le chiffre) ET la `realLine` off-track générique
+> (`app.js:372`, via `weightTrend.onTrack===false`) « Ta tendance récente ne va pas encore vers la cible —
+> ajuste calories/activité » (SANS chiffre). Deux calculs indépendants (rythme 6 pesées vs fenêtre datée 14 j)
+> rendus sans arbitrage → sur tout plateau ils se déclenchent tous deux, la `realLine` générique étant
+> entièrement subsumée. Correctif (curation au rendu §3, zéro champ) : `adj`/`adjShown` calculés une fois puis
+> réutilisés ; la `realLine` off-track générique se tait quand `adjShown` (le bloc `cw-adjust` porte alors seul
+> le message + le chiffre). Non-régression : variante `dbDue` intacte, `realLine` générique conservée comme
+> filet quand `adjShown` est faux (données < 14 j, objectif « maintien »), branche `onTrack===true` non touchée.
+> §4 ter : sortie cumulée relue → une seule voix. 577 tests + smoke `coachPlateauDedup` bloquant (pilote
+> `renderCoachWeight`). Recap #654. _Domaine : nutrition._
+>
 > 🧠 **#653 — Coach Focus : plus de « fais un bloc aujourd'hui » un jour où le bloc est DÉJÀ posé
 > (build 2.0.261).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `athlete,
 > coach, sommeil, athlete, focus`) → `athlete`/`coach` (2 derniers) et `athlete` (2×) exclus ; **`focus`**
