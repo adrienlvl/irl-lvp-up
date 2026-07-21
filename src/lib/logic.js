@@ -3110,6 +3110,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.241', emoji: '📏', text: 'Ta carte « Coach Poids » ne te félicite plus d’une « prise de muscle » quand tu vises la perte. Sous ton tour de taille, quand ton poids ET ta taille montaient depuis le début, elle affichait « Poids et tour de taille montent : en prise de muscle, surveille que la taille ne grimpe pas trop (gras). » — même quand ton objectif était de MAIGRIR : un poids et une taille qui grimpent en pleine sèche, ce n’est pas du muscle, c’est du gras qui revient, et le conseil d’ajustement juste au-dessus te disait déjà « ton poids repart à la hausse alors que tu vises la perte ». Les deux se contredisaient. Désormais le constat colle à ton objectif : en visée perte, « Poids et tour de taille montent alors que tu vises la perte : c’est du gras qui revient, pas du muscle — resserre un peu les calories. ». Et le miroir : quand tu vises la PRISE mais que poids et taille baissent, il ne dit plus « perte de gras bien engagée » (une félicitation à contretemps) mais « tu fonds au lieu de construire — remonte un peu les calories. ». Les cas où la direction va dans le bon sens (vraie recomposition, vraie perte de gras, vraie prise de muscle) ne changent pas d’un mot.' },
   { v: '2.0.240', emoji: '🏅', text: 'Quand ton coach « Le focus du moment » fête une SEMAINE (ou un mois, une année…) de journées complètes, il ne dit plus deux fois la même chose. Il annonçait « 7 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 » PUIS, collé, « 🏅 Palier franchi : une semaine complète de journées pleines ! » — « une semaine complète de journées pleines » ne faisait que redire, dans d’autres mots, les « 7 jours de journées complètes » de la phrase juste avant. Désormais la première phrase donne le compte, et le palier se contente de REFORMULER le seuil en unité parlante : « 🏅 Palier franchi : une semaine entière ! » (deux semaines, un mois entier, une année entière… selon le cap). Une célébration plus nette, sans la redite. Rien de retiré au fond : ta série et le prochain cap à tenir restent affichés.' },
   { v: '2.0.239', emoji: '⚖️', text: 'Ta carte « Coach Poids » ne dit plus « ton poids stagne » quand il part dans le mauvais sens. Quand ta balance remonte alors que tu vises la perte (ou recule alors que tu vises la prise), le conseil d’ajustement affichait « Ton poids stagne (+0,33 kg/sem) … » — le mot « stagne » niait le « +0,33 kg/sem » imprimé dans la même phrase, alors que gagner du poids en pleine sèche n’est pas un plateau, c’est plus embêtant qu’un plateau. Désormais il le dit franchement : « Ton poids repart à la hausse (+0,33 kg/sem sur 15 j) alors que tu vises la perte. » (et « Ton poids recule … alors que tu vises la prise » dans l’autre sens). Le conseil chiffré (baisse de X kcal, cardio, cible du jour) et le plancher calorique ne bougent pas : seul le constat colle enfin à tes chiffres. Le vrai plateau, lui, reste « stagne » comme avant.' },
   { v: '2.0.238', emoji: '📊', text: 'Ta carte « L’effet de ton coucher » (onglet Athlète → Récupération) ne se contredit plus quand tes données vont à contre-courant. Quand tes soirées couché tôt s’accompagnaient de MOINS de focus (ou de moins d’énergie) que tes soirées couché tard, elle affichait « Ton focus dépend peu de l’heure de coucher (15 vs 90 min) » — une phrase qui prétend « peu d’effet » tout en imprimant, juste à côté, un écart de 1 à 6. Le texte niait ce que ses propres chiffres montraient. Désormais elle dit honnêtement ce qu’elle mesure : « sur cette période, ton focus a plutôt été meilleur après un coucher tardif (15 min vs 90) — d’autres facteurs pèsent sans doute plus ; vise surtout un rythme régulier. » Même correction côté énergie. Les cas où se coucher tôt paie vraiment, eux, ne bougent pas (« Se coucher tôt paie »). Un constat qui colle enfin à tes données au lieu de les démentir.' },
@@ -8900,15 +8901,24 @@ function computeAchievements(state) {
 
 // Interprète l'évolution poids vs tour de taille : détecte une recomposition (poids stable, taille qui baisse),
 // une perte de gras nette, ou une prise. Retourne { key, message } ou null. Pur + testé.
-function recompositionInsight(weightDeltaKg, waistDeltaCm) {
+// `goal` ('perte'|'prise'|'maintien', optionnel) recadre les branches dont la DIRECTION contredit l'objectif
+// affiché sur la carte « Coach Poids » : monter poids+taille n'est pas « en prise de muscle » quand on vise la
+// perte (c'est du gras), et baisser poids+taille n'est pas « perte de gras bien engagée » quand on vise la prise
+// (on fond). Sans `goal`, le comportement historique (goal-agnostique) est conservé — cohérent avec
+// calorieAdjustment voisin (#629 : « repart à la hausse alors que tu vises la perte »).
+function recompositionInsight(weightDeltaKg, waistDeltaCm, goal) {
   const w = Number(weightDeltaKg), t = Number(waistDeltaCm);
   if (!Number.isFinite(w) || !Number.isFinite(t)) return null;
   if (t <= -1 && Math.abs(w) < 1)
     return { key: 'recomp', message: 'Ton poids bouge peu mais ton tour de taille baisse : recomposition en cours — tu perds du gras et gardes ton muscle. 💪' };
   if (t <= -1 && w <= -1)
-    return { key: 'fatloss', message: 'Poids et tour de taille en baisse : la perte de gras est bien engagée.' };
+    return goal === 'prise'
+      ? { key: 'fatloss', message: 'Poids et tour de taille en baisse alors que tu vises la prise : tu fonds au lieu de construire — remonte un peu les calories.' }
+      : { key: 'fatloss', message: 'Poids et tour de taille en baisse : la perte de gras est bien engagée.' };
   if (t >= 1 && w >= 1)
-    return { key: 'gain', message: 'Poids et tour de taille montent : en prise de muscle, surveille que la taille ne grimpe pas trop (gras).' };
+    return goal === 'perte'
+      ? { key: 'gain', message: 'Poids et tour de taille montent alors que tu vises la perte : c’est du gras qui revient, pas du muscle — resserre un peu les calories.' }
+      : { key: 'gain', message: 'Poids et tour de taille montent : en prise de muscle, surveille que la taille ne grimpe pas trop (gras).' };
   return null;
 }
 

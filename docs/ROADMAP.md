@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.240 (2026-07-21)
+## 📍 État actuel — build 2.0.241 (2026-07-21)
 
+> 📏 **#632 — Coach Poids : l'interprétation poids/taille colle enfin à l'objectif (build 2.0.241).**
+> Priorité de nuit = coaching ; `athlete`/`coach` bloqués par la rotation §4 bis (631 & 630) →
+> domaine **`nutrition`** (629, 1×), au service du MANDAT COACHING ÉLITE. Défaut prouvé (contradiction
+> inter-surfaces, angle neuf) : `recompositionInsight` (logic.js:8903), affiché sous `calorieAdjustment`
+> sur la carte « Coach Poids » (app.js:383), était **goal-agnostique** alors que la carte connaît
+> `plan.goal`. La branche `gain` disait « **en prise de muscle** » même en visée **perte** (poids+taille
+> qui montent en sèche = gras, pas muscle) — en contradiction directe avec `calorieAdjustment` voisin
+> (#629 : « repart à la hausse alors que tu vises la perte »). Jumeau symétrique : branche `fatloss`
+> = « perte de gras bien engagée » en visée **prise** (on fond). Correctif (curation §3, zéro champ) :
+> `recompositionInsight` reçoit un **3ᵉ paramètre `goal` optionnel rétro-compatible** ; seul le `message`
+> des deux branches change quand la direction contredit l'objectif (« …c'est du gras qui revient… » /
+> « …tu fonds au lieu de construire… »), keys et cas concordants intacts. §4 ter : résultat cumulé relu
+> → les deux surfaces concordent enfin. 569 tests (cas perte/prise + non-régression) + check smoke
+> **`coachMeasure` étendu ET rendu bloquant** (il était défini mais jamais poussé dans `errors`, motif
+> P2.2/#566) verts. Recap #632. _Domaine : nutrition._
+>
 > 🛟 **#631 — Proposition : le flag « récupération fragile » pénalise un sommeil NON renseigné (sans
 > bump).** Priorité de nuit = coaching, mais deux verrous : rotation §4 bis (`coach` et `nutrition`
 > bloqués → domaine pris `athlete`, 1× sur 5) **et quota de propositions §4 bis.4 déclenché** (dernière

@@ -6024,7 +6024,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.240');
+  assert.equal(L.CHANGELOG[0].v, '2.0.241');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -6841,6 +6841,21 @@ test('recompositionInsight : poids vs tour de taille', () => {
   // taille stable → pas d'insight
   assert.equal(L.recompositionInsight(-0.2, -0.3), null);
   assert.equal(L.recompositionInsight('x', -2), null);
+  // conscience de l'objectif : monter poids+taille en OBJECTIF PERTE n'est pas « en prise de muscle »
+  const gainCut = L.recompositionInsight(2, 2, 'perte');
+  assert.equal(gainCut.key, 'gain');
+  assert.ok(!/prise de muscle/.test(gainCut.message), 'perte : ne pas dire « prise de muscle »');
+  assert.ok(/vises la perte/.test(gainCut.message) && /gras/.test(gainCut.message));
+  // symétrique : baisser poids+taille en OBJECTIF PRISE n'est pas « perte de gras bien engagée »
+  const lossBulk = L.recompositionInsight(-2, -2, 'prise');
+  assert.equal(lossBulk.key, 'fatloss');
+  assert.ok(!/bien engagée/.test(lossBulk.message), 'prise : ne pas féliciter une perte');
+  assert.ok(/vises la prise/.test(lossBulk.message));
+  // objectifs concordants ou absents → messages historiques inchangés
+  assert.ok(/prise de muscle/.test(L.recompositionInsight(2, 2, 'prise').message));
+  assert.ok(/prise de muscle/.test(L.recompositionInsight(2, 2).message));
+  assert.ok(/bien engagée/.test(L.recompositionInsight(-2, -2, 'perte').message));
+  assert.ok(/bien engagée/.test(L.recompositionInsight(-2, -2).message));
 });
 
 test('readinessScore : 0-100 selon sommeil/fatigue/courbatures', () => {
