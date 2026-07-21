@@ -3145,6 +3145,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.253', emoji: '🥗', text: 'Ton coach nutrition ne te pousse plus à couper les calories ou à ajouter du cardio un jour où tu es à plat. Quand ta perte de poids stagne, il te conseille à raison de resserrer un peu (« vise ~X kcal/j » ou « ajoute du cardio pour relancer »). Mais si, le même matin, ton check-in indique une forme basse (readiness < 50, jour de fatigue), il ajoutait juste après « ta forme est basse, tiens l’essentiel » : deux messages qui se contredisaient dans le même conseil — pousser un effort en plus alors que ton corps réclame de la récup. Désormais, un jour de fatigue, il CONSTATE le plateau (« la balance ne descend plus ») sans t’ordonner de couper ni d’ajouter du cardio, et laisse la note « jour de fatigue » porter seule la consigne : protège tes protéines, ton eau et des repas réguliers, tu ajusteras une fois remis. Sur un objectif de PRISE (le conseil est alors « mange plus », jamais contre-indiqué) et les jours où ta forme est bonne, rien ne change. (récupération / gestion de la fatigue, principes ACSM)' },
   { v: '2.0.252', emoji: '🏁', text: 'Ta carte « Objectif de course » (onglet Ultra) affiche enfin la phase d’AFFÛTAGE au bon moment pour TA distance, en accord avec le reste de l’app. Jusqu’ici, la phase basculait sur « Affûtage — arrive frais, réduis le volume » dès qu’il restait 2 semaines, peu importe la course. Mais ton « Programme de la semaine » et le conseil « descentes », eux, calent l’affûtage sur la distance : ~1 semaine pour un 10 km, ~2,5 semaines pour un ultra. Résultat, deux surfaces qui se contredisaient : sur un 10 km, la carte criait « affûte, allège » dès J-14 alors que tu devais encore t’entraîner à fond (et le programme ne montrait aucun affûtage) ; sur un ultra, la carte disait encore « spécifique, sorties longues » à J-18 alors que le programme avait déjà lancé l’affûtage. Désormais la phase suit la même fenêtre que le programme (courte pour une course courte, longue pour un ultra) : une seule vérité, plus de « arrive frais » prématuré ni tardif. (affûtage échelonné par distance, Bosquet 2007 / Mujika 2003)' },
   { v: '2.0.251', emoji: '🌙', text: 'Ton « Bilan sommeil » (onglet Athlète → Récupération) ne répète plus une consigne de coucher qui doublonnait avec ton plan de recalage juste en dessous. Quand un plan de recalage est actif, c’est lui qui porte l’action : il t’affiche une heure de coucher cible précise pour ce soir, qui glisse jour après jour. Or le bilan continuait, lui, d’ajouter une consigne générique (« vise un coucher 30 min plus tôt », « stabilise d’abord une heure de coucher fixe ») — plus vague, et qui entrait en concurrence avec la cible chiffrée du plan affichée à côté. Désormais, dès qu’un plan est actif, le bilan se limite au diagnostic (« Sommeil court : moy. 6 h, dette de X h… ») et laisse le plan dire QUAND te coucher : une seule voix pour une seule action, au lieu de deux consignes qui se marchent dessus. Sans plan actif, le bilan reste seul à te guider et garde sa consigne. (hygiène du sommeil / recalage circadien)' },
   { v: '2.0.250', emoji: '🧭', text: 'Ta « Boussole locale » (le petit guide « ton prochain geste » sur l’accueil) et « Mission Control » juste à côté ne se contredisent plus sur le focus. Une fois ton bloc de concentration du jour terminé, Mission Control le cochait bien « ✓ terminé »… mais la Boussole, elle, continuait de te présenter « Lancer mon focus » comme LE geste n°1 à faire — parce qu’elle regardait seulement si une mission active était posée (champ qui n’est jamais remis à zéro automatiquement), sans vérifier si tu avais déjà fait ta séance de focus aujourd’hui. Résultat : deux cartes voisines qui se contredisaient dans une journée normale (check-in du matin fait + mission posée + un bloc bouclé). Désormais, dès que ton bloc du jour est enregistré, la Boussole avance au geste suivant (ton créneau, ta priorité de vie…) au lieu de te renvoyer sur un focus déjà accompli.' },
@@ -6334,6 +6335,18 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // Additif pur : weightPace (kg/sem, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight, action
   // (protéines) intacte. Deux axes distincts (habitude nutrition vs résultat balance) → pas de
   // contradiction avec le ton. Données réelles seulement (≥ 2 pesées exploitables, sinon null).
+  // Forme du JOUR (readiness du check-in daté d'aujourd'hui) — calculée UNE fois ici : elle sert (1) à NE
+  // PAS pousser un ajustement de PERTE contre-indiqué un jour de fatigue (couper encore les calories /
+  // ajouter du cardio alors que le corps réclame de la récup) dans la note de plateau ci-dessous, et (2) à
+  // la note readinessNutriGuard plus bas (source unique, plus de double lecture). Un jour de readiness basse,
+  // le bon geste n'est pas de forcer : on CONSTATE le plateau et on laisse la note « jour de fatigue »
+  // porter seule la consigne du jour — une voix cohérente, pas « ajoute du cardio » suivi de « repose-toi ».
+  let todayReadiness = null;
+  if (chosen.pillar === 'nutrition' && typeof readinessScore === 'function') {
+    const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
+    const rsT = todayR ? readinessScore(todayR) : null;
+    if (rsT && typeof rsT.score === 'number') todayReadiness = rsT.score;
+  }
   let weightGoalPct = null, weightPace = null, calorieTarget = null, sleepFatLossGuard = null, sleepGainGuard = null, recompFraming = null;
   if (chosen.pillar === 'nutrition' && typeof weightGoalProgress === 'function') {
     const tgtW = Number(s.goals && s.goals.targetWeight);
@@ -6400,6 +6413,14 @@ function adaptiveCoachFocus(state, todayKey, opts) {
               if (recompDetect) {
                 // Recomposition en cours → aucun ordre de coupe : on clôt l'observation (« … dernières
                 // pesées. ») et on laisse le recadrage recomposition ci-dessous porter seul le conseil.
+                tail = `.`;
+              } else if (todayReadiness != null && todayReadiness < 50 && wantGoal === 'perte') {
+                // Jour de FATIGUE (readiness du jour < 50) sur objectif de PERTE : couper encore les calories
+                // ou « ajouter du cardio pour relancer » contredit frontalement le besoin de récup — et la note
+                // readinessNutriGuard juste après dit déjà « forme basse, tiens l'essentiel ». On CONSTATE le
+                // plateau/la dérive sans pousser (même geste que la recomposition), la consigne du jour revenant
+                // à la note de forme. Réservé à la PERTE : sur une PRISE le push est « mange plus », jamais
+                // contre-indiqué un jour de fatigue.
                 tail = `.`;
               } else if (typeof energyPlan === 'function' && typeof calorieAdjustment === 'function') {
                 const plan = energyPlan({ weight: wt.current, height: s.profile && s.profile.height, age: s.profile && s.profile.age, sex: s.profile && s.profile.sex, activityLevel: s.profile && s.profile.activityLevel, sessionsPerWeek: s.goals && s.goals.sessions, targetWeight: tgtW, todayKey });
@@ -6495,13 +6516,9 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // jour + score réellement sous 50).
   let readinessNutriGuard = null;
   if (chosen.pillar === 'nutrition' && sleepFatLossGuard === null && sleepGainGuard === null
-    && typeof readinessScore === 'function') {
-    const todayR = (Array.isArray(s.recovery) ? s.recovery : []).find(r => r && r.date === todayKey);
-    const rs = todayR ? readinessScore(todayR) : null;
-    if (rs && rs.score < 50) {
-      readinessNutriGuard = rs.score;
-      insight += ` Un dernier repère pour aujourd’hui : ta forme est basse ce matin (readiness ${rs.score}/100), et les jours de fatigue sont ceux où l’assiette dérape le plus — le corps réclame du sucre rapide et la satiété se dérègle. C’est justement aujourd’hui que tenir l’essentiel compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales bien mieux que la volonté sur une réserve vide.`;
-    }
+    && todayReadiness != null && todayReadiness < 50) {
+    readinessNutriGuard = todayReadiness;
+    insight += ` Un dernier repère pour aujourd’hui : ta forme est basse ce matin (readiness ${todayReadiness}/100), et les jours de fatigue sont ceux où l’assiette dérape le plus — le corps réclame du sucre rapide et la satiété se dérègle. C’est justement aujourd’hui que tenir l’essentiel compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales bien mieux que la volonté sur une réserve vide.`;
   }
   // Focus ENRICHI (le pilier focus était le SEUL encore générique — cf. #465/#466). Comme le sport
   // lit la readiness et la nutrition la cible protéines, le focus lit la RÉPARTITION réelle du temps

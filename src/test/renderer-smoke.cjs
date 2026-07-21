@@ -818,7 +818,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.252'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.253'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1272,6 +1272,16 @@ app.whenReady().then(async () => {
           // Forme du jour OK (readiness ≥ 50) → aucune note « assiette dérape ».
           const fOkForm = adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition: [{ date: '2026-07-03', protein: 60 }, { date: '2026-07-04', protein: 60 }, { date: '2026-07-05', protein: 60 }, { date: '2026-07-15', protein: 50 }], recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-16');
           if (fOkForm.readinessNutriGuard !== null || /l.assiette d[ée]rape/.test(fOkForm.insight)) return false;
+          // Coach INTER-NOTE : jour de FATIGUE (readiness < 50) sur un PLATEAU de PERTE → le plateau est CONSTATÉ mais SANS ordre de coupe/cardio (contradiction levée) ; la note « jour de fatigue » porte seule la consigne.
+          const nutTired = [{ date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 }];
+          const flatWTired = [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }];
+          const profTired = { height: 180, age: 30, sex: 'homme', activityLevel: 'modere' };
+          const fTired = adaptiveCoachFocus({ nutrition: nutTired, profile: profTired, goals: { targetWeight: 79 }, weights: flatWTired, recovery: [{ date: '2026-07-16', sleep: 8, fatigue: 5, soreness: 5 }] }, '2026-07-16');
+          if (!(fTired.pillar === 'nutrition' && fTired.readinessNutriGuard === 40 && fTired.calorieTarget === null && /Mais la balance ne descend plus \\(0 kg\\/sem sur tes derni[èe]res pes[ée]es\\)\\./.test(fTired.insight) && /ta forme est basse ce matin \\(readiness 40\\/100\\)/.test(fTired.insight))) return false;
+          if (/ajoute du cardio|baisse un peu tes calories|resserre tes calories|vise ~\\d+ kcal/.test(fTired.insight)) return false;
+          // Non-régression : sans check-in du jour, le plateau garde son push calorique chiffré.
+          const fRestedPush = adaptiveCoachFocus({ nutrition: nutTired, profile: profTired, goals: { targetWeight: 79 }, weights: flatWTired }, '2026-07-16');
+          if (!(fRestedPush.readinessNutriGuard === null && typeof fRestedPush.calorieTarget === 'number' && /vise ~\\d+ kcal\\/j \\(environ \\d+ de moins\\) ou ajoute du cardio/.test(fRestedPush.insight))) return false;
           // Coach RECOMPOSITION : balance plate (objectif perte, « ne descend plus ») MAIS tour de taille qui fond → recadrage « la balance ne dit pas tout », note flat conservée.
           const nutRecomp = [{ date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 }];
           const flatWRecomp = [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }];

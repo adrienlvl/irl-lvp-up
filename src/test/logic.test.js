@@ -6131,7 +6131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.252');
+  assert.equal(L.CHANGELOG[0].v, '2.0.253');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11040,6 +11040,58 @@ test('adaptiveCoachFocus : focus nutrition — forme du jour basse, l’assiette
   assert.equal(relay.sleepFatLossGuard, 6, 'frein caché sommeil actif');
   assert.equal(relay.readinessNutriGuard, null, 'note sommeil prime → l’assiette dérape muette');
   assert.doesNotMatch(relay.insight, /l’assiette dérape/);
+});
+
+test('adaptiveCoachFocus : focus nutrition — jour de fatigue → plateau constaté sans pousser coupe/cardio', () => {
+  const today = '2026-07-16';
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 },
+    { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 },
+  ];
+  const flatWeights = [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 },
+    { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 },
+    { date: '2026-07-14', value: 82 },
+  ];
+  const profile = { height: 180, age: 30, sex: 'homme', activityLevel: 'modere' };
+  // PLATEAU de PERTE + check-in DATÉ DU JOUR readiness basse (40 < 50, sommeil 8 h → guards sommeil muets).
+  // Avant le correctif, le même insight disait « vise ~X kcal de moins ou ajoute du cardio pour relancer »
+  // PUIS « ta forme est basse ce matin… tiens l’essentiel » : pousser une coupe/du cardio un jour de fatigue.
+  const lowRec = [{ date: today, sleep: 8, fatigue: 5, soreness: 5 }];
+  const tired = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: flatWeights, recovery: lowRec }, today);
+  assert.equal(tired.pillar, 'nutrition');
+  assert.equal(tired.readinessNutriGuard, 40, 'note forme du jour active');
+  // Plateau CONSTATÉ (observation intacte)…
+  assert.match(tired.insight, /Mais la balance ne descend plus \(0 kg\/sem sur tes dernières pesées\)\./);
+  // …mais AUCUN ordre de coupe/cardio poussé un jour de fatigue (la contradiction levée).
+  assert.doesNotMatch(tired.insight, /ajoute du cardio|baisse un peu tes calories|resserre tes calories|vise ~\d+ kcal/);
+  assert.equal(tired.calorieTarget, null, 'pas de cible calorique poussée un jour de fatigue');
+  // La note « jour de fatigue » porte seule la consigne du jour.
+  assert.match(tired.insight, /ta forme est basse ce matin \(readiness 40\/100\)/);
+
+  // NON-RÉGRESSION 1 : sans check-in du jour, le plateau garde son push chiffré (cas #499/plateau intact).
+  const rested = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: flatWeights }, today);
+  assert.equal(rested.readinessNutriGuard, null);
+  assert.match(rested.insight, /vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/);
+  assert.equal(typeof rested.calorieTarget, 'number');
+
+  // NON-RÉGRESSION 2 : forme du jour OK (readiness ≥ 50) → push conservé.
+  const okForm = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: flatWeights, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
+  assert.equal(okForm.pillar, 'nutrition');
+  assert.equal(okForm.readinessNutriGuard, null);
+  assert.match(okForm.insight, /ou ajoute du cardio/);
+
+  // NON-RÉGRESSION 3 : objectif de PRISE, le push « mange plus » n’est PAS contre-indiqué un jour de
+  // fatigue → il reste (le gate ne vise que la PERTE).
+  const gainWeights = [
+    { date: '2026-05-01', value: 78 }, { date: '2026-06-10', value: 81 }, { date: '2026-06-20', value: 81 },
+    { date: '2026-06-30', value: 81 }, { date: '2026-07-05', value: 81 }, { date: '2026-07-10', value: 81 },
+    { date: '2026-07-14', value: 81 },
+  ];
+  const gainTired = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 85 }, weights: gainWeights, recovery: lowRec }, today);
+  assert.equal(gainTired.pillar, 'nutrition');
+  assert.equal(gainTired.readinessNutriGuard, 40);
+  assert.match(gainTired.insight, /pour relancer la prise|de plus/);
 });
 
 test('adaptiveCoachFocus : focus enrichi — l’action nomme la tâche phare réelle', () => {

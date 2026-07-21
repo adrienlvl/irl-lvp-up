@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.252 (2026-07-21)
+## 📍 État actuel — build 2.0.253 (2026-07-21)
 
+> 🥗 **#644 — Coach nutrition : plus de coupe/cardio poussés un jour de fatigue (build 2.0.253).**
+> Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `athlete, sommeil, focus, athlete,
+> nutrition`) → `athlete`/`sommeil` (2 derniers) et `athlete` (2×) exclus ; **`coach`** pris (0× sur 5, le
+> plus frais, aligné priorité de nuit), angle NEUF. Contradiction inter-notes intra-pilier nutrition prouvée
+> en rendu chargé (§4 ter) : sur objectif de PERTE + plateau, la note de pente poids (gatée par la tendance
+> 14 j) pousse « vise ~X kcal de moins **ou ajoute du cardio pour relancer** » ; juste après, `readinessNutriGuard`
+> (gatée par la readiness du JOUR) dit « ta forme est basse ce matin (40/100)… tiens l'essentiel ». Deux signaux
+> de fenêtres différentes → le coach pousse un effort en plus le pire jour pour forcer. Correctif (curation §3,
+> zéro champ) : `todayReadiness` calculée une fois (source unique, réutilisée par `readinessNutriGuard`) ; un
+> jour de fatigue (readiness < 50) sur objectif de PERTE, on CONSTATE le plateau (`tail = '.'`, même geste que
+> la recomposition) sans ordre de coupe/cardio — la note « jour de fatigue » porte seule la consigne. Réservé
+> à la PERTE (sur une PRISE, « mange plus » n'est jamais contre-indiqué → conservé). 574 tests (+1 bloc, 4
+> volets) + check smoke bloquant `coachFocus` étendu. Recap #644. _Domaine : coach._
+>
 > 🏁 **#643 — Objectif de course : la bascule en affûtage suit la distance, pas un seuil fixe de 2 sem
 > (build 2.0.252).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par mtime : `sommeil, focus,
 > athlete, nutrition, coach`) → `sommeil`/`focus` (2 derniers) exclus ; **`athlete`** pris (1× sur 5,
