@@ -116,14 +116,17 @@ reco, risques) et passe à autre chose. Adrien tranchera.
    **N'invente pas** une tâche à partir d'une catégorie : une catégorie ouverte (« polish »,
    « robustesse ») se remplit toujours par le chemin de moindre résistance — c'est exactement comme
    ça que les 60 itérations coach ont été « valides ».
-2. **Étiquette obligatoire.** Termine CHAQUE recap par une dernière ligne exactement au format :
-   `Domaine : <alternance|athlete|nutrition|sommeil|focus|agenda|etudes|a11y|robustesse|tests|fondations|docs|coach>`
-3. **Contrôle AVANT de coder** — lance :
-   `grep -h "^Domaine :" $(ls -t docs/recaps/*.md | head -5)`
+2. **Étiquette obligatoire.** Termine CHAQUE recap par une dernière ligne au format
+   `Domaine : <tag>` (tag ∈ `alternance|athlete|nutrition|sommeil|focus|agenda|etudes|a11y|robustesse|tests|fondations|docs|coach`).
+   Le style italique/point final (`_Domaine : coach._`) est toléré — le contrôle §4 bis.3 le reconnaît.
+3. **Contrôle AVANT de coder** — lance (grep **tolérant** à l'italique `_Domaine :_` et à la casse) :
+   `grep -hoiE "domaine *: *[a-zà-ÿ]+" $(ls -t docs/recaps/*.md | head -5)`
+   ⚠️ **N'utilise PAS `^Domaine :`** : il rate les recaps au format `_Domaine : x._` (la plupart des
+   récents) et rend le garde-fou AVEUGLE — c'est ce qui a laissé ~50 fixes coach s'enchaîner la nuit
+   du 20→21/07 sans que la rotation ne se déclenche.
    Le domaine que tu t'apprêtes à traiter **ne doit PAS** apparaître dans les **2 derniers** recaps,
    et **pas plus d'une fois** dans les 5 derniers. S'il y apparaît → **change de domaine**, point.
-   _(Amorçage : les recaps antérieurs au #547 n'ont pas d'étiquette — un `grep` vide ne bloque rien.
-   La règle prend effet d'elle-même à mesure que les étiquettes s'accumulent.)_
+   _(Amorçage : les recaps antérieurs au #547 n'ont pas d'étiquette — un `grep` vide ne bloque rien.)_
 4. **Quota de propositions.** Si les **10 derniers** recaps ne contiennent **aucune** proposition
    (`ls docs/proposals/` inchangé), alors l'itération en cours **DOIT** être une proposition prise
    dans ROADMAP P1 — pas une itération de code. La soupape n'a jamais servi en 546 boucles : c'est
