@@ -6074,7 +6074,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.246');
+  assert.equal(L.CHANGELOG[0].v, '2.0.247');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9579,6 +9579,22 @@ test('adaptiveCoachFocus : séance bonus libre côté sport, objectif bouclé (s
   }, '2026-07-15');
   assert.equal(onpace.sessionGoalPace, 'onpace');
   assert.equal(onpace.sessionGoalBonus, null);
+  // GARDE-FOU DE TON : objectif hebdo CALENDAIRE tenu (2/2, lun+mar) MAIS momentum glissant en recul
+  // (prev 3 j : 06/08/10 → tier 0 rebuild) × readiness au vert → le ton est « rebuild » (« s'essouffle…
+  // un petit geste suffit à repartir »). Le bonus « aucune obligation de t'y remettre » le contredirait
+  // dans le MÊME insight : il doit être MUET. Le « Objectif hebdo déjà tenu 💪 » (constat), lui, reste.
+  const rebuildBonus = L.adaptiveCoachFocus({
+    goals: { sessions: 2 },
+    workouts: [{ date: '2026-07-06' }, { date: '2026-07-08' }, { date: '2026-07-10' }, { date: '2026-07-13' }, { date: '2026-07-14' }],
+    recovery: [{ date: '2026-07-19', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-19');
+  assert.equal(rebuildBonus.pillar, 'sport');
+  assert.equal(rebuildBonus.tone, 'rebuild');
+  assert.equal(rebuildBonus.sessionGoalBonus, null, 'rebuild → pas de bonus « aucune obligation »');
+  assert.match(rebuildBonus.insight, /Un petit geste suffit à repartir/);
+  assert.match(rebuildBonus.insight, /Objectif hebdo déjà tenu : 2\/2 séances 💪/);
+  assert.ok(!/aucune obligation/.test(rebuildBonus.insight), 'rebuild ne dit pas « aucune obligation »');
+  assert.ok(!/du gain offert/.test(rebuildBonus.insight));
 });
 
 test('adaptiveCoachFocus : réconciliation objectif serré × pic de charge (loadOverGoal)', () => {

@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.246 (2026-07-21)
+## 📍 État actuel — build 2.0.247 (2026-07-21)
 
+> 🏋️ **#638 — Coach : « aucune obligation de t'entraîner » ne contredit plus « repars » (build 2.0.247).**
+> Priorité de nuit = coaching. Rotation §4 bis (5 derniers : `athlete, alternance, athlete, nutrition,
+> coach`) → `athlete` (2×) et `alternance` (récent) exclus ; **`coach`** pris (1× sur 5, absent des 2
+> derniers) — domaine de la priorité de nuit, angle NEUF après exploration. Défaut prouvé (contradiction
+> **intra-insight**) : dans `adaptiveCoachFocus`, le bloc objectif-séances (branche `wc >= g`) s'exécutait
+> **quel que soit le `tone`**. En ton `rebuild` l'insight dit « Ton entraînement s'essouffle… un petit geste
+> suffit à repartir » (injonction), mais `sessionGoalBonus` y collait « objectif dans la poche, **aucune
+> obligation de t'y remettre aujourd'hui** » (dispense) — cas **nominal** car le momentum se mesure sur 7 j
+> glissants et l'objectif sur la semaine calendaire (l'un baisse pendant que l'autre est tenu). Correctif
+> (curation §3, zéro champ) : garde-fou de ton `if (tone === 'reinforce' && …)` — le « bonus séance libre »
+> n'apparaît que sous `reinforce` (« garde le rythme »), seul ton sans injonction contraire ; le « Objectif
+> hebdo déjà tenu 💪 » (constat) reste quoi qu'il arrive. §4 ter : rendu cumulé relu (rebuild sans « aucune
+> obligation », reinforce préservé). 571 tests (bloc `sessionGoalBonus` étendu) + check smoke bloquant
+> `coachFocus` (`fSessBonusRebuild`) verts. Recap #638. _Domaine : coach._
+>
 > 💪 **#637 — Séance guidée : les deux surfaces de progression ne se contredisent plus (build 2.0.246).**
 > Priorité de nuit = coaching (muscu). Rotation §4 bis (5 derniers : `nutrition, coach, nutrition,
 > alternance, athlete`) → `nutrition` (2×) et `coach` (récent) exclus ; **`athlete`** pris (1× sur 5,
