@@ -794,7 +794,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.249'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.250'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1587,6 +1587,32 @@ app.whenReady().then(async () => {
           try { renderCoachFocus(); renderAttention(); } catch (e) {}
           return ok;
         })(),
+        // COHÉRENCE dashboard focus (#641) : une fois le bloc du jour fait, Mission Control coche le
+        // focus « terminé » — la Boussole locale ne doit donc plus présenter « Lancer mon focus » comme
+        // geste n°1. La branche focus de renderDailyCompass ne testait que state.focusTask (jamais remis
+        // à zéro après un bloc), pas si une session avait été enregistrée aujourd'hui : deux surfaces
+        // voisines du dashboard se contredisaient en flux nominal (matin fait + focusTask posé + bloc fait).
+        compassFocusDone: typeof renderDailyCompass === 'function' && typeof renderMissionControl === 'function' && !!document.getElementById('compassPrimary') && !!document.getElementById('missionSteps') && (() => {
+          const today = localDate();
+          const saved = { m: state.morningRituals, ft: state.focusTask, fs: state.focusSessions, p: state.plans, lg: state.lifeGoals };
+          let ok = true;
+          try {
+            state.morningRituals = [{ date: today, energy: 3, intention: 'x', firstStep: 'y' }];
+            state.focusTask = 'Réviser le DS de maths';
+            state.focusSessions = [{ id: 1, date: today, minutes: 25, task: 'Réviser le DS de maths' }];
+            state.plans = []; state.lifeGoals = ['Décrocher une alternance'];
+            renderDailyCompass(); renderMissionControl();
+            const primary = document.getElementById('compassPrimary').textContent || '';
+            const mission = document.getElementById('missionSteps').textContent || '';
+            // Mission Control coche bien le focus (bloc fait aujourd'hui)…
+            ok = ok && /Bloc de concentration termin/.test(mission);
+            // …donc la Boussole ne réclame plus « Lancer mon focus » (elle avance au rung suivant).
+            ok = ok && !/Lancer mon focus/.test(primary);
+          } catch (e) { ok = false; }
+          state.morningRituals = saved.m; state.focusTask = saved.ft; state.focusSessions = saved.fs; state.plans = saved.p; state.lifeGoals = saved.lg;
+          try { renderDailyCompass(); renderMissionControl(); } catch (e) {}
+          return ok;
+        })(),
         // ACCORD DU PARTICIPE en vue Jour (#552) : « fait(s) » s'accorde avec le nombre RÉALISÉ
         // (numérateur), pas avec le total — « 1/3 faits » était faux.
         dayViewPlural: (() => {
@@ -2207,6 +2233,7 @@ app.whenReady().then(async () => {
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
     if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
+    if (!checks.compassFocusDone) errors.push('Contradiction dashboard : la Boussole réclame « Lancer mon focus » alors que Mission Control coche le focus « terminé » (branche focus non gardée par un bloc du jour)');
     if (!checks.listEmptyStates) errors.push('Liste sans état vide (#altList filtré / #questList) — zone blanche sans message');
     if (!checks.recordSessionJourney) errors.push('Parcours « enregistrer une séance » KO (P7.1 : ouvrir le formulaire → saisir → valider doit ajouter la séance à l\'historique #historyList + créditer XP/santé)');
     if (!checks.studyPlanJourney) errors.push('Parcours « générer un planning de révision » KO (P7.2 : remplir #studyPlanForm → valider doit poser les créneaux « Révision » dans state.agenda + les afficher dans #monthCalendar + statut à jour)');

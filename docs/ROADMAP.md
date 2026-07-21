@@ -23,8 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.249 (2026-07-21)
+## 📍 État actuel — build 2.0.250 (2026-07-21)
 
+> 🧭 **#641 — Boussole locale : plus « Lancer mon focus » quand Mission Control l'a déjà coché (build
+> 2.0.250).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers **par numéro** : `athlete,
+> nutrition, coach, athlete, nutrition`) → `athlete` (2×) et `nutrition` (2×) exclus ; **`focus`** pris
+> (0× sur 5, frais, aligné avec la priorité coaching), angle NEUF (les 2 surfaces « prochain geste » du
+> dashboard, jamais arbitrées ensemble). Défaut prouvé (contradiction inter-surfaces, cas nominal) : sur
+> l'accueil, **Mission Control** coche « ✓ Bloc de concentration terminé » dès `focusSessions.some(date ===
+> today)`, tandis que la **Boussole locale** (`renderDailyCompass`, app.js:266) présentait « Lancer mon
+> focus » comme geste n°1 tant que `state.focusTask` était posé (champ **jamais remis à zéro**), **sans
+> vérifier si un bloc avait été fait aujourd'hui**. Flux quotidien standard (check-in matin + `focusTask` +
+> un bloc bouclé) : les deux cartes voisines se contredisaient — l'une « terminé », l'autre « à faire ».
+> Correctif (curation §3, zéro champ) : branche focus gardée par `!state.focusSessions.some(s => s.date ===
+> today)` — même patron que la branche matin (`!morning`), cohérent avec le coche de Mission Control ; une
+> fois le bloc fait, la Boussole avance au rung suivant (créneau/priorité) au lieu de nager sur un focus
+> accompli. `focusTask` reste un signal informatif. §4 ter : les deux cartes rendues ensemble sur état
+> chargé → Mission Control coche, Boussole n'affiche plus « Lancer mon focus ». 571 tests + check smoke
+> **bloquant** `compassFocusDone` (rend les 2 surfaces, exige leur cohérence ; rouge avant / vert après).
+> Recap #641. _Domaine : focus._
+>
 > 🧊 **#640 — La décharge muscu « sur fatigue » se déclenche enfin (build 2.0.249).** Priorité de nuit =
 > coaching. Rotation §4 bis (5 derniers par mtime : `nutrition, coach, athlete, nutrition, alternance`) →
 > `nutrition` (2×) et `coach` (dans les 2 derniers) exclus ; **`athlete`** pris (1× sur 5, absent des 2
