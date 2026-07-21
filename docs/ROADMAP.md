@@ -23,8 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.267 (2026-07-21)
+## 📍 État actuel — build 2.0.268 (2026-07-22)
 
+> 📊 **#660 — Graphes en barres : dégradé vertical (build 2.0.268).** Passe qualité UI **6/N**. `barChartSvg`
+> (app.js, utilisé partout : grille 5 graphes, adhérence, volume, 1RM, forme) dessinait des barres en aplat. SVG
+> `preserveAspectRatio=none` → coins arrondis par path distordus (invérifiables sans capture) → choix **sûr sans
+> distorsion : dégradé vertical** par barre (`<linearGradient>` objectBoundingBox, plein en haut → opacity 0,5 en
+> bas), id unique/appel (`_barUid`), `<title>` conservés, rx 1→1,2. **Risque vérifié** : `var(--accent)` résout bien
+> dans un `stop-color` (`getComputedStyle(stop).stopColor === rgb(171,255,85)`). Nouveau check smoke **bloquant
+> `barGradient`** (includes/split, pas de regex). 577 tests + SMOKE OK. Artifact avant/après. _Domaine : fondations_
+> (série UI). Master seulement. **Lot 2.0.263→268 en attente de release (Adrien contrôle ; espacée ~1/j).**
+>
 > 📉 **#659 — Sparklines : aire dégradée sous la courbe (build 2.0.267).** Passe qualité UI **5/N**. `sparkLineSvg`
 > (app.js) ne traçait qu'un trait → ajout d'une **aire remplie par un `<linearGradient>`** vertical (opacity 0,28→0)
 > de la couleur de la donnée, id unique par appel (`_sparkUid`) contre les collisions ; trait net conservé ; pas de

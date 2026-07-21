@@ -514,6 +514,14 @@ app.whenReady().then(async () => {
           return svg.includes('<linearGradient') && svg.includes('fill="url(#sk') && (svg.split('<path').length - 1) === 2
             && a !== b && sparkLineSvg([{ value: 1 }]) === '';
         })(),
+        barGradient: typeof barChartSvg === 'function' && (() => {
+          // barres à dégradé vertical : linearGradient + fill url(#bc…), 1 <rect> par point, tooltip <title> conservé, id unique/appel.
+          // NB : includes/split only (template literal — pas de regex à backslash).
+          const svg = barChartSvg([{ total: 5, label: 'a' }, { total: 8, label: 'b' }, { total: 3, label: 'c' }], { color: '#f0883e', unit: ' pts' });
+          const a = barChartSvg([{ total: 1, label: 'x' }]), b = barChartSvg([{ total: 1, label: 'x' }]);
+          return svg.includes('<linearGradient') && svg.includes('fill="url(#bc') && (svg.split('<rect').length - 1) === 3
+            && svg.includes('<title>') && a !== b;
+        })(),
         kitchen: typeof generateMeals === 'function' && !!document.getElementById('pantryList') && !!document.getElementById('mealSuggestions') && !!document.getElementById('envieStyles'),
         shopping: typeof buildShoppingList === 'function' && !!document.getElementById('shoppingBlock') && !!document.getElementById('shoppingList') && !!document.getElementById('copyShoppingBtn'),
         shoppingCheck: typeof remainingShopping === 'function' && !!document.getElementById('shoppingRemaining') && remainingShopping([{ label: 'a' }, { label: 'b' }], { a: true }) === 1,
@@ -869,7 +877,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.267'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.268'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2313,6 +2321,7 @@ app.whenReady().then(async () => {
     if (!checks.measureUpsert) errors.push('Mensuration/jour KO (upsertMeasurement : doublon de date ou fusion des champs cassée)');
     if (!checks.measureSpark) errors.push('Sparkline mensurations KO (measurementSeries / sparkLineSvg / #measurementsSpark)');
     if (!checks.sparkArea) errors.push('Sparkline sans aire dégradée (sparkLineSvg : linearGradient/fill url(#…)/2 <path>/id unique)');
+    if (!checks.barGradient) errors.push('Bar chart sans dégradé (barChartSvg : linearGradient/fill url(#bc…)/1 rect par point/title/id unique)');
     if (!checks.sleepSpark) errors.push('Sparkline sommeil KO (sleepSeries / sparkLineSvg / #sleepSpark)');
     if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / bedtimeRegularity / #sleepCoach)');
     if (!checks.sleepImpact) errors.push('Effet du coucher KO (sleepImpactReport / #sleepImpact / rendu)');
