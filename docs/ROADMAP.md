@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.271 (2026-07-22)
+## 📍 État actuel — build 2.0.273 (2026-07-22)
 
+> 🏷️ **#667 — Séance guidée : plus de double « Cible du jour » sur la carte (build 2.0.273).**
+> Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `coach, tests, athlete,
+> robustesse, alternance`) → `coach`+`tests` bloqués (2 derniers), robustesse n°1 toujours bloquée
+> (#663 attend Adrien) → `athlete` libre (1× en #664, hors 2 derniers). Piste neuve #652 « Candidat 2 »
+> prouvée par lecture : sur `#guidedWorkoutDialog` en récup **correcte**, deux `<p>` portaient
+> « Cible du jour » — `#guidedRecoveryNote` (`app.js:445`, une **consigne** d'exécution : « technique
+> propre, effort contrôlé, 2–3 reps en réserve ») ET `#guidedTarget` (`guidedProgressionLines`
+> `logic.js:9577`, la **cible chiffrée** « 🎯 … 10 reps × 40 kg »). Deux libellés identiques → laquelle
+> est LA cible ? Fix §3 (curation pure au rendu, zéro champ) : la note récup passe à « **Consigne du
+> jour** » (le *comment*), le 🎯 garde « Cible du jour » (le *combien*). §4 ter : rendu cumulé relu,
+> le « suis la cible du jour ci-dessous » du feu vert pointe désormais sans ambiguïté vers le 🎯.
+> Check smoke bloquant `guidedFragileLive` **étendu** (`labelOk` : « Cible du jour » ne subsiste que
+> sur `#guidedTarget`). 578 tests + SMOKE OK. Recap #667. _Domaine : athlete._
+> **Lot 2.0.263→273 en attente de release (Adrien contrôle).**
+>
 > 🥗 **#666 — Coach : la note nutrition « forme basse » ne se déchire plus au rendu (build 2.0.272).**
 > Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `tests, athlete, robustesse,
 > alternance, fondations`) → `coach` libre. Angle NEUF prouvé en rendu chargé §4 ter (fuzzer 6 000 états

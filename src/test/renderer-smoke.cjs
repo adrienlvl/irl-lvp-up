@@ -404,8 +404,11 @@ app.whenReady().then(async () => {
           state.workouts = [{ type: 'strength', date: '2026-06-08', exercises: [{ name: 'Squats à vide', load: 40, reps: 12 }] }];
           state.recovery = [{ date: localDate(), sleep: 8, fatigue: 1, soreness: 1 }];
           renderGuidedWorkout();
-          const gTgt = document.getElementById('guidedTarget').textContent, gHint = document.getElementById('guidedProgressionHint').textContent;
-          const greenOk = gTgt.indexOf('monte la charge') >= 0 && gHint.indexOf('Feu vert') >= 0;
+          const gTgt = document.getElementById('guidedTarget').textContent, gHint = document.getElementById('guidedProgressionHint').textContent, gNote = document.getElementById('guidedRecoveryNote').textContent;
+          // Récup OK : « Cible du jour » ne doit plus figurer QUE sur #guidedTarget (chiffré) — la note
+          // récup (consigne d'exécution) ne se ré-étiquette plus « Cible du jour » (double libellé retiré).
+          const labelOk = gTgt.indexOf('Cible du jour') >= 0 && gNote.indexOf('Cible du jour') < 0 && gNote.indexOf('Consigne du jour') >= 0;
+          const greenOk = gTgt.indexOf('monte la charge') >= 0 && gHint.indexOf('Feu vert') >= 0 && labelOk;
           state.recovery = [{ date: localDate(), sleep: 8, fatigue: 1, soreness: 5 }];
           renderGuidedWorkout();
           const fTgt = document.getElementById('guidedTarget').textContent, fHint = document.getElementById('guidedProgressionHint').textContent, fNote = document.getElementById('guidedRecoveryNote').textContent;
@@ -903,7 +906,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.272'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.273'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
