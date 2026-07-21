@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.241 (2026-07-21)
+## 📍 État actuel — build 2.0.242 (2026-07-21)
 
+> ⛰️ **#633 — Prépa descentes : la coupe des séances cassantes s'aligne enfin sur l'affûtage (build
+> 2.0.242).** Priorité de nuit = coaching (coach trail) ; rotation §4 bis : `nutrition`/`coach` bloqués
+> (632 & 630) → domaine **`athlete`** (631, 1×, pas dans les 2 derniers), piste ouverte de la mémoire
+> athlète. Contradiction inter-cartes prouvée : `taperPlan` démarre l'affûtage à J-11/14/18 selon la
+> distance (« arrive frais »), mais `downhillPrep` (carte `#ultraDownhill`) coupait les descentes
+> **cassantes** à **J-10 fixe** → sur toute course > 12 km, fenêtre où l'app disait à la fois « arrive
+> frais » ET « 1-2 descentes/sem, ça casse les jambes ». Correctif (curation §3, zéro champ) : extraction
+> de `taperDaysFor(km)` (source unique de la fenêtre d'affûtage, utilisée par `taperPlan`), et coupe des
+> descentes cassantes dès `d <= max(10, taperDaysFor(km))` — alignée sur l'affûtage, plancher de sécurité
+> à 10 j. Comme `max(10, taperDays) >= taperDays`, la contradiction est éliminée structurellement.
+> Message concordant (« …l'affûtage a commencé, jambes fraîches »). §4 ter : cartes Affûtage/Descentes
+> relues à J-13 marathon → même sens. 569 tests (cohérence taper↔descente, plancher, non-régression
+> spécifique) + check smoke `ultraDownhill` renforcé (bloquant) verts. Recap #633. _Domaine : athlete._
+>
 > 📏 **#632 — Coach Poids : l'interprétation poids/taille colle enfin à l'objectif (build 2.0.241).**
 > Priorité de nuit = coaching ; `athlete`/`coach` bloqués par la rotation §4 bis (631 & 630) →
 > domaine **`nutrition`** (629, 1×), au service du MANDAT COACHING ÉLITE. Défaut prouvé (contradiction

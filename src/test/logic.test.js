@@ -1798,7 +1798,22 @@ test('downhillPrep : préparation aux descentes (repeated bout effect) selon la 
   assert.ok(near.window === 'race' && near.sessionsPerWeek === 0, 'J-8 : plus de descente cassante');
   assert.match(near.protocol, /J-8/, 'le protocole mentionne le compte à rebours');
   assert.equal(L.downhillPrep(600, 10, 42).window, 'race', 'J-10 inclus dans la fenêtre course');
-  assert.equal(L.downhillPrep(600, 11, 42).window, 'specific', 'J-11 encore en spécifique');
+  // Cohérence avec l'affûtage (`taperDaysFor`) : dès que `taperPlan` dit « arrive frais », la descente
+  // cassante s'arrête — sinon l'app se contredit dans la fenêtre J-11..J-18 sur les longues distances.
+  // Marathon (42 km → affûtage 14 j) : J-13 est en affûtage, donc plus de descente cassante.
+  assert.ok(L.taperPlan(13, 42), 'contrôle : marathon à J-13 est bien en affûtage');
+  assert.equal(L.downhillPrep(600, 13, 42).window, 'race', 'J-13 marathon : plus de descente cassante (affûtage commencé)');
+  assert.equal(L.downhillPrep(600, 13, 42).sessionsPerWeek, 0, 'J-13 marathon : 0 séance cassante');
+  // Ultra (80 km → affûtage 18 j) : J-16 est en affûtage → coupe alignée, pas de contradiction.
+  assert.ok(L.taperPlan(16, 80), 'contrôle : ultra à J-16 est en affûtage');
+  assert.equal(L.downhillPrep(1500, 16, 80).window, 'race', 'J-16 ultra : plus de descente cassante');
+  // Plancher de sécurité 10 j : sur 10 km (affûtage 7 j) la coupe reste à J-10, pas à J-7.
+  assert.equal(L.downhillPrep(600, 9, 10).window, 'race', 'J-9 sur 10 km : plancher 10 j → plus de descente cassante');
+  // Hors affûtage on garde le travail spécifique : marathon à J-20 (affûtage 14 j) → encore spécifique.
+  assert.equal(L.taperPlan(20, 42), null, 'contrôle : marathon à J-20 hors affûtage');
+  assert.equal(L.downhillPrep(600, 20, 42).window, 'specific', 'J-20 marathon : encore en travail spécifique de descente');
+  // `taperDaysFor` : source unique de la fenêtre d'affûtage, échelonnée par distance.
+  assert.deepEqual([10, 30, 45, 80].map(L.taperDaysFor), [7, 11, 14, 18], 'taperDaysFor : durées Bosquet/Mujika par distance');
 });
 test('buildTrainingWeek : affûtage réduit le VOLUME des courses en gardant la FRÉQUENCE', () => {
   const kmOf = p => p.days.reduce((s, d) => s + (Number(d.km) || 0) + (d.runs || []).reduce((a, r) => a + (Number(r.km) || 0), 0), 0);
@@ -6024,7 +6039,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.241');
+  assert.equal(L.CHANGELOG[0].v, '2.0.242');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
