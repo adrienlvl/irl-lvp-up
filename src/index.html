@@ -47,11 +47,10 @@
       <nav class="app-nav" aria-label="Navigation principale"><button data-page="dashboard" class="active"><span class="nav-ico" aria-hidden="true">🏠</span><span class="nav-lbl">Aujourd’hui</span></button><button id="openWeekPage"><span class="nav-ico" aria-hidden="true">🗓️</span><span class="nav-lbl">Agenda</span></button><button data-page="athlete"><span class="nav-ico" aria-hidden="true">💪</span><span class="nav-lbl">Athlète</span></button><button data-page="poids"><span class="nav-ico" aria-hidden="true">⚖️</span><span class="nav-lbl">Poids</span></button><button data-page="library"><span class="nav-ico" aria-hidden="true">📚</span><span class="nav-lbl">Exercices</span></button><button data-page="nutrition"><span class="nav-ico" aria-hidden="true">🥗</span><span class="nav-lbl">Nutrition</span></button><button data-page="focus"><span class="nav-ico" aria-hidden="true">🎯</span><span class="nav-lbl">Focus &amp; vie</span></button><button data-page="alternance"><span class="nav-ico" aria-hidden="true">💼</span><span class="nav-lbl">Alternance</span></button><button data-page="settings"><span class="nav-ico" aria-hidden="true">⚙️</span><span class="nav-lbl">Réglages</span></button></nav>
 
       <section id="today" class="player-card" aria-label="Profil du joueur">
-        <div class="avatar">⚡</div>
+        <div class="avatar-ring" id="xpRing" style="--xp:0" role="img" aria-label="Progression du niveau"><div class="avatar">⚡</div></div>
         <div class="level-block">
           <p id="playerName" class="player-name" hidden></p>
           <div class="label-row"><span id="levelLabel">NIVEAU 1</span><span id="xpLabel">0 / 100 XP</span></div>
-          <div class="xp-track"><div id="xpBar" class="xp-fill"></div></div>
           <p><strong id="playerTitle">Débutant audacieux</strong> · Chaque petite action compte.</p>
           <p id="membershipLine" class="membership-line" hidden></p>
         </div>

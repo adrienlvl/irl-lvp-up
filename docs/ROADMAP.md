@@ -23,8 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.263 (2026-07-21)
+## 📍 État actuel — build 2.0.264 (2026-07-21)
 
+> ⚡ **#656 — Carte joueur : anneau de progression XP autour de l'avatar (build 2.0.264).** Passe qualité UI
+> **2/N** (mandat Adrien, voir mémoire `passe-qualite-ui`). Cœur du dashboard (`#today.player-card`) : l'avatar
+> carré + barre XP linéaire plate → **avatar rond dans un anneau conic-gradient lime** (masqué en donut) qui se
+> remplit selon l'XP dans le niveau (style « anneaux d'activité »), barre linéaire redondante retirée, `NIVEAU X`
+> en accent. `app.js` : `$('#xpBar').style.width` (élément retiré) → `$('#xpRing').setProperty('--xp',within)` +
+> `aria-label` (garde `if(_xr)`). Vérif styles calculés : `--xp=40` → `conic-gradient(…85) 40%`, mask radial,
+> avatar rond 56px, pas d'erreur JS ; Artifact avant/après. 577 tests + smoke (`whatsNew` 2.0.264, `levelSet`
+> lit `#xpLabel`). **Exception rotation assumée** (#655+#656 = `fondations`, série UI mandatée). Recap #656.
+> _Domaine : fondations._ Master seulement (release espacée, tag par lots).
+>
 > 🧭 **#655 — Navigation principale redessinée : tuiles icône + libellé (build 2.0.263).** Retour direct
 > d'Adrien : « le design et l'UI est toujours mauvaise, continue les boucles ». **1ʳᵉ itération d'une passe
 > qualité UI** (écran par écran). App ouverte en navigateur → défaut le plus visible et universel : la nav
