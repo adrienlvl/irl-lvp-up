@@ -2065,8 +2065,19 @@ function raceGoalStatus(goal, now) {
   // négatif. On s'appuie sur le signe fiable de daysLeft pour la marquer passée. Cohérent aussi
   // avec app.js, qui teste `weeksLeft >= 0` pour décider qu'une course est encore devant.
   if (weeksLeft === 0 && daysLeft != null && daysLeft < 0) weeksLeft = -1;
-  const phase = racePhase(weeksLeft);
+  let phase = racePhase(weeksLeft);
   const km = Number(goal.distanceKm) || 0;
+  // La bascule en AFFÛTAGE doit suivre la DISTANCE (source unique `taperDaysFor`), pas le seuil FIXE de
+  // 2 semaines de `racePhase` : sinon désaccord avec `taperPlan`/`downhillPrep`. Un 10 km « affûterait »
+  // dès ~J-14 (affûtage réel : 7 j) et un ultra resterait « spécifique » à J-18 alors que `taperPlan` a
+  // déjà lancé l'affûtage. On recale la phase dans la seule zone spécifique↔affûtage, course à venir.
+  // Le rounding hebdo de `racePhase` perd la précision au jour près : c'est ici, avec `daysLeft`, qu'on
+  // la retrouve (Bosquet 2007 / Mujika 2003, cf. `taperDaysFor`).
+  if (daysLeft != null && daysLeft >= 0 && (phase.key === 'taper' || phase.key === 'specific')) {
+    phase = daysLeft <= taperDaysFor(km)
+      ? racePhase(1)   // dans la fenêtre `taperDaysFor` → affûtage, comme `taperPlan`
+      : racePhase(4);  // encore hors fenêtre → spécifique (entraînement plein)
+  }
   const peakLong = Math.min(300, Math.max(60, Math.round(km * 3)));
   const longRunMin = Math.round(peakLong * phase.longMul / 5) * 5;
   return {
@@ -3134,6 +3145,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.252', emoji: '🏁', text: 'Ta carte « Objectif de course » (onglet Ultra) affiche enfin la phase d’AFFÛTAGE au bon moment pour TA distance, en accord avec le reste de l’app. Jusqu’ici, la phase basculait sur « Affûtage — arrive frais, réduis le volume » dès qu’il restait 2 semaines, peu importe la course. Mais ton « Programme de la semaine » et le conseil « descentes », eux, calent l’affûtage sur la distance : ~1 semaine pour un 10 km, ~2,5 semaines pour un ultra. Résultat, deux surfaces qui se contredisaient : sur un 10 km, la carte criait « affûte, allège » dès J-14 alors que tu devais encore t’entraîner à fond (et le programme ne montrait aucun affûtage) ; sur un ultra, la carte disait encore « spécifique, sorties longues » à J-18 alors que le programme avait déjà lancé l’affûtage. Désormais la phase suit la même fenêtre que le programme (courte pour une course courte, longue pour un ultra) : une seule vérité, plus de « arrive frais » prématuré ni tardif. (affûtage échelonné par distance, Bosquet 2007 / Mujika 2003)' },
   { v: '2.0.251', emoji: '🌙', text: 'Ton « Bilan sommeil » (onglet Athlète → Récupération) ne répète plus une consigne de coucher qui doublonnait avec ton plan de recalage juste en dessous. Quand un plan de recalage est actif, c’est lui qui porte l’action : il t’affiche une heure de coucher cible précise pour ce soir, qui glisse jour après jour. Or le bilan continuait, lui, d’ajouter une consigne générique (« vise un coucher 30 min plus tôt », « stabilise d’abord une heure de coucher fixe ») — plus vague, et qui entrait en concurrence avec la cible chiffrée du plan affichée à côté. Désormais, dès qu’un plan est actif, le bilan se limite au diagnostic (« Sommeil court : moy. 6 h, dette de X h… ») et laisse le plan dire QUAND te coucher : une seule voix pour une seule action, au lieu de deux consignes qui se marchent dessus. Sans plan actif, le bilan reste seul à te guider et garde sa consigne. (hygiène du sommeil / recalage circadien)' },
   { v: '2.0.250', emoji: '🧭', text: 'Ta « Boussole locale » (le petit guide « ton prochain geste » sur l’accueil) et « Mission Control » juste à côté ne se contredisent plus sur le focus. Une fois ton bloc de concentration du jour terminé, Mission Control le cochait bien « ✓ terminé »… mais la Boussole, elle, continuait de te présenter « Lancer mon focus » comme LE geste n°1 à faire — parce qu’elle regardait seulement si une mission active était posée (champ qui n’est jamais remis à zéro automatiquement), sans vérifier si tu avais déjà fait ta séance de focus aujourd’hui. Résultat : deux cartes voisines qui se contredisaient dans une journée normale (check-in du matin fait + mission posée + un bloc bouclé). Désormais, dès que ton bloc du jour est enregistré, la Boussole avance au geste suivant (ton créneau, ta priorité de vie…) au lieu de te renvoyer sur un focus déjà accompli.' },
   { v: '2.0.249', emoji: '🧊', text: 'Ta décharge muscu « sur fatigue » (dans le Bilan hebdo, sous les séries par groupe) s’affiche enfin quand tu en as besoin. Ton app sait déclencher une semaine de décharge dans deux cas : après 5 semaines de charge d’affilée (accumulation), OU plus tôt — dès 3 semaines dures — si ta forme du jour est basse (fatigue). Sauf que ce second cas, le plus utile pour t’éviter le surmenage, ne s’est jamais déclenché : le bilan passait au calcul ton score de forme sous forme d’OBJET là où il attendait le simple chiffre, si bien que la fatigue était toujours lue comme « inconnue ». Un athlète enchaînant 3 grosses semaines avec des nuits courtes et des courbatures ne voyait donc jamais la carte « 🧊 Décharge conseillée — ta forme baisse, place une décharge maintenant ». C’est réparé : la décharge anticipée sur fatigue apparaît de nouveau (coupe le volume de 40-50 %, garde tes charges, tu surcompenses). Le déclenchement par accumulation, lui, marchait déjà. (gestion de la fatigue / décharge programmée, principes NSCA)' },

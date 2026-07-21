@@ -3134,6 +3134,35 @@ test('raceGoalStatus : marathon proche → spécifique/affûtage, sortie longue 
   assert.equal(L.raceGoalStatus(null, now), null);
 });
 
+test('raceGoalStatus : la bascule affûtage suit la distance (taperDaysFor), pas un seuil fixe de 2 sem', () => {
+  const now = new Date('2026-07-06T12:00:00');
+  // 10 km : affûtage réel = 7 j. À J-10, on est ENCORE en spécifique — racePhase seul aurait dit taper
+  // (weeksLeft arrondi à 1) ; taperPlan(10, 10) = null le confirme.
+  const shortEarly = L.raceGoalStatus({ type: 'trail', distanceKm: 10, date: '2026-07-16' }, now);
+  assert.equal(shortEarly.daysLeft, 10);
+  assert.equal(shortEarly.phase.key, 'specific', 'J-10 sur 10 km : pas encore l’affûtage');
+  assert.equal(L.taperPlan(shortEarly.daysLeft, 10), null, 'cohérent avec taperPlan (hors fenêtre)');
+  // 10 km à J-6 : dans la fenêtre (≤ 7 j) → affûtage, et taperPlan démarre aussi.
+  const shortTaper = L.raceGoalStatus({ type: 'trail', distanceKm: 10, date: '2026-07-12' }, now);
+  assert.equal(shortTaper.daysLeft, 6);
+  assert.equal(shortTaper.phase.key, 'taper');
+  assert.ok(L.taperPlan(shortTaper.daysLeft, 10), 'taperPlan actif dans la fenêtre');
+  // Ultra 160 km : affûtage réel = 18 j. À J-18, déjà en affûtage (racePhase seul aurait dit spécifique,
+  // weeksLeft arrondi à 3) ; taperPlan(18, 160) actif le confirme.
+  const ultraTaper = L.raceGoalStatus({ type: 'ultra160', distanceKm: 160, date: '2026-07-24' }, now);
+  assert.equal(ultraTaper.daysLeft, 18);
+  assert.equal(ultraTaper.phase.key, 'taper', 'J-18 sur 160 km : affûtage, comme taperPlan');
+  assert.ok(L.taperPlan(ultraTaper.daysLeft, 160), 'taperPlan actif');
+  // Ultra 160 km à J-20 : hors fenêtre (> 18 j) → spécifique, et taperPlan null.
+  const ultraEarly = L.raceGoalStatus({ type: 'ultra160', distanceKm: 160, date: '2026-07-26' }, now);
+  assert.equal(ultraEarly.daysLeft, 20);
+  assert.equal(ultraEarly.phase.key, 'specific');
+  assert.equal(L.taperPlan(ultraEarly.daysLeft, 160), null);
+  // Non-régression : course à 2 ans → phase lointaine intacte (hors zone spécifique↔affûtage).
+  const far = L.raceGoalStatus({ type: 'ultra160', distanceKm: 170, date: '2028-07-01' }, now);
+  assert.equal(far.phase.key, 'foundation');
+});
+
 test('warmupFor : échauffement adapté au type de séance', () => {
   const haut = L.warmupFor('A · Tirage & poussée');
   assert.match(haut.label, /haut du corps/i);
@@ -6102,7 +6131,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.251');
+  assert.equal(L.CHANGELOG[0].v, '2.0.252');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.251 (2026-07-21)
+## 📍 État actuel — build 2.0.252 (2026-07-21)
 
+> 🏁 **#643 — Objectif de course : la bascule en affûtage suit la distance, pas un seuil fixe de 2 sem
+> (build 2.0.252).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par mtime : `sommeil, focus,
+> athlete, nutrition, coach`) → `sommeil`/`focus` (2 derniers) exclus ; **`athlete`** pris (1× sur 5,
+> absent des 2 derniers), aligné priorité de nuit (running/trail) et angle NEUF (piste #3 cadrée en
+> mémoire). Contradiction inter-surfaces prouvée (cas nominal) : `racePhase` bascule en phase **Affûtage**
+> (« arrive frais, réduis le volume ») dès `weeksLeft <= 2` — seuil **FIXE**, quelle que soit la distance —
+> alors que `taperPlan`/`downhillPrep` calent l'affûtage sur `taperDaysFor(km)` (source unique depuis #633 :
+> 7 j sur 10 km … 18 j sur ultra). Résultat : sur un **10 km à J-10**, la carte « Objectif de course » crie
+> « Affûtage » 3 j trop tôt (le programme, lui, n'affiche aucun bandeau `taperPlan(10,10)=null`) ; sur un
+> **ultra à J-18**, la carte dit encore « Spécifique » alors que `taperPlan(18,160)` a déjà lancé l'affûtage.
+> Racine : l'arrondi **hebdo** de `racePhase` perd la précision au jour près. Correctif (curation §3, zéro
+> champ) : `raceGoalStatus` recale la phase dans la **seule** zone spécifique↔affûtage, course à venir, en
+> pilotant par `taperDaysFor(km)` — `racePhase` inchangée (tous ses tests verts). `longRunMin` (dérivé de
+> `phase.longMul`) devient cohérent en prime. §4 ter : les 3 surfaces (`renderRaceGoal`,
+> `renderTrainingCompanion`, `generateAutomaticWeek`) concordent désormais avec le programme (10 km J-10 →
+> Spécifique ; ultra J-18 → Affûtage). 573 tests (+1 bloc `raceGoalStatus`, chaque cas croisé avec
+> `taperPlan`) + smoke verts ; render `app.js` byte-identique → pas de nouveau check smoke (défaut
+> entièrement dans la fonction pure). Recap #643. _Domaine : athlete._
+>
 > 🌙 **#642 — Bilan sommeil : plus de consigne de coucher redondante quand un plan de recalage est actif
 > (build 2.0.251).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers **par numéro** : `focus,
 > athlete, nutrition, coach, athlete`) → `focus` (dans les 2 derniers) et `athlete` (2×) exclus ;
