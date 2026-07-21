@@ -3134,6 +3134,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.251', emoji: '🌙', text: 'Ton « Bilan sommeil » (onglet Athlète → Récupération) ne répète plus une consigne de coucher qui doublonnait avec ton plan de recalage juste en dessous. Quand un plan de recalage est actif, c’est lui qui porte l’action : il t’affiche une heure de coucher cible précise pour ce soir, qui glisse jour après jour. Or le bilan continuait, lui, d’ajouter une consigne générique (« vise un coucher 30 min plus tôt », « stabilise d’abord une heure de coucher fixe ») — plus vague, et qui entrait en concurrence avec la cible chiffrée du plan affichée à côté. Désormais, dès qu’un plan est actif, le bilan se limite au diagnostic (« Sommeil court : moy. 6 h, dette de X h… ») et laisse le plan dire QUAND te coucher : une seule voix pour une seule action, au lieu de deux consignes qui se marchent dessus. Sans plan actif, le bilan reste seul à te guider et garde sa consigne. (hygiène du sommeil / recalage circadien)' },
   { v: '2.0.250', emoji: '🧭', text: 'Ta « Boussole locale » (le petit guide « ton prochain geste » sur l’accueil) et « Mission Control » juste à côté ne se contredisent plus sur le focus. Une fois ton bloc de concentration du jour terminé, Mission Control le cochait bien « ✓ terminé »… mais la Boussole, elle, continuait de te présenter « Lancer mon focus » comme LE geste n°1 à faire — parce qu’elle regardait seulement si une mission active était posée (champ qui n’est jamais remis à zéro automatiquement), sans vérifier si tu avais déjà fait ta séance de focus aujourd’hui. Résultat : deux cartes voisines qui se contredisaient dans une journée normale (check-in du matin fait + mission posée + un bloc bouclé). Désormais, dès que ton bloc du jour est enregistré, la Boussole avance au geste suivant (ton créneau, ta priorité de vie…) au lieu de te renvoyer sur un focus déjà accompli.' },
   { v: '2.0.249', emoji: '🧊', text: 'Ta décharge muscu « sur fatigue » (dans le Bilan hebdo, sous les séries par groupe) s’affiche enfin quand tu en as besoin. Ton app sait déclencher une semaine de décharge dans deux cas : après 5 semaines de charge d’affilée (accumulation), OU plus tôt — dès 3 semaines dures — si ta forme du jour est basse (fatigue). Sauf que ce second cas, le plus utile pour t’éviter le surmenage, ne s’est jamais déclenché : le bilan passait au calcul ton score de forme sous forme d’OBJET là où il attendait le simple chiffre, si bien que la fatigue était toujours lue comme « inconnue ». Un athlète enchaînant 3 grosses semaines avec des nuits courtes et des courbatures ne voyait donc jamais la carte « 🧊 Décharge conseillée — ta forme baisse, place une décharge maintenant ». C’est réparé : la décharge anticipée sur fatigue apparaît de nouveau (coupe le volume de 40-50 %, garde tes charges, tu surcompenses). Le déclenchement par accumulation, lui, marchait déjà. (gestion de la fatigue / décharge programmée, principes NSCA)' },
   { v: '2.0.248', emoji: '🍽️', text: 'Ta carte « Coach Poids » ne te conseille plus jamais de manger SOUS ton métabolisme de base. Quand ta perte cale (14 j sans bouger), l’app propose de baisser un peu les calories (~125/jour) — sauf que ce plancher de sécurité était figé à 1200 kcal, sans lien avec TON métabolisme. Pour un gabarit sec ou peu actif déjà calé à son métabolisme de base (le plancher que le plan calcule pour toi), la carte pouvait afficher « Nouvelle cible : X kcal/j » avec X 125 kcal EN DESSOUS du « Métabolisme de base X kcal » écrit juste en bas de la même carte — deux chiffres qui se contredisent, et un conseil de manger moins que ton minimum vital. Désormais la cible d’ajustement ne descend jamais sous ton métabolisme de base : si tu y es déjà, l’app te renvoie vers le cardio / plus d’activité (« tu es déjà au plancher calorique ») au lieu de te faire couper encore. Le plancher générique de 1200 kcal reste comme filet quand le métabolisme n’est pas calculable. (Mifflin-St Jeor · déficit ≤ 25 % TDEE, apport ≥ métabolisme de base, ISSN 2017)' },
@@ -10017,7 +10018,13 @@ function focusMinutesTrend(focusSessions, todayKey, windowDays) {
 // inversement un coucher qui saute partout peut cacher une durée moyenne stable. Pur + testé.
 // Retourne { avg, nights, debt, stdev, bedtimeStdevMin, irregular, tone, verdict } ou null si aucune
 // nuit chiffrée sur les 7 derniers jours. tone : 'ok' | 'attention' | 'urgent'.
-function sleepCoachInsight(recovery, todayKey) {
+// `opts.planActive` : quand un plan de recalage est ACTIF (carte « 🌙 Plan de recalage » rendue juste
+// en dessous du bilan), il pilote DÉJÀ l'action sur le coucher — une cible chiffrée, adaptative,
+// affichée à côté. Le bilan se limite alors au DIAGNOSTIC et laisse tomber la consigne de coucher
+// générique (« vise un coucher 30 min plus tôt », « stabilise une heure fixe », « se coucher à heure
+// fixe compte autant ») qui ferait doublon — et concurrencerait, en plus vague, la cible précise du
+// plan. §3 : fusionner/supprimer les notes redondantes, hiérarchiser (le plan porte l'action).
+function sleepCoachInsight(recovery, todayKey, opts) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''))) return null;
   const pad = n => String(n).padStart(2, '0');
   const shift = n => { const d = new Date(todayKey + 'T12:00:00'); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -10029,20 +10036,24 @@ function sleepCoachInsight(recovery, todayKey) {
   const useBedtime = !!(bedReg && bedReg.nights >= 3);
   const irregular = useBedtime ? bedReg.stdevMin >= 60 : !!(reg && reg.stdev >= 1.5);
   const nightsWord = n => `nuit${n > 1 ? 's' : ''}`;
+  // Avec un plan actif, l'action de coucher est déjà portée (et chiffrée) par le plan voisin : on clôt
+  // le diagnostic par un simple point au lieu de répéter une consigne de coucher générique et redondante.
+  const planActive = !!(opts && opts.planActive);
+  const act = tail => planActive ? '.' : tail;
   let tone, verdict;
   if (week.status === 'court' && irregular) {
     tone = 'urgent';
     verdict = useBedtime
-      ? `Sommeil court et coucher irrégulier (moy. ${week.avg} h, coucher variant de ~${bedReg.stdevMin} min d’un soir à l’autre) — avant d’allonger les nuits, stabilise d’abord une heure de coucher fixe.`
-      : `Sommeil court et irrégulier (moy. ${week.avg} h, écart ${reg.stdev} h d’une nuit à l’autre) — avant d’allonger les nuits, stabilise d’abord une heure de coucher fixe.`;
+      ? `Sommeil court et coucher irrégulier (moy. ${week.avg} h, coucher variant de ~${bedReg.stdevMin} min d’un soir à l’autre)${act(' — avant d’allonger les nuits, stabilise d’abord une heure de coucher fixe.')}`
+      : `Sommeil court et irrégulier (moy. ${week.avg} h, écart ${reg.stdev} h d’une nuit à l’autre)${act(' — avant d’allonger les nuits, stabilise d’abord une heure de coucher fixe.')}`;
   } else if (week.status === 'court') {
     tone = 'attention';
-    verdict = `Sommeil court : moy. ${week.avg} h sur ${week.nights} ${nightsWord(week.nights)}, dette de ${debt.debt} h sur 14 j — vise un coucher 30 min plus tôt.`;
+    verdict = `Sommeil court : moy. ${week.avg} h sur ${week.nights} ${nightsWord(week.nights)}, dette de ${debt.debt} h sur 14 j${act(' — vise un coucher 30 min plus tôt.')}`;
   } else if (irregular) {
     tone = 'attention';
     verdict = useBedtime
-      ? `Durée correcte (moy. ${week.avg} h) mais coucher irrégulier (variant de ~${bedReg.stdevMin} min d’un soir à l’autre) — se coucher à heure fixe compte autant que le total.`
-      : `Durée correcte (moy. ${week.avg} h) mais rythme irrégulier (écart ${reg.stdev} h d’une nuit à l’autre) — se coucher à heure fixe compte autant que le total.`;
+      ? `Durée correcte (moy. ${week.avg} h) mais coucher irrégulier (variant de ~${bedReg.stdevMin} min d’un soir à l’autre)${act(' — se coucher à heure fixe compte autant que le total.')}`
+      : `Durée correcte (moy. ${week.avg} h) mais rythme irrégulier (écart ${reg.stdev} h d’une nuit à l’autre)${act(' — se coucher à heure fixe compte autant que le total.')}`;
   } else if (reg || useBedtime) {
     tone = 'ok';
     verdict = `Sommeil solide : moy. ${week.avg} h sur ${week.nights} ${nightsWord(week.nights)}, rythme régulier.`;

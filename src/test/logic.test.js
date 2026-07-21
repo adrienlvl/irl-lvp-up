@@ -6102,7 +6102,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.250');
+  assert.equal(L.CHANGELOG[0].v, '2.0.251');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7301,6 +7301,47 @@ test('sleepCoachInsight : la régularité du COUCHER prime sur celle de la duré
   assert.equal(r2.irregular, true, 'coucher irrégulier détecté malgré une durée stable');
   assert.equal(r2.tone, 'attention');
   assert.match(r2.verdict, /coucher irrégulier/);
+});
+
+test('sleepCoachInsight : avec un plan de recalage actif, le bilan ne répète pas la consigne de coucher (§3)', () => {
+  // Quand la carte « Plan de recalage » est active juste sous le bilan, elle porte DÉJÀ l'action de
+  // coucher (cible chiffrée, adaptative). Le bilan doit alors se limiter au DIAGNOSTIC et NE PAS
+  // émettre une consigne générique (« vise un coucher 30 min plus tôt » / « stabilise une heure fixe »
+  // / « se coucher à heure fixe compte autant ») qui ferait doublon — et concurrencerait, plus vague,
+  // la cible précise du plan. Sans plan, la consigne reste (le bilan est alors seul à guider).
+  const shortIrregular = [ // court + durée en dents de scie, sans heure de coucher → urgent
+    { date: '2026-07-04', sleep: 5 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 5 },
+    { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 5 },
+  ];
+  const uNoPlan = L.sleepCoachInsight(shortIrregular, '2026-07-10');
+  const uPlan = L.sleepCoachInsight(shortIrregular, '2026-07-10', { planActive: true });
+  assert.equal(uPlan.tone, 'urgent', 'le diagnostic (tone/irregular) est inchangé');
+  assert.equal(uPlan.irregular, uNoPlan.irregular);
+  assert.match(uNoPlan.verdict, /stabilise d’abord une heure de coucher fixe/, 'sans plan : la consigne guide');
+  assert.doesNotMatch(uPlan.verdict, /stabilise/, 'plan actif : plus de consigne de coucher redondante');
+  assert.match(uPlan.verdict, /court et irrégulier/, 'plan actif : le diagnostic est conservé');
+  assert.ok(uPlan.verdict.trim().endsWith('.'), 'la phrase reste correctement close');
+
+  const stableShort = [ // court mais régulier → attention, tail « vise un coucher 30 min plus tôt »
+    { date: '2026-07-04', sleep: 6 }, { date: '2026-07-05', sleep: 6 }, { date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 6 },
+    { date: '2026-07-08', sleep: 6 }, { date: '2026-07-09', sleep: 6 }, { date: '2026-07-10', sleep: 6 },
+  ];
+  assert.match(L.sleepCoachInsight(stableShort, '2026-07-10').verdict, /vise un coucher 30 min plus tôt/);
+  assert.doesNotMatch(L.sleepCoachInsight(stableShort, '2026-07-10', { planActive: true }).verdict, /vise un coucher/);
+
+  const jaggedOk = [ // durée correcte mais irrégulière → attention, tail « se coucher à heure fixe compte autant »
+    { date: '2026-07-04', sleep: 6.5 }, { date: '2026-07-05', sleep: 9.5 }, { date: '2026-07-06', sleep: 6.5 },
+    { date: '2026-07-07', sleep: 9.5 }, { date: '2026-07-08', sleep: 6.5 }, { date: '2026-07-09', sleep: 9.5 }, { date: '2026-07-10', sleep: 6.5 },
+  ];
+  assert.match(L.sleepCoachInsight(jaggedOk, '2026-07-10').verdict, /compte autant que le total/);
+  assert.doesNotMatch(L.sleepCoachInsight(jaggedOk, '2026-07-10', { planActive: true }).verdict, /compte autant/);
+
+  // Un bilan « ok » (rien à corriger) n'a pas de consigne de coucher : plan actif ou non, verdict identique.
+  const stableOk = [
+    { date: '2026-07-04', sleep: 8 }, { date: '2026-07-05', sleep: 8 }, { date: '2026-07-06', sleep: 8 }, { date: '2026-07-07', sleep: 8 },
+    { date: '2026-07-08', sleep: 8 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 8 },
+  ];
+  assert.equal(L.sleepCoachInsight(stableOk, '2026-07-10').verdict, L.sleepCoachInsight(stableOk, '2026-07-10', { planActive: true }).verdict);
 });
 
 test('sleepDurationTrend : compare la durée récente à la semaine précédente', () => {

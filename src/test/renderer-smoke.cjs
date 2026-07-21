@@ -291,6 +291,30 @@ app.whenReady().then(async () => {
           const br = bedtimeRegularity(stableBedtimeJaggedSleep, 14);
           return br && br.nights === 7 && br.stdevMin === 0 && bedtimeRegularity([], 14) === null;
         })(),
+        sleepCoachDefersToPlan: typeof sleepCoachInsight === 'function' && typeof renderWeeklySleep === 'function' && !!document.getElementById('sleepCoach') && !!document.getElementById('sleepPlan') && (() => {
+          // Quand un plan de recalage est ACTIF, il porte déjà l'action de coucher (cible chiffrée,
+          // adaptative) juste sous le bilan. Le bilan ne doit alors PAS répéter une consigne de coucher
+          // générique (« stabilise une heure fixe » / « vise un coucher 30 min plus tôt »…) qui ferait
+          // doublon — et concurrencerait, plus vague, la cible précise du plan (§3/§4 ter, lecture cumulée).
+          const pad = n => (n < 10 ? '0' + n : '' + n);
+          const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+          const rec = [];
+          for (let i = 0; i < 7; i++) rec.push({ date: iso(i), sleep: 6, bedtime: i % 2 ? '06:00' : '03:00' });
+          const generic = /vise un coucher|stabilise|compte autant/;
+          const saved = { r: state.recovery, p: state.sleepPlan };
+          state.recovery = rec;
+          state.sleepPlan = { active: true, targetTime: '23:30', startTime: '06:00', startKey: iso(6), stepMin: 25, stepDays: 1, lastReward: '' };
+          renderWeeklySleep();
+          const withPlan = document.getElementById('sleepCoach').textContent;
+          const planText = document.getElementById('sleepPlan').textContent;
+          state.sleepPlan = { active: false, targetTime: '', startTime: '', startKey: '', stepMin: 25, stepDays: 1, lastReward: '' };
+          renderWeeklySleep();
+          const withoutPlan = document.getElementById('sleepCoach').textContent;
+          state.recovery = saved.r; state.sleepPlan = saved.p; renderWeeklySleep();
+          return /coucher irrégulier/.test(withPlan) && !generic.test(withPlan)
+            && /coucher cible/.test(planText)
+            && generic.test(withoutPlan);
+        })(),
         sleepBedtime: typeof bedtimeAnchor === 'function' && typeof recentBedtimeAnchor === 'function' && !!document.getElementById('bedtimeInput') && (() => {
           if (bedtimeAnchor('06:00') <= bedtimeAnchor('23:00')) return false;
           if (bedtimeFromAnchor(bedtimeAnchor('23:30')) !== '23:30') return false;
@@ -794,7 +818,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.250'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.251'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2189,6 +2213,7 @@ app.whenReady().then(async () => {
     if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / bedtimeRegularity / #sleepCoach)');
     if (!checks.sleepImpact) errors.push('Effet du coucher KO (sleepImpactReport / #sleepImpact / rendu)');
     if (!checks.sleepBedtimeRegularity) errors.push('Régularité du coucher KO (bedtimeRegularity ne prime plus sur la durée dans sleepCoachInsight)');
+    if (!checks.sleepCoachDefersToPlan) errors.push('Bilan sommeil vs plan KO (plan actif : le bilan répète encore une consigne de coucher redondante avec la cible du plan)');
     if (!checks.sleepBedtime) errors.push('Capture heure de coucher KO (bedtimeAnchor / recentBedtimeAnchor / #bedtimeInput)');
     if (!checks.sleepReschedule) errors.push('Plan de recalage sommeil KO (sleepPlanDay / startSleepPlan / normalizeSleepPlan / #sleepPlan)');
     if (!checks.sleepRpg) errors.push('Coach sommeil RPG KO (sleepEveningTips / sleepPlanAdherence / sleepBedtimeReward)');
