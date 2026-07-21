@@ -25,6 +25,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.230 (2026-07-21)
 
+> 🥩 **#619 — Proposition : la cible protéines ne monte pas en sèche active (préservation du muscle).**
+> Domaine `nutrition` (frais ; `coach`/`etudes` bloqués par la rotation §4 bis). Mandat coaching élite
+> (diététicien du sport, §1) + priorité de nuit. Manque prouvé : `proteinTarget` (barème générique de
+> l'onglet Nutrition — force 1,9 · trail 1,6 · sinon 1,8 g/kg) **ignore le déficit réel**, alors
+> qu'`energyPlan` vise déjà **2,4 g/kg en sèche** (Longland 2016) sur la carte Coach Poids voisine → un
+> utilisateur en sèche lit **deux cibles différentes**, la plus basse sous-alimentant la préservation du
+> muscle (ce que le mandat dit d'éviter). Pas codé ce tour : `proteinTarget` est consommé par **8 sites
+> dont 2 guards du coach** (`adaptiveCoachFocus`) → le correctif propre **ripple dans `coach`** (rotation
+> §4 bis) et un correctif partiel créerait une contradiction (§4 ter). → `docs/proposals/proteine-cible-deficit.md`.
+> Reco **B** (signal `cut` dérivé de `targetWeight`, `proteinTarget(…,opts)` rétro-compatible, cible qui
+> monte **ensemble** partout), à faire dans un tour `coach`-actif ou en supervisé. Pas de bump. Recap #619.
+> _Domaine : nutrition._
+>
 > 🌙 **#618 — « À rattraper » remonte enfin un sommeil URGENT invisible ailleurs (build 2.0.230).**
 > Priorité de nuit coaching (§3 qualité). Rotation OK avant de coder (`coach` absent des 2 derniers
 > recaps, 1× sur 5 ; candidat mémoire « milestones redondants » vérifié CLOS #558). Manque prouvé par

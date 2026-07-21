@@ -39,6 +39,16 @@
   demande / **B** (2ᵉ rang en figure SVG animée, sans photo) si le volume prime sur l'uniformité « tout
   photo ». ⏳ **4 décisions t'attendent** en fin de doc.
 
+- **Coaching élite (nutrition) — proposition « cible protéines en sèche », en attente de ta décision.**
+  Boucle #619 (2026-07-21) : `docs/proposals/proteine-cible-deficit.md`. Manque science prouvé :
+  `proteinTarget` (barème de l'onglet Nutrition) ignore le déficit et reste à 1,8 g/kg en sèche, alors
+  qu'`energyPlan` vise déjà 2,4 g/kg (Longland 2016) sur la carte Coach Poids voisine → cible quotidienne
+  sous-optimale pour préserver le muscle + incohérence entre les deux surfaces. Non codé en autonomie :
+  le correctif propre touche 8 sites **dont 2 guards du coach** → ripple `coach` (rotation §4 bis) et un
+  correctif partiel violerait §4 ter. Reco **B** (signal `cut` dérivé de `targetWeight`, `proteinTarget`
+  rétro-compatible, cible relevée **ensemble** partout). ⏳ **4 décisions t'attendent** (périmètre ·
+  multiplicateur 2,2 vs 2,4 · déclencheur · réalisation autonome tour-coach vs supervisée).
+
 - **Avancer CAP 3.0 — 2 propositions écrites (chantiers 3 & 4), en attente de tes décisions.** Le code
   autonome du Cap 3.0 est épuisé (P6 multi-examens et P7 parcours smoke clos ; IndexedDB réservé au
   supervisé ; es-modules/i18n fermés). La boucle cadre donc les prochains chantiers **avant** qu'ils
