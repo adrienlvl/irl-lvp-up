@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.232 (2026-07-21)
+## 📍 État actuel — build 2.0.233 (2026-07-21)
 
+> 🌙 **#623 — Le « Bilan sommeil » ne certifie plus un « rythme régulier » qu'il n'a pas mesuré (build
+> 2.0.233).** Priorité de nuit = coaching, mais **`coach` ET `robustesse` bloqués** par la rotation §4 bis
+> (les 2 derniers recaps ; chacun 2× sur 5). Domaine pris : **`sommeil`** (absent des 5 derniers). Après
+> survol vérifié-propre de nutrition/focus/agenda (codebase mûr), défaut d'honnêteté **prouvé par mesure**
+> dans `sleepCoachInsight` : la branche « ok » affirmait « Sommeil solide … rythme régulier » dès qu'une
+> durée correcte n'était pas jugée irrégulière — **y compris à 1 ou 2 nuits chiffrées**, où `sleepRegularity`
+> (`stdev: null`) n'a **rien mesuré**. Certifier un rythme sur une seule nuit, c'est promettre un constat non
+> fait (§4 ter : un vrai coach ne certifie pas ce qu'il n'a pas vu). Correctif (curation, zéro champ ajouté) :
+> la branche « ok » se scinde — « rythme régulier » n'est dit que si `reg || useBedtime` (≥ 3 nuits de durée
+> **ou** ≥ 3 couchers) ; sinon verdict honnête « Bon sommeil : moy. X h … Continue tes check-ins pour juger
+> la régularité ». Dès 3 nuits, le verdict mesuré revient à l'identique. `tone` reste `'ok'` → aucun ripple
+> coach. §4 ter : rendus lus sur 6 états (1→5 nuits, couchers) — honnêtes et cohérents. 567 tests (assertions
+> 1/2/3 nuits ajoutées au test dédié) + smoke verts. Recap #623. _Domaine : sommeil._
+>
 > 🩹 **#622 — La 1re semaine d'entraînement ne déclenche plus une fausse alerte « pic de charge —
 > allège, risque de blessure » (build 2.0.232).** Priorité de nuit = coaching, mais **`coach` ET
 > `nutrition` bloqués** par la rotation §4 bis (les 2 derniers recaps ; `coach` 2× sur 5). Domaine pris :

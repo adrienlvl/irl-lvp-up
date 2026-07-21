@@ -5991,7 +5991,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.232');
+  assert.equal(L.CHANGELOG[0].v, '2.0.233');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7132,6 +7132,20 @@ test('sleepCoachInsight : bilan qualité + régularité (1re étape du coach som
 
   assert.equal(L.sleepCoachInsight([], '2026-07-10'), null, 'aucune nuit sur 7 j → null');
   assert.equal(L.sleepCoachInsight(jagged, 'invalide'), null);
+
+  // HONNÊTETÉ (§4 ter) : moins de 3 nuits chiffrées → la régularité n'est pas mesurable, donc le
+  // bilan ne DOIT PAS affirmer « rythme régulier » (une seule nuit ne dit rien d'un rythme). Il
+  // salue la durée et invite à poursuivre les check-ins. Dès 3 nuits, le verdict mesuré revient.
+  const oneNight = L.sleepCoachInsight([{ date: '2026-07-10', sleep: 8 }], '2026-07-10');
+  assert.equal(oneNight.tone, 'ok');
+  assert.equal(oneNight.stdev, null, 'régularité non mesurée (1 nuit)');
+  assert.doesNotMatch(oneNight.verdict, /rythme régulier/, '1 nuit → pas de « rythme régulier » certifié');
+  assert.match(oneNight.verdict, /Continue tes check-ins/);
+  const twoNights = L.sleepCoachInsight([{ date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 8 }], '2026-07-10');
+  assert.doesNotMatch(twoNights.verdict, /rythme régulier/, '2 nuits → toujours pas de régularité affirmée');
+  const threeNights = L.sleepCoachInsight([{ date: '2026-07-08', sleep: 8 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 8 }], '2026-07-10');
+  assert.equal(threeNights.stdev, 0, 'régularité mesurée dès 3 nuits');
+  assert.match(threeNights.verdict, /Sommeil solide.*rythme régulier/, '3 nuits régulières → verdict mesuré rétabli');
 });
 
 test('sleepCoachInsight : la régularité du COUCHER prime sur celle de la durée dès 3 nuits saisies', () => {
