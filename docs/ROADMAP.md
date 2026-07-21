@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.237 (2026-07-21)
+## 📍 État actuel — build 2.0.238 (2026-07-21)
 
+> 📊 **#628 — « L'effet de ton coucher » : le verdict ne se contredit plus (build 2.0.238).** Priorité
+> de nuit = coaching, mais **`coach` bloqué** par la rotation §4 bis (recaps 627 & 624 : 2 derniers ET
+> 2× sur 5) et `athlete` bloqué (626). Domaine pris : **`sommeil`** (623, 5ᵉ — libre), adjacent au
+> coaching. Défaut **prouvé par exécution** (méthode P5) dans `sleepImpactReport` : deux branches
+> **négatives jamais testées** mentaient sur la magnitude qu'elles imprimaient. Côté **focus**
+> (logic.js:10003), quand les couchers tôt s'accompagnaient de MOINS de focus que les couchers tard
+> (`deltas.focusMin ≤ -10`, seuil couvrant aussi bien -10 que -75), le verdict disait « Ton focus
+> **dépend peu** de l'heure de coucher (**15 vs 90 min**) » — une phrase qui nie une dépendance que ses
+> propres chiffres (écart × 6) démontrent. Côté **énergie** (:9999), jumeau : « tes couchers tardifs
+> **ne pèsent pas** sur ton énergie (2/5 vs 5/5) ». Famille des contradictions closes ailleurs (#588,
+> #623, #627), jamais traitée sur CETTE carte. Vérifié : `imp.verdict` n'est jamais lu par le coach
+> (:6075 n'utilise que les deltas numériques) → **zéro ripple coach**, purement `sommeil` (`#sleepImpact`).
+> Correctif (curation §3, zéro champ) : les 2 branches disent honnêtement « ton focus/énergie a **plutôt
+> été meilleur(e) après un coucher tardif** (… vs …) — d'autres facteurs pèsent sans doute plus », exact
+> pour tout écart (le « plutôt » absorbe les petits). Branches positives (« Se coucher tôt paie ») et
+> « pèse peu » (petits écarts) inchangées. §4 ter : verdict relu sur 6 états → plus de contradiction.
+> 569 tests (branches négatives focus + énergie ajoutées) + 1 check smoke bloquant (`sleepImpact` étendu :
+> refuse `/dépend peu/`) verts. Recap #628. _Domaine : sommeil._
+>
 > 😴 **#627 — Sommeil solide : le coach ne prescrit plus « coucher 30 min plus tôt » contre son propre
 > verdict (build 2.0.237).** Priorité de nuit = coaching (§3 QUALITÉ : contradiction insight↔action).
 > Rotation OK avant de coder : `coach` absent des 2 derniers recaps et 1× sur 5 → autorisé (`athlete`,

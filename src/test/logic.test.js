@@ -6006,7 +6006,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.237');
+  assert.equal(L.CHANGELOG[0].v, '2.0.238');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7565,6 +7565,24 @@ test('sleepImpactReport : prouve l’effet du coucher sur le lendemain', () => {
   const few = [{ date: iso(0), sleep: 7, bedtime: '22:00' }, { date: iso(1), sleep: 7, bedtime: '22:30' }, { date: iso(2), sleep: 6, bedtime: '01:00' }, { date: iso(3), sleep: 6, bedtime: '01:30' }];
   const rf = L.sleepImpactReport({ recovery: few, morningRituals: few.map(f => ({ date: f.date, energy: 3 })) }, today);
   assert.equal(rf.confidence, 'low');
+  // Branche NÉGATIVE focus : couchers TÔT associés à MOINS de focus (15 vs 90, écart 6×). Le verdict ne
+  // doit plus prétendre « dépend peu de l'heure de coucher » face à ces chiffres — contradiction #628.
+  const recNF = [], focNF = [];
+  for (let i = 0; i < 4; i++) { const d = iso(i * 2); recNF.push({ date: d, sleep: 7, bedtime: '22:00' }); focNF.push({ date: d, minutes: 15 }); }
+  for (let i = 0; i < 4; i++) { const d = iso(i * 2 + 1); recNF.push({ date: d, sleep: 7, bedtime: '01:00' }); focNF.push({ date: d, minutes: 90 }); }
+  const rNF = L.sleepImpactReport({ recovery: recNF, focusSessions: focNF }, today);
+  assert.equal(rNF.deltas.focusMin, -75);
+  assert.doesNotMatch(rNF.verdict, /dépend peu/);
+  assert.match(rNF.verdict, /meilleur après un coucher tardif/);
+  // Branche NÉGATIVE énergie : couchers tôt = MOINS d'énergie (2 vs 5). Plus de « ne pèsent pas » alors
+  // que l'écart est franc (#628) ; la branche « pèse peu » reste réservée aux petits écarts (< 0,3).
+  const recNE = [], mrNE = [];
+  for (let i = 0; i < 4; i++) { const d = iso(i * 2); recNE.push({ date: d, sleep: 7, bedtime: '22:00' }); mrNE.push({ date: d, energy: 2 }); }
+  for (let i = 0; i < 4; i++) { const d = iso(i * 2 + 1); recNE.push({ date: d, sleep: 7, bedtime: '01:00' }); mrNE.push({ date: d, energy: 5 }); }
+  const rNE = L.sleepImpactReport({ recovery: recNE, morningRituals: mrNE }, today);
+  assert.equal(rNE.deltas.energy, -3);
+  assert.doesNotMatch(rNE.verdict, /ne pèsent pas/);
+  assert.match(rNE.verdict, /meilleure après un coucher tardif/);
 });
 
 test('bedtimeAnchor : minutes depuis midi, coucher soir→matin monotone croissant', () => {
