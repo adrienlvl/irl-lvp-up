@@ -39,6 +39,16 @@
   demande / **B** (2ᵉ rang en figure SVG animée, sans photo) si le volume prime sur l'uniformité « tout
   photo ». ⏳ **4 décisions t'attendent** en fin de doc.
 
+- **Coaching élite (nutrition) — proposition « glucides : un plancher carburant, pas un reliquat », en
+  attente de ta décision.** Boucle #645 (2026-07-21) : `docs/proposals/glucides-plancher-carburant.md`.
+  Manque prouvé + chiffré : `energyPlan`/`objectiveNutrition` calculent les glucides en **pur reliquat**
+  (sans plancher de carburant), et les lipides sont figés à 0,9 g/kg par une ligne **morte**
+  (`Math.max(round(w*0.5), round(w*0.9))`). En sèche → glucides à **1,5–2,2 g/kg**, sous le repère ACSM
+  2016 (3–5 g/kg) **et** sous le plancher que l'app se cite déjà (`nutritionTips` « ≥ 3–5 g/kg »). Reco
+  **A** (remplissage glucides→plancher puis lipides→reste, en **étapes autonomes A.1/A.2 sans ripple
+  coach**) ; **B** = périodisation par charge (supervisée). ⏳ **4 décisions t'attendent** (périmètre A/B/C ·
+  plancher glucides · plancher lipidique · réalisation autonome).
+
 - **Coaching élite (nutrition) — proposition « cible protéines en sèche », en attente de ta décision.**
   Boucle #619 (2026-07-21) : `docs/proposals/proteine-cible-deficit.md`. Manque science prouvé :
   `proteinTarget` (barème de l'onglet Nutrition) ignore le déficit et reste à 1,8 g/kg en sèche, alors

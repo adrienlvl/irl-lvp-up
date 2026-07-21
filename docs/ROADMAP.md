@@ -25,6 +25,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.253 (2026-07-21)
 
+> 🍚 **#645 — Proposition : glucides, un plancher « carburant » plutôt qu'un pur reliquat (pas de build).**
+> Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `coach, athlete, sommeil, focus,
+> athlete`) → `coach`/`athlete` (2 derniers + athlete 2×) exclus ; **`nutrition`** pris (0× sur 5, domaine de
+> coaching le plus frais). **Quota §4 bis.4 déclenché** : les 10 derniers recaps (635→644) ne référencent
+> aucune proposition → l'itération DOIT être une proposition (les fonctions pures nutrition sont durcies ;
+> le seul manque à forte valeur est structurel, donc proposition-gated). Manque prouvé + chiffré : `energyPlan`
+> (`logic.js:5235`) et `objectiveNutrition` (`logic.js:8371`) calculent les glucides en **pur reliquat**
+> (`carbG = max(0, (kcal − P*4 − F*9)/4)`), sans plancher de carburant ni conscience de la charge ; les lipides
+> sont figés à 0,9 g/kg par une ligne **morte** (`Math.max(round(w*0.5), round(w*0.9))` ≡ `round(0.9w)`). En
+> sèche, les glucides atterrissent à **1,5–2,2 g/kg** — sous le repère ACSM/AND/DC 2016 (3–5 g/kg même en
+> activité légère) **et sous le plancher que l'app se cite à elle-même** (`nutritionTips('prise')` :
+> « glucides ≥ 3–5 g/kg », `logic.js:8579`). Contradiction conseil-texte ↔ macro-chiffré, même famille que
+> #639/#636/#632. Livrable : `docs/proposals/glucides-plancher-carburant.md` (science, 3 options, reco **A**
+> = remplissage glucides→plancher puis lipides→reste, en étapes autonomes **sans ripple coach** ; **B** =
+> périodisation par charge, supervisée ; **4 décisions**). Zéro code, `src/` inchangé → pas de bump. Recap #645.
+> _Domaine : nutrition._
+>
 > 🥗 **#644 — Coach nutrition : plus de coupe/cardio poussés un jour de fatigue (build 2.0.253).**
 > Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `athlete, sommeil, focus, athlete,
 > nutrition`) → `athlete`/`sommeil` (2 derniers) et `athlete` (2×) exclus ; **`coach`** pris (0× sur 5, le
