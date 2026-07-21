@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.256 (2026-07-21)
+## 📍 État actuel — build 2.0.257 (2026-07-21)
 
+> 💪 **#649 — Fraîcheur musculaire : plus de « journée légère » quand des groupes n'ont jamais été
+> travaillés (build 2.0.257).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro :
+> `focus, coach, athlete, nutrition, coach`) → `focus`/`coach` (2 derniers) et `coach` (2×) exclus ;
+> **`athlete`** pris (1× sur 5, hors 2 derniers). Exploration neuve (agent Explore, hors pistes closes
+> #633/#637/#640/#643/#646) → contradiction §3 prouvée sur la carte « 💪 Fraîcheur musculaire »
+> (`app.js:149`) : le repli de synthèse traitait « aucune zone `ready` » comme « toutes travaillées
+> récemment → journée légère », en **ignorant les zones `never`** (jamais ciblées) que `zoneFreshness`
+> (`logic.js:2845`) classe pourtant à part. Résultat, dès qu'on n'a ciblé qu'un ou deux groupes :
+> « pense à une **journée légère** » (repos) juste au-dessus de « À privilégier : Bras — **jamais
+> travaillé encore** » (`suggestTrainingFocus`, `app.js:150`). Cas prouvé (abs hier seul → 6 zones
+> `never` → « journée légère »). Racine : `suggestTrainingFocus` définit déjà `rested = ready || never` ;
+> la synthèse ne suivait pas cette sémantique. Correctif (curation §3, zéro champ, une ligne) : le filtre
+> inclut `never` → « Prêt aujourd'hui : Bras, Dos, … » et « journée légère » n'apparaît que si les 7 zones
+> sont `recent` (le seul cas juste). Aucune fonction pure touchée (bug purement au rendu). §4 ter : rendu
+> cumulé relu → une seule voix (inventaire des dispos + priorité du jour). Au passage : les checks smoke
+> `zoneFreshness`/`focusSuggestion` existaient mais n'étaient jamais poussés dans `errors` (non bloquants) ;
+> le nouveau `zfRestFallback` (pilote `renderAthlete`, lit `#zoneFreshness`) est bloquant. 574 tests +
+> smoke verts. Recap #649. _Domaine : athlete._
+>
 > 🧠 **#648 — Coach Focus : plus de « fais un bloc aujourd'hui » un jour de tête à plat (build 2.0.256).**
 > Priorité de nuit = coaching. Rotation §4 bis (5 derniers par numéro : `coach, athlete, nutrition, coach,
 > athlete`) → `coach`/`athlete` (2×) exclus ; `nutrition` permis mais proposition-gated (#645/#619 en
