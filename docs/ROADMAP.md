@@ -1646,62 +1646,41 @@ jusqu'à la rentrée, on l'améliore et on ne le casse jamais.
 
 ---
 
-## 🌙 DÉMARRAGE VPS — nuit du 2026-07-20 (lis ceci EN PREMIER)
+## 🌙 DÉMARRAGE VPS — nuit du 2026-07-22 (lis ceci EN PREMIER)
 
-**État au relais** : `master` = **2.0.217** (⚠️ **NON publiée** ; dernière release `v2.0.183`). 547
-tests + smoke verts. Dernier recap **#601**. Depuis ta nuit précédente (#554→#591), la session locale
-d'Adrien a fait **#592** (audit adversarial de ta nuit : 8 régressions corrigées) puis une **SÉRIE
-COACHING #593→#601**. **Ta prochaine boucle est #602.**
+**État au relais** : `master` = **2.0.270** (⚠️ **NON publiée** ; dernière release `v2.0.262`, publiée le 21/07 après l'audit de ta nuit précédente). **578 tests + smoke verts.** Dernier recap **#662**. **Ta prochaine boucle est #663.**
 
-### 🎯 PRIORITÉ ABSOLUE cette nuit : FINIR la série « coaching élite », PUIS reprendre la roadmap
+**Ce qu'a fait la session LOCALE depuis ton dernier relais** : publié `v2.0.262` (ton lot de nuit, audit OK), puis une **passe qualité UI / design #655→#662** demandée par Adrien (« le design est toujours mauvais ») — nav en tuiles à icônes, anneau XP autour de l'avatar, eyebrows lime restaurées (bug cascade), disques colorés des stats, sparklines + barres de graphes en dégradé, retour tactile des boutons, **pipeline visuel Alternance** (funnel `applicationFunnel`). Détail en tête (« État actuel », #655→#662).
 
-Adrien veut que le coaching (poids/nutrition, muscu, running/trail, exercices) atteigne le **niveau
-ÉLITE** : coach d'un athlète qui vise le haut niveau, **diététicien du sport**, **kiné**. Il te demande
-**explicitement de continuer les travaux commencés et non finis** (ci-dessous), **PUIS** de reprendre la
-roadmap normale.
+### 🎯 TA MISSION CETTE NUIT : robustesse, correction, tests, contenu — **PAS de design visuel**
 
-**⚠️ EXCEPTION de rotation ASSUMÉE** : la série coaching enchaîne volontairement `athlete`/`nutrition`/
-`mesures` — c'est une **demande directe d'Adrien**, PAS une monomanie. Tu as le **droit d'enchaîner ces
-domaines** jusqu'à finir la série, malgré §4 bis. Série finie → **reprends la rotation normale**.
+⛔ **N'entame PAS la passe UI/design visuelle.** Elle est **réservée aux sessions locales** : elle exige de REGARDER l'app (inspection navigateur, jugement visuel, artifacts avant/après) que toi, **headless (`xvfb`), ne peux pas faire correctement**. Embellir à l'aveugle = risque de dégrader. Laisse le visuel à Adrien/local.
 
-**MÉTHODE OBLIGATOIRE (celle qui a marché #595→#601)** :
-1. **CHERCHE la science D'ABORD** (WebSearch : ISSN, ACSM, NSCA, Schoenfeld, Helms, Zourdos, Seiler,
-   Lauersen, PubMed…). Ne code jamais des chiffres « au pif ».
-2. **CITE les sources** dans le code (commentaire) ET le CHANGELOG (« (Seiler) », « (ACSM 2009) »).
-3. **AMBITIEUX MAIS SÛR** : un coach d'élite pousse fort **sans blesser ni carencer** (préservation du
-   muscle, planchers EA/hormones, cap de déficit, prévention). Le résultat scientifique est souvent
-   **nuancé** (ex. perdre trop vite fait *perdre* du muscle) → personnaliser, pas cranker.
-4. Logique pure → `logic.js` + test node ; rendu → check smoke **bloquant** ; vérifie en navigateur.
+**Fais du travail NON-visuel, VÉRIFIABLE, en VARIANT les domaines** (rotation §4 bis). Priorités nommées — **une par boucle**, changer de domaine ensuite :
 
-### Travaux coaching NON FINIS (un par boucle, dans cet ordre conseillé) :
+1. **Robustesse données & classificateurs FR** _(dette récurrente n°1)_ — audite les regex de classification de texte français **non ancrées** (le piège `\bpris`/`prise`, `jobStatusFromText`, `jobDateFromText`, parseurs d'import CSV/Sheets) : un mot FR en contient souvent un autre → ancrer (`\b`, `^`, `$`). Garde-fous de **perte de données** (un id dérivé de la date SEULE → collision, cf. #555/#592). Chaque correctif = **cas prouvé en test node** (échoue avant, passe après).
+2. **Couverture de tests** — ajoute des tests node pour les **fonctions pures sous-testées** de `logic.js` (cherche celles sans test dédié dans `logic.test.js`). Cible les branches limites (entrées vides, dates invalides, négatifs).
+3. **a11y NON-visuelle** — `aria-label`/rôles/labels de formulaire/ordre de focus manquants (vérifiable au smoke). PAS de couleur/contraste/espacement (c'est du visuel → local).
+4. **Coaching science-first** _(SEULEMENT si la rotation le permet ET s'il reste un vrai manque)_ — sources réelles citées (ISSN/ACSM/NSCA/Schoenfeld/Helms/Zourdos/Seiler/Lauersen/PubMed), ambitieux **mais sûr** (préservation muscle, planchers EA/hormones, cap déficit, prévention), résultat souvent **nuancé** → personnaliser, jamais cranker. **⚠️ Les domaines `coach`/`athlete`/`nutrition` ont été ÉNORMÉMENT travaillés** : ne les prends que s'ils n'apparaissent PAS dans tes 2 derniers recaps (§4 bis).
+5. **Petite feature data-driven TESTABLE** — si une donnée est **déjà calculée mais mal exploitée** (comme le funnel Alternance l'était), tu peux l'exposer — MAIS seulement si le rendu est **simple et à faible risque visuel** (texte, compteur, liste). Sinon → **écris une proposition** dans `docs/proposals/` et stop.
 
-- [x] **VO2max / fractionné** ✅ _fait #603 (2.0.218)_ : la « séance qualité » de #601 (simple tempo/seuil
-      fixe) devient de **vrais intervalles VO2max qui tournent** — `qualitySession(week)` fait rouler un
-      méso-cycle de 6 sem. (30/30 Billat · 4×4 Norvégien/Helgerud · côtes VO2), avec **progression** d'un tour
-      à l'autre. `isoWeekNumber` sert de rotation sans état persistant. Fonction pure + tests + smoke bloquant.
-- [x] **Affûtage (taper)** avant une course ✅ _fait #604 (2.0.219)_ : `taperPlan(daysLeft, raceKm)` (pur,
-      testé, Bosquet 2007) coupe le VOLUME 41-60 % en décroissance exponentielle (durée d'affûtage
-      échelonnée par distance), **garde l'intensité ET la fréquence** ; intégré à `buildTrainingWeek`
-      (option `raceDaysLeft`/`raceKm`) + bandeau `.wp-taper` dans « Programme de la semaine ». Smoke bloquant.
-- [x] **Volume & DELOAD muscu** ✅ _fait #608 (2.0.222)_ : `deloadRecommendation(workouts, todayKey, opts)`
-      (pur, testé, Israetel/RP + Helms) regarde les séries hebdo par zone sur ~6 sem., compte les semaines
-      DURES d'affilée (semaine en cours exclue, une semaine légère casse le compteur) et conseille une
-      décharge (−40-50 % volume, 5-7 j) après ~5 sem. d'accumulation OU plus tôt si la forme baisse
-      (readiness < 45). Carte « 🧊 Décharge conseillée » au-dessus du bilan de séries (`#weeklySets`).
-      Smoke bloquant `deloadReco`.
-- [x] **Trail spécifique** (`ultraPlan`) ✅ _fait #609 (2.0.223)_ : `downhillPrep` prépare les DESCENTES
-      (effet de séance répétée, Frontiers 2018) — le stress excentrique que rien n'entraînait ; carte
-      « DESCENTES ⬇️ » sur le panneau Ultra, phases base/specific/race, protocole concret. Smoke bloquant.
-- [ ] **Base d'exercices plus complète** (niveau Garmin/Strava/Apple Fitness) : plus d'exercices, cues
-      d'exécution plus riches, variantes par matériel. ⏸️ **PROPOSITION #610** (`proposals/base-exercices-
-      plus-complete.md`) : la formulation « Data pure + tests » est inexacte — `icons.test.js` exige une
-      **vraie photo + animation par exercice** (asset PNG non produisible en autonomie). Cues/variantes
-      **déjà couverts** pour les 47. Reco : **C** (clore, 47 suffisent) / **A** (Adrien fournit des planches).
-      **4 décisions attendent Adrien** — voir la proposition.
+### ⛔ INTERDITS cette nuit
+- **Pas de passe design/UI visuelle** (couleurs, espacements, dégradés, refontes esthétiques) → réservé au local.
+- **Pas d'implémentation des propositions en attente d'Adrien** : base d'exercices (`base-exercices-plus-complete.md`) + glucides plancher / protéines en sèche / flag récup fragile (`docs/proposals/`). **Il n'a pas tranché.**
+- **Pas de refonte de la séance guidée** (déjà bien traitée : hero, repos dégradé, séries à badges).
+- **Pas de touche à la persistance** (IndexedDB primaire P1.2 : boot asynchrone, risque sur les données d'Adrien → session supervisée uniquement).
+- **Pas de tag / pas de release** (JAMAIS — rôle des sessions locales/Adrien).
+- Pas de dépendance ajoutée, pas de suppression de donnée perso, pas d'auto-modification de `VPS-AUTOPILOT.md` ni de la roadmap 3.0.
 
-### PUIS, série finie → reprends la ROADMAP en rotation normale
-(P4 regex non ancrées, P2 a11y restant, P5 mesure ; P6/P7 si non finis — voir plus bas). Reviens à
-§4 bis (étiquette `Domaine :`, contrôle des 5 derniers recaps).
+### MÉTHODE (rappels qui coûtent cher si oubliés)
+- `cd src && xvfb-run -a npm run verify` **VERT** à chaque boucle. **« Vert ≠ bon » (§4 ter)** : relis tes diffs (diff vs message + régression) ; la suite verte ne suffit **jamais** pour un agent autonome (3 fois sur 3, c'est la relecture qui a trouvé le défaut).
+- **⚠️ PIÈGE SMOKE (heurté 2× la nuit du 21→22)** : les checks de `renderer-smoke.cjs` sont dans une **template literal** qui **mange les backslashes** → une regex à `\d`/`\(`/`\s` **passe au navigateur mais ÉCHOUE en smoke Electron**. Dans les checks smoke : **jamais de regex à backslash**, utilise `includes`/`split` (VPS-AUTOPILOT §6).
+- **Astuce** : `var(--accent)` **résout** dans un `stop-color` de gradient SVG (vérifié) — utile si tu exposes une donnée avec une couleur de thème.
+- Rotation §4 bis : termine chaque recap par une ligne `Domaine : <tag>`, grep **tolérant** (`grep -hoiE "domaine *: *[a-zà-ÿ]+"`) les 5 derniers recaps AVANT de coder (§4 bis.3), ne répète pas un domaine des **2 derniers**.
+- `git pull --rebase origin master` avant CHAQUE push (la session locale peut reprendre ; bump `src/package.json` + CHANGELOG à chaque commit, versions strictement décroissantes, 2 assertions `CHANGELOG[0].v`).
+
+_(Le tableau des décisions P1 et les priorités nommées P1→P7 suivent ci-dessous — pioche dedans pour varier les domaines.)_
+
 
 **Contexte P1** _(tranché par Adrien le 2026-07-19, en partie déjà exécuté par toi)_ : **P1.3
 multi-examens BTS** et **P1.5 parcours E2E** ont été **faits** dans ta nuit précédente (#555/#562/#565,

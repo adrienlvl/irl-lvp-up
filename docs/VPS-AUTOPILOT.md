@@ -23,8 +23,12 @@
   Schoenfeld, Helms, Zourdos, Seiler, Lauersen, PubMed…), **citer les sources** dans le code + le
   CHANGELOG, et rester **AMBITIEUX MAIS SÛR** (un vrai coach ne blesse ni ne carence — préservation du
   muscle, planchers hormonaux/EA, cap de déficit, prévention). Le résultat scientifique est souvent
-  NUANCÉ → personnaliser, pas cranker les chiffres. Voir la SÉRIE COACHING en tête de « 🌙 DÉMARRAGE
-  VPS » (ROADMAP) : la finir a PRIORITÉ, avec exception de rotation assumée sur `athlete`/`nutrition`.
+  NUANCÉ → personnaliser, pas cranker les chiffres. **La série coaching de base est LIVRÉE** (VO2max,
+  taper, deload muscu, descentes trail…). Ce mandat reste un **fond de tableau science-first** : traite
+  le coaching **quand la rotation le permet** (les domaines `coach`/`athlete`/`nutrition` sont déjà très
+  fournis → §4 bis, ne les reprends pas s'ils sont dans tes 2 derniers recaps), **jamais en monomanie**.
+  ⚠️ **La consigne du soir en tête de « 🌙 DÉMARRAGE VPS » (ROADMAP) PRIME** : certaines nuits (ex.
+  21→22/07) la mission est explicitement « robustesse/tests/contenu, PAS de design visuel » — respecte-la.
 
 ## 2. L'itération type (à exécuter UNE fois par run)
 
