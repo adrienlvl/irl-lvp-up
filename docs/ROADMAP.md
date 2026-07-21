@@ -23,8 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.269 (2026-07-22)
+## 📍 État actuel — build 2.0.270 (2026-07-22)
 
+> 🎯 **#662 — Alternance : barre-pipeline visuelle des candidatures (build 2.0.270).** Passe qualité UI **8/N** —
+> une **page** (la plus importante pour Adrien) plutôt qu'un composant. La donnée du pipeline existait
+> (`applicationStats().byStatus`) mais n'était affichée qu'en texte. Ajout : `applicationFunnel(stats)` (logique
+> pure, exportée, testée) → 5 étapes ordonnées (à postuler/postulé/relancé/entretien/accepté) + refus à part ;
+> rendu dans `renderAlternance` d'une **barre segmentée proportionnelle** (couleur/étape, infobulles) + légende
+> chiffrée ; CSS `.alt-funnel`. **Test node dédié** (+1 → 578) + **check smoke bloquant `altFunnel`** (includes,
+> pas de regex). Vérif navigateur (5 candidatures) : segments 50/25/25 % aux bonnes couleurs, légende complète,
+> refus séparé. Artifact avant/après. _Domaine : alternance_ (casse volontairement la série UI pour la rotation,
+> et c'est le bon tag). Master seulement. **Lot 2.0.263→270 en attente de release (Adrien contrôle).**
+>
 > 👆 **#661 — Boutons : retour tactile (état pressé + survol lime) (build 2.0.269).** Passe qualité UI **7/N**.
 > Scan des feuilles : `.primary-button`/`.secondary-button`/`.icon-button` n'avaient **aucun `:active`** (seuls
 > quelques boutons de niche en avaient) → aucun retour tactile à l'appui, juste le survol global. Ajout (pages.css) :

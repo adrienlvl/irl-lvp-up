@@ -747,6 +747,29 @@ test('applicationStats : moteur de motivation (aujourd’hui, semaine, série, r
   assert.equal(z.total, 0); assert.equal(z.streak, 0); assert.equal(z.appliedToday, false); assert.equal(z.weekReached, false);
 });
 
+test('applicationFunnel : répartition par étape du pipeline (refus à part)', () => {
+  const stats = L.applicationStats([
+    { id: 1, status: 'a_postuler', date: '' },
+    { id: 2, status: 'a_postuler', date: '' },
+    { id: 3, status: 'postule', date: '2026-07-10' },
+    { id: 4, status: 'relance', date: '2026-07-05' },
+    { id: 5, status: 'entretien', date: '2026-07-01' },
+    { id: 6, status: 'refus', date: '2026-06-20' }
+  ], '2026-07-16', {});
+  const f = L.applicationFunnel(stats);
+  assert.equal(f.stages.length, 5, '5 étapes du pipeline (refus exclu de la barre)');
+  assert.deepEqual(f.stages.map(s => s.key), ['a_postuler', 'postule', 'relance', 'entretien', 'accepte']);
+  assert.deepEqual(f.stages.map(s => s.count), [2, 1, 1, 1, 0]);
+  assert.equal(f.sum, 5, 'somme = total des candidatures hors refus');
+  assert.equal(f.refus, 1, 'refus renvoyé à part (pas dans la barre)');
+  assert.ok(f.stages.every(s => typeof s.color === 'string' && s.color[0] === '#'), 'chaque étape porte une couleur');
+  // robustesse : vide + entrée invalide → structure stable, tout à 0
+  const z = L.applicationFunnel(L.applicationStats([], '2026-07-16', {}));
+  assert.equal(z.sum, 0); assert.equal(z.refus, 0); assert.equal(z.stages.length, 5);
+  const bad = L.applicationFunnel(null);
+  assert.equal(bad.sum, 0); assert.equal(bad.refus, 0); assert.equal(bad.stages.length, 5);
+});
+
 test('parseApplicationsCsv : import CSV (colonnes, statuts FR, dates, guillemets)', () => {
   const csv = 'Entreprise,Poste,Statut,Date,Source\nCabinet Léa,Compta,Postulé,16/07/2026,LinkedIn\n"Groupe, Martin",Assistant,Entretien,2026-07-10,Indeed\nExpertise Sud,Alternant,À postuler,,\n';
   const r = L.parseApplicationsCsv(csv);
@@ -6152,7 +6175,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.269');
+  assert.equal(L.CHANGELOG[0].v, '2.0.270');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -522,6 +522,11 @@ app.whenReady().then(async () => {
           return svg.includes('<linearGradient') && svg.includes('fill="url(#bc') && (svg.split('<rect').length - 1) === 3
             && svg.includes('<title>') && a !== b;
         })(),
+        altFunnel: typeof applicationFunnel === 'function' && (() => {
+          const f = applicationFunnel({ byStatus: { a_postuler: 2, postule: 0, relance: 1, entretien: 1, accepte: 0, refus: 1 }, total: 5 });
+          return f.stages.length === 5 && f.stages[0].key === 'a_postuler' && f.stages[4].key === 'accepte'
+            && f.sum === 4 && f.refus === 1 && applicationFunnel(null).sum === 0;
+        })(),
         kitchen: typeof generateMeals === 'function' && !!document.getElementById('pantryList') && !!document.getElementById('mealSuggestions') && !!document.getElementById('envieStyles'),
         shopping: typeof buildShoppingList === 'function' && !!document.getElementById('shoppingBlock') && !!document.getElementById('shoppingList') && !!document.getElementById('copyShoppingBtn'),
         shoppingCheck: typeof remainingShopping === 'function' && !!document.getElementById('shoppingRemaining') && remainingShopping([{ label: 'a' }, { label: 'b' }], { a: true }) === 1,
@@ -877,7 +882,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.269'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.270'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2322,6 +2327,7 @@ app.whenReady().then(async () => {
     if (!checks.measureSpark) errors.push('Sparkline mensurations KO (measurementSeries / sparkLineSvg / #measurementsSpark)');
     if (!checks.sparkArea) errors.push('Sparkline sans aire dégradée (sparkLineSvg : linearGradient/fill url(#…)/2 <path>/id unique)');
     if (!checks.barGradient) errors.push('Bar chart sans dégradé (barChartSvg : linearGradient/fill url(#bc…)/1 rect par point/title/id unique)');
+    if (!checks.altFunnel) errors.push('Funnel candidatures KO (applicationFunnel : 5 étapes ordonnées / sum hors refus / refus à part)');
     if (!checks.sleepSpark) errors.push('Sparkline sommeil KO (sleepSeries / sparkLineSvg / #sleepSpark)');
     if (!checks.sleepCoach) errors.push('Bilan sommeil (coach) KO (sleepCoachInsight / sleepRegularity / bedtimeRegularity / #sleepCoach)');
     if (!checks.sleepImpact) errors.push('Effet du coucher KO (sleepImpactReport / #sleepImpact / rendu)');
