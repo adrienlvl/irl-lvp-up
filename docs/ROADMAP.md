@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.244 (2026-07-21)
+## 📍 État actuel — build 2.0.245 (2026-07-21)
 
+> ⏸️ **#636 — Coach Poids : « resserre le déficit » ne contredit plus « prends une pause diète » (build
+> 2.0.245).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers : `alternance, athlete, athlete,
+> coach, nutrition`) → `alternance`/`athlete` bloqués ; **`nutrition`** pris (1× sur 5, absent des 2 derniers),
+> précédent des correctifs Coach Poids (#629/#632). Défaut prouvé (contradiction inter-surfaces, angle neuf) :
+> sur la carte « Coach Poids », le bloc **pause diète** (`dietBreakRecommendation` due → « remonte à ta
+> maintenance, ≈ +700 kcal/j ») et la **`realLine`** juste en dessous (`paceStatus === 'slow'` → « resserre un
+> peu le déficit ou bouge plus ») se contredisent **dans leur cas nominal** : la pause se déclenche *parce que*
+> la perte a ralenti, ralentissement qui rend justement `paceStatus` slow. Contre-exemple exécuté (§4 ter,
+> rendu réel) : profil 79→75 kg, 12 sem. de déficit + plateau → « PAUSE DIÈTE » ET « resserre le déficit »
+> affichés ensemble. Correctif (curation §3, zéro champ, rendu app.js) : `dietBreakRecommendation` hissé et
+> partagé ; quand la pause est due, la `realLine` défère (« ne resserre pas le déficit : ta pause diète
+> ci-dessus est la bonne réponse » ; branche plateau plat alignée). Hors pause, le conseil de rythme reste
+> intact. 570 tests + smoke verts, dont check **bloquant** `coachDietBreakNoTighten` (carte rendue dans le
+> scénario, exige pause + rythme réel SANS « resserre le déficit »). Recap #636. _Domaine : nutrition._
+>
 > 💼 **#635 — Alternance : « pas été pris » (un refus) n'est plus classé « accepté » (build 2.0.244).**
 > Priorité de nuit = coaching, mais rotation §4 bis bloquante (5 derniers : coach/nutrition/coach/
 > athlete/athlete → ces 3 domaines interdits ; le coach relève pleinement de la rotation, §3). Domaine
