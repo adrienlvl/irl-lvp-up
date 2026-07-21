@@ -23,8 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.270 (2026-07-22)
+## 📍 État actuel — build 2.0.271 (2026-07-22)
 
+> 🏋️ **#664 — Séance guidée : la cible suit la récup LIVE à la reprise (build 2.0.271).** Priorité de nuit =
+> coaching, mission non-visuelle. Rotation §4 bis (5 derniers par domaine : `robustesse, alternance, fondations,
+> fondations, fondations`) → `athlete` libre. Candidat #652 resté ouvert, prouvé par lecture : `renderGuidedWorkout`
+> (app.js:445) recalcule `#guidedRecoveryNote` en direct (`fragile`) mais pilotait `#guidedProgressionHint`/
+> `#guidedTarget` par `current.cautious` **gelé au snapshot d'ouverture** (`guidedResumeGo` restaure les exercices
+> sans recalcul). Reprise le soir après check-in devenu difficile → « allège la charge » ET « monte la charge 💪 »
+> côte à côte. Correctif **render-only** (curation §3, zéro champ) : `_liveCautious = current.cautious || fragile`
+> (live) + `_fallbackHint` récup basse hors feu vert → la récup du moment prime, on consolide au lieu de pousser.
+> `guidedProgressionLines` (pur, testé) réutilisée telle quelle ; seul le câblage change. Check smoke **bloquant
+> `guidedFragileLive`** (même exercice figé, seule la récup change → vert « monte la charge » vs fragile
+> « consolide »). §4 ter : 3 lignes convergent, contradiction retirée. 578 tests + SMOKE OK. Recap #664.
+> _Domaine : athlete._ **Lot 2.0.263→271 en attente de release (Adrien contrôle).**
+>
 > 🛡️ **#663 — Proposition : robustesse des classificateurs & import Alternance (pas de bump, docs).**
 > Quota §4 bis.4 déclenché (dernière proposition = #645, 10 recaps sans) → l'itération doit être une
 > proposition ; sujet aligné sur la priorité nuit n°1 (robustesse FR, dette n°1). Audit read-only + **10
