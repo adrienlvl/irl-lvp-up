@@ -91,6 +91,18 @@
     ajouter un `updatedAt`+clé par enregistrement **dès le schéma** (sinon re-migration). ⏳ **5 décisions
     t'attendent** en fin de doc. À faire en session supervisée, APRÈS IDB + chiffrement.
 
+- **Coaching élite (athlete) — proposition « récupération fragile ≠ sommeil non renseigné », en attente
+  de ta décision.** Boucle #631 (2026-07-21) : `docs/proposals/recuperation-flag-sommeil-absent.md`.
+  Défaut prouvé : le flag « récupération fragile / séance facile » (recalculé **inline ~9×** dans
+  `app.js`) fait `sleep < 6` **sans garde `sleep > 0`**, donc un champ sommeil laissé **vide** (stocké
+  `sleep:0`) est traité comme la pire nuit — en contradiction directe avec `readinessScore`
+  (`logic.js:9580`, qui **ignore** un sommeil absent). Résultat : « Prêt à pousser 100/100 » **ET**
+  « récupération basse » + cycle Ultra rabaissé, affichés ensemble. Non codé en autonomie ce tour :
+  quota de propositions §4 bis.4 déclenché + correctif **transverse** (9 surfaces, changement d'UX). Reco
+  **B** (helper pur `recoveryEase` + accesseur `todayRecovery`, source unique de vérité, zéro champ
+  ajouté, réalisable en **étapes autonomes** B.1→B.2). ⏳ **4 décisions t'attendent** (périmètre ·
+  résolution périmée · autonome vs supervisé · comportement voulu sommeil absent).
+
 ## Terminé
 
 - **Alternance : le statut posé n'était pas pris en compte + amélioration de l'onglet Sommeil.** ✅

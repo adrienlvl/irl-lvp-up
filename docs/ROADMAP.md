@@ -25,6 +25,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.240 (2026-07-21)
 
+> 🛟 **#631 — Proposition : le flag « récupération fragile » pénalise un sommeil NON renseigné (sans
+> bump).** Priorité de nuit = coaching, mais deux verrous : rotation §4 bis (`coach` et `nutrition`
+> bloqués → domaine pris `athlete`, 1× sur 5) **et quota de propositions §4 bis.4 déclenché** (dernière
+> proposition #619 sortie des 10 derniers recaps → l'itération DOIT être une proposition). Défaut prouvé
+> par lecture : un champ sommeil laissé vide est stocké `sleep:0` (`app.js:804`), or `readinessScore`
+> (`logic.js:9580-9589`) **documente** qu'un sommeil absent ne pénalise pas ; mais le flag « récupération
+> fragile / séance facile » est recalculé **inline à ~9 endroits** d'`app.js` (143/268/325/397/427/444/
+> 490/519/565) avec un `sleep < 6` **sans garde `sleep > 0`** → `0 < 6` vrai. Contradiction prouvée
+> (`{sleep vide, fatigue:1, soreness:1}` → `readinessScore` 100/100 « Prêt à pousser » **ET**
+> `#weekLoadAdvice` « Récupération basse » + cycle Ultra rabaissé, simultanément). Second défaut jumeau :
+> résolution du check-in incohérente (`find(date===today)` vs `at(-1)` périmé). Écrit :
+> `docs/proposals/recuperation-flag-sommeil-absent.md` (3 options · reco **B** source unique de vérité :
+> helper pur `recoveryEase` + accesseur `todayRecovery`, étapes autonomes B.1→B.2 · 4 décisions). Pas de
+> bump (proposition). Recap #631. _Domaine : athlete._
+>
 > 🏅 **#630 — Coach « Le focus du moment » : le palier de semaine ne redit plus la note de base (build
 > 2.0.240).** Priorité de nuit = coaching, angle **neuf** (la famille verdict↔chiffres de #623/#627/
 > #628/#629 est épuisée). Rotation OK : `coach` absent des 2 derniers recaps et 1× sur 5 (627) ;
