@@ -3110,6 +3110,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.239', emoji: '⚖️', text: 'Ta carte « Coach Poids » ne dit plus « ton poids stagne » quand il part dans le mauvais sens. Quand ta balance remonte alors que tu vises la perte (ou recule alors que tu vises la prise), le conseil d’ajustement affichait « Ton poids stagne (+0,33 kg/sem) … » — le mot « stagne » niait le « +0,33 kg/sem » imprimé dans la même phrase, alors que gagner du poids en pleine sèche n’est pas un plateau, c’est plus embêtant qu’un plateau. Désormais il le dit franchement : « Ton poids repart à la hausse (+0,33 kg/sem sur 15 j) alors que tu vises la perte. » (et « Ton poids recule … alors que tu vises la prise » dans l’autre sens). Le conseil chiffré (baisse de X kcal, cardio, cible du jour) et le plancher calorique ne bougent pas : seul le constat colle enfin à tes chiffres. Le vrai plateau, lui, reste « stagne » comme avant.' },
   { v: '2.0.238', emoji: '📊', text: 'Ta carte « L’effet de ton coucher » (onglet Athlète → Récupération) ne se contredit plus quand tes données vont à contre-courant. Quand tes soirées couché tôt s’accompagnaient de MOINS de focus (ou de moins d’énergie) que tes soirées couché tard, elle affichait « Ton focus dépend peu de l’heure de coucher (15 vs 90 min) » — une phrase qui prétend « peu d’effet » tout en imprimant, juste à côté, un écart de 1 à 6. Le texte niait ce que ses propres chiffres montraient. Désormais elle dit honnêtement ce qu’elle mesure : « sur cette période, ton focus a plutôt été meilleur après un coucher tardif (15 min vs 90) — d’autres facteurs pèsent sans doute plus ; vise surtout un rythme régulier. » Même correction côté énergie. Les cas où se coucher tôt paie vraiment, eux, ne bougent pas (« Se coucher tôt paie »). Un constat qui colle enfin à tes données au lieu de les démentir.' },
   { v: '2.0.237', emoji: '😴', text: 'Ton coach « Le focus du moment » ne te demande plus de dormir plus tôt quand tu dors déjà bien. Les jours où le sommeil est ta bonne dynamique du moment, il affichait fièrement « Sommeil solide : moy. 8 h, rythme régulier » (voire une série à célébrer) — puis, juste en dessous, l’action « Vise un coucher 30 min plus tôt ce soir ». Contradiction : il te félicitait pour un sommeil suffisant et régulier tout en te prescrivant de le corriger comme s’il manquait quelque chose. Désormais, quand ton sommeil est jugé solide, l’action colle au verdict : « Rien à corriger côté sommeil : garde cette même heure de coucher ce soir. » — on renforce le bon rythme au lieu d’exiger une correction inutile. Les cas où il y a vraiment à corriger ne bougent pas : sommeil trop court mais régulier → « coucher 30 min plus tôt », coucher irrégulier → « heure fixe », plan de recalage actif → sa cible du soir. L’action dit enfin la même chose que le constat.' },
   { v: '2.0.236', emoji: '🏃', text: 'Ta bannière de montée de kilométrage de course ne crie plus « risque de blessure » quand tu débutes. Sur tes cartes « Course cette semaine » et « Course · données réelles », dès que ta semaine dépassait de +30 % la précédente, elle affichait « ⚠️ hausse rapide — risque de blessure, lève le pied ». Le hic : passer de 4 à 9 km (un + 125 % énorme en pourcentage) déclenchait la MÊME alerte alarmante que passer de 20 à 30 km — alors que 9 km de course dans la semaine ne met tes tendons et tes os en danger à peu près jamais. C’est de l’arithmétique sur une petite base, pas un vrai risque (le même piège que le faux « pic de charge » de la première semaine, déjà corrigé). Désormais, tant que la semaine précédente est sous 10 km (le seuil que ton coach utilise déjà), une forte hausse s’affiche comme ce qu’elle est vraiment : « 📈 tu bâtis ta base — augmente en douceur (~+10 %/sem.) ». Dès que tu cours sur une vraie base (≥ 10 km/sem.), le vrai garde-fou blessure revient à l’identique. Encourageant quand tu construis, prudent quand ça compte.' },
@@ -8705,13 +8706,28 @@ function calorieAdjustment(weights, goal, dailyTarget) {
     // cible » ne bouge que de 50 → conseil auto-contradictoire. Épuisé le levier calorique → cardio.
     const cut = Math.min(delta, Math.max(0, dt - FLOOR));
     const newTarget = dt - cut;
+    // Le seuil >= -0,1 capture DEUX situations : le vrai plateau (rythme ~plat) ET le mauvais sens
+    // (le poids REMONTE alors qu'on vise la perte). Dire « stagne » dans le second cas nierait le
+    // « +X kg/sem » que la phrase affiche elle-même (contradiction verdict/chiffres, même famille que
+    // #628/#627/#623). On distingue donc : > 0,1 kg/sem = ça repart à la hausse, on le dit ; sinon =
+    // plateau. Le conseil (baisse / cardio) reste valable dans les deux cas → seul le verdict change
+    // (curation §3, zéro champ ajouté).
+    const verdict = ratePerWeek > 0.1
+      ? `Ton poids repart à la hausse (${rateTxt}) alors que tu vises la perte.`
+      : `Ton poids stagne (${rateTxt}).`;
     const message = cut > 0
-      ? `Ton poids stagne (${rateTxt}). Baisse d'environ ${cut} kcal/jour ou ajoute du cardio pour relancer la perte.`
-      : `Ton poids stagne (${rateTxt}). Tu es déjà au plancher calorique (~${FLOOR} kcal) — relance par le cardio ou plus d'activité plutôt qu'une nouvelle baisse.`;
+      ? `${verdict} Baisse d'environ ${cut} kcal/jour ou ajoute du cardio pour relancer la perte.`
+      : `${verdict} Tu es déjà au plancher calorique (~${FLOOR} kcal) — relance par le cardio ou plus d'activité plutôt qu'une nouvelle baisse.`;
     return { stagnating: true, suggestion: 'reduce', delta: cut, newTarget, ratePerWeek, message };
   }
-  if (goal === 'prise' && ratePerWeek <= 0.1)
-    return { stagnating: true, suggestion: 'increase', delta, newTarget: dt + delta, ratePerWeek, message: `Ta prise stagne (${rateTxt}). Ajoute environ ${delta} kcal/jour pour relancer la progression.` };
+  if (goal === 'prise' && ratePerWeek <= 0.1) {
+    // Symétrique : < -0,1 kg/sem = le poids RECULE alors qu'on vise la prise (mauvais sens), pas un
+    // plateau → on le dit au lieu de « stagne » qui contredirait le « -X kg/sem » affiché.
+    const verdict = ratePerWeek < -0.1
+      ? `Ton poids recule (${rateTxt}) alors que tu vises la prise.`
+      : `Ta prise stagne (${rateTxt}).`;
+    return { stagnating: true, suggestion: 'increase', delta, newTarget: dt + delta, ratePerWeek, message: `${verdict} Ajoute environ ${delta} kcal/jour pour relancer la progression.` };
+  }
   return { stagnating: false, suggestion: null, ratePerWeek };
 }
 

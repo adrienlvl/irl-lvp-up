@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.238 (2026-07-21)
+## 📍 État actuel — build 2.0.239 (2026-07-21)
 
+> ⚖️ **#629 — Coach Poids : « stagne » ne ment plus quand le poids part dans le mauvais sens (build
+> 2.0.239).** Priorité de nuit = coaching, mais **`coach` bloqué** par la rotation §4 bis (627 & 624 :
+> 2 derniers ET 2× sur 5) et `sommeil` bloqué (628). Domaine pris : **`nutrition`** (625, 1× — libre),
+> au service du MANDAT COACHING ÉLITE (diététique du sport). Défaut **prouvé par exécution** (méthode P5)
+> dans `calorieAdjustment` (logic.js:8698), rendu sur la carte « Coach Poids » (app.js:383). Les deux
+> branches disaient **« stagne » codé en dur** alors que leur condition capture aussi le **mauvais sens** :
+> pour un objectif de perte, `ratePerWeek >= -0.1` couvre le vrai plateau ET le poids qui **remonte**
+> (`> 0`) → verdict « Ton poids **stagne** (**+0,33 kg/sem**) » qui nie le +X kg/sem qu'il imprime
+> lui-même (prendre du poids en sèche n'est pas un plateau, c'est pire). Symétrique côté `prise` (poids
+> qui recule dit « stagne »). Même famille de contradictions verdict↔chiffres que #628/#627/#623, jamais
+> traitée sur CETTE carte. Vérifié : `adaptiveCoachFocus` ne lit que `stagnating`/`newTarget`/`delta`
+> (jamais `.message`) et reformule la direction lui-même → **zéro ripple coach**, purement `nutrition`.
+> Correctif (curation §3, zéro champ) : seul le champ `message` change — `> 0,1 kg/sem` → « Ton poids
+> **repart à la hausse** (…) alors que tu vises la perte », `< -0,1` → « Ton poids **recule** (…) alors
+> que tu vises la prise » ; le vrai plateau et le conseil chiffré (baisse kcal/cardio/plancher) sont
+> inchangés. §4 ter : verdict relu sur 7 états chargés → plus de contradiction. 569 tests (cas
+> « remonte » + « recule » ajoutés) + 1 check smoke bloquant (`calorieFloor` étendu : refuse « stagne »
+> quand ça remonte) verts. Recap #629. _Domaine : nutrition._
+>
 > 📊 **#628 — « L'effet de ton coucher » : le verdict ne se contredit plus (build 2.0.238).** Priorité
 > de nuit = coaching, mais **`coach` bloqué** par la rotation §4 bis (recaps 627 & 624 : 2 derniers ET
 > 2× sur 5) et `athlete` bloqué (626). Domaine pris : **`sommeil`** (623, 5ᵉ — libre), adjacent au

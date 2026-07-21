@@ -5348,6 +5348,24 @@ test('calorieAdjustment : stagnation → baisse/hausse calorique', () => {
   // Prise : pas de plancher → baisse fixe de 125 conservée.
   const gainNear = L.calorieAdjustment(gainFlat, 'prise', 1250);
   assert.equal(gainNear.delta, 125); assert.equal(gainNear.newTarget, 1375);
+  // MAUVAIS SENS (perte) : le poids REMONTE (> 0,1 kg/sem) alors qu'on vise la perte. Le verdict ne
+  // doit PAS dire « stagne » (il nierait le +X kg/sem affiché) mais « repart à la hausse ». Le conseil
+  // (baisse/cardio) et les chiffres restent identiques au plateau.
+  const gainingCut = [{ date: '2026-07-01', value: 70 }, { date: '2026-07-08', value: 70.5 }, { date: '2026-07-16', value: 70.7 }];
+  const rising = L.calorieAdjustment(gainingCut, 'perte', 2000);
+  assert.equal(rising.stagnating, true); assert.equal(rising.suggestion, 'reduce');
+  assert.equal(rising.newTarget, 1875); assert.equal(rising.delta, 125);
+  assert.ok(rising.ratePerWeek > 0.1, 'rythme franchement positif (mauvais sens)');
+  assert.match(rising.message, /repart à la hausse/);
+  assert.doesNotMatch(rising.message, /stagne/);
+  // MAUVAIS SENS (prise) : le poids RECULE (< -0,1 kg/sem) alors qu'on vise la prise → « recule »,
+  // jamais « stagne ».
+  const droppingGain = [{ date: '2026-07-01', value: 70.7 }, { date: '2026-07-08', value: 70.5 }, { date: '2026-07-16', value: 70 }];
+  const falling = L.calorieAdjustment(droppingGain, 'prise', 2500);
+  assert.equal(falling.stagnating, true); assert.equal(falling.suggestion, 'increase');
+  assert.ok(falling.ratePerWeek < -0.1, 'rythme franchement négatif (mauvais sens)');
+  assert.match(falling.message, /recule/);
+  assert.doesNotMatch(falling.message, /stagne/);
 });
 test('dietBreakRecommendation : déficit prolongé → pause diète (MATADOR/ICECAP)', () => {
   const today = '2026-07-29';
@@ -6006,7 +6024,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.238');
+  assert.equal(L.CHANGELOG[0].v, '2.0.239');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
