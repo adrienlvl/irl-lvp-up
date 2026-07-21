@@ -1841,6 +1841,24 @@ test('acuteChronicRatio : aiguë (7j) vs chronique (28j/4), zones', () => {
   assert.equal(L.acuteChronicRatio([], today), null);
   assert.equal(L.acuteChronicRatio(steady, 'pas-une-date'), null);
 });
+test('acuteChronicRatio : 1re semaine (toute la charge dans les 7 j, aucune base chronique) → null, pas de faux « pic »', () => {
+  const today = '2026-07-17';
+  // Débutant : 3 séances, TOUTES dans les 7 derniers jours, rien avant → pas de base chronique.
+  // Avant le correctif : chronic28 === acute → ratio = 4,0 → zone 'high' → « allège, risque de blessure »
+  // criée à quelqu'un qui vient de commencer (démotivant et faux — artefact d'arithmétique).
+  const firstWeek = [
+    { date: '2026-07-13', duration: 45, effort: 3 },
+    { date: '2026-07-15', duration: 45, effort: 3 },
+    { date: '2026-07-16', duration: 45, effort: 3 },
+  ];
+  assert.equal(L.acuteChronicRatio(firstWeek, today), null, 'aucune base chronique hors fenêtre aiguë → ACWR indéfini');
+  // Conséquence : le conseil de charge ne recommande PAS un déload à un débutant en semaine 1.
+  assert.notEqual(L.loadAdvice(L.acuteChronicRatio(firstWeek, today), { score: 72 }).status, 'deload');
+  // Dès qu'UNE séance existe hors des 7 j (base chronique amorcée), l'ACWR se calcule à nouveau
+  // — non-régression du « pic à base faible » déjà couvert (le beau grand écart reste un pic légitime).
+  const withBase = firstWeek.concat([{ date: '2026-07-05', duration: 30, effort: 2 }]); // 12 j avant today
+  assert.ok(L.acuteChronicRatio(withBase, today), 'une base chronique hors fenêtre → ACWR défini');
+});
 test('loadAdvice : combine ACWR + forme du jour → recommandation', () => {
   // surcharge (ACWR haut) prime, même avec bonne forme → déload
   assert.equal(L.loadAdvice({ zone: 'high' }, { score: 90 }).status, 'deload');
@@ -5973,7 +5991,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.231');
+  assert.equal(L.CHANGELOG[0].v, '2.0.232');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.231 (2026-07-21)
+## 📍 État actuel — build 2.0.232 (2026-07-21)
 
+> 🩹 **#622 — La 1re semaine d'entraînement ne déclenche plus une fausse alerte « pic de charge —
+> allège, risque de blessure » (build 2.0.232).** Priorité de nuit = coaching, mais **`coach` ET
+> `nutrition` bloqués** par la rotation §4 bis (les 2 derniers recaps ; `coach` 2× sur 5). Domaine pris :
+> **`robustesse`** (1× sur 5, absent des 2 derniers). Backlog nommé P1→P7 entièrement coché, a11y vérifié
+> propre (tous les boutons icône ont déjà un `aria-label`), noyau alternance mesuré propre (#620) →
+> défaut **prouvé par lecture** dans `acuteChronicRatio` (ACWR). Tant que TOUTE la charge tient dans la
+> fenêtre aiguë (7 j) sans aucun historique avant — cas typique de la 1re semaine — `chronic28 === acute`
+> et `ratio = acute/(acute/4) = 4,0`, **fixé par l'arithmétique** et non par un vrai risque → zone `high`
+> → `loadAdvice` = « 🟥 Allège, risque de blessure » + déload, criés à un débutant. Correctif : sans
+> charge hors des 7 j, l'ACWR est **indéfini → `null`** (les 6 consommateurs, déjà null-safe, retombent
+> sur leur défaut neutre « Maintiens le cap »). Une seule séance datée d'avant la semaine ré-active le
+> calcul → le **pic à base faible** (déjà testé) reste détecté. §4 ter : en semaine 1, l'écran passe de
+> deux messages « allège/déload » contradictoires-avec-la-réalité à un « Maintiens le cap » calme et
+> cohérent. 567 tests (+1 dédié) + smoke verts. Recap #622. _Domaine : robustesse._
+>
 > 📈 **#621 — Le conseil de plateau de force ne se fait plus reléguer derrière les félicitations (build
 > 2.0.231).** Priorité de nuit coaching (§3 QUALITÉ : hiérarchisation). Rotation OK avant de coder
 > (`coach` absent des 2 derniers recaps, 1× sur 5). Manque prouvé par lecture : le classement d'urgence
