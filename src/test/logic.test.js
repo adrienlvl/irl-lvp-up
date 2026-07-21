@@ -6024,7 +6024,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.239');
+  assert.equal(L.CHANGELOG[0].v, '2.0.240');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8567,7 +8567,7 @@ test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ pili
   assert.doesNotMatch(sk.insight, /belle journée complète/, 'la série remplace le crédit du jour isolé');
   // 3 est un palier (STREAK_MILESTONES) → jalon débloqué.
   assert.equal(sk.completeDayMilestone, 3, 'série de 3 = palier franchi');
-  assert.match(sk.insight, /Palier franchi : 3 jours de journées pleines/);
+  assert.match(sk.insight, /Palier franchi : trois jours !/);
 
   // Série de 2 jours (15, 16 complets ; le 14 n’a qu’un pilier) → « 2 jours d’affilée ».
   const two = {
@@ -8594,7 +8594,11 @@ test('adaptiveCoachFocus : célèbre une SÉRIE de journées complètes (3+ pili
   const wk = L.adaptiveCoachFocus(week, today);
   assert.equal(wk.completeDayStreak, 7, '7 jours consécutifs complets');
   assert.equal(wk.completeDayMilestone, 7, 'série de 7 = palier franchi');
-  assert.match(wk.insight, /Palier franchi : une semaine complète de journées pleines/);
+  assert.match(wk.insight, /Palier franchi : une semaine entière !/);
+  // #630 : le palier ne re-décrit plus « journées pleines » (déjà dit par la note de base « journées
+  // complètes ») ; le fait n'est énoncé qu'UNE fois, le palier reformule en unité (« une semaine »).
+  assert.doesNotMatch(wk.insight, /de journées pleines/, 'plus de redondance « … de journées pleines »');
+  assert.equal((wk.insight.match(/journées complètes|journées pleines/g) || []).length, 1, 'le fait « journées complètes » n’est énoncé qu’une fois');
 });
 
 test('adaptiveCoachFocus : une SEULE carotte de palier par jour (journées complètes vs habitude)', () => {
@@ -8613,11 +8617,11 @@ test('adaptiveCoachFocus : une SEULE carotte de palier par jour (journées compl
   const r = L.adaptiveCoachFocus(both, today);
   assert.equal(r.completeDayMilestone, 7, 'palier de journées complètes franchi');
   assert.ok(r.habitMilestone && r.habitMilestone.streak === 7, 'champ habitMilestone TOUJOURS renseigné (télémétrie)');
-  assert.match(r.insight, /Palier franchi : une semaine complète de journées pleines/, 'le palier englobant parle');
+  assert.match(r.insight, /Palier franchi : une semaine entière !/, 'le palier englobant parle');
   assert.doesNotMatch(r.insight, /Chaîne au sommet/, 'la 2ᵉ carotte 🏆 habitude est tue le même jour');
-  // Une seule occurrence de « un vrai palier » / « une semaine complète » dans l'insight (pas d'empilement).
+  // Une seule occurrence de « un vrai palier » / « une semaine entière » dans l'insight (pas d'empilement).
   assert.equal((r.insight.match(/un vrai palier/g) || []).length, 0, 'pas la formule « un vrai palier » de l’habitude tue');
-  assert.equal((r.insight.match(/une semaine complète/g) || []).length, 1, 'une seule mention « une semaine complète »');
+  assert.equal((r.insight.match(/une semaine entière/g) || []).length, 1, 'une seule mention « une semaine entière »');
   // Contrôle : l'habitude au palier SEULE (pas de journées complètes) garde bien sa célébration.
   const habitOnly = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: today }], habits: [{ id: 1, name: 'Lecture', log: days7 }] }, today);
   assert.ok(habitOnly.habitMilestone, 'habitMilestone renseigné');

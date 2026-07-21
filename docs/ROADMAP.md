@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.239 (2026-07-21)
+## 📍 État actuel — build 2.0.240 (2026-07-21)
 
+> 🏅 **#630 — Coach « Le focus du moment » : le palier de semaine ne redit plus la note de base (build
+> 2.0.240).** Priorité de nuit = coaching, angle **neuf** (la famille verdict↔chiffres de #623/#627/
+> #628/#629 est épuisée). Rotation OK : `coach` absent des 2 derniers recaps et 1× sur 5 (627) ;
+> `nutrition`/`sommeil` bloqués. Défaut prouvé par rendu §4 ter dans `adaptiveCoachFocus` : à un palier
+> de journées complètes, deux `insight +=` consécutifs (logic.js:7641 puis :7648) rendaient collés
+> « **7 jours d'affilée** … tu enchaînes les **journées complètes**. 🔥 🏅 Palier franchi : **une
+> semaine complète de journées pleines** ! » — la 2ᵉ clause ne faisait que redire, en d'autres mots,
+> le fait de la 1ʳᵉ (7 j = une semaine ; journées complètes = journées pleines), avec en prime l'écho
+> « complètes »/« complète ». La dédup inter-familles (#592) ne couvrait pas la note de base.
+> Correctif (curation §3, zéro champ) : le palier ne **répète** plus le fait, il **reformule** le seuil
+> en unité parlante (`trois jours · une semaine entière · deux semaines · un mois entier · deux mois ·
+> cent jours · six mois · une année entière`, réutilisant le vocabulaire du palier d'habitude) →
+> « … 🔥 🏅 Palier franchi : une semaine entière ! ». Champ `completeDayMilestone`, note de base et
+> dédup inchangés. §4 ter : insight cumulé (7 j + habitude au palier) relu → plus de redite. 569 tests
+> (+2 asserts anti-redondance, 3 textes figés mis à jour) + smoke `coachFocus` (3 textes figés +
+> garde `!/de journées pleines/`) verts. Recap #630. _Domaine : coach._
+>
 > ⚖️ **#629 — Coach Poids : « stagne » ne ment plus quand le poids part dans le mauvais sens (build
 > 2.0.239).** Priorité de nuit = coaching, mais **`coach` bloqué** par la rotation §4 bis (627 & 624 :
 > 2 derniers ET 2× sur 5) et `sommeil` bloqué (628). Domaine pris : **`nutrition`** (625, 1× — libre),

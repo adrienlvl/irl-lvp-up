@@ -3110,6 +3110,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.240', emoji: '🏅', text: 'Quand ton coach « Le focus du moment » fête une SEMAINE (ou un mois, une année…) de journées complètes, il ne dit plus deux fois la même chose. Il annonçait « 7 jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥 » PUIS, collé, « 🏅 Palier franchi : une semaine complète de journées pleines ! » — « une semaine complète de journées pleines » ne faisait que redire, dans d’autres mots, les « 7 jours de journées complètes » de la phrase juste avant. Désormais la première phrase donne le compte, et le palier se contente de REFORMULER le seuil en unité parlante : « 🏅 Palier franchi : une semaine entière ! » (deux semaines, un mois entier, une année entière… selon le cap). Une célébration plus nette, sans la redite. Rien de retiré au fond : ta série et le prochain cap à tenir restent affichés.' },
   { v: '2.0.239', emoji: '⚖️', text: 'Ta carte « Coach Poids » ne dit plus « ton poids stagne » quand il part dans le mauvais sens. Quand ta balance remonte alors que tu vises la perte (ou recule alors que tu vises la prise), le conseil d’ajustement affichait « Ton poids stagne (+0,33 kg/sem) … » — le mot « stagne » niait le « +0,33 kg/sem » imprimé dans la même phrase, alors que gagner du poids en pleine sèche n’est pas un plateau, c’est plus embêtant qu’un plateau. Désormais il le dit franchement : « Ton poids repart à la hausse (+0,33 kg/sem sur 15 j) alors que tu vises la perte. » (et « Ton poids recule … alors que tu vises la prise » dans l’autre sens). Le conseil chiffré (baisse de X kcal, cardio, cible du jour) et le plancher calorique ne bougent pas : seul le constat colle enfin à tes chiffres. Le vrai plateau, lui, reste « stagne » comme avant.' },
   { v: '2.0.238', emoji: '📊', text: 'Ta carte « L’effet de ton coucher » (onglet Athlète → Récupération) ne se contredit plus quand tes données vont à contre-courant. Quand tes soirées couché tôt s’accompagnaient de MOINS de focus (ou de moins d’énergie) que tes soirées couché tard, elle affichait « Ton focus dépend peu de l’heure de coucher (15 vs 90 min) » — une phrase qui prétend « peu d’effet » tout en imprimant, juste à côté, un écart de 1 à 6. Le texte niait ce que ses propres chiffres montraient. Désormais elle dit honnêtement ce qu’elle mesure : « sur cette période, ton focus a plutôt été meilleur après un coucher tardif (15 min vs 90) — d’autres facteurs pèsent sans doute plus ; vise surtout un rythme régulier. » Même correction côté énergie. Les cas où se coucher tôt paie vraiment, eux, ne bougent pas (« Se coucher tôt paie »). Un constat qui colle enfin à tes données au lieu de les démentir.' },
   { v: '2.0.237', emoji: '😴', text: 'Ton coach « Le focus du moment » ne te demande plus de dormir plus tôt quand tu dors déjà bien. Les jours où le sommeil est ta bonne dynamique du moment, il affichait fièrement « Sommeil solide : moy. 8 h, rythme régulier » (voire une série à célébrer) — puis, juste en dessous, l’action « Vise un coucher 30 min plus tôt ce soir ». Contradiction : il te félicitait pour un sommeil suffisant et régulier tout en te prescrivant de le corriger comme s’il manquait quelque chose. Désormais, quand ton sommeil est jugé solide, l’action colle au verdict : « Rien à corriger côté sommeil : garde cette même heure de coucher ce soir. » — on renforce le bon rythme au lieu d’exiger une correction inutile. Les cas où il y a vraiment à corriger ne bougent pas : sommeil trop court mais régulier → « coucher 30 min plus tôt », coucher irrégulier → « heure fixe », plan de recalage actif → sa cible du soir. L’action dit enfin la même chose que le constat.' },
@@ -7615,7 +7616,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // JALON, et les jalons se fêtent — l'app gamifiée le fait déjà pour les streaks quotidiens
   // (STREAK_MILESTONES / nextStreakMilestone). On rebranche exactement ces paliers ici : quand la
   // série FRANCHIT pile un palier (3, 7, 14, 30…), le coach le débloque explicitement (« 🏅 Palier
-  // franchi : une semaine complète ! ») ; sinon, quand le prochain palier est à UN jour, il donne le
+  // franchi : une semaine entière ! ») ; sinon, quand le prochain palier est à UN jour, il donne le
   // cap concret à tenir demain (« Encore 1 jour pour franchir le palier des 7. 🎯 ») — une carotte
   // actionnable qui transforme la fierté d'hier en objectif de demain. Réutilise STREAK_MILESTONES,
   // aucune nouvelle échelle. Additif pur : champ completeDayMilestone (valeur du palier franchi
@@ -7641,11 +7642,14 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       insight += ` ${completeDayStreak} jours d’affilée à 3+ piliers — tu enchaînes les journées complètes. 🔥`;
       if (Array.isArray(STREAK_MILESTONES) && STREAK_MILESTONES.includes(completeDayStreak)) {
         completeDayMilestone = completeDayStreak;
-        const palier = completeDayStreak === 7 ? 'une semaine complète'
-          : completeDayStreak === 14 ? 'deux semaines complètes'
-          : completeDayStreak === 30 ? 'un mois complet'
-          : `${completeDayStreak} jours`;
-        insight += ` 🏅 Palier franchi : ${palier} de journées pleines !`;
+        // #630 (curation §3, zéro champ) : la note de base juste au-dessus dit déjà « N jours d'affilée…
+        // tu enchaînes les journées complètes ». Le palier ne RÉPÈTE donc plus ce fait (« … de journées
+        // pleines », qui redoublait « journées complètes ») : il REFORMULE le seuil en unité parlante
+        // (semaine / mois / année), ce que la note de base ne fait pas. Retirer une note en vaut deux.
+        const palier = { 3: 'trois jours', 7: 'une semaine entière', 14: 'deux semaines',
+          30: 'un mois entier', 60: 'deux mois', 100: 'cent jours', 180: 'six mois',
+          365: 'une année entière' }[completeDayStreak] || `${completeDayStreak} jours`;
+        insight += ` 🏅 Palier franchi : ${palier} !`;
         milestoneShown = true; milestoneShownAt = completeDayStreak;
       } else if (typeof nextStreakMilestone === 'function') {
         const nm = nextStreakMilestone(completeDayStreak);
@@ -7918,7 +7922,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   // deux peuvent parler le même jour sur des habitudes différentes, sans se contredire. Vocabulaire
   // DISTINCT (« Chaîne au sommet », « atteint … jours consécutifs », « l'automatisme s'installe ») —
   // zéro collision à l'œil ni en regex avec habitAtRisk (« Ne casse pas la chaîne », « tient depuis »),
-  // completeDayMilestone (« Palier franchi … journées pleines »), streakRecordReach (« bats ton record
+  // completeDayMilestone (« Palier franchi : une semaine entière … »), streakRecordReach (« bats ton record
   // perso ») ni streakRebuild (« Tu reconstruis »). Additif pur : champ habitMilestone ({ name, streak }
   // ou null) TOUJOURS renvoyé ; note APPENDUE à l'insight, action du jour intacte.
   let habitMilestone = null;

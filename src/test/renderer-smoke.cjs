@@ -726,7 +726,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.239'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.240'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1399,11 +1399,11 @@ app.whenReady().then(async () => {
           const fStreak = adaptiveCoachFocus({ workouts: [{ date: '2026-07-14', duration: 45 }, { date: '2026-07-15', duration: 45 }, { date: '2026-07-16', duration: 45 }], focusSessions: [{ date: '2026-07-14', minutes: 30, task: 'X' }, { date: '2026-07-15', minutes: 30, task: 'X' }, { date: '2026-07-16', minutes: 30, task: 'X' }], recovery: [{ date: '2026-07-14', sleep: 7 }, { date: '2026-07-15', sleep: 7 }, { date: '2026-07-16', sleep: 7 }], nutrition: [{ date: '2026-07-14', protein: 100 }, { date: '2026-07-15', protein: 100 }, { date: '2026-07-16', protein: 100 }] }, '2026-07-16');
           if (!(fStreak.pillarsToday === 4 && fStreak.completeDayStreak === 3 && /3 jours d.affil.*3\\+ piliers/.test(fStreak.insight) && !/belle journée complète/.test(fStreak.insight))) return false;
           // PALIER de série : 3 est un jalon (STREAK_MILESTONES) → palier franchi débloqué.
-          if (!(fStreak.completeDayMilestone === 3 && /Palier franchi : 3 jours/.test(fStreak.insight))) return false;
+          if (!(fStreak.completeDayMilestone === 3 && /Palier franchi : trois jours/.test(fStreak.insight))) return false;
           // Palier d'une SEMAINE : 4 piliers × 7 jours consécutifs (10 → 16) → completeDayMilestone 7.
           const wkDays = ['2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14', '2026-07-15', '2026-07-16'];
           const fWeek = adaptiveCoachFocus({ workouts: wkDays.map(d => ({ date: d, duration: 45 })), focusSessions: wkDays.map(d => ({ date: d, minutes: 30, task: 'X' })), recovery: wkDays.map(d => ({ date: d, sleep: 7 })), nutrition: wkDays.map(d => ({ date: d, protein: 100 })) }, '2026-07-16');
-          if (!(fWeek.completeDayStreak === 7 && fWeek.completeDayMilestone === 7 && /Palier franchi : une semaine complète/.test(fWeek.insight))) return false;
+          if (!(fWeek.completeDayStreak === 7 && fWeek.completeDayMilestone === 7 && /Palier franchi : une semaine entière/.test(fWeek.insight) && !/de journées pleines/.test(fWeek.insight))) return false;
           // Série de 2 (hors palier) mais prochain palier à un jour → cap à tenir demain, aucun palier franchi.
           const fSoon = adaptiveCoachFocus({ workouts: [{ date: '2026-07-14', duration: 45 }, { date: '2026-07-15', duration: 45 }, { date: '2026-07-16', duration: 45 }], focusSessions: [{ date: '2026-07-15', minutes: 30, task: 'X' }, { date: '2026-07-16', minutes: 30, task: 'X' }], nutrition: [{ date: '2026-07-15', protein: 100 }, { date: '2026-07-16', protein: 100 }] }, '2026-07-16');
           if (!(fSoon.completeDayStreak === 2 && fSoon.completeDayMilestone === null && /Encore 1 jour pour franchir le palier des 3/.test(fSoon.insight))) return false;
@@ -1425,7 +1425,7 @@ app.whenReady().then(async () => {
           if (fHabit.habitMilestone !== null) return false;
           // Coordination « une SEULE carotte de palier / jour » : palier de journées complètes (7) ET habitude au palier (7) le même jour → seul le palier englobant parle, le champ habitMilestone reste renseigné (télémétrie), la 2ᵉ ligne 🏆 « Chaîne au sommet » est tue.
           const fBothMile = adaptiveCoachFocus({ workouts: wkDays.map(d => ({ date: d, duration: 45 })), focusSessions: wkDays.map(d => ({ date: d, minutes: 30, task: 'X' })), recovery: wkDays.map(d => ({ date: d, sleep: 7 })), nutrition: wkDays.map(d => ({ date: d, protein: 100 })), habits: [{ id: 1, name: 'Lecture', log: wkDays }] }, '2026-07-16');
-          if (!(fBothMile.completeDayMilestone === 7 && fBothMile.habitMilestone && fBothMile.habitMilestone.streak === 7 && /Palier franchi : une semaine complète/.test(fBothMile.insight) && !/Cha[îi]ne au sommet/.test(fBothMile.insight))) return false;
+          if (!(fBothMile.completeDayMilestone === 7 && fBothMile.habitMilestone && fBothMile.habitMilestone.streak === 7 && /Palier franchi : une semaine entière/.test(fBothMile.insight) && !/Cha[îi]ne au sommet/.test(fBothMile.insight))) return false;
           const pad = n => (n < 10 ? '0' + n : '' + n);
           const iso = off => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - off); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
           const saved = { w: state.workouts, f: state.focusSessions, r: state.recovery, n: state.nutrition, a: state.applications };
