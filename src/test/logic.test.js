@@ -5207,6 +5207,32 @@ test('progressionText : phrases FR selon l’action', () => {
   assert.match(L.progressionText({ action: 'reps', lastReps: 9, lastLoad: 12, nextLoad: 12, nextReps: 10, increment: 2.5, maxReps: 12 }), /réserve|RPE/i);
   assert.match(L.progressionText({ action: 'weight', lastReps: 14, lastLoad: 12, nextLoad: 17, nextReps: 8, increment: 2.5, maxReps: 12, overshoot: true }), /au-dessus de la cible/);
 });
+test('guidedProgressionLines : hint + cible du jour cohérents, gatés par la récupération', () => {
+  const weight = { action: 'weight', nextReps: 8, nextLoad: 42.5, lastReps: 12, lastLoad: 40 };
+  const reps = { action: 'reps', nextReps: 10, nextLoad: 40, lastReps: 9, lastLoad: 40 };
+  // Feu vert (non cautious) : la cible suit la double progression, le hint DÉFÈRE à la cible (aucun
+  // « +0,5 kg » contradictoire).
+  const green = L.guidedProgressionLines(weight, false, 'Progression proposée : +0,5 kg si toutes les séries restent propres.');
+  assert.match(green.target, /monte la charge/);
+  assert.match(green.target, /42,5 kg/);
+  assert.match(green.hint, /Feu vert/);
+  assert.doesNotMatch(green.hint, /0,5 kg/);
+  // Feu vert, action reps : pas de « monte la charge », le hint reste non contradictoire.
+  const greenReps = L.guidedProgressionLines(reps, false, 'x');
+  assert.doesNotMatch(greenReps.target, /monte la charge/);
+  assert.match(greenReps.target, /10 reps × 40 kg/);
+  // Récup basse / séance dure (cautious) : on CONSOLIDE — la cible ne crie plus « monte la charge »,
+  // le hint récup/technique est conservé tel quel.
+  const cautious = L.guidedProgressionLines(weight, true, 'Récupération du jour basse : répète le dernier format.');
+  assert.doesNotMatch(cautious.target, /monte la charge/);
+  assert.match(cautious.target, /consolide/);
+  assert.match(cautious.target, /12 reps × 40 kg/);
+  assert.equal(cautious.hint, 'Récupération du jour basse : répète le dernier format.');
+  // Pas de suggestion (exercice au temps / sans historique) : cible vide, hint = repli conservé.
+  const none = L.guidedProgressionLines(null, false, 'Point de départ : exécution propre.');
+  assert.equal(none.target, '');
+  assert.equal(none.hint, 'Point de départ : exécution propre.');
+});
 test('progressionIncrement : +5 kg bas du corps, +2,5 kg haut/isolation (ACSM 2009)', () => {
   assert.equal(L.progressionIncrement('Squat barre'), 5);
   assert.equal(L.progressionIncrement('Soulevé de terre'), 5);
@@ -6048,7 +6074,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.245');
+  assert.equal(L.CHANGELOG[0].v, '2.0.246');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

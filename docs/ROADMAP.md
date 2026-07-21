@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.245 (2026-07-21)
+## 📍 État actuel — build 2.0.246 (2026-07-21)
 
+> 💪 **#637 — Séance guidée : les deux surfaces de progression ne se contredisent plus (build 2.0.246).**
+> Priorité de nuit = coaching (muscu). Rotation §4 bis (5 derniers : `nutrition, coach, nutrition,
+> alternance, athlete`) → `nutrition` (2×) et `coach` (récent) exclus ; **`athlete`** pris (1× sur 5,
+> absent des 2 derniers), piste ouverte de la mémoire athlète (défaut n°2 de l'exploration #631).
+> Défaut prouvé (deux contradictions inter-surfaces sur `renderGuidedWorkout`, app.js:444) : sous
+> l'exercice, `#guidedProgressionHint` (issu d'`exerciseRecommendation`, branche feu vert) prescrivait
+> un naïf **« +0,5 kg »** tandis que `#guidedTarget` (issu de `progressionSuggestion`, double progression
+> ACSM/Zourdos) disait **« monte la charge » +2,5/5 kg** — chiffres incompatibles ; ET la cible était
+> rendue **inconditionnellement**, donc les jours de récup basse elle criait « monte la charge 💪 »
+> pendant que le conseil disait « répète le format, allège ». Correctif (curation §3, zéro champ) :
+> fonction pure `guidedProgressionLines(sugg, cautious, fallbackHint)` — sous `cautious` (récup fragile
+> ou séance dure/incomplète) la cible **CONSOLIDE** (« consolide N reps × X kg… tu monteras quand la
+> forme reviendra », plus de « monte la charge », autorégulation Zourdos), sinon le conseil **défère**
+> à la cible (feu vert, un seul chiffre, sans « +0,5 kg »). Les deux surfaces sont désormais gatées par
+> le **même** flag `current.cautious` → cohérence structurelle. `exerciseRecommendation` inchangée.
+> §4 ter : écran cumulé relu (feu vert / récup fragile) → les deux cas concordent. 571 tests (+1 bloc
+> `guidedProgressionLines`) + check smoke **`guidedTarget` étendu ET promu bloquant** (il était défini
+> mais jamais poussé dans `errors`, motif P2.2/#566) verts. Recap #637. _Domaine : athlete._
+>
 > ⏸️ **#636 — Coach Poids : « resserre le déficit » ne contredit plus « prends une pause diète » (build
 > 2.0.245).** Priorité de nuit = coaching. Rotation §4 bis (5 derniers : `alternance, athlete, athlete,
 > coach, nutrition`) → `alternance`/`athlete` bloqués ; **`nutrition`** pris (1× sur 5, absent des 2 derniers),
