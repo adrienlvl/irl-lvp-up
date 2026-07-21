@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.271 (2026-07-22)
 
+> 🥗 **#666 — Coach : la note nutrition « forme basse » ne se déchire plus au rendu (build 2.0.272).**
+> Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `tests, athlete, robustesse,
+> alternance, fondations`) → `coach` libre. Angle NEUF prouvé en rendu chargé §4 ter (fuzzer 6 000 états
+> + détecteur générique de « notes déchirées » sur 20 000 états) : `readinessNutriGuard` (`logic.js:6583`)
+> appende UNE note de 2 phrases — prémisse « forme basse » (non classée, défaut 4) puis conclusion
+> « tenir l'essentiel : tes **protéines**… » (rang 3 intrants). `orderCoachNotes` trie phrase par phrase
+> et son soudage ne propage un rang que vers l'AVANT → la conclusion classée remontait AU-DESSUS de sa
+> prémisse orpheline (« c'est justement aujourd'hui que… » lu avant le POURQUOI). **170 occurrences.** Fix
+> §3 (zéro mot ajouté) : 2 phrases soudées en une seule (`. C'` → ` ; c'`) → note atomique, `orderCoachNotes`
+> ne la coupe plus. Pas de soudage arrière général (rouvrirait la régression #592). Complément du fix
+> 2.0.185 (autre sens). +assertion verrouillante (1 seul élément porte les 2 moitiés, prémisse avant
+> conclusion) + `coachCuration`/`coachFocus` verts. 578 tests + SMOKE OK. Recap #666. _Domaine : coach._
+> **Lot 2.0.263→272 en attente de release (Adrien contrôle).**
+>
 > 🧪 **#665 — `macroBreakdown` : le contrat défensif exige enfin une cible calorique (pas de bump).**
 > Mission nuit = robustesse/tests, PAS de design. Rotation §4 bis (5 derniers : `athlete, robustesse,
 > alternance, fondations, fondations`) → priorité n°1 robustesse **bloquée** (#663) → pris priorité n°2

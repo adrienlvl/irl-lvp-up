@@ -6179,7 +6179,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.271');
+  assert.equal(L.CHANGELOG[0].v, '2.0.272');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -11130,6 +11130,15 @@ test('adaptiveCoachFocus : focus nutrition — forme du jour basse, l’assiette
   assert.equal(low.sleepGainGuard, null);
   assert.match(low.insight, /ta forme est basse ce matin \(readiness 40\/100\), et les jours de fatigue sont ceux où l’assiette dérape le plus/);
   assert.match(low.insight, /te protègent des fringales bien mieux que la volonté sur une réserve vide/);
+  // #666 — SOUDAGE au rendu : la note « forme basse » est UNE seule phrase, donc orderCoachNotes la
+  // garde d’un bloc. Prémisse « forme basse » (non classée, défaut 4) + conclusion « tenir l’essentiel :
+  // tes protéines… » (classée rang 3) : en deux phrases, la conclusion remontait AU-DESSUS de sa prémisse
+  // orpheline (le soudage ne propage un rang que vers l’avant). On exige : un SEUL élément porte les deux
+  // moitiés, prémisse AVANT conclusion.
+  const lowNotes = L.orderCoachNotes(low.insight);
+  const reperNotes = lowNotes.filter(n => /forme est basse ce matin/.test(n) || /tenir l’essentiel compte le plus/.test(n));
+  assert.equal(reperNotes.length, 1, 'prémisse et conclusion soudées en une seule note (non déchirée)');
+  assert.match(reperNotes[0], /forme est basse ce matin.*tenir l’essentiel compte le plus/, 'prémisse AVANT conclusion, contiguës');
   // Forme du jour OK (readiness ≥ 50) → champ null, note absente.
   const ok = L.adaptiveCoachFocus({ profile: { weight: 80, goal: 'force' }, nutrition, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
   assert.equal(ok.readinessNutriGuard, null);
