@@ -6039,7 +6039,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.242');
+  assert.equal(L.CHANGELOG[0].v, '2.0.243');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -8185,6 +8185,27 @@ test('attentionDigest : sommeil URGENT (court + irrégulier) remonte même si re
   const dd = L.attentionDigest({ recovery: lowRs, agenda: [], workouts: [], habits: [] }, today).filter(i => i.key === 'readiness');
   assert.equal(dd.length, 1);
   assert.ok(/Forme basse/.test(dd[0].text));
+});
+
+test('attentionDigest : la forme basse « aujourd’hui » exige un check-in DATÉ DU JOUR (pas un périmé)', () => {
+  const today = '2026-07-21';
+  // Une seule (mauvaise) forme, vieille d'une semaine, et AUCUN check-in aujourd'hui.
+  const staleLow = [{ date: '2026-07-14', sleep: 4, fatigue: 5, soreness: 5 }];
+  const rs = L.readinessScore(staleLow[0]);
+  assert.ok(rs && rs.score < 50, 'readiness du check-in périmé est bien < 50');
+  // L'alerte « Forme basse — allège aujourd'hui » ne doit PAS se déclencher sur cette donnée périmée :
+  // le message affirme « aujourd'hui », or aucune forme n'a été mesurée aujourd'hui. Même politique
+  // stricte que adaptiveCoachFocus, qui, sans check-in du jour, laisse readiness=null → les deux cartes
+  // coach du dashboard ne se contredisent plus (l'une criait « repose-toi », l'autre restait muette).
+  const d = L.attentionDigest({ recovery: staleLow, agenda: [], workouts: [], habits: [] }, today);
+  assert.ok(!d.some(i => i.key === 'readiness'), 'pas d’alerte forme-basse sur un check-in périmé');
+  // Cohérence croisée : adaptiveCoachFocus n'inventerait pas non plus une readiness du jour ici.
+  const foc = L.adaptiveCoachFocus({ recovery: staleLow, workouts: [], habits: [] }, today);
+  assert.ok(!foc || foc.readiness == null, 'adaptiveCoachFocus ne lit pas non plus la readiness périmée');
+  // Le MÊME check-in bas, mais daté d'AUJOURD'HUI → l'alerte se déclenche bien (non-régression).
+  const todayLow = [{ ...staleLow[0], date: today }];
+  const d2 = L.attentionDigest({ recovery: todayLow, agenda: [], workouts: [], habits: [] }, today);
+  assert.ok(d2.some(i => i.key === 'readiness' && /Forme basse/.test(i.text) && i.sev === 'high'), 'forme basse du jour toujours remontée');
 });
 
 test('adaptiveCoachFocus : lit la dynamique 2 semaines et choisit le bon focus/ton', () => {

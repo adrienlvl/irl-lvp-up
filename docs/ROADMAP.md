@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.242 (2026-07-21)
+## 📍 État actuel — build 2.0.243 (2026-07-21)
 
+> 😴 **#634 — « À rattraper » : « Forme basse — allège aujourd'hui » exige un check-in daté du jour (build
+> 2.0.243).** Priorité de nuit = coaching ; rotation §4 bis vérifiée avant de coder : `athlete`/`nutrition`
+> bloqués (633/631 & 632/629) → domaine **`coach`** (630, 1×, absent des 2 derniers). Angle neuf : surface
+> `attentionDigest` jamais traitée. Défaut prouvé par lecture : le bandeau « À rattraper » repliait sur
+> `rec[rec.length - 1]` (dernier check-in, sans garde de date) quand il n'y avait pas de check-in du jour →
+> une mauvaise forme vieille d'une semaine s'affichait en rouge/high « Forme basse — allège **aujourd'hui** »,
+> et `coachDayPriority` reframait la journée en « récupère ». Or `adaptiveCoachFocus`, sur le **même**
+> dashboard, exige et **documente** (logic.js:5928-5936) un check-in DATÉ DU JOUR (readiness=null sinon) :
+> les deux cartes coach se contredisaient (« repose-toi » vs « programme une séance ») sur la même donnée.
+> Correctif (curation §3, zéro champ) : suppression du repli périmé, `rs = readinessScore(find(date===today)
+> || null)` — l'alerte forme-basse n'existe plus que sur un check-in du jour ; le dérèglement de sommeil
+> multi-jours reste couvert par la branche `sleepCoachInsight` (qui lit légitimement l'historique). Distinct
+> de la proposition #631 (flag `fragile` inline dans app.js) : aucune de ses 4 décisions n'est tranchée, on
+> aligne juste une surface sur un comportement déjà décidé dans le code. §4 ter : bandeau cumulé relu → plus
+> de contradiction. 570 tests (+1 : périmé muet · non-régression forme du jour · cohérence croisée) + smoke
+> `attentionDigest` étendu bloquant (`staleFormGuarded`) verts. Recap #634. _Domaine : coach._
+>
 > ⛰️ **#633 — Prépa descentes : la coupe des séances cassantes s'aligne enfin sur l'affûtage (build
 > 2.0.242).** Priorité de nuit = coaching (coach trail) ; rotation §4 bis : `nutrition`/`coach` bloqués
 > (632 & 630) → domaine **`athlete`** (631, 1×, pas dans les 2 derniers), piste ouverte de la mémoire
