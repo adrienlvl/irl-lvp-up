@@ -3235,6 +3235,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.293', emoji: '🥗', text: 'Coach « Le focus du moment » : plus de titre nutrition qui contredit son propre message. Quand le coach parle de ta nutrition, son diagnostic (l’insight) est calé sur tes protéines — série en cours, régularité qui grimpe ou qui s’effrite — alors que le titre, lui, se basait sur le nombre de jours où tu as SAISI quelque chose. Ces deux mesures pouvant partir en sens contraire, la carte s’affichait parfois « Ta nutrition s’essouffle » juste au-dessus de « 🔥 2 jours d’affilée à ta cible protéines, ne casse pas la série » (ou « ta régularité grimpe, la dynamique est bonne ») — un titre qui annonce un déclin, un corps qui célèbre. À l’inverse « monte en régime » pouvait coiffer un « ta régularité s’effrite ». Le titre suit désormais le même signal que le diagnostic (exactement comme la carte Sommeil le fait déjà) : une série vive ne titre plus un essoufflement. Aucun conseil ajouté.' },
   { v: '2.0.292', emoji: '🗓️', text: 'Robustesse agenda : un rendez-vous répété ancré sur un jour qui n’existe pas ne se déclenche plus au mauvais jour. Une règle de récurrence enregistrée sur une date impossible mais d’apparence valide — le 31 avril, le 30 février (ça peut arriver via une sauvegarde restaurée ou un import abîmé) — était conservée telle quelle, puis le calcul basculait silencieusement au mois suivant : un « tous les mois le 31 avril » se mettait à apparaître le 1er de chaque mois, des jours que tu n’avais jamais choisis. Ces dates impossibles sont désormais neutralisées (comme le sont déjà tes semaines-record et le reste de l’app), exactement comme une date correctement saisie l’a toujours été. Aucun changement pour les récurrences normales.' },
   { v: '2.0.291', emoji: '🧠', text: 'Le récap « Où est passé ton focus » compte enfin ensemble une même tâche écrite un peu différemment. Le nom de ta session de concentration est un champ libre que tu retapes à chaque bloc : « Deep work » un jour, « deep work » le lendemain, « Révision » puis « revision »… La répartition les traitait comme des tâches séparées — ton temps se retrouvait éparpillé sur plusieurs lignes avec des pourcentages faussés, et le coach pouvait citer la mauvaise tâche « phare ». Désormais l’app replie les variantes de casse, d’accents et d’espaces (elle affiche le premier libellé tapé), exactement comme le fait déjà le suivi de tes révisions par matière. Deux tâches vraiment différentes restent bien distinctes.' },
   { v: '2.0.290', emoji: '♿', text: 'Accessibilité : les menus déroulants de l’agenda ont enfin un nom pour les lecteurs d’écran. Dans le formulaire du calendrier et dans la fenêtre de modification d’un événement, quatre listes déroulantes (le type de bloc « Focus / Sport / Vie perso / Révision », la répétition « Une fois / Chaque semaine… » et la priorité) n’avaient aucun libellé accessible : une personne utilisant un lecteur d’écran entendait « menu déroulant » sans savoir ce qu’il réglait. Chacune annonce maintenant son rôle. Rien ne change à l’écran.' },
@@ -6402,8 +6403,12 @@ function adaptiveCoachFocus(state, todayKey, opts) {
       const streak = (typeof proteinStreak === 'function') ? proteinStreak(nut, tgt, todayKey) : { current: 0, best: 0 };
       const onStreak = streak.current >= 2;
       proteinStreakActive = onStreak;
+      // Signe du signal ADHÉRENCE porté par l'insight (série + pente protéines), ORTHOGONAL au momentum de
+      // LOGGING dont dérive le headline. Sert à resynchroniser le headline plus bas (§3).
+      let nutritionSignal = 'neutral';
       if (onStreak) {
         insight = `🔥 ${streak.current} jours d’affilée à ta cible protéines (${tgt} g). Ne casse pas la série aujourd’hui.`;
+        nutritionSignal = 'up';
       } else {
         const since = (typeof dateAfterDays === 'function') ? dateAfterDays(todayKey, -6) : null;
         const onTgt = (since && typeof proteinDaysOnTarget === 'function') ? proteinDaysOnTarget(nut, tgt, since, todayKey) : 0;
@@ -6415,12 +6420,30 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           if (pt.dir === 'up') {
             proteinTrend = pt.delta;
             insight += ` Et ta régularité grimpe : ${pt.recent} jours à la cible cette semaine vs ${pt.prev} la précédente (+${pt.delta}) — la dynamique est bonne, garde le cap.`;
+            nutritionSignal = 'up';
           } else if (pt.dir === 'down' && !onStreak) {
             proteinTrend = pt.delta;
             insight += ` Mais ta régularité s’effrite : ${pt.recent} jours à la cible cette semaine vs ${pt.prev} la précédente (${pt.delta}) — un jour réglé aujourd’hui enraye la glissade.`;
+            nutritionSignal = 'down';
           }
         }
       }
+      // COHÉRENCE headline↔insight (§3, JUMEAU du bloc sommeil l.6261-6272 — jamais porté ici). Le headline
+      // reste calé sur le MOMENTUM DE LOGGING (nb de jours SAISIS : rebuild « Ta nutrition s'essouffle » /
+      // revive « Reprends la nutrition » / reinforce « Ta nutrition monte en régime »), tandis que l'insight
+      // vient d'être ÉCRASÉ/nuancé par un signal ORTHOGONAL — la régularité PROTÉINES (série en cours ou pente
+      // d'adhérence). Quand les deux mesures divergent de SIGNE, la carte se contredit frontalement :
+      //   • logging↓ (rebuild) × série/pente↑ → « Ta nutrition s'essouffle » + « 🔥 2 jours d'affilée … ne
+      //     casse pas la série » (ou « … Et ta régularité grimpe … la dynamique est bonne ») ;
+      //   • logging↑ (reinforce) × adhérence↓ → « Ta nutrition monte en régime » + « ta régularité s'effrite …
+      //     la glissade ».
+      // On re-dérive donc le headline du signal PORTÉ par l'insight : un signal positif ne peut pas titrer un
+      // déclin/une dormance, un signal négatif ne peut pas titrer une hausse. Le verdict NEUTRE « N/7, la
+      // régularité prime » (qui reconnaît déjà l'imperfection) reste compatible avec les trois tons → headline
+      // inchangé. Curation §3, zéro champ ajouté. (revive est exclu du cas « up » : une série finissant
+      // aujourd'hui implique une activité du jour, donc le pilier n'est plus dormant.)
+      if (nutritionSignal === 'up' && tone !== 'reinforce') headline = `${Poss} ${L} tient le cap`;
+      else if (nutritionSignal === 'down' && tone === 'reinforce') headline = `${Poss} ${L} mérite un coup de pouce`;
       const snack = (typeof proteinSnackSuggestion === 'function') ? proteinSnackSuggestion(prot, tgt) : null;
       if (snack) action = `Il te reste ${snack.gap} g de protéines aujourd’hui — ${snack.snack} (~${snack.snackProtein} g) comble l’écart.`;
       else if (prot > 0) action = `Cible protéines tenue (${prot}/${tgt} g) 💪 — verrouille l’eau et un fruit/légume.`;

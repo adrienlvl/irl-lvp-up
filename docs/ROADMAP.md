@@ -23,7 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.292 (2026-07-22)
+## 📍 État actuel — build 2.0.293 (2026-07-22)
+
+> 🥗 **#693 — Coach : le headline nutrition suit le SIGNAL protéines, plus le momentum de logging (build
+> 2.0.293).** Priorité de nuit = coaching, traité en QUALITÉ/curation (§3 : clause qui en contredit une
+> autre) sur un angle NEUF. Rotation §4 bis (5 derniers : `robustesse, focus, a11y, coach, robustesse` →
+> `robustesse`+`focus` interdits ; **`coach` libre**, 1× en #689 hors 2 derniers). Sous-agent Explore : la
+> contradiction **headline↔insight** était close sur SPORT/FOCUS (#561→#588) et le SOMMEIL re-dérive son
+> headline du verdict (`logic.js:6261-6272`) ; la **NUTRITION** était le SEUL pilier à écraser l'insight
+> **sans resynchroniser le headline** — le jumeau non-patché. PROUVÉ (node) : le headline dérive du momentum
+> de LOGGING (jours *saisis* : « s'essouffle »/« Reprends »/« monte en régime »), tandis que le bloc nutrition
+> (`logic.js:6396`) écrase l'insight par le signal PROTÉINES (série `l.6406` / pente d'adhérence
+> `l.6415/6418`), mesure ORTHOGONALE. Quand les signes divergent → « Ta nutrition **s'essouffle** » +
+> « **🔥 2 jours d'affilée**… ne casse pas la série » (logging↓ × série↑), ou « **monte en régime** » +
+> « ta régularité **s'effrite** » (logging↑ × adhérence↓). Deux tests existants (`10496`/`10510`) étaient
+> DÉJÀ dans cet état sans asserter le headline. Correctif §3 (zéro champ) : `nutritionSignal` (`up`/`down`/
+> `neutral`) posé dans les branches d'insight → headline re-dérivé du signal PORTÉ (`up`&!reinforce →
+> « tient le cap » ; `down`&reinforce → « mérite un coup de pouce » ; neutre → inchangé). §4 ter en rendu
+> cumulé (titre positif + « 🔥 série » + action « cible tenue » cohérents). +1 test logic (série×rebuild +
+> contrôle sans profil). Effet visible → **bump 2.0.293**. 589 tests + SMOKE OK. Recap #693. _Domaine : coach._
+> **Lot 2.0.263→293 en attente de release (Adrien contrôle).**
 
 > 🗓️ **#692 — Récurrence : une `startDate`/`until` impossible-mais-format-valide ne fabrique plus une
 > série fantôme (build 2.0.292).** Mission nuit 22/07 = robustesse/tests non-visuels, priorité nommée

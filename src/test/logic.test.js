@@ -6295,7 +6295,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.292');
+  assert.equal(L.CHANGELOG[0].v, '2.0.293');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7815,6 +7815,31 @@ test('adaptiveCoachFocus : le headline sommeil suit le VERDICT, pas le momentum 
   const fC = L.adaptiveCoachFocus(urgent, '2026-07-16');
   assert.equal(fC.pillar, 'sommeil');
   assert.equal(fC.headline, 'Ton sommeil déraille — priorité ce soir');
+});
+
+test('adaptiveCoachFocus : le headline nutrition suit le SIGNAL protéines, pas le momentum de logging (§3)', () => {
+  // JUMEAU du cas sommeil : le bloc nutrition ÉCRASE l'insight par le signal protéines (série / pente
+  // d'adhérence) alors que le headline reste calé sur le momentum de LOGGING → contradiction frontale.
+  // Cas A : rebuild (2 jours saisis récents < 4 la semaine d'avant) MAIS série protéines vive (15+16 à la
+  // cible). Avant : « Ta nutrition s'essouffle » + « 🔥 2 jours d'affilée … ne casse pas la série ».
+  const streakRebuild = { profile: { weight: 75, goal: 'maintien' }, nutrition: [
+    { date: '2026-07-03', protein: 150 }, { date: '2026-07-04', protein: 150 },
+    { date: '2026-07-05', protein: 150 }, { date: '2026-07-06', protein: 150 },
+    { date: '2026-07-15', protein: 200 }, { date: '2026-07-16', protein: 200 } ] };
+  const fA = L.adaptiveCoachFocus(streakRebuild, '2026-07-16');
+  assert.equal(fA.pillar, 'nutrition');
+  assert.equal(fA.tone, 'rebuild');
+  assert.match(fA.insight, /🔥 2 jours d’affilée/, 'insight = célébration de la série');
+  assert.equal(fA.headline, 'Ta nutrition tient le cap', 'série vive → headline positif, pas « s’essouffle »');
+  assert.doesNotMatch(fA.headline, /essouffle|Reprends/, 'plus de headline momentum contradictoire');
+  // Cas B (contrôle) : rebuild SANS profil → le bloc protéines ne s'exécute pas, headline momentum inchangé.
+  const noProfile = { nutrition: [
+    { date: '2026-07-03', protein: 150 }, { date: '2026-07-04', protein: 150 },
+    { date: '2026-07-05', protein: 150 }, { date: '2026-07-06', protein: 150 },
+    { date: '2026-07-15', protein: 200 }, { date: '2026-07-16', protein: 200 } ] };
+  const fB = L.adaptiveCoachFocus(noProfile, '2026-07-16');
+  assert.equal(fB.pillar, 'nutrition');
+  assert.equal(fB.headline, 'Ta nutrition s’essouffle', 'sans signal protéines, le headline momentum reste');
 });
 
 test('adaptiveCoachFocus : surveille la chaîne d’une habitude à risque (habitAtRisk)', () => {
