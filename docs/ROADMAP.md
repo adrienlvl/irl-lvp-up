@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.281 (2026-07-22)
+## 📍 État actuel — build 2.0.282 (2026-07-22)
 
+> 🍎 **#681 — Coach nutrition : l'action ne redit plus « et un fruit/légume » quand `fruitGuard` l'a
+> déjà dit (build 2.0.282).** Priorité nuit = coaching, traité en QUALITÉ/curation (§3). Rotation §4 bis
+> (5 derniers : `etudes, robustesse, coach, etudes, robustesse`) → `etudes`+`robustesse` interdits
+> (2 derniers + 2×/5) ; **`coach` libre** (1× en #678). Quota §4 bis.4 non déclenché (#674 = proposition).
+> Angle NEUF (famille `focus…Driver` close #672/#675/#678) trouvé par chasse en rendu chargé §4 ter
+> (sous-agent + repro perso). PROUVÉ : dans `adaptiveCoachFocus` branche nutrition, l'action « cible
+> protéines tenue » (`logic.js:6371`) finit par « — verrouille l'eau **et un fruit/légume**. » ; or
+> `fruitGuard` (`logic.js:6413`, ajouté après) consacre déjà une **phrase entière** à cette consigne dans
+> l'insight (« Glisse un fruit ou une portion de légumes à un repas aujourd'hui… »). Cas naturel (protéines
+> tenues + eau OK + fruit jamais coché) → même geste dit deux fois dos à dos. Correctif §3 (zéro champ,
+> patron #647/#675/#678) : après le bloc `fruitGuard`, `if (fruitGuard) action = action.replace(' et un
+> fruit/légume.', '.')` → « verrouille l'eau. » seule, diagnostic conservé dans l'insight. Chirurgical :
+> sans `fruitGuard` (fruits cochés) la queue générique **reste**. +1 test dédié + volet smoke bloquant
+> (`indexOf`). **Redondance insight↔action désormais close sur SPORT/FOCUS/SOMMEIL/NUTRITION.** Effet
+> visible → **bump 2.0.282**. 583 tests + SMOKE OK. Recap #681. _Domaine : coach._ **Lot 2.0.263→282 en
+> attente de release (Adrien contrôle).**
+>
 > 🎓 **#680 — `studyPacing` : plus de fausse célébration « toutes tes révisions faites » quand elles
 > ont été RATÉES (build 2.0.281).** Priorité nuit = coaching, **bloquée par la rotation §4 bis**
 > (5 derniers : `robustesse, coach, etudes, robustesse, coach` → `robustesse`/`coach` interdits

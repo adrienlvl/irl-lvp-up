@@ -6249,7 +6249,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.281');
+  assert.equal(L.CHANGELOG[0].v, '2.0.282');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10464,6 +10464,33 @@ test('adaptiveCoachFocus : focus nutrition — fruits & légumes délaissés mal
   // Hors pilier nutrition → fruitGuard null.
   const sport = L.adaptiveCoachFocus({ workouts: [{ date: '2026-07-14' }, { date: '2026-07-15' }] }, today);
   assert.equal(sport.fruitGuard, null);
+});
+
+test('adaptiveCoachFocus : focus nutrition — l’action ne redit pas « et un fruit/légume » quand fruitGuard l’a déjà dit (curation §3)', () => {
+  const today = '2026-07-16';
+  // AVEC profil (cible protéines = 135 g pour 75 kg / muscle) → l’action devient « Cible protéines
+  // tenue … verrouille l’eau et un fruit/légume. ». Protéines à la cible tous les jours (série + cible
+  // du jour tenue), eau OK (pente plate → hydrationTrend null), fruit JAMAIS coché → fruitGuard parle
+  // ET consacre une phrase entière au fruit/légume. La queue de l’action ne doit plus la répéter.
+  const dates = ['2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06', '2026-07-07', '2026-07-08',
+                 '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14',
+                 '2026-07-15', '2026-07-16'];
+  const profile = { weight: 75, goal: 'muscle', targetWeight: 75 };
+  const neglected = { profile, nutrition: dates.map(d => ({ date: d, protein: 140, water: 8, fruit: false })) };
+  const fn = L.adaptiveCoachFocus(neglected, today);
+  assert.equal(fn.pillar, 'nutrition');
+  assert.ok(fn.fruitGuard, 'fruitGuard doit parler');
+  // Diagnostic fruit/légume conservé dans l’insight (une phrase entière).
+  assert.match(fn.insight, /Glisse un fruit ou une portion de légumes à un repas aujourd’hui/);
+  // L’action garde son constat mais N’a PLUS la queue « et un fruit/légume » (redite amputée).
+  assert.match(fn.action, /Cible protéines tenue \(140\/135 g\) 💪 — verrouille l’eau\.$/);
+  assert.doesNotMatch(fn.action, /et un fruit\/légume/);
+  // NON-RÉGRESSION : fruit COCHÉ chaque jour → fruitGuard null → la queue générique RESTE (aucune
+  // phrase dédiée ne la double, c’est le seul effleurement du micronutriment).
+  const ok = { profile, nutrition: dates.map(d => ({ date: d, protein: 140, water: 8, fruit: true })) };
+  const fok = L.adaptiveCoachFocus(ok, today);
+  assert.equal(fok.fruitGuard, null);
+  assert.match(fok.action, /verrouille l’eau et un fruit\/légume\.$/);
 });
 
 test('adaptiveCoachFocus : focus nutrition — cite la progression réelle vers l’objectif de poids', () => {
