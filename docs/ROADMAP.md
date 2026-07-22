@@ -23,8 +23,16 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.296 (2026-07-22)
+## 📍 État actuel — build 2.0.297 (2026-07-22)
 
+> 🎖️ **#698 — Athlète : Standards de force relatifs au poids de corps (build 2.0.297).** Adrien : « améliore
+> SURTOUT la partie athlète ». Manque repéré dans une section pourtant très fournie : « suis-je fort POUR MON
+> POIDS ? ». Feature `strengthStandards(workouts, bw, {sex})` (pure, exportée, testée) : classe squat/DC/SDT/DM du
+> Débutant à l'Élite selon le ratio 1RM estimé ÷ poids de corps (seuils type StrengthLevel/ExRx, femme ×0,72,
+> variantes exclues). Rendu carte `#strengthStandards` (onglet « Mes progrès ») : niveau + barre + ×ratio + kg
+> jusqu'au palier suivant. Cadre élite : situe, ne prescrit pas. Test node + smoke `strengthStd`. Vérif navigateur
+> (79,4 kg → 3 mouvements Novice). 591 tests + SMOKE OK. _Domaine : athlete._ Master ; prochaine release.
+>
 > 📷 **#697 — Scan code-barres frigo : fondation logique (proposition #674, option C) (build 2.0.296).**
 > **Adrien a tranché #674 → C** ; après que j'aie signalé le trou de la proposition (un EAN est opaque, aucune base
 > LOCALE EAN→aliment, une base en ligne casserait le « 100 % local »), il a choisi « logique testée maintenant, UI
