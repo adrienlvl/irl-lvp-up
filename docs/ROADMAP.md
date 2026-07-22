@@ -23,8 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.295 (2026-07-22)
+## 📍 État actuel — build 2.0.296 (2026-07-22)
 
+> 📷 **#697 — Scan code-barres frigo : fondation logique (proposition #674, option C) (build 2.0.296).**
+> **Adrien a tranché #674 → C** ; après que j'aie signalé le trou de la proposition (un EAN est opaque, aucune base
+> LOCALE EAN→aliment, une base en ligne casserait le « 100 % local »), il a choisi « logique testée maintenant, UI
+> caméra ensuite avec moi ». Voie honnête retenue : **carte APPRENANTE** (1er scan → tu choisis l'aliment une fois →
+> mémorisé → proposé ensuite, toujours à confirmer). Fait ici (pur, testé, RIEN de visible) : `isValidEan` (EAN-8/13
+> + clé de contrôle, vérifié contre 3 vrais codes-barres), `normalizeBarcodeMap`, `barcodeLookup`, `learnBarcode`
+> (immuable). Non wiré (pas de `state.barcodeMap`/UI) → viendra avec le scanner `BarcodeDetector` en session avec
+> Adrien (caméra testable, repli hors Chromium/iOS). 590 tests + SMOKE OK. _Domaine : nutrition._ Master ; prochaine release.
+> **A/B (reco cloud/modèle) restent refusés en autonomie (vie privée / dépendance) — session supervisée seulement.**
+>
 > 🛡️ **#696 — Dates impossibles : garde d'ingestion UNIQUE (proposition #694, option B) (build 2.0.295).**
 > **Adrien a tranché #694 → option B** (uniformisation totale, pas l'option A reco par le VPS). Retrait de
 > `isBoundedDateKey` (bornes seules) + export + test dédié ; **tous les points d'ingestion passent à

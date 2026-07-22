@@ -3548,6 +3548,31 @@ test('mealMacro : champ manquant ou null → 0, jamais NaN', () => {
   assert.equal(n.p, 0);
 });
 
+test('#674 option C : code-barres apprenant (EAN valide + carte EAN→aliment)', () => {
+  // EAN-8 / EAN-13 : clé de contrôle vérifiée → un scan parasite est rejeté
+  assert.equal(L.isValidEan('4006381333931'), true, 'EAN-13 valide');
+  assert.equal(L.isValidEan('96385074'), true, 'EAN-8 valide');
+  assert.equal(L.isValidEan('4006381333930'), false, 'clé de contrôle fausse');
+  assert.equal(L.isValidEan('400638133393'), false, 'longueur ≠ 8/13');
+  assert.equal(L.isValidEan('abcd1234efgh5'), false, 'non-chiffres');
+  assert.equal(L.isValidEan(null), false);
+  assert.equal(L.isValidEan(' 96385074 '), true, 'espaces tolérés');
+  // Carte apprenante : apprend, retrouve, écrase, ignore l'invalide, reste immuable
+  const m1 = L.learnBarcode({}, '4006381333931', 'Yaourt nature');
+  assert.equal(L.barcodeLookup(m1, '4006381333931'), 'Yaourt nature', '1er scan mémorisé');
+  assert.equal(L.barcodeLookup(m1, '96385074'), null, 'EAN inconnu → null');
+  assert.equal(L.barcodeLookup(m1, '123'), null, 'EAN invalide → null');
+  const m2 = L.learnBarcode(m1, '4006381333931', 'Fromage blanc');
+  assert.equal(L.barcodeLookup(m2, '4006381333931'), 'Fromage blanc', 'ré-affectation écrase');
+  assert.equal(L.barcodeLookup(m1, '4006381333931'), 'Yaourt nature', 'immuable : la carte source n’est pas modifiée');
+  assert.deepEqual(L.learnBarcode({}, '123', 'X'), {}, 'EAN invalide → carte inchangée');
+  assert.deepEqual(L.learnBarcode({}, '96385074', '   '), {}, 'nom vide → carte inchangée');
+  // normalizeBarcodeMap : ne garde que les paires EAN-valide → nom non vide
+  assert.deepEqual(L.normalizeBarcodeMap({ '123': 'X', '96385074': 'Pomme', '9999': 'Y' }), { '96385074': 'Pomme' });
+  assert.deepEqual(L.normalizeBarcodeMap(null), {});
+  assert.deepEqual(L.normalizeBarcodeMap([1, 2]), {}, 'tableau → {}');
+});
+
 test('buildShoppingList : ne liste que les catégories manquantes de l’envie', () => {
   // frigo avec seulement une protéine → il manque féculent + légume (+ laitier en équilibré)
   const items = L.buildShoppingList([{ n: 'Poulet, blanc, cuit', cat: 'P' }], { style: 'equilibre', count: 3 });
@@ -6327,7 +6352,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.295');
+  assert.equal(L.CHANGELOG[0].v, '2.0.296');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
