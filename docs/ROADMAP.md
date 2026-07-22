@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.276 (2026-07-22)
+## 📍 État actuel — build 2.0.277 (2026-07-22)
 
+> 🧠 **#672 — Coach focus : la note « moteur d'avance » ne répète plus l'appel à l'action (build
+> 2.0.277).** Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `robustesse, docs,
+> coach, robustesse, athlete`) → `robustesse`+`docs` bloqués (2 derniers), `robustesse` 2× → bloqué ;
+> **`coach` libre**. Méthode §4 ter : fuzz `adaptiveCoachFocus` (~5 000 états chargés) → 0 dup au sens des
+> mots, mais la LECTURE de l'insight le plus long (bon jour focus × marge) révèle une redite de **sens** :
+> `focusGoalAhead` (`logic.js:6001`) pose « prends de l'avance … tant que c'est facile », puis
+> `focusAheadDriver` (`l.6024/6025`), imbriqué dessous (→ **systématique**), RE-servait « … pour banker /
+> engranger un bloc d'avance ». Correctif §3 (curation, zéro champ) : la note-moteur garde sa seule valeur
+> propre (#537 — NOMMER le carburant, « l'habitude à reproduire ») et laisse la phrase d'avance porter
+> **seule** l'injonction. Preuve : un seul « tant que c'est facile » dans l'insight rendu. +tests
+> (échoue-avant/passe-après, non-redite `!/banker|engranger un bloc/`) + volet smoke `coachFocus` bloquant.
+> 580 tests + SMOKE OK. Recap #672. _Domaine : coach._ **Lot 2.0.263→277 en attente de release (Adrien
+> contrôle).**
+>
 > 🛡️ **#671 — Robustesse : les records « meilleure semaine » ne plantent plus sur une date impossible
 > (build 2.0.276).** Mission nuit = non-visuel. Rotation §4 bis (5 derniers : `docs, coach, robustesse,
 > athlete, coach`) → `docs`+`coach` bloqués (2 derniers), `coach` 2× → la piste nuit « coaching » tombe

@@ -6209,7 +6209,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.276');
+  assert.equal(L.CHANGELOG[0].v, '2.0.277');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10144,12 +10144,19 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(aheadSleep.focusGoalAhead, 85, 'marge × vert → invitation à avancer');
   assert.deepEqual(aheadSleep.focusAheadDriver, { factor: 'sleep', value: 8 }, 'sommeil moteur d’avance nommé');
   assert.match(aheadSleep.insight, /ce qui te donne cette clarté : ta nuit de 8 h/);
-  assert.match(aheadSleep.insight, /avance prise sans forcer/);
+  assert.match(aheadSleep.insight, /l’habitude à reproduire pour tes prochains bons jours/);
+  // CURATION §4 ter (#672) : la note qui NOMME le moteur ne RÉPÈTE plus l'appel à l'action déjà posé par
+  // focusGoalAhead (« prends de l'avance … tant que c'est facile »). Elle diagnostique la cause, elle
+  // n'ré-ordonne pas un 2ᵉ « engranger/banker un bloc ».
+  assert.ok(!/engranger un bloc|banker un bloc/.test(aheadSleep.insight), 'note moteur sommeil : pas de 2ᵉ appel « engranger un bloc »');
   // Énergie moteur dominant : sleep 6 / fat 1 / sore 2 → readiness 83, fatigue basse domine.
   const aheadEnergy = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 1, soreness: 2 }] }, '2026-07-14');
   assert.deepEqual(aheadEnergy.focusAheadDriver, { factor: 'fatigue', value: 1 }, 'énergie moteur d’avance nommée');
   assert.match(aheadEnergy.insight, /ce qui te donne cette clarté : ton énergie est au top \(fatigue 1\/5\)/);
-  assert.match(aheadEnergy.insight, /banker un bloc d’avance/);
+  assert.match(aheadEnergy.insight, /à cultiver pour tes prochains bons jours/);
+  assert.ok(!/banker un bloc|engranger un bloc/.test(aheadEnergy.insight), 'note moteur énergie : pas de 2ᵉ appel « banker un bloc »');
+  // La note d'avance (phrase précédente) porte SEULE l'appel à l'action — une seule fois dans l'insight.
+  assert.equal((aheadEnergy.insight.match(/tant que c’est facile/g) || []).length, 1, 'un seul « tant que c’est facile » dans l’insight rendu');
   // HONNÊTETÉ : des muscles frais ne « donnent » PAS de clarté mentale → non crédités, focusAheadDriver null
   // malgré le vert (même garde-fou que focusFreshDriver). sleep 6 / fat 2 / sore 1 → readiness 83.
   const aheadSore = L.adaptiveCoachFocus({ focusSessions: aheadFs, recovery: [{ date: '2026-07-14', sleep: 6, fatigue: 2, soreness: 1 }] }, '2026-07-14');
