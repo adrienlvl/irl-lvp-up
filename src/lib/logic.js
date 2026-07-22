@@ -3207,6 +3207,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.285', emoji: '😴', text: 'Sur la carte « Le focus du moment », le titre de ton bilan sommeil ne contredit plus ce qu’il dit juste en dessous. Quand le coach choisit le sommeil, il remplace son diagnostic générique par ton vrai verdict chiffré (moyenne d’heures, dette, régularité) — mais le TITRE, lui, restait calé sur un tout autre indicateur : le nombre de nuits renseignées cette semaine par rapport à la précédente. Deux mesures différentes qui pouvaient se contredire dans la même carte : « Ton sommeil s’essouffle » posé au-dessus de « Sommeil solide, rythme régulier », ou « Ton sommeil monte en régime » au-dessus de « Sommeil court, dette de 9 h ». Désormais le titre suit le même verdict que le diagnostic : « Ton sommeil tient la route » quand il est solide, « Ton sommeil mérite un coup de pouce » quand il est court ou irrégulier, « Ton sommeil déraille — priorité ce soir » quand c’est urgent. Titre et diagnostic disent enfin la même chose.' },
   { v: '2.0.284', emoji: '🎓', text: 'Même petit soin d’accord, cette fois sur tes révisions. Deux lignes disaient « 1/3 révisions faite » et « 1/3 révisions validée » : le nom « révisions » se mettait bien au pluriel sur le total, mais l’adjectif (« faite » / « validée ») se calait par erreur sur le nombre déjà fait — donc dès que tu avais 0 ou 1 révision faite sur plusieurs prévues (le cas courant), il restait au singulier. C’est le badge « 📖 X/N révisions faites » sous le planning de révision, et la ligne du bilan hebdo imprimé. Désormais l’adjectif s’accorde sur le nom qu’il qualifie : toujours « révisions faites » / « révisions validées » au pluriel quand il y a plus d’une révision prévue.' },
   { v: '2.0.283', emoji: '🏅', text: 'Petit détail d’accord corrigé sous ta série de quêtes parfaites. La ligne « X/N jours parfaits · … % » accordait bien « jours » sur le nombre de jours suivis, mais l’adjectif « parfait » se calait par erreur sur le nombre de jours PARFAITS : dès que tu avais 0 ou 1 jour parfait sur plusieurs jours suivis — le cas le plus courant — ça affichait « 1/3 jours parfait » au lieu de « parfaits ». Désormais l’adjectif s’accorde sur le nom qu’il qualifie (« jours »), donc toujours « jours parfaits » au pluriel. La ligne « journées parfaites d’affilée » juste au-dessus était déjà correcte.' },
   { v: '2.0.282', emoji: '🍎', text: 'Le coach nutrition ne te réclame plus deux fois ton fruit/légume dans la même carte. Les jours où tu tiens ta cible protéines mais négliges les fruits/légumes depuis deux semaines, il consacre déjà une phrase entière à ce manque de fibres et vitamines : « Glisse un fruit ou une portion de légumes à un repas aujourd’hui, c’est le maillon le plus vite comblé. » Or l’action juste en dessous répétait la consigne : « Cible protéines tenue 💪 — verrouille l’eau ET UN FRUIT/LÉGUME. » Deux fois le même geste, dos à dos. Désormais quand cette phrase dédiée est là, l’action garde seulement « verrouille l’eau » ; le reste du temps (fruits déjà bien cochés, pas de phrase dédiée), elle continue de glisser son petit rappel fruit/légume. Une redite en moins, même esprit que les nettoyages du coach sommeil et focus.' },
@@ -6217,7 +6218,18 @@ function adaptiveCoachFocus(state, todayKey, opts) {
   let sleepConflict = null, sleepConflictBedtime = null, sleepTrend = null, sleepBedtimeTrend = null;
   if (chosen.pillar === 'sommeil' && sleepIns) {
     insight = sleepIns.verdict;
+    // COHÉRENCE headline↔insight (§3) : dès qu'on ÉCRASE l'insight par le VERDICT qualité (moy. h / dette
+    // / régularité), le headline reste, lui, calé sur le MOMENTUM DE LOGGING (« Ton sommeil s'essouffle /
+    // monte en régime », « Reprends le sommeil ») — deux mesures ORTHOGONALES (combien de nuits saisies vs
+    // leur qualité) qui se contredisent frontalement dans la même carte : « Ton sommeil s'essouffle » +
+    // « Sommeil solide … rythme régulier » (rebuild × verdict ok), ou « Ton sommeil monte en régime » +
+    // « Sommeil court … dette de 9 h » (reinforce × verdict attention). Avant, seul le ton 'urgent' était
+    // resynchronisé (ligne d'origine ci-dessous) → les deux autres tons partaient en contradiction. L'insight
+    // PORTANT désormais le vrai signal, on re-dérive le headline du MÊME verdict pour tous les tons. Curation
+    // §3, zéro champ ajouté ; les piliers non-sommeil (insight momentum APPENDU, pas écrasé) restent intacts.
     if (sleepIns.tone === 'urgent') headline = 'Ton sommeil déraille — priorité ce soir';
+    else if (sleepIns.tone === 'ok') headline = 'Ton sommeil tient la route';
+    else headline = 'Ton sommeil mérite un coup de pouce';
     // Coach CONSCIENT de la PENTE de sommeil — le pendant, côté SOMMEIL, de readinessSlide/readinessRebound
     // (#493/#494) côté sport. sleepCoachInsight donne un VERDICT ponctuel (moy. 7 j + dette + régularité)
     // mais reste aveugle à la DIRECTION : deux « moy. 6,5 h » n'appellent pas le même mot selon que les

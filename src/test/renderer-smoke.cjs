@@ -941,7 +941,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.284'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.285'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1141,6 +1141,12 @@ app.whenReady().then(async () => {
           const okSleep = [{ date: '2026-07-10', sleep: 8, bedtime: '23:10' }, { date: '2026-07-11', sleep: 8, bedtime: '23:05' }, { date: '2026-07-12', sleep: 8, bedtime: '23:00' }, { date: '2026-07-13', sleep: 8, bedtime: '22:55' }, { date: '2026-07-14', sleep: 8, bedtime: '22:50' }, { date: '2026-07-15', sleep: 8, bedtime: '22:45' }];
           const fOkSleep = adaptiveCoachFocus({ recovery: okSleep }, '2026-07-16');
           if (!(fOkSleep.pillar === 'sommeil' && /Sommeil solide/.test(fOkSleep.insight) && /garde cette même heure de coucher/.test(fOkSleep.action) && !/coucher 30 min plus t/.test(fOkSleep.action))) return false;
+          // COHÉRENCE headline↔insight (§3) : le headline sommeil suit le VERDICT, jamais le momentum de
+          // LOGGING (qui écraserait l'insight verdict → contradiction). urgent/ok/attention → 3 headlines alignés.
+          if (fSleep.headline !== 'Ton sommeil déraille — priorité ce soir') return false;   // verdict urgent
+          if (fOkSleep.headline !== 'Ton sommeil tient la route') return false;              // verdict ok (dynamique 'up' → PAS « monte en régime »)
+          const fAttnSleep = adaptiveCoachFocus({ recovery: [{ date: '2026-07-10', sleep: 6 }, { date: '2026-07-11', sleep: 6 }, { date: '2026-07-12', sleep: 6 }, { date: '2026-07-13', sleep: 6 }, { date: '2026-07-14', sleep: 6 }] }, '2026-07-16');
+          if (!(fAttnSleep.pillar === 'sommeil' && /Sommeil court/.test(fAttnSleep.insight) && fAttnSleep.headline === 'Ton sommeil mérite un coup de pouce')) return false;
           // Coach × AGENDA (sommeil) : un RDV du soir qui déborde sur la cible du plan de recalage → alerte « protège ta fenêtre » (comparaison sur l'échelle ancrée).
           const scPlan = { active: true, startTime: '01:00', targetTime: '23:00', startKey: '2026-07-10', stepDays: 3, stepMin: 15 };
           const scPd = sleepPlanDay(scPlan, sleepRec, '2026-07-16');

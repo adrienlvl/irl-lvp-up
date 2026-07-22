@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.284 (2026-07-22)
+## 📍 État actuel — build 2.0.285 (2026-07-22)
 
+> 😴 **#684 — Coach sommeil : le headline suit le VERDICT, pas le momentum de logging (build 2.0.285).**
+> Priorité nuit = coaching, traité en QUALITÉ/curation (§3). Rotation §4 bis (5 derniers :
+> `etudes, robustesse, coach, etudes, robustesse`) → `etudes`+`robustesse` interdits (2 derniers + 2×/5) ;
+> **`coach` libre** (1× en #681). Quota §4 bis.4 non déclenché (#674 = proposition). Angle NEUF trouvé par
+> sous-agent Explore : contradiction **headline↔insight** (type non traité — les familles closes étaient
+> insight↔action). PROUVÉ : pour le pilier sommeil, `adaptiveCoachFocus` **écrase** l'insight par le verdict
+> qualité `sleepCoachInsight` (`logic.js:6219`) mais le headline restait calé sur le momentum de LOGGING,
+> resynchronisé **seulement** en ton `urgent` (`logic.js:6220`). Comptage de saisies (headline) et qualité
+> (insight) étant orthogonaux → « Ton sommeil s'essouffle » au-dessus de « Sommeil solide » (rebuild×ok),
+> ou « monte en régime » au-dessus de « Sommeil court, dette de 9 h » (reinforce×attention). Correctif §3
+> (zéro champ) : headline re-dérivé du **même** verdict pour tous les tons (`ok`→« tient la route »,
+> `attention`→« mérite un coup de pouce », `urgent` inchangé). Contrôle §4 ter en rendu cumulé (headline +
+> verdict + action cohérents). +1 test logic + 3 assertions smoke **bloquantes** (`coachFocus` : urgent/ok/
+> attention). Effet visible → **bump 2.0.285**. 584 tests + SMOKE OK. Recap #684. _Domaine : coach._
+> **Lot 2.0.263→285 en attente de release (Adrien contrôle).**
+>
 > 🎓 **#683 — Études : « X/N révisions faite**s** / validée**s** » (accord sur le nom, pas sur le
 > compte — build 2.0.284).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers :
 > `robustesse, coach, etudes, robustesse, coach` → `robustesse`+`coach` interdits 2 derniers + 2×/5 ;

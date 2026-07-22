@@ -6249,7 +6249,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.284');
+  assert.equal(L.CHANGELOG[0].v, '2.0.285');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -7739,6 +7739,36 @@ test('adaptiveCoachFocus : accorde le déterminant du headline (genre + élision
   assert.equal(fSportRb.headline, 'Ton entraînement s’essouffle');
   const fSleepRev = L.adaptiveCoachFocus({ recovery: [{ date: '2026-07-01', sleep: 7 }] }, '2026-07-16');
   assert.equal(fSleepRev.headline, 'Reprends le sommeil');
+});
+
+test('adaptiveCoachFocus : le headline sommeil suit le VERDICT, pas le momentum de logging (§3)', () => {
+  // Pour le pilier sommeil, l'insight est ÉCRASÉ par le verdict qualité (sleepCoachInsight) alors que le
+  // headline restait calé sur le momentum de LOGGING → contradiction frontale headline↔insight. On vérifie
+  // que le headline est re-dérivé du MÊME verdict pour tous les tons (avant, seul 'urgent' l'était).
+  const mk = (dates, sleep) => dates.map(d => ({ date: d, sleep }));
+  // Cas A : dynamique 'rebuild' (2 nuits récentes < 4 la semaine d'avant) MAIS verdict 'ok' (8 h régulier).
+  // Avant : « Ton sommeil s'essouffle » + « Sommeil solide … rythme régulier ».
+  const rebuildOk = { recovery: [...mk(['2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06'], 8), ...mk(['2026-07-15', '2026-07-16'], 8)] };
+  const fA = L.adaptiveCoachFocus(rebuildOk, '2026-07-16');
+  assert.equal(fA.pillar, 'sommeil');
+  assert.match(fA.insight, /Sommeil solide/);
+  assert.equal(fA.headline, 'Ton sommeil tient la route', 'verdict ok → headline positif, pas « s’essouffle »');
+  assert.doesNotMatch(fA.headline, /essouffle|Reprends/, 'plus de headline momentum contradictoire');
+  // Cas B : dynamique 'reinforce' (5 nuits récentes > 1 avant → hausse) MAIS verdict 'attention' (6 h court).
+  // Avant : « Ton sommeil monte en régime » + « Sommeil court … dette ».
+  const reinforceShort = { recovery: [...mk(['2026-07-09'], 6), ...mk(['2026-07-10', '2026-07-11', '2026-07-12', '2026-07-13', '2026-07-14'], 6)] };
+  const fB = L.adaptiveCoachFocus(reinforceShort, '2026-07-16');
+  assert.equal(fB.pillar, 'sommeil');
+  assert.match(fB.insight, /Sommeil court/);
+  assert.equal(fB.headline, 'Ton sommeil mérite un coup de pouce', 'verdict attention → headline d’attention, pas « monte en régime »');
+  assert.doesNotMatch(fB.headline, /monte en régime/, 'plus de headline momentum contradictoire');
+  // Cas C : verdict 'urgent' (court ET irrégulier) → headline dédié inchangé.
+  const urgent = { recovery: [
+    { date: '2026-07-10', sleep: 5 }, { date: '2026-07-11', sleep: 8 }, { date: '2026-07-12', sleep: 5 },
+    { date: '2026-07-13', sleep: 8 }, { date: '2026-07-14', sleep: 5 }, { date: '2026-07-15', sleep: 8 }, { date: '2026-07-16', sleep: 5 } ] };
+  const fC = L.adaptiveCoachFocus(urgent, '2026-07-16');
+  assert.equal(fC.pillar, 'sommeil');
+  assert.equal(fC.headline, 'Ton sommeil déraille — priorité ce soir');
 });
 
 test('adaptiveCoachFocus : surveille la chaîne d’une habitude à risque (habitAtRisk)', () => {
