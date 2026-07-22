@@ -4481,32 +4481,32 @@ test('bestE1rmByExercise : formes legacy, repli sans setLogs, fenêtre de dates 
   ], W, E), { Squat: L.estimate1RM(100, 5) });
 });
 
-test('strengthStandards : reps au poids du corps + ratio à la barre (indicatif)', () => {
+test('strengthStandards : force au poids du corps (reps) + gilet lesté (reps équivalentes), sans barre', () => {
   const ss = L.strengthStandards;
-  // POIDS DU CORPS : tractions/pompes classées par le MEILLEUR nb de reps sur une série — AUCUN poids requis
-  const bw0 = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', sets: 4, reps: 12, load: 0 }, { name: 'Pompes classiques', sets: 3, reps: 30, load: 0 }] }], 0);
+  // POIDS DU CORPS : classé par reps, AUCUN poids de corps requis
+  const bw0 = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', sets: 5, reps: 12, load: 0 }, { name: 'Pompes classiques', sets: 4, reps: 30, load: 0 }] }], 0);
   const pull = bw0.find(x => x.key === 'pullup');
-  assert.ok(pull && pull.metric === 'reps' && pull.value === 12 && pull.unit === 'reps' && pull.level === 'Intermédiaire', '12 tractions → Intermédiaire');
-  assert.equal(pull.toNextUnit, 'reps'); assert.ok(pull.toNext > 0);
-  const push = bw0.find(x => x.key === 'pushup');
-  assert.ok(push && push.value === 30 && push.level === 'Intermédiaire', '30 pompes → Intermédiaire');
-  // Élite au poids du corps : 20+ tractions → niveau max
-  const eliteP = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', sets: 1, reps: 22, load: 0 }] }], 0);
-  assert.equal(eliteP[0].level, 'Élite'); assert.equal(eliteP[0].nextLevel, null); assert.equal(eliteP[0].toNext, 0);
-  // BARRE (ratio 1RM/PdC) : nécessite le poids de corps
-  const bench = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Développé couché', sets: 4, reps: 6, load: 62 }] }], 79.4, { sex: 'h' }).find(x => x.key === 'bench');
-  assert.ok(bench && bench.metric === 'ratio' && bench.unit === 'kg' && bench.value > 70 && typeof bench.level === 'string');
-  // Ratio femme (×0,72) : un même ratio classe plus haut
-  assert.equal(ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Squat', sets: 5, reps: 5, load: 60 }] }], 60, { sex: 'f' }).find(x => x.key === 'squat').level, 'Avancé');
-  // Sans poids de corps : les mouvements de barre sont OMIS, mais les reps restent (le fix pour un pratiquant au poids du corps)
-  const noBw = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', reps: 10, load: 0, sets: 3 }, { name: 'Développé couché', reps: 6, load: 62, sets: 4 }] }], 0);
-  assert.equal(noBw.length, 1); assert.equal(noBw[0].key, 'pullup');
+  assert.ok(pull && pull.effReps === 12 && pull.reps === 12 && pull.load === 0 && pull.level === 'Intermédiaire', '12 tractions → Intermédiaire');
+  assert.equal(pull.toNext, 1); assert.ok(pull.detail.includes('12 reps'));
+  assert.equal(bw0.find(x => x.key === 'pushup').level, 'Intermédiaire', '30 pompes → Intermédiaire');
+  // GILET LESTÉ : Epley convertit le lest en reps équivalentes → niveau plus haut (nécessite le poids de corps)
+  const vest = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', setLogs: [{ reps: 5, load: 20 }] }] }], 80);
+  assert.equal(vest[0].level, 'Avancé', '5 tractions +20 kg à 80 kg → ~14 reps équivalentes → Avancé');
+  assert.ok(vest[0].effReps >= 13 && vest[0].detail.includes('gilet'));
+  // La MEILLEURE série l'emporte : 12 au poids du corps VS 5 +20 kg → la lestée (eff ~14) gagne
+  const mix = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', setLogs: [{ reps: 12, load: 0 }, { reps: 5, load: 20 }] }] }], 80);
+  assert.equal(mix[0].reps, 5); assert.equal(mix[0].load, 20);
+  // PLUS de mouvements de barre : squat/DC/SDT/DM ignorés (Adrien s'entraîne au poids du corps + gilet)
+  assert.equal(ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Squat', reps: 5, load: 82, sets: 5 }, { name: 'Développé couché', reps: 6, load: 62, sets: 4 }] }], 80).length, 0, 'barre ignorée');
+  // Élite : 20+ reps au poids du corps → niveau max
+  const elite = ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', reps: 22, load: 0, sets: 1 }] }], 0);
+  assert.equal(elite[0].level, 'Élite'); assert.equal(elite[0].nextLevel, null); assert.equal(elite[0].toNext, 0);
   // Variantes de scaling exclues (négatives = assistées, inclinées = plus faciles)
   assert.equal(ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions négatives', reps: 8, load: 0, sets: 3 }] }], 0).length, 0, 'négatives exclues');
   assert.equal(ss([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Pompes inclinées', reps: 20, load: 0, sets: 3 }] }], 0).length, 0, 'inclinées exclues');
   // Garde-fous
   assert.deepEqual(ss(null, 0), []);
-  assert.deepEqual(ss([], 79.4), []);
+  assert.deepEqual(ss([], 80), []);
 });
 test('blockProgressText / shareableBlockProgress : progression de bloc partageable', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
@@ -6380,7 +6380,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.298');
+  assert.equal(L.CHANGELOG[0].v, '2.0.299');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

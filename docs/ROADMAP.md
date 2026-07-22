@@ -23,8 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.298 (2026-07-22)
+## 📍 État actuel — build 2.0.299 (2026-07-22)
 
+> 🆙 **#700 — Standards de force : calisthénie + gilet lesté, plus AUCUNE barre (build 2.0.299).** Précision
+> d'Adrien : « TOUT l'onglet Athlète = poids du corps ou gilet lesté, je te l'avais dit ». `strengthStandards`
+> réécrit : **Tractions/Pompes/Dips uniquement** (squat/DC/SDT/DM supprimés), classés par reps (Débutant→Élite,
+> sans poids requis) ; une série **lestée (gilet)** convertie en **reps équivalentes** (Epley : 5 tractions +20 kg
+> ≈ 14 reps → Avancé) → progresser en reps OU en lest monte le niveau. Shape simplifié + rendu adapté. **Reste de
+> l'onglet** : générateur/bibliothèque respectent déjà la config matériel (`equipmentFilter`/`objectiveEquipment`
+> verts) → pas de barre proposée. Test node réécrit + smoke `strengthStd`. 591 tests + SMOKE OK. _Domaine :
+> athlete._ **Publié : v2.0.299.** ⚠️ **Règle : toute feature muscu part du poids du corps + gilet, jamais la barre.**
+>
 > 🆙 **#699 — Standards de force : version POIDS DU CORPS (reps) — correctif retour Adrien (build 2.0.298).**
 > Retour d'Adrien sur #698 : « j'ai pas de poids, je fais surtout au poids du corps ». Juste — la carte ne classait
 > que les mouvements de barre chargés (ratio 1RM), inutile en calisthénie. Réécrit avec **deux métriques** : au
