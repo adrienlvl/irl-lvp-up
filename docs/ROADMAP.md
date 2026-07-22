@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.283 (2026-07-22)
+## 📍 État actuel — build 2.0.284 (2026-07-22)
 
+> 🎓 **#683 — Études : « X/N révisions faite**s** / validée**s** » (accord sur le nom, pas sur le
+> compte — build 2.0.284).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers :
+> `robustesse, coach, etudes, robustesse, coach` → `robustesse`+`coach` interdits 2 derniers + 2×/5 ;
+> **`etudes` libre**, 1× en #680, hors 2 derniers). Quota §4 bis.4 non déclenché (#674 = proposition).
+> Piste **nommée** (mémoire #682 : bug d'accord jumeau « subsiste en etudes app.js:581/977 »). PROUVÉ :
+> deux lignes du domaine études accordaient le **nom** « révision » sur le total mais l'**adjectif**
+> sur le nombre *fait* — l'inverse de la convention (fixée #682). `renderExamCountdown` (`app.js:977`,
+> badge `#studyProgress`) : `faite${st.done>1}` → « 1/3 révisions **faite** » ; `renderPrintReport`
+> (`app.js:581`, bilan imprimé) : `validée${sum.studyDone>1}` → « 1/3 révisions **validée** ». Défaut
+> dès `done ≤ 1 < total` (cas courant). Correctif chirurgical : l'adjectif s'accorde sur le compteur du
+> nom (`st.total` / `sum.studyPlanned`), comme les lignes voisines déjà correctes (`app.js:490`). 2
+> checks smoke **bloquants** (`studyProgressPlural`, `printReportStudyPlural`) pilotant le **vrai**
+> rendu (state forgé → `done=1,total=3`), assert `includes('révisions faites'/'validées')` (échoue
+> avant / passe après, sans backslash §6). Effet visible → **bump 2.0.284**. 583 tests + SMOKE OK.
+> Recap #683. _Domaine : etudes._ Reste 1 mismatch hors-domaine noté (`app.js:269` blocs/terminé →
+> future boucle robustesse/agenda). **Lot 2.0.263→284 en attente de release (Adrien contrôle).**
+>
 > 🏅 **#682 — Série de quêtes : « X/N jours parfait**s** » (accord sur le nom, pas sur le compte —
 > build 2.0.283).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers :
 > `coach, etudes, robustesse, coach, etudes` → `coach`+`etudes` interdits 2 derniers + 2×/5 ;
