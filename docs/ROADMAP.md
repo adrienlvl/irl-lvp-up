@@ -25,6 +25,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.277 (2026-07-22)
 
+> 📄 **#673 — `nextFreeSlot` : le commentaire ne promet plus un « défaut » fantôme (docs, pas de bump).**
+> Priorité nuit = coaching, **bloquée par la rotation** (5 derniers : `coach, robustesse, docs, coach,
+> robustesse` → `coach` interdit 2 derniers + 2×/5, `robustesse` 2×/5). Backlog nommé P1→P7 clos. Chasse
+> à un correctif sûr en domaine frais (sous-agent + contre-vérif) : 4 pistes **écartées** — `examCountdown.
+> weeksLeft` (jamais affiché < 91 j, `round` correct au-delà), `energyPlan` fatG (ligne morte réelle mais
+> **gatée** par la proposition #645), `studyPacing`/`mealSplit` (durcis / non-bug). **Seul défaut réel +
+> sûr** : le commentaire de `nextFreeSlot` (`logic.js:5360`) documentait `after ('HH:MM', défaut 'after')`
+> — un « défaut » inexistant (copier-coller du gabarit `dayEnd`), contredisant le comportement réel
+> (`after` **requis** ; les 3 appelants le passent toujours). Reformulé « REQUIS — … ; sans elle → null,
+> aucun défaut » (§4.6 « commentaire piégeux »). Zéro comportement changé, pas de bump. 580 tests + SMOKE
+> OK. Recap #673. _Domaine : docs._ **Lot 2.0.263→277 en attente de release (Adrien contrôle).**
+>
 > 🧠 **#672 — Coach focus : la note « moteur d'avance » ne répète plus l'appel à l'action (build
 > 2.0.277).** Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `robustesse, docs,
 > coach, robustesse, athlete`) → `robustesse`+`docs` bloqués (2 derniers), `robustesse` 2× → bloqué ;

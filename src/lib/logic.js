@@ -5357,11 +5357,11 @@ function scheduleConflicts(agenda, candidate) {
 
 // Prochain créneau libre à partir d'une heure donnée, pour une durée voulue, un jour donné.
 // Prolonge scheduleConflicts : quand un créneau est pris, autant dire OÙ ça rentre plutôt que
-// de seulement dire non. opts : { date, durationMin, after ('HH:MM', défaut 'after'), dayEnd
-// ('HH:MM', défaut '22:00'), excludeId }. Renvoie 'HH:MM' du premier créneau qui accueille toute
-// la durée sans chevaucher un bloc horaire (hors journée entière / terminé / soi-même), ou null
-// si rien ne rentre avant dayEnd. Le contact bord à bord est autorisé (18:00 juste après un bloc
-// qui finit à 18:00). Pur + testé.
+// de seulement dire non. opts : { date, durationMin, after ('HH:MM', REQUIS — heure de départ de
+// la recherche ; sans elle → null, aucun défaut), dayEnd ('HH:MM', défaut '22:00'), excludeId }.
+// Renvoie 'HH:MM' du premier créneau qui accueille toute la durée sans chevaucher un bloc horaire
+// (hors journée entière / terminé / soi-même), ou null si rien ne rentre avant dayEnd. Le contact
+// bord à bord est autorisé (18:00 juste après un bloc qui finit à 18:00). Pur + testé.
 function nextFreeSlot(agenda, opts) {
   const o = opts && typeof opts === 'object' ? opts : {};
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(o.date || ''))) return null;
