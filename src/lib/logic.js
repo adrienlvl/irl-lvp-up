@@ -3187,6 +3187,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.275', emoji: '🎖️', text: 'Ton coach « Le focus du moment » ne colle plus sa félicitation « Objectif hebdo déjà tenu : 2/2 séances 💪 » à la note qui la suit. Cette petite phrase se terminait par l’emoji, sans point final : quand le coach enchaînait juste après avec un autre conseil (le socle sommeil de tes gains, ta montée de kilométrage, un plateau de force…), les deux se retrouvaient collés dans la MÊME puce — « objectif tenu 💪 » soudé à « … augmente le risque de blessure » — et le tri par urgence, qui travaille phrase par phrase, se retrouvait coincé (la félicitation ne pouvait plus descendre, l’alerte ne pouvait plus remonter). Un simple point après le 💪 referme la félicitation : elle redevient sa propre ligne, et le conseil qui suit sa propre puce, correctement reclassée. Pareil côté objectif de focus (« … min 💪 »). Rien d’ajouté ni retiré, juste une frontière de phrase remise en place.' },
   { v: '2.0.274', emoji: '🛡️', text: 'Tes graphes sur 8 semaines (charge, tonnage, focus, sommeil, révisions) ne peuvent plus faire planter le tableau de bord. Si une seule de tes données portait une date bancale — mal formée (2026/07/15, 20260715) ou carrément impossible (le 40 du mois 13, un 30 février) glissée par un vieil enregistrement ou un import — le calcul des courbes butait dessus et jetait une erreur qui cassait TOUT le rendu du dashboard (écran figé). Désormais une date douteuse est simplement ignorée, comme une donnée hors période : les courbes s’affichent quand même, sans elle. Rien de visible en usage normal — c’est un filet de sécurité sur des données abîmées.' },
   { v: '2.0.273', emoji: '🏷️', text: 'La séance guidée ne colle plus deux fois « Cible du jour » sur la même carte. Les jours où tu es en forme, la note du haut disait « Cible du jour : technique propre, effort contrôlé… » ET, plus bas, « 🎯 Cible du jour : 10 reps × 40 kg » — deux étiquettes identiques pour deux choses différentes, on ne savait plus laquelle était LA cible. Désormais la note du haut s’appelle « Consigne du jour » (le COMMENT : la qualité d’exécution, les répétitions en réserve) et le 🎯 garde « Cible du jour » (le COMBIEN : tes reps et ta charge visées). Rien d’ajouté ni retiré, juste un libellé clarifié.' },
   { v: '2.0.272', emoji: '🥗', text: 'Ton coach « Le focus du moment » se lit mieux quand tu déplies « plus de contexte » sur ta nutrition un jour de forme basse. Une de ses notes tenait en deux phrases — le constat (« ta forme est basse ce matin, et les jours de fatigue sont ceux où l’assiette dérape le plus… ») suivi de sa morale (« … c’est justement aujourd’hui que tenir l’essentiel compte le plus : tes protéines, ton eau et des repas réguliers te protègent des fringales »). Le coach reclasse ses notes par urgence pour faire remonter l’important ; mais ce reclassement travaillait phrase par phrase, et comme la morale mentionne « tes protéines » (un intrant), elle était jugée plus urgente que le constat et remontait AU-DESSUS de lui — on lisait « c’est justement aujourd’hui que… » avant même d’avoir dit POURQUOI. Les deux phrases sont désormais soudées en une seule : elles voyagent ensemble, dans l’ordre. Rien d’ajouté ni retiré — c’est le complément du correctif de soudage de la 2.0.185, pour l’autre sens (constat neutre → morale classée).' },
@@ -5706,7 +5707,14 @@ function adaptiveCoachFocus(state, todayKey, opts) {
           .filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')) && w.date >= monday && w.date <= todayKey)
           .map(w => w.date)).size;
         if (wc >= g) {
-          insight += ` Objectif hebdo déjà tenu : ${wc}/${g} séance${g > 1 ? 's' : ''} 💪`;
+          // TERMINATEUR APRÈS L'EMOJI (« … 💪. ») — pas décoratif : sans le point, splitCoachSentences
+          // (`/[.!?]+(?=\s|$)/`) ne pose AUCUNE frontière après 💪, donc la note SUIVANTE (bonus au vert
+          // ci-dessous, OU une alerte sport appendée plus loin : socle sommeil, kilométrage, plateau…)
+          // était AVALÉE dans la même phrase → carte affichant « objectif tenu 💪 » collé à « … risque de
+          // blessure », et la conclusion de la note avalée rendue orpheline. Le « . » referme la
+          // félicitation en une phrase propre ; les notes qui suivent (majuscule) redeviennent des puces
+          // distinctes, correctement re-classées par orderCoachNotes (prouvé en rendu chargé §4 ter).
+          insight += ` Objectif hebdo déjà tenu : ${wc}/${g} séance${g > 1 ? 's' : ''} 💪.`;
           // OBJECTIF DE SÉANCES BOUCLÉ × FORME AU VERT → SÉANCE BONUS LIBRE. Le pendant, côté SPORT, de
           // focusGoalBonus (#538, focus : objectif de minutes déjà atteint × vert → un bloc de plus = pur
           // bonus). La branche sport « objectif hebdo déjà tenu 💪 » ne lisait PAS la forme du jour : un
@@ -5804,7 +5812,10 @@ function adaptiveCoachFocus(state, todayKey, opts) {
     } else if (chosen.pillar === 'focus' && typeof focusWeekGoal === 'function') {
       const fw = focusWeekGoal(s.focusSessions, todayKey);
       if (fw && fw.status === 'done') {
-        insight += ` Objectif hebdo atteint : ${fw.done}/${fw.target} min 💪`;
+        // TERMINATEUR APRÈS L'EMOJI (« … 💪. ») : même raison qu'au pendant sport (déjà tenu 💪) — sans
+        // le point, la note bonus/allure focus qui suit était fusionnée dans la même phrase par
+        // splitCoachSentences. Le « . » la referme en une puce propre.
+        insight += ` Objectif hebdo atteint : ${fw.done}/${fw.target} min 💪.`;
         // OBJECTIF BOUCLÉ × FORME AU VERT → PUR BONUS. Le pendant, côté objectif DÉJÀ TENU, de
         // focusGoalAhead (#535, objectif LARGE non tenu × vert → prendre de l'avance). Les deux recaps
         // #536/#537 signalaient cette suite : quand l'objectif hebdo est DÉJÀ atteint (status 'done', le

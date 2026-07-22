@@ -6194,7 +6194,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.274');
+  assert.equal(L.CHANGELOG[0].v, '2.0.275');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9819,6 +9819,39 @@ test('adaptiveCoachFocus : séance bonus libre côté sport, objectif bouclé (s
   assert.match(rebuildBonus.insight, /Objectif hebdo déjà tenu : 2\/2 séances 💪/);
   assert.ok(!/aucune obligation/.test(rebuildBonus.insight), 'rebuild ne dit pas « aucune obligation »');
   assert.ok(!/du gain offert/.test(rebuildBonus.insight));
+});
+
+test('adaptiveCoachFocus : la félicitation « déjà tenu 💪 » ne fusionne plus avec la note suivante', () => {
+  // Prouvé en rendu chargé (§4 ter) : sans terminateur après 💪, splitCoachSentences n'ouvrait AUCUNE
+  // frontière → la note « socle sommeil » qui suit était avalée dans la même puce que la félicitation
+  // (« objectif tenu 💪 » collé à « … risque de blessure »), et sa conclusion rendue orpheline.
+  // Pilier sport, objectif hebdo TENU (2/2) + sommeil court sur la semaine → note socle (l.6950) suit.
+  const state = {
+    goals: { sessions: 2 },
+    workouts: [{ date: '2026-07-06' }, { date: '2026-07-08' }, { date: '2026-07-10' },
+      { date: '2026-07-13' }, { date: '2026-07-14' }],
+    recovery: [
+      { date: '2026-07-13', sleep: 6, fatigue: 2, soreness: 2 },
+      { date: '2026-07-14', sleep: 5.5, fatigue: 2, soreness: 2 },
+      { date: '2026-07-15', sleep: 6, fatigue: 2, soreness: 2 },
+      { date: '2026-07-16', sleep: 5.5, fatigue: 2, soreness: 2 },
+      { date: '2026-07-17', sleep: 6, fatigue: 2, soreness: 2 },
+      { date: '2026-07-18', sleep: 5.5, fatigue: 2, soreness: 2 },
+      { date: '2026-07-19', sleep: 6, fatigue: 2, soreness: 2 },
+    ],
+  };
+  const f = L.adaptiveCoachFocus(state, '2026-07-19');
+  assert.equal(f.pillar, 'sport');
+  assert.match(f.insight, /Objectif hebdo déjà tenu : 2\/2 séances 💪/);
+  assert.match(f.insight, /socle invisible/);
+  const parts = L.splitCoachSentences(f.insight);
+  // La félicitation est UNE puce à elle seule, terminée proprement par « 💪. ».
+  const fel = parts.find(p => /séances 💪/.test(p));
+  assert.ok(fel, 'félicitation présente comme puce');
+  assert.match(fel, /séances 💪\.$/);
+  // AUCUNE puce ne colle la félicitation ET la note socle sommeil (plus de fusion).
+  assert.ok(!parts.some(p => /séances 💪/.test(p) && /socle invisible/.test(p)),
+    'la félicitation ne fusionne plus avec la note socle');
 });
 
 test('adaptiveCoachFocus : réconciliation objectif serré × pic de charge (loadOverGoal)', () => {

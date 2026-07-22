@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.274 (2026-07-22)
+## 📍 État actuel — build 2.0.275 (2026-07-22)
 
+> 🎖️ **#669 — Coach : la félicitation « déjà tenu 💪 » ne fusionne plus avec la note suivante (build
+> 2.0.275).** Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `robustesse,
+> athlete, coach, tests, athlete`) → `robustesse`+`athlete` bloqués (2 derniers), `athlete` 2× → bloqué,
+> `coach` libre (1× en #666, hors 2 derniers). Candidat NEUF laissé ouvert par #666, prouvé en rendu
+> chargé §4 ter (`/tmp/coachtear2.cjs`, pilier sport, objectif hebdo TENU 2/2 + sommeil court) : la note
+> `Objectif hebdo déjà tenu : 2/2 séances 💪` (`logic.js:5709`) se terminait par l'emoji SANS terminateur
+> → `splitCoachSentences` (`/[.!?]+(?=\s|$)/`) n'ouvrait aucune frontière après 💪 → la note socle sommeil
+> qui suit (`l.6950`, « … risque de blessure ») était AVALÉE dans la MÊME puce que la félicitation, ET sa
+> conclusion (« Bien dormir démultiplie… ») rendue ORPHELINE. `orderCoachNotes` (tri phrase par phrase)
+> restait coincé : félicitation bloquée en bas, alerte santé bloquée avec elle. Même défaut côté focus
+> (`l.5807`, `… min 💪`). Fix §3 (curation, zéro champ) : terminateur APRÈS l'emoji (`💪` → `💪.`) sur les
+> deux notes → félicitation refermée en 1 phrase, notes suivantes redeviennent des puces distinctes,
+> correctement re-classées (fusion ET déchirure réparées, prouvé `/tmp/coachtear3.cjs`). Point APRÈS et
+> non AVANT (patron milestone) car `séances. 💪 Et…` re-fusionnerait (💪 non-majuscule). +1 test dédié
+> (échoue-avant/passe-après) + volet smoke bloquant `coachFocus` (`fGoalMet`, non-fusion). 580 tests +
+> SMOKE OK. Recap #669. _Domaine : coach._ **Lot 2.0.263→275 en attente de release (Adrien contrôle).**
+>
 > 🛡️ **#668 — Robustesse : une date bancale ne fait plus planter les graphes du dashboard (build
 > 2.0.274).** Mission nuit = non-visuel (robustesse/tests). Rotation §4 bis (5 derniers : `athlete,
 > coach, tests, athlete, robustesse`) → `athlete`+`coach` bloqués (2 derniers) ; le chantier

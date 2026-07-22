@@ -906,7 +906,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.274'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.275'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1265,6 +1265,13 @@ app.whenReady().then(async () => {
           // Sport × sommeil solide (8 h) → aucun socle invisible.
           const fSportRested = adaptiveCoachFocus({ workouts: fSportWk, recovery: fShortSleep.map(r => ({ date: r.date, sleep: 8 })) }, '2026-07-16');
           if (fSportRested.sleepTrainGuard !== null || /socle invisible/.test(fSportRested.insight)) return false;
+          // FUSION 💪 (#669) : objectif hebdo TENU (2/2) + sommeil court → la félicitation « déjà tenu 💪 »
+          // se termine par un point APRÈS l'emoji, donc splitCoachSentences la sépare de la note socle qui
+          // suit (avant : les deux collées dans une seule puce, conclusion orpheline). Prouvé en rendu chargé.
+          const fGoalMet = adaptiveCoachFocus({ goals: { sessions: 2 }, workouts: [{ date: '2026-07-06' }, { date: '2026-07-08' }, { date: '2026-07-10' }, { date: '2026-07-13' }, { date: '2026-07-14' }], recovery: fShortSleep }, '2026-07-16');
+          const fGoalMetParts = (typeof splitCoachSentences === 'function') ? splitCoachSentences(fGoalMet.insight) : [];
+          const fGoalMetFel = fGoalMetParts.find(p => /séances 💪/.test(p));
+          if (!(fGoalMet.pillar === 'sport' && /Objectif hebdo déjà tenu : 2\\/2 séances 💪\\./.test(fGoalMet.insight) && /socle invisible/.test(fGoalMet.insight) && fGoalMetFel && /séances 💪\\.$/.test(fGoalMetFel) && !fGoalMetParts.some(p => /séances 💪/.test(p) && /socle invisible/.test(p)))) return false;
           // Coach INTER-PILIER (pendant FOCUS) : sommeil COURT (avg < 7, non urgent) × pilier FOCUS → carburant caché de la concentration (sleepFocusGuard).
           const fFocusDecl = [{ date: '2026-07-05', minutes: 30, task: 'Thèse' }, { date: '2026-07-06', minutes: 30, task: 'Thèse' }, { date: '2026-07-07', minutes: 30, task: 'Thèse' }, { date: '2026-07-14', minutes: 25, task: 'Thèse' }];
           const fSleepFocus = adaptiveCoachFocus({ focusSessions: fFocusDecl, recovery: fShortSleep }, '2026-07-16');
