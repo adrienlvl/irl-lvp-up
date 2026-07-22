@@ -520,10 +520,12 @@ app.whenReady().then(async () => {
         strengthPlateau: typeof strengthPlateau === 'function' && strengthPlateau([90, 92, 94, 96, 98], 3) === null && (() => { const p = strengthPlateau([95, 100, 98, 99, 97], 3); return p && p.plateau === true && p.best === 100; })(),
         strengthForecast: typeof strengthForecast === 'function' && (() => { const f = strengthForecast([{ date: '2026-06-08', e1rm: 90 }, { date: '2026-06-22', e1rm: 95 }], 5, '2026-06-22'); return f && f.milestone === 100 && f.perWeek === 2.5 && strengthForecast([{ date: '2026-06-08', e1rm: 90 }, { date: '2026-06-22', e1rm: 90 }], 5) === null; })(),
         strengthStd: typeof strengthStandards === 'function' && !!document.getElementById('strengthStandards') && (() => {
-          // classe un mouvement de barre par ratio 1RM/PdC ; garde-fous poids/données ; sans regex (template literal)
-          const s = strengthStandards([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Squat', sets: 5, reps: 5, load: 82 }] }], 80, { sex: 'h' });
-          return Array.isArray(s) && s.length === 1 && s[0].key === 'squat' && s[0].e1rm > 90 && typeof s[0].level === 'string' && Array.isArray(s[0].thresholds)
-            && strengthStandards([], 80).length === 0 && strengthStandards([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Squat', sets: 5, reps: 5, load: 82 }] }], 0).length === 0;
+          // poids du corps (reps, sans poids requis) + barre (ratio) ; garde-fous ; sans regex (template literal)
+          const bwx = strengthStandards([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', sets: 4, reps: 12, load: 0 }] }], 0);
+          const barb = strengthStandards([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Squat', sets: 5, reps: 5, load: 82 }] }], 80, { sex: 'h' });
+          return Array.isArray(bwx) && bwx.length === 1 && bwx[0].key === 'pullup' && bwx[0].metric === 'reps' && bwx[0].value === 12 && typeof bwx[0].level === 'string'
+            && Array.isArray(barb) && barb.length === 1 && barb[0].key === 'squat' && barb[0].metric === 'ratio'
+            && strengthStandards([], 80).length === 0 && strengthStandards(null, 0).length === 0;
         })(),
         coachForecast: typeof weightForecast === 'function' && typeof coachForecastSvg === 'function' && typeof weightForecastModel === 'function' && (() => { const f = weightForecast(80, 72, 0.48, 17, '2026-07-12'); const svg = coachForecastSvg(f, [{ date: '2026-07-05', value: 81 }, { date: '2026-07-12', value: 80 }]); if (!(f.length === 18 && f.at(-1).value === 72 && /cw-plan-line/.test(svg) && /cw-actual-line/.test(svg) && weightForecast(80, 72, 0, 17, '2026-07-12').length === 0)) return false; if (!/cw-chart/.test(svg) || !/cw-grid/.test(svg) || !/cw-yl/.test(svg)) return false; const m = weightForecastModel(f, [{ date: '2026-06-20', value: 91 }, { date: '2026-07-11', value: 90 }]); const ys = m.actual.map(p => p.y); return (Math.max(...ys) - Math.min(...ys)) > 15 && m.yTicks.length >= 2 && weightForecastModel(f, null).plan.length === 18; })(),
         weightMilestones: typeof weightMilestones === 'function' && typeof trackingCadenceAdvice === 'function' && (() => {
@@ -991,7 +993,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.297'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.298'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),

@@ -3302,6 +3302,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.298', emoji: '🆙', text: 'La carte « Standards de force » (Athlète → Mes progrès) marche enfin pour un entraînement AU POIDS DU CORPS — merci pour le retour. Avant, elle ne classait que les mouvements de barre chargés (squat, développé…), inutile si tu fais surtout des tractions et des pompes. Désormais elle te situe des DEUX façons : au poids du corps, tes tractions et tes pompes sont classées par ton MEILLEUR nombre de reps sur une série (Débutant → Élite, avec « +X reps pour le niveau suivant ») — aucun poids requis ; et à la barre, les grands mouvements restent classés par ratio 1RM ÷ poids de corps dès que tu ajoutes de la charge. Les variantes plus faciles (tractions négatives, pompes inclinées) sont exclues pour rester honnête. (Athlète — standards de force au poids du corps)' },
   { v: '2.0.297', emoji: '🎖️', text: 'Nouveau dans l’onglet Athlète → « Mes progrès » : Standards de force. Une carte te dit où tu en es sur les 4 grands mouvements de barre (squat, développé couché, soulevé de terre, développé militaire) RELATIVEMENT à ton poids de corps — de Débutant à Élite — à partir de ton 1RM estimé et de ton dernier poids. Pour chaque mouvement : ton niveau, ton ratio (ex. squat ×1,5 ton poids de corps), une barre de progression, et combien de kg il te reste pour le palier suivant. Un repère MOTIVANT fondé sur des ratios largement établis (ordre de grandeur type StrengthLevel/ExRx), pas un jugement ni une consigne de charge ; ratios ajustés homme/femme. S’affiche dès que tu as chargé un de ces mouvements et noté ton poids. (Athlète — standards de force)' },
   { v: '2.0.296', emoji: '📷', text: 'Premières fondations (invisibles pour l’instant) du futur scan de code-barres du frigo. Un code-barres n’est qu’un numéro : il n’existe aucune base LOCALE qui dise quel aliment c’est, et interroger une base en ligne casserait le « 100 % local » de l’app. La voie retenue, sans réseau ni dépendance : une carte qui APPREND — au premier scan d’un produit tu choisiras l’aliment une fois, l’app le retiendra, et les scans suivants le proposeront direct (toujours à confirmer, jamais d’ajout aveugle). Cette version pose la logique testée (validation du code-barres EAN-8/EAN-13 avec clé de contrôle, mémorisation EAN→aliment) ; le scanner caméra lui-même viendra ensuite. Rien de visible pour toi encore. (proposition #674, option C — fondation)' },
   { v: '2.0.295', emoji: '🛡️', text: 'Blindage anti-dates-impossibles unifié. Certains points d’entrée (une épreuve d’examen importée, un import compta, une tâche restaurée d’une sauvegarde) acceptaient encore une date format-valide mais inexistante comme « 30 février 2026 » — qui, glissée dans un calcul, débordait au 2 mars et fabriquait un compte à rebours faux ou un jour fantôme. Désormais une SEULE garde canonique (date calendaire réellement vérifiée) protège TOUS les points d’entrée : examens, agenda, tâches, récurrences, import Grand-Livre-Compta. Une date impossible est neutralisée à l’entrée ; le 29 février reste valide les années bissextiles. Invisible au clavier (le sélecteur de date l’empêche déjà) mais ça sécurise les imports, les restaurations de sauvegarde et la future synchro multi-appareils. (robustesse — proposition #694, option B)' },
@@ -4820,42 +4821,61 @@ function bestE1rmByExercise(workouts, startKey, endKey) {
   return best;
 }
 
-// Standards de force relatifs au poids de corps : classe les grands mouvements de barre du débutant à
-// l'élite selon le ratio 1RM estimé / poids de corps. Ratios d'ordre de grandeur largement établis (type
-// ExRx / StrengthLevel, homme ; femme ≈ ×0,72). Purement INDICATIF et motivant — jamais un jugement ni une
-// prescription de charge (un standard ne dit pas « charge plus », il situe où tu en es). Pur + testé.
+// Repères de force, adaptés à un entraînement surtout AU POIDS DU CORPS : deux façons de se situer, du
+// débutant à l'élite. (1) mouvements au poids du corps (tractions, pompes) classés par le MEILLEUR nombre de
+// REPS sur une série — pas besoin de charge externe. (2) mouvements de barre (squat, DC, SDT, DM) classés par
+// ratio 1RM estimé / poids de corps, dès que tu ajoutes de la charge. Seuils d'ordre de grandeur (reps :
+// standards calisthéniques courants ; ratios : type StrengthLevel/ExRx, femme ×0,72). Purement INDICATIF et
+// motivant — un repère SITUE, il ne prescrit pas de charge. Pur + testé.
 const STRENGTH_TIERS = ['Débutant', 'Novice', 'Intermédiaire', 'Avancé', 'Élite'];
-const STRENGTH_LIFTS = [
-  { key: 'squat', label: 'Squat', emoji: '🦵', match: n => /\bsquat/.test(n) && !/bulgare|gobelet|hack|fente|mur|saut|presse/.test(n), thr: [1.0, 1.25, 1.6, 2.2] },
-  { key: 'bench', label: 'Développé couché', emoji: '🏋️', match: n => /developpe couche/.test(n), thr: [0.75, 1.0, 1.35, 1.8] },
-  { key: 'deadlift', label: 'Soulevé de terre', emoji: '🏋️', match: n => (/souleve de terre|deadlift/.test(n)) && !/roumain|jambes tendues/.test(n), thr: [1.25, 1.5, 1.9, 2.5] },
-  { key: 'ohp', label: 'Développé militaire', emoji: '💪', match: n => /developpe militaire|overhead/.test(n) || (/developpe/.test(n) && /epaule/.test(n)), thr: [0.45, 0.6, 0.85, 1.15] },
+const STRENGTH_MOVEMENTS = [
+  { key: 'pullup', label: 'Tractions', emoji: '🆙', type: 'reps', match: n => /traction/.test(n) && !/barre|negativ|gilet|leste|australienne/.test(n), thr: [3, 8, 13, 20] },
+  { key: 'pushup', label: 'Pompes', emoji: '🙌', type: 'reps', match: n => /pompe/.test(n) && !/poignee|inclinee|genou|gilet|leste/.test(n), thr: [12, 25, 40, 60] },
+  { key: 'squat', label: 'Squat (barre)', emoji: '🦵', type: 'ratio', match: n => /\bsquat/.test(n) && !/bulgare|gobelet|goblet|cosaque|hack|fente|mur|saut|presse|pistol|split|corps/.test(n), thr: [1.0, 1.25, 1.6, 2.2] },
+  { key: 'bench', label: 'Développé couché', emoji: '🏋️', type: 'ratio', match: n => /developpe couche/.test(n), thr: [0.75, 1.0, 1.35, 1.8] },
+  { key: 'deadlift', label: 'Soulevé de terre', emoji: '🏋️', type: 'ratio', match: n => (/souleve de terre|deadlift/.test(n)) && !/roumain|jambes tendues/.test(n), thr: [1.25, 1.5, 1.9, 2.5] },
+  { key: 'ohp', label: 'Développé militaire', emoji: '💪', type: 'ratio', match: n => /developpe militaire|overhead/.test(n) || (/developpe/.test(n) && /epaule/.test(n)), thr: [0.45, 0.6, 0.85, 1.15] },
 ];
 function strengthStandards(workouts, bodyweight, opts) {
-  const bw = Number(bodyweight) || 0;
   const o = opts || {};
-  const f = (o.sex === 'f' || o.sex === 'femme') ? 0.72 : 1; // ajustement approx. femme
-  if (!(bw > 0)) return [];
+  const f = (o.sex === 'f' || o.sex === 'femme') ? 0.72 : 1; // ajustement approx. femme (ratios de barre)
+  const bw = Number(bodyweight) || 0;
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const best = bestE1rmByExercise(Array.isArray(workouts) ? workouts : [], '0000-00-00', '9999-99-99');
-  const names = Object.keys(best);
-  const out = [];
-  for (const lift of STRENGTH_LIFTS) {
-    let e1rm = 0;
-    for (const nm of names) { if (lift.match(norm(nm))) e1rm = Math.max(e1rm, Number(best[nm]) || 0); }
-    if (!(e1rm > 0)) continue;
-    const thr = lift.thr.map(t => Math.round(t * f * bw * 10) / 10); // seuils en kg pour ce poids de corps
-    let tier = 0;
-    for (let i = 0; i < thr.length; i++) { if (e1rm >= thr[i]) tier = i + 1; }
-    const nextIdx = tier < thr.length ? tier : null;
-    out.push({
-      key: lift.key, label: lift.label, emoji: lift.emoji,
-      e1rm: Math.round(e1rm), ratio: Math.round(e1rm / bw * 100) / 100,
-      tier, level: STRENGTH_TIERS[tier],
-      nextLevel: nextIdx != null ? STRENGTH_TIERS[tier + 1] : null,
-      toNextKg: nextIdx != null ? Math.max(0, Math.round((thr[nextIdx] - e1rm) * 10) / 10) : 0,
-      thresholds: thr,
+  // agrège par exercice : meilleur 1RM estimé (charge > 0) ET meilleur nb de reps sur une série
+  const bestE1 = {}, bestReps = {};
+  (Array.isArray(workouts) ? workouts : []).forEach(w => {
+    if (!w) return;
+    const exos = Array.isArray(w.exercises) && w.exercises.length ? w.exercises : (w.exercise ? [{ name: w.exercise, load: w.load, reps: w.reps }] : []);
+    exos.forEach(ex => {
+      if (!ex || !ex.name) return;
+      const sets = Array.isArray(ex.setLogs) && ex.setLogs.length ? ex.setLogs : [{ load: ex.load, reps: ex.reps }];
+      sets.forEach(s => {
+        const reps = Number(s && s.reps) || 0, load = Number(s && s.load) || 0;
+        if (reps > 0) bestReps[ex.name] = Math.max(bestReps[ex.name] || 0, reps);
+        const e = estimate1RM(load, reps);
+        if (e != null) bestE1[ex.name] = Math.max(bestE1[ex.name] || 0, e);
+      });
     });
+  });
+  const names = [...new Set([...Object.keys(bestE1), ...Object.keys(bestReps)])];
+  const out = [];
+  for (const mv of STRENGTH_MOVEMENTS) {
+    if (mv.type === 'ratio') {
+      if (!(bw > 0)) continue; // le ratio a besoin du poids de corps
+      let e1 = 0; names.forEach(nm => { if (mv.match(norm(nm))) e1 = Math.max(e1, bestE1[nm] || 0); });
+      if (!(e1 > 0)) continue;
+      const thr = mv.thr.map(t => Math.round(t * f * bw * 10) / 10);
+      let tier = 0; for (let i = 0; i < thr.length; i++) { if (e1 >= thr[i]) tier = i + 1; }
+      const nextIdx = tier < thr.length ? tier : null;
+      out.push({ key: mv.key, label: mv.label, emoji: mv.emoji, metric: 'ratio', value: Math.round(e1), unit: 'kg', detail: `×${Math.round(e1 / bw * 100) / 100} PdC`, tier, level: STRENGTH_TIERS[tier], nextLevel: nextIdx != null ? STRENGTH_TIERS[tier + 1] : null, toNext: nextIdx != null ? Math.max(0, Math.round((thr[nextIdx] - e1) * 10) / 10) : 0, toNextUnit: 'kg' });
+    } else {
+      let reps = 0; names.forEach(nm => { if (mv.match(norm(nm))) reps = Math.max(reps, bestReps[nm] || 0); });
+      if (!(reps > 0)) continue;
+      const thr = mv.thr;
+      let tier = 0; for (let i = 0; i < thr.length; i++) { if (reps >= thr[i]) tier = i + 1; }
+      const nextIdx = tier < thr.length ? tier : null;
+      out.push({ key: mv.key, label: mv.label, emoji: mv.emoji, metric: 'reps', value: reps, unit: 'reps', detail: `${reps} reps max`, tier, level: STRENGTH_TIERS[tier], nextLevel: nextIdx != null ? STRENGTH_TIERS[tier + 1] : null, toNext: nextIdx != null ? Math.max(0, thr[nextIdx] - reps) : 0, toNextUnit: 'reps' });
+    }
   }
   return out;
 }

@@ -23,8 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.297 (2026-07-22)
+## 📍 État actuel — build 2.0.298 (2026-07-22)
 
+> 🆙 **#699 — Standards de force : version POIDS DU CORPS (reps) — correctif retour Adrien (build 2.0.298).**
+> Retour d'Adrien sur #698 : « j'ai pas de poids, je fais surtout au poids du corps ». Juste — la carte ne classait
+> que les mouvements de barre chargés (ratio 1RM), inutile en calisthénie. Réécrit avec **deux métriques** : au
+> poids du corps, **Tractions/Pompes classées par meilleur nb de reps** (Débutant→Élite, +X reps → niveau, AUCUN
+> poids requis) ; à la barre, ratio conservé (si poids noté). Variantes de scaling exclues (négatives/inclinées).
+> Nouveau shape `{metric, value, unit, detail, toNext, toNextUnit}` ; rendu adapté. Test node réécrit + smoke
+> `strengthStd` (branche reps sans poids). Vérif navigateur (Tractions 11 → Intermédiaire, +2 → Avancé). 591 tests
+> + SMOKE OK. _Domaine : athlete._ **Publié : v2.0.298.**
+>
 > 🎖️ **#698 — Athlète : Standards de force relatifs au poids de corps (build 2.0.297).** Adrien : « améliore
 > SURTOUT la partie athlète ». Manque repéré dans une section pourtant très fournie : « suis-je fort POUR MON
 > POIDS ? ». Feature `strengthStandards(workouts, bw, {sex})` (pure, exportée, testée) : classe squat/DC/SDT/DM du
