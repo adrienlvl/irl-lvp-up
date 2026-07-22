@@ -569,8 +569,8 @@ function normalizeRecurring(item) {
       freq: RECUR_FREQ.includes(r.freq) ? r.freq : 'weekly',
       interval: Math.max(1, Math.min(52, Math.round(Number(r.interval) || 1))),
       weekdays: Array.isArray(r.weekdays) ? r.weekdays.map(Number).filter(n => n >= 0 && n <= 6) : [],
-      startDate: isBoundedDateKey(r.startDate) ? r.startDate : '',
-      until: isBoundedDateKey(r.until) ? r.until : ''
+      startDate: isRealDateKey(r.startDate) ? r.startDate : '',
+      until: isRealDateKey(r.until) ? r.until : ''
     }
   };
 }
@@ -3235,6 +3235,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.292', emoji: '🗓️', text: 'Robustesse agenda : un rendez-vous répété ancré sur un jour qui n’existe pas ne se déclenche plus au mauvais jour. Une règle de récurrence enregistrée sur une date impossible mais d’apparence valide — le 31 avril, le 30 février (ça peut arriver via une sauvegarde restaurée ou un import abîmé) — était conservée telle quelle, puis le calcul basculait silencieusement au mois suivant : un « tous les mois le 31 avril » se mettait à apparaître le 1er de chaque mois, des jours que tu n’avais jamais choisis. Ces dates impossibles sont désormais neutralisées (comme le sont déjà tes semaines-record et le reste de l’app), exactement comme une date correctement saisie l’a toujours été. Aucun changement pour les récurrences normales.' },
   { v: '2.0.291', emoji: '🧠', text: 'Le récap « Où est passé ton focus » compte enfin ensemble une même tâche écrite un peu différemment. Le nom de ta session de concentration est un champ libre que tu retapes à chaque bloc : « Deep work » un jour, « deep work » le lendemain, « Révision » puis « revision »… La répartition les traitait comme des tâches séparées — ton temps se retrouvait éparpillé sur plusieurs lignes avec des pourcentages faussés, et le coach pouvait citer la mauvaise tâche « phare ». Désormais l’app replie les variantes de casse, d’accents et d’espaces (elle affiche le premier libellé tapé), exactement comme le fait déjà le suivi de tes révisions par matière. Deux tâches vraiment différentes restent bien distinctes.' },
   { v: '2.0.290', emoji: '♿', text: 'Accessibilité : les menus déroulants de l’agenda ont enfin un nom pour les lecteurs d’écran. Dans le formulaire du calendrier et dans la fenêtre de modification d’un événement, quatre listes déroulantes (le type de bloc « Focus / Sport / Vie perso / Révision », la répétition « Une fois / Chaque semaine… » et la priorité) n’avaient aucun libellé accessible : une personne utilisant un lecteur d’écran entendait « menu déroulant » sans savoir ce qu’il réglait. Chacune annonce maintenant son rôle. Rien ne change à l’écran.' },
   { v: '2.0.289', emoji: '🏋️', text: 'Coach « Le focus du moment » : une petite contradiction retirée côté sport. Les bons matins où ta forme est au vert et où tu as de la marge sur ton objectif de séances, le coach t’invite à « engranger une séance d’avance ». Mais quand ce même conseil tombait un jour où il te pousse justement à REPRENDRE l’entraînement (« relance dès aujourd’hui », « un petit geste suffit à repartir »), il y ajoutait « rien ne t’oblige à t’entraîner aujourd’hui » — l’un ordonnait de reprendre, l’autre en dispensait, dans la même carte. Cette clause de dispense est supprimée : il ne reste que l’invitation à profiter de ta forme pour prendre de l’avance, cohérente quel que soit le ton (exactement comme la version déjà en place côté deep work).' },

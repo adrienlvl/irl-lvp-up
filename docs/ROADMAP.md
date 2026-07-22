@@ -23,7 +23,29 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.291 (2026-07-22)
+## 📍 État actuel — build 2.0.292 (2026-07-22)
+
+> 🗓️ **#692 — Récurrence : une `startDate`/`until` impossible-mais-format-valide ne fabrique plus une
+> série fantôme (build 2.0.292).** Mission nuit 22/07 = robustesse/tests non-visuels, priorité nommée
+> **#1 « Robustesse données » (dates impossibles fed à `new Date`)**. Rotation §4 bis (5 derniers :
+> `focus, a11y, coach, robustesse, etudes` → `focus`+`a11y` interdits ; **`robustesse` libre**, 1× en
+> #688 hors 2 derniers). Sous-agent Explore sur nutrition/sommeil/agenda/habitudes → un seul défaut
+> solide, dans la **famille dates-impossibles** (garde générique laissée ouverte, cf. mémoire #671).
+> PROUVÉ (node) : `normalizeRecurring` (`logic.js:554`) validait `rule.startDate`/`rule.until` avec
+> `isBoundedDateKey` (format seul, jour ≤ **31**) → `2026-04-31` / `2026-02-30` **passaient**, puis
+> `recurrenceMatches` (`logic.js:593`) faisait `new Date(2026, 3, 31)` qui **déborde au 1er mai** et ancre
+> TOUTE la série là : un « mensuel le 31 avril » se déclenchait le **1er de chaque mois**. C'est l'invariant
+> que le fichier documente déjà (`isRealDateKey`, commentaire `logic.js:35-39` : « déborde silencieusement
+> au mois suivant … FANTÔME », prescrit `isRealDateKey` là où la clé va dans `new Date`). Défaut **jumeau**
+> de #671 (`bestWellnessWeek`/`bestTonnageWeek` gardés `isRealDateKey`, 2.0.276). Le test existant
+> (`logic.test.js:1295`) ratait le piège subtil (il ne testait que `2026-13-99`, hors bornes de format).
+> Correctif §3 (zéro champ) : `isBoundedDateKey` → **`isRealDateKey`** (lignes 572-573) ⇒ date impossible
+> → `startDate` vide ⇒ plus jamais d'occurrence ; dates réelles (picker, `.ics`) intactes, 29 févr.
+> bissextile conservé. +6 assertions (`2026-04-31`/`2026-02-30`/`2026-06-31` neutralisés · `2024-02-29`
+> conservé · preuve d'absence de match fantôme). §4 ter : effet visible (récurrence corrompue n'apparaît
+> plus sur des jours jamais choisis) → **bump 2.0.292**, pure logique testée node, aucune surface de rendu.
+> 588 tests + SMOKE OK. Recap #692. _Domaine : robustesse._ **Lot 2.0.263→292 en attente de release (Adrien
+> contrôle).**
 
 > 🧠 **#691 — `focusByTask` replie casse/accents/espaces d'un même libellé (build 2.0.291).** Mission
 > nuit 22/07 = non-visuel/vérifiable. Rotation §4 bis (5 derniers : `a11y, coach, robustesse, etudes,

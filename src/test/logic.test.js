@@ -1297,6 +1297,16 @@ test('normalizeRecurring : défauts, freq/interval validés, weekdays filtrés',
   assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-13-99' } }).rule.startDate, '', 'startDate impossible → vide');
   assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-07-06', until: '2026-99-99' } }).rule.until, '', 'until impossible → vide');
   assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-07-06' } }).rule.startDate, '2026-07-06', 'startDate réel conservé');
+  // Le piège SUBTIL (isBoundedDateKey le laissait passer) : jour hors du mois mais format ≤ 31 →
+  // isRealDateKey exigé, sinon new Date(2026, 3, 31) déborde au 1er mai et ancre TOUTE la série là.
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'monthly', startDate: '2026-04-31' } }).rule.startDate, '', '31 avr. impossible → vide (avant : gardé, série fantôme le 1er du mois)');
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'daily', startDate: '2026-02-30' } }).rule.startDate, '', '30 févr. impossible → vide');
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'weekly', startDate: '2026-07-06', until: '2026-06-31' } }).rule.until, '', '31 juin impossible → until vide');
+  assert.equal(L.normalizeRecurring({ rule: { freq: 'yearly', startDate: '2024-02-29' } }).rule.startDate, '2024-02-29', '29 févr. bissextile RÉEL conservé');
+  // Preuve d'absence de série fantôme après neutralisation : startDate vide → recurrenceMatches ne matche jamais.
+  const ghost = L.normalizeRecurring({ rule: { freq: 'monthly', startDate: '2026-04-31' } });
+  assert.equal(L.recurrenceMatches(ghost.rule, '2026-05-01'), false, 'plus d’occurrence fantôme le 1er mai');
+  assert.equal(L.recurrenceMatches(ghost.rule, '2026-06-01'), false, 'ni le 1er juin');
 });
 
 test('recurrenceMatches : quotidien avec intervalle + borne de début', () => {
@@ -6285,7 +6295,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.291');
+  assert.equal(L.CHANGELOG[0].v, '2.0.292');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
