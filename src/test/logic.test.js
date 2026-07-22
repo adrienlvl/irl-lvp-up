@@ -812,6 +812,13 @@ test('parseApplicationsCsv : import CSV (colonnes, statuts FR, dates, guillemets
   // vide / lignes blanches
   assert.deepEqual(L.parseApplicationsCsv(''), []);
   assert.deepEqual(L.parseApplicationsCsv('\n\n'), []);
+  // #663 : BOM UTF-8 en tête d'un export Sheets ne casse plus la détection de la 1re colonne par nom
+  const withBom = L.parseApplicationsCsv('﻿Entreprise,Statut\nAuchan,refusé\nLidl,entretien\n');
+  assert.equal(withBom.length, 2); assert.equal(withBom[0].company, 'Auchan', 'BOM strippé → 1re colonne = entreprise');
+  assert.equal(withBom[0].status, 'refus');
+  // #663 : chaque ligne importée reçoit un id DISTINCT (plus de collision Date.now() dans la même ms)
+  const importedIds = L.parseApplicationsCsv('Entreprise\nA\nB\nC\nD\n').map(a => a.id);
+  assert.equal(importedIds.length, 4); assert.equal(new Set(importedIds).size, 4, 'ids distincts par ligne importée');
 });
 
 test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)', () => {
@@ -871,6 +878,16 @@ test('jobStatusFromText : mappe les statuts FR réels (dont La Bonne Alternance)
   assert.equal(L.jobStatusFromText('Relance pour entretien'), 'relance', 'une relance POUR obtenir un entretien reste une relance');
   assert.equal(L.jobStatusFromText('Relancé, toujours pas d’entretien'), 'relance');
   assert.equal(L.jobStatusFromText('Relancé, j’ai été pris'), 'accepte', 'relancé puis pris = accepté (gain #569 conservé)');
+  // #663 cas 1 : fenêtre de négation « retenu » élargie — « pas LE CANDIDAT retenu » (13 car.) échappait
+  // au garde (window {0,12}) et sortait « Accepté 🎉 ». Corrigé via liste blanche de liaison (comme #592).
+  assert.equal(L.jobStatusFromText('Je ne suis pas le candidat retenu'), 'refus', '#663 : pas le candidat retenu = refus');
+  assert.equal(L.jobStatusFromText('Nous n’avons pas retenu votre profil'), 'refus');
+  assert.equal(L.jobStatusFromText('pas de souci, dossier retenu'), 'accepte', '#663 : « de » exclu de la liaison → pas d’inversion abusive');
+  // #663 cas 2 : « pas encore contacté » = prospection à faire, PAS « postulé » (le motif nu `contacte`
+  // gonflait responseRate). « pris/prise de contact » (contact établi) reste bien « postulé ».
+  assert.equal(L.jobStatusFromText('pas encore contacté'), 'a_postuler', '#663 : pas encore contacté = à postuler');
+  assert.equal(L.jobStatusFromText('Prise de contact'), 'postule', '#663 : contact établi reste postulé');
+  assert.equal(L.jobStatusFromText('Pris contact le 3'), 'postule');
   assert.equal(L.jobStatusFromText(''), 'a_postuler');
 });
 
@@ -900,6 +917,14 @@ test('jobDateFromText : lit ISO/JJ-MM-AAAA, borne mois/jour, ignore les dates ab
   assert.equal(L.jobDateFromText('1/2/2026'), '2026-02-01', 'zéro-padding jour/mois');
   assert.equal(L.jobDateFromText('le 05/03/2026 confirmé'), '2026-03-05', 'date noyée dans du texte');
   assert.equal(L.jobDateFromText('2026-07-16T10:30'), '2026-07-16', 'datetime → date');
+  // #663 cas 5 : formats FR courants qui étaient silencieusement vidés (→ relances via daysUntil cassées)
+  assert.equal(L.jobDateFromText('3 mars 2026'), '2026-03-03', '#663 : nom de mois FR');
+  assert.equal(L.jobDateFromText('1er août 2026'), '2026-08-01', '#663 : 1er + mois accentué');
+  assert.equal(L.jobDateFromText('15 décembre 2026'), '2026-12-15');
+  assert.equal(L.jobDateFromText('2026/03/03'), '2026-03-03', '#663 : année en tête à slashs');
+  assert.equal(L.jobDateFromText('03-03-2026'), '2026-03-03', '#663 : JJ-MM-AAAA');
+  assert.equal(L.jobDateFromText('03/03/26'), '2026-03-03', '#663 : année à 2 chiffres → 20AA');
+  assert.equal(L.jobDateFromText('30 février 2026'), '', '#663 : nom de mois + jour impossible ignoré');
   // Vide / absent
   assert.equal(L.jobDateFromText(''), '');
   assert.equal(L.jobDateFromText(null), '');
@@ -6295,7 +6320,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.293');
+  assert.equal(L.CHANGELOG[0].v, '2.0.294');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

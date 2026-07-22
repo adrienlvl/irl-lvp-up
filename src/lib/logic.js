@@ -273,7 +273,7 @@ function applicationFunnel(stats) {
 // : une cellule multi-ligne exportée en CRLF (RFC 4180, Excel) ne laisse plus traîner de retour
 // chariot parasite dans la valeur — seul le « \n » reste comme vrai saut de ligne interne. Pur.
 function parseCsv(text) {
-  const s = String(text || ''); const rows = []; let row = [], cell = '', q = false;
+  const s = String(text || '').replace(/^﻿/, ''); const rows = []; let row = [], cell = '', q = false; // strip BOM UTF-8 (#663) : un export Sheets commence souvent par U+FEFF → le 1er en-tête devenait « <BOM>entreprise »
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
     if (q) { if (c === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else q = false; } else if (c !== '\r') cell += c; }
@@ -304,12 +304,18 @@ function parseApplicationsCsv(text) {
   const ci = iCompany >= 0 ? iCompany : 0;
   const body = hasHeader ? rows.slice(1) : rows;
   const out = [];
+  // Id UNIQUE par ligne dès l'import (#663 cas 10) : sans cela, les lignes sans id reçoivent toutes
+  // `Date.now()` dans normalizeApplication et, prises dans la même milliseconde, entrent en COLLISION →
+  // toute édition/suppression/relance par id frappe la mauvaise ligne (piège « id dérivé de la date
+  // seule », cf. #555/#592). `idBase + index` reste pur côté modèle (ne touche pas la persistance) et
+  // garantit des ids distincts au sein d'un import (et vs les imports antérieurs, `idBase` étant « maintenant »).
+  const idBase = Date.now();
   for (const r of body) {
     const company = String(r[ci] || '').trim();
     if (!company) continue;
     const status = iStatus >= 0 ? jobStatusFromText(r[iStatus]) : 'a_postuler';
     let date = iDate >= 0 ? jobDateFromText(r[iDate]) : '';
-    out.push({ company: company.slice(0, 80), role: iRole >= 0 ? String(r[iRole] || '').trim().slice(0, 80) : '', status, date, source: iSource >= 0 ? String(r[iSource] || '').trim().slice(0, 60) : '', notes: iNotes >= 0 ? String(r[iNotes] || '').trim().slice(0, 300) : '' });
+    out.push({ id: idBase + out.length, company: company.slice(0, 80), role: iRole >= 0 ? String(r[iRole] || '').trim().slice(0, 80) : '', status, date, source: iSource >= 0 ? String(r[iSource] || '').trim().slice(0, 60) : '', notes: iNotes >= 0 ? String(r[iNotes] || '').trim().slice(0, 300) : '' });
   }
   return out;
 }
@@ -325,7 +331,12 @@ function jobStatusFromText(t) {
   // sinon son sous-motif « retenu » l'emporterait et inverserait le refus en offre acceptée — ce qui
   // corromprait le funnel et `applicationStats` (accepted, responseRate). La négation peut être suivie
   // de quelques mots (« pas été retenu ») : on tolère un court intervalle avant « retenu ».
-  if (/\b(non|pas)\b[\s\S]{0,12}retenu/.test(x)) return 'refus';
+  // Fenêtre trop courte (`[\s\S]{0,12}`) avant : « je ne suis pas LE CANDIDAT retenu » (« le candidat » =
+  // 13 car.) échappait au garde → le bucket `\bretenu` gagnait → un refus affiché « Accepté 🎉 » (#663 cas 1).
+  // Corrigé à la manière du garde `postul` (#592) : liste blanche de mots de liaison (jamais de virgule/
+  // complément arbitraire), zéro ou plus, puis `retenu(e)(s)`. « pas de souci, dossier retenu » ne matche
+  // pas (« de » exclu). Couvre « (non/pas) [été|le|la|bon|candidat|profil…] retenu ».
+  if (/\b(?:non|pas)\b(?:\s+(?:ete|le|la|les|un|une|bon|bonne|meilleur|meilleure|candidat|candidate|profil|dossier|encore|vraiment|finalement|malheureusement|pour|ce|cette|leur|mon|ma|notre|votre))*\s+retenue?s?\b/.test(x)) return 'refus';
   // Tournure JUMELLE, même négation : « (pas/non) (été) pris(e) ». « Je n'ai pas été pris », « pas
   // été prise » = un refus. Le bucket `accepte` plus bas matche la tournure d'acceptation
   // `(été|suis|est…) pris(e)` SANS aucune garde de négation → sans ce test, un refus formulé ainsi
@@ -374,32 +385,49 @@ function jobStatusFromText(t) {
   // « PAS de retour, POSTULÉ le 03/03 » basculait à tort en « à postuler » (la candidature EST envoyée,
   // elle sortait du funnel à chaque sync). On n'autorise plus entre la négation et le verbe qu'une
   // liste blanche de mots de liaison (jamais de virgule, de point, ni de complément arbitraire).
-  if (/\b(?:pas|non|jamais)\b(?:\s+(?:encore|du|tout|vraiment|toujours|ete|etre|de|la|ma|mon|candidature))*\s+(?:postul|envoy)/.test(x)) return 'a_postuler';
+  // `contact` ajouté aux verbes gardés par la négation (#663 cas 2) : « pas encore contacté » = une
+  // prospection PAS encore contactée → à postuler, alors que le motif nu `contacte` (seau `postule`
+  // ci-dessous) la classait « postulé » et gonflait answered/responseRate. « pris contact » (contact
+  // établi) reste `postule` : « pris » n'est pas dans la liste blanche de liaison, donc non capté ici.
+  if (/\b(?:pas|non|jamais)\b(?:\s+(?:encore|du|tout|vraiment|toujours|ete|etre|de|la|ma|mon|candidature))*\s+(?:postul|envoy|contact)/.test(x)) return 'a_postuler';
   // « prise de contact », « pris contact », « pris en compte », « rendez-vous pris » : le contact EST
   // établi — c'est un dossier envoyé/en cours, pas un « à postuler » (et surtout pas un « accepté »).
   if (/postule|envoye|candidat|attente|en cours|contacte|mail envoye|confirm/.test(x)
     || /prise? de contact|pris contact|pris en compte|rendez-?vous pris|rdv pris/.test(x)) return 'postule';
   return 'a_postuler';
 }
-// Extrait une date ISO d'un texte (ISO ou JJ/MM/AAAA). '' sinon. Pur.
+// Extrait une date ISO d'un texte. '' sinon. Pur. Formats reconnus (#663 cas 5) : ISO (YYYY-MM-DD),
+// année en tête à slashs (YYYY/MM/DD), JJ/MM/AAAA et JJ-MM-AAAA, JJ/MM/AA (→ 20AA), et nom de mois FR
+// (« 3 mars 2026 », « 1er août 2026 »). Avant, seuls ISO et JJ/MM/AAAA étaient lus → une date FR
+// courante disparaissait à l'import (les relances via `daysUntil` ne se déclenchaient plus).
 // Borne mois 1-12 / jour 1-31 ET validité CALENDAIRE : une cellule aberrante (« 13/45/2026 » hors
-// bornes, mais aussi « 30/02/2026 » ou « 31/11/2026 » — dates de calendrier inexistantes) ne pollue
-// plus la date d'une candidature — elle est ignorée ('') au lieu d'être stockée telle quelle. Sinon
-// un 30 février importé serait affiché « postulé le 30/02/2026 » et reparsé ailleurs comme le 2 mars.
-// La validité se vérifie par aller-retour sur `Date` (le rollover trahit un jour qui déborde le mois).
-// Si le motif ISO trouvé est invalide, on retombe sur le motif JJ/MM/AAAA (une vraie date peut suivre du bruit).
+// bornes, mais aussi « 30/02/2026 » ou « 31/11/2026 » — dates inexistantes) est ignorée ('') au lieu
+// d'être stockée telle quelle (sinon un 30 février serait reparsé ailleurs comme le 2 mars). La validité
+// se vérifie par aller-retour sur `Date` (le rollover trahit un jour qui déborde le mois). Ordre :
+// année-en-tête et nom-de-mois AVANT jour-en-tête, pour ne pas lire un « 2026/03/03 » comme un jour 2026.
+const FR_MONTHS = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
 function jobDateFromText(t) {
   const s = String(t || '');
   const pad = (y, mo, d) => {
-    const Y = Number(y), M = Number(mo), D = Number(d);
+    let Y = Number(y); const M = Number(mo), D = Number(d);
+    if (Y >= 0 && Y < 100) Y += 2000; // année à 2 chiffres → 20YY
     if (!(M >= 1 && M <= 12 && D >= 1 && D <= 31)) return '';
     const dt = new Date(Y, M - 1, D);
     if (dt.getFullYear() !== Y || dt.getMonth() !== M - 1 || dt.getDate() !== D) return ''; // 30 févr., 31 nov.… → inexistante
-    return `${y}-${String(M).padStart(2, '0')}-${String(D).padStart(2, '0')}`;
+    return `${Y}-${String(M).padStart(2, '0')}-${String(D).padStart(2, '0')}`;
   };
-  const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(s); const isoDate = iso ? pad(iso[1], iso[2], iso[3]) : '';
-  if (isoDate) return isoDate;
-  const fr = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s); return fr ? pad(fr[3], fr[2], fr[1]) : '';
+  // 1) année en tête : YYYY-MM-DD ou YYYY/MM/DD
+  let m = /(\d{4})[-/](\d{1,2})[-/](\d{1,2})/.exec(s); let r = m ? pad(m[1], m[2], m[3]) : '';
+  if (r) return r;
+  // 2) nom de mois FR : « 3 mars 2026 », « 1er août 2026 »
+  const norm = s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  m = new RegExp('\\b(\\d{1,2})(?:er)?\\s+(' + FR_MONTHS.join('|') + ')\\.?\\s+(\\d{4})').exec(norm);
+  if (m) { r = pad(m[3], FR_MONTHS.indexOf(m[2]) + 1, m[1]); if (r) return r; }
+  // 3) jour en tête, année 4 chiffres : JJ/MM/AAAA ou JJ-MM-AAAA
+  m = /(\d{1,2})[-/](\d{1,2})[-/](\d{4})/.exec(s); r = m ? pad(m[3], m[2], m[1]) : '';
+  if (r) return r;
+  // 4) jour en tête, année 2 chiffres : JJ/MM/AA → 20AA
+  m = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{2})\b/.exec(s); return m ? pad(m[3], m[2], m[1]) : '';
 }
 
 // Parse un CSV de CIBLES type La Bonne Alternance (colonnes « Entreprise », « Ville » = "Ville (NN)",
@@ -3235,6 +3263,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.294', emoji: '🎯', text: 'Ton suivi d’alternance classe mieux les candidatures importées — donc ton pipeline (le funnel) arrête de mentir. Cinq corrections : (1) « Je ne suis pas le candidat retenu » ressortait « Accepté 🎉 » → redevient un refus ; (2) « pas encore contacté » gonflait ton taux de réponse → redevient « à postuler » ; (3) les dates FR courantes (« 3 mars 2026 », « 2026/03/03 », « 03-03-2026 », « 03/03/26 ») n’étaient plus lues et disparaissaient → désormais reconnues (tes relances se redéclenchent) ; (4) un export qui commence par un caractère invisible (BOM) ne casse plus la détection des colonnes ; (5) à l’import CSV, chaque ligne reçoit un identifiant unique — fini les collisions où éditer une candidature en touchait une autre. Les tournures ambiguës (« je décline une offre », format de date US, plusieurs postes dans la même entreprise) attendent encore ta décision. (robustesse import Alternance — proposition #663, option A)' },
   { v: '2.0.293', emoji: '🥗', text: 'Coach « Le focus du moment » : plus de titre nutrition qui contredit son propre message. Quand le coach parle de ta nutrition, son diagnostic (l’insight) est calé sur tes protéines — série en cours, régularité qui grimpe ou qui s’effrite — alors que le titre, lui, se basait sur le nombre de jours où tu as SAISI quelque chose. Ces deux mesures pouvant partir en sens contraire, la carte s’affichait parfois « Ta nutrition s’essouffle » juste au-dessus de « 🔥 2 jours d’affilée à ta cible protéines, ne casse pas la série » (ou « ta régularité grimpe, la dynamique est bonne ») — un titre qui annonce un déclin, un corps qui célèbre. À l’inverse « monte en régime » pouvait coiffer un « ta régularité s’effrite ». Le titre suit désormais le même signal que le diagnostic (exactement comme la carte Sommeil le fait déjà) : une série vive ne titre plus un essoufflement. Aucun conseil ajouté.' },
   { v: '2.0.292', emoji: '🗓️', text: 'Robustesse agenda : un rendez-vous répété ancré sur un jour qui n’existe pas ne se déclenche plus au mauvais jour. Une règle de récurrence enregistrée sur une date impossible mais d’apparence valide — le 31 avril, le 30 février (ça peut arriver via une sauvegarde restaurée ou un import abîmé) — était conservée telle quelle, puis le calcul basculait silencieusement au mois suivant : un « tous les mois le 31 avril » se mettait à apparaître le 1er de chaque mois, des jours que tu n’avais jamais choisis. Ces dates impossibles sont désormais neutralisées (comme le sont déjà tes semaines-record et le reste de l’app), exactement comme une date correctement saisie l’a toujours été. Aucun changement pour les récurrences normales.' },
   { v: '2.0.291', emoji: '🧠', text: 'Le récap « Où est passé ton focus » compte enfin ensemble une même tâche écrite un peu différemment. Le nom de ta session de concentration est un champ libre que tu retapes à chaque bloc : « Deep work » un jour, « deep work » le lendemain, « Révision » puis « revision »… La répartition les traitait comme des tâches séparées — ton temps se retrouvait éparpillé sur plusieurs lignes avec des pourcentages faussés, et le coach pouvait citer la mauvaise tâche « phare ». Désormais l’app replie les variantes de casse, d’accents et d’espaces (elle affiche le premier libellé tapé), exactement comme le fait déjà le suivi de tes révisions par matière. Deux tâches vraiment différentes restent bien distinctes.' },

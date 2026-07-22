@@ -23,8 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.293 (2026-07-22)
+## 📍 État actuel — build 2.0.294 (2026-07-22)
 
+> 🎯 **#695 — Import Alternance : 5 correctifs sûrs du classifieur (proposition #663 option A) (build 2.0.294).**
+> Session LOCALE après l'audit de nuit. **Adrien a tranché #663 → option A.** Priorité : le bug qui corrompait le
+> **funnel #662** (un refus affiché « Accepté 🎉 »). Corrigés (chacun testé, échoue-avant/passe-après) : **#1**
+> négation « retenu » (fenêtre {0,12} trop courte → liste blanche de liaison, comme #592 ; « pas de souci, dossier
+> retenu » non inversé), **#2** « pas encore contacté » → à postuler (`contact` ajouté au garde de négation ; « pris
+> contact » reste postulé), **#5** dates FR (« 3 mars 2026 »/« 2026/03/03 »/« 03-03-2026 »/« 03/03/26 » lues, garde
+> calendaire conservée), **BOM** strippé dans `parseCsv`, **#10** id unique par ligne à l'import (fini les collisions
+> `Date.now()`). **Différés à Adrien** (reclassent des cellules) : #4 décline, #6 US, #8 clé fusion, #9 ordre terminal,
+> #7 séparateur. 589 tests + SMOKE OK. _Domaine : alternance._ **Publié : v2.0.293 (lot nuit VPS) ce matin ; ce
+> correctif ira dans la prochaine release.**
+>
 > 📋 **#694 — Proposition : garde d'ingestion canonique contre les dates impossibles (pas de bump,
 > docs).** Rotation §4 bis : 5 derniers = `coach, robustesse, focus, a11y, coach` → **`coach`+`robustesse`
 > interdits** (2 derniers). **Quota de propositions §4 bis.4 DÉCLENCHÉ** : 10 derniers recaps (#684→#693)
