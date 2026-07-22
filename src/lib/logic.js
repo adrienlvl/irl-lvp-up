@@ -3235,6 +3235,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.291', emoji: '🧠', text: 'Le récap « Où est passé ton focus » compte enfin ensemble une même tâche écrite un peu différemment. Le nom de ta session de concentration est un champ libre que tu retapes à chaque bloc : « Deep work » un jour, « deep work » le lendemain, « Révision » puis « revision »… La répartition les traitait comme des tâches séparées — ton temps se retrouvait éparpillé sur plusieurs lignes avec des pourcentages faussés, et le coach pouvait citer la mauvaise tâche « phare ». Désormais l’app replie les variantes de casse, d’accents et d’espaces (elle affiche le premier libellé tapé), exactement comme le fait déjà le suivi de tes révisions par matière. Deux tâches vraiment différentes restent bien distinctes.' },
   { v: '2.0.290', emoji: '♿', text: 'Accessibilité : les menus déroulants de l’agenda ont enfin un nom pour les lecteurs d’écran. Dans le formulaire du calendrier et dans la fenêtre de modification d’un événement, quatre listes déroulantes (le type de bloc « Focus / Sport / Vie perso / Révision », la répétition « Une fois / Chaque semaine… » et la priorité) n’avaient aucun libellé accessible : une personne utilisant un lecteur d’écran entendait « menu déroulant » sans savoir ce qu’il réglait. Chacune annonce maintenant son rôle. Rien ne change à l’écran.' },
   { v: '2.0.289', emoji: '🏋️', text: 'Coach « Le focus du moment » : une petite contradiction retirée côté sport. Les bons matins où ta forme est au vert et où tu as de la marge sur ton objectif de séances, le coach t’invite à « engranger une séance d’avance ». Mais quand ce même conseil tombait un jour où il te pousse justement à REPRENDRE l’entraînement (« relance dès aujourd’hui », « un petit geste suffit à repartir »), il y ajoutait « rien ne t’oblige à t’entraîner aujourd’hui » — l’un ordonnait de reprendre, l’autre en dispensait, dans la même carte. Cette clause de dispense est supprimée : il ne reste que l’invitation à profiter de ta forme pour prendre de l’avance, cohérente quel que soit le ton (exactement comme la version déjà en place côté deep work).' },
   { v: '2.0.288', emoji: '🗓️', text: 'Deux compteurs du tableau de bord annonçaient un total tronqué. La carte « X séances prévues non faites (14 j) » (côté Athlète) et la ligne « X révisions en retard » (côté Études) affichaient au maximum 5, car elles montraient la longueur de leur liste — or cette liste est volontairement plafonnée à 5 pour rester lisible. Résultat : si tu avais 7 séances manquées ou 8 révisions en retard, elles t’en annonçaient « 5 ». Désormais le compteur affiche le VRAI total, la liste détaillée reste courte (5 éléments) et un discret « +N autres » signale ce qui n’est pas listé. Aucun autre changement d’affichage.' },
@@ -9548,6 +9549,12 @@ function focusWeekGoal(focusSessions, todayKey, targetMin) {
 // capturent {date, minutes, task} : on connaît le total mais pas la RÉPARTITION. On regroupe par
 // tâche, on trie par temps décroissant, on donne le % de chacune. Renvoie { total, tasks:
 // [{task, minutes, sessions, pct}] } (tronqué à opts.cap, défaut 5). Pur + testé.
+// #691 : `task` est un CHAMP LIBRE (`#focusTaskInput`, app.js) retapé à chaque bloc — comme le
+// titre de matière côté études (fix jumeau #613). Regrouper sur la chaîne EXACTE éclatait
+// « Deep work »/« deep work » ou « Révision »/« révision » en tâches distinctes : répartition
+// fragmentée, %  faussés, et la tâche PHARE citée par le coach (adaptiveCoachFocus) mal comptée.
+// On regroupe donc sur une CLÉ REPLIÉE (minuscule + accents ôtés + espaces normalisés) en
+// affichant le premier libellé rencontré — des tâches réellement distinctes gardent des clés à part.
 function focusByTask(sessions, todayKey, opts) {
   const o = opts || {};
   const days = Math.max(1, Math.round(Number(o.days) || 7));
@@ -9557,6 +9564,7 @@ function focusByTask(sessions, todayKey, opts) {
   const s = new Date(todayKey + 'T12:00:00'); s.setDate(s.getDate() - (days - 1));
   const p = n => String(n).padStart(2, '0');
   const startKey = `${s.getFullYear()}-${p(s.getMonth() + 1)}-${p(s.getDate())}`;
+  const fold = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
   const groups = new Map();
   let total = 0;
   (Array.isArray(sessions) ? sessions : []).forEach(f => {
@@ -9564,8 +9572,9 @@ function focusByTask(sessions, todayKey, opts) {
     const min = Math.max(0, Math.round(Number(f.minutes) || 0));
     if (!min) return;
     const task = (String(f.task || '').trim()) || 'Sans titre';
-    if (!groups.has(task)) groups.set(task, { task, minutes: 0, sessions: 0 });
-    const g = groups.get(task); g.minutes += min; g.sessions++; total += min;
+    const key = fold(task) || 'sans titre';
+    if (!groups.has(key)) groups.set(key, { task, minutes: 0, sessions: 0 });
+    const g = groups.get(key); g.minutes += min; g.sessions++; total += min;
   });
   const tasks = [...groups.values()]
     .map(g => ({ ...g, pct: total ? Math.round(g.minutes / total * 100) : 0 }))

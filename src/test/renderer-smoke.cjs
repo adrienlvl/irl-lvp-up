@@ -281,7 +281,15 @@ app.whenReady().then(async () => {
             { date: '2026-07-13', minutes: 40, task: 'Projet' },
             { date: '2026-07-12', minutes: 30, task: 'Compta' },
           ], '2026-07-15', { days: 7 });
-          return r.total === 120 && r.tasks.length === 2 && r.tasks[0].task === 'Compta' && r.tasks[0].minutes === 80 && r.tasks[0].pct === 67 && focusByTask([], 'nope').total === 0;
+          // #691 : champ libre retapé → « Deep work »/« deep work »/« Révision »/« revision » = même tâche (repli casse/accents).
+          const folded = focusByTask([
+            { date: '2026-07-15', minutes: 30, task: 'Deep work' },
+            { date: '2026-07-14', minutes: 20, task: 'deep work' },
+            { date: '2026-07-13', minutes: 10, task: 'Révision' },
+            { date: '2026-07-12', minutes: 10, task: 'revision' },
+          ], '2026-07-15', { days: 7 });
+          const foldOk = folded.tasks.length === 2 && folded.tasks[0].task === 'Deep work' && folded.tasks[0].minutes === 50 && folded.tasks[0].sessions === 2;
+          return r.total === 120 && r.tasks.length === 2 && r.tasks[0].task === 'Compta' && r.tasks[0].minutes === 80 && r.tasks[0].pct === 67 && foldOk && focusByTask([], 'nope').total === 0;
         })(),
         focusHeatmap: !!document.getElementById('focusHeatmap') && document.querySelectorAll('#focusHeatmap .hm-cell').length === 56,
         supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
@@ -977,7 +985,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.290'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.291'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),

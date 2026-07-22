@@ -6285,7 +6285,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.290');
+  assert.equal(L.CHANGELOG[0].v, '2.0.291');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -12083,6 +12083,33 @@ test('focusByTask : répartition du temps de focus par tâche sur la fenêtre', 
   // date invalide / vide
   assert.deepEqual(L.focusByTask(sessions, 'nope'), { total: 0, tasks: [] });
   assert.deepEqual(L.focusByTask([], '2026-07-15'), { total: 0, tasks: [] });
+});
+
+test('focusByTask : replie casse/accents/espaces (champ libre retapé — fix jumeau #613/#691)', () => {
+  // « Deep work » / « deep work » / « Deep  work » = LA MÊME tâche retapée à la main → un seul seau.
+  const r = L.focusByTask([
+    { date: '2026-07-15', minutes: 30, task: 'Deep work' },
+    { date: '2026-07-14', minutes: 20, task: 'deep work' },
+    { date: '2026-07-13', minutes: 10, task: 'Deep  work' },
+  ], '2026-07-15', { days: 7 });
+  assert.equal(r.tasks.length, 1);            // AVANT le fix : 3 tâches distinctes
+  assert.equal(r.tasks[0].minutes, 60);       // AVANT : 30
+  assert.equal(r.tasks[0].sessions, 3);       // AVANT : 1
+  assert.equal(r.tasks[0].task, 'Deep work'); // premier libellé rencontré affiché
+  assert.equal(r.tasks[0].pct, 100);          // AVANT : 50
+  // accents : « Révision » et « revision » fusionnent aussi
+  const r2 = L.focusByTask([
+    { date: '2026-07-15', minutes: 25, task: 'Révision' },
+    { date: '2026-07-14', minutes: 25, task: 'revision' },
+  ], '2026-07-15', { days: 7 });
+  assert.equal(r2.tasks.length, 1);
+  assert.equal(r2.tasks[0].minutes, 50);
+  // des tâches RÉELLEMENT distinctes restent séparées
+  const r3 = L.focusByTask([
+    { date: '2026-07-15', minutes: 30, task: 'Deep work' },
+    { date: '2026-07-14', minutes: 30, task: 'Emails' },
+  ], '2026-07-15', { days: 7 });
+  assert.equal(r3.tasks.length, 2);
 });
 
 test('proteinStreak : jours consécutifs à la cible protéines', () => {

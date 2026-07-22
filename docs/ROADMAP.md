@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.290 (2026-07-22)
+## 📍 État actuel — build 2.0.291 (2026-07-22)
+
+> 🧠 **#691 — `focusByTask` replie casse/accents/espaces d'un même libellé (build 2.0.291).** Mission
+> nuit 22/07 = non-visuel/vérifiable. Rotation §4 bis (5 derniers : `a11y, coach, robustesse, etudes,
+> agenda` → **interdits** `a11y`+`coach`) : la priorité de nuit « coaching » est bloquée par la rotation ce
+> tour → domaine **`focus`** (0× dans les 5). Sous-agent Explore : `focusByTask` (`logic.js:9551`) — le récap
+> « 🧠 Où est passé ton focus (7 j) » (`app.js:505`) — regroupait par la chaîne `task` **EXACTE**, alors que
+> `task` est un **champ libre retapé** à chaque bloc (`#focusTaskInput`, `app.js:715`). PROUVÉ (exécution
+> node) : « Deep work »/« deep work »/« Deep  work » ou « Révision »/« revision » éclataient en tâches
+> distinctes → répartition fragmentée, `pct` faussés, tâche « phare » du coach (`adaptiveCoachFocus`,
+> `logic.js:6767`) mal comptée. **Défaut jumeau de `studyBySubject` déjà corrigé en #613** (`logic.js:1882`) :
+> même métier (libellé libre retapé), l'un durci, l'autre non. Correctif §3 (zéro champ) : clé **repliée**
+> (minuscule + accents ôtés + espaces normalisés) identique à `studyBySubject`, affichage du **premier
+> libellé** ; tâches réellement distinctes préservées. +1 test logic (fusion casse/accent/espace + non-fusion
+> des distinctes) + check smoke `focusByTask` **étendu bloquant** (sans regex backslash §6). §4 ter : effet
+> visible (comptage enfin unifié) → **bump 2.0.291**, rien d'ajouté à l'écran. 588 tests + SMOKE OK. Recap
+> #691. _Domaine : focus._ **Lot 2.0.263→291 en attente de release (Adrien contrôle).**
 
 > ♿ **#690 — A11y : les 4 menus déroulants de l'agenda ont enfin un nom accessible (build 2.0.290).**
 > Mission nuit 22/07 = non-visuel/vérifiable, priorité nommée **#3 « a11y NON-visuelle »**. Rotation
