@@ -23,8 +23,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.285 (2026-07-22)
+## 📍 État actuel — build 2.0.286 (2026-07-22)
 
+> 📋 **#685 — « Ma journée » : « X/N blocs du jour terminé**s** » (accord sur le nom, pas sur le
+> compte — build 2.0.286).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers :
+> `coach, etudes, robustesse, coach, etudes` → `coach`+`etudes` interdits 2 derniers + 2×/5 ;
+> **`robustesse` libre**, 1× en #682, hors 2 derniers). Quota §4 bis.4 non déclenché (#674 = proposition).
+> Piste **nommée** (note #683 / mémoire `fresh-domains-swept` : « mismatch `app.js:269` blocs/terminé »).
+> PROUVÉ : dans `renderMyDay` (`app.js:269`, `#myDaySummary`), le **nom** « bloc » s'accorde sur
+> `items.length` (total) mais l'**adjectif** « terminé » sur `doneCount` (le fait) → « 1/3 blocs du jour
+> **terminé** » dès `doneCount ≤ 1 < items.length` (le cas courant). Même bug d'accord que la famille
+> #682/#683. Correctif §3 (zéro champ) : `terminé` s'accorde sur `items.length`, comme le nom. Check smoke
+> **bloquant** `myDaySummaryPlural` : pilote le **vrai** rendu (state forgé sur `localDate()` → 3 blocs,
+> 1 fait ; plans/récurrents/anniv. neutralisés), assert `includes('blocs du jour terminés')` (échoue
+> avant / passe après). Contrôle §4 ter en rendu cumulé. Effet visible → **bump 2.0.286**. 584 tests +
+> SMOKE OK. Recap #685. _Domaine : robustesse._ **Lot 2.0.263→286 en attente de release (Adrien contrôle).**
+>
 > 😴 **#684 — Coach sommeil : le headline suit le VERDICT, pas le momentum de logging (build 2.0.285).**
 > Priorité nuit = coaching, traité en QUALITÉ/curation (§3). Rotation §4 bis (5 derniers :
 > `etudes, robustesse, coach, etudes, robustesse`) → `etudes`+`robustesse` interdits (2 derniers + 2×/5) ;

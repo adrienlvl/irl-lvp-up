@@ -224,6 +224,21 @@ app.whenReady().then(async () => {
           state.agenda = savedA;
           return txt.includes('révisions validées');
         })(),
+        myDaySummaryPlural: typeof renderMyDay === 'function' && !!document.getElementById('myDaySummary') && (() => {
+          const savedA = state.agenda, savedP = state.plans, savedR = state.recurring, savedB = state.birthdays;
+          const today = (typeof localDate === 'function') ? localDate() : '2026-07-15';
+          state.plans = []; state.recurring = []; state.birthdays = [];
+          state.agenda = [
+            { id: 1, kind: 'life', title: 'A', date: today, completed: true },
+            { id: 2, kind: 'life', title: 'B', date: today, completed: false },
+            { id: 3, kind: 'life', title: 'C', date: today, completed: false },
+          ];
+          renderMyDay();
+          const txt = (document.getElementById('myDaySummary').textContent || '');
+          state.agenda = savedA; state.plans = savedP; state.recurring = savedR; state.birthdays = savedB;
+          renderMyDay();
+          return txt.includes('blocs du jour terminés');
+        })(),
         questPerfectCelebrate: typeof celebrateQuestsIfPerfect === 'function' && typeof showFlashToast === 'function' && (() => {
           const savedQ = state.quests;
           state.quests = [{ id: 1, done: true }, { id: 2, done: true }];
@@ -941,7 +956,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.285'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.286'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2467,6 +2482,7 @@ app.whenReady().then(async () => {
     if (!checks.questStreakPlural) errors.push('Accord série quêtes KO (« X/N jours parfait[s] » : l\'adjectif doit s\'accorder sur loggedDays, pas sur perfectDays)');
     if (!checks.studyProgressPlural) errors.push('Accord études KO (#studyProgress « X/N révisions faite[s] » : « faite » doit s\'accorder sur total, pas sur done)');
     if (!checks.printReportStudyPlural) errors.push('Accord bilan imprimé KO (« X/N révisions validée[s] » : « validée » doit s\'accorder sur studyPlanned, pas sur studyDone)');
+    if (!checks.myDaySummaryPlural) errors.push('Accord Ma journée KO (« X/N blocs du jour terminé[s] » : « terminé » doit s\'accorder sur le total de blocs, pas sur le nombre fait)');
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
     if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
