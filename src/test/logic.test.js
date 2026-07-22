@@ -3547,6 +3547,21 @@ test('weeklyAggregate : données vides / hors fenêtre → 0', () => {
   assert.equal(old.every(p => p.total === 0), true);
 });
 
+test('weeklyAggregate : une date malformée/impossible est ignorée sans planter', () => {
+  const now = new Date('2026-07-20T12:00:00');
+  // Chaque entrée trie lexicographiquement >= firstKey donc passe l'ancien garde de fenêtre, mais n'est
+  // pas une vraie date → avant le fix, new Date(Invalid) → dateKey().toISOString() jetait un RangeError.
+  for (const bad of ['2026-13-40', '2026/07/15', '20260715', '2026-02-30', 'bientôt']) {
+    let res;
+    assert.doesNotThrow(() => { res = L.weeklyAggregate([{ date: bad, v: 5 }], { weeks: 8, now, value: x => x.v }); });
+    assert.equal(res.length, 8);
+    assert.equal(res.every(p => p.total === 0), true); // la donnée douteuse est ignorée, pas comptée
+  }
+  // Une vraie date dans la fenêtre reste bien agrégée (la date bancale voisine est ignorée, pas régressée).
+  const ok = L.weeklyAggregate([{ date: '2026-07-15', v: 5 }, { date: '2026-13-40', v: 99 }], { weeks: 8, now, value: x => x.v });
+  assert.equal(ok.reduce((a, p) => a + p.total, 0), 5);
+});
+
 test('glcPlanningToEvents : conversion valide, refId stable, durée bornée', () => {
   const data = { version: 1, source: 'legl.compta.v2', days: [{ date: '2026-07-08', due: 12 }, { date: '2026-07-10', due: 100 }] };
   const events = L.glcPlanningToEvents(data, { time: '18:00', fromDate: '2026-07-06', baseId: 500 });
@@ -6179,7 +6194,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.273');
+  assert.equal(L.CHANGELOG[0].v, '2.0.274');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

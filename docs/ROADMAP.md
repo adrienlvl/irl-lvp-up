@@ -23,7 +23,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.273 (2026-07-22)
+## 📍 État actuel — build 2.0.274 (2026-07-22)
+
+> 🛡️ **#668 — Robustesse : une date bancale ne fait plus planter les graphes du dashboard (build
+> 2.0.274).** Mission nuit = non-visuel (robustesse/tests). Rotation §4 bis (5 derniers : `athlete,
+> coach, tests, athlete, robustesse`) → `athlete`+`coach` bloqués (2 derniers) ; le chantier
+> `robustesse` du classifieur Alternance (#663) reste **gaté sur Adrien** → cible **hors** Alternance.
+> Défaut prouvé (`node -e`) : `weeklyAggregate` (`logic.js:2721`, moteur des 5 courbes de `renderCharts`)
+> ne validait que `typeof string`, pas le **format** de date → une date abîmée (`2026-13-40`,
+> `2026/07/15`, `2026-02-30`, import/backup/donnée héritée) triant `>= firstKey` filait en `new Date`
+> **Invalid** → `dateKey().toISOString()` jetait une `RangeError` qui **cassait tout le dashboard**
+> (`renderCharts` appelé sans garde, `app.js:693`). Fix minimal en-intention : garde durci avec le
+> validateur déjà exporté/testé `isRealDateKey` (rejette aussi les impossibles bien formées) → la donnée
+> douteuse est ignorée comme hors fenêtre, le rendu survit, zéro régression sur dates valides. Test node
+> échoue-avant/passe-après + non-régression. 579 tests + SMOKE OK (`charts:true`). Recap #668.
+> _Domaine : robustesse._
 
 > 🏷️ **#667 — Séance guidée : plus de double « Cible du jour » sur la carte (build 2.0.273).**
 > Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `coach, tests, athlete,
