@@ -23,8 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.278 (2026-07-22)
+## 📍 État actuel — build 2.0.279 (2026-07-22)
 
+> 😮‍💨 **#678 — Coach focus (jours À PLAT) : le driver « ce qui te plombe la tête » ne répète plus
+> l'appel à l'action (build 2.0.279).** Priorité nuit = coaching en QUALITÉ (§3 curation). Rotation
+> §4 bis (5 derniers : `etudes, robustesse, coach, docs, docs`) → `etudes`+`robustesse` (2 derniers)
+> et `docs` (2×/5) interdits ; **`coach` libre** (1× en #675, hors 2 derniers). Quota §4 bis.4 non
+> déclenché (#674 = proposition). Piste **nommée** au recap #675 (le pendant NÉGATIF `focusDrainDriver`
+> non re-vérifié en rendu chargé). PROUVÉ (§4 ter) : `focusDrainDriver` est **imbriqué** dans la branche
+> `readinessScore < 50`, juste derrière `focusGoalDrained` → il s'ajoute **toujours** après lui
+> (collision systématique, comme #672). Le parent porte déjà l'action (« t'acharner empilerait… un focus
+> court et facile aujourd'hui, soigne ta récup ») ; le driver la RE-servait — sommeil : « …pas
+> l'acharnement du jour » (écho de « t'acharner ») ; fatigue : « le repos de ce soir vaut plus qu'un bloc
+> forcé maintenant » (écho de « focus court et facile »). Correctif §3 : le driver garde sa seule valeur
+> propre (nommer le frein + son mécanisme : « recharge le sommeil, c'est lui qui remettra ton cerveau en
+> état de deep work » ; « ce réservoir vide émousse ta concentration, laisse-le se recharger »), le parent
+> porte seul l'appel à l'action. **Deux redites en moins, zéro champ ajouté.** Pendant NÉGATIF exact de
+> #672/#675 → famille `focus…Driver` auditée sur les deux versants. Tests + smoke durcis (non-redite :
+> un seul `/acharn/`, `!/bloc forcé maintenant/`). 581 tests + SMOKE OK. Recap #678. _Domaine : coach._
+> **Lot 2.0.263→279 en attente de release (Adrien contrôle).**
+>
 > 🎓 **#677 — `studyPacing` : `done`/`total` bornés à l'épreuve la plus proche (etudes, pas de bump).**
 > Priorité nuit = coaching, **bloquée par la rotation** (5 derniers : `robustesse, coach, docs, docs,
 > coach` → `robustesse`+`coach` 2 derniers, `docs`+`coach` 2×/5 : tous interdits ; **`etudes` libre**).

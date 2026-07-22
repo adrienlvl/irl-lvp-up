@@ -6209,7 +6209,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.278');
+  assert.equal(L.CHANGELOG[0].v, '2.0.279');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10090,11 +10090,19 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.deepEqual(drainSleep.focusDrainDriver, { factor: 'sleep', value: 3 }, 'sommeil frein dominant nommé');
   assert.match(drainSleep.insight, /te plombe la tête aujourd’hui : ta nuit courte de 3 h/);
   assert.match(drainSleep.insight, /recharge le sommeil ce soir/);
+  // #678 non-redite : focusGoalDrained porte déjà l'appel à l'action → le driver ne ré-sert plus « acharnement »
+  // (le parent dit « t'acharner empilerait… » : un seul /acharn/ dans l'insight cumulé, plus « pas l'acharnement du jour »).
+  assert.ok(!/pas l’acharnement du jour/.test(drainSleep.insight), '#678 : écho anti-acharnement retiré du driver sommeil');
+  assert.equal((drainSleep.insight.match(/acharn/g) || []).length, 1, '#678 : « acharn » n\'apparaît qu\'une fois (parent)');
   // Frein ÉNERGIE : sleep 5 / fat 5 / sore 3 → readinessScore 40 (< 50), limiter fatigue (déficit 30 vs 15).
   const drainFat = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 5, fatigue: 5, soreness: 3 }] }, '2026-07-19');
   assert.equal(drainFat.focusGoalDrained, 40, 'readiness < 50 → conflit renvoyé');
   assert.deepEqual(drainFat.focusDrainDriver, { factor: 'fatigue', value: 5 }, 'fatigue frein dominant nommé');
   assert.match(drainFat.insight, /te plombe la tête aujourd’hui : ta fatigue générale \(5\/5\)/);
+  // #678 non-redite : le driver fatigue nomme le mécanisme (« émousse ta concentration ») et ne ré-sert plus
+  // l'anti-push du parent (« un bloc forcé maintenant », écho de « focus court et facile aujourd'hui »).
+  assert.match(drainFat.insight, /émousse ta concentration/);
+  assert.ok(!/bloc forcé maintenant/.test(drainFat.insight), '#678 : écho anti-push retiré du driver fatigue');
   // Frein COURBATURES dominant (sleep 6 / fat 3 / sore 5 → score 45 < 50, limiter soreness) → HONNÊTETÉ :
   // des muscles douloureux pèsent sur une séance, pas sur le deep work → on se tait, focusDrainDriver null.
   const drainSore = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 3, soreness: 5 }] }, '2026-07-19');
