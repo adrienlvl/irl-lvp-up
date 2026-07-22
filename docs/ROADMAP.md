@@ -25,6 +25,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.275 (2026-07-22)
 
+> 📄 **#670 — Run vide documenté (pas de commit code, pas de bump).** Rotation §4 bis (5 derniers :
+> `coach, robustesse, athlete, coach, tests`) → `coach`+`robustesse` bloqués (2 derniers), `coach` 2×.
+> Domaines libres vérifiés SECS : `focus` (timer robuste, garde `st.done` déjà en place `app.js:1061`),
+> `nutrition` (mealMacro non atteignable, trends bien couverts), `a11y` (P2 close), `tests` (cibles ≤2 réfs
+> triviales/couvertes). **Seule vraie tâche sûre trouvée = domaine `robustesse`, BLOQUÉ ce tour** : piste
+> PROUVÉE réservée — `bestWellnessWeek` (`logic.js:4125`, rendue par `renderWellnessStreak`) et
+> `bestTonnageWeek` (`logic.js:4571`) crashent le rendu sur une date **impossible** (garde faible
+> `/^\d{4}-\d{2}-\d{2}$/` acceptant `2026-13-40` → `dateKey().toISOString()` RangeError), **même classe que
+> #668**. Fix prêt (`isRealDateKey`) à coder dès que `robustesse` redevient libre (prochain tour). Recap
+> #670. _Domaine : docs._ **Lot 2.0.263→275 en attente de release (Adrien contrôle).**
+>
 > 🎖️ **#669 — Coach : la félicitation « déjà tenu 💪 » ne fusionne plus avec la note suivante (build
 > 2.0.275).** Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers : `robustesse,
 > athlete, coach, tests, athlete`) → `robustesse`+`athlete` bloqués (2 derniers), `athlete` 2× → bloqué,
