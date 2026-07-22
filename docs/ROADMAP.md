@@ -23,8 +23,17 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.299 (2026-07-22)
+## 📍 État actuel — build 2.0.300 (2026-07-22)
 
+> 🎯 **#701 — Athlète spécialisé (1/4) : arbre de progression calisthénique (build 2.0.300).** Adrien : « améliore
+> l'entraînement spécialisé → **fait tout** » (4 features). #1 = `calisthenicsProgress` : 4 familles (tirage/poussée/
+> jambes/gainage), échelles de paliers débutant→skill élite. Paliers **auto** validés depuis les logs (1re traction,
+> 8/15 tractions, lestées +10 kg, pompes, dips, squats…) + paliers **skill** avancés (muscle-up, front lever, planche,
+> pistol, L-sit) **cochés à la main** (`state.skillsUnlocked`, +20 XP) → contourne le blocage « asset graphique ».
+> État `skillsUnlocked` dans normalizeState. Rendu `#skillTree` (barre + pastilles ✅/🎯/🔒/➕ cliquable). Test node +
+> smoke `skillTree` ; vérif navigateur (tap muscle-up → +20 XP). 591 tests + SMOKE OK. _Domaine : athlete._ Master ;
+> **reste 3/4 : surcharge gilet, objectif skill guidé, holds isométriques.**
+>
 > 🆙 **#700 — Standards de force : calisthénie + gilet lesté, plus AUCUNE barre (build 2.0.299).** Précision
 > d'Adrien : « TOUT l'onglet Athlète = poids du corps ou gilet lesté, je te l'avais dit ». `strengthStandards`
 > réécrit : **Tractions/Pompes/Dips uniquement** (squat/DC/SDT/DM supprimés), classés par reps (Débutant→Élite,

@@ -4508,6 +4508,26 @@ test('strengthStandards : force au poids du corps (reps) + gilet lesté (reps é
   assert.deepEqual(ss(null, 0), []);
   assert.deepEqual(ss([], 80), []);
 });
+
+test('calisthenicsProgress : arbre de progression (auto depuis les logs + skills manuels)', () => {
+  const cp = L.calisthenicsProgress;
+  const wo = [{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', sets: 5, reps: 12, load: 0 }, { name: 'Pompes classiques', reps: 32, load: 0, sets: 4 }, { name: 'Split squat bulgare', reps: 10, load: 0, sets: 3 }] }];
+  const p = cp(wo, { muscleup: true });
+  assert.equal(p.length, 4, '4 familles (tirage/poussée/jambes/gainage)');
+  const pull = p.find(f => f.family === 'pull');
+  const rung = id => pull.rungs.find(r => r.id === id);
+  assert.equal(rung('pull1').reached, true); assert.equal(rung('pull8').reached, true); assert.equal(rung('pull15').reached, false, '12 tractions → 8 oui, 15 non');
+  assert.equal(rung('muscleup').reached, true, 'skill manuel via unlocked');
+  assert.equal(pull.next.id, 'pull15', 'prochain = premier non atteint'); assert.equal(rung('pull15').current, true);
+  // Lest : tractions +12 kg valide le palier « lestées +10 kg »
+  assert.equal(cp([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', setLogs: [{ reps: 5, load: 12 }] }] }], {}).find(f => f.family === 'pull').rungs.find(r => r.id === 'pullW10').reached, true);
+  // Aucun log → structure stable, tout verrouillé, prochain = 1er palier
+  const empty = cp([], {});
+  assert.equal(empty.length, 4); assert.equal(empty[0].reachedCount, 0); assert.equal(empty[0].next.id, empty[0].rungs[0].id);
+  // Un `unlocked` sur un palier AUTO est ignoré (seuls les skills se cochent) — pas de crash
+  assert.equal(cp([], { pull1: true }).find(f => f.family === 'pull').rungs.find(r => r.id === 'pull1').reached, false);
+  assert.equal(cp(null).length, 4);
+});
 test('blockProgressText / shareableBlockProgress : progression de bloc partageable', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -6380,7 +6400,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.299');
+  assert.equal(L.CHANGELOG[0].v, '2.0.300');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

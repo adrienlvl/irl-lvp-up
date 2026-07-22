@@ -528,6 +528,13 @@ app.whenReady().then(async () => {
             && vest.length === 1 && vest[0].load === 20 && vest[0].effReps >= 13 && noBar.length === 0
             && strengthStandards([], 80).length === 0 && strengthStandards(null, 0).length === 0;
         })(),
+        skillTree: typeof calisthenicsProgress === 'function' && !!document.getElementById('skillTree') && (() => {
+          // arbre calisthénie : paliers auto depuis les logs + skills manuels ; 4 familles ; garde-fous ; sans regex
+          const p = calisthenicsProgress([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', sets: 5, reps: 12, load: 0 }] }], { muscleup: true });
+          const pull = p.find(f => f.family === 'pull');
+          return Array.isArray(p) && p.length === 4 && pull.rungs.find(r => r.id === 'pull8').reached === true && pull.rungs.find(r => r.id === 'muscleup').reached === true
+            && pull.next.id === 'pull15' && calisthenicsProgress([], {}).length === 4 && calisthenicsProgress(null).length === 4;
+        })(),
         coachForecast: typeof weightForecast === 'function' && typeof coachForecastSvg === 'function' && typeof weightForecastModel === 'function' && (() => { const f = weightForecast(80, 72, 0.48, 17, '2026-07-12'); const svg = coachForecastSvg(f, [{ date: '2026-07-05', value: 81 }, { date: '2026-07-12', value: 80 }]); if (!(f.length === 18 && f.at(-1).value === 72 && /cw-plan-line/.test(svg) && /cw-actual-line/.test(svg) && weightForecast(80, 72, 0, 17, '2026-07-12').length === 0)) return false; if (!/cw-chart/.test(svg) || !/cw-grid/.test(svg) || !/cw-yl/.test(svg)) return false; const m = weightForecastModel(f, [{ date: '2026-06-20', value: 91 }, { date: '2026-07-11', value: 90 }]); const ys = m.actual.map(p => p.y); return (Math.max(...ys) - Math.min(...ys)) > 15 && m.yTicks.length >= 2 && weightForecastModel(f, null).plan.length === 18; })(),
         weightMilestones: typeof weightMilestones === 'function' && typeof trackingCadenceAdvice === 'function' && (() => {
           const ms = weightMilestones({ current: 81, target: 75, ratePerWeek: 0.5, todayKey: '2026-07-15', everyWeeks: 2, maxSteps: 8 });
@@ -994,7 +1001,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.299'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.300'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2420,6 +2427,7 @@ app.whenReady().then(async () => {
     if (!checks.records) errors.push('Records perso absents (personalRecords/exerciseDetailNotes)');
     if (!checks.strengthRecords) errors.push('Palmarès de force KO (strengthRecords : séance legacy `w.exercise` doit compter dans le palmarès, comme personalRecords #440)');
     if (!checks.strengthStd) errors.push('Standards de force KO (strengthStandards : classement par ratio 1RM/PdC / #strengthStandards / garde-fous poids+données)');
+    if (!checks.skillTree) errors.push('Arbre calisthénie KO (calisthenicsProgress : 4 familles / paliers auto+skills / #skillTree)');
     if (!checks.progression) errors.push('Suggestion de progression KO (progressionSuggestion : séance legacy `w.exercise` doit être comptée, pas seulement `exercises[]`)');
     if (!checks.guidedTarget) errors.push('Séance guidée : progression incohérente (#guidedProgressionHint / #guidedTarget / guidedProgressionLines) — feu vert doit suivre la double progression sans « +0,5 kg », récup basse doit CONSOLIDER sans « monte la charge »');
     if (!checks.guidedFragileLive) errors.push('Séance guidée : la cible/le conseil ne suivent pas la récup LIVE (reprise avec récup devenue fragile → #guidedRecoveryNote « allège » mais #guidedTarget disait encore « monte la charge » car current.cautious gelé) — renderGuidedWorkout doit arbitrer sur le fragile recalculé');
