@@ -2697,7 +2697,10 @@ function mondayOf(date) { const x = new Date(date); const day = x.getDay() || 7;
 // restantes au lieu d'attendre lundi prochain. Renvoie [{date, weekday, dayIndex, week}] triés. Pur + testé.
 function weekProgramSchedule(days, todayKey, weeks) {
   const list = Array.isArray(days) ? days : [];
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || '')) || !list.length) return [];
+  // isRealDateKey (pas la simple regex format) : une date impossible (« 2026-13-40 ») ferait une
+  // Invalid Date → dateKey(mondayOf(...)).toISOString() jetterait une RangeError. Dernier maillon de
+  // la famille durcie en #668/#671 (bestWellnessWeek/bestTonnageWeek/weeklyAggregate).
+  if (!isRealDateKey(String(todayKey || '')) || !list.length) return [];
   const w = Math.max(1, Math.min(12, Math.round(Number(weeks) || 1)));
   const monday = mondayOf(new Date(todayKey + 'T12:00:00'));
   const out = [];

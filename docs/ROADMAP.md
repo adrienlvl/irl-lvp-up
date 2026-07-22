@@ -25,6 +25,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.278 (2026-07-22)
 
+> 🛡️ **#676 — `weekProgramSchedule` : garde durcie contre les dates impossibles (robustesse, pas de
+> bump).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers : `coach, docs,
+> docs, coach, robustesse` → `coach`+`docs` interdits ; `robustesse` **libre**, 1× en #671). Quota
+> §4 bis.4 non déclenché (#674 = proposition). Piste **nommée** en mémoire (« chercher les
+> `/^\d{4}-\d{2}-\d{2}$/` non gardés restants »). Balayage complet des
+> `dateKey(mondayOf(new Date(<chaîne>+'T…')))` : tous gardés par `isRealDateKey` **sauf un** —
+> `weekProgramSchedule` (`logic.js:2698`), resté sur la regex **faible**. PROUVÉ :
+> `weekProgramSchedule([{weekday:1}], '2026-13-40', 2)` jetait `RangeError: Invalid time value`
+> (Invalid Date → `dateKey().toISOString()`). Correctif : garde faible → `isRealDateKey`, **dernier
+> maillon** de la famille #668/#671. Honnêteté : la fonction n'est appelée qu'avec `localDate()`
+> (aujourd'hui réel) → crash **non atteignable** par une donnée utilisateur ; c'est un durcissement
+> défensif qui uniformise l'invariant, **pas** un crash vécu → **aucun effet utilisateur, pas de
+> bump**. +2 tests (`2026-13-40`/`2026-02-30` → `[]` sans crash). 580 tests + SMOKE OK. Recap #676.
+> _Domaine : robustesse._ **Lot 2.0.263→278 en attente de release (Adrien contrôle).**
+>
 > 🧠 **#675 — Coach focus (jours SERRÉS) : la note « carburant » côté énergie ne répète plus l'appel à
 > l'action (build 2.0.278).** Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers :
 > `docs, docs, coach, robustesse, docs`) → `docs` bloqué (2 derniers + 3×/5) ; **`coach` libre** (1× en

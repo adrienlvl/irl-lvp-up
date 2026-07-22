@@ -12417,6 +12417,10 @@ test('weekProgramSchedule : ancre le programme sur la SEMAINE EN COURS, saute le
   // Robustesse : entrées vides / date invalide → [].
   assert.deepEqual(L.weekProgramSchedule([], '2026-07-20', 4), []);
   assert.deepEqual(L.weekProgramSchedule(days, 'nope', 4), []);
+  // Date FORMAT-valide mais IMPOSSIBLE (mois 13, 30 février) : ne doit pas jeter de RangeError
+  // (Invalid Date → dateKey().toISOString()) — dernier maillon de la famille #668/#671.
+  assert.deepEqual(L.weekProgramSchedule(days, '2026-13-40', 2), [], 'mois impossible → [] sans crash');
+  assert.deepEqual(L.weekProgramSchedule(days, '2026-02-30', 1), [], '30 février → [] sans crash');
 });
 
 test('weightForecastModel : échelle Y priorise le RÉEL pour qu’il soit lisible', () => {
