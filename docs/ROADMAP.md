@@ -23,8 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.282 (2026-07-22)
+## 📍 État actuel — build 2.0.283 (2026-07-22)
 
+> 🏅 **#682 — Série de quêtes : « X/N jours parfait**s** » (accord sur le nom, pas sur le compte —
+> build 2.0.283).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers :
+> `coach, etudes, robustesse, coach, etudes` → `coach`+`etudes` interdits 2 derniers + 2×/5 ;
+> **`robustesse` libre**, 1× en #679, hors 2 derniers). Quota §4 bis.4 non déclenché (#674 =
+> proposition). Chasse d'un défaut frais **non-gaté** (sous-agent Explore ; zones gatées
+> nutrition/athlete/alternance/coach/etudes écartées) → périmètre frais très propre, **une seule**
+> anomalie à effet réel. PROUVÉ : dans `renderDashboardCore` (`app.js:598`), la ligne « X/N jours
+> parfait[s] · % » accordait le **nom** « jour » sur `loggedDays` mais l'**adjectif** « parfait »
+> sur `perfectDays` → dès `perfectDays ≤ 1 < loggedDays` (le cas courant), « 1/3 jours **parfait** »
+> au lieu de « parfait**s** ». La ligne jumelle « N journées parfaites d'affilée » juste au-dessus
+> était déjà correcte. Correctif chirurgical : l'adjectif s'accorde sur `loggedDays` (le nom qu'il
+> qualifie). Check smoke **bloquant** `questStreakPlural` : pilote le **vrai** rendu (state forgé →
+> `loggedDays=3, perfectDays=1`), assert `includes('3 jours parfaits')` (échoue avant / passe après,
+> sans backslash §6). Effet visible → **bump 2.0.283**. 583 tests + SMOKE OK. Recap #682.
+> _Domaine : robustesse._ **Lot 2.0.263→283 en attente de release (Adrien contrôle).**
+>
 > 🍎 **#681 — Coach nutrition : l'action ne redit plus « et un fruit/légume » quand `fruitGuard` l'a
 > déjà dit (build 2.0.282).** Priorité nuit = coaching, traité en QUALITÉ/curation (§3). Rotation §4 bis
 > (5 derniers : `etudes, robustesse, coach, etudes, robustesse`) → `etudes`+`robustesse` interdits

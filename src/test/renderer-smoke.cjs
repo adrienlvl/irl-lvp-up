@@ -189,6 +189,16 @@ app.whenReady().then(async () => {
         recentWins: typeof recentWins === 'function' && !!document.getElementById('recentWins') && (() => { const r = recentWins([{ date: '2026-07-08', win: 'A' }, { date: '2026-07-09', win: 'B' }, { date: '2026-07-10', win: 'Aujourdhui' }, { date: '2026-07-07', win: '  ' }], '2026-07-10'); return r.length === 2 && r[0].win === 'B' && r[0].daysAgo === 1 && recentWins(null, '2026-07-10').length === 0; })(),
         lifeStep: typeof logLifeStep === 'function' && typeof lifeStepStats === 'function' && !!document.getElementById('lifeStepStats') && (() => { let lg = []; lg = logLifeStep(lg, { date: '2026-07-08', text: 'Appeler', done: true }); lg = logLifeStep(lg, { date: '2026-07-09', text: 'Ranger', done: true }); lg = logLifeStep(lg, { date: '2026-07-10', text: '', done: false }); const s = lifeStepStats(lg, '2026-07-10', { date: '2026-07-10', text: 'Trier', done: true }); const p = lifeStepStats(lg, '2026-07-10', { date: '2026-07-10', text: 'Trier', done: false }); const dup = lifeStepStats([{ date: '2026-07-08', text: 'Ranger', done: true }, { date: '2026-07-08', text: 'Ranger', done: false }, { date: '2026-07-09', text: 'Trier', done: true }], '2026-07-10', null); return lg.length === 2 && s.streak === 3 && s.doneDays === 3 && s.lastDone.daysAgo === 0 && p.streak === 2 && dup.loggedDays === 2 && dup.doneDays === 1 && lifeStepStats([], '2026-07-10', null).loggedDays === 0; })(),
         questStreak: typeof logQuestDay === 'function' && typeof questPerfectStreak === 'function' && !!document.getElementById('questStreak') && (() => { let lg = []; lg = logQuestDay(lg, '2026-07-08', 3, 3); lg = logQuestDay(lg, '2026-07-09', 3, 3); const s = questPerfectStreak(lg, '2026-07-10', 4, 4); const p = questPerfectStreak(lg, '2026-07-10', 1, 4); const dup = questPerfectStreak([{ date: '2026-07-08', done: 3, total: 3 }, { date: '2026-07-08', done: 1, total: 3 }, { date: '2026-07-06', done: 4, total: 4 }], '2026-07-10', 0, 0); return lg.length === 2 && s.streak === 3 && s.perfectDays === 3 && p.streak === 2 && dup.loggedDays === 2 && dup.perfectDays === 1 && questPerfectStreak([], '2026-07-10', 0, 0).streak === 0; })(),
+        questStreakPlural: typeof renderDashboardCore === 'function' && !!document.getElementById('questStreak') && (() => {
+          const savedQ = state.quests, savedLog = state.questLog;
+          state.quests = [{ id: 1, name: 'a', category: 'sante', xp: 10, done: true }, { id: 2, name: 'b', category: 'sante', xp: 10, done: false }, { id: 3, name: 'c', category: 'sante', xp: 10, done: false }];
+          state.questLog = [{ date: '2020-01-01', done: 2, total: 3 }, { date: '2020-01-02', done: 3, total: 3 }];
+          renderDashboardCore();
+          const txt = (document.getElementById('questStreak').textContent || '');
+          state.quests = savedQ; state.questLog = savedLog;
+          renderDashboardCore();
+          return txt.includes('3 jours parfaits');
+        })(),
         questPerfectCelebrate: typeof celebrateQuestsIfPerfect === 'function' && typeof showFlashToast === 'function' && (() => {
           const savedQ = state.quests;
           state.quests = [{ id: 1, done: true }, { id: 2, done: true }];
@@ -906,7 +916,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.282'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.283'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2423,6 +2433,7 @@ app.whenReady().then(async () => {
     if (!checks.alternance) errors.push('Module Alternance KO (applicationStats/normalizeApplication/onglet/flux « J\'ai postulé »)');
     if (!checks.coachAdherence) errors.push('Adhérence hebdo KO (weeklyAdherence : score, ou compte des ENTRÉES au lieu des JOURS distincts sur date en double)');
     if (!checks.questStreak) errors.push('Série quêtes parfaites KO (questPerfectStreak : perfectDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
+    if (!checks.questStreakPlural) errors.push('Accord série quêtes KO (« X/N jours parfait[s] » : l\'adjectif doit s\'accorder sur loggedDays, pas sur perfectDays)');
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
     if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
