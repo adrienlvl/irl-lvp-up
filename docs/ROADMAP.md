@@ -23,8 +23,26 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.279 (2026-07-22)
+## 📍 État actuel — build 2.0.280 (2026-07-22)
 
+> 🛡️ **#679 — Séance guidée : le mot-clé `traction` ancré en début de mot ne capture plus
+> « con·traction·s » (build 2.0.280).** Priorité nuit = coaching, **bloquée par la rotation §4 bis**
+> (5 derniers : `coach, etudes, robustesse, coach, docs` → `coach`/`etudes` interdits ; `robustesse`
+> **libre**, 1× en #676). Quota §4 bis.4 non déclenché (#674 = proposition). Tâche prise par son nom :
+> ROADMAP « TA MISSION CETTE NUIT » **P1 — robustesse des classificateurs FR non ancrés** (zones
+> Alternance #663 / coach / études écartées). PROUVÉ : `warmupFor`/`prehabFor`/`cooldownFor`
+> (`logic.js:2221`/2237/2250) devinent le type de séance depuis les mots du **titre éditable**
+> (`startGuidedFromNames(item.title…)`, `app.js:445/866/961`) ; leur motif « haut du corps »
+> `/…|traction|…/` **non ancré** matchait à l'intérieur de « con**traction**s » → un titre « Gainage &
+> contractions abdos » recevait l'échauffement, la **prévention épaule (coiffe des rotateurs)** ET le
+> retour au calme du **haut du corps**, pour une séance d'**abdos**. Correctif : `traction` → `\btraction`
+> (bord de mot à gauche) dans les 3 motifs identiques → « **Tractions** » (pull-ups) reste haut du corps,
+> « contractions » retombe en séance générale. Portée tenue : `poussée`/`longue` **non touchés** (défauts
+> de sémantique, pas d'ancrage → l'ancrer ne les corrigerait pas). +6 assertions (2/fonction, échouent
+> avant / passent après ; non-régression « Tractions » conservée). Effet visible → **bump 2.0.280**.
+> 581 tests + SMOKE OK. Recap #679. _Domaine : robustesse._ **Lot 2.0.263→280 en attente de release
+> (Adrien contrôle).**
+>
 > 😮‍💨 **#678 — Coach focus (jours À PLAT) : le driver « ce qui te plombe la tête » ne répète plus
 > l'appel à l'action (build 2.0.279).** Priorité nuit = coaching en QUALITÉ (§3 curation). Rotation
 > §4 bis (5 derniers : `etudes, robustesse, coach, docs, docs`) → `etudes`+`robustesse` (2 derniers)

@@ -3230,6 +3230,10 @@ test('warmupFor : échauffement adapté au type de séance', () => {
   assert.match(L.warmupFor('Floor press kettlebell').label, /haut du corps/i);
   // `cuisse` + `bas du corps` ajoutés : la séance GÉNÉRÉE « Bas du corps » a enfin son échauffement dédié
   assert.match(L.warmupFor('Bas du corps').label, /bas du corps/i);
+  // `traction` → `\btraction` : « contractions » (abdos/gainage) ne matche plus con·traction·s…
+  assert.match(L.warmupFor('Gainage & contractions abdos').label, /général/i);
+  // …mais « Tractions » (pull-ups, bord de mot à gauche) reste bien haut du corps
+  assert.match(L.warmupFor('Tractions lestées').label, /haut du corps/i);
 });
 
 test('cooldownFor : retour au calme adapté au type de séance', () => {
@@ -3246,6 +3250,9 @@ test('cooldownFor : retour au calme adapté au type de séance', () => {
   assert.match(L.cooldownFor('Presse à cuisses').label, /bas du corps/i);
   assert.match(L.cooldownFor('Floor press kettlebell').label, /haut du corps/i);
   assert.match(L.cooldownFor('Bas du corps').label, /bas du corps/i);
+  // `traction` borné : « contractions » (abdos) ne bascule plus en haut du corps, « Tractions » si
+  assert.match(L.cooldownFor('Gainage & contractions abdos').label, /général/i);
+  assert.match(L.cooldownFor('Tractions lestées').label, /haut du corps/i);
 });
 test('prehabFor : prévention/prehab niveau kiné, ciblée par zone (Lauersen 2014)', () => {
   const bas = L.prehabFor('B · Jambes & chaîne postérieure');
@@ -3258,6 +3265,10 @@ test('prehabFor : prévention/prehab niveau kiné, ciblée par zone (Lauersen 20
   assert.match(JSON.stringify(trail.moves), /mollet|proprioception|équilibre/i, 'coureur : mollets/proprio');
   const def = L.prehabFor('Séance inconnue');
   assert.ok(def.moves.length >= 3 && /gainage|planche|bird/i.test(JSON.stringify(def.moves)));
+  // `traction` borné : une séance d'abdos (« contractions ») ne reçoit plus la prévention ÉPAULE (coiffe)…
+  assert.doesNotMatch(JSON.stringify(L.prehabFor('Gainage & contractions abdos')), /coiffe|face pull/i);
+  // …mais « Tractions » (pull-ups) garde bien la prévention coiffe des rotateurs
+  assert.match(JSON.stringify(L.prehabFor('Tractions lestées')), /coiffe|face pull/i);
 });
 
 test('volumeRamp : cas d’Adrien (15→50 km en 8 sem) = trop rapide, honnête', () => {
@@ -6209,7 +6220,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.279');
+  assert.equal(L.CHANGELOG[0].v, '2.0.280');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
