@@ -25,6 +25,21 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.277 (2026-07-22)
 
+> 📷 **#674 — Proposition : Scan frigo / assiette (CAP 3.0 chantier 6, docs, pas de bump).** Priorité nuit
+> = coaching, **bloquée par la rotation** (5 derniers : `docs, coach, robustesse, docs, coach` → `coach`
+> 2 derniers + 2×/5, `docs` 2×/5). Surtout : **quota de propositions §4 bis.4 DÉCLENCHÉ** — les 10 derniers
+> recaps (664→673) ne contiennent aucune nouvelle proposition (`ls docs/proposals/` inchangé depuis #663),
+> donc l'itération **DOIT** être une proposition (première fois que le quota mord). Manque prouvé : le
+> **scan frigo est le seul chantier Cap 3.0 sans design doc** (`ROADMAP:22`), et le code porte déjà la
+> promesse (`index.html:177` « viendra plus tard ») + `SECURITE-RESEAU-S8.md:34` exige une décision de vie
+> privée **avant** tout code. `docs/proposals/scan-frigo-assiette.md` cadre le nœud (la reconnaissance
+> casse soit « 100 % local » — API cloud, photo sort + CSP web relâchée — soit « zéro dép » — modèle
+> on-device multi-Mo ; **et** les deux ratent la quantité). Options A cloud / B on-device / **C code-barres
+> `BarcodeDetector` on-device + confirmation CIQUAL** / D capture assistée / E rien. Reco : **E maintenant ;
+> C comme premier pas sûr (étapes autonomes façon P6) ; A/B seulement sur décision de vie privée explicite,
+> supervisée.** 5 décisions attendent Adrien. Zéro code, zéro dép, zéro réseau (§3). 580 tests + SMOKE OK.
+> Recap #674. _Domaine : docs._ **Lot 2.0.263→277 en attente de release (Adrien contrôle).**
+>
 > 📄 **#673 — `nextFreeSlot` : le commentaire ne promet plus un « défaut » fantôme (docs, pas de bump).**
 > Priorité nuit = coaching, **bloquée par la rotation** (5 derniers : `coach, robustesse, docs, coach,
 > robustesse` → `coach` interdit 2 derniers + 2×/5, `robustesse` 2×/5). Backlog nommé P1→P7 clos. Chasse

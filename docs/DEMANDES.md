@@ -92,6 +92,14 @@
     façon P6 (B.1 logique pure testée → B.2 UI + smoke → B.3 affinage). ⏳ **5 décisions t'attendent**
     en fin de doc (périmètre A/B/C · modèle d'espacement · source des matières · charge/jour · mode de
     réalisation). Dès ton feu vert sur le périmètre, B.1 (le modèle pur) peut démarrer en autonomie.
+  - **Chantier 6 — Scan frigo / assiette (le dernier chantier Cap 3.0, désormais cadré).** Boucle #674
+    (2026-07-22) : `docs/proposals/scan-frigo-assiette.md` — c'était le **seul** chantier Cap 3.0 sans
+    design doc. Le nœud prouvé : la reconnaissance d'aliments casse soit « 100 % local » (API cloud → la
+    photo sort + CSP web relâchée), soit « zéro dépendance » (modèle on-device multi-Mo) — **et** les deux
+    ratent l'estimation de quantité. Reco : **E** (ne rien faire maintenant, garder le placeholder honnête)
+    / **C** (code-barres `BarcodeDetector` on-device + confirmation CIQUAL : zéro dép, zéro cloud, réalisable
+    en étapes autonomes) comme premier pas sûr / **A/B** seulement sur décision de vie privée explicite, en
+    session supervisée. ⏳ **5 décisions t'attendent** en fin de doc.
   - **Chantier 4 — Sync multi-appareils (cœur de la 3.0).** Boucle #581 (2026-07-20) :
     `docs/proposals/sync-multi-appareils.md` — PC ↔ iPhone sans export/import manuel. 2 axes à trancher :
     **granularité de fusion** (blob « dernier gagne » vs **par enregistrement horodaté**, seul à ne pas
