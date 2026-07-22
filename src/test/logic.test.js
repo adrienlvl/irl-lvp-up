@@ -667,17 +667,8 @@ test('normalizeTodo : défauts, texte borné, priorité validée', () => {
   assert.equal(L.normalizeTodo({ id: 11, text: 'x', done: true, doneAt: '2026-13-99' }).doneAt, null, 'doneAt impossible → null');
 });
 
-test('isBoundedDateKey : accepte une date réelle, rejette format-valide mais impossible', () => {
-  assert.equal(L.isBoundedDateKey('2026-07-17'), true);
-  assert.equal(L.isBoundedDateKey('2024-02-29'), true, 'bornes larges mois 1-12 / jour 1-31 (comme jobDateFromText)');
-  assert.equal(L.isBoundedDateKey('2026-13-99'), false, 'mois 13 / jour 99');
-  assert.equal(L.isBoundedDateKey('2026-00-10'), false, 'mois 00');
-  assert.equal(L.isBoundedDateKey('2026-07-00'), false, 'jour 00');
-  assert.equal(L.isBoundedDateKey('pas-une-date'), false);
-  assert.equal(L.isBoundedDateKey(''), false);
-  assert.equal(L.isBoundedDateKey(20260717), false, 'non-string → false');
-  assert.equal(L.isBoundedDateKey(null), false);
-});
+// isBoundedDateKey RETIRÉE (#694 option B : une seule garde de date canonique = isRealDateKey).
+// Ses cas (bornes mois/jour, non-string) sont désormais couverts, en plus strict, par le test isRealDateKey ci-dessous.
 
 test('isRealDateKey : exige une date calendaire réelle (round-trip), rejette les jours impossibles', () => {
   assert.equal(L.isRealDateKey('2026-07-17'), true);
@@ -693,8 +684,24 @@ test('isRealDateKey : exige une date calendaire réelle (round-trip), rejette le
   assert.equal(L.isRealDateKey('pas-une-date'), false);
   assert.equal(L.isRealDateKey(20260717), false, 'non-string → false');
   assert.equal(L.isRealDateKey(null), false);
-  // plus strict que isBoundedDateKey (qui borne seulement mois≤12 / jour≤31)
-  assert.equal(L.isBoundedDateKey('2026-04-31'), true, 'témoin : isBoundedDateKey laisse passer 31 avr.');
+  assert.equal(typeof L.isBoundedDateKey, 'undefined', '#694 option B : isBoundedDateKey retirée du module');
+});
+
+test('#694 option B : garde isRealDateKey à TOUS les points d’ingestion (dates impossibles neutralisées)', () => {
+  // Études : une épreuve à date impossible n’affiche plus un compte à rebours FAUX (date vidée à l’ingestion)
+  assert.equal(L.normalizeExamGoal({ title: 'BTS', date: '2026-02-30' }).date, '', 'exam 30 févr. → date vidée');
+  assert.equal(L.normalizeExamGoal({ title: 'BTS', date: '2024-02-29' }).date, '2024-02-29', 'exam 29 févr. bissextile RÉEL conservé');
+  assert.equal(L.normalizeExamGoal({ title: 'BTS', date: '2026-07-17' }).date, '2026-07-17');
+  // To-do : date + doneAt format-valides mais impossibles → neutralisés (avant : isBoundedDateKey les gardait)
+  assert.equal(L.normalizeTodo({ text: 'x', date: '2026-04-31' }).date, '', 'todo 31 avr. → date vide');
+  assert.equal(L.normalizeTodo({ text: 'x', date: '2026-07-06', doneAt: '2026-06-31' }).doneAt, null, 'todo doneAt 31 juin → null');
+  assert.equal(L.normalizeTodo({ text: 'x', date: '2026-07-06' }).date, '2026-07-06');
+  // Agenda : date impossible → vidée
+  assert.equal(L.normalizeAgendaItem({ title: 'x', date: '2026-02-30', kind: 'life' }).date, '', 'agenda 30 févr. → vide');
+  assert.equal(L.normalizeAgendaItem({ title: 'x', date: '2026-07-17', kind: 'life' }).date, '2026-07-17');
+  // Import Grand-Livre-Compta : un jour impossible n’injecte plus un event d’étude FANTÔME dans l’agenda
+  const glc = L.glcPlanningToEvents({ version: 1, source: 'legl.compta.v2', days: [{ date: '2026-02-30', due: 2 }, { date: '2026-07-20', due: 1 }] });
+  assert.deepEqual(glc.map(e => e.date), ['2026-07-20'], 'GLC : 30 févr. sauté, 20 juil. conservé');
 });
 
 test('todosForDay : actives (jour + en retard) triées, faites du jour séparées', () => {
@@ -6320,7 +6327,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.294');
+  assert.equal(L.CHANGELOG[0].v, '2.0.295');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

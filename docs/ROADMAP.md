@@ -23,8 +23,18 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.294 (2026-07-22)
+## 📍 État actuel — build 2.0.295 (2026-07-22)
 
+> 🛡️ **#696 — Dates impossibles : garde d'ingestion UNIQUE (proposition #694, option B) (build 2.0.295).**
+> **Adrien a tranché #694 → option B** (uniformisation totale, pas l'option A reco par le VPS). Retrait de
+> `isBoundedDateKey` (bornes seules) + export + test dédié ; **tous les points d'ingestion passent à
+> `isRealDateKey`** (date calendaire réelle) : `normalizeTodo` (date+doneAt), `normalizeAgendaItem`,
+> `normalizeExamGoal` (site prouvé FAUX : « 2026-02-30 » donnait un compte à rebours décalé de 2 j via
+> `daysUntil`), `glcPlanningToEvents` (plus de jour d'étude fantôme injecté). Une date impossible est vidée à
+> l'entrée (décision #2 = « vider », défaut simple) ; 29 févr. bissextile conservé. Nouveau test dédié
+> (4 sites + retrait vérifié) ; test `isBoundedDateKey` supprimé. **589 tests + SMOKE OK.** _Domaine :
+> robustesse._ Master ; ira dans la prochaine release avec #695.
+>
 > 🎯 **#695 — Import Alternance : 5 correctifs sûrs du classifieur (proposition #663 option A) (build 2.0.294).**
 > Session LOCALE après l'audit de nuit. **Adrien a tranché #663 → option A.** Priorité : le bug qui corrompait le
 > **funnel #662** (un refus affiché « Accepté 🎉 »). Corrigés (chacun testé, échoue-avant/passe-après) : **#1**
