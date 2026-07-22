@@ -1172,18 +1172,41 @@ function parseIcs(text, opts) {
           const diff = Math.round((cur.end.ms - cur.start.ms) / 60000);
           if (diff > 0) durationMin = Math.min(1440, diff);
         }
-        events.push({
-          id: idBase + events.length,
-          title: cur.summary || 'Événement',
-          date: cur.start.date,
-          time: cur.start.allDay ? '' : cur.start.time,
-          durationMin,
-          kind,
-          source: 'imported',
-          refId: 'ics-' + (cur.uid || `${cur.start.date}-${cur.start.time}-${cur.summary || ''}`),
-          allDay: !!cur.start.allDay,
-          recurrence: cur.rrule ? parseRRule(cur.rrule, cur.start.date) : null,
-          completed: false
+        // Séjour « journée entière » sur plusieurs jours (vacances, salon, congés) : en RFC 5545 le
+        // DTEND d'un événement VALUE=DATE est EXCLUSIF (le lendemain du dernier jour). Sans expansion,
+        // parseIcs n'émettait que le jour de DTSTART → un séjour de 5 jours n'apparaissait qu'au 1er.
+        // On déplie une occurrence PAR jour couvert. Le jour 1 GARDE le refId de base ('ics-<uid>') pour
+        // remplacer proprement un import antérieur (pas de doublon de migration) ; les jours suivants
+        // suffixent la date → réimport idempotent via mergePlannedEvents. Uniquement pour les all-day
+        // NON récurrents (timed/recurring → comportement inchangé, jamais pire).
+        let dates = [cur.start.date];
+        if (cur.start.allDay && !cur.rrule && cur.end && cur.end.allDay && cur.end.ms != null && cur.start.ms != null) {
+          const spanDays = Math.round((cur.end.ms - cur.start.ms) / 86400000);
+          if (spanDays > 1 && spanDays <= 400) {
+            dates = [];
+            const pad = n => String(n).padStart(2, '0');
+            const d = new Date(cur.start.ms); // ms = minuit UTC pour un all-day → getUTC* fidèle
+            for (let i = 0; i < spanDays; i++) {
+              dates.push(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`);
+              d.setUTCDate(d.getUTCDate() + 1);
+            }
+          }
+        }
+        const baseRef = 'ics-' + (cur.uid || `${cur.start.date}-${cur.start.time}-${cur.summary || ''}`);
+        dates.forEach((dk, di) => {
+          events.push({
+            id: idBase + events.length,
+            title: cur.summary || 'Événement',
+            date: dk,
+            time: cur.start.allDay ? '' : cur.start.time,
+            durationMin,
+            kind,
+            source: 'imported',
+            refId: di === 0 ? baseRef : `${baseRef}-${dk}`,
+            allDay: !!cur.start.allDay,
+            recurrence: cur.rrule ? parseRRule(cur.rrule, cur.start.date) : null,
+            completed: false
+          });
         });
       }
       cur = null; continue;
@@ -3207,6 +3230,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.287', emoji: '📅', text: 'Import d’agenda .ics : un séjour sur plusieurs jours apparaît maintenant chaque jour, plus seulement le premier. Quand tu importes un calendrier Google ou Apple contenant un événement « journée entière » qui s’étale (vacances, salon, congés, déplacement de 3 jours…), il ne s’affichait jusqu’ici que le jour de début — les jours suivants disparaissaient. Désormais l’import déplie le séjour en une occurrence par jour couvert (en respectant la règle iCalendar où la date de fin est exclusive), et un réimport ne crée aucun doublon. Les événements horaires qui passent minuit et les événements récurrents gardent exactement leur comportement d’avant.' },
   { v: '2.0.286', emoji: '📋', text: 'Encore un accord d’adjectif remis d’équerre, cette fois dans « Aujourd’hui ». Le résumé de ta journée disait « 1/3 blocs du jour terminé » : le nom « blocs » passait bien au pluriel sur le total, mais l’adjectif « terminé » se calait par erreur sur le nombre de blocs déjà faits — donc dès que tu avais 0 ou 1 bloc terminé sur plusieurs prévus (le cas courant), il restait au singulier alors que « blocs » était au pluriel juste avant. Désormais « terminé » s’accorde sur le nom qu’il qualifie : toujours « blocs du jour terminés » au pluriel quand il y a plus d’un bloc dans la journée.' },
   { v: '2.0.285', emoji: '😴', text: 'Sur la carte « Le focus du moment », le titre de ton bilan sommeil ne contredit plus ce qu’il dit juste en dessous. Quand le coach choisit le sommeil, il remplace son diagnostic générique par ton vrai verdict chiffré (moyenne d’heures, dette, régularité) — mais le TITRE, lui, restait calé sur un tout autre indicateur : le nombre de nuits renseignées cette semaine par rapport à la précédente. Deux mesures différentes qui pouvaient se contredire dans la même carte : « Ton sommeil s’essouffle » posé au-dessus de « Sommeil solide, rythme régulier », ou « Ton sommeil monte en régime » au-dessus de « Sommeil court, dette de 9 h ». Désormais le titre suit le même verdict que le diagnostic : « Ton sommeil tient la route » quand il est solide, « Ton sommeil mérite un coup de pouce » quand il est court ou irrégulier, « Ton sommeil déraille — priorité ce soir » quand c’est urgent. Titre et diagnostic disent enfin la même chose.' },
   { v: '2.0.284', emoji: '🎓', text: 'Même petit soin d’accord, cette fois sur tes révisions. Deux lignes disaient « 1/3 révisions faite » et « 1/3 révisions validée » : le nom « révisions » se mettait bien au pluriel sur le total, mais l’adjectif (« faite » / « validée ») se calait par erreur sur le nombre déjà fait — donc dès que tu avais 0 ou 1 révision faite sur plusieurs prévues (le cas courant), il restait au singulier. C’est le badge « 📖 X/N révisions faites » sous le planning de révision, et la ligne du bilan hebdo imprimé. Désormais l’adjectif s’accorde sur le nom qu’il qualifie : toujours « révisions faites » / « révisions validées » au pluriel quand il y a plus d’une révision prévue.' },

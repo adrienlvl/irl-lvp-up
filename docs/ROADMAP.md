@@ -23,8 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.286 (2026-07-22)
+## 📍 État actuel — build 2.0.287 (2026-07-22)
 
+> 📅 **#686 — Import .ics : un séjour « journée entière » multi-jours apparaît chaque jour (build
+> 2.0.287).** Priorité #1 de la nuit du 22/07 (« parseurs CSV/**ICS** »), domaine **`agenda`** (libre :
+> 5 derniers = `robustesse, coach, etudes, robustesse, coach` → `robustesse`+`coach` interdits ; `agenda`
+> 0×). Quota §4 bis.4 : strictement, 676→685 sans proposition (dernière #674 en position 11-12) — mais son
+> objet littéral (proposition ROADMAP **P1**) est **épuisé** (6/6 écrites+tranchées) et la mission datée
+> de la nuit (PRIME) interdit d'implémenter les propositions en attente et dirige vers du **code non-visuel
+> prouvé par test node** → j'ai livré le correctif prouvé, tension documentée dans le recap. PROUVÉ :
+> `parseIcs` (`logic.js:1159`) n'émettait qu'**un** événement (jour de `DTSTART`) pour un VEVENT all-day
+> multi-jours, alors que le `DTEND` d'un `VALUE=DATE` est **exclusif** (RFC 5545) → un séjour de 5 jours
+> (vacances/salon/congés) n'apparaissait qu'au 1er jour à l'import Google/Apple. Correctif : dépliage en
+> **une occurrence par jour couvert** (all-day non récurrent seulement ; horaires overnight + récurrents
+> **inchangés**). Le **jour 1 garde le refId de base** `ics-<uid>` (remplace un import antérieur, zéro
+> doublon de migration) ; jours suivants suffixés par la date → **réimport idempotent**. +2 tests node
+> (échouent avant/passent après) + non-régression all-day simple/récurrent/overnight. Effet visible →
+> **bump 2.0.287**. 586 tests + SMOKE OK. Recap #686. _Domaine : agenda._ **Lot 2.0.263→287 en attente
+> de release (Adrien contrôle).**
+>
 > 📋 **#685 — « Ma journée » : « X/N blocs du jour terminé**s** » (accord sur le nom, pas sur le
 > compte — build 2.0.286).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers :
 > `coach, etudes, robustesse, coach, etudes` → `coach`+`etudes` interdits 2 derniers + 2×/5 ;

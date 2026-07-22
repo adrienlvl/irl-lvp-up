@@ -315,6 +315,36 @@ test('parseIcs : journée entière (VALUE=DATE) → time vide, allDay true', () 
   assert.equal(ev[0].date, '2026-07-12');
 });
 
+test('parseIcs : séjour « journée entière » multi-jours → une occurrence par jour (DTEND exclusif)', () => {
+  // RFC 5545 : DTEND d'un VALUE=DATE est EXCLUSIF → 01→05 janv. couvre 4 jours (01,02,03,04).
+  const ics = 'BEGIN:VEVENT\r\nUID:trip1\r\nSUMMARY:Vacances\r\nDTSTART;VALUE=DATE:20260101\r\nDTEND;VALUE=DATE:20260105\r\nEND:VEVENT';
+  const ev = L.parseIcs(ics, { baseId: 1 });
+  assert.equal(ev.length, 4, 'un événement par jour couvert');
+  assert.deepEqual(ev.map(e => e.date), ['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04']);
+  assert.ok(ev.every(e => e.allDay === true && e.time === ''), 'chaque jour reste all-day');
+  // Le jour 1 garde le refId de base ('ics-<uid>') ; les suivants sont suffixés par la date.
+  assert.equal(ev[0].refId, 'ics-trip1');
+  assert.deepEqual(ev.slice(1).map(e => e.refId), ['ics-trip1-2026-01-02', 'ics-trip1-2026-01-03', 'ics-trip1-2026-01-04']);
+  // Réimport idempotent : mêmes refId → mergePlannedEvents ne duplique aucun jour.
+  const merged = L.mergePlannedEvents(L.mergePlannedEvents([], ev), L.parseIcs(ics, { baseId: 999 }));
+  assert.equal(merged.filter(a => a.refId && a.refId.startsWith('ics-trip1')).length, 4);
+});
+
+test('parseIcs : un all-day multi-jours RÉCURRENT ou un timing overnight ne sont PAS dépliés', () => {
+  // Récurrent (RRULE) → une seule occurrence source, la récurrence fait le reste (inchangé).
+  const rec = 'BEGIN:VEVENT\r\nUID:r1\r\nSUMMARY:Festival\r\nDTSTART;VALUE=DATE:20260101\r\nDTEND;VALUE=DATE:20260104\r\nRRULE:FREQ=YEARLY\r\nEND:VEVENT';
+  const r = L.parseIcs(rec);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].date, '2026-01-01');
+  assert.ok(r[0].recurrence, 'la règle de récurrence est conservée');
+  // Événement HORAIRE qui passe minuit → un seul bloc daté avec durée, pas une expansion par jour.
+  const overnight = 'BEGIN:VEVENT\r\nUID:o1\r\nSUMMARY:Garde de nuit\r\nDTSTART:20260101T220000\r\nDTEND:20260102T060000\r\nEND:VEVENT';
+  const o = L.parseIcs(overnight);
+  assert.equal(o.length, 1);
+  assert.equal(o[0].date, '2026-01-01');
+  assert.equal(o[0].durationMin, 480);
+});
+
 test('parseIcs : dépliage des lignes + déséchappement + réimport idempotent', () => {
   // ligne repliée (SUMMARY sur 2 lignes) et virgule échappée
   const ics = 'BEGIN:VEVENT\r\nUID:x9\r\nSUMMARY:Courses\\, pharmacie et\r\n  banque\r\nDTSTART:20260711T100000\r\nEND:VEVENT';
@@ -6249,7 +6279,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.286');
+  assert.equal(L.CHANGELOG[0].v, '2.0.287');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
