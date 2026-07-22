@@ -6285,7 +6285,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.288');
+  assert.equal(L.CHANGELOG[0].v, '2.0.289');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -9850,6 +9850,7 @@ test('adaptiveCoachFocus : prendre de l’avance côté sport (sessionGoalAhead)
   assert.match(ahead.insight, /ton corps est au vert ce matin \(readiness 100\/100\)/);
   assert.match(ahead.insight, /engranger une séance d’avance/);
   assert.match(ahead.insight, /coussin qui met l’objectif à l’abri/);
+  assert.ok(!/rien ne t’oblige à t’entraîner/.test(ahead.insight)); // #689 : clause de dispense retirée (tous tons)
   // Forme MOYENNE le même jour large (6/3/3 → 60) → aucune invitation (au vert seulement).
   const mid = L.adaptiveCoachFocus({
     goals: { sessions: 4 }, workouts: [{ date: '2026-07-13' }],
@@ -9880,6 +9881,30 @@ test('adaptiveCoachFocus : prendre de l’avance côté sport (sessionGoalAhead)
   assert.equal(tight.sessionGoalPace, 'tight');
   assert.equal(tight.sessionGoalAhead, null);
   assert.ok(!/engranger une séance d’avance/.test(tight.insight));
+});
+
+test('adaptiveCoachFocus : sessionGoalAhead sans clause de dispense contradictoire en ton revive (#689)', () => {
+  // Sport DORMANT (dernière séance le 06-20, > 13 j avant le lundi 07-13) → pilier choisi en ton
+  // « revive » (headline « Reprends l'entraînement », insight « le bon moment pour relancer »). Objectif
+  // 2 séances, 0 cette semaine calendaire × lundi → allure LARGE (onpace). Check-in du jour AU VERT
+  // (8/1/1 → 100) → sessionGoalAhead fire. AVANT #689, le MÊME insight portait « rien ne t'oblige à
+  // t'entraîner aujourd'hui » juste sous « relance dès aujourd'hui » : contradiction frontale (l'un
+  // ordonne de reprendre, l'autre en dispense). La clause de dispense est retirée ; l'invitation
+  // « engranger une séance d'avance », cohérente dans tous les tons (comme la sœur focusGoalAhead),
+  // subsiste.
+  const revive = L.adaptiveCoachFocus({
+    goals: { sessions: 2 }, workouts: [{ date: '2026-06-20' }],
+    recovery: [{ date: '2026-07-13', sleep: 8, fatigue: 1, soreness: 1 }],
+  }, '2026-07-13');
+  assert.equal(revive.pillar, 'sport');
+  assert.equal(revive.tone, 'revive');
+  assert.match(revive.headline, /Reprends l’entraînement/);
+  assert.match(revive.insight, /le bon moment pour relancer/);
+  assert.equal(revive.sessionGoalPace, 'onpace');
+  assert.equal(revive.sessionGoalAhead, 100);
+  assert.match(revive.insight, /engranger une séance d’avance/);
+  // Le cœur du fix : plus AUCUNE dispense « rien ne t'oblige à t'entraîner » collée au « relance ».
+  assert.ok(!/rien ne t’oblige à t’entraîner/.test(revive.insight));
 });
 
 test('adaptiveCoachFocus : séance bonus libre côté sport, objectif bouclé (sessionGoalBonus)', () => {

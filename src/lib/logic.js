@@ -3235,6 +3235,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.289', emoji: '🏋️', text: 'Coach « Le focus du moment » : une petite contradiction retirée côté sport. Les bons matins où ta forme est au vert et où tu as de la marge sur ton objectif de séances, le coach t’invite à « engranger une séance d’avance ». Mais quand ce même conseil tombait un jour où il te pousse justement à REPRENDRE l’entraînement (« relance dès aujourd’hui », « un petit geste suffit à repartir »), il y ajoutait « rien ne t’oblige à t’entraîner aujourd’hui » — l’un ordonnait de reprendre, l’autre en dispensait, dans la même carte. Cette clause de dispense est supprimée : il ne reste que l’invitation à profiter de ta forme pour prendre de l’avance, cohérente quel que soit le ton (exactement comme la version déjà en place côté deep work).' },
   { v: '2.0.288', emoji: '🗓️', text: 'Deux compteurs du tableau de bord annonçaient un total tronqué. La carte « X séances prévues non faites (14 j) » (côté Athlète) et la ligne « X révisions en retard » (côté Études) affichaient au maximum 5, car elles montraient la longueur de leur liste — or cette liste est volontairement plafonnée à 5 pour rester lisible. Résultat : si tu avais 7 séances manquées ou 8 révisions en retard, elles t’en annonçaient « 5 ». Désormais le compteur affiche le VRAI total, la liste détaillée reste courte (5 éléments) et un discret « +N autres » signale ce qui n’est pas listé. Aucun autre changement d’affichage.' },
   { v: '2.0.287', emoji: '📅', text: 'Import d’agenda .ics : un séjour sur plusieurs jours apparaît maintenant chaque jour, plus seulement le premier. Quand tu importes un calendrier Google ou Apple contenant un événement « journée entière » qui s’étale (vacances, salon, congés, déplacement de 3 jours…), il ne s’affichait jusqu’ici que le jour de début — les jours suivants disparaissaient. Désormais l’import déplie le séjour en une occurrence par jour couvert (en respectant la règle iCalendar où la date de fin est exclusive), et un réimport ne crée aucun doublon. Les événements horaires qui passent minuit et les événements récurrents gardent exactement leur comportement d’avant.' },
   { v: '2.0.286', emoji: '📋', text: 'Encore un accord d’adjectif remis d’équerre, cette fois dans « Aujourd’hui ». Le résumé de ta journée disait « 1/3 blocs du jour terminé » : le nom « blocs » passait bien au pluriel sur le total, mais l’adjectif « terminé » se calait par erreur sur le nombre de blocs déjà faits — donc dès que tu avais 0 ou 1 bloc terminé sur plusieurs prévus (le cas courant), il restait au singulier alors que « blocs » était au pluriel juste avant. Désormais « terminé » s’accorde sur le nom qu’il qualifie : toujours « blocs du jour terminés » au pluriel quand il y a plus d’un bloc dans la journée.' },
@@ -5848,7 +5849,12 @@ function adaptiveCoachFocus(state, todayKey, opts) {
             // filer un bon jour confortable. Or une séance de plus un jour où le corps est frais ET où rien
             // n'y oblige, c'est un COUSSIN : si un jour creux tombe plus tard dans la semaine (readiness au
             // plancher, imprévu), l'objectif est déjà à l'abri au lieu de virer au sprint serré. On INVITE,
-            // sans injonction (« rien ne t'oblige… mais profite-en »). Additif pur : sessionGoalAhead (le
+            // sans injonction (« profite de cette forme pour engranger une séance d'avance »), comme la sœur
+            // focusGoalAhead. #689 : la clause de dispense « rien ne t'oblige à t'entraîner aujourd'hui »,
+            // portée SANS garde de ton (contrairement à sessionGoalBonus l.5803-5813), contredisait le
+            // cadrage rebuild/revive du MÊME insight (« relance dès aujourd'hui » / « un petit geste suffit à
+            // repartir ») — retirée. Ne subsiste que l'invitation, cohérente dans TOUS les tons (focusGoalAhead
+            // n'a jamais eu de dispense et fire déjà dans tous les tons). Additif pur : sessionGoalAhead (le
             // score du jour, ou null) TOUJOURS renvoyé ; NOTE appendue à l'insight, aucune autre branche
             // touchée. Garde-fous honnêtes : (1) au VERT seulement (≥ 75) — un jour moyen/bas × marge n'a
             // besoin d'aucune pression en plus ; (2) séance du jour PAS encore faite (sportDoneToday faux) —
@@ -5864,7 +5870,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
               const rs = todayR ? readinessScore(todayR) : null;
               if (rs && rs.score >= 75) {
                 sessionGoalAhead = rs.score;
-                insight += ` Et ton corps est au vert ce matin (readiness ${rs.score}/100) : rien ne t’oblige à t’entraîner aujourd’hui, mais profite de cette forme pour engranger une séance d’avance — une de plus maintenant te fait un coussin qui met l’objectif à l’abri si un jour creux tombe plus tard, sans sprint serré en fin de semaine.`;
+                insight += ` Et ton corps est au vert ce matin (readiness ${rs.score}/100) : profite de cette forme pour engranger une séance d’avance — une de plus maintenant te fait un coussin qui met l’objectif à l’abri si un jour creux tombe plus tard, sans sprint serré en fin de semaine.`;
               }
             }
           }

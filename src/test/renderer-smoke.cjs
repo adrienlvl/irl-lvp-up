@@ -977,7 +977,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.288'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.289'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1213,6 +1213,12 @@ app.whenReady().then(async () => {
           const fSessDone = adaptiveCoachFocus({ workouts: [{ date: '2026-07-13' }, { date: '2026-07-14' }], goals: { sessions: 4 }, recovery: [{ date: '2026-07-14', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-14');
           if (fSessDone.sessionGoalAhead !== null || /engranger une séance d.avance/.test(fSessDone.insight)) return false;
           if (fPaceTight.sessionGoalAhead !== null) return false;
+          // #689 : en ton revive (sport dormant depuis le 06-20 → headline « Reprends l'entraînement »),
+          // sessionGoalAhead ne colle plus la clause de dispense « rien ne t'oblige à t'entraîner
+          // aujourd'hui » sous « relance dès aujourd'hui » (contradiction retirée) ; l'invitation
+          // « engranger une séance d'avance » subsiste, cohérente dans tous les tons.
+          const fSessRevive = adaptiveCoachFocus({ workouts: [{ date: '2026-06-20' }], goals: { sessions: 2 }, recovery: [{ date: '2026-07-13', sleep: 8, fatigue: 1, soreness: 1 }] }, '2026-07-13');
+          if (!(fSessRevive.tone === 'revive' && fSessRevive.sessionGoalAhead === 100 && /engranger une séance d.avance/.test(fSessRevive.insight) && !/rien ne t.oblige à t.entraîner/.test(fSessRevive.insight))) return false;
           // Allure de l'objectif FOCUS (pendant de sessionGoalPace) : 30 min faites lundi 07-13, mardi 07-14 → 90 min / 6 j → ~15 min/jour → dans les temps.
           const fFocusPace = adaptiveCoachFocus({ focusSessions: [{ date: '2026-07-05', minutes: 30 }, { date: '2026-07-13', minutes: 30 }] }, '2026-07-14');
           if (!(fFocusPace.pillar === 'focus' && fFocusPace.focusGoalPace === 'onpace' && /Dans les temps : ~15 min\\/jour sur les 6 jours restants/.test(fFocusPace.insight))) return false;

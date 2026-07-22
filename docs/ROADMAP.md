@@ -23,7 +23,25 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.288 (2026-07-22)
+## 📍 État actuel — build 2.0.289 (2026-07-22)
+
+> 🏋️ **#689 — Coach sport : `sessionGoalAhead` ne colle plus « rien ne t'oblige à t'entraîner » sous
+> un ton qui pousse à reprendre (build 2.0.289).** Priorité nuit = coaching, traité en QUALITÉ/curation
+> (§3 : corriger un guard qui en contredit un autre). Rotation §4 bis (5 derniers :
+> `robustesse, etudes, agenda, robustesse, coach` → `robustesse`+`etudes` interdits ; **`coach` libre**,
+> 1× en #684 hors 2 derniers). Angle NEUF (sous-agent Explore) : une **clause d'un même insight qui
+> contredit le ton de cet insight** (les contradictions closes étaient insight↔action et headline↔insight).
+> PROUVÉ : `adaptiveCoachFocus`, sport, branche `wc<g × onpace × readiness≥75` (`logic.js:5867`) ajoutait
+> « rien ne t'oblige à t'entraîner aujourd'hui » **sans garde de ton** → collée sous « relance dès
+> aujourd'hui » (revive) / « un petit geste suffit à repartir » (rebuild) dans le MÊME insight. La sœur
+> `sessionGoalBonus` (`logic.js:5815`) est, elle, gardée `tone==='reinforce'` par un « GARDE-FOU DE TON »
+> explicite (5803-5813) ; la sœur focus `focusGoalAhead` (6076) fire dans tous les tons mais n'a jamais eu
+> de clause de dispense. Correctif §3 (zéro champ) : retrait de la clause → pure invitation « profite de
+> cette forme pour engranger une séance d'avance », cohérente dans tous les tons, alignée sur focusGoalAhead.
+> +1 test logic (scénario revive complet) + 1 check smoke bloquant (`coachFocus`, état revive forgé :
+> tone/ahead/invitation présents, dispense absente). Contrôle §4 ter en rendu cumulé. Effet visible →
+> **bump 2.0.289**. 587 tests + SMOKE OK. Recap #689. _Domaine : coach._ **Lot 2.0.263→289 en attente de
+> release (Adrien contrôle).**
 
 > 🗓️ **#688 — Compteurs « séances manquées » / « révisions en retard » : le vrai total, pas la liste
 > plafonnée (build 2.0.288).** Mission nuit 22/07 = robustesse/correction/tests non-visuels. Rotation §4 bis
