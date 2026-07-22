@@ -2926,6 +2926,12 @@ test('studyStats : total / faites / à venir des révisions', () => {
   assert.equal(s.total, 3); assert.equal(s.done, 1); assert.equal(s.upcoming, 1);
   assert.deepEqual(L.studyStats([], '2026-07-10'), { total: 0, done: 0, upcoming: 0 });
   assert.deepEqual(L.studyStats('x', '2026-07-10'), { total: 0, done: 0, upcoming: 0 });
+  // todayKey invalide (chaîne vide / undefined / format libre) : ne doit PAS traiter une révision
+  // passée comme « à venir » (garde alignée sur studyBySubject). '2020-01-01' >= '' vaut true en JS.
+  const past = [{ kind: 'study', date: '2020-01-01', completed: false }];
+  assert.deepEqual(L.studyStats(past, ''), { total: 1, done: 0, upcoming: 0 });
+  assert.deepEqual(L.studyStats(past, undefined), { total: 1, done: 0, upcoming: 0 });
+  assert.deepEqual(L.studyStats(past, '10/07/2026'), { total: 1, done: 0, upcoming: 0 });
 });
 
 test('examReminderDue : rappel aux paliers J-30/14/7/3/1/0', () => {

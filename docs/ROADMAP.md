@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.287 (2026-07-22)
 
+> 🎓 **#687 — `studyStats` : `todayKey` validé (garde alignée sur sa sœur `studyBySubject`) — sans
+> bump.** Mission nuit 22/07 = robustesse/tests non-visuels, priorité nommée **#2 « Couverture de
+> tests »**. Rotation §4 bis (5 derniers : `agenda, robustesse, coach, etudes, robustesse` →
+> `agenda`+`robustesse` interdits ; **`etudes` libre**, 1× en #683 hors 2 derniers). PROUVÉ :
+> `studyStats` (`logic.js:1858`) comparait `a.date >= todayKey` **sans valider `todayKey`**, alors que
+> `studyBySubject` (`logic.js:1877`) le fait (`isKey(todayKey) ? todayKey : null`). En JS `'2020-01-01'
+> >= ''` vaut `true` → une révision passée comptée « à venir » sur un `todayKey` non-clé. Correctif :
+> même garde `isKey` → `todayKey` invalide ⇒ `upcoming:0` (cohérent avec `studyBySubject`). **Effet
+> utilisateur nul** (les appelants passent toujours `localDate()`) → **pas de bump / pas de CHANGELOG**
+> (§2.6), renderer intact. +3 assertions test (`''`/`undefined`/`'10/07/2026'` → `upcoming:0` ; échouent
+> avant / passent après). 586 tests + SMOKE OK. Écarté : `parseCsv('""')` perd une cellule vide finale
+> (impact nul + chemin import Alternance sacré → non touché). Recap #687. _Domaine : etudes._ **Lot
+> 2.0.263→287 en attente de release (Adrien contrôle).**
+>
 > 📅 **#686 — Import .ics : un séjour « journée entière » multi-jours apparaît chaque jour (build
 > 2.0.287).** Priorité #1 de la nuit du 22/07 (« parseurs CSV/**ICS** »), domaine **`agenda`** (libre :
 > 5 derniers = `robustesse, coach, etudes, robustesse, coach` → `robustesse`+`coach` interdits ; `agenda`

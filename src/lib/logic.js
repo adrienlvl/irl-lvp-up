@@ -1856,10 +1856,15 @@ function keyDateMarkers(examGoals, raceGoal, dateKey) {
 }
 
 // Statistiques de révision (agenda kind='study') : total, faites, à venir. Pur + testé.
+// `todayKey` est VALIDÉ (même garde que `studyBySubject`) : un todayKey non-clé (chaîne vide,
+// undefined, format libre) ne doit PAS être comparé brutalement à une date — `'2020-01-01' >= ''`
+// est `true` et compterait une révision passée comme « à venir ». todayKey invalide → upcoming = 0.
 function studyStats(agenda, todayKey) {
+  const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
+  const today = isKey(todayKey) ? todayKey : null;
   const list = (Array.isArray(agenda) ? agenda : []).filter(a => a && a.kind === 'study');
   const done = list.filter(a => a.completed).length;
-  const upcoming = list.filter(a => !a.completed && /^\d{4}-\d{2}-\d{2}$/.test(String(a.date || '')) && a.date >= todayKey).length;
+  const upcoming = list.filter(a => !a.completed && isKey(a.date) && today && a.date >= today).length;
   return { total: list.length, done, upcoming };
 }
 
