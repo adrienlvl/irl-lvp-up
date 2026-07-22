@@ -25,6 +25,20 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.293 (2026-07-22)
 
+> 📋 **#694 — Proposition : garde d'ingestion canonique contre les dates impossibles (pas de bump,
+> docs).** Rotation §4 bis : 5 derniers = `coach, robustesse, focus, a11y, coach` → **`coach`+`robustesse`
+> interdits** (2 derniers). **Quota de propositions §4 bis.4 DÉCLENCHÉ** : 10 derniers recaps (#684→#693)
+> sans aucune proposition → l'itération DOIT en être une (sanctionné aussi par la mission de nuit #5).
+> Sous-agent Explore sur les domaines frais : **aucun** bug pur prouvable non déjà testé (toutes les
+> fonctions exportées sont couvertes ; les « 0 test » sont des tables de données). Cadré à la place : la
+> « dette dates n°1 » corrigée 3× en réactif (#671/#676/#692) reste **ouverte** — `normalizeExamGoal`
+> (`logic.js:1911`) valide la date d'épreuve par **format seul** → `2026-02-30` alimente
+> `examCountdown`→`daysUntil`→`new Date` et **déborde au 2 mars** (compte à rebours d'examen faux).
+> `docs/proposals/dates-impossibles-garde-ingestion.md` : inventaire des points d'ingestion, 3 options,
+> reco **A** (garde `isRealDateKey` aux 2 sites prouvés — études + import GLC — en étapes autonomes dès
+> que `robustesse` rouvre), 4 décisions pour Adrien. Baseline node 589 tests verte (aucun code touché).
+> Recap #694. _Domaine : docs._ **Lot 2.0.263→293 en attente de release (Adrien contrôle).**
+
 > 🥗 **#693 — Coach : le headline nutrition suit le SIGNAL protéines, plus le momentum de logging (build
 > 2.0.293).** Priorité de nuit = coaching, traité en QUALITÉ/curation (§3 : clause qui en contredit une
 > autre) sur un angle NEUF. Rotation §4 bis (5 derniers : `robustesse, focus, a11y, coach, robustesse` →
