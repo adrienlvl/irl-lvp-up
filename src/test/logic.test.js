@@ -6209,7 +6209,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.277');
+  assert.equal(L.CHANGELOG[0].v, '2.0.278');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -10058,6 +10058,11 @@ test('adaptiveCoachFocus : allure de l’objectif de focus hebdo (min/jour vs jo
   assert.equal(freshEnergy.focusGoalFresh, 75, 'readiness au vert');
   assert.deepEqual(freshEnergy.focusFreshDriver, { factor: 'fatigue', value: 1 }, 'énergie moteur dominant nommé');
   assert.match(freshEnergy.insight, /nourrit cette fraîcheur mentale : ton énergie est au top \(fatigue 1\/5\)/);
+  // CURATION #675 : la queue énergie nomme le carburant + séquence « le plus dur d'abord » (comme le sommeil),
+  // sans RÉ-servir le « l'esprit est frais … pousse pour tenir un vrai bloc » déjà posé par focusGoalFresh.
+  assert.match(freshEnergy.insight, /cette vivacité est le carburant du deep work, attaque d’abord ta tâche la plus exigeante/);
+  assert.ok(!/l’esprit est vif/.test(freshEnergy.insight), 'plus de 3ᵉ assertion de fraîcheur d’esprit (déjà dite par focusGoalFresh)');
+  assert.ok(!/aller au fond du bloc/.test(freshEnergy.insight), 'plus de re-service de l’injonction « pousse pour tenir un vrai bloc »');
   // Moteur COURBATURES dominant (sleep 6 / fat 2 / sore 1 → score 83 ≥ 75, driver soreness) → HONNÊTETÉ :
   // des muscles frais ne portent pas le deep work → on se tait, focusFreshDriver null malgré le vert.
   const freshSore = L.adaptiveCoachFocus({ ...base(30), recovery: [{ date: '2026-07-19', sleep: 6, fatigue: 2, soreness: 1 }] }, '2026-07-19');

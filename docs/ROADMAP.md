@@ -23,8 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.277 (2026-07-22)
+## 📍 État actuel — build 2.0.278 (2026-07-22)
 
+> 🧠 **#675 — Coach focus (jours SERRÉS) : la note « carburant » côté énergie ne répète plus l'appel à
+> l'action (build 2.0.278).** Priorité nuit = coaching en QUALITÉ (§3). Rotation §4 bis (5 derniers :
+> `docs, docs, coach, robustesse, docs`) → `docs` bloqué (2 derniers + 3×/5) ; **`coach` libre** (1× en
+> #672, hors 2 derniers). Quota §4 bis.4 non déclenché (#674 = proposition). Piste **nommée** au recap #672
+> (« sœur `focusFreshDriver` non auditée pour la collision de queue »). Vérifié en rendu chargé (§4 ter) :
+> sur la branche `tight × readiness verte`, `focusGoalFresh` pose déjà « l'esprit est frais … c'est LE
+> moment de POUSSER pour boucler l'objectif ». La variante SOMMEIL de `focusFreshDriver` est propre
+> (mécanisme « carburant du deep work » + séquence NEUVE « la tâche la plus dure d'abord »), mais la
+> variante ÉNERGIE RÉ-servait l'écho : « l'esprit est vif » (3ᵉ assertion de fraîcheur) + « profite-en pour
+> aller au fond du bloc » (re-service de « pousse »). Calquée sur la version sommeil : « cette vivacité est
+> le carburant du deep work, attaque d'abord ta tâche la plus exigeante ». Une redite en moins, zéro champ
+> ajouté, branche sommeil inchangée. Test énergie + smoke `coachFocus` durcis (assert nouvelle queue +
+> `!/l'esprit est vif|aller au fond du bloc/`). 580 tests + SMOKE OK. Recap #675. _Domaine : coach._
+> **Lot 2.0.263→278 en attente de release (Adrien contrôle).**
+>
 > 📷 **#674 — Proposition : Scan frigo / assiette (CAP 3.0 chantier 6, docs, pas de bump).** Priorité nuit
 > = coaching, **bloquée par la rotation** (5 derniers : `docs, coach, robustesse, docs, coach` → `coach`
 > 2 derniers + 2×/5, `docs` 2×/5). Surtout : **quota de propositions §4 bis.4 DÉCLENCHÉ** — les 10 derniers
