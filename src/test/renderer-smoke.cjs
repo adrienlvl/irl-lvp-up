@@ -977,7 +977,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.289'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.290'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -1031,6 +1031,14 @@ app.whenReady().then(async () => {
           // placeholder disparait a la saisie et n'est pas un nom accessible fiable.
           const ids = ['birthdayName', 'calSubName', 'calSubUrl', 'travelHome', 'weightInput', 'envieText'];
           return ids.every(id => { const el = document.getElementById(id); return el && (el.getAttribute('aria-label') || '').trim().length > 0; });
+        })(),
+        agendaSelectLabels: (() => {
+          // A11y (WCAG 4.1.2) : les menus deroulants de l'agenda (formulaire calendrier +
+          // dialogue d'edition) n'ont ni <label> englobant, ni for=, ni aria-label, ni title →
+          // un lecteur d'ecran annonce « menu deroulant » sans dire ce qu'il regle. aria-label
+          // obligatoire, comme filterSelectsA11y le fait deja pour les selects de filtre.
+          const ids = ['calendarAgendaKind', 'calendarRepeat', 'editAgendaKind', 'editAgendaPriority'];
+          return ids.every(id => { const el = document.getElementById(id); return el && el.tagName === 'SELECT' && (el.getAttribute('aria-label') || '').trim().length > 0; });
         })(),
         calorieFloor: typeof calorieAdjustment === 'function' && (() => { const flat = [{ date: '2026-06-21', value: 80 }, { date: '2026-07-01', value: 80.1 }, { date: '2026-07-12', value: 80 }]; const near = calorieAdjustment(flat, 'perte', 1250); const norm = calorieAdjustment(flat, 'perte', 2000); const floor = calorieAdjustment(flat, 'perte', 1200); const rising = calorieAdjustment([{ date: '2026-07-01', value: 70 }, { date: '2026-07-08', value: 70.5 }, { date: '2026-07-16', value: 70.7 }], 'perte', 2000); return near.newTarget === 1200 && near.delta === 50 && near.message.indexOf('50 kcal/jour') !== -1 && near.message.indexOf('125 kcal') === -1 && norm.delta === 125 && norm.newTarget === 1875 && norm.message.indexOf('stagne') !== -1 && floor.delta === 0 && floor.newTarget === 1200 && floor.message.indexOf('plancher') !== -1 && rising.stagnating === true && rising.message.indexOf('repart à la hausse') !== -1 && rising.message.indexOf('stagne') === -1; })(),
         tonnageTrend: typeof weeklyTonnageTrend === 'function' && !!document.getElementById('tonnageTrend') && (() => { const w = [{ date: '2026-07-06', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 4 }] }, { date: '2026-07-13', exercises: [{ name: 'Squat', load: 100, reps: 5, sets: 6 }] }]; const t = weeklyTonnageTrend(w, '2026-07-13', 8); return t && t.weeks.length === 8 && t.weeks[7].tonnage === 3000 && t.last === 3000 && t.max === 3000 && t.trend === 'up' && weeklyTonnageTrend([], '2026-07-13', 8) === null; })(),
@@ -2491,6 +2499,7 @@ app.whenReady().then(async () => {
     if (!checks.dashboardInputLabels) errors.push('A11y tableau de bord KO (todoInput/habitInput/lifeGoalOne..Three/focusTaskInput doivent avoir un aria-label — nom accessible, placeholder insuffisant)');
     if (!checks.searchFieldLabels) errors.push('A11y champs de recherche KO (foodSearch/agendaSearch/exerciseSearch/altSearch doivent avoir un aria-label — placeholder insuffisant, WCAG 3.3.2)');
     if (!checks.formFieldLabels) errors.push('A11y champs de saisie KO (birthdayName/calSubName/calSubUrl/travelHome/weightInput/envieText doivent avoir un aria-label — placeholder insuffisant, WCAG 3.3.2)');
+    if (!checks.agendaSelectLabels) errors.push('A11y menus déroulants agenda KO (calendarAgendaKind/calendarRepeat/editAgendaKind/editAgendaPriority doivent avoir un aria-label — sinon annoncés « menu déroulant » sans nom, WCAG 4.1.2)');
     if (!checks.calorieFloor) errors.push('Ajustement calorique KO (calorieAdjustment : baisse annoncée ≠ baisse réelle près du plancher 1200)');
     if (!checks.coachMeasure) errors.push('Coach Poids mensuration KO (recompositionInsight doit être conscient de l’objectif : monter poids+taille en visée PERTE ≠ « prise de muscle », baisser poids+taille en visée PRISE ≠ « perte de gras bien engagée »)');
     if (!checks.recurring) errors.push('Récurrence KO (recurrenceMatches/normalizeRecurring/recurringForm/recFreq/recurringList)');

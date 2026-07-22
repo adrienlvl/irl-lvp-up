@@ -23,7 +23,24 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.289 (2026-07-22)
+## 📍 État actuel — build 2.0.290 (2026-07-22)
+
+> ♿ **#690 — A11y : les 4 menus déroulants de l'agenda ont enfin un nom accessible (build 2.0.290).**
+> Mission nuit 22/07 = non-visuel/vérifiable, priorité nommée **#3 « a11y NON-visuelle »**. Rotation
+> §4 bis (5 derniers : `coach, robustesse, etudes, agenda, robustesse` → `coach`+`robustesse` interdits ;
+> **`a11y` libre**, 0× dans les 5). Sous-agent Explore : l'a11y est déjà très couverte (tous les boutons
+> icône-only ont un aria-label ; le smoke verrouille déjà 9 familles a11y) → **seul manque dur restant** :
+> 4 `<select>` de l'agenda **sans AUCUN nom** (ni `<label>`, ni `for=`, ni `aria-label`, ni `title`) →
+> lecteur d'écran annonce « menu déroulant » sans dire ce qu'il règle (WCAG 4.1.2). PROUVÉ (grep +
+> lecture) : `#calendarAgendaKind`/`#editAgendaKind` (type de bloc), `#calendarRepeat` (répétition),
+> `#editAgendaPriority` (priorité) — leurs sœurs `#calendarAgendaPriority`/`#weekQuick*`/`#rec*` ont un
+> `title`, ces 4 étaient les seuls muets. Précédents : #412 (2.0.51) / #578 (2.0.199), aria-label bumpé.
+> Correctif (`index.html`, zéro logique, zéro visuel) : aria-label « Type de bloc » / « Répétition » /
+> « Priorité ». Check smoke **bloquant** `agendaSelectLabels` (calqué sur `filterSelectsA11y` : les 4 ids
+> = SELECT + aria-label non vide, présents au chargement ; échoue avant / passe après) + message d'erreur.
+> Contrôle §4 ter : libellés brefs, exacts, non ambigus, zéro texte visible ajouté. Rien ne change à
+> l'écran → **bump 2.0.290** (comme les précédents a11y). 587 tests + SMOKE OK. Recap #690.
+> _Domaine : a11y._ **Lot 2.0.263→290 en attente de release (Adrien contrôle).**
 
 > 🏋️ **#689 — Coach sport : `sessionGoalAhead` ne colle plus « rien ne t'oblige à t'entraîner » sous
 > un ton qui pousse à reprendre (build 2.0.289).** Priorité nuit = coaching, traité en QUALITÉ/curation
