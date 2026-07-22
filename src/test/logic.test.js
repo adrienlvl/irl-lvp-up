@@ -4528,6 +4528,23 @@ test('calisthenicsProgress : arbre de progression (auto depuis les logs + skills
   assert.equal(cp([], { pull1: true }).find(f => f.family === 'pull').rungs.find(r => r.id === 'pull1').reached, false);
   assert.equal(cp(null).length, 4);
 });
+
+test('vestProgression : double progression au gilet lesté (reps puis poids)', () => {
+  const vp = L.vestProgression;
+  // meilleure série lestée = la plus lourde puis + de reps ; sous le rep-max (10) → « gagne des reps »
+  const r = vp([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', setLogs: [{ reps: 11, load: 10 }, { reps: 8, load: 15 }] }] }]);
+  assert.equal(r.length, 1); assert.equal(r[0].key, 'pullup'); assert.equal(r[0].load, 15); assert.equal(r[0].reps, 8);
+  assert.equal(r[0].action, 'addReps', '8 reps < 10 → gagner des reps'); assert.equal(r[0].nextLoad, 17.5);
+  // au-dessus du rep-max → « ajoute du poids »
+  const heavy = vp([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Dips', setLogs: [{ reps: 12, load: 10 }] }] }]);
+  assert.equal(heavy[0].action, 'addWeight', '12 reps ≥ 10 → ajouter du lest'); assert.equal(heavy[0].nextLoad, 12.5);
+  // séries AU POIDS DU CORPS ignorées (rien à surcharger sans lest)
+  assert.deepEqual(vp([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', reps: 12, load: 0, sets: 4 }] }]), []);
+  // repMax personnalisable
+  assert.equal(vp([{ date: '2026-07-01', type: 'strength', exercises: [{ name: 'Tractions', setLogs: [{ reps: 6, load: 10 }] }] }], { repMax: 5 })[0].action, 'addWeight');
+  // garde-fous
+  assert.deepEqual(vp(null), []); assert.deepEqual(vp([]), []);
+});
 test('blockProgressText / shareableBlockProgress : progression de bloc partageable', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -6400,7 +6417,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.300');
+  assert.equal(L.CHANGELOG[0].v, '2.0.301');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

@@ -23,8 +23,14 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.300 (2026-07-22)
+## 📍 État actuel — build 2.0.301 (2026-07-22)
 
+> 🏋️ **#702 — Athlète spécialisé (2/4) : surcharge au gilet, double progression (build 2.0.301).** `vestProgression`
+> (pur, exporté, testé) : pour chaque mouvement lesté (tractions/pompes/dips, `load>0`), meilleure série lestée +
+> double progression — `reps < 10` → gagne des reps ; `reps ≥ 10` → ajoute +2,5 kg et redescends. Ignore le poids du
+> corps. Rendu `#vestProgression` sous les Standards (cas `addWeight` surligné lime). Test node + smoke `vestProg`.
+> 593 tests + SMOKE OK. _Domaine : athlete._ Master ; **reste 2/4 : objectif skill guidé, holds isométriques.**
+>
 > 🎯 **#701 — Athlète spécialisé (1/4) : arbre de progression calisthénique (build 2.0.300).** Adrien : « améliore
 > l'entraînement spécialisé → **fait tout** » (4 features). #1 = `calisthenicsProgress` : 4 familles (tirage/poussée/
 > jambes/gainage), échelles de paliers débutant→skill élite. Paliers **auto** validés depuis les logs (1re traction,
