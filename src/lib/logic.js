@@ -1984,9 +1984,17 @@ function studyPacing(agenda, examGoal, todayKey) {
   const c = examCountdown(examGoal, todayKey);
   if (!c || c.past) return null;
   const list = (Array.isArray(agenda) ? agenda : []).filter(a => a && a.kind === 'study');
-  const total = list.length;
-  if (!total) return null;
-  const done = list.filter(a => a.completed).length;
+  if (!list.length) return null;
+  // CORRECTIF #677 (moitié oubliée de #592) : `remaining` était déjà borné à l'horizon de l'épreuve
+  // la plus PROCHE (`a.date <= c.date`), mais `done`/`total` comptaient encore TOUT l'agenda study,
+  // toutes épreuves confondues → en multi-épreuves, la progression du compte à rebours était gonflée
+  // par les séances d'une épreuve POSTÉRIEURE (ex. Compta lointaine inflatant le `done/total` de Droit).
+  // On borne `done`/`total` au MÊME horizon que `remaining` (date valide, `a.date <= c.date`). Sans
+  // effet en mono-épreuve (toutes les séances sont ≤ examDate). Le gate null reste inchangé (au moins
+  // une séance study dans l'agenda) → aucun changement du rendu, qui n'utilise que remaining/perWeek.
+  const scoped = list.filter(a => /^\d{4}-\d{2}-\d{2}$/.test(String(a.date || '')) && a.date <= c.date);
+  const total = scoped.length;
+  const done = scoped.filter(a => a.completed).length;
   // CORRECTIF #592 (régression #562) : `daysLeft` vient de l'épreuve la plus PROCHE (examCountdown),
   // mais `remaining` comptait TOUTES les révisions de l'agenda, tous examens confondus. En multi-
   // épreuves, on divisait donc ~43 révisions (Droit + Compta) par les 12 jours jusqu'à Droit →

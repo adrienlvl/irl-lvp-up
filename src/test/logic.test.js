@@ -12389,6 +12389,20 @@ test('#592/#562 : studyPacing borne les révisions à l’épreuve la plus proch
   const solo = L.studyPacing([{ kind: 'study', date: '2026-07-25', completed: false }], { title: 'X', date: '2026-08-10' }, '2026-07-20');
   assert.ok(solo && solo.remaining === 1, 'mono-épreuve : la révision à venir reste comptée');
 });
+test('#677 : studyPacing borne aussi done/total à l’épreuve la plus proche (multi-épreuves)', () => {
+  const exams = [{ title: 'Compta', date: '2026-07-12' }, { title: 'Droit', date: '2026-07-25' }]; // proche = Compta (J-7)
+  const agenda = [
+    { kind: 'study', title: 'Compta', date: '2026-07-03', completed: true },  // Compta, passée, faite
+    { kind: 'study', title: 'Compta', date: '2026-07-08', completed: false },
+    { kind: 'study', title: 'Compta', date: '2026-07-10', completed: false },
+    { kind: 'study', title: 'Droit', date: '2026-07-20', completed: false },  // Droit, APRÈS Compta → hors horizon
+    { kind: 'study', title: 'Droit', date: '2026-07-22', completed: true },   // Droit, APRÈS Compta → ne gonfle plus done
+  ];
+  const p = L.studyPacing(agenda, exams, '2026-07-05');
+  assert.equal(p.total, 3, 'total borné aux séances ≤ à la date de Compta');
+  assert.equal(p.done, 1, 'done borné à l’horizon Compta (la séance Droit faite ne compte plus)');
+  assert.equal(p.remaining, 2); // 07-08 et 07-10, déjà borné par #592
+});
 test('#592/#591 : un palier RARE n’est plus éteint par un palier plus courant du même jour', () => {
   const iso = off => { const d = new Date('2026-07-16T12:00:00'); d.setDate(d.getDate() - off); return d.toISOString().slice(0, 10); };
   // Habitude à 365 j pile aujourd'hui + série de 7 journées complètes (3+ piliers) → les DEUX doivent parler.

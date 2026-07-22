@@ -25,6 +25,22 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 ## 📍 État actuel — build 2.0.278 (2026-07-22)
 
+> 🎓 **#677 — `studyPacing` : `done`/`total` bornés à l'épreuve la plus proche (etudes, pas de bump).**
+> Priorité nuit = coaching, **bloquée par la rotation** (5 derniers : `robustesse, coach, docs, docs,
+> coach` → `robustesse`+`coach` 2 derniers, `docs`+`coach` 2×/5 : tous interdits ; **`etudes` libre**).
+> Quota §4 bis.4 non déclenché (#674 = proposition). Domaines-code athlete/nutrition/robustesse-dates
+> secs (mémoire), alternance gated (#663) → sonde d'un domaine frais. PROUVÉ : le correctif #592 avait
+> borné `remaining` à l'horizon de l'épreuve la plus PROCHE (`a.date <= c.date`), mais avait laissé
+> `done`/`total` compter **tout** l'agenda `study`, toutes épreuves confondues → en multi-épreuves, la
+> progression du compte à rebours de l'épreuve proche était gonflée par les séances d'une épreuve
+> POSTÉRIEURE (`{done:2,total:5}` au lieu de `{done:1,total:3}`). Correctif : `scoped = list.filter(date
+> valide && a.date <= c.date)` pour `done`/`total`, **même** prédicat que `remaining`. **Honnêteté /
+> effet utilisateur : AUCUN** — le rendu (`app.js:977`) n'affiche ni `done` ni `total` de `studyPacing`
+> (le `done/total` visible vient de `studyStats`) ; défaut **latent** dans la valeur de retour, gate null
+> volontairement inchangé (aucun changement du rendu) → **pas de bump**, comme #676. +1 test multi-épreuves
+> (`total===3, done===1`). 581 tests + SMOKE OK. Recap #677. _Domaine : etudes._ **Lot 2.0.263→278 en
+> attente de release (Adrien contrôle).**
+>
 > 🛡️ **#676 — `weekProgramSchedule` : garde durcie contre les dates impossibles (robustesse, pas de
 > bump).** Priorité nuit = coaching, **bloquée par la rotation §4 bis** (5 derniers : `coach, docs,
 > docs, coach, robustesse` → `coach`+`docs` interdits ; `robustesse` **libre**, 1× en #671). Quota
