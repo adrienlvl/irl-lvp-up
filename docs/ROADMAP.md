@@ -23,7 +23,23 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.287 (2026-07-22)
+## 📍 État actuel — build 2.0.288 (2026-07-22)
+
+> 🗓️ **#688 — Compteurs « séances manquées » / « révisions en retard » : le vrai total, pas la liste
+> plafonnée (build 2.0.288).** Mission nuit 22/07 = robustesse/correction/tests non-visuels. Rotation §4 bis
+> (5 derniers : `etudes, agenda, robustesse, coach, etudes` → `etudes`+`agenda` interdits ; **`robustesse`
+> libre**, 1× en #685 hors 2 derniers). Sous-agent Explore sur 16 fonctions pures sous-testées → lot sain,
+> **un seul** défaut à effet réel. PROUVÉ : `missedSessions` (`logic.js:2103`) et `overdueStudy`
+> (`logic.js:2125`) plafonnent leur liste à `cap:5` (contrat) ; les appelants `renderRoadmapFeatures`
+> (`app.js:427`, `#missedSessions`) et `renderExamCountdown` (`app.js:977`, `#overdueStudy`) affichaient
+> `.length` **comme total** → 7 séances manquées / 8 révisions en retard s'annonçaient « 5 » (sous-comptage
+> réel pendant une pause). Correctif §3 (zéro champ, `logic.js` intact) : les appelants demandent le vrai
+> total (`cap:60`), **limitent l'affichage à 5** et signalent le reste par « +N autres » (motif
+> `#strengthRecords`). 2 checks smoke **bloquants** (`missedSessionsTotal`, `overdueStudyTotal` : états
+> forgés sur `localDate()`, assert « 7 séances »+« +2 autres » / « 6 révisions en retard »+« +1 autre » ;
+> échouent avant / passent après, `includes` sans backslash §6). Contrôle §4 ter en rendu cumulé. Effet
+> visible → **bump 2.0.288**. 586 tests + SMOKE OK. Recap #688. _Domaine : robustesse._ **Lot 2.0.263→288
+> en attente de release (Adrien contrôle).**
 
 > 🎓 **#687 — `studyStats` : `todayKey` validé (garde alignée sur sa sœur `studyBySubject`) — sans
 > bump.** Mission nuit 22/07 = robustesse/tests non-visuels, priorité nommée **#2 « Couverture de

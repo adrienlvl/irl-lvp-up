@@ -239,6 +239,27 @@ app.whenReady().then(async () => {
           renderMyDay();
           return txt.includes('blocs du jour terminés');
         })(),
+        missedSessionsTotal: typeof renderRoadmapFeatures === 'function' && !!document.getElementById('missedSessions') && (() => {
+          const savedA = state.agenda, savedW = state.workouts, today = localDate(), p = v => String(v).padStart(2, '0');
+          const d = n => { const x = new Date(today + 'T12:00:00'); x.setDate(x.getDate() - n); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };
+          state.workouts = [];
+          state.agenda = [1, 2, 3, 4, 5, 6, 7].map(n => ({ id: n, kind: 'sport', title: 'Seance ' + n, date: d(n), completed: false }));
+          renderRoadmapFeatures();
+          const txt = (document.getElementById('missedSessions').textContent || '');
+          state.agenda = savedA; state.workouts = savedW;
+          renderRoadmapFeatures();
+          return txt.includes('7 séances') && txt.includes('non faites') && txt.includes('+2 autres');
+        })(),
+        overdueStudyTotal: typeof renderExamCountdown === 'function' && !!document.getElementById('overdueStudy') && (() => {
+          const savedA = state.agenda, today = localDate(), p = v => String(v).padStart(2, '0');
+          const d = n => { const x = new Date(today + 'T12:00:00'); x.setDate(x.getDate() - n); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); };
+          state.agenda = [1, 2, 3, 4, 5, 6].map(n => ({ id: n, kind: 'study', title: 'Revision ' + n, date: d(n), completed: false }));
+          renderExamCountdown();
+          const txt = (document.getElementById('overdueStudy').textContent || '');
+          state.agenda = savedA;
+          renderExamCountdown();
+          return txt.includes('6 révisions en retard') && txt.includes('+1 autre');
+        })(),
         questPerfectCelebrate: typeof celebrateQuestsIfPerfect === 'function' && typeof showFlashToast === 'function' && (() => {
           const savedQ = state.quests;
           state.quests = [{ id: 1, done: true }, { id: 2, done: true }];
@@ -956,7 +977,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.287'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.288'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2483,6 +2504,8 @@ app.whenReady().then(async () => {
     if (!checks.studyProgressPlural) errors.push('Accord études KO (#studyProgress « X/N révisions faite[s] » : « faite » doit s\'accorder sur total, pas sur done)');
     if (!checks.printReportStudyPlural) errors.push('Accord bilan imprimé KO (« X/N révisions validée[s] » : « validée » doit s\'accorder sur studyPlanned, pas sur studyDone)');
     if (!checks.myDaySummaryPlural) errors.push('Accord Ma journée KO (« X/N blocs du jour terminé[s] » : « terminé » doit s\'accorder sur le total de blocs, pas sur le nombre fait)');
+    if (!checks.missedSessionsTotal) errors.push('Compteur séances manquées KO (#missedSessions doit afficher le VRAI total, pas la liste plafonnée à 5 : 7 séances → « 7 séances … non faites » + « +2 autres »)');
+    if (!checks.overdueStudyTotal) errors.push('Compteur révisions en retard KO (#overdueStudy doit afficher le VRAI total, pas la liste plafonnée à 5 : 6 révisions → « 6 révisions en retard » + « +1 autre »)');
     if (!checks.lifeStep) errors.push('Pas du jour KO (lifeStepStats : doneDays/loggedDays doivent compter des JOURS distincts, pas des entrées, sur date en double)');
     if (!checks.coachFocus) errors.push('Coach adaptatif KO (adaptiveCoachFocus/carte « Le focus du moment »/rendu)');
     if (!checks.dayViewPlural) errors.push('Accord « fait(s) » erroné en vue Jour (accorde au total au lieu du nombre réalisé)');
