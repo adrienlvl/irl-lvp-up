@@ -23,8 +23,27 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.280 (2026-07-22)
+## 📍 État actuel — build 2.0.281 (2026-07-22)
 
+> 🎓 **#680 — `studyPacing` : plus de fausse célébration « toutes tes révisions faites » quand elles
+> ont été RATÉES (build 2.0.281).** Priorité nuit = coaching, **bloquée par la rotation §4 bis**
+> (5 derniers : `robustesse, coach, etudes, robustesse, coach` → `robustesse`/`coach` interdits
+> 2 derniers + 2×/5 ; **`etudes` libre**, 1× en #677). Quota §4 bis.4 non déclenché (#674 = proposition).
+> Sonde : couverture par fonction **exhaustive** (397/397 exportées référencées, 581 tests) → filon
+> « fonction sans test » sec ; chasse tracée (sous-agent) à un défaut de **branche** en domaine frais →
+> un seul défaut à effet utilisateur clair, en **etudes**. PROUVÉ : `studyPacing` (`logic.js:1983`)
+> renvoyait `status:'done'` dès `remaining===0` (« plus rien à réviser d'ici l'examen ») — mais « rien
+> à venir » ≠ « tout fait » : des séances **passées non faites** comptent dans `total` sans être dans
+> `done`. Cas mono-épreuve courant (3 révisions passées jamais cochées, examen J-19) → la carte affichait
+> « 🎉 **Toutes tes révisions planifiées sont faites** » (rendu `app.js:977`) alors que 0/3 validée, **en
+> même temps** qu'`overdueStudy` listait ces 3 séances « en retard » juste en dessous : deux cartes
+> contradictoires. Correctif : célébrer `'done'` seulement si `total>0 && done===total` ; sinon `null`
+> (la carte s'efface, `overdueStudy` porte le message honnête). Couvre aussi `total===0` (multi-épreuves).
+> Pas de changement de rendu (le rendu gère déjà `null`) → logic.js + test, pas de nouveau check smoke.
+> +1 test (5 assertions, échoue avant / passe après ; non-régression « tout validé »→`done` conservée).
+> Effet visible → **bump 2.0.281**. 582 tests + SMOKE OK. Recap #680. _Domaine : etudes._ **Lot
+> 2.0.263→281 en attente de release (Adrien contrôle).**
+>
 > 🛡️ **#679 — Séance guidée : le mot-clé `traction` ancré en début de mot ne capture plus
 > « con·traction·s » (build 2.0.280).** Priorité nuit = coaching, **bloquée par la rotation §4 bis**
 > (5 derniers : `coach, etudes, robustesse, coach, docs` → `coach`/`etudes` interdits ; `robustesse`

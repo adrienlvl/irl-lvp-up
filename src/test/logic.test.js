@@ -3053,6 +3053,35 @@ test('studyPacing : rythme de révision vers l’examen', () => {
   assert.equal(L.studyPacing(agenda, { date: '2026-07-01' }, '2026-07-13'), null);
 });
 
+test('#680 : studyPacing ne célèbre pas « toutes faites » quand des révisions passées ont été RATÉES', () => {
+  // 3 séances de révision toutes PASSÉES et NON faites, examen encore à venir (J-19).
+  // remaining === 0 (rien à venir), mais done=0/total=3 → ce sont des révisions MANQUÉES, pas terminées.
+  const missed = [
+    { kind: 'study', date: '2026-07-15', completed: false },
+    { kind: 'study', date: '2026-07-18', completed: false },
+    { kind: 'study', date: '2026-07-20', completed: false },
+  ];
+  // AVANT #680 : renvoyait { status:'done' } → carte « 🎉 Toutes tes révisions faites » EN MÊME TEMPS
+  // que le bloc « 3 révisions en retard » (overdueStudy) juste en dessous. Désormais → null.
+  assert.equal(L.studyPacing(missed, { title: 'Droit', date: '2026-08-10' }, '2026-07-22'), null,
+    'aucune révision validée → pas de célébration, la carte s’efface');
+  assert.deepEqual(L.overdueStudy(missed, '2026-07-22').map(o => o.date), ['2026-07-20', '2026-07-18', '2026-07-15'],
+    'les mêmes séances restent bien signalées « en retard » (message honnête)');
+  // Mélange : 1 faite + 2 ratées, toutes passées → done<total → toujours null (pas « toutes faites »).
+  const partial = [
+    { kind: 'study', date: '2026-07-15', completed: true },
+    { kind: 'study', date: '2026-07-18', completed: false },
+  ];
+  assert.equal(L.studyPacing(partial, { title: 'Droit', date: '2026-08-10' }, '2026-07-22'), null);
+  // Multi-épreuves : épreuve proche SANS révision en scope, mais des séances pour une épreuve postérieure
+  // (total===0 pour la proche) → plus de fausse célébration « toutes faites ».
+  const laterOnly = [{ kind: 'study', date: '2026-08-05', completed: false }]; // après l’épreuve proche
+  assert.equal(L.studyPacing(laterOnly, [{ title: 'Proche', date: '2026-07-30' }, { title: 'Loin', date: '2026-08-20' }], '2026-07-22'), null);
+  // NON-RÉGRESSION : tout réellement validé (done===total>0) → célébration conservée.
+  const allDone = L.studyPacing([{ kind: 'study', date: '2026-07-15', completed: true }], { title: 'Droit', date: '2026-08-10' }, '2026-07-22');
+  assert.equal(allDone && allDone.status, 'done');
+});
+
 test('nextTrainingSession : prochaine séance à venir, tri date puis heure', () => {
   const plans = [
     { id: 1, date: '2026-07-15', time: '18:00', type: 'Musculation' },
@@ -6220,7 +6249,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.280');
+  assert.equal(L.CHANGELOG[0].v, '2.0.281');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
