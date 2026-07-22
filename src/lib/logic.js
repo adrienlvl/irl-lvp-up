@@ -3187,6 +3187,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.0.276', emoji: '🛡️', text: 'Tes deux records « meilleure semaine » — routines bien-être et tonnage muscu — ne peuvent plus faire planter leur affichage. Comme pour les graphes en 2.0.274 : si une seule séance ou routine portait une date impossible (le 40 du mois 13, un 30 février) glissée par un vieil enregistrement ou un import, le calcul du record hebdo butait dessus et jetait une erreur qui cassait le rendu de la carte. Désormais une date douteuse est simplement ignorée, comme une donnée hors période : le record s’affiche quand même, sans elle. Rien de visible en usage normal — c’est un filet de sécurité de plus sur des données abîmées.' },
   { v: '2.0.275', emoji: '🎖️', text: 'Ton coach « Le focus du moment » ne colle plus sa félicitation « Objectif hebdo déjà tenu : 2/2 séances 💪 » à la note qui la suit. Cette petite phrase se terminait par l’emoji, sans point final : quand le coach enchaînait juste après avec un autre conseil (le socle sommeil de tes gains, ta montée de kilométrage, un plateau de force…), les deux se retrouvaient collés dans la MÊME puce — « objectif tenu 💪 » soudé à « … augmente le risque de blessure » — et le tri par urgence, qui travaille phrase par phrase, se retrouvait coincé (la félicitation ne pouvait plus descendre, l’alerte ne pouvait plus remonter). Un simple point après le 💪 referme la félicitation : elle redevient sa propre ligne, et le conseil qui suit sa propre puce, correctement reclassée. Pareil côté objectif de focus (« … min 💪 »). Rien d’ajouté ni retiré, juste une frontière de phrase remise en place.' },
   { v: '2.0.274', emoji: '🛡️', text: 'Tes graphes sur 8 semaines (charge, tonnage, focus, sommeil, révisions) ne peuvent plus faire planter le tableau de bord. Si une seule de tes données portait une date bancale — mal formée (2026/07/15, 20260715) ou carrément impossible (le 40 du mois 13, un 30 février) glissée par un vieil enregistrement ou un import — le calcul des courbes butait dessus et jetait une erreur qui cassait TOUT le rendu du dashboard (écran figé). Désormais une date douteuse est simplement ignorée, comme une donnée hors période : les courbes s’affichent quand même, sans elle. Rien de visible en usage normal — c’est un filet de sécurité sur des données abîmées.' },
   { v: '2.0.273', emoji: '🏷️', text: 'La séance guidée ne colle plus deux fois « Cible du jour » sur la même carte. Les jours où tu es en forme, la note du haut disait « Cible du jour : technique propre, effort contrôlé… » ET, plus bas, « 🎯 Cible du jour : 10 reps × 40 kg » — deux étiquettes identiques pour deux choses différentes, on ne savait plus laquelle était LA cible. Désormais la note du haut s’appelle « Consigne du jour » (le COMMENT : la qualité d’exécution, les répétitions en réserve) et le 🎯 garde « Cible du jour » (le COMBIEN : tes reps et ta charge visées). Rien d’ajouté ni retiré, juste un libellé clarifié.' },
@@ -4125,7 +4126,7 @@ function wellnessMinutesInWindow(list, startKey, endKey) {
 function bestWellnessWeek(list, todayKey) {
   const byWeek = {};
   (Array.isArray(list) ? list : []).forEach(x => {
-    if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(String(x.date))) return;
+    if (!x || !isRealDateKey(String(x.date))) return;
     const wk = dateKey(mondayOf(new Date(String(x.date) + 'T12:00:00')));
     byWeek[wk] = (byWeek[wk] || 0) + 1;
   });
@@ -4133,7 +4134,7 @@ function bestWellnessWeek(list, todayKey) {
   if (!entries.length) return null;
   let best = null;
   entries.forEach(([wk, c]) => { if (!best || c > best.count || (c === best.count && wk > best.weekStart)) best = { weekStart: wk, count: c }; });
-  const curWeek = /^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || '')) ? dateKey(mondayOf(new Date(String(todayKey) + 'T12:00:00'))) : null;
+  const curWeek = isRealDateKey(String(todayKey || '')) ? dateKey(mondayOf(new Date(String(todayKey) + 'T12:00:00'))) : null;
   return { weekStart: best.weekStart, count: best.count, isCurrent: curWeek != null && best.weekStart === curWeek };
 }
 // Objet de partage natif (Web Share) du bilan bien-être : série, routines de la semaine, minutes de
@@ -4141,7 +4142,7 @@ function bestWellnessWeek(list, todayKey) {
 function shareableWellness(wellnessDone, todayKey) {
   const list = Array.isArray(wellnessDone) ? wellnessDone : [];
   if (!list.length) return null;
-  const valid = /^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || ''));
+  const valid = isRealDateKey(String(todayKey || ''));
   const total = list.length;
   const streak = valid ? wellnessStreak(list, todayKey) : 0;
   let week = 0, min = 0, badges = [];
@@ -4571,7 +4572,7 @@ function bestSessionTonnage(workouts) {
 function bestTonnageWeek(workouts, todayKey) {
   const byWeek = {};
   (Array.isArray(workouts) ? workouts : []).forEach(w => {
-    if (!w || !/^\d{4}-\d{2}-\d{2}$/.test(String(w.date))) return;
+    if (!w || !isRealDateKey(String(w.date))) return;
     const t = workoutTonnage(w) || 0; if (t <= 0) return;
     const wk = dateKey(mondayOf(new Date(String(w.date) + 'T12:00:00')));
     if (!byWeek[wk]) byWeek[wk] = { tonnage: 0, sessions: 0 };
@@ -4587,7 +4588,7 @@ function bestTonnageWeek(workouts, todayKey) {
     // élevée. Jumeau de bestSessionTonnage (#406) : on n'arrondit qu'à l'affichage.
     if (!best || v.tonnage > best.tonnage || (v.tonnage === best.tonnage && wk > best.weekStart)) best = { weekStart: wk, tonnage: v.tonnage, sessions: v.sessions };
   });
-  const curWeek = /^\d{4}-\d{2}-\d{2}$/.test(String(todayKey || '')) ? dateKey(mondayOf(new Date(String(todayKey) + 'T12:00:00'))) : null;
+  const curWeek = isRealDateKey(String(todayKey || '')) ? dateKey(mondayOf(new Date(String(todayKey) + 'T12:00:00'))) : null;
   return { weekStart: best.weekStart, tonnage: Math.round(best.tonnage), sessions: best.sessions, isCurrent: curWeek != null && best.weekStart === curWeek };
 }
 // Régularité d'entraînement sur une fenêtre de N jours (défaut 28) : à partir des dates de séances

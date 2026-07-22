@@ -23,7 +23,19 @@ Route vers la 3.0, dans l'**ordre recommandé et validé** (détail : **[docs/AU
 
 > Différence assumée avec la liste initiale : Fondations + Sécurité passent **avant** la Sync, car la Sync en dépend (stockage robuste + chiffrement) et le socle sécu doit précéder l'ouverture réseau.
 
-## 📍 État actuel — build 2.0.275 (2026-07-22)
+## 📍 État actuel — build 2.0.276 (2026-07-22)
+
+> 🛡️ **#671 — Robustesse : les records « meilleure semaine » ne plantent plus sur une date impossible
+> (build 2.0.276).** Mission nuit = non-visuel. Rotation §4 bis (5 derniers : `docs, coach, robustesse,
+> athlete, coach`) → `docs`+`coach` bloqués (2 derniers), `coach` 2× → la piste nuit « coaching » tombe
+> sous la rotation ; `robustesse` **redevenu libre**. Piste PROUVÉE réservée par #670 (suivi direct de
+> #668) : `bestWellnessWeek` (`logic.js:4125`, rendue par `renderWellnessStreak`) et `bestTonnageWeek`
+> (`logic.js:4571`) crashaient le rendu de leur carte sur une date **impossible** (garde faible
+> `/^\d{4}-\d{2}-\d{2}$/` acceptant `2026-13-40` → `dateKey(mondayOf(...))` RangeError). Fix : garde
+> remplacé par `isRealDateKey` (déjà exporté+testé) aux 2 sites de crash + gardes `todayKey` frères
+> (`shareableWellness` inclus) par cohérence défensive. Zéro régression sur dates réelles. +4 tests
+> (échoue-avant/passe-après). 580 tests + SMOKE OK. Piste #670 **close** (les 2 sœurs corrigées). Recap
+> #671. _Domaine : robustesse._ **Lot 2.0.263→276 en attente de release (Adrien contrôle).**
 
 > 📄 **#670 — Run vide documenté (pas de commit code, pas de bump).** Rotation §4 bis (5 derniers :
 > `coach, robustesse, athlete, coach, tests`) → `coach`+`robustesse` bloqués (2 derniers), `coach` 2×.

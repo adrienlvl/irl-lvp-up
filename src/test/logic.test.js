@@ -4180,6 +4180,14 @@ test('bestTonnageWeek : record hebdo de tonnage', () => {
   assert.equal(bHalf.weekStart, '2026-07-06');
   assert.equal(bHalf.tonnage, 113);
   assert.equal(bHalf.isCurrent, false);
+  // robustesse : une date IMPOSSIBLE (2026-13-40, format-valide mais mois 13) ne doit plus jeter de
+  // RangeError depuis dateKey(mondayOf(...)) — même classe que #668/weeklyAggregate. La séance bancale
+  // est ignorée, pas de crash. Avant correctif (garde /^\d{4}-\d{2}-\d{2}$/) : « Invalid time value ».
+  assert.equal(L.bestTonnageWeek([{ date: '2026-13-40', exercises: [{ name: 'Sq', load: 100, reps: 5, sets: 3 }] }], '2026-07-13'), null);
+  // todayKey impossible ne crashe pas non plus (isCurrent devient simplement false)
+  const bImpToday = L.bestTonnageWeek([{ date: '2026-07-06', exercises: [{ name: 'Sq', load: 100, reps: 5, sets: 3 }] }], '2026-13-40');
+  assert.equal(bImpToday.weekStart, '2026-07-06');
+  assert.equal(bImpToday.isCurrent, false);
 });
 test('trainingConsistency : régularité des séances', () => {
   // moins de 3 séances → null
@@ -5861,6 +5869,13 @@ test('bestWellnessWeek : record de routines par semaine', () => {
   // dates invalides ignorées
   assert.equal(L.bestWellnessWeek([{ date: 'x', key: 'a' }], '2026-07-13'), null);
   assert.equal(L.bestWellnessWeek(null, '2026-07-13'), null);
+  // robustesse : une date IMPOSSIBLE (format-valide mais mois 13) ne fait plus jeter dateKey(mondayOf(...))
+  // — même classe que #668. La routine bancale est ignorée. Avant correctif : « Invalid time value ».
+  assert.equal(L.bestWellnessWeek([{ date: '2026-13-40', key: 'a' }], '2026-07-13'), null);
+  // todayKey impossible : pas de crash, isCurrent simplement false
+  const bImp = L.bestWellnessWeek([{ date: '2026-07-06', key: 'a' }], '2026-13-40');
+  assert.equal(bImp.weekStart, '2026-07-06');
+  assert.equal(bImp.isCurrent, false);
 });
 test('shareableWellness : partage du bilan bien-être', () => {
   assert.equal(L.shareableWellness([], '2026-07-13'), null);
@@ -6194,7 +6209,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.275');
+  assert.equal(L.CHANGELOG[0].v, '2.0.276');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
