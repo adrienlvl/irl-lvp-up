@@ -56,6 +56,22 @@ anneau de progression XP, dégradés graphes, retour tactile des boutons) · a11
 
 ---
 
+## 🔍 Dette identifiée — audit design & contenu du 2026-07-27
+
+Détail chiffré et preuves : **[`AUDIT-DESIGN-CONTENU-2026-07-27.md`](AUDIT-DESIGN-CONTENU-2026-07-27.md)**.
+Trois dettes structurelles, à traiter **pendant** la 3.0 et non après :
+
+- **🎨 Pas de système de design.** 17 feuilles CSS sans couche de tokens : les overrides gagnent par
+  **ordre de chargement**, pas par intention. C'est la cause du « le design est toujours mauvais » — il n'y
+  a pas de système, il y a une sédimentation. Hiérarchie plate en prime (62 `<h2>` pour 8 `<h3>`).
+- **✍️ Le contenu existe mais n'est pas relié.** 104 exercices avec `cue`/`explain`/`goal`/`avoid` de
+  qualité, sans lien `regression`/`progression` **dans la donnée** ; la science (Israetel, Zourdos, Seiler,
+  Bosquet, Epley) est citée en commentaires de code et **jamais montrée à l'utilisateur**.
+- **💿 Le .exe pèse 135 Mio dont 41 de PNG**, n'est **pas signé** (SmartScreen à chaque installation) et
+  laisse **44 Go de builds** sur le disque. Rien d'inéluctable : WebP + ménage + certificat.
+
+---
+
 ## 🚀 3.0 — EN ROUTE (le saut)
 
 Ordre validé : **Coaching → Fondations → Sécurité → Sync → Études → Scans**. Ce n'est pas du polish, c'est un
@@ -74,6 +90,16 @@ changement de nature.
    équilibre plusieurs matières jusqu'à leurs dates avec **répétition espacée**, bilan par matière.
 6. **📷 & ⌚ Premiers ponts vers le réel** — **scan code-barres du frigo** on-device (fondation « carte apprenante »
    posée, #697 ; scanner caméra à brancher) + **import Strava** (OAuth, faisable en solo).
+7. **🎨 Système de design** _(nouveau, issu de l'audit 2026-07-27)_ — une couche **`design-tokens.css`** chargée
+   en premier (couleur, échelle typo, espacement, rayons), toutes les autres feuilles la consomment ; fin des
+   collisions de cascade et **hiérarchie typographique assumée** (h2 → h3 dans les panneaux). C'est le
+   prérequis de toute refonte écran par écran : sans lui, chaque passe de design se défait toute seule.
+8. **✍️ Contenu relié & sourcé** _(nouveau)_ — `regression`/`progression` déclarées **dans la donnée** sur les
+   104 exercices (l'app peut enfin proposer la marche suivante) + un **« pourquoi ce chiffre ? »** sur chaque
+   recommandation clé, qui sort les sources scientifiques des commentaires de code vers l'écran.
+9. **💿 Distribution assainie** _(nouveau)_ — planches PNG → **WebP** (−30 Mio sur l'installeur *et* sur chaque
+   mise à jour), fenêtre sans flash au lancement et qui mémorise sa taille, nom unifié, ménage de `build-dist/`.
+   **Signature de code** = décision d'Adrien (achat de certificat), seule façon de supprimer SmartScreen.
 
 ---
 

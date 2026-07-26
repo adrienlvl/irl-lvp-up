@@ -2285,6 +2285,58 @@ chaque document**). Attention : **deux recommandations étaient des « non »**.
 > Ci-dessous : des tâches **nommées, vérifiées dans le code, et rangées par domaine** — on en prend
 > **une**, on la coche, on **change de domaine** à la suivante (VPS-AUTOPILOT §4 bis).
 
+### P0 — Suites de l'audit design & contenu du 2026-07-27 ⭐ **tâches nommées, preuves au dossier**
+
+> Source : **[`AUDIT-DESIGN-CONTENU-2026-07-27.md`](AUDIT-DESIGN-CONTENU-2026-07-27.md)** (tout est mesuré
+> dans le dépôt, pas estimé). Ces items sont **déjà vérifiés** — pas besoin de re-grep avant de coder, mais
+> relire le constat correspondant. Ordre = rapport valeur/effort décroissant.
+
+**Corrections courtes — une par boucle, absorbables en autonomie :**
+
+- [ ] **A0.1** Ménage `build-dist/` : 325 installeurs, **44 Go**. Garder les 3 derniers. _(2 min, ~44 Go rendus)_
+- [ ] **A0.2** Taguer **v2.0.301** — 2.0.300/2.0.301 sont sur master sans tag, la dernière release publiée est
+      v2.0.299 : Adrien n'a **ni l'arbre de skills (#701) ni la progression au gilet (#702)**.
+- [ ] **A0.3** Flash au lancement : `BrowserWindow` sans `show:false` + `ready-to-show`
+      (`electron-main.cjs:26`), `backgroundColor:'#0d1220'` en dur → fenêtre bleu nuit avant bascule en clair.
+- [ ] **A0.4** Mémoriser **taille et position de fenêtre** (aucun `getBounds`/`setBounds` aujourd'hui).
+- [ ] **A0.5** **PNG → WebP** sur les 24 planches `exercise-illustrations-v*.png` (41 Mio → ~6-9 Mio).
+      Elles sont **réellement utilisées** (`strength.css:3`, sprites 3×2) : c'est un changement de format,
+      pas une suppression. Gain : installeur 135 → ~105 Mio **et** autant en moins par mise à jour.
+- [ ] **A0.6** Unifier le nom : tray dit « Level Up IRL » (`electron-main.cjs:190`), `productName` dit
+      « IRL LVP UP ». Une seule identité.
+- [ ] **A0.7** `prefers-color-scheme` comme thème par défaut au 1er lancement — **0 occurrence** dans les
+      17 feuilles CSS aujourd'hui, l'app ignore la préférence de l'OS.
+- [ ] **A0.8** États vides : **20** usages de `.empty-state` contre **~34** « Aucun / Aucune / Pas encore »
+      en texte brut dans `app.js`. Unifier sur le composant.
+- [ ] **A0.9** a11y — étiqueter les **~21 `<input>` orphelins** (163 inputs / 142 labels).
+- [ ] **A0.10** a11y — **4 `aria-live` seulement** pour une app qui met tout à jour en direct. En poser sur
+      XP, toasts, coach, compteurs.
+
+**Vrais chantiers — à traiter comme des vagues, pas comme des boucles :**
+
+- [ ] **A0.11 — Système de design (le plus structurant).** 17 feuilles CSS, **aucune couche de tokens** : les
+      overrides gagnent par **ordre de chargement** (`pages.css` en dernier), pas par intention. C'est la cause
+      mécanique du bug des eyebrows sur 47 panneaux — et de « le design est toujours mauvais ». Créer
+      `design-tokens.css` chargé **en premier** (couleur, échelle typo, espacement, rayons) et faire consommer
+      les autres. **Sans ça, chaque passe de design se défait toute seule.**
+- [ ] **A0.12 — Hiérarchie typographique.** **62 `<h2>` pour 8 `<h3>`** sur 52 sections : tout est au même
+      niveau, l'écran se lit comme une liste de blocs équivalents. Descendre les sous-blocs en h3, assumer
+      une échelle.
+- [ ] **A0.13 — Relier le contenu.** Les 104 exercices ont un `cue`/`explain`/`goal`/`avoid` de qualité
+      (rien à réécrire) mais **aucun lien `regression`/`progression` dans la donnée** — la chaîne
+      « pompes inclinées → classiques → lestées » n'existe qu'en prose. La déclarer permet enfin à l'app de
+      proposer la marche suivante.
+- [ ] **A0.14 — Rendre la science visible.** Israetel, Zourdos, Seiler, Bosquet, Lauersen, Epley sont cités
+      **en commentaires de `logic.js`** et jamais montrés. Un « pourquoi ce chiffre ? » sur les recos clés.
+
+**Hors de portée des boucles — décision d'Adrien :**
+
+- [ ] **A0.15 Signature de code.** Aucun `certificateFile`/`signtoolOptions` → **SmartScreen à chaque
+      installation**, le pire écran de l'expérience produit. Seule solution : acheter un certificat
+      (~200-400 €/an). Aucune astuce logicielle ne le contourne.
+
+---
+
 ### P1 — Réveiller le mécanisme de PROPOSITIONS _(✅ écrites — en attente de décision)_
 
 `docs/proposals/` n'existait pas : la soupape « gros chantier = proposition » n'a **jamais** servi en
