@@ -1008,7 +1008,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.301'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.302'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2410,6 +2410,40 @@ app.whenReady().then(async () => {
         const el = document.getElementById('storageHealth');
         return !el.hidden && /Données de l/.test(el.textContent) && /storage-health sh-/.test(el.className);
       })();
+      // Illustrations en WebP (BLOQUANT) : le CSS doit pointer des .webp, plus aucun .png,
+      // et l'image doit réellement se charger (sinon les fiches d'exercices deviennent vides).
+      // Pas de regex ici : les antislashs sont mangés par le littéral de gabarit (VPS-AUTOPILOT §6).
+      checks.webpArt = await (async () => {
+        const probe = async (sheet) => {
+          const el = document.createElement('span');
+          el.className = 'exercise-art sheet-' + sheet + ' art-p0';
+          document.body.appendChild(el);
+          const bg = getComputedStyle(el).backgroundImage || '';
+          el.remove();
+          if (bg.indexOf('.webp') === -1) return false;
+          if (bg.indexOf('.png') !== -1) return false;
+          const part = bg.split('url(')[1];
+          if (!part) return false;
+          const url = part.split(')')[0].split('"').join('').split("'").join('');
+          return await new Promise(res => { const i = new Image(); i.onload = () => res(i.naturalWidth > 100); i.onerror = () => res(false); i.src = url; });
+        };
+        return (await probe(1)) && (await probe(24));
+      })();
+      // Mode de thème « selon l'heure » (BLOQUANT) : le script anti-flash ignorait 'time' et
+      // retombait sur 'dark' → bascule visible à chaque lancement pour ce mode.
+      checks.themeTimeMode = (() => {
+        if (typeof themeModeStored !== 'function' || typeof currentThemeMode !== 'function') return false;
+        let prev = null;
+        try { prev = localStorage.getItem('irl-theme'); } catch (_) {}
+        try {
+          localStorage.setItem('irl-theme', 'time');
+          const a = themeModeStored(), b = currentThemeMode();
+          localStorage.setItem('irl-theme', 'valeur-invalide');
+          const fallback = themeModeStored();
+          return a === 'time' && b === 'time' && (fallback === 'dark' || fallback === 'auto');
+        } catch (_) { return false; }
+        finally { try { if (prev === null) localStorage.removeItem('irl-theme'); else localStorage.setItem('irl-theme', prev); } catch (_) {} }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2436,6 +2470,8 @@ app.whenReady().then(async () => {
     if (!checks.strengthStd) errors.push('Standards de force KO (strengthStandards : classement par ratio 1RM/PdC / #strengthStandards / garde-fous poids+données)');
     if (!checks.skillTree) errors.push('Arbre calisthénie KO (calisthenicsProgress : 4 familles / paliers auto+skills / #skillTree)');
     if (!checks.vestProg) errors.push('Surcharge gilet KO (vestProgression : double progression sur séries lestées / #vestProgression)');
+    if (!checks.webpArt) errors.push('Illustrations KO (strength.css doit pointer des .webp chargeables, plus aucun .png — planches 1 et 24 vérifiées)');
+    if (!checks.themeTimeMode) errors.push('Mode thème « selon l’heure » KO (themeModeStored doit rendre \'time\' et non \'dark\' — sinon flash au lancement)');
     if (!checks.progression) errors.push('Suggestion de progression KO (progressionSuggestion : séance legacy `w.exercise` doit être comptée, pas seulement `exercises[]`)');
     if (!checks.guidedTarget) errors.push('Séance guidée : progression incohérente (#guidedProgressionHint / #guidedTarget / guidedProgressionLines) — feu vert doit suivre la double progression sans « +0,5 kg », récup basse doit CONSOLIDER sans « monte la charge »');
     if (!checks.guidedFragileLive) errors.push('Séance guidée : la cible/le conseil ne suivent pas la récup LIVE (reprise avec récup devenue fragile → #guidedRecoveryNote « allège » mais #guidedTarget disait encore « monte la charge » car current.cautious gelé) — renderGuidedWorkout doit arbitrer sur le fragile recalculé');

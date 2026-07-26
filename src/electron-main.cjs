@@ -1,5 +1,8 @@
-const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, safeStorage, dialog } = require('electron');
-const path = require('path'); const fs = require('fs'); const https = require('https'); let win, tray, timer;
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, safeStorage, dialog, nativeTheme, screen } = require('electron');
+const path = require('path'); const fs = require('fs'); const https = require('https'); let win, tray, timer, saveBoundsTimer;
+/* Nom affiché de l'app — une seule source pour le tray, les notifications et le menu.
+   (Avant : « Level Up IRL » au tray et « IRL LVP UP » dans l'installeur.) */
+const APP_NAME = 'IRL LVP UP';
 let autoUpdater; try { ({ autoUpdater } = require('electron-updater')); } catch (_) { autoUpdater = null; }
 /* Logique partagée avec le renderer (récurrence testée dans lib/logic.js). */
 const L = require(path.join(__dirname, 'lib', 'logic.js'));
@@ -8,6 +11,54 @@ function recurringToday(s, date) { return (Array.isArray(s.recurring) ? s.recurr
 const settingsFile = () => path.join(app.getPath('userData'), 'notifications.json');
 const stateBackupFile = () => path.join(app.getPath('userData'), 'irl-lvp-up-local-backup.json');
 const stateBackupHistoryDir = () => path.join(app.getPath('userData'), 'irl-lvp-up-backups');
+/* Géométrie de la fenêtre — fichier dédié pour ne jamais risquer les réglages de rappels.
+   Relecture toujours passée par L.sanitizeWindowBounds (fichier = donnée non fiable). */
+const windowStateFile = () => path.join(app.getPath('userData'), 'window-state.json');
+function rawWindowState() { try { return JSON.parse(fs.readFileSync(windowStateFile(), 'utf8')); } catch { return null; } }
+function readWindowState() {
+  const raw = rawWindowState();
+  if (!raw) return null;
+  try {
+    /* La zone de validation doit être celle de l'ÉCRAN OÙ ÉTAIT la fenêtre, pas celle de
+       l'écran principal : sinon une fenêtre posée sur un second moniteur voit sa position
+       jetée et sa taille rognée à chaque lancement. getDisplayMatching retombe sur l'écran
+       le plus proche si le moniteur a été débranché — sanitizeWindowBounds fait le reste. */
+    let area = screen.getPrimaryDisplay().workArea;
+    const x = Number(raw.x), y = Number(raw.y), w = Number(raw.width), h = Number(raw.height);
+    if ([x, y, w, h].every(Number.isFinite)) {
+      try { area = screen.getDisplayMatching({ x: Math.round(x), y: Math.round(y), width: Math.max(1, Math.round(w)), height: Math.max(1, Math.round(h)) }).workArea; } catch (_) {}
+    }
+    return L.sanitizeWindowBounds(raw, { minWidth: 720, minHeight: 620, workArea: area });
+  } catch { return null; }
+}
+/* Écriture différée : 'resize'/'move' partent en rafale pendant un glisser.
+   On conserve le thème effectif au passage — le processus principal ne peut pas lire le
+   localStorage du renderer, et c'est lui qui doit choisir la couleur de fond au prochain
+   lancement (cf. setEffectiveTheme). */
+function saveWindowState() {
+  if (!win || win.isDestroyed() || win.isMinimized()) return;
+  try {
+    const maximized = win.isMaximized();
+    const b = maximized ? win.getNormalBounds() : win.getBounds();
+    const prev = rawWindowState();
+    const theme = prev && (prev.theme === 'light' || prev.theme === 'dark') ? prev.theme : undefined;
+    fs.writeFileSync(windowStateFile(), JSON.stringify({ width: b.width, height: b.height, x: b.x, y: b.y, maximized, ...(theme ? { theme } : {}) }));
+  } catch (_) {}
+}
+/* Le renderer annonce le thème réellement appliqué ('light'|'dark') : c'est la seule source
+   de vérité (mode manuel, 'auto' système, ou 'selon l'heure'). Deviner depuis nativeTheme
+   donnerait un fond blanc derrière une interface sombre quand Windows est en clair. */
+ipcMain.handle('theme:effective', (_e, mode) => {
+  const theme = mode === 'light' ? 'light' : mode === 'dark' ? 'dark' : null;
+  if (!theme) return false;
+  try {
+    const prev = rawWindowState() || {};
+    if (prev.theme === theme) return true;
+    fs.writeFileSync(windowStateFile(), JSON.stringify({ ...prev, theme }));
+  } catch (_) { return false; }
+  return true;
+});
+function scheduleSaveWindowState() { clearTimeout(saveBoundsTimer); saveBoundsTimer = setTimeout(saveWindowState, 400); }
 const isTime = t => typeof t === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 const NOTIF_DEFAULTS = { enabled: false, times: ['09:00', '18:00'], lastSent: {}, leadMinutes: 15, eveningTime: '21:00', eveningEnabled: true };
 function settings() { try { const cfg = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); return { ...NOTIF_DEFAULTS, ...(cfg && typeof cfg === 'object' ? cfg : {}), lastSent: (cfg && cfg.lastSent) || {} }; } catch { return { ...NOTIF_DEFAULTS }; } }
@@ -22,12 +73,50 @@ function checkEventReminders(cfg, now, date) { const s = readBackupState(); if (
 /* Rappel du soir : s'il reste des blocs ou des quêtes non faits. */
 function checkEveningReminder(cfg, time, date) { if (cfg.eveningEnabled === false) return false; const evening = isTime(cfg.eveningTime) ? cfg.eveningTime : '21:00'; if (time !== evening || cfg.lastSent[`evening-${date}`] === date) return false; const s = readBackupState(); if (!s) return false; const remaining = (Array.isArray(s.agenda) ? s.agenda : []).filter(a => a && a.date === date && !a.completed).length + recurringToday(s, date).filter(r => !r.doneLog.includes(date)).length; const quests = (Array.isArray(s.quests) ? s.quests : []).filter(q => q && !q.done).length; const habits = L.habitsForDay(s.habits, date).filter(h => !h.done).length; if (!remaining && !quests && !habits) return false; cfg.lastSent[`evening-${date}`] = date; const parts = []; if (remaining) parts.push(`${remaining} bloc${remaining > 1 ? 's' : ''}`); if (quests) parts.push(`${quests} quête${quests > 1 ? 's' : ''}`); if (habits) parts.push(`${habits} habitude${habits > 1 ? 's' : ''}`); showReminder('🌙 Fermer la journée', `Encore ${parts.join(', ')} aujourd’hui. Un petit geste suffit, puis repos.`); return true; }
 function checkExamReminder(cfg, time, date) { if (time !== (cfg.times[0] || '09:00') || cfg.lastSent[`exam-${date}`] === date) return false; const s = readBackupState(); if (!s) return false; const msg = L.examReminderDue(s.examGoal, date); if (!msg) return false; cfg.lastSent[`exam-${date}`] = date; showReminder('🎓 Rappel examen', `${msg} Bloque une révision aujourd’hui.`); return true; }
-function checkReminders() { const cfg = settings(); if (!cfg.enabled) return; const now = new Date(), time = now.toTimeString().slice(0, 5), date = new Date(now - now.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); let changed = false; Object.keys(cfg.lastSent).forEach(k => { if (cfg.lastSent[k] !== date) { delete cfg.lastSent[k]; changed = true; } }); if (cfg.times.includes(time) && cfg.lastSent[time] !== date) { cfg.lastSent[time] = date; changed = true; const summary = time === cfg.times[0] ? todaySummary() : null; showReminder('⚡ Level Up IRL', summary || 'Une mini-quête t’attend. Fais un pas, gagne de l’XP.'); } if (checkEventReminders(cfg, now, date)) changed = true; if (checkEveningReminder(cfg, time, date)) changed = true; if (checkExamReminder(cfg, time, date)) changed = true; if (changed) saveSettings(cfg); }
-function createWindow() { win = new BrowserWindow({ width: 1120, height: 820, minWidth: 720, minHeight: 620, backgroundColor: '#0d1220', autoHideMenuBar: true, icon: path.join(__dirname, 'assets', 'icon.ico'), webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } }); win.loadFile('index.html');
+function checkReminders() { const cfg = settings(); if (!cfg.enabled) return; const now = new Date(), time = now.toTimeString().slice(0, 5), date = new Date(now - now.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); let changed = false; Object.keys(cfg.lastSent).forEach(k => { if (cfg.lastSent[k] !== date) { delete cfg.lastSent[k]; changed = true; } }); if (cfg.times.includes(time) && cfg.lastSent[time] !== date) { cfg.lastSent[time] = date; changed = true; const summary = time === cfg.times[0] ? todaySummary() : null; showReminder(`⚡ ${APP_NAME}`, summary || 'Une mini-quête t’attend. Fais un pas, gagne de l’XP.'); } if (checkEventReminders(cfg, now, date)) changed = true; if (checkEveningReminder(cfg, time, date)) changed = true; if (checkExamReminder(cfg, time, date)) changed = true; if (changed) saveSettings(cfg); }
+function createWindow() {
+  /* Géométrie restaurée du lancement précédent (assainie), sinon valeurs par défaut. */
+  const saved = readWindowState();
+  /* Fond accordé au thème RÉELLEMENT appliqué au lancement précédent (annoncé par le
+     renderer). À la toute première ouverture on n'a rien : on suit le thème de Windows,
+     ce qui correspond au nouveau défaut 'auto' côté renderer. */
+  const lastTheme = (rawWindowState() || {}).theme;
+  const dark = lastTheme === 'light' ? false : lastTheme === 'dark' ? true : nativeTheme.shouldUseDarkColors;
+  const bg = dark ? '#0d1220' : '#f5f6fa';
+  win = new BrowserWindow({
+    width: (saved && saved.width) || 1120, height: (saved && saved.height) || 820,
+    ...(saved && Number.isFinite(saved.x) ? { x: saved.x, y: saved.y } : {}),
+    minWidth: 720, minHeight: 620, backgroundColor: bg, autoHideMenuBar: true,
+    /* show:false + 'ready-to-show' : la fenêtre n'apparaît qu'une fois la page peinte.
+       Sans ça, on voyait un rectangle vide au lancement (constat D3 de l'audit). */
+    show: false,
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
+    webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true }
+  });
+  /* maximize() AFFICHE la fenêtre, même créée avec show:false — l'appeler ici annulerait
+     tout l'intérêt de show:false pour quiconque quitte en fenêtre agrandie (le cas courant).
+     Il doit donc rester DANS 'ready-to-show', juste avant show(). */
+  const reveal = () => { if (!win || win.isDestroyed()) return; if (saved && saved.maximized) win.maximize(); win.show(); };
+  /* Filet de sécurité : si 'ready-to-show' ne part jamais (page en échec), on montre quand
+     même la fenêtre. Il ne doit servir QUE si la page n'a jamais été peinte : hide() (tray)
+     ET minimize() mettent tous deux isVisible() à false sous Windows, donc sans désarmement
+     il rouvrirait d'autorité une fenêtre volontairement mise de côté dans les 8 premières
+     secondes — juste après avoir promis « l'application reste active pour tes rappels ». */
+  const safetyTimer = setTimeout(() => { if (win && !win.isDestroyed() && !win.isVisible() && !app.isQuitting) reveal(); }, 8000);
+  const cancelSafetyNet = () => clearTimeout(safetyTimer);
+  win.once('ready-to-show', () => { cancelSafetyNet(); reveal(); });
+  win.on('hide', cancelSafetyNet);
+  win.on('minimize', cancelSafetyNet);
+  win.once('closed', cancelSafetyNet);
+  win.loadFile('index.html');
+  win.on('resize', scheduleSaveWindowState);
+  win.on('move', scheduleSaveWindowState);
+  win.on('maximize', scheduleSaveWindowState);
+  win.on('unmaximize', scheduleSaveWindowState);
 /* S.2 : aucune navigation ni fenêtre externe possible — l'app est 100 % locale. */
 win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 win.webContents.on('will-navigate', event => event.preventDefault());
-win.on('close', event => { if (!app.isQuitting) { event.preventDefault(); win.hide(); showReminder('Level Up IRL', 'L’application reste active pour tes rappels.'); } }); }
+win.on('close', event => { saveWindowState(); if (!app.isQuitting) { event.preventDefault(); win.hide(); showReminder(APP_NAME, 'L’application reste active pour tes rappels.'); } }); }
 /* Auto-update (electron-updater) — uniquement en build empaqueté. Vérifie GitHub
    Releases au démarrage, télécharge en tâche de fond, prévient le renderer quand
    c'est prêt. Les erreurs (dépôt non configuré, hors-ligne) sont avalées : l'app
@@ -187,7 +276,7 @@ ipcMain.handle('travel:config:save', (_e, v) => writeTravelConfig(v));
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) { app.quit(); } else {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
-app.whenReady().then(() => { createWindow(); let trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.ico')); if (trayIcon.isEmpty()) trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'irl-lvp-up-logo.png')); tray = new Tray(trayIcon.isEmpty() ? nativeImage.createEmpty() : trayIcon); tray.setToolTip('Level Up IRL'); tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Ouvrir Level Up IRL', click: () => { win.show(); win.focus(); } }, { type: 'separator' }, { label: 'Quitter', click: () => { app.isQuitting = true; app.quit(); } }])); tray.on('click', () => { win.show(); win.focus(); }); timer = setInterval(checkReminders, 30000); checkReminders(); setTimeout(initAutoUpdate, 3500); });
+app.whenReady().then(() => { /* Windows : sans AppUserModelID, les notifications s'affichent au nom d'Electron. */ try { app.setAppUserModelId('com.adrien.irllvpup'); } catch (_) {} createWindow(); let trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.ico')); if (trayIcon.isEmpty()) trayIcon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'irl-lvp-up-logo.png')); tray = new Tray(trayIcon.isEmpty() ? nativeImage.createEmpty() : trayIcon); tray.setToolTip(APP_NAME); tray.setContextMenu(Menu.buildFromTemplate([{ label: `Ouvrir ${APP_NAME}`, click: () => { win.show(); win.focus(); } }, { type: 'separator' }, { label: 'Quitter', click: () => { app.isQuitting = true; app.quit(); } }])); tray.on('click', () => { win.show(); win.focus(); }); timer = setInterval(checkReminders, 30000); checkReminders(); setTimeout(initAutoUpdate, 3500); });
 }
 ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('notifications:get', () => settings());

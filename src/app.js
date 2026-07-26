@@ -11,11 +11,26 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredIns
 window.addEventListener('appinstalled',()=>{deferredInstall=null;const b=document.getElementById('installBtn');if(b)b.hidden=true;const c=document.getElementById('installCard');if(c)c.hidden=true;});
 window.addEventListener('error',e=>showAppError((e.error&&e.error.message)||e.message||'erreur inconnue'));
 window.addEventListener('unhandledrejection',e=>showAppError((e.reason&&e.reason.message)||String(e.reason||'rejet non géré')));
-(function(){try{var v=localStorage.getItem('irl-theme');var mode=(v==='light'||v==='dark'||v==='auto')?v:'dark';var sysDark=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)').matches:true;var eff=mode==='light'?'light':mode==='dark'?'dark':(sysDark?'dark':'light');document.documentElement.dataset.theme=eff==='light'?'light':'';}catch(_){}})();
+/* Thème posé AVANT le premier rendu (anti-flash). Doit rester aligné sur resolveTheme() :
+   il manquait le mode 'time', qui retombait donc sur 'dark' puis basculait — un flash à chaque
+   lancement pour ce mode. Défaut : 'auto' à la toute première ouverture (on respecte le thème du
+   système), 'dark' pour une installation existante sans préférence (on ne change rien sous les pieds). */
+/* Le défaut calculé est PERSISTÉ immédiatement : la sonde « installation neuve » repose sur
+   l'absence de 'irl-level-up'/'irl-install-date', or ces deux clés sont écrites dès le premier
+   rendu. Sans ce figeage, un nouvel utilisateur démarrait en 'auto' puis basculait en 'dark'
+   au deuxième lancement, tout seul. */
+function themeModeStored(){var v=null;try{v=localStorage.getItem('irl-theme');}catch(_){}if(v==='light'||v==='dark'||v==='auto'||v==='time')return v;var fresh=false;try{fresh=!localStorage.getItem('irl-level-up')&&!localStorage.getItem('irl-install-date');}catch(_){}var mode=fresh?'auto':'dark';try{localStorage.setItem('irl-theme',mode);}catch(_){}return mode;}
+/* Le processus principal ne peut pas lire le localStorage : on lui annonce le thème réellement
+   appliqué pour qu'il peigne le bon fond de fenêtre au prochain lancement.
+   Le rejet doit être avalé EXPLICITEMENT : ipcRenderer.invoke rend une promesse, et un canal
+   absent (préchargement plus ancien, version PWA) provoquerait sinon un « unhandled rejection »
+   remonté en bandeau d'erreur — un try/catch ne suffit pas pour de l'asynchrone. */
+function noteEffectiveTheme(eff){try{const d=window.desktop;if(!d||!d.setEffectiveTheme)return;const p=d.setEffectiveTheme(eff==='light'?'light':'dark');if(p&&typeof p.catch==='function')p.catch(()=>{});}catch(_){}}
+(function(){try{var mode=themeModeStored();var sysDark=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)').matches:true;var h=new Date().getHours();var eff=mode==='light'?'light':mode==='dark'?'dark':mode==='time'?((h>=7&&h<19)?'light':'dark'):(sysDark?'dark':'light');document.documentElement.dataset.theme=eff==='light'?'light':'';noteEffectiveTheme(eff);}catch(_){}})();
 (function(){try{if(localStorage.getItem('irl-density')==='compact')document.documentElement.dataset.density='compact';}catch(_){}})();
-function currentThemeMode(){try{const v=localStorage.getItem('irl-theme');return (v==='light'||v==='dark'||v==='auto'||v==='time')?v:'dark';}catch(_){return 'dark';}}
+function currentThemeMode(){return themeModeStored();}
 function systemPrefersDark(){try{return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);}catch(_){return true;}}
-function applyTheme(mode){const eff=resolveTheme(mode,systemPrefersDark(),new Date().getHours());document.documentElement.dataset.theme=eff==='light'?'light':'';applyThemeButton();}
+function applyTheme(mode){const eff=resolveTheme(mode,systemPrefersDark(),new Date().getHours());document.documentElement.dataset.theme=eff==='light'?'light':'';noteEffectiveTheme(eff);applyThemeButton();}
 function applyThemeButton(){const t=$('#themeToggle');if(!t)return;const mode=currentThemeMode();t.textContent=mode==='auto'?'🌗':mode==='light'?'☀️':mode==='time'?'🕐':'🌙';t.title=mode==='auto'?'Thème : auto (suit le système) — cliquer pour changer':mode==='light'?'Thème : clair — cliquer pour changer':mode==='time'?'Thème : selon l’heure (clair le jour, sombre la nuit) — cliquer pour changer':'Thème : sombre — cliquer pour changer';}
 const defaults = { xp: 0, health: 0, focus: 0, life: 0, streak: 0, lastActive: '', timerRuns: 0, challengeDone: false, quests: [
   { id: 1, name: 'Boire 2 grands verres d’eau', category: 'health', xp: 10, done: false }, { id: 2, name: '20 minutes de mouvement', category: 'health', xp: 20, done: false }, { id: 3, name: 'Une session sans notifications', category: 'focus', xp: 20, done: false }, { id: 4, name: 'Préparer demain en 5 minutes', category: 'life', xp: 10, done: false }

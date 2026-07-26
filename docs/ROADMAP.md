@@ -2293,24 +2293,35 @@ chaque document**). Attention : **deux recommandations étaient des « non »**.
 
 **Corrections courtes — une par boucle, absorbables en autonomie :**
 
-- [ ] **A0.1** Ménage `build-dist/` : 325 installeurs, **44 Go**. Garder les 3 derniers. _(2 min, ~44 Go rendus)_
-- [ ] **A0.2** Taguer **v2.0.301** — 2.0.300/2.0.301 sont sur master sans tag, la dernière release publiée est
+- [x] **A0.1** Ménage `build-dist/` — 644 fichiers supprimés, **42,3 Go rendus** (43,1 → 0,8 Go).
+- [ ] **A0.2** Taguer la release — 2.0.300/2.0.301/2.0.302 sont sur master sans tag, la dernière publiée est
       v2.0.299 : Adrien n'a **ni l'arbre de skills (#701) ni la progression au gilet (#702)**.
-- [ ] **A0.3** Flash au lancement : `BrowserWindow` sans `show:false` + `ready-to-show`
-      (`electron-main.cjs:26`), `backgroundColor:'#0d1220'` en dur → fenêtre bleu nuit avant bascule en clair.
-- [ ] **A0.4** Mémoriser **taille et position de fenêtre** (aucun `getBounds`/`setBounds` aujourd'hui).
-- [ ] **A0.5** **PNG → WebP** sur les 24 planches `exercise-illustrations-v*.png` (41 Mio → ~6-9 Mio).
-      Elles sont **réellement utilisées** (`strength.css:3`, sprites 3×2) : c'est un changement de format,
-      pas une suppression. Gain : installeur 135 → ~105 Mio **et** autant en moins par mise à jour.
-- [ ] **A0.6** Unifier le nom : tray dit « Level Up IRL » (`electron-main.cjs:190`), `productName` dit
-      « IRL LVP UP ». Une seule identité.
-- [ ] **A0.7** `prefers-color-scheme` comme thème par défaut au 1er lancement — **0 occurrence** dans les
-      17 feuilles CSS aujourd'hui, l'app ignore la préférence de l'OS.
+- [x] **A0.3** Flash au lancement corrigé : `show:false` + `ready-to-show` (+ filet à 8 s si la page échoue),
+      et `backgroundColor` accordé au thème système via `nativeTheme.shouldUseDarkColors`.
+- [x] **A0.4** Géométrie de fenêtre mémorisée (taille, position, état agrandi) dans un `window-state.json`
+      dédié, relue à travers `sanitizeWindowBounds` (pure + 13 assertions).
+- [x] **A0.5** **PNG → WebP** : 38,4 Mio → **2,6 Mio** (−93 %), bien mieux que les ~6-9 Mio espérés.
+      Outil maison `tools/png-to-webp.cjs` (Electron, zéro nouvelle dépendance) qui **redécode et compare
+      pixel à pixel** : écart moyen 1,07/255, 0,21 % des sous-pixels au-delà du seuil de perception.
+- [x] **A0.6** Nom unifié sur `APP_NAME = 'IRL LVP UP'` (tray, menu, notifications) + `setAppUserModelId`
+      pour que Windows n'attribue plus les notifications à « Electron ».
+- [x] **A0.7** ~~`prefers-color-scheme` absent~~ — **constat d'origine FAUX** (j'avais grepé les CSS ;
+      l'app l'implémente en JS via `matchMedia`, mode `auto` + écouteur, `app.js:17`). Ce qui était réel
+      et a été corrigé : le script anti-flash ignorait le mode `time` (flash à chaque lancement pour ce
+      mode) et le défaut sans préférence était `dark` → désormais `auto`, **mais seulement à la toute
+      première ouverture** (une installation existante garde `dark`, on ne bascule pas le thème sous les
+      pieds de quelqu'un).
 - [ ] **A0.8** États vides : **20** usages de `.empty-state` contre **~34** « Aucun / Aucune / Pas encore »
       en texte brut dans `app.js`. Unifier sur le composant.
 - [ ] **A0.9** a11y — étiqueter les **~21 `<input>` orphelins** (163 inputs / 142 labels).
 - [ ] **A0.10** a11y — **4 `aria-live` seulement** pour une app qui met tout à jour en direct. En poser sur
       XP, toasts, coach, compteurs.
+
+> **Fait le 2026-07-27 (2.0.302)** : A0.1, A0.3, A0.4, A0.5, A0.6, A0.7. Le diff est passé par une revue
+> adversariale multi-axes qui a rattrapé **8 défauts, dont 4 régressions introduites par le lot lui-même**
+> (filet de sécurité rouvrant une fenêtre mise au tray, `maximize()` annulant `show:false`, validation
+> mono-écran, fond de fenêtre déduit du mauvais thème) — détail dans `recaps/703-demarrage-et-distribution.md`.
+> Trou de couverture bouché au passage : **aucun test ne vérifiait que les `url()` du CSS existent**.
 
 **Vrais chantiers — à traiter comme des vagues, pas comme des boucles :**
 

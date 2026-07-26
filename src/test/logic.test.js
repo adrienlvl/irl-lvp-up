@@ -72,6 +72,69 @@ test('nextThemeMode / resolveTheme : cycle et résolution système', () => {
   assert.equal(L.resolveTheme('time', false), 'light', 'heure absente → repli système (clair)');
 });
 
+test('sanitizeWindowBounds : une géométrie relue du disque n’est jamais crue sur parole', () => {
+  const area = { x: 0, y: 0, width: 1920, height: 1040 };
+  const opts = { minWidth: 720, minHeight: 620, workArea: area };
+
+  // Entrées inexploitables → null (l'appelant retombe sur ses valeurs par défaut).
+  assert.equal(L.sanitizeWindowBounds(null, opts), null);
+  assert.equal(L.sanitizeWindowBounds('1120x820', opts), null, 'une chaîne n’est pas une géométrie');
+  assert.equal(L.sanitizeWindowBounds({ width: 'large', height: 820 }, opts), null, 'largeur non numérique');
+  assert.equal(L.sanitizeWindowBounds({ width: NaN, height: NaN }, opts), null);
+
+  // Cas nominal : conservé tel quel, arrondi.
+  const ok = L.sanitizeWindowBounds({ width: 1400.4, height: 900.6, x: 120.2, y: 60.8 }, opts);
+  assert.deepEqual(ok, { width: 1400, height: 901, maximized: false, x: 120, y: 61 });
+
+  // Trop petit → remonté aux minima (sinon fenêtre inutilisable).
+  const tiny = L.sanitizeWindowBounds({ width: 10, height: 10 }, opts);
+  assert.equal(tiny.width, 720);
+  assert.equal(tiny.height, 620);
+
+  // Plus grand que l'écran → ramené à la zone de travail.
+  const huge = L.sanitizeWindowBounds({ width: 99999, height: 99999 }, opts);
+  assert.equal(huge.width, 1920);
+  assert.equal(huge.height, 1040);
+
+  // Position à moitié définie → on oublie la position, on garde la taille.
+  const halfPos = L.sanitizeWindowBounds({ width: 1000, height: 800, x: 100 }, opts);
+  assert.equal(halfPos.width, 1000);
+  assert.equal(halfPos.x, undefined, 'x sans y n’a pas de sens → position ignorée');
+
+  // Fenêtre perdue hors écran (moniteur débranché) → position oubliée, taille gardée.
+  const offscreen = L.sanitizeWindowBounds({ width: 1000, height: 800, x: 5000, y: 3000 }, opts);
+  assert.equal(offscreen.width, 1000);
+  assert.equal(offscreen.x, undefined, 'hors de la zone de travail → on recentre par défaut');
+
+  // Chevauchement suffisant (fenêtre à cheval sur le bord droit) → position conservée.
+  const edge = L.sanitizeWindowBounds({ width: 1000, height: 800, x: 1800, y: 100 }, opts);
+  assert.equal(edge.x, 1800, '120 px visibles suffisent à garder la position');
+
+  // Coordonnées négatives valides (écran secondaire à gauche) : acceptées si ça chevauche.
+  const neg = L.sanitizeWindowBounds({ width: 1000, height: 800, x: -900, y: 0 }, opts);
+  assert.equal(neg.x, -900, '100 px débordent sur l’écran principal → on garde');
+
+  // La BARRE DE TITRE doit rester attrapable : une fenêtre visible mais impossible à déplacer
+  // à la souris est un piège. Bord haut sous la zone de travail → position refusée.
+  const belowDesk = L.sanitizeWindowBounds({ width: 1000, height: 800, x: 100, y: 1030 }, opts);
+  assert.equal(belowDesk.x, undefined, 'barre de titre sous le bureau → position oubliée');
+  assert.equal(belowDesk.width, 1000, 'mais la taille reste conservée');
+  // Bord haut au-dessus de la zone de travail (fenêtre remontée hors écran) → refusée aussi.
+  const aboveDesk = L.sanitizeWindowBounds({ width: 1000, height: 800, x: 100, y: -500 }, opts);
+  assert.equal(aboveDesk.x, undefined, 'barre de titre au-dessus du bureau → position oubliée');
+  // Tolérance de 8 px : une fenêtre collée au bord haut reste acceptée.
+  assert.equal(L.sanitizeWindowBounds({ width: 1000, height: 800, x: 100, y: -5 }, opts).x, 100, 'collée au bord haut → acceptée');
+
+  // maximized n'est vrai que si c'est exactement true (pas 'true', pas 1).
+  assert.equal(L.sanitizeWindowBounds({ width: 900, height: 700, maximized: true }, opts).maximized, true);
+  assert.equal(L.sanitizeWindowBounds({ width: 900, height: 700, maximized: 'true' }, opts).maximized, false);
+
+  // Sans zone de travail fournie : pas de plafond, position conservée telle quelle.
+  const noArea = L.sanitizeWindowBounds({ width: 5000, height: 4000, x: 9000, y: 9000 }, { minWidth: 720, minHeight: 620 });
+  assert.equal(noArea.width, 5000);
+  assert.equal(noArea.x, 9000);
+});
+
 test('normalizeAgendaItem : défauts pour une entrée legacy minimale', () => {
   const e = L.normalizeAgendaItem({ id: 42, title: 'Muscu', date: '2026-07-06', time: '18:00', kind: 'sport' });
   assert.equal(e.id, 42);
@@ -6417,7 +6480,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.301');
+  assert.equal(L.CHANGELOG[0].v, '2.0.302');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {

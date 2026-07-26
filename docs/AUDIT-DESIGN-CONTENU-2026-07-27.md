@@ -36,9 +36,25 @@ exactement ce qui a produit le bug des eyebrows (une règle a aplati la hiérarc
 qu'aucun test ne le voie). **C'est la cause structurelle du « le design est toujours mauvais »** : il n'y
 a pas de système, il y a une sédimentation.
 
-### D2. Le thème ne suit jamais le système
-**0 occurrence de `prefers-color-scheme`** dans les 17 feuilles. Seul `:root[data-theme=…]` existe. Au
-tout premier lancement, l'app ne respecte donc pas la préférence claire/sombre de Windows ou d'iOS.
+### D2. ~~Le thème ne suit jamais le système~~ → **corrigé le 2026-07-27 : constat initial FAUX**
+
+> **Ce que j'avais écrit** : « 0 occurrence de `prefers-color-scheme` dans les 17 feuilles → l'app ne
+> respecte pas la préférence claire/sombre du système. » **C'est faux, et l'erreur vient de ma méthode** :
+> j'avais cherché `prefers-color-scheme` uniquement dans les fichiers CSS. L'app l'implémente en
+> **JavaScript** (`app.js:17`, `window.matchMedia('(prefers-color-scheme: dark)')`), avec un mode `auto`
+> qui suit le système **et** un écouteur qui réagit en direct au changement de thème de l'OS. La
+> fonctionnalité existait déjà, complète.
+
+Ce qui restait vraiment à corriger, une fois le code lu au lieu d'être grepé :
+
+1. **Le script anti-flash ignorait le mode « selon l'heure »** (`app.js:14`) : sa liste blanche
+   acceptait `light|dark|auto` mais pas `time`, alors que `currentThemeMode()` l'accepte. Un
+   utilisateur en mode horaire partait donc en sombre puis basculait — **un flash à chaque lancement**.
+2. **Le défaut sans préférence stockée était `dark`**, jamais `auto` : une nouvelle installation
+   ignorait le thème du système. Corrigé, mais **uniquement pour une toute première ouverture**
+   (aucun `irl-level-up` ni `irl-install-date` en réserve) — une installation existante garde `dark`,
+   parce que basculer le thème sous les pieds d'un utilisateur en place serait une régression, pas
+   une amélioration.
 
 ### D3. Flash au lancement du .exe
 `BrowserWindow` est créé sans `show:false` ni `ready-to-show` (**0 occurrence**, `electron-main.cjs:26`),
@@ -135,7 +151,7 @@ taguées** — les utilisateurs sont encore sur 2.0.299 (arbre de skills et prog
 | 4 | Mémoriser taille/position de fenêtre | design | 30 min | confort quotidien |
 | 5 | PNG → WebP sur les 24 planches | .exe | 1 h | **−30 Mio** installeur *et* mises à jour |
 | 6 | Unifier le nom (« IRL LVP UP » partout) | design | 15 min | cohérence d'identité |
-| 7 | `prefers-color-scheme` comme thème par défaut | design | 30 min | respect de l'OS au 1er lancement |
+| 7 | ~~`prefers-color-scheme`~~ → mode « selon l'heure » sans flash + défaut `auto` au 1er lancement | design | 30 min | voir D2 : le constat d'origine était faux |
 | 8 | Passer les ~34 messages vides au composant `.empty-state` | design | 1 h | cohérence sur toute l'app |
 | 9 | Étiqueter les ~21 `<input>` orphelins | a11y | 1 h | conformité réelle |
 | 10 | `aria-live` sur XP, toasts, coach, compteurs | a11y | 1 h | l'app devient utilisable au lecteur d'écran |

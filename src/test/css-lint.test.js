@@ -31,6 +31,24 @@ test('CSS : parenthèses équilibrées dans chaque déclaration', () => {
   assert.deepEqual(offenders, [], 'déclarations CSS à parenthèses déséquilibrées');
 });
 
+// Les 594 tests passaient avec une planche d'illustration manquante : rien ne vérifiait que les
+// url() du CSS pointent un fichier qui existe. Trou découvert lors du passage PNG → WebP (2.0.302).
+test('CSS : chaque url(...) locale pointe un fichier qui existe', () => {
+  const missing = [];
+  for (const f of cssFiles) {
+    const clean = fs.readFileSync(path.join(dir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const refs = clean.match(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g) || [];
+    for (const ref of refs) {
+      const raw = ref.replace(/^url\(\s*['"]?/, '').replace(/['"]?\s*\)$/, '').trim();
+      // On ne juge que les chemins locaux : ni data:, ni http(s):, ni #fragment.
+      if (!raw || /^(data:|https?:|\/\/|#)/i.test(raw)) continue;
+      const target = path.join(dir, raw.split('?')[0].split('#')[0]);
+      if (!fs.existsSync(target)) missing.push(`${f} → ${raw}`);
+    }
+  }
+  assert.deepEqual(missing, [], 'url() CSS pointant un fichier absent');
+});
+
 test('CSS : accolades équilibrées par fichier', () => {
   const offenders = [];
   for (const f of cssFiles) {

@@ -132,7 +132,7 @@ function exerciseIcon(name, animated) {
     + '</svg>';
 }
 
-// Vraies illustrations photo (humain, planches assets/exercise-illustrations-v1..5.png,
+// Vraies illustrations photo (humain, planches assets/exercise-illustrations-v1..5.webp,
 // 5×6 cases). « sheet art ». Les exercices absents (barre/traction : aucune photo)
 // retombent proprement sur la figure SVG animée.
 const EXERCISE_ART = {
