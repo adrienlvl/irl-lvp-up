@@ -3089,6 +3089,65 @@ app.whenReady().then(async () => {
     errors.push('exception: ' + e.message);
   }
 
+  // ===== Passe mobile (390 × 844) ==========================================
+  // Adrien utilise l'app sur iPhone. Les défauts de mise en page à cette largeur sont
+  // INVISIBLES dans la fenêtre de 1200 px ci-dessus : on rouvre donc une fenêtre étroite.
+  try {
+    const mob = new BrowserWindow({ show: false, width: 390, height: 844, useContentSize: true,
+      webPreferences: { preload: path.join(__dirname, '..', 'preload.cjs'), contextIsolation: true } });
+    await mob.loadFile(path.join(__dirname, '..', 'index.html'));
+    await new Promise(r => setTimeout(r, 2200));
+    const m = await mob.webContents.executeJavaScript(`(() => {
+      const out = { deborde: [], pageDeborde: false, enTeteTexte: 0, colonneSemaine: 0 };
+      try {
+        // 1. Rien ne doit dépasser horizontalement de la page.
+        out.pageDeborde = document.documentElement.scrollWidth > window.innerWidth + 1;
+        // 2. L'en-tête doit rendre la largeur au texte (il tombait à 110 px).
+        const t = document.querySelector('.hero h1');
+        out.enTeteTexte = t ? Math.round(t.parentElement.getBoundingClientRect().width) : 0;
+        // 3. Aucun élément visible ne doit déborder de sa boîte sans défilement prévu.
+        //    C'est ce qui a attrapé le sélecteur d'objectif coupé et la barre bien-être.
+        const pages = ['athlete', 'nutrition', 'alternance', 'poids', 'focus'];
+        for (const p of pages) {
+          showPage(p);
+          // La page Athlète cache 3 de ses 4 sous-onglets : sans les parcourir, la passe ne
+          // voyait qu'un quart de ses panneaux — et laissait passer un débordement réel.
+          const sousOnglets = (p === 'athlete') ? ['aujourdhui', 'programme', 'progres', 'corps'] : [null];
+          for (const st of sousOnglets) {
+          if (st) showAthleteTab(st);
+          document.querySelectorAll('main.app-shell section.panel, main.app-shell article.panel').forEach(pan => {
+            if (pan.offsetParent === null) return;
+            pan.querySelectorAll('*').forEach(e => {
+              if (e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 4 && getComputedStyle(e).overflowX === 'visible') {
+                const nom = (typeof e.className === 'string' && e.className) ? e.className.split(' ')[0] : e.tagName;
+                if (nom && out.deborde.length < 8 && !out.deborde.some(d => d.el === nom)) {
+                  out.deborde.push({ page: p, el: nom, de: e.scrollWidth - e.clientWidth });
+                }
+              }
+            });
+          });
+          }
+        }
+        // 4. La grille semaine doit rester lisible (elle tombait à 41 px par colonne).
+        showPage('dashboard');
+        document.getElementById('openWeekPage').click();
+        document.querySelector('#agendaViewSwitch [data-view="week"]').click();
+        const c = document.querySelector('#weekGrid .wt-col');
+        out.colonneSemaine = c ? Math.round(c.getBoundingClientRect().width) : 0;
+      } catch (e) { out.erreur = String(e && e.message); }
+      return out;
+    })()`);
+    console.log('MOBILE ' + JSON.stringify(m));
+    if (m.erreur) errors.push('Passe mobile : exception — ' + m.erreur);
+    if (m.pageDeborde) errors.push('Passe mobile : la page déborde horizontalement à 390 px');
+    if (m.enTeteTexte < 260) errors.push('Passe mobile : le texte de l’en-tête n’a que ' + m.enTeteTexte + ' px (il en faut au moins 260, il tombait à 110)');
+    if (m.colonneSemaine < 60) errors.push('Passe mobile : colonnes de la semaine à ' + m.colonneSemaine + ' px (illisible sous 60)');
+    if (m.deborde.length) errors.push('Passe mobile : éléments qui débordent de leur boîte — ' + m.deborde.map(d => d.el + ' (' + d.page + ', +' + d.de + 'px)').join(', '));
+    mob.destroy();
+  } catch (e) {
+    errors.push('Passe mobile : impossible à exécuter — ' + e.message);
+  }
+
   clearTimeout(bail);
   if (errors.length) { console.error('SMOKE FAIL:\n' + errors.join('\n')); app.exit(1); }
   else { console.log('SMOKE OK'); app.exit(0); }

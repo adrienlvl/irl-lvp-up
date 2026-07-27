@@ -225,7 +225,7 @@
 .wellness-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
 .wellness-actions .local-note{margin:0}
 #wellnessSurprise{border-left:3px solid var(--purple,#a78bfa)}
-@media(max-width:650px){.wellness-bar{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.wellness-bar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .op-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .op-bar select{flex:1;min-width:180px;background:var(--input-bg,#101625);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}
 .op-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}

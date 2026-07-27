@@ -305,3 +305,23 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
   .wt-event{font-size:var(--fs-2xs)}
   .wt-event b{font-size:var(--fs-3xs)}
 }
+
+/* ===== Onglet Athlète sur écran étroit (mesuré à 390 px) ===================
+   1. Le sélecteur d'objectif partageait sa rangée : 93 px de large pour un
+      libellé qui en demande 154. « 🏔️ Endurance / trail » était coupé — or
+      c'est le contrôle principal du panneau, celui qui dit ce qu'on regarde.
+      Un `min-width:0` posé ailleurs l'autorisait à rétrécir sans limite.
+   2. `.wellness-bar` débordait de son panneau de 31 px : `1fr` ne descend pas
+      sous le contenu minimum de la cellule. `minmax(0,1fr)` le permet — c'est
+      la différence qui fait déborder une grille sans que rien ne l'annonce. */
+@media(max-width:560px){
+  .op-bar select{flex:1 1 100%;min-width:0}
+  .wellness-bar{grid-template-columns:minmax(0,1fr)}
+}
+/* 3. `.food-row` : 5 à 7 colonnes en `fr` sur 390 px. Comme pour .wellness-bar, `fr` refuse de
+      descendre sous le contenu minimum — un nom d'aliment un peu long poussait la ligne hors de
+      son panneau (mesuré : +17 px). Les colonnes de chiffres passent sur une seconde ligne. */
+@media(max-width:560px){
+  .food-row{grid-template-columns:minmax(0,1fr) repeat(4,minmax(0,auto));gap:var(--sp-2) var(--sp-3);font-size:var(--fs-2xs)}
+  .food-row>b{grid-column:1/-1}
+}
