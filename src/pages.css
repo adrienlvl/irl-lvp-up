@@ -389,3 +389,15 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
   .quest:hover { background: transparent; transform: none }
   button:hover { filter: none }
 }
+
+/* ===== iOS : la barre d'état en thème clair ================================
+   `black-translucent` signifie : contenu sous la barre d'état, et texte système
+   en BLANC. En thème sombre ça passe ; en thème clair (fond #eef1f6) l'heure et
+   la batterie deviennent illisibles — blanc sur blanc.
+   On ne peut pas changer ce réglage à chaud (iOS le lit à l'installation), donc
+   on peint la bande sous la barre d'état en sombre, dans les deux thèmes. Le
+   texte système reste lisible, et la bande se lit comme un bandeau assumé. */
+body::before{
+  content:"";position:fixed;top:0;left:0;right:0;z-index:9999;pointer-events:none;
+  height:env(safe-area-inset-top);background:#0d1220;
+}
