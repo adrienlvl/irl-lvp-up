@@ -162,7 +162,8 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
    des six lignes et rendait le mois illisible. On montre trois entrées, on
    annonce le reste — le clic ouvre déjà la journée complète. */
 .month-day{display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.month-day.month-full .month-event:nth-of-type(n+4){display:none}
+/* Le plafond est applique en JS (renderMonthCalendar) : nth-of-type compte par TYPE
+   d element, et les entrees sont tantot <span> tantot <button> — la regle ne masquait rien. */
 .month-more{margin-top:auto;font-size:var(--fs-3xs);color:var(--muted);font-weight:var(--fw-bold);padding-left:var(--sp-1)}
 .month-day.today .month-more{color:var(--accent)}
 /* Le week-end se distingue sans crier : c'est un repère de lecture, pas une alerte. */

@@ -2751,14 +2751,26 @@ app.whenReady().then(async () => {
       // La vue mois annonce vraiment son débordement, et le repère est DANS la case.
       checks.moisDebordement = (() => {
         try {
-          const save = state.agenda;
+          const save = state.agenda, saveRec = state.recurring;
           const jour = localDate();
-          state.agenda = [1, 2, 3, 4, 5].map(n => ({ id: 9200 + n, date: jour, time: '0' + (8 + n) + ':00', durationMin: 30, title: 'B' + n, kind: 'life' }));
+          // Le mélange des TYPES est indispensable : les récurrents sortent en <span> et les
+          // blocs en <button>. C'est précisément ce mélange qui rendait le plafond CSS inopérant
+          // (nth-of-type compte par type) — un jeu d'essai homogène ne l'aurait jamais montré.
+          state.recurring = [{ id: 71, title: 'Cours', time: '08:00', durationMin: 60, kind: 'study',
+            rule: { freq: 'daily', startDate: '2026-01-01', interval: 1 }, doneLog: [], skipLog: [] }];
+          state.agenda = [1, 2, 3, 4].map(n => ({ id: 9200 + n, date: jour, time: '1' + n + ':00', durationMin: 30, title: 'B' + n, kind: 'life' }));
           renderMonthCalendar();
           const cel = document.querySelector('.month-day[data-cal-day="' + jour + '"]');
+          const evts = cel ? [...cel.querySelectorAll('.month-event')] : [];
+          const vus = evts.filter(e => getComputedStyle(e).display !== 'none');
           const plus = cel ? cel.querySelector('.month-more') : null;
-          const ok = !!cel && cel.classList.contains('month-full') && !!plus && plus.textContent.indexOf('+2') !== -1;
-          state.agenda = save; renderMonthCalendar();
+          // On compte ce qui est RÉELLEMENT visible : la première version de ce check se
+          // contentait de l'étiquette, et passait donc sur une case qui débordait quand même.
+          const ok = !!cel && cel.classList.contains('month-full')
+            && vus.length === 3 && !!plus && plus.textContent.indexOf('+2') !== -1
+            // …et le repère doit fermer la case, pas s'intercaler au milieu.
+            && cel.lastElementChild === plus;
+          state.agenda = save; state.recurring = saveRec; renderMonthCalendar();
           return ok;
         } catch (e) { checks.__errMois = String(e && e.message); return false; }
       })();
