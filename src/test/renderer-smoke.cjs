@@ -2856,6 +2856,29 @@ app.whenReady().then(async () => {
           return large && serre && prerempli;
         } catch (e) { checks.__errCap = String(e && e.message); return false; }
       })();
+      // Le coach doit voir l'agenda, pas seulement les piliers (BLOQUANT).
+      checks.coachAgenda = (() => {
+        try {
+          if (typeof coachAgendaWarning !== 'function' || typeof renderCoachFocus !== 'function') return false;
+          const el = document.getElementById('coachAgenda');
+          if (!el) return false;
+          const sa = state.agenda, sr = state.recurring, sc = state.dayCapacity;
+          state.recurring = []; state.dayCapacity = null;
+          const jour = localDate();
+          // Journée calme : le coach se tait. Une alerte permanente n'est plus une alerte.
+          state.agenda = [];
+          renderCoachFocus();
+          const muet = el.hidden === true;
+          // Bloc repoussé 4 fois : il doit être NOMMÉ, et cliquable pour trancher.
+          state.agenda = [{ id: 9500, date: jour, time: '18:00', durationMin: 60, title: 'Relancer Decathlon', kind: 'focus', movedCount: 4, firstDate: '2026-07-20' }];
+          renderCoachFocus();
+          const parle = !el.hidden && el.innerHTML.indexOf('Relancer Decathlon') !== -1
+            && el.dataset.type === 'report' && el.dataset.cible === '9500';
+          state.agenda = sa; state.recurring = sr; state.dayCapacity = sc;
+          renderCoachFocus();
+          return muet && parle;
+        } catch (e) { checks.__errCoach = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2891,6 +2914,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.coachAgenda) errors.push('Coach aveugle à l’agenda (#coachAgenda : muet un jour calme, mais doit NOMMER un bloc repoussé 4 fois et pointer dessus)');
     if (!checks.capaciteReglable) errors.push('Capacité KO (#openCapacity dans le menu réglages, formulaire pré-rempli, et la MÊME journée doit saturer à 2 h de capacité mais pas à 8 h)');
     if (!checks.editionConflit) errors.push('Édition d’un bloc KO (déplacer un bloc sur un cours récurrent doit prévenir du chevauchement, ne rien changer si on refuse, et comprendre « 1h30 »)');
     if (!checks.ficheAvecCharge) errors.push('Fiche exercice KO (elle doit s’ouvrir pour un exercice avec charge enregistrée — c’est le cas que l’état de test ne couvrait pas)');

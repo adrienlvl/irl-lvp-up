@@ -1,0 +1,239 @@
+<title>Installer IRL LVP UP sur ton iPhone</title>
+
+<style>
+  /* Palette reprise telle quelle de src/design-tokens.css : c'est l'identité de l'app,
+     et ce tuto est lu juste avant de l'installer — autant qu'il lui ressemble. */
+  :root {
+    --bg: #0d1220;
+    --card: #171e30;
+    --card-2: #111728;
+    --line: rgba(255, 255, 255, .09);
+    --line-fort: rgba(255, 255, 255, .18);
+    --text: #f7f8fc;
+    --muted: #9da8bd;
+    --accent: #abff55;
+    --accent-ink: #142014;
+    --accent-voile: rgba(171, 255, 85, .12);
+    --accent-trait: rgba(171, 255, 85, .32);
+    --warn: #f59e0b;
+    --warn-voile: rgba(245, 158, 11, .12);
+    --ombre: 0 16px 50px rgba(0, 0, 0, .35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef1f6;
+      --card: #ffffff;
+      --card-2: #f4f6fa;
+      --line: rgba(20, 28, 45, .14);
+      --line-fort: rgba(20, 28, 45, .24);
+      --text: #1a2230;
+      --muted: #586275;
+      --accent: #2f7d0a;
+      --accent-ink: #ffffff;
+      --accent-voile: rgba(47, 125, 10, .10);
+      --accent-trait: rgba(47, 125, 10, .30);
+      --warn: #b45309;
+      --warn-voile: rgba(180, 83, 9, .10);
+      --ombre: 0 10px 30px rgba(30, 45, 75, .10);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #eef1f6; --card: #ffffff; --card-2: #f4f6fa;
+    --line: rgba(20, 28, 45, .14); --line-fort: rgba(20, 28, 45, .24);
+    --text: #1a2230; --muted: #586275;
+    --accent: #2f7d0a; --accent-ink: #ffffff;
+    --accent-voile: rgba(47, 125, 10, .10); --accent-trait: rgba(47, 125, 10, .30);
+    --warn: #b45309; --warn-voile: rgba(180, 83, 9, .10);
+    --ombre: 0 10px 30px rgba(30, 45, 75, .10);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1220; --card: #171e30; --card-2: #111728;
+    --line: rgba(255, 255, 255, .09); --line-fort: rgba(255, 255, 255, .18);
+    --text: #f7f8fc; --muted: #9da8bd;
+    --accent: #abff55; --accent-ink: #142014;
+    --accent-voile: rgba(171, 255, 85, .12); --accent-trait: rgba(171, 255, 85, .32);
+    --warn: #f59e0b; --warn-voile: rgba(245, 158, 11, .12);
+    --ombre: 0 16px 50px rgba(0, 0, 0, .35);
+  }
+
+  /* Le tuto se lit SUR l'iPhone, pendant la manip : la pile système met SF en premier,
+     donc le texte est composé dans la fonte de l'appareil dont il parle. */
+  body {
+    margin: 0;
+    padding: clamp(1.25rem, 5vw, 3rem) clamp(1rem, 5vw, 2rem) 4rem;
+    background: radial-gradient(circle at 15% -5%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 45%), var(--bg);
+    color: var(--text);
+    font: 400 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .page { max-width: 34rem; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
+
+  header { display: flex; flex-direction: column; gap: .5rem; }
+  .eyebrow {
+    margin: 0; font-size: .7rem; font-weight: 800; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    margin: 0; font-size: clamp(1.9rem, 7vw, 2.4rem); line-height: 1.08;
+    letter-spacing: -.03em; font-weight: 800; text-wrap: balance;
+  }
+  .chapeau { margin: 0; color: var(--muted); font-size: 1rem; }
+  .duree {
+    display: inline-flex; align-items: center; gap: .45rem; align-self: flex-start;
+    margin-top: .35rem; padding: .3rem .75rem; border-radius: 999px;
+    background: var(--accent-voile); color: var(--accent);
+    font-size: .78rem; font-weight: 700; box-shadow: inset 0 0 0 1px var(--accent-trait);
+  }
+
+  /* La numérotation encode une vraie séquence : ces cinq gestes se font dans cet ordre. */
+  ol.etapes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .85rem; counter-reset: pas; }
+  ol.etapes > li {
+    counter-increment: pas;
+    display: grid; grid-template-columns: 2.1rem 1fr; gap: .35rem .9rem;
+    background: var(--card); border-radius: 14px; padding: 1.15rem 1.15rem 1.25rem;
+    box-shadow: inset 0 0 0 1px var(--line), var(--ombre);
+  }
+  ol.etapes > li::before {
+    content: counter(pas);
+    grid-row: 1 / span 3;
+    width: 2.1rem; height: 2.1rem; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: .95rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  ol.etapes h2 { grid-column: 2; margin: 0; font-size: 1.06rem; font-weight: 700; letter-spacing: -.01em; align-self: center; }
+  ol.etapes p { grid-column: 2; margin: 0; color: var(--muted); font-size: .95rem; }
+  ol.etapes p + p { margin-top: .5rem; }
+  ol.etapes b { color: var(--text); font-weight: 650; }
+
+  /* Ce qu'il faut chercher des yeux sur l'écran, cité tel quel. */
+  .cible {
+    grid-column: 2; margin-top: .6rem;
+    display: inline-flex; align-items: center; gap: .5rem; width: fit-content;
+    padding: .4rem .7rem; border-radius: 9px;
+    background: var(--card-2); box-shadow: inset 0 0 0 1px var(--line-fort);
+    font-size: .88rem; font-weight: 600;
+  }
+  .cible span[aria-hidden] { font-size: 1.05rem; line-height: 1; }
+
+  .lien {
+    grid-column: 2; margin-top: .6rem; display: block; word-break: break-all;
+    padding: .55rem .7rem; border-radius: 9px;
+    background: var(--accent-voile); color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent-trait);
+    font-size: .84rem; font-weight: 700; text-decoration: none;
+  }
+  .lien:hover, .lien:focus-visible { text-decoration: underline; }
+
+  section.bloc { display: flex; flex-direction: column; gap: .8rem; }
+  section.bloc > h2 {
+    margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em;
+  }
+  .piege {
+    display: grid; grid-template-columns: 1.6rem 1fr; gap: .2rem .75rem;
+    padding: 1rem 1.1rem; border-radius: 12px;
+    background: var(--warn-voile); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 32%, transparent);
+  }
+  .piege > span[aria-hidden] { grid-row: 1 / span 2; font-size: 1.15rem; line-height: 1.3; }
+  .piege b { margin: 0; font-size: .97rem; font-weight: 700; }
+  .piege p { margin: .2rem 0 0; font-size: .92rem; color: var(--muted); }
+  .piege p b { color: var(--text); font-weight: 650; }
+
+  .apres { display: flex; flex-direction: column; gap: .55rem; margin: 0; padding: 0; list-style: none; }
+  .apres li {
+    display: grid; grid-template-columns: 1.35rem 1fr; gap: .7rem; align-items: start;
+    font-size: .95rem; color: var(--muted);
+  }
+  .apres li b { color: var(--text); font-weight: 650; }
+  .apres li > span[aria-hidden] { color: var(--accent); font-weight: 800; }
+
+  footer { margin: 0; padding-top: 1.25rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .84rem; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: no-preference) {
+    ol.etapes > li { transition: box-shadow .18s ease; }
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">IRL LVP UP</p>
+    <h1>Installer l’app sur ton iPhone</h1>
+    <p class="chapeau">Cinq gestes dans Safari, et l’app est sur ton écran d’accueil — icône, plein écran, et elle marche sans réseau.</p>
+    <span class="duree">⏱️ 2 minutes</span>
+  </header>
+
+  <ol class="etapes">
+
+    <li>
+      <h2>Ouvre le lien dans Safari</h2>
+      <p>Pas Chrome, pas depuis Instagram ou Mail. <b>Safari uniquement</b> : sur iPhone, c’est le seul navigateur qui installe une vraie app.</p>
+      <a class="lien" href="https://adrienlvl.github.io/irl-lvp-up/">adrienlvl.github.io/irl-lvp-up/</a>
+    </li>
+
+    <li>
+      <h2>Touche le bouton Partager</h2>
+      <p>Le carré avec une flèche vers le haut, dans la barre en bas de l’écran. Si la barre a disparu, fais défiler vers le haut pour la faire revenir.</p>
+      <span class="cible"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Partager</span>
+    </li>
+
+    <li>
+      <h2>Fais défiler jusqu’à « Sur l’écran d’accueil »</h2>
+      <p>C’est assez bas dans la liste, sous les options de partage. L’icône est un carré avec un <b>+</b>.</p>
+      <span class="cible"><span aria-hidden="true">⊞</span> Sur l’écran d’accueil</span>
+    </li>
+
+    <li>
+      <h2>Valide le nom, puis Ajouter</h2>
+      <p>Le nom proposé est déjà le bon. Touche <b>Ajouter</b> en haut à droite.</p>
+      <span class="cible"><span aria-hidden="true">✓</span> Ajouter</span>
+    </li>
+
+    <li>
+      <h2>Lance-la depuis l’écran d’accueil</h2>
+      <p>L’icône est apparue sur ta dernière page d’applis. Ouvre-la depuis <b>là</b>, plus depuis Safari : c’est ce qui te donne le plein écran et le stockage durable.</p>
+    </li>
+
+  </ol>
+
+  <section class="bloc">
+    <h2>Deux pièges qui coûtent cher</h2>
+
+    <div class="piege">
+      <span aria-hidden="true">🔀</span>
+      <b>Tes données ne suivent pas toutes seules</b>
+      <p>L’app installée a son <b>propre stockage</b>, séparé de l’onglet Safari. Si tu as déjà saisi des choses dans l’onglet, elles n’apparaîtront pas dans l’app installée. Avant d’installer&nbsp;: <b>Réglages → Exporter mes données</b> dans l’onglet, puis <b>Importer</b> une fois l’app ouverte depuis l’écran d’accueil.</p>
+    </div>
+
+    <div class="piege">
+      <span aria-hidden="true">🗑️</span>
+      <b>C’est justement pour ça qu’il faut l’installer</b>
+      <p>iOS fait le ménage dans les données des sites que tu n’as pas ouverts depuis <b>7 jours</b>. Un simple onglet Safari peut donc perdre ta progression. Une app posée sur l’écran d’accueil échappe à ce ménage.</p>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Ce que tu gagnes</h2>
+    <ul class="apres">
+      <li><span aria-hidden="true">→</span><span><b>Plein écran</b> — plus de barre d’adresse ni d’onglets.</span></li>
+      <li><span aria-hidden="true">→</span><span><b>Hors-ligne</b> — dans le métro, en salle, en sortie trail : tout est déjà sur le téléphone.</span></li>
+      <li><span aria-hidden="true">→</span><span><b>Stockage durable</b> — ta progression ne s’efface plus toute seule.</span></li>
+      <li><span aria-hidden="true">→</span><span><b>Raccourcis</b> — un appui long sur l’icône ouvre directement Ma journée ou Ma séance.</span></li>
+    </ul>
+  </section>
+
+  <section class="bloc">
+    <h2>Si ça coince</h2>
+    <ul class="apres">
+      <li><span aria-hidden="true">→</span><span><b>« Sur l’écran d’accueil » est introuvable</b> — tu n’es pas dans Safari. Copie le lien et rouvre-le depuis Safari.</span></li>
+      <li><span aria-hidden="true">→</span><span><b>L’app s’ouvre vide</b> — c’est normal, c’est un stockage neuf. Importe ta sauvegarde (piège n°1).</span></li>
+      <li><span aria-hidden="true">→</span><span><b>Une vieille version s’affiche</b> — ferme l’app complètement (glisse-la vers le haut dans le sélecteur), puis rouvre-la.</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    Une fois installée, l’app se met à jour toute seule quand tu l’ouvres avec du réseau. Garde l’habitude d’exporter ta sauvegarde de temps en temps&nbsp;: c’est la seule copie qui existe, tout reste sur ton téléphone.
+  </footer>
+
+</div>

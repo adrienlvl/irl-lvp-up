@@ -80,3 +80,21 @@ test('CSS : les surfaces sensibles au thème passent par un token', () => {
   assert.ok(hover && today, 'les deux règles doivent exister');
   assert.notEqual(today, hover, '« aujourd’hui » ne doit pas se confondre avec le survol');
 });
+
+// Rendu iPhone : l'en-tête doit rendre la largeur au texte sous 560 px. Mesuré avant correctif
+// sur 390 px de large : colonne de texte à 110 px, titre cassé sur 3 lignes, message sur 5.
+// Garde STRUCTURELLE (elle vérifie que la règle existe, pas son rendu) — le rendu lui-même se
+// mesure par sonde Electron, qui ne tient pas dans un test node.
+test('CSS : l’en-tête rend la largeur au texte sur écran étroit', () => {
+  const pages = fs.readFileSync(path.join(dir, 'pages.css'), 'utf8');
+  const mq = pages.match(/@media\(max-width:560px\)\{[\s\S]*?\n\}/);
+  assert.ok(mq, 'la requête média mobile de l’en-tête doit exister');
+  const bloc = mq[0];
+  assert.match(bloc, /\.hero\{[^}]*flex-wrap:wrap/, 'l’en-tête doit pouvoir passer à la ligne');
+  assert.match(bloc, /\.hero>div:not\(\.hero-actions\)\{[^}]*flex:1 1 100%/, 'le texte doit prendre toute la largeur');
+  assert.match(bloc, /\.player-card\{[^}]*flex-wrap:wrap/, 'la carte joueur aussi');
+  // Le titre doit redescendre : à 2.5rem il cassait en trois lignes sur 348 px.
+  const m = bloc.match(/\.hero h1\{[^}]*font-size:([\d.]+)rem/);
+  assert.ok(m, 'le titre doit être redimensionné sur mobile');
+  assert.ok(parseFloat(m[1]) <= 2.4, `titre mobile trop grand (${m[1]}rem)`);
+});

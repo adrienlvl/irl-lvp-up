@@ -256,8 +256,33 @@ function splitCoachInsight(text){
   const primary=kept.join(' ').trim(),extra=parts.slice(kept.length).join(' ').trim();
   return primary?{primary,extra}:{primary:t,extra:''};
 }
-function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});if(!f){panel.hidden=true;el.innerHTML='';el.removeAttribute('data-coach-page');const mb0=$('#coachMoreBtn'),mp0=$('#coachMore');if(mb0)mb0.hidden=true;if(mp0){mp0.hidden=true;mp0.textContent='';}return;}
-  // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le
+$('#coachAgenda')?.addEventListener('click',()=>{const el=$('#coachAgenda');if(!el||el.hidden)return;const cible=el.dataset.cible;
+  /* Un avertissement sans porte de sortie est un reproche : le clic ouvre directement le bloc
+     à trancher, ou la journée à alléger. */
+  if(cible!=null&&cible!==''&&typeof openAgendaEdit==='function'){openAgendaEdit(Number(cible));return;}
+  $('#openWeekPage')?.click();});
+function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});
+  /* L'avertissement d'agenda est INDÉPENDANT du focus : une journée saturée mérite d'être dite
+     même les jours où le coach n'a rien d'autre à signaler. Il est donc rendu avant le retour
+     anticipé, et peut à lui seul justifier d'afficher le panneau. */
+  const _av=(typeof coachAgendaWarning==='function')?coachAgendaWarning(state,localDate()):null;
+  const _ae=$('#coachAgenda');
+  if(_ae){
+    if(_av){_ae.hidden=false;_ae.dataset.type=_av.type;if(_av.cible!=null)_ae.dataset.cible=String(_av.cible);else delete _ae.dataset.cible;
+      _ae.innerHTML=`<span class="ca-emo" aria-hidden="true">${_av.type==='report'?'🔁':'⚠️'}</span><span class="ca-body"><b>${escapeHtml(_av.titre)}</b><span>${escapeHtml(_av.texte)}</span><span class="ca-action">${escapeHtml(_av.action)}</span></span>`;}
+    else{_ae.hidden=true;_ae.innerHTML='';}
+  }
+  if(!f){
+    /* Plus de focus : la carte doit être VIDÉE dans tous les cas — sinon l'ancien conseil
+       reste affiché avec son data-coach-page périmé, et le clic mène à la mauvaise page.
+       Seule la visibilité du panneau change selon qu'un avertissement d'agenda subsiste. */
+    el.innerHTML='';el.removeAttribute('data-coach-page');
+    const mb1=$('#coachMoreBtn'),mp1=$('#coachMore');
+    if(mb1)mb1.hidden=true;if(mp1){mp1.hidden=true;mp1.textContent='';}
+    panel.hidden=!_av;
+    return;
+  }
+    // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le
   // focus change en cours de journée. Lu par adaptiveCoachFocus pour varier d'angle après 3 jours.
   {const today=localDate();if(!Array.isArray(state.coachLog))state.coachLog=[];const log=state.coachLog,last=log.length?log[log.length-1]:null;
    if(!last||last.date!==today){log.push({date:today,pillar:f.pillar});if(log.length>60)log.splice(0,log.length-60);save();}

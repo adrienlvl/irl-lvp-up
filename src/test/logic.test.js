@@ -13424,3 +13424,55 @@ test('capacityFromHours / capacityToHours : le décalage lundi↔dimanche ne doi
   assert.equal(serre.status, 'sature', '4 h planifiées sur 2 h de capacité');
   assert.equal(large.status, 'ok', '4 h planifiées sur 8 h de capacité');
 });
+
+test('coachAgendaWarning : le coach regarde enfin si le plan tient debout', () => {
+  const caw = L.coachAgendaWarning;
+  const auj = '2026-07-28';   // un mardi : 3 h de capacité par défaut
+
+  // Journée calme → le coach se tait. Une alerte permanente n'est plus une alerte.
+  assert.equal(caw({ agenda: [], recurring: [] }, auj), null);
+  assert.equal(caw(null, auj), null);
+  assert.equal(caw({ agenda: [] }, 'pas-une-date'), null);
+
+  // Surcharge aujourd'hui : on dit de combien ça déborde, et par quoi commencer.
+  const charge = { agenda: [{ id: 1, date: auj, time: '09:00', durationMin: 300, title: 'Révision', kind: 'study', priority: 'low' }], recurring: [] };
+  const a = caw(charge, auj);
+  assert.equal(a.type, 'surcharge');
+  assert.equal(a.date, auj);
+  assert.match(a.titre, /ne tient pas debout/);
+  assert.match(a.texte, /2 h de trop/);
+  assert.match(a.action, /Révision/, 'le coach NOMME le bloc à déplacer');
+  assert.equal(a.cible, 1, 'et il pointe dessus, pour que le clic mène quelque part');
+
+  // La même surcharge demain se dit autrement — et pas comme si c'était aujourd'hui.
+  const demain = { agenda: [{ ...charge.agenda[0], date: '2026-07-29' }], recurring: [] };
+  const b = caw(demain, auj);
+  assert.match(b.titre, /Demain est déjà trop plein/);
+  assert.equal(b.date, '2026-07-29');
+
+  // Un bloc repoussé 3 fois ou plus : le coach le nomme et force la décision.
+  const repousse = { agenda: [{ id: 2, date: auj, time: '18:00', durationMin: 60, title: 'Relancer Decathlon', kind: 'focus', movedCount: 4, firstDate: '2026-07-20' }], recurring: [] };
+  const c = caw(repousse, auj);
+  assert.equal(c.type, 'report');
+  assert.match(c.titre, /Relancer Decathlon/);
+  assert.match(c.texte, /Repoussé 4 fois/);
+  assert.match(c.texte, /20\/07/, 'la date d’origine rend le report tangible');
+  assert.match(c.action, /tranche/);
+  assert.equal(c.cible, 2);
+
+  // Deux reports en attente sur 3 : le seuil ne se déclenche pas trop tôt.
+  assert.equal(caw({ agenda: [{ id: 3, date: auj, title: 'X', movedCount: 2 }], recurring: [] }, auj), null);
+  // Un bloc déjà fait ne hante plus personne.
+  assert.equal(caw({ agenda: [{ id: 4, date: auj, title: 'X', movedCount: 9, completed: true }], recurring: [] }, auj), null);
+
+  // Quand les deux se présentent, la DÉCISION passe avant la surcharge : elle ne se
+  // résoudra jamais toute seule, alors qu'une journée pleine se vide en déplaçant un bloc.
+  const deux = { agenda: [...charge.agenda, ...repousse.agenda], recurring: [] };
+  const d = caw(deux, auj);
+  assert.equal(d.type, 'report');
+  assert.equal(d.total, 2, 'mais on sait qu’il y en a une autre');
+
+  // La capacité réglée par Adrien est respectée : la même journée peut tenir.
+  const large = caw(charge, auj, { capacity: L.capacityFromHours([8, 8, 8, 8, 8, 8, 8]) });
+  assert.equal(large, null, '5 h planifiées tiennent dans 8 h de capacité');
+});

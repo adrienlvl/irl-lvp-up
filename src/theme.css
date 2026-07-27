@@ -5,7 +5,7 @@
 :root[data-theme="light"] body{background:radial-gradient(circle at 20% 0,#d9e2f2 0,transparent 34%),var(--bg)}
 :root[data-theme="light"] .calendar-page,:root[data-theme="light"] .ultra-page{background:radial-gradient(circle at 90% 0,#d3ddf1,transparent 35%),var(--bg)}
 /* Surfaces sombres résiduelles (hors variables) */
-:root[data-theme="light"] .xp-track{background:#dbe2ee}
+:root[data-theme="light"] /* .xp-track : passé sur --fill-1 dans pages.css, plus besoin de rattrapage. */
 :root[data-theme="light"] .quest{background:#f5f7fb}
 :root[data-theme="light"] .tag{background:#e6ebf3;color:#3a4658}
 :root[data-theme="light"] dialog{background:var(--card)}

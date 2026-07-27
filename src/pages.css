@@ -248,3 +248,38 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 .cap-f input{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--sp-3);font:inherit;font-size:var(--fs-sm);text-align:center}
 .cap-f input:focus{outline:2px solid var(--accent-ring);outline-offset:-1px;border-color:transparent}
 .cap-unit{display:block;margin-top:var(--sp-2);color:var(--muted);font-size:var(--fs-3xs);text-align:right}
+
+/* Avertissement d'agenda dans la carte du coach : une journée qui ne tient pas debout, ou une
+   décision repoussée. Distinct du focus, parce que ce n'est pas un conseil mais un constat. */
+.coach-agenda{display:flex;gap:var(--sp-4);align-items:flex-start;width:100%;text-align:left;margin-top:var(--sp-5);padding:var(--sp-4);border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--warn) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 30%,transparent);color:var(--text);font:inherit;cursor:pointer}
+.coach-agenda:hover{background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.coach-agenda[data-type="report"]{background:color-mix(in srgb,var(--danger) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 30%,transparent)}
+.coach-agenda[data-type="report"]:hover{background:color-mix(in srgb,var(--danger) 16%,transparent)}
+.ca-emo{font-size:var(--fs-xl);line-height:var(--lh-tight);flex:none}
+.ca-body{display:grid;gap:var(--sp-0);min-width:0}
+.ca-body>b{font-size:var(--fs-sm);font-weight:var(--fw-bold)}
+.ca-body>span{font-size:var(--fs-xs);color:var(--muted);line-height:var(--lh-body)}
+.ca-action{color:var(--text)!important;font-weight:var(--fw-med)}
+
+/* ===== Rendu iPhone (mesuré sur 390 × 844) =================================
+   L'en-tête est une rangée `logo | texte | actions` : sur un écran étroit, le
+   logo (74 px) et les trois boutons (~150 px) ne laissaient que 110 px au texte.
+   Résultat mesuré : le titre cassait sur 3 lignes et le message d'accueil sur 5.
+   Sous 560 px, le texte prend donc toute la largeur et les commandes passent
+   sur la ligne du logo. */
+@media(max-width:560px){
+  .hero{flex-wrap:wrap;gap:var(--sp-4) var(--sp-3);align-items:center}
+  .hero>.brand-logo{order:1}
+  .hero>.hero-actions{order:2;margin-left:auto}
+  .hero>div:not(.hero-actions){order:3;flex:1 1 100%;min-width:0}
+  .hero h1{font-size:2.2rem;line-height:1.02;letter-spacing:-.045em}
+  .hero .subtitle{font-size:var(--fs-sm);line-height:var(--lh-body)}
+  /* La carte joueur souffrait du même écrasement : avatar + texte + série sur
+     une seule rangée. On laisse la série passer dessous plutôt que de comprimer
+     le texte à 100 px. */
+  .player-card{flex-wrap:wrap;padding:var(--sp-6);gap:var(--sp-5)}
+  .player-card>*:nth-child(2){flex:1 1 60%;min-width:0}
+}
+/* Les rails de progression étaient les derniers fonds écrits en dur : invisibles
+   au passage en thème clair sans le rattrapage manuel de theme.css. */
+.xp-track{background:var(--fill-1);box-shadow:inset 0 0 0 1px var(--line)}
