@@ -4608,6 +4608,145 @@ test('vestProgression : double progression au gilet lesté (reps puis poids)', (
   // garde-fous
   assert.deepEqual(vp(null), []); assert.deepEqual(vp([]), []);
 });
+
+test('isometricProgress : les tenues se comptent en secondes, pas en reps', () => {
+  const ip = L.isometricProgress;
+  const hold = (date, name, ...secs) => ({ date, exercises: [{ name, setLogs: secs.map(s => ({ reps: s })) }] });
+
+  // Rien d'enregistré → rien à afficher (on n'invente pas des tenues jamais faites).
+  assert.deepEqual(ip(null), []); assert.deepEqual(ip([]), []);
+  assert.deepEqual(ip([hold('2026-07-20', 'Tractions', 10)]), [], 'une traction n’est pas une tenue');
+
+  const w = [
+    hold('2026-07-20', 'Gainage planche', 45, 38),
+    hold('2026-07-24', 'Gainage planche', 52),
+    hold('2026-05-01', 'Gainage planche', 70),   // hors fenêtre de 30 jours
+    hold('2026-07-22', 'Hollow hold', 25)
+  ];
+  const res = ip(w, { today: '2026-07-27' });
+  const plank = res.find(r => r.key === 'plank');
+  assert.equal(plank.best, 70, 'le record reste le record, même ancien');
+  assert.equal(plank.sets, 4, 'toutes les séries comptent pour le record');
+  assert.equal(plank.recentSets, 3, 'mais le volume récent est borné à la fenêtre');
+  assert.equal(plank.totalSec, 135, '45+38+52, sans la série de mai');
+  assert.equal(plank.tier, 'Intermédiaire', '70 s franchit les paliers 30 et 60, pas encore 90');
+  assert.equal(plank.level, 2);
+  assert.equal(plank.nextLevel, 'Avancé');
+  assert.equal(plank.nextThreshold, 90);
+  assert.equal(plank.toNext, 20);
+  assert.equal(plank.workingSet, 42, 'séries de travail à ~60 % du record');
+  assert.match(plank.advice, /accumule/i, 'le conseil pousse au volume, pas au max à chaque séance');
+  assert.ok(!plank.advice.includes('undefined'));
+
+  // Un débutant sous le premier palier reçoit une cible, pas un reproche.
+  const debut = ip([hold('2026-07-25', 'Hollow hold', 12)], { today: '2026-07-27' })[0];
+  assert.equal(debut.level, 0);
+  assert.equal(debut.tier, 'Débutant');
+  assert.match(debut.advice, /Vise 20 s/);
+  assert.equal(debut.workingSet, 7);
+
+  // Palier maximal : plus de « prochain palier », mais un conseil d'entretien.
+  const elite = ip([hold('2026-07-25', 'Chaise au mur', 150)], { today: '2026-07-27' })[0];
+  assert.equal(elite.tier, 'Élite');
+  assert.equal(elite.nextThreshold, null);
+  assert.equal(elite.toNext, 0);
+  assert.equal(elite.nextLevel, null);
+  assert.match(elite.advice, /maximal/i);
+
+  // Les skills ne sortent QUE s'ils ont été enregistrés, et sont marqués comme tels.
+  assert.equal(res.some(r => r.key === 'lsit'), false, 'aucun L-sit loggé → absent');
+  const ls = ip([hold('2026-07-25', 'L-sit', 12)], { today: '2026-07-27' })[0];
+  assert.equal(ls.key, 'lsit'); assert.equal(ls.skill, true); assert.equal(ls.tier, 'Intermédiaire');
+
+  // « Gainage planche » ne doit PAS être confondu avec le skill « Planche ».
+  const conf = ip([hold('2026-07-25', 'Gainage planche', 40), hold('2026-07-25', 'Planche', 6)], { today: '2026-07-27' });
+  assert.equal(conf.filter(r => r.key === 'plank').length, 1);
+  assert.equal(conf.filter(r => r.key === 'planche').length, 1);
+  assert.equal(conf.find(r => r.key === 'planche').best, 6, 'le skill ne récupère pas les secondes du gainage');
+  assert.equal(conf.find(r => r.key === 'plank').best, 40);
+
+  // Le VOLUME publié doit compter les mêmes séries que workoutSetCount, sinon l’affichage se
+  // contredit. En saisie manuelle il n’y a jamais de setLogs : le nombre de séries vit dans
+  // `sets`, et l’ignorer faisait lire « 1 série · 1 min » pour un vrai 3 × 60 s.
+  const manuel = [{ date: '2026-07-20', exercises: [{ name: 'Gainage planche', unit: 'sec', sets: 3, reps: 60 }] }];
+  const vm = ip(manuel, { today: '2026-07-26' })[0];
+  assert.equal(vm.recentSets, 3, '3 séries saisies à la main = 3 séries comptées');
+  assert.equal(vm.totalSec, 180);
+  assert.equal(vm.recentSets, L.workoutSetCount(manuel[0]), 'doit s’accorder avec workoutSetCount');
+
+  // À l’inverse, en séance guidée les séries préremplies mais NON validées gonflaient le total.
+  const guide = [{ date: '2026-07-20', exercises: [{ name: 'Gainage planche', setLogs: [
+    { reps: 60, completed: true }, { reps: 60, completed: false }, { reps: 60, completed: false }] }] }];
+  const vg = ip(guide, { today: '2026-07-26' })[0];
+  assert.equal(vg.recentSets, 1, 'seule la série validée compte');
+  assert.equal(vg.totalSec, 60);
+  assert.equal(vg.recentSets, L.workoutSetCount(guide[0]));
+
+  // Séance au format legacy (w.exercise plutôt que exercises[]).
+  const legacy = ip([{ date: '2026-07-25', exercise: 'Suspension barre', reps: 50 }], { today: '2026-07-27' })[0];
+  assert.equal(legacy.key, 'hang'); assert.equal(legacy.best, 50);
+});
+
+test('skillRoadmap : une feuille de route se monte marche après marche', () => {
+  const sr = L.skillRoadmap;
+  assert.equal(sr('inconnu'), null);
+  assert.equal(sr(null), null);
+
+  const vierge = sr('muscleup');
+  assert.equal(vierge.doneCount, 0);
+  assert.equal(vierge.total, 5);
+  assert.equal(vierge.pct, 0);
+  assert.equal(vierge.complete, false);
+  assert.equal(vierge.next.id, 'mu1', 'sans rien de fait, la prochaine marche est la première');
+  assert.equal(vierge.steps[0].current, true);
+  assert.equal(vierge.steps.filter(s => s.current).length, 1, 'une seule marche courante');
+
+  // Les deux formes de stockage sont acceptées (tableau et objet).
+  assert.equal(sr('muscleup', ['mu1', 'mu2']).doneCount, 2);
+  assert.equal(sr('muscleup', { mu1: true, mu2: true }).doneCount, 2);
+  assert.equal(sr('muscleup', { mu1: true, mu2: false }).doneCount, 1);
+
+  // On ne saute pas une marche : valider la dernière sans les précédentes laisse la 1re en cours.
+  const saute = sr('muscleup', { mu5: true });
+  assert.equal(saute.doneCount, 1, 'la marche cochée compte');
+  assert.equal(saute.next.id, 'mu1', 'mais la prochaine reste la première non faite');
+  assert.equal(saute.steps[4].done, true);
+  assert.equal(saute.steps[4].current, false);
+
+  // Feuille de route terminée : plus de « prochaine marche ».
+  const fini = sr('pistol', { ps1: true, ps2: true, ps3: true, ps4: true, ps5: true });
+  assert.equal(fini.complete, true);
+  assert.equal(fini.pct, 100);
+  assert.equal(fini.next, null);
+
+  // La première feuille de route est « Ta première traction » : c'est la marche la plus utile,
+  // et celle qu'on doit proposer d'office à quelqu'un qui n'en réussit aucune.
+  assert.equal(L.SKILL_ROADMAPS[0].id, 'pull1');
+  assert.equal(sr('pull1').total, 6);
+  assert.match(sr('pull1').steps[0].label, /[Ss]uspension/, 'on commence par tenir la barre, pas par tirer');
+  assert.match(sr('pull1').steps[3].detail, /descend/i, 'la négative est le cœur du programme');
+  assert.match(sr('pull8').steps[sr('pull8').total - 1].label, /8 tractions/);
+
+  // Chaque feuille de route est cohérente : ids uniques, libellés et détails non vides,
+  // et aucun matériel interdit (barre chargée, haltères, machine).
+  const interdits = /haltere|halt[eè]re|barre charg|machine|d[eé]velopp[eé] couch|leg press|poulie/i;
+  const vus = new Set();
+  for (const road of L.SKILL_ROADMAPS) {
+    assert.ok(road.steps.length >= 4, `${road.id} : une feuille de route utile a au moins 4 marches`);
+    assert.ok(road.weeks && road.emoji && road.label, `${road.id} : métadonnées complètes`);
+    for (const s of road.steps) {
+      assert.equal(vus.has(s.id), false, `id d'étape dupliqué : ${s.id}`);
+      vus.add(s.id);
+      assert.ok(s.label && s.label.length > 3, `${s.id} : libellé`);
+      assert.ok(s.detail && s.detail.length > 20, `${s.id} : le détail doit expliquer, pas répéter le titre`);
+      assert.equal(interdits.test(s.label + ' ' + s.detail), false, `${s.id} : matériel hors poids du corps / gilet`);
+    }
+    // La feuille de route doit pointer un skill réel de l'arbre de progression.
+    const rungs = L.SKILL_LADDERS.flatMap(f => f.rungs.map(r => r.id));
+    assert.ok(rungs.includes(road.id), `${road.id} : doit correspondre à un palier de SKILL_LADDERS`);
+  }
+});
+
 test('blockProgressText / shareableBlockProgress : progression de bloc partageable', () => {
   const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] });
   const workouts = [
@@ -6480,7 +6619,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.0.302');
+  assert.equal(L.CHANGELOG[0].v, '2.1.0');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -12991,3 +13130,26 @@ test('coachDayPriority : recadrage santé → l’habitude RESTE dans le digest 
   assert.ok(r.deduped.some(d => d.key === 'habits'), 'la carte ne portant pas l’insight du focus, la ligne habitude reste le seul rappel');
 });
 
+
+test('suggestedSkillGoal : la feuille proposée suit ton niveau réel de tractions', () => {
+  const ssg = L.suggestedSkillGoal;
+  const w = (name, reps) => [{ date: '2026-07-20', exercises: [{ name, setLogs: [{ reps }] }] }];
+
+  // Aucune séance : on ne propose pas le muscle-up à quelqu'un qui n'a jamais tiré.
+  assert.equal(ssg([], {}), 'pull1', 'sans historique → Ta première traction');
+  assert.equal(ssg(null, null), 'pull1');
+  assert.equal(ssg(w('Tractions', 0), {}), 'pull1', 'zéro traction → toujours la première');
+
+  // Dès la première traction acquise, on bascule sur le palier des 8.
+  assert.equal(ssg(w('Tractions', 1), {}), 'pull8', '1 traction → viser 8');
+  assert.equal(ssg(w('Tractions', 7), {}), 'pull8');
+
+  // 8 tractions franchies → la feuille suivante de la famille tirage.
+  assert.equal(ssg(w('Tractions', 16), {}), 'muscleup', '16 tractions → le muscle-up devient la cible');
+
+  // La suggestion pointe toujours une feuille de route qui existe vraiment.
+  const ids = L.SKILL_ROADMAPS.map(r => r.id);
+  [[], w('Tractions', 1), w('Tractions', 30), w('Pompes classiques', 40)].forEach(hist => {
+    assert.ok(ids.includes(ssg(hist, {})), 'la suggestion doit être une feuille existante');
+  });
+});

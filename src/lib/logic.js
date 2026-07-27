@@ -3342,6 +3342,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.1.0', emoji: '🎨', text: 'Gros lot. 1) L’APP A ENFIN UN SYSTÈME DE DESIGN : couleurs, tailles et espacements viennent maintenant d’un seul fichier. Concrètement, le thème clair était à moitié cassé — le vert d’accent était écrit en dur à 74 endroits, donc fonds, bordures et contours de sélection restaient vert fluo pendant que le texte passait au vert foncé ; et trois couleurs étaient utilisées sans avoir jamais été définies. Réparé partout. 2) LA HIÉRARCHIE : les titres de carte étaient presque aussi gros que les titres de page — 47 panneaux criaient au même volume. Les titres de carte se rangent, la page respire. 3) LES 47 EXERCICES SONT RELIÉS : chaque fiche propose la marche d’avant (« trop dur ? commence par… ») et celle d’après (« trop facile ? passe à… »), et un clic t’y emmène. 4) TENUES ISOMÉTRIQUES : un panneau qui compte en SECONDES — gainage, chaise au mur, suspension, L-sit… avec ton record, ton palier, et le bon conseil (accumuler du temps en séries plutôt que retenter ton max chaque séance). 5) OBJECTIF DE SKILL GUIDÉ : huit feuilles de route, marche par marche, avec un critère chiffré à chaque étape et de l’XP quand tu en valides une. Et surtout, ça commence là où il faut : « TA PREMIÈRE TRACTION » (suspension → tirages d’omoplates → rowing australien → négatives de 5 s → assistées → la première), puis « 8 TRACTIONS D’AFFILÉE ». L’app te propose d’office la bonne feuille selon ce que tu logges : zéro traction → la première ; 3 tractions → viser 8 ; 16 tractions → le muscle-up. Viennent ensuite front lever, pistol, HSPU, L-sit et planche. 6) Au passage, quatre surfaces restées en bleu nuit basculent enfin avec le thème — dont les LISTES DÉROULANTES, qui affichaient du texte sombre sur fond sombre en thème clair.' },
   { v: '2.0.302', emoji: '⚡', text: 'Lancement et installation nettement plus légers. L’app pesait 135 Mo à l’installation, dont 41 Mo rien qu’en planches d’illustrations d’exercices : elles sont passées en WebP et ne pèsent plus que 2,6 Mo — mêmes images, à l’œil identiques (l’écart a été mesuré, pas estimé), mais 36 Mo de moins à télécharger, à l’installation ET à chaque mise à jour. Au lancement, la fenêtre n’apparaît plus avant d’être prête (fini le rectangle vide d’une demi-seconde) et elle RETIENT sa taille, sa position et son état agrandi d’une fois sur l’autre. Le mode de thème « selon l’heure » ne clignote plus au démarrage. Enfin, l’app s’appelle « IRL LVP UP » partout — la petite icône près de l’horloge disait encore « Level Up IRL ».' },
   { v: '2.0.301', emoji: '🏋️', text: 'Nouveau dans Athlète → Mes progrès (sous les Standards de force) : le coach de SURCHARGE AU GILET. Pour chaque mouvement que tu fais lesté (tractions, pompes, dips avec le gilet), il applique la double progression : tant que tu es sous ~10 reps propres, il te dit de gagner des reps ; quand tu tiens le haut de la fourchette, il te dit d’ajouter du lest (par pas de 2,5 kg) et de redescendre dans la fourchette. Il repère ta meilleure série lestée et te donne le prochain pas concret. Ne s’affiche que si tu t’entraînes avec du lest. (Athlète — surcharge au gilet)' },
   { v: '2.0.300', emoji: '🎯', text: 'Nouveau dans Athlète → Mes progrès : l’ARBRE DE PROGRESSION calisthénique. Pour chaque famille (tirage, poussée, jambes, gainage), une échelle de paliers du débutant au skill élite. Les paliers chiffrés se valident tout seuls depuis tes séances (ta 1re traction, 8 puis 15 tractions, tractions/pompes lestées +10 kg…), et les skills avancés absents de la bibliothèque (muscle-up, front lever, planche, pistol, L-sit…) se cochent à la main quand tu sais les faire — chaque skill débloqué rapporte de l’XP. L’app te montre où tu en es et le prochain palier à viser. 100 % poids du corps et gilet lesté. (Athlète — progression calisthénie)' },
@@ -5020,6 +5021,186 @@ function vestProgression(workouts, opts) {
     out.push({ key: mv.key, label: mv.label, emoji: mv.emoji, load: b.load, reps: b.reps, repMax, nextLoad: Math.round((b.load + inc) * 10) / 10, action, advice });
   }
   return out;
+}
+
+// Tenues isométriques : le seul travail où la performance se compte en SECONDES et pas en reps.
+// Les exercices « unit:'sec' » de la bibliothèque stockent leurs secondes dans `reps` — c'est la
+// même donnée, seule l'interprétation change. `thr` = les 4 paliers Débutant→Élite (STRENGTH_TIERS).
+// `skill` = tenue de haut niveau, qui n'apparaîtra que si elle a réellement été enregistrée.
+const ISO_HOLDS = [
+  { key: 'plank', label: 'Gainage planche', emoji: '🧱', match: n => /planche/.test(n) && /gainage/.test(n), thr: [30, 60, 90, 120] },
+  { key: 'sidePlank', label: 'Gainage latéral', emoji: '📐', match: n => /gainage lateral/.test(n), thr: [20, 40, 60, 90] },
+  { key: 'hollow', label: 'Hollow hold', emoji: '🌙', match: n => /hollow/.test(n), thr: [20, 40, 60, 90] },
+  { key: 'wallSit', label: 'Chaise au mur', emoji: '🪑', match: n => /chaise au mur/.test(n), thr: [30, 60, 90, 120] },
+  { key: 'hang', label: 'Suspension barre', emoji: '🪝', match: n => /suspension/.test(n), thr: [20, 45, 75, 120] },
+  { key: 'lsit', label: 'L-sit', emoji: '📐', skill: true, match: n => /l-?sit/.test(n), thr: [5, 10, 20, 30] },
+  { key: 'frontLever', label: 'Front lever', emoji: '🕴️', skill: true, match: n => /front lever/.test(n), thr: [3, 5, 10, 20] },
+  { key: 'planche', label: 'Planche (skill)', emoji: '🤸', skill: true, match: n => /planche/.test(n) && !/gainage/.test(n) && !/touches/.test(n), thr: [3, 5, 10, 20] },
+  { key: 'handstand', label: 'Équilibre sur les mains', emoji: '🙃', skill: true, match: n => /handstand|equilibre sur les mains|atr\b/.test(n), thr: [10, 30, 60, 120] }
+];
+// Pour chaque tenue réellement enregistrée : meilleure tenue, palier atteint, volume récent, et le
+// conseil de la séance suivante. Protocole classique de l'isométrie : on ne réessaie pas le maximum
+// à chaque fois, on ACCUMULE du temps en séries à ~60 % du record, et on ne vise le palier suivant
+// que quand on tient déjà 3 séries propres. Pur + testé.
+function isometricProgress(workouts, opts) {
+  const o = opts || {};
+  const windowDays = Number.isFinite(o.windowDays) ? o.windowDays : 30;
+  const today = typeof o.today === 'string' && o.today ? o.today : localDate();
+  const from = dateAfterDays(today, -windowDays);
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Une entrée par série tenue : { name, sec, date }
+  const held = [];
+  (Array.isArray(workouts) ? workouts : []).forEach(w => {
+    if (!w) return;
+    const date = typeof w.date === 'string' ? w.date : '';
+    const exos = Array.isArray(w.exercises) && w.exercises.length ? w.exercises : (w.exercise ? [{ name: w.exercise, reps: w.reps, sets: w.sets }] : []);
+    exos.forEach(ex => {
+      if (!ex || !ex.name) return;
+      // C'est la première fonction à publier un VOLUME (recentSets/totalSec) et pas seulement un
+      // maximum : elle doit donc compter les mêmes séries que workoutSetCount, sinon l'affichage
+      // se contredit. En saisie manuelle il n'y a jamais de setLogs — le nombre de séries vit dans
+      // `ex.sets`, que le repli d'origine ignorait (3 × 60 s se lisait « 1 série · 1 min »). En
+      // séance guidée, à l'inverse, les séries préremplies mais non validées gonflaient le total.
+      const logs = Array.isArray(ex.setLogs) && ex.setLogs.length ? ex.setLogs : null;
+      const done = logs ? logs.filter(s => s && s.completed) : null;
+      const sets = logs
+        ? (done.length ? done : logs)
+        : Array.from({ length: Math.max(1, Number(ex.sets) || 1) }, () => ({ reps: ex.reps }));
+      sets.forEach(s => { const sec = Number(s && s.reps) || 0; if (sec > 0) held.push({ name: ex.name, sec, date }); });
+    });
+  });
+  const out = [];
+  for (const h of ISO_HOLDS) {
+    const mine = held.filter(x => h.match(norm(x.name)));
+    if (!mine.length) continue;
+    const best = mine.reduce((m, x) => (x.sec > m ? x.sec : m), 0);
+    const recent = mine.filter(x => x.date && x.date >= from && x.date <= today);
+    const totalSec = recent.reduce((sum, x) => sum + x.sec, 0);
+    // Palier : nombre de seuils franchis (0 = Débutant … 4 = Élite).
+    let level = 0;
+    for (let i = 0; i < h.thr.length; i++) if (best >= h.thr[i]) level = i + 1;
+    const nextThr = level < h.thr.length ? h.thr[level] : null;
+    const working = Math.max(5, Math.round(best * 0.6));
+    let advice;
+    if (nextThr == null) advice = `${best} s — palier maximal atteint. Entretiens avec 3 séries de ${working} s, ou passe à une variante plus dure.`;
+    else if (best < h.thr[0]) advice = `${best} s. Vise ${h.thr[0]} s : 3 à 4 séries de ${working} s, en gardant la position parfaite jusqu'au bout.`;
+    else advice = `${best} s. Prochain palier à ${nextThr} s (+${nextThr - best} s) : accumule en 3-4 séries de ${working} s plutôt que de retenter ton maximum à chaque séance.`;
+    out.push({
+      key: h.key, label: h.label, emoji: h.emoji, skill: h.skill === true,
+      best, level, tier: STRENGTH_TIERS[level] || STRENGTH_TIERS[0],
+      nextLevel: level < h.thr.length ? STRENGTH_TIERS[level + 1] : null,
+      nextThreshold: nextThr, toNext: nextThr == null ? 0 : Math.max(0, nextThr - best),
+      workingSet: working, sets: mine.length, recentSets: recent.length, totalSec, windowDays, advice
+    });
+  }
+  // Les tenues les plus abouties d'abord, puis les plus longues.
+  return out.sort((a, b) => (b.level - a.level) || (b.best - a.best));
+}
+
+// Programme guidé vers UN skill précis. L'arbre (SKILL_LADDERS) dit où tu en es ; la feuille de
+// route dit QUOI FAIRE pour franchir la marche suivante. Chaque étape est un exercice préparatoire
+// avec son critère de validation chiffré — jamais « quand tu te sens prêt ».
+// Tout est au poids du corps ou au gilet lesté : c'est la contrainte de l'onglet Athlète.
+const SKILL_ROADMAPS = [
+  { id: 'pull1', label: 'Ta première traction', emoji: '🆙', family: 'pull', weeks: '6 à 12 semaines', steps: [
+    { id: 'p1a', label: 'Suspension passive 30 s', detail: 'Accroche-toi et tiens, c’est tout. Tant que la poigne lâche avant les bras, aucune traction n’est possible. Deux ou trois essais par séance, tous les jours si tu veux.' },
+    { id: 'p1b', label: '3 × 8 tirages d’omoplates', detail: 'Suspendu bras tendus, descends les épaules pour te hisser de quelques centimètres SANS plier les coudes. C’est le premier centimètre d’une traction, et c’est celui que tout le monde saute.' },
+    { id: 'p1c', label: '3 × 10 rowings australiens', detail: 'Barre à hauteur de hanches, corps incliné, talons au sol. Plus tu redresses le buste, plus c’est facile : c’est ton réglage. Descends l’inclinaison au fil des semaines.' },
+    { id: 'p1d', label: '5 négatives de 5 secondes', detail: 'Monte avec une chaise ou en sautant, menton au-dessus de la barre, puis descends en comptant jusqu’à 5. C’est l’exercice qui construit vraiment la première traction : tu es plus fort en descente qu’en montée.' },
+    { id: 'p1e', label: '3 × 5 tractions assistées', detail: 'Un pied sur une chaise ou un élastique sous les pieds : garde juste assez d’aide pour finir la série propre. Retire l’aide progressivement, jamais d’un coup.' },
+    { id: 'p1f', label: 'Ta première traction complète', detail: 'Départ bras tendus, menton franchement au-dessus de la barre, sans élan de jambes. Une seule, propre. C’est la marche la plus dure de toute l’échelle.' }
+  ] },
+  { id: 'pull8', label: '8 tractions d’affilée', emoji: '💪', family: 'pull', weeks: '8 à 16 semaines', steps: [
+    { id: 'p8a', label: '3 tractions strictes', detail: 'Une fois la première acquise, la deuxième et la troisième viennent vite. Reste strict : pas de coup de reins pour arracher la répétition.' },
+    { id: 'p8b', label: '6 séries de 2, réparties dans la journée', detail: 'Le volume à faible fatigue est ce qui marche le mieux ici : beaucoup de séries très faciles, espacées, jamais jusqu’à l’échec. Tu passes du temps sur la barre sans t’épuiser.' },
+    { id: 'p8c', label: '5 tractions strictes', detail: 'Le palier où la technique doit rester nette jusqu’à la dernière répétition. Si la forme se casse, la série s’arrête là — une répétition sale ne compte pas.' },
+    { id: 'p8d', label: 'Échelle 1-2-3-4', detail: 'Une traction, repos ; deux, repos ; trois, repos ; quatre. Puis on repart de un. Dix répétitions au total sans jamais aller à l’échec.' },
+    { id: 'p8e', label: '3 × 3 avec pause en haut', detail: 'Deux secondes menton au-dessus de la barre à chaque répétition. Ça renforce exactement la zone où la série casse d’habitude.' },
+    { id: 'p8f', label: '8 tractions d’affilée', detail: 'Sans lâcher la barre et sans balancer. À partir de là, c’est le gilet lesté qui devient ton réglage.' }
+  ] },
+  { id: 'muscleup', label: 'Muscle-up', emoji: '💫', family: 'pull', weeks: '8 à 16 semaines', steps: [
+    { id: 'mu1', label: '10 tractions strictes', detail: 'La base non négociable : sans elle, la transition n\'a pas de quoi se faire. Menton franchement au-dessus de la barre, sans élan.' },
+    { id: 'mu2', label: '5 tractions explosives poitrine à la barre', detail: 'Même mouvement, mais tu tires assez fort pour que la barre touche le haut de la poitrine. C\'est la hauteur qu\'il faudra pour passer.' },
+    { id: 'mu3', label: '8 dips complets', detail: 'La seconde moitié du muscle-up est un dip. Descends jusqu\'à l\'angle droit, remonte bras tendus.' },
+    { id: 'mu4', label: '3 transitions en négatif', detail: 'Pars en appui bras tendus sur la barre, descends LENTEMENT à travers la transition. C\'est là que le geste s\'apprend.' },
+    { id: 'mu5', label: 'Muscle-up complet', detail: 'Tire fort, bascule les poignets au bon moment, termine en poussée. Un seul propre vaut mieux que trois en force.' }
+  ] },
+  { id: 'frontlever', label: 'Front lever', emoji: '🕴️', family: 'pull', weeks: '4 à 8 mois', steps: [
+    { id: 'fl1', label: 'Suspension active 30 s', detail: 'Suspendu, épaules basses et loin des oreilles. Tout le front lever tient dans cette position d\'épaules.' },
+    { id: 'fl2', label: '10 relevés de genoux suspendu', detail: 'Bassin qui s\'enroule, pas seulement les hanches qui plient. Le bas du dos doit s\'arrondir.' },
+    { id: 'fl3', label: 'Front lever groupé 15 s', detail: 'Genoux à la poitrine, corps à l\'horizontale. Le levier est court : c\'est la version d\'apprentissage.' },
+    { id: 'fl4', label: 'Front lever une jambe tendue 10 s', detail: 'Une jambe s\'allonge, l\'autre reste groupée. Alterne le côté à chaque série.' },
+    { id: 'fl5', label: 'Front lever groupé écarté 10 s', detail: 'Les deux jambes s\'allongent mais restent écartées : le levier s\'allonge sans passer au plein.' },
+    { id: 'fl6', label: 'Front lever complet 5 s', detail: 'Corps entièrement tendu, parallèle au sol, épaules verrouillées.' }
+  ] },
+  { id: 'pistol', label: 'Pistol squat', emoji: '🦵', family: 'legs', weeks: '6 à 12 semaines', steps: [
+    { id: 'ps1', label: '20 squats au poids du corps', detail: 'Amplitude complète, talons au sol. Si les talons décollent, travaille la cheville d\'abord.' },
+    { id: 'ps2', label: '10 split squats bulgares par jambe', detail: 'La force sur une jambe se construit ici, sans le problème d\'équilibre.' },
+    { id: 'ps3', label: '8 step-down lents par jambe', detail: 'Sur une marche, descente sur une jambe en 3 secondes. C\'est le contrôle excentrique qui manque au pistol.' },
+    { id: 'ps4', label: '5 pistols assistés par jambe', detail: 'Tiens un montant de porte ou une sangle : juste assez pour équilibrer, pas pour tirer.' },
+    { id: 'ps5', label: 'Pistol squat complet', detail: 'Jambe libre tendue devant, descente contrôlée jusqu\'en bas, remontée sans rebond.' }
+  ] },
+  { id: 'hspu', label: 'Pompes en équilibre (HSPU)', emoji: '🙃', family: 'push', weeks: '4 à 10 mois', steps: [
+    { id: 'hs1', label: '10 pike push-ups', detail: 'Hanches hautes, tête vers le sol : la poussée verticale sans porter tout ton poids.' },
+    { id: 'hs2', label: '8 pike push-ups pieds surélevés', detail: 'Pieds sur une chaise : l\'angle se rapproche de la verticale, la charge augmente.' },
+    { id: 'hs3', label: 'Équilibre au mur 60 s', detail: 'Face au mur, corps gainé et aligné. Sans cette tenue, la pompe n\'a pas de base stable.' },
+    { id: 'hs4', label: '5 négatives au mur', detail: 'En équilibre, descends la tête vers le sol en 3 à 5 secondes. Remonte comme tu peux.' },
+    { id: 'hs5', label: 'HSPU au mur', detail: 'Descente contrôlée jusqu\'à effleurer, poussée complète bras tendus.' }
+  ] },
+  { id: 'lsit', label: 'L-sit', emoji: '📐', family: 'core', weeks: '6 à 14 semaines', steps: [
+    { id: 'ls1', label: 'Appui bras tendus 30 s', detail: 'Sur deux supports, épaules basses, coudes verrouillés. La base de tout le L-sit.' },
+    { id: 'ls2', label: 'Hollow hold 45 s', detail: 'Le gainage antérieur qui tient les jambes en l\'air. Bas du dos plaqué au sol.' },
+    { id: 'ls3', label: 'Tuck L-sit 20 s', detail: 'Genoux repliés à la poitrine, bassin décollé. Le levier est court : commence ici.' },
+    { id: 'ls4', label: 'L-sit une jambe tendue 15 s', detail: 'Une jambe s\'allonge, l\'autre reste groupée. Alterne.' },
+    { id: 'ls5', label: 'L-sit complet 15 s', detail: 'Jambes tendues à l\'horizontale, pointes tirées, épaules toujours basses.' }
+  ] },
+  { id: 'planche', label: 'Planche', emoji: '🤸', family: 'push', weeks: '1 à 3 ans', steps: [
+    { id: 'pl1', label: 'Appui bras tendus penché 30 s', detail: 'Épaules devant les mains, corps en planche. L\'inclinaison, c\'est tout le secret.' },
+    { id: 'pl2', label: '10 pseudo-planche push-ups', detail: 'Pompes avec les mains à hauteur de bassin et les épaules très en avant.' },
+    { id: 'pl3', label: 'Planche groupée 20 s', detail: 'Genoux à la poitrine, pieds décollés, bras tendus. La première vraie planche.' },
+    { id: 'pl4', label: 'Planche groupée écartée 15 s', detail: 'Jambes écartées et à moitié tendues : le levier s\'allonge.' },
+    { id: 'pl5', label: 'Straddle planche 10 s', detail: 'Jambes tendues et écartées, corps à l\'horizontale.' },
+    { id: 'pl6', label: 'Planche complète 5 s', detail: 'Jambes serrées et tendues. Une des tenues les plus dures du poids du corps — la patience fait partie du programme.' }
+  ] }
+];
+// État d'une feuille de route : quelles étapes sont franchies, laquelle est la prochaine.
+// `done` accepte un tableau d'ids ou un objet { id: true } (c'est la forme stockée par l'app).
+// Pur + testé.
+// Quelle feuille de route proposer d'office ? La premiere dont le palier correspondant n'est
+// PAS encore franchi dans l'arbre de progression. Quelqu'un qui n'arrive pas a faire une seule
+// traction doit tomber sur « Ta premiere traction », pas sur le muscle-up. Pur + teste.
+function suggestedSkillGoal(workouts, unlocked) {
+  const fams = calisthenicsProgress(workouts, unlocked);
+  const atteint = {};
+  fams.forEach(f => f.rungs.forEach(r => { atteint[r.id] = r.reached; }));
+  const road = SKILL_ROADMAPS.find(r => !atteint[r.id]);
+  return road ? road.id : (SKILL_ROADMAPS.length ? SKILL_ROADMAPS[SKILL_ROADMAPS.length - 1].id : '');
+}
+function skillRoadmap(id, done) {
+  const road = SKILL_ROADMAPS.find(r => r.id === id);
+  if (!road) return null;
+  const isDone = step => {
+    if (Array.isArray(done)) return done.indexOf(step) !== -1;
+    return !!(done && typeof done === 'object' && done[step]);
+  };
+  // Une étape n'est « la prochaine » que si toutes celles d'avant sont faites : une feuille de
+  // route se monte marche après marche, on ne saute pas au dernier palier.
+  let nextIdx = -1;
+  const steps = road.steps.map((s, i) => {
+    const ok = isDone(s.id);
+    if (!ok && nextIdx === -1) nextIdx = i;
+    return { id: s.id, label: s.label, detail: s.detail, done: ok, current: false };
+  });
+  if (nextIdx >= 0) steps[nextIdx].current = true;
+  const doneCount = steps.filter(s => s.done).length;
+  const total = steps.length;
+  return {
+    id: road.id, label: road.label, emoji: road.emoji, family: road.family, weeks: road.weeks,
+    steps, doneCount, total,
+    pct: total ? Math.round((doneCount / total) * 100) : 0,
+    complete: doneCount === total,
+    next: nextIdx >= 0 ? steps[nextIdx] : null
+  };
 }
 
 // Progression de force par exercice-clé entre le PREMIER et le DERNIER bloc terminé : compare le
@@ -11238,5 +11419,5 @@ function orderCoachNotes(insight) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

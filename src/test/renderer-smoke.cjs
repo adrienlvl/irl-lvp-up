@@ -1008,7 +1008,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.0.302'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.1.0'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2444,6 +2444,115 @@ app.whenReady().then(async () => {
         } catch (_) { return false; }
         finally { try { if (prev === null) localStorage.removeItem('irl-theme'); else localStorage.setItem('irl-theme', prev); } catch (_) {} }
       })();
+      // Couche de tokens (BLOQUANT) : les valeurs doivent exister ET basculer avec le thème.
+      // Avant, l'accent était écrit en dur 74 fois : le texte passait au vert foncé en thème
+      // clair pendant que fonds, bordures et anneaux de focus restaient vert fluo.
+      checks.designTokens = (() => {
+        const root = document.documentElement;
+        const read = n => getComputedStyle(root).getPropertyValue(n).trim();
+        const prev = root.dataset.theme;
+        root.dataset.theme = '';
+        const sombre = read('--accent-soft');
+        root.dataset.theme = 'light';
+        const clair = read('--accent-soft');
+        root.dataset.theme = prev || '';
+        if (!sombre || !clair || sombre === clair) return false;
+        // Ces trois-là étaient consommées sans être définies nulle part (rendu cassé).
+        if (!read('--surface-1') || !read('--blue') || !read('--gold')) return false;
+        // Les échelles doivent être disponibles pour tout nouveau CSS.
+        return !!(read('--fs-xl') && read('--sp-4') && read('--r-md') && read('--accent-ring'));
+      })();
+      // Hiérarchie typographique (BLOQUANT) : le titre de page doit dominer nettement le
+      // titre de carte, sinon la page se lit comme une liste de blocs équivalents.
+      checks.typeHierarchy = (() => {
+        const carte = document.querySelector('.panel h2');
+        // Les vrais en-têtes de niveau page (.page-title n'existe pas dans le HTML : c'est
+        // du CSS mort, découvert en écrivant ce check).
+        const page = document.querySelector('.athlete-header h2, .mission-heading h2');
+        if (!carte || !page) return false;
+        const a = parseFloat(getComputedStyle(carte).fontSize) || 0;
+        const b = parseFloat(getComputedStyle(page).fontSize) || 0;
+        // Le titre de carte doit aussi être descendu sur l'échelle (--fs-xl ≈ 18 px) et non
+        // rester à l'ancien 1.5rem = 24 px, sinon 47 panneaux crient au même volume.
+        if (!(a > 0 && a < 21 && b > a + 6)) return false;
+        // Un titre de MODALE doit dominer ce qu'il coiffe. Le ranger au même cran que les titres
+        // de carte inversait la hiérarchie : en séance guidée, le nom de l'exercice devenait plus
+        // gros que le titre du modal qui le contient.
+        const tModal = document.getElementById('guidedWorkoutTitle');
+        const nomEx = document.getElementById('guidedExerciseName');
+        if (!tModal || !nomEx) return false;
+        const t = parseFloat(getComputedStyle(tModal).fontSize) || 0;
+        const n = parseFloat(getComputedStyle(nomEx).fontSize) || 0;
+        return t > n;
+      })();
+      // Tenues isométriques (BLOQUANT) : une tenue enregistrée doit sortir avec ses secondes,
+      // son palier et un conseil de volume — et une tenue jamais faite ne doit PAS apparaître.
+      checks.isoHoldsUi = (() => {
+        if (typeof isometricProgress !== 'function' || typeof renderIsoHolds !== 'function') return false;
+        const el = document.getElementById('isoHolds');
+        if (!el) return false;
+        const save = state.workouts;
+        state.workouts = [{ date: localDate(), exercises: [{ name: 'Gainage planche', setLogs: [{ reps: 70 }, { reps: 45 }] }] }];
+        renderIsoHolds();
+        const html = el.innerHTML;
+        state.workouts = save; renderIsoHolds();
+        return html.indexOf('70 s') !== -1 && html.indexOf('Intermédiaire') !== -1
+          && html.indexOf('accumule') !== -1 && html.indexOf('L-sit') === -1;
+      })();
+      // Feuille de route (BLOQUANT) : sélecteur peuplé, marches rendues, et le clic bascule
+      // l'état ET le persiste (c'est le seul moyen de valider une marche).
+      checks.skillRoadmapUi = (() => {
+        if (typeof skillRoadmap !== 'function' || typeof renderSkillRoadmap !== 'function') return false;
+        const el = document.getElementById('skillRoadmap'), pick = document.getElementById('skillRoadmapPick');
+        if (!el || !pick) return false;
+        const saveSteps = state.skillSteps, saveGoal = state.skillGoal;
+        state.skillSteps = {}; state.skillGoal = 'pistol';
+        renderSkillRoadmap();
+        if (pick.options.length !== SKILL_ROADMAPS.length) { state.skillSteps = saveSteps; state.skillGoal = saveGoal; return false; }
+        if (pick.value !== 'pistol') { state.skillSteps = saveSteps; state.skillGoal = saveGoal; return false; }
+        // Le rendu remplace le DOM à chaque clic : il faut re-chercher le bouton à chaque fois,
+        // sinon on clique un nœud détaché et l'événement ne remonte jamais au conteneur.
+        const clic = () => { const b = el.querySelector('[data-skill-step]'); if (b) b.click(); };
+        const avant = el.innerHTML.indexOf('0/5 marches') !== -1;
+        clic();
+        const apres = el.innerHTML.indexOf('1/5 marches') !== -1;
+        const persiste = !!(state.skillSteps && state.skillSteps.pistol && state.skillSteps.pistol.ps1);
+        // L'XP ne se paie QU'UNE FOIS par marche : décocher puis recocher ne doit rien redonner,
+        // sinon les 40 marches deviennent une source d'XP infinie.
+        const xpApresPremierClic = state.xp;
+        clic();   // décoche
+        clic();   // recoche → ne doit RIEN rapporter
+        const xpStable = state.xp === xpApresPremierClic;
+        const saveP = state.skillStepsPaid;
+        state.skillSteps = saveSteps; state.skillGoal = saveGoal; state.skillStepsPaid = saveP;
+        renderSkillRoadmap();
+        return avant && apres && persiste && xpStable;
+      })();
+      // Chaîne d'exercices (BLOQUANT) : la relation vit dans la donnée, et le bouton doit
+      // réellement ouvrir la fiche voisine (pas juste l'afficher).
+      checks.exerciseChain = (() => {
+        if (typeof openExerciseDetail !== 'function') return false;
+        const src = exercises.find(x => x.name === 'Pompes classiques');
+        if (!src || !src.easier || !src.harder) return false;
+        openExerciseDetail(src);
+        const notes = document.getElementById('exerciseDetailNotes');
+        const html = notes ? notes.innerHTML : '';
+        const aLien = html.indexOf('data-goto-ex') !== -1 && html.indexOf(src.easier) !== -1;
+        const cible = notes ? notes.querySelector('[data-goto-ex]') : null;
+        // Le contenu étant remplacé en place, la fiche voisine s'ouvrait là où on avait laissé
+        // la précédente : on vérifie que le défilement repart bien du haut.
+        const dlgAvant = document.getElementById('exerciseDetailDialog');
+        if (dlgAvant) dlgAvant.scrollTop = 400;
+        if (cible) cible.click();
+        const scrollOk = !dlgAvant || dlgAvant.scrollTop === 0;
+        const titre = document.getElementById('exerciseDetailTitle');
+        const navigue = !!titre && titre.textContent === src.easier;
+        const dlg = document.getElementById('exerciseDetailDialog');
+        if (dlg && dlg.open) dlg.close();
+        // Couverture de la donnée : au moins 30 des 47 exercices doivent être reliés.
+        const relies = exercises.filter(x => x.easier || x.harder).length;
+        return aLien && navigue && scrollOk && relies >= 30;
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2472,6 +2581,11 @@ app.whenReady().then(async () => {
     if (!checks.vestProg) errors.push('Surcharge gilet KO (vestProgression : double progression sur séries lestées / #vestProgression)');
     if (!checks.webpArt) errors.push('Illustrations KO (strength.css doit pointer des .webp chargeables, plus aucun .png — planches 1 et 24 vérifiées)');
     if (!checks.themeTimeMode) errors.push('Mode thème « selon l’heure » KO (themeModeStored doit rendre \'time\' et non \'dark\' — sinon flash au lancement)');
+    if (!checks.designTokens) errors.push('Couche de tokens KO (design-tokens.css : --accent-soft doit basculer clair/sombre, et --surface-1/--blue/--gold/--fs-xl/--sp-4/--r-md doivent être définis)');
+    if (!checks.typeHierarchy) errors.push('Hiérarchie typographique KO (le titre de page doit dépasser le titre de carte d’au moins 6 px)');
+    if (!checks.isoHoldsUi) errors.push('Tenues isométriques KO (isometricProgress / #isoHolds : 70 s de gainage → palier Intermédiaire + conseil de volume, et aucune tenue jamais enregistrée)');
+    if (!checks.skillRoadmapUi) errors.push('Feuille de route KO (skillRoadmap / #skillRoadmapPick / #skillRoadmap : sélecteur peuplé, clic sur une marche → compteur ET état persistés)');
+    if (!checks.exerciseChain) errors.push('Chaîne d’exercices KO (champs easier/harder de exercises-data.js : bouton présent, clic ouvrant la fiche voisine, ≥30 exercices reliés)');
     if (!checks.progression) errors.push('Suggestion de progression KO (progressionSuggestion : séance legacy `w.exercise` doit être comptée, pas seulement `exercises[]`)');
     if (!checks.guidedTarget) errors.push('Séance guidée : progression incohérente (#guidedProgressionHint / #guidedTarget / guidedProgressionLines) — feu vert doit suivre la double progression sans « +0,5 kg », récup basse doit CONSOLIDER sans « monte la charge »');
     if (!checks.guidedFragileLive) errors.push('Séance guidée : la cible/le conseil ne suivent pas la récup LIVE (reprise avec récup devenue fragile → #guidedRecoveryNote « allège » mais #guidedTarget disait encore « monte la charge » car current.cautious gelé) — renderGuidedWorkout doit arbitrer sur le fragile recalculé');

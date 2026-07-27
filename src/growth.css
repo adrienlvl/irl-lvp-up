@@ -5,6 +5,6 @@
 .pc-pair figure{margin:0;position:relative;display:flex;flex-direction:column;gap:6px}
 .pc-pair img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:var(--input-bg)}
 .pc-tag{position:absolute;top:8px;left:8px;font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:99px}
-.pc-tag.pc-after{background:rgba(171,255,85,.85);color:var(--accent-ink)}
+.pc-tag.pc-after{background:var(--accent);color:var(--accent-ink)}
 .pc-pair figcaption{color:var(--muted);font-size:.76rem;text-align:center}
 .pc-delta{margin-top:11px;text-align:center;font-weight:700;font-size:.9rem;color:var(--text)}.photo-gallery img{width:75px;height:75px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}.analysis-panel .coach-summary{white-space:pre-line}.planning-panel .weight-history{margin-top:12px}@media(max-width:700px){.nutrition-form{grid-template-columns:1fr}.nutrition-form .check-label{min-height:34px}}

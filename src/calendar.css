@@ -3,8 +3,8 @@
 /* Digest « À rattraper » (tableau de bord) : ce qui a besoin d'attention, agrégé, cliquable. */
 .attention-list{display:flex;flex-direction:column;gap:7px}
 .att-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--input-bg);color:var(--text);cursor:pointer;font:inherit}
-.att-item:hover{border-color:var(--accent,#6ee7b7)}
-.att-item:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px}
+.att-item:hover{border-color:var(--accent)}
+.att-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .att-item .att-emo{font-size:1.15rem;line-height:1;flex:none}
 .att-item .att-text{flex:1;min-width:0;font-size:.9rem}
 .att-item .att-go{color:var(--muted);flex:none}
@@ -13,13 +13,13 @@
 
 /* Coaching adaptatif : carte « Le focus du moment » (proactif, une priorité du jour). */
 .coach-panel{background:linear-gradient(135deg,rgba(94,234,212,.10),var(--card) 45%)}
-.coach-focus{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:13px 14px;border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--accent,#6ee7b7);background:var(--input-bg);color:var(--text);cursor:pointer;font:inherit}
-.coach-focus:hover{border-color:var(--accent,#6ee7b7)}
-.coach-focus:focus-visible{outline:2px solid var(--accent,#6ee7b7);outline-offset:2px}
+.coach-focus{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:13px 14px;border-radius:12px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--input-bg);color:var(--text);cursor:pointer;font:inherit}
+.coach-focus:hover{border-color:var(--accent)}
+.coach-focus:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .coach-focus.coach-urgent{border-left-color:#ef4444}
 .coach-follow{display:block;margin-top:9px;color:var(--muted);font-size:.76rem}
 .coach-follow[hidden]{display:none}
-.coach-more-btn{display:inline-block;margin-top:8px;background:none;border:none;color:var(--accent,#6ee7b7);font:inherit;font-size:.78rem;font-weight:600;padding:2px 0;cursor:pointer}
+.coach-more-btn{display:inline-block;margin-top:8px;background:none;border:none;color:var(--accent);font:inherit;font-size:.78rem;font-weight:600;padding:2px 0;cursor:pointer}
 .coach-more-btn[hidden]{display:none}
 .coach-more-btn:hover{text-decoration:underline}
 .coach-more{display:block;margin:6px 0 0;color:var(--muted);font-size:.82rem;line-height:1.5}
@@ -31,5 +31,5 @@
 .coach-focus .coach-body{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
 .coach-focus .coach-headline{font-size:.98rem;font-weight:700}
 .coach-focus .coach-insight{font-size:.85rem;color:var(--muted);line-height:1.35}
-.coach-focus .coach-action{font-size:.85rem;margin-top:3px;color:var(--accent,#6ee7b7);font-weight:600}
+.coach-focus .coach-action{font-size:.85rem;margin-top:3px;color:var(--accent);font-weight:600}
 .coach-focus .coach-go{color:var(--muted);flex:none;align-self:center;font-size:1.1rem}

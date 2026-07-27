@@ -58,3 +58,25 @@ test('CSS : accolades équilibrées par fichier', () => {
   }
   assert.deepEqual(offenders, [], 'accolades déséquilibrées');
 });
+
+// Surfaces qui doivent basculer avec le thème. Chacune de ces règles est restée figée en
+// bleu nuit pendant des mois : en thème clair, la barre de navigation restait sombre, et les
+// listes déroulantes affichaient du texte sombre sur fond sombre (illisible).
+test('CSS : les surfaces sensibles au thème passent par un token', () => {
+  const lu = f => fs.readFileSync(path.join(dir, f), 'utf8');
+  const attendus = [
+    ['polish.css', /\.app-nav\{[^{}]*background:var\(--nav-bg\)/, 'barre de navigation'],
+    ['style.css', /option\{background-color:var\(--dialog-bg\)/, 'options des listes déroulantes'],
+    ['calendar-page.css', /\.calendar-form\{[^{}]*background:var\(--card\)/, 'formulaire du calendrier'],
+    ['growth.css', /\.pc-tag\.pc-after\{background:var\(--accent\)[;}]/, 'badge APRÈS (fond plein, encre foncée dessus)'],
+  ];
+  const rates = attendus.filter(([f, re]) => !re.test(lu(f))).map(([f, , quoi]) => `${f} → ${quoi}`);
+  assert.deepEqual(rates, [], 'surfaces figées en sombre');
+
+  // Le repère « aujourd'hui » du calendrier doit rester distinct du simple survol.
+  const cal = lu('calendar-page.css');
+  const hover = (cal.match(/\.month-day:hover\{background:(var\([^)]*\))\}/) || [])[1];
+  const today = (cal.match(/\.month-day\.today\{background:(var\([^)]*\))/) || [])[1];
+  assert.ok(hover && today, 'les deux règles doivent exister');
+  assert.notEqual(today, hover, '« aujourd’hui » ne doit pas se confondre avec le survol');
+});

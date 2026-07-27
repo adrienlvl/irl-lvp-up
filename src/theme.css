@@ -1,18 +1,6 @@
 /* Thème clair (Vague 4.5). Activé via [data-theme="light"] sur <html>. */
-:root[data-theme="light"]{
-  --bg:#eef1f6;
-  --card:#ffffff;
-  --card-light:#e7ecf3;
-  --surface-2:#f4f6fa;
-  --input-bg:#ffffff;
-  --text:#1a2230;
-  --muted:#586275;
-  --accent:#2f7d0a;           /* vert lisible en texte ET en fond */
-  --accent-ink:#ffffff;       /* texte sur les boutons pleins */
-  --purple:#6d4bd8;
-  --pink:#d81b60;
-  --line:rgba(20,28,45,.14);
-}
+/* Variables du thème clair : voir design-tokens.css. Ce fichier ne garde que
+   les rattrapages de composants qui ne passent pas par un token. */
 /* Fonds globaux */
 :root[data-theme="light"] body{background:radial-gradient(circle at 20% 0,#d9e2f2 0,transparent 34%),var(--bg)}
 :root[data-theme="light"] .calendar-page,:root[data-theme="light"] .ultra-page{background:radial-gradient(circle at 90% 0,#d3ddf1,transparent 35%),var(--bg)}

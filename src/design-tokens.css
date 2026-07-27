@@ -1,0 +1,158 @@
+/* ============================================================================
+   design-tokens.css — la SEULE source de vérité des valeurs de design.
+   Chargée EN PREMIER, avant toutes les autres feuilles.
+
+   Pourquoi ce fichier existe (audit du 2026-07-27) : l'app empilait 17 feuilles
+   CSS sans couche de tokens. Les overrides gagnaient par ORDRE DE CHARGEMENT et
+   non par intention — c'est ce qui a produit le bug des eyebrows sur 47 panneaux,
+   et c'est la cause structurelle du « le design est toujours mauvais ».
+
+   Trois règles, si tu ajoutes du CSS :
+   1. Aucune couleur littérale dans une autre feuille. Si la teinte n'existe pas
+      ici, ajoute-la ICI, dans les DEUX thèmes.
+   2. Aucun `var(--x, #fallback)`. Tout token est défini dans les deux thèmes,
+      donc un fallback est au mieux mort, au pire faux (on avait
+      `var(--accent,#6ee7b7)` : un vert menthe absent des deux thèmes).
+   3. Espacements, rayons et tailles de texte : prends un cran de l'échelle.
+      Les valeurs intermédiaires (9px, 11px, .83rem…) sont du bruit accumulé.
+   ========================================================================== */
+
+:root {
+  /* --- Fonds et surfaces ------------------------------------------------- */
+  --bg: #0d1220;
+  --card: #171e30;
+  --card-light: #202a40;
+  --surface: rgba(24, 32, 51, .84);
+  --surface-1: #111728;          /* était consommée sans jamais être définie */
+  --surface-2: #111728;
+  --input-bg: #101625;
+  --nav-bg: rgba(13, 18, 32, .78);
+  --dialog-bg: #1b2336;
+  --fill-1: rgba(255, 255, 255, .04);
+
+  /* --- Texte et traits --------------------------------------------------- */
+  --text: #f7f8fc;
+  --muted: #9da8bd;
+  --line: rgba(255, 255, 255, .09);
+  --line-strong: rgba(255, 255, 255, .18);
+
+  /* --- Accent ------------------------------------------------------------
+     Les quatre déclinaisons remplacent 74 `rgba(171,255,85,α)` écrits en dur
+     sur 24 alphas. Écrites en dur, elles ne basculaient pas en thème clair :
+     le texte passait au vert foncé pendant que fonds, bordures et anneaux de
+     focus restaient vert fluo. */
+  --accent: #abff55;
+  --accent-ink: #142014;
+  --accent-soft: rgba(171, 255, 85, .08);   /* fonds d'encart      (α ≤ .12) */
+  --accent-veil: rgba(171, 255, 85, .16);   /* fonds actifs      (α .14–.20) */
+  --accent-line: rgba(171, 255, 85, .30);   /* bordures          (α .22–.35) */
+  --accent-ring: rgba(171, 255, 85, .50);   /* focus, jauges       (α ≥ .40) */
+  --glow: var(--accent-veil);
+
+  /* --- Sémantique de statut ----------------------------------------------
+     Avant : 19 valeurs hexadécimales pour 4 concepts (6 jaunes rien que pour
+     « avertissement »). Un rôle = une couleur. */
+  --ok: #4ade80;
+  --warn: #f59e0b;
+  --danger: #f87171;
+  --blue: #60a5fa;      /* était utilisée sans jamais être définie */
+  --indigo: #818cf8;
+  --teal: #5eead4;
+  --gold: #d9a441;      /* idem */
+  --purple: #a78bfa;
+  --pink: #fb7185;
+
+  /* --- Ombres ------------------------------------------------------------ */
+  --shadow-card: 0 16px 50px rgba(0, 0, 0, .2);
+  --shadow-pop: 0 12px 30px rgba(0, 0, 0, .35);
+
+  /* --- Échelle d'espacement ----------------------------------------------
+     8 crans pour 25 valeurs relevées. Le pas est volontairement de 2px en bas
+     d'échelle : c'est le seul moyen de garder 8px ET 10px (459 occurrences à
+     eux deux) sans repeindre l'app. */
+  --sp-0: 2px;
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 12px;
+  --sp-6: 16px;
+  --sp-7: 24px;
+
+  /* --- Rayons ------------------------------------------------------------ */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;         /* rayon par défaut des cartes et des lignes */
+  --r-lg: 12px;
+  --r-xl: 18px;
+  --r-pill: 999px;      /* 999px et 99px coexistaient pour le même effet */
+  --r-round: 50%;
+  --radius-lg: 22px;    /* hérité de polish.css — conservé tel quel */
+
+  /* --- Échelle typographique ---------------------------------------------
+     10 crans pour 44 tailles relevées. Le rôle prime sur la valeur : choisis
+     le cran par ce que le texte EST, pas par la taille qu'il fait. */
+  --fs-3xs: .68rem;     /* légendes de graphe, unités */
+  --fs-2xs: .72rem;     /* micro-labels, chips, indices */
+  --fs-xs: .78rem;      /* sous-titres, small de carte */
+  --fs-sm: .82rem;      /* corps de texte des encarts */
+  --fs-md: .86rem;      /* titres b de carte analytique */
+  --fs-lg: .95rem;      /* titres de carte, valeurs chiffrées */
+  --fs-base: 1rem;      /* champs de formulaire */
+  --fs-xl: 1.15rem;     /* titres de section */
+  --fs-2xl: 1.5rem;     /* gros chiffres, en-têtes de page */
+  --fs-hero: clamp(2.5rem, 6vw, 4.5rem);
+
+  /* Graisses : 650 et 750 retombaient déjà sur 600/700 sur la pile système. */
+  --fw-med: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  --lh-tight: 1;        /* boutons, icônes */
+  --lh-body: 1.4;       /* texte courant */
+  --lh-loose: 1.55;     /* paragraphes longs, conseils du coach */
+}
+
+/* ============================================================================
+   Thème clair. CHAQUE token ci-dessus a sa contrepartie ici : c'est la seule
+   façon d'éviter qu'une couleur reste figée en sombre sur fond clair.
+   ========================================================================== */
+:root[data-theme="light"] {
+  --bg: #eef1f6;
+  --card: #ffffff;
+  --card-light: #e7ecf3;
+  --surface: rgba(255, 255, 255, .86);
+  --surface-1: #f4f6fa;
+  --surface-2: #f4f6fa;
+  --input-bg: #ffffff;
+  --nav-bg: rgba(238, 241, 246, .82);
+  --dialog-bg: #ffffff;
+  --fill-1: rgba(20, 28, 45, .04);
+
+  --text: #1a2230;
+  --muted: #586275;
+  --line: rgba(20, 28, 45, .14);
+  --line-strong: rgba(20, 28, 45, .24);
+
+  --accent: #2f7d0a;            /* vert lisible en texte ET en fond */
+  --accent-ink: #ffffff;        /* texte sur les boutons pleins */
+  --accent-soft: rgba(47, 125, 10, .10);
+  --accent-veil: rgba(47, 125, 10, .18);
+  --accent-line: rgba(47, 125, 10, .35);
+  --accent-ring: rgba(47, 125, 10, .55);
+
+  /* Les pastels du thème sombre ne passent pas le contraste sur #eef1f6 :
+     chaque statut a sa version foncée. */
+  --ok: #15803d;
+  --warn: #b45309;
+  --danger: #dc2626;
+  --blue: #1d4ed8;
+  --indigo: #4f46e5;
+  --teal: #0f766e;
+  --gold: #a16207;
+  --purple: #6d4bd8;
+  --pink: #d81b60;
+
+  --shadow-card: 0 10px 30px rgba(30, 45, 75, .08);
+  --shadow-pop: 0 12px 30px rgba(30, 45, 75, .16);
+}

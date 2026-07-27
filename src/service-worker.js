@@ -2,7 +2,7 @@
    Stratégie : network-first pour le code (HTML/CSS/JS) → toujours à jour quand en ligne, repli
    cache hors-ligne ; cache-first pour les images/polices (rapides, changent peu).
    Ne s'active que servi en http(s) ; inactif dans Electron (file://). */
-const CACHE = 'irl-lvp-up-v2';
+const CACHE = 'irl-lvp-up-v3';
 const SHELL = [
   './',
   'index.html',
@@ -17,6 +17,7 @@ const SHELL = [
   'polish.css',
   'strength.css',
   'calendar-page.css',
+  'design-tokens.css',
   'pages.css',
   'trail.css',
   'ultra.css',
