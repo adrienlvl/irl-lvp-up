@@ -170,3 +170,31 @@ Leçon à ajouter à la liste : *une assertion de texte sur un conteneur qui con
 déjà la chaîne cherchée ne prouve rien — viser l'élément, pas la vue.*
 
 615 tests · SMOKE OK · aucun débordement en 390 px.
+
+## Itération 9 — revue adversariale (v2.6.0..HEAD) + publication v2.7.0
+
+Revue menée sur mon propre diff, en cherchant d'abord là où je savais avoir été
+vite. **Deux défauts trouvés, tous deux de ma main, tous deux dans l'itération 8.**
+
+1. **« ⤫ sauter » inerte sur une occurrence déplacée.** `skipRecurringOn` écrivait
+   la date AFFICHÉE ; or `recurringOccurs` teste d'abord « une occurrence vient-elle
+   d'ailleurs ? » et rendait le bloc quand même. Exactement la même erreur, au même
+   endroit, que celle corrigée une heure plus tôt pour la validation — j'ai corrigé
+   `completeRecurringOn` sans regarder son voisin immédiat.
+2. **`mergeRecurring` perdait les exceptions.** Il préservait `doneLog`, `skipLog`
+   et `paused` — la saisie manuelle d'Adrien — mais pas `overrides`, ajouté le jour
+   même. Une ré-importation du calendrier aurait tout effacé en silence.
+
+**Leçon** : quand je corrige une fonction, lire ses VOISINES qui manipulent le même
+champ. Les deux défauts sont des oublis de propagation, pas des erreurs de logique.
+
+v2.7.0 publiée : build Windows OK, PWA déployée.
+
+### Prochaine phase (demandée par Adrien)
+Boucle recentrée sur **le Coach et l'onglet Athlète**. Pistes de départ :
+- Sonder l'onglet Athlète en 390 px, sous-onglet par sous-onglet (jamais mesuré
+  depuis la refonte en 4 onglets).
+- Le Coach a maintenant trois cartes empilées (focus, agenda, entraînement) :
+  vérifier qu'elles ne crient pas toutes en même temps.
+- `coachTraining` n'expose qu'une piste sur six ; les autres restent invisibles.
+- Mandat coaching élite : progression, standards de force, sources réelles.
