@@ -62,6 +62,15 @@
   --purple: #a78bfa;
   --pink: #fb7185;
 
+  /* --- Catégories d'agenda ------------------------------------------------
+     Trois palettes parallèles décrivaient les MÊMES quatre catégories : les
+     pastilles du mois, les liserés de la vue jour et la feuille d'impression,
+     chacune avec ses propres valeurs, aucune ne basculant en thème clair. */
+  --cat-sport: #51395a;  --cat-sport-line: #8a5a9a;
+  --cat-life:  #31534b;  --cat-life-line:  #4a8a76;
+  --cat-study: #5a4a2b;  --cat-study-line: #b5942b;
+  --cat-focus: #283556;  --cat-focus-line: #5a7ab0;
+
   /* --- Ombres ------------------------------------------------------------ */
   --shadow-card: 0 16px 50px rgba(0, 0, 0, .2);
   --shadow-pop: 0 12px 30px rgba(0, 0, 0, .35);
@@ -152,6 +161,12 @@
   --gold: #a16207;
   --purple: #6d4bd8;
   --pink: #d81b60;
+
+  /* En thème clair, le fond devient pâle et c'est le liseré qui porte la couleur. */
+  --cat-sport: #efe1f5;  --cat-sport-line: #7e4b91;
+  --cat-life:  #dff3ec;  --cat-life-line:  #2f7a63;
+  --cat-study: #f6ecd6;  --cat-study-line: #8a6d16;
+  --cat-focus: #e4eaf8;  --cat-focus-line: #3f5f9e;
 
   --shadow-card: 0 10px 30px rgba(30, 45, 75, .08);
   --shadow-pop: 0 12px 30px rgba(30, 45, 75, .16);

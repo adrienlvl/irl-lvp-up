@@ -712,9 +712,9 @@ app.whenReady().then(async () => {
           let ok3 = true;
           if (typeof showAthleteTab === 'function' && document.querySelector('.athlete-subnav [data-atab="progres"]')) {
             showAthleteTab('progres');
-            const prog = document.querySelector('.athlete-subnav [data-atab="progres"]'), sea = document.querySelector('.athlete-subnav [data-atab="seance"]');
-            ok3 = prog.getAttribute('aria-current') === 'true' && !sea.hasAttribute('aria-current');
-            showAthleteTab('seance');
+            const prog = document.querySelector('.athlete-subnav [data-atab="progres"]'), autre = document.querySelector('.athlete-subnav [data-atab="aujourdhui"]');
+            ok3 = !!prog && !!autre && prog.getAttribute('aria-current') === 'true' && !autre.hasAttribute('aria-current');
+            showAthleteTab('aujourdhui');
           }
           return ok1 && ok2 && ok3;
         })(),
@@ -765,30 +765,14 @@ app.whenReady().then(async () => {
           const u = upcomingSessions(plans, agenda, '2026-07-20');
           return u.length === 2 && u[0].origin === 'plan' && u[1].origin === 'agenda' && u[1].id === 10;
         })(),
-        athleteZones: typeof organizeAthleteZones === 'function' && typeof showsEnduranceBase === 'function' && (() => {
-          // 3 zones intitulées en tête du sous-onglet Séance. Les panneaux vivent groupés dans des
-          // conteneurs .training-grid : on range au niveau conteneur, pas panneau. On vérifie donc
-          // l'intertitre qui PRÉCÈDE chaque conteneur clé, pas un ordre d'indices rigide.
-          const zones = [...document.querySelectorAll('main.app-shell > section.atab-zone')];
-          if (zones.length !== 3) return false;
-          if (zones.map(z => z.querySelector('.azh-t') && z.querySelector('.azh-t').textContent).join('|') !== 'Faire maintenant|Mon entraînement|Récupération & mobilité') return false;
-          if (!zones.every(z => z.dataset.atab === 'seance')) return false;
-          // Intertitre précédant le conteneur direct qui abrite un panneau donné.
-          const zoneTitreDe = cls => {
-            const p = document.querySelector('.' + cls);
-            if (!p) return null;
-            let sec = p.closest('main.app-shell > section') || p;
-            while (sec && !(sec.classList && sec.classList.contains('atab-zone'))) sec = sec.previousElementSibling;
-            return sec ? (sec.querySelector('.azh-t') && sec.querySelector('.azh-t').textContent) : null;
-          };
-          if (zoneTitreDe('athlete-companion') !== 'Faire maintenant') return false;
-          if (zoneTitreDe('planning-panel') !== 'Faire maintenant') return false;
-          if (zoneTitreDe('wellness-panel') !== 'Récupération & mobilité') return false;
-          if (zoneTitreDe('objective-program-panel') !== 'Mon entraînement') return false;
-          // « Base d'endurance » masquée/affichée selon l'objectif courant (C).
+        // Les 3 intertitres « zones » ont été retirés en 2.3.0 : les 4 sous-onglets font le même
+        // rangement, en mieux. Ce qui reste à garder, c'est la seule règle conditionnelle qu'ils
+        // portaient : « Base d'endurance » n'apparaît que si l'objectif courant la justifie.
+        athleteZones: typeof showsEnduranceBase === 'function' && (() => {
           const trail = document.querySelector('.trail-panel');
-          const attendu = !showsEnduranceBase({ goal: state.profile.goal, fitnessObjective: state.fitnessObjective, raceGoalDate: state.raceGoal && state.raceGoal.date });
-          return !!trail && trail.classList.contains('endurance-hidden') === attendu;
+          if (!trail) return false;
+          const attendu = !!showsEnduranceBase({ goal: state.profile.goal, fitnessObjective: state.fitnessObjective, raceGoalDate: state.raceGoal && state.raceGoal.date });
+          return trail.classList.contains('endurance-hidden') !== attendu;
         })(),
         nutritionCsv: typeof nutritionCsv === 'function' && !!document.getElementById('exportNutritionCsv') && (() => { const csv = nutritionCsv([{ date: '2026-07-06', protein: 150, water: 8, fruit: false }, { date: '2026-07-08', protein: 130, water: 7, fruit: true }]); const lines = csv.split(String.fromCharCode(10)); return lines.length === 3 && lines[0] === 'date,proteines_g,eau_verres,fruits_legumes' && lines[1] === '2026-07-06,150,8,non' && lines[2] === '2026-07-08,130,7,oui'; })(),
         s8Travel: typeof isAllowedTravelUrl === 'function' && typeof travelModes === 'function' && !!document.getElementById('calendarAgendaEstimate') && !!document.getElementById('travelStartForm') && !!document.getElementById('travelHome') && !!document.getElementById('travelMode'),
@@ -1008,7 +992,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.2.0'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.3.0'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2596,6 +2580,57 @@ app.whenReady().then(async () => {
         state.agenda = save; renderDayLoad(jour);
         return rempli && vide;
       })();
+      // Onglet Athlète (BLOQUANT). Avant : 38 panneaux, dont 20 empilés sur 8540 px dans le
+      // seul sous-onglet « Séance » — la grille entière tombait du côté de son PREMIER panneau
+      // reconnu, entraînant standards / skills / tenues / feuille de route avec elle.
+      checks.athleteTabs = (() => { try {
+        if (typeof showAthleteTab !== 'function' || typeof showPage !== 'function') return false;
+        const shell = document.querySelector('main.app-shell');
+        if (!shell) return false;
+        if (document.querySelectorAll('.athlete-subnav button').length !== 4) return false;
+        showPage('athlete');
+        const vis = el => el.offsetParent !== null;
+        const compte = [];
+        for (const t of ['aujourdhui', 'programme', 'progres', 'corps']) {
+          showAthleteTab(t);
+          compte.push([...shell.querySelectorAll('section.panel, article.panel')].filter(vis).length);
+        }
+        // Chaque onglet doit être PEUPLÉ et RESTREINT : un onglet vide, ou un onglet qui reprend
+        // tout, signifie que la répartition ne fait pas son travail.
+        if (compte.some(n => n < 2 || n > 14)) return false;
+        const hub = document.querySelector('.progression-hub');
+        if (!hub) return false;
+        // Les cinq cartes doivent avoir disparu EN TANT QUE CARTES, sans qu'aucun identifiant
+        // ne soit perdu au passage (les renderers écrivent toujours dedans).
+        const ancien = ['strength-records-panel', 'strength-standards-panel', 'skill-tree-panel', 'iso-holds-panel', 'skill-roadmap-panel']
+          .some(c => document.querySelector('.' + c));
+        if (ancien) return false;
+        const ids = ['strengthRecords', 'strengthStandards', 'skillTree', 'isoHolds', 'skillRoadmap', 'skillRoadmapPick'];
+        if (!ids.every(id => document.getElementById(id))) return false;
+        return document.querySelectorAll('.ph-zone').length === 5;
+      } catch(e){ checks.__errTabs = String(e && e.message); return false; } })();
+      // Quitter la page Athlète doit RENDRE les panneaux masqués par sous-onglet : atab-hidden
+      // est un display:none!important, il suivrait le panneau jusque sur sa page d'origine.
+      checks.athleteNoBleed = (() => { try {
+        showPage('athlete'); showAthleteTab('corps');
+        showPage('dashboard');
+        return document.querySelectorAll('.atab-hidden').length === 0;
+      } catch(e){ checks.__errBleed = String(e && e.message); return false; } })();
+      // Catégories d'agenda : cinq palettes parallèles décrivaient les mêmes quatre catégories,
+      // aucune ne basculant en thème clair.
+      checks.agendaCategories = (() => { try {
+        const root = document.documentElement;
+        const lire = n => getComputedStyle(root).getPropertyValue(n).trim();
+        const noms = ['--cat-sport', '--cat-life', '--cat-study', '--cat-focus'];
+        const prev = root.dataset.theme;
+        root.dataset.theme = '';
+        const sombre = noms.map(lire);
+        root.dataset.theme = 'light';
+        const clair = noms.map(lire);
+        root.dataset.theme = prev || '';
+        if (sombre.some(v => !v) || clair.some(v => !v)) return false;
+        return sombre.every((v, i) => v !== clair[i]) && !!lire('--cat-sport-line');
+      } catch(e){ checks.__errCat = String(e && e.message); return false; } })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2628,6 +2663,9 @@ app.whenReady().then(async () => {
     if (!checks.typeHierarchy) errors.push('Hiérarchie typographique KO (le titre de page doit dépasser le titre de carte d’au moins 6 px)');
     if (!checks.isoHoldsUi) errors.push('Tenues isométriques KO (isometricProgress / #isoHolds : 70 s de gainage → palier Intermédiaire + conseil de volume, et aucune tenue jamais enregistrée)');
     if (!checks.skillRoadmapUi) errors.push('Feuille de route KO (skillRoadmap / #skillRoadmapPick / #skillRoadmap : sélecteur peuplé, clic sur une marche → compteur ET état persistés)');
+    if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
+    if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
+    if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.agendaDuration) errors.push('Durée de bloc KO (#weekQuickDuration / #calendarAgendaDuration / #recDuration doivent EXISTER dans le HTML, et parseDurationInput comprendre 1h30)');
     if (!checks.agendaConflit) errors.push('Détection de conflit KO (busyBlocksForDay doit inclure les occurrences récurrentes, sinon poser un bloc pendant un cours importé ne déclenche rien)');
     if (!checks.agendaCharge) errors.push('Jauge de charge KO (#dayLoadBar : visible et « saturée » pour 5 h 30 planifiées, masquée pour un jour vide)');
@@ -2664,7 +2702,7 @@ app.whenReady().then(async () => {
     if (!checks.coachTargetEditable) errors.push('Poids cible non unifié dans « Mon plan » (#coachTarget absent/ne sauvegarde pas, ou #targetWeight pas retiré)');
     if (!checks.programReset) errors.push('Purge programme KO (pruneProgramSessionsFrom)');
     if (!checks.plannedMergesProgram) errors.push('Fusion séances programme KO (upcomingSessions)');
-    if (!checks.athleteZones) errors.push('Zones onglet Athlète KO (organizeAthleteZones / 3 intertitres / ordre / trail conditionnel)');
+    if (!checks.athleteZones) errors.push('Base d’endurance KO (.trail-panel doit être masquée ou affichée selon showsEnduranceBase)');
     if (!checks.studySubjects) errors.push('Révisions par matière KO (studyBySubject / #studySubjects)');
     if (!checks.digestBackup) errors.push('Rappel de sauvegarde KO (attentionDigest backup / state.lastBackup)');
     if (!checks.focusBreak) errors.push('Suggestion de pause KO (breakSuggestion / #focusBreakSuggest absent)');

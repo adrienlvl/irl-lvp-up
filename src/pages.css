@@ -86,3 +86,20 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 .dl-foot b{color:var(--text)}
 .dl-lighten{position:absolute;top:var(--sp-4);right:var(--sp-4);border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:var(--r-pill);padding:var(--sp-1) var(--sp-4);font-size:var(--fs-3xs);font-weight:var(--fw-bold);cursor:pointer}
 .dl-lighten:hover{border-color:var(--accent-line);color:var(--accent)}
+
+/* ===== Athlète : 4 sous-onglets + panneau de progression unique (2.3.0) ==========
+   Avant : 38 panneaux, dont 20 empilés sur 8540 px dans le seul onglet « Séance ». */
+.athlete-subnav{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin:var(--sp-5) 0 var(--sp-6)}
+.athlete-subnav button{flex:1 1 auto;min-width:110px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font:inherit;font-size:var(--fs-sm);font-weight:var(--fw-bold);padding:var(--sp-3) var(--sp-5);border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+.athlete-subnav button:hover{color:var(--text);border-color:var(--accent-line)}
+.athlete-subnav button.active{background:var(--accent-veil);color:var(--accent);border-color:var(--accent-ring)}
+.ph-pills{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-5)}
+.ph-pills button{border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font:inherit;font-size:var(--fs-2xs);font-weight:var(--fw-bold);padding:var(--sp-2) var(--sp-4);border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+.ph-pills button:hover{color:var(--text);border-color:var(--accent-line)}
+.ph-pills button.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-ring)}
+.ph-hidden{display:none!important}
+.progression-hub .ph-zone>*:first-child{margin-top:0}
+@media(max-width:650px){
+  .athlete-subnav button{flex:1 1 44%;min-width:0;font-size:var(--fs-2xs);padding:var(--sp-3) var(--sp-3)}
+  .ph-pills button{flex:1 1 auto}
+}

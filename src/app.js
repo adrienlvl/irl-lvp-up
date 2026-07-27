@@ -1138,7 +1138,11 @@ const pageGroups={dashboard:['.player-card','.mission-control','.attention-panel
 // déclarés dans ATHLETE_TABS → 'seance'), mais ils étaient ABSENTS d'ici : showPage() ne masquant
 // que les sélecteurs listés, ils restaient visibles sur TOUTES les pages — y compris Réglages et
 // Nutrition. C'est le « programme auto » et les « routines guidées » qu'Adrien voyait dans Réglages.
-athlete:['.athlete-header','.athlete-subnav','.atab-zone','.athlete-companion','.trail-panel','.training-grid','.planning-panel','.objective-program-panel','.wellness-panel','.weekly-review-panel','.personal-trends','.charts-panel'],poids:['.coach-weight-panel'],library:['.exercise-library','.weekly-program-panel'],nutrition:['.nutrition-panel','.supplements-panel','.food-search-panel','.kitchen-panel'],focus:['.two-columns','.morning-panel','.reflection-panel','.achievements'],alternance:['.alternance-panel'],settings:['.settings-page','.reminder-panel']}; function showPage(page){Object.entries(pageGroups).forEach(([name,selectors])=>selectors.forEach(s=>document.querySelectorAll(s).forEach(el=>el.classList.toggle('app-page-hidden',name!==page))));$('.hero').classList.toggle('app-page-hidden',page!=='dashboard');if(page==='athlete'&&typeof showAthleteTab==='function')showAthleteTab(athleteTab);document.querySelectorAll('[data-page]').forEach(b=>{const on=b.dataset.page===page;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});let title=document.querySelector('.page-title');if(page==='dashboard'){title?.remove();return;}if(!title){title=document.createElement('div');title.className='page-title';$('.app-nav').after(title);} const pageTitles={athlete:'<p class="eyebrow">ENTRAÎNEMENT & PROGRESSION</p><h2>Mode Athlète</h2><p>Construis, mesure et récupère.</p>',poids:'<p class="eyebrow">OBJECTIF CORPS</p><h2>⚖️ Coach Poids</h2><p>Ta cible, tes paliers et ton plan sur mesure.</p>',library:'<p class="eyebrow">BIBLIOTHÈQUE</p><h2>Exercices illustrés</h2><p>Recherche un mouvement, vois la technique et prépare ta séance.</p>',nutrition:'<p class="eyebrow">CARBURANT</p><h2>Nutrition</h2><p>Suivi, compléments et repères — sans obsession.</p>',focus:'<p class="eyebrow">ESPRIT & ÉQUILIBRE</p><h2>Focus & Vie</h2><p>Protège ton attention et ton énergie.</p>',alternance:'<p class="eyebrow">OBJECTIF ALTERNANCE</p><h2>💼 Recherche d’alternance</h2><p>Postule chaque jour. Décroche avant août.</p>',settings:'<p class="eyebrow">TON APPLICATION</p><h2>Réglages</h2><p>Apparence, rappels et connexions — au même endroit.</p>'};title.innerHTML=pageTitles[page]||'';}; document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+athlete:['.athlete-header','.athlete-subnav','.atab-zone','.athlete-companion','.trail-panel','.training-grid','.planning-panel','.objective-program-panel','.wellness-panel','.weekly-review-panel','.personal-trends','.charts-panel'],poids:['.coach-weight-panel'],library:['.exercise-library','.weekly-program-panel'],nutrition:['.nutrition-panel','.supplements-panel','.food-search-panel','.kitchen-panel'],focus:['.two-columns','.morning-panel','.reflection-panel','.achievements'],alternance:['.alternance-panel'],settings:['.settings-page','.reminder-panel']}; function nettoyerAtabHidden(){document.querySelectorAll('.atab-hidden').forEach(el=>el.classList.remove('atab-hidden'));}
+function showPage(page){
+  /* Les sous-onglets Athlète masquent en display:none!important. Sans ce nettoyage, un panneau
+     rangé dans « Corps » resterait invisible sur le tableau de bord après un passage par Athlète. */
+  if(page!=='athlete')nettoyerAtabHidden();Object.entries(pageGroups).forEach(([name,selectors])=>selectors.forEach(s=>document.querySelectorAll(s).forEach(el=>el.classList.toggle('app-page-hidden',name!==page))));$('.hero').classList.toggle('app-page-hidden',page!=='dashboard');if(page==='athlete'&&typeof showAthleteTab==='function')showAthleteTab(athleteTab);document.querySelectorAll('[data-page]').forEach(b=>{const on=b.dataset.page===page;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});let title=document.querySelector('.page-title');if(page==='dashboard'){title?.remove();return;}if(!title){title=document.createElement('div');title.className='page-title';$('.app-nav').after(title);} const pageTitles={athlete:'<p class="eyebrow">ENTRAÎNEMENT & PROGRESSION</p><h2>Mode Athlète</h2><p>Construis, mesure et récupère.</p>',poids:'<p class="eyebrow">OBJECTIF CORPS</p><h2>⚖️ Coach Poids</h2><p>Ta cible, tes paliers et ton plan sur mesure.</p>',library:'<p class="eyebrow">BIBLIOTHÈQUE</p><h2>Exercices illustrés</h2><p>Recherche un mouvement, vois la technique et prépare ta séance.</p>',nutrition:'<p class="eyebrow">CARBURANT</p><h2>Nutrition</h2><p>Suivi, compléments et repères — sans obsession.</p>',focus:'<p class="eyebrow">ESPRIT & ÉQUILIBRE</p><h2>Focus & Vie</h2><p>Protège ton attention et ton énergie.</p>',alternance:'<p class="eyebrow">OBJECTIF ALTERNANCE</p><h2>💼 Recherche d’alternance</h2><p>Postule chaque jour. Décroche avant août.</p>',settings:'<p class="eyebrow">TON APPLICATION</p><h2>Réglages</h2><p>Apparence, rappels et connexions — au même endroit.</p>'};title.innerHTML=pageTitles[page]||'';}; document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 $('#settingsTheme')?.addEventListener('click',()=>$('#themeToggle')?.click());
 $('#settingsDensity')?.addEventListener('click',()=>$('#densityToggle')?.click());
 $('#settingsGotoReminders')?.addEventListener('click',()=>$('.reminder-panel')?.scrollIntoView({behavior:'smooth',block:'start'}));
@@ -1250,10 +1254,52 @@ function applyUpdateStatus(s){
   }
   if(checkBtn&&s.state!=='checking')checkBtn.disabled=false;
 }
-const ATHLETE_TABS={'athlete-companion':'seance','trail-panel':'seance','goal-panel':'seance','profile-panel':'seance','workout-panel':'seance','program-panel':'seance','objective-program-panel':'seance','wellness-panel':'seance','planning-panel':'seance','history-panel':'progres','photo-panel':'progres','measurements-panel':'progres','weekly-review-panel':'progres','personal-trends':'progres','charts-panel':'progres'};
-let athleteTab='seance';try{athleteTab=localStorage.getItem('irl-athlete-tab')||'seance';}catch(_){}if(athleteTab!=='seance'&&athleteTab!=='progres')athleteTab='seance';
-function assignAthleteTabs(){document.querySelectorAll('main.app-shell > section').forEach(sec=>{if(sec.classList.contains('athlete-header')||sec.classList.contains('athlete-subnav'))return;for(const key in ATHLETE_TABS){if(sec.classList.contains(key)||sec.querySelector('.'+key)){sec.dataset.atab=ATHLETE_TABS[key];break;}}});}
-function showAthleteTab(tab){athleteTab=tab;document.querySelectorAll('.athlete-subnav button').forEach(b=>{const on=b.dataset.atab===tab;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');});document.querySelectorAll('main.app-shell > section[data-atab]').forEach(s=>s.classList.toggle('atab-hidden',s.dataset.atab!==tab));try{localStorage.setItem('irl-athlete-tab',tab);}catch(_){}}
+const ATHLETE_TABS={
+  'athlete-companion':'aujourdhui','recovery-panel':'aujourdhui','program-panel':'aujourdhui','workout-panel':'aujourdhui','warmup-panel':'aujourdhui',
+  'objective-program-panel':'programme','weekly-program-panel':'programme','planning-panel':'programme','wellness-panel':'programme','goal-panel':'programme','profile-panel':'programme','trail-panel':'programme','history-panel':'programme',
+  'progression-hub':'progres','progression-panel':'progres','week-panel':'progres','analysis-panel':'progres',
+  'weight-panel':'corps','measurements-panel':'corps','photo-panel':'corps','personal-trends':'corps','charts-panel':'corps','weekly-review-panel':'corps','coach-week-panel':'corps',
+  // Ce panneau appartient au tableau de bord : l'étiqueter avec une valeur qui n'est aucun
+  // onglet le retire de la page Athlète sans toucher aux listes de showPage().
+  'coach-today-panel':'hors-athlete'
+};
+let athleteTab='seance';try{athleteTab=localStorage.getItem('irl-athlete-tab')||'seance';}catch(_){}if(!['aujourdhui','programme','progres','corps'].includes(athleteTab))athleteTab='aujourdhui';
+/* Fusionne les cinq cartes de progression en un seul panneau à pastilles. On déplace le
+   CONTENU, pas les données : les identifiants (#strengthRecords, #skillTree, #isoHolds…)
+   partent avec, donc tous les renderers continuent d'écrire au même endroit sans le savoir.
+   Idempotent : rejouable sans dupliquer. */
+function buildProgressionHub(){
+  const hub=document.querySelector('.progression-hub');
+  if(!hub||hub.dataset.built==='1')return 0;
+  const SOURCES={records:'.strength-records-panel',standards:'.strength-standards-panel',skills:'.skill-tree-panel',tenues:'.iso-holds-panel',route:'.skill-roadmap-panel'};
+  let n=0;
+  for(const cle in SOURCES){
+    const src=document.querySelector(SOURCES[cle]),zone=hub.querySelector('[data-phub-zone="'+cle+'"]');
+    if(!src||!zone)continue;
+    [...src.children].forEach(noeud=>{if(!noeud.classList.contains('panel-heading'))zone.appendChild(noeud);});
+    src.remove();n++;
+  }
+  hub.dataset.built='1';
+  return n;
+}
+function showProgressionView(vue){
+  const hub=document.querySelector('.progression-hub');if(!hub)return;
+  hub.querySelectorAll('.ph-pills button').forEach(b=>{const on=b.dataset.phub===vue;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');});
+  hub.querySelectorAll('[data-phub-zone]').forEach(z=>z.classList.toggle('ph-hidden',z.dataset.phubZone!==vue));
+  try{localStorage.setItem('irl-progression-view',vue);}catch(_){}
+}
+document.querySelector('.progression-hub')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-phub]');if(b)showProgressionView(b.dataset.phub);
+});
+function assignAthleteTabs(){
+  // On étiquette les PANNEAUX eux-mêmes (et les sections qui en sont un), pas seulement les
+  // conteneurs de premier niveau : sans ça, une grille contenant des panneaux de deux onglets
+  // différents part entière du côté de son premier panneau reconnu.
+  for(const key in ATHLETE_TABS){
+    document.querySelectorAll('main.app-shell .'+key).forEach(el=>{el.dataset.atab=ATHLETE_TABS[key];});
+  }
+}
+function showAthleteTab(tab){athleteTab=tab;document.querySelectorAll('.athlete-subnav button').forEach(b=>{const on=b.dataset.atab===tab;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');});document.querySelectorAll('main.app-shell [data-atab]').forEach(el=>{if(el.closest('.athlete-subnav'))return;el.classList.toggle('atab-hidden',el.dataset.atab!==tab);});/* Une grille dont tous les panneaux sont masqués ne doit pas laisser sa marge derrière elle. */document.querySelectorAll('main.app-shell .training-grid, main.app-shell .chart-grid').forEach(g=>{const vivants=[...g.children].filter(c=>!c.classList.contains('atab-hidden'));g.classList.toggle('atab-hidden',vivants.length===0);});try{localStorage.setItem('irl-athlete-tab',tab);}catch(_){}}
 const athleteSubnav=document.querySelector('.athlete-subnav');if(athleteSubnav)athleteSubnav.onclick=e=>{const b=e.target.closest('[data-atab]');if(b)showAthleteTab(b.dataset.atab);};
 // Range le sous-onglet « Séance » en 3 zones intitulées (Faire maintenant / Mon entraînement /
 // Récupération & mobilité). On réordonne AU RUNTIME : les panneaux Séance/Progrès sont entremêlés
@@ -1262,7 +1308,8 @@ const athleteSubnav=document.querySelector('.athlete-subnav');if(athleteSubnav)a
 // panneaux individuels — beaucoup vivent groupés 2-3 dans des grilles `.training-grid` (mise en page
 // responsive). Bouger un panneau isolé casserait sa grille. On bucketise donc toutes les sections
 // Séance et on les repose sous les intertitres. Idempotent.
-function organizeAthleteZones(){const shell=document.querySelector('main.app-shell');if(!shell||shell.querySelector('.atab-zone'))return;const subnav=shell.querySelector('.athlete-subnav');if(!subnav)return;
+function organizeAthleteZones(){return;/* Remplacé par les 4 sous-onglets (2.3.0) : garder les intertitres en plus des onglets ferait deux niveaux de rangement concurrents. */
+  const shell=document.querySelector('main.app-shell');if(!shell||shell.querySelector('.atab-zone'))return;const subnav=shell.querySelector('.athlete-subnav');if(!subnav)return;
   const zones=[
     {t:'Faire maintenant',e:'▶️',has:['athlete-companion','planning-panel']},
     {t:'Mon entraînement',e:'🗺️',has:null},                    // défaut : programme, objectifs, profil, séances…
@@ -1274,7 +1321,7 @@ function organizeAthleteZones(){const shell=document.querySelector('main.app-she
   secs.forEach(sec=>{const zi=classe(sec);if(zi>=0)buckets[zi].push(sec);});
   let anchor=subnav;
   zones.forEach((z,zi)=>{if(!buckets[zi].length)return;const h=document.createElement('section');h.className='atab-zone';h.dataset.atab='seance';h.innerHTML=`<span class="azh-em" aria-hidden="true">${z.e}</span><span class="azh-t">${escapeHtml(z.t)}</span>`;anchor.after(h);anchor=h;buckets[zi].forEach(sec=>{anchor.after(sec);anchor=sec;});});}
-assignAthleteTabs();organizeAthleteZones();showAthleteTab(athleteTab);
+buildProgressionHub();try{showProgressionView(localStorage.getItem('irl-progression-view')||'records');}catch(_){showProgressionView('records');}assignAthleteTabs();organizeAthleteZones();showAthleteTab(athleteTab);
 // Écouteurs attachés UNE SEULE FOIS (les mettre dans une fonction de rendu les empilerait).
 // Depuis « Objectifs hebdomadaires », un renvoi mène au foyer unique de la cible de poids.
 $('#goToPlanFromGoals')?.addEventListener('click',()=>{showPage('poids');setTimeout(()=>{$('#coachTarget')?.focus();},60);});
