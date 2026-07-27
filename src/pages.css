@@ -326,3 +326,19 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
   .food-row{grid-template-columns:minmax(0,1fr) repeat(4,minmax(0,auto));gap:var(--sp-2) var(--sp-3);font-size:var(--fs-2xs)}
   .food-row>b{grid-column:1/-1}
 }
+
+/* ===== Formulaire d'édition d'un bloc, sur écran étroit ====================
+   Mesuré à 390 px : la grille débordait de 106 px de son dialogue. `1fr` ne
+   descend pas sous le contenu minimum d'une cellule — même cause que
+   .wellness-bar et .food-row. Les champs longs (lieu, notes) tiennent sur toute
+   la largeur, le reste se partage deux colonnes qui savent rétrécir. */
+@media(max-width:560px){
+  .agenda-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .agenda-form>input:first-child,
+  .agenda-form>#editAgendaLocation,
+  .agenda-form>#editAgendaNotes,
+  .agenda-form>.quick-allday,
+  .agenda-form>.local-note,
+  .agenda-form>.zone-plan-actions{grid-column:1/-1}
+  .agenda-form input,.agenda-form select{min-width:0}
+}

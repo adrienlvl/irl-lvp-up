@@ -3136,6 +3136,29 @@ app.whenReady().then(async () => {
           });
           }
         }
+        // 3 bis. Les DIALOGUES : la passe ne regardait que les panneaux, alors que c'est dans
+        //        le formulaire d'édition d'un bloc qu'on a trouvé 106 px de débordement.
+        out.dialoguesMobile = [];
+        state.agenda = [{ id: 7001, date: localDate(), time: '18:00', durationMin: 60, title: 'Muscu du soir',
+          kind: 'sport', location: 'Salle Basic-Fit Lorient centre', notes: 'Penser au gilet lesté' }];
+        document.getElementById('openWeekPage').click();   // les dialogues vivent DANS la page
+        [['agendaEditDialog', () => openAgendaEdit(7001)],
+         ['capacityDialog', () => document.getElementById('openCapacity').click()]].forEach(([id, ouvrir]) => {
+          const d = document.getElementById(id);
+          if (!d) { out.dialoguesMobile.push(id + ' : introuvable'); return; }
+          try { ouvrir(); } catch (e) { out.dialoguesMobile.push(id + ' : ' + e.message); return; }
+          if (!d.open) { out.dialoguesMobile.push(id + ' : ne s’ouvre pas'); return; }
+          const r = d.getBoundingClientRect();
+          if (r.width > window.innerWidth + 1 || r.left < -1) out.dialoguesMobile.push(id + ' : sort de l’écran');
+          d.querySelectorAll('*').forEach(e => {
+            if (e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 4 && getComputedStyle(e).overflowX === 'visible') {
+              const n = (typeof e.className === 'string' && e.className) ? e.className.split(' ')[0] : e.tagName;
+              const msg = id + ' → ' + n + ' (+' + (e.scrollWidth - e.clientWidth) + 'px)';
+              if (out.dialoguesMobile.length < 6 && out.dialoguesMobile.indexOf(msg) === -1) out.dialoguesMobile.push(msg);
+            }
+          });
+          d.close();
+        });
         // 4. La grille semaine doit rester lisible (elle tombait à 41 px par colonne).
         showPage('dashboard');
         document.getElementById('openWeekPage').click();
@@ -3150,6 +3173,7 @@ app.whenReady().then(async () => {
     if (m.pageDeborde) errors.push('Passe mobile : la page déborde horizontalement à 390 px');
     if (m.enTeteTexte < 260) errors.push('Passe mobile : le texte de l’en-tête n’a que ' + m.enTeteTexte + ' px (il en faut au moins 260, il tombait à 110)');
     if (m.colonneSemaine < 60) errors.push('Passe mobile : colonnes de la semaine à ' + m.colonneSemaine + ' px (illisible sous 60)');
+    if (m.dialoguesMobile && m.dialoguesMobile.length) errors.push('Passe mobile : dialogues — ' + m.dialoguesMobile.join(', '));
     if (m.deborde.length) errors.push('Passe mobile : éléments qui débordent de leur boîte — ' + m.deborde.map(d => d.el + ' (' + d.page + ', +' + d.de + 'px)').join(', '));
     mob.destroy();
   } catch (e) {

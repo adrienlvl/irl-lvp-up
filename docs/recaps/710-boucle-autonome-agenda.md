@@ -96,6 +96,30 @@ conteneur défilant : leur première piste doit reproduire « gouttière + écar
 quelques pixels d'écart ne se voient pas à l'œil. C'est devenu un test d'invariant qui compare
 les deux déclarations dans chaque requête média — validé par mutation.
 
+
+## Itérations 6 et 7 — la revue, puis les dialogues
+
+**Itération 6.** La revue adversariale a trouvé **11 défauts, dont 6 que je venais de créer**. Le
+plus parlant : une bande orange VIDE s'affichait chaque jour sous le conseil du coach, parce que
+la règle auteur `.coach-agenda{display:flex}` bat la règle navigateur `[hidden]{display:none}` —
+et parce que mon check lisait `el.hidden === true`, la propriété, jamais le rendu. Un check nommé
+`whatsNewDismiss` existait déjà dans le même fichier pour ce motif exact, commentaire à l'appui.
+
+Trois de mes six erreurs venaient de gardes qui vérifient l'intention plutôt que le résultat.
+
+**Itération 7.** Sonde des dialogues en 390 px. Premier résultat : deux dialogues à 0 × 0 — mais
+c'était un artefact de la sonde, qui les ouvrait sans ouvrir la page qui les contient. Vérifié
+avant de « corriger » un non-défaut.
+
+Le vrai défaut est apparu ensuite : **le formulaire d'édition d'un bloc débordait de 106 px** de
+son dialogue. Même cause que `.wellness-bar` et `.food-row` — `1fr` ne descend pas sous le contenu
+minimum d'une cellule. Troisième occurrence du même piège en une soirée.
+
+Et la passe mobile ne regardait que les panneaux : elle **ne pouvait pas** voir un dialogue. Elle
+les ouvre maintenant. Première mutation ratée au passage — je n'avais retiré qu'une déclaration
+sur quatre, les trois autres portaient encore le correctif ; la mutation complète fait bien rougir
+le smoke avec le chiffre exact.
+
 ## Note de traçabilité
 
 Le réglage de capacité (itération 3) a été livré dans le commit `0d9afc2`, dont le message ne
