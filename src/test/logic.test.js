@@ -13531,3 +13531,46 @@ test('coachTraining : le coach parle enfin muscu, trail et course', () => {
   // Une date impossible ne fait pas exploser la fonction.
   assert.doesNotThrow(() => ct({ workouts: [{ date: '2026-13-99', exercises: [{ name: 'X', sets: 3 }] }] }, auj));
 });
+
+test('coachWeightLayout : ce qu’on consulte tous les jours reste ouvert', () => {
+  const plan = L.coachWeightLayout();
+  const cles = plan.map(s => s.key);
+  assert.deepEqual(cles, ['trajectoire', 'semaine', 'repas', 'suivi']);
+
+  // Par défaut tout est replié : le panneau faisait 4,2 écrans d'iPhone tout ouvert.
+  assert.ok(plan.every(s => s.ouvert === false), 'aucune section ouverte d’office');
+  // Le poids du jour, l'avancement et les calories NE SONT dans aucune section : on vient
+  // pour eux, ils ne doivent jamais demander un clic.
+  const dansUneSection = plan.flatMap(s => s.blocs);
+  L.COACH_WEIGHT_TOUJOURS.forEach(b => assert.ok(!dansUneSection.includes(b), `${b} doit rester visible`));
+  // Le plus gros bloc mesuré (832 px de menus types) est bien rangé.
+  assert.ok(dansUneSection.includes('cw-nutri'));
+  // Chaque section s'annonce : sans titre, replier revient à cacher.
+  plan.forEach(s => { assert.ok(s.titre && s.emoji, 'titre + emoji'); assert.ok(s.blocs.length >= 1); });
+
+  // Le choix d'Adrien gagne, dans les DEUX sens — rouvrir ET replier doivent tenir au rendu suivant.
+  const rouvert = L.coachWeightLayout({ repas: true });
+  assert.equal(rouvert.find(s => s.key === 'repas').ouvert, true);
+  assert.equal(rouvert.find(s => s.key === 'semaine').ouvert, false, 'les autres ne bougent pas');
+  assert.equal(L.coachWeightLayout({ repas: false }).find(s => s.key === 'repas').ouvert, false);
+
+  // Une mémoire abîmée ne doit pas faire tomber la page.
+  assert.doesNotThrow(() => L.coachWeightLayout(null));
+  assert.doesNotThrow(() => L.coachWeightLayout('nawak'));
+  // On rend une COPIE : un appelant qui trie la liste ne doit pas abîmer la suivante.
+  L.coachWeightLayout()[0].blocs.push('pirate');
+  assert.ok(!L.coachWeightLayout()[0].blocs.includes('pirate'), 'les blocs ne fuient pas');
+});
+
+test('coachProfileNeedsAttention : s’ouvre tant qu’il manque de quoi calculer', () => {
+  const f = L.coachProfileNeedsAttention;
+  // Sans âge ni sexe, le coach estime la dépense énergétique à l'aveugle : on le dit.
+  assert.equal(f({}), true);
+  assert.equal(f({ age: 30 }), true, 'le sexe manque encore');
+  assert.equal(f({ sex: 'homme' }), true, 'l’âge manque encore');
+  assert.equal(f({ age: 0, sex: 'homme' }), true, 'un âge nul n’est pas un âge');
+  // Complet : plus rien à réclamer, la section peut rester repliée.
+  assert.equal(f({ age: 30, sex: 'homme' }), false);
+  assert.doesNotThrow(() => f(null));
+  assert.equal(f(null), true);
+});

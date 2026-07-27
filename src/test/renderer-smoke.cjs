@@ -2917,6 +2917,44 @@ app.whenReady().then(async () => {
           return muet && parle && tient;
         } catch (e) { checks.__errCoachT = String(e && e.message); return false; }
       })();
+      checks.coachPoidsSections = (() => {
+        try {
+          if (typeof renderCoachWeight !== 'function') return false;
+          showPage('poids');
+          renderCoachWeight();
+          const panneau = document.querySelector('.coach-weight-panel');
+          if (!panneau) return false;
+          const secs = [...document.querySelectorAll('.cw-sec')];
+          // Les quatre sections du corps + le profil : sans elles, on retombe sur 3574 px.
+          if (secs.length < 5) return false;
+          // Le pouce doit atteindre le titre : 44 px est le minimum d'Apple, on vise 48.
+          const tactile = secs.every(d => d.querySelector('summary').getBoundingClientRect().height >= 44);
+          // Ce qu'on vient consulter n'est JAMAIS derrière un clic.
+          const libres = ['cw-head', 'cw-macros'].every(c => {
+            const e = panneau.querySelector('.' + c);
+            return e && !e.closest('.cw-sec');
+          });
+          // Le panneau doit vraiment avoir maigri — la mesure d'origine était 3574 px.
+          const h = panneau.getBoundingClientRect().height;
+          const court = h > 0 && h < 2000;
+          // Replier doit RÉELLEMENT retirer de la hauteur, sinon ce ne sont que des titres.
+          const repas = document.querySelector('.cw-sec[data-sec="repas"]');
+          let plie = false;
+          if (repas) {
+            const avant = panneau.getBoundingClientRect().height;
+            repas.open = true;
+            const ouvert = panneau.getBoundingClientRect().height;
+            repas.open = false;
+            plie = ouvert - avant > 200;
+          }
+          // Deux rendus d'affilée ne doivent pas empiler les sections en poupées russes.
+          renderCoachWeight();
+          const pasDeDoublon = document.querySelectorAll('.cw-sec[data-sec="repas"]').length === 1
+            && !document.querySelector('.cw-sec .cw-sec');
+          showPage('dashboard');
+          return tactile && libres && court && plie && pasDeDoublon;
+        } catch (e) { checks.__errCwSec = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2952,6 +2990,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.coachPoidsSections) errors.push('Coach Poids non rangé (.cw-sec : 5 sections repliables attendues, titres tapables ≥44 px, poids+calories hors section, panneau sous 2000 px, replier doit vraiment retirer de la hauteur, et deux rendus ne doivent pas imbriquer les sections)');
     if (!checks.coachEntrainement) errors.push('Coach muet sur l’entraînement (#coachTraining : silencieux sans séance, mais doit signaler chiffres à l’appui 4 semaines de poussée sans tirage, avec une action et sans déborder)');
     if (!checks.coachAgenda) errors.push('Coach aveugle à l’agenda (#coachAgenda : muet un jour calme, mais doit NOMMER un bloc repoussé 4 fois et pointer dessus)');
     if (!checks.capaciteReglable) errors.push('Capacité KO (#openCapacity dans le menu réglages, formulaire pré-rempli, et la MÊME journée doit saturer à 2 h de capacité mais pas à 8 h)');

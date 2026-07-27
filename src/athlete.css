@@ -156,3 +156,27 @@
 .cw-lw-row input{flex:1;min-width:0;background:var(--surface,var(--input-bg));color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:1rem}
 .cw-lw-row button{flex:none;white-space:nowrap}
 .cw-lw-last{color:var(--muted);font-size:.8rem}
+
+/* ── Sections repliables du Coach Poids ──────────────────────────────────────
+   Le panneau faisait 3574 px sur un iPhone : 4,2 écrans, tout ouvert en permanence,
+   dont 832 px de menus types et 259 px de profil qu'on remplit une fois dans sa vie.
+   Ce qu'on consulte tous les jours (poids, où j'en suis, calories) reste visible ;
+   le reste se replie derrière un titre qui dit ce qu'il contient.
+   <details> natif : pas de display posé à la main, donc pas de règle auteur qui
+   puisse battre [hidden] — le piège qui a peint une bande vide deux fois ici. */
+.cw-sec{margin:10px 0;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);overflow:hidden}
+.cw-sec-sum{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;list-style:none;user-select:none;min-height:48px}
+.cw-sec-sum::-webkit-details-marker{display:none}
+.cw-sec-sum:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.cw-sec-sum b{flex:1 1 auto;min-width:0;font-size:.92rem;font-weight:650;color:var(--text)}
+.cw-sec-emo{font-size:1.05rem;flex:0 0 auto}
+/* Le chevron pivote pour dire l'état : ouvert vers le bas, fermé vers la droite. */
+.cw-sec-chev{flex:0 0 auto;color:var(--muted);font-size:1.15rem;line-height:1;transition:transform .18s ease}
+.cw-sec[open] .cw-sec-chev{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.cw-sec-chev{transition:none}}
+.cw-sec-todo{flex:0 0 auto;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent);border-radius:999px;padding:3px 8px}
+/* Les blocs rangés perdent leur marge extérieure : c'est la section qui espace désormais. */
+.cw-sec>:not(summary){margin-left:12px;margin-right:12px}
+.cw-sec>:not(summary):last-child{margin-bottom:12px}
+.cw-sec-profil .cw-profile{margin:12px}
+:focus-visible.cw-sec-sum,.cw-sec-sum:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}

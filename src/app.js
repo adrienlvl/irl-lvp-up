@@ -453,7 +453,57 @@ function renderCoachWeight(){const el=$('#coachWeightBody');if(!el)return;
   let milestoneBlock='';if(milestones.length>1){const rows=milestones.map((m,i)=>{const last=i===milestones.length-1;const fr=m.date.split('-').reverse().slice(0,2).join('/');return `<li class="cw-ms-item${last?' cw-ms-final':''}"><span class="cw-ms-dot">${last?'🎯':'▸'}</span><b class="cw-ms-w">${num(m.weight)} kg</b><span class="cw-ms-d">${fr} <small>· S+${m.weeksFromNow}</small></span></li>`;}).join('');milestoneBlock=`<div class="cw-milestones"><div class="cw-ms-head">🪜 Tes paliers ${everyWk===1?'(chaque semaine)':`(toutes les ${everyWk} sem.)`}</div><ul class="cw-ms-list">${rows}</ul></div>`;}
   const cadence=(typeof trackingCadenceAdvice==='function')?trackingCadenceAdvice(plan.goal):null;const cadenceBlock=cadence?`<div class="cw-cadence"><div>⚖️ ${escapeHtml(cadence.weighIn)}</div><div>📏 ${escapeHtml(cadence.measure)}</div></div>`:'';
   const prog=(typeof weightGoalProgress==='function')?weightGoalProgress(state.weights,target,state.profile.weight):null;const progBlock=prog?`<div class="cw-progress"><div class="cw-prog-top"><span>🚶 ${num(prog.current)} kg</span><b class="cw-prog-pct">${prog.pct}%</b><span>🎯 ${num(prog.target)} kg</span></div><div class="cw-prog-bar"><i style="width:${prog.pct}%"></i></div><small>${prog.doneKg>0?`${num(prog.doneKg)} kg parcouru${prog.doneKg>1?'s':''} sur ${num(prog.totalKg)} · reste ${num(prog.remainingKg)} kg`:`en route vers ta cible · ${num(prog.totalKg)} kg à ${prog.direction==='perte'?'perdre':'prendre'}`}</small></div>`:'';
-  el.innerHTML=`<div class="cw-head"><b>${plan.goal==='perte'?'📉':plan.goal==='prise'?'📈':'⚖️'} ${gLabel}</b><span>${eta}</span></div>${progBlock}${bmi?`<div class="cw-bmi">⚖️ IMC <b>${num(bmi.bmi)}</b> · ${bmi.category} <small>— repère indicatif, ne distingue pas muscle et gras</small></div>`:''}<div class="cw-macros"><div><b>${plan.dailyTarget}</b><small>kcal / jour</small></div><div><b>${plan.proteinG} g</b><small>protéines</small></div><div><b>${plan.carbG} g</b><small>glucides</small></div><div><b>${plan.fatG} g</b><small>lipides</small></div></div>${(()=>{if(dbDue)return `<div class="cw-dietbreak">⏸️ ${dietBreak.advice}</div>`;return adjShown?`<div class="cw-adjust">⚖️ ${adj.message} <b>Nouvelle cible : ${adj.newTarget} kcal/j.</b></div>`:'';})()}${(()=>{const waist=measurementDelta(state.measurements,'waist');if(!waist||waist.count<2)return '';const ws=state.weights.filter(w=>Number.isFinite(Number(w.value)));const wD=ws.length>=2?Math.round((Number(ws.at(-1).value)-Number(ws[0].value))*10)/10:0;const ins=recompositionInsight(wD,waist.delta,plan.goal);return `<div class="cw-measure">📏 <b>Tour de taille : ${num(waist.latest)} cm</b> <small>(${waist.delta>0?'+':''}${num(waist.delta)} cm depuis le début)</small>${ins?`<div class="cw-measure-ins">${ins.message}</div>`:''}</div>`;})()}${chartBlock}${milestoneBlock}${cadenceBlock}${trainBlock}${nutriBlock}${coachBlock}${adhHistBlock}<button id="coachPlanCopy" class="secondary-button cw-copy" type="button">📋 Copier mon plan</button><small class="cw-note">Métabolisme de base ${plan.bmr} kcal · dépense estimée ${plan.tdee} kcal/j. Repères généraux (Mifflin-St Jeor), pas un avis médical ni diététique — ajuste selon tes sensations et consulte un pro au besoin.</small>`;const cws=$('#coachWeekSchedule');if(cws)cws.onclick=()=>{const n=scheduleCoachWeek(wk.sessions,4);cws.textContent=n?`✓ ${n} programmées`:'Déjà programmé';setTimeout(()=>{cws.textContent='📅 Programmer (4 sem.)';},2000);};const cmm=$('#coachMenuMore');if(cmm)cmm.onclick=()=>{coachMenuSeed++;renderCoachWeight();};lastCoachPlan={plan,week:wk.sessions,meals:meals.map(m=>({meal:m.meal,kcal:m.kcal,example:mealIdea(m.meal,m.kcal,coachMenuSeed).example}))};const cpc=$('#coachPlanCopy');if(cpc)cpc.onclick=()=>{navigator.clipboard?.writeText(coachPlanText(lastCoachPlan));cpc.textContent='Copié ✓';setTimeout(()=>{cpc.textContent='📋 Copier mon plan';},1500);};}
+  el.innerHTML=`<div class="cw-head"><b>${plan.goal==='perte'?'📉':plan.goal==='prise'?'📈':'⚖️'} ${gLabel}</b><span>${eta}</span></div>${progBlock}${bmi?`<div class="cw-bmi">⚖️ IMC <b>${num(bmi.bmi)}</b> · ${bmi.category} <small>— repère indicatif, ne distingue pas muscle et gras</small></div>`:''}<div class="cw-macros"><div><b>${plan.dailyTarget}</b><small>kcal / jour</small></div><div><b>${plan.proteinG} g</b><small>protéines</small></div><div><b>${plan.carbG} g</b><small>glucides</small></div><div><b>${plan.fatG} g</b><small>lipides</small></div></div>${(()=>{if(dbDue)return `<div class="cw-dietbreak">⏸️ ${dietBreak.advice}</div>`;return adjShown?`<div class="cw-adjust">⚖️ ${adj.message} <b>Nouvelle cible : ${adj.newTarget} kcal/j.</b></div>`:'';})()}${(()=>{const waist=measurementDelta(state.measurements,'waist');if(!waist||waist.count<2)return '';const ws=state.weights.filter(w=>Number.isFinite(Number(w.value)));const wD=ws.length>=2?Math.round((Number(ws.at(-1).value)-Number(ws[0].value))*10)/10:0;const ins=recompositionInsight(wD,waist.delta,plan.goal);return `<div class="cw-measure">📏 <b>Tour de taille : ${num(waist.latest)} cm</b> <small>(${waist.delta>0?'+':''}${num(waist.delta)} cm depuis le début)</small>${ins?`<div class="cw-measure-ins">${ins.message}</div>`:''}</div>`;})()}${chartBlock}${milestoneBlock}${cadenceBlock}${trainBlock}${nutriBlock}${coachBlock}${adhHistBlock}<button id="coachPlanCopy" class="secondary-button cw-copy" type="button">📋 Copier mon plan</button><small class="cw-note">Métabolisme de base ${plan.bmr} kcal · dépense estimée ${plan.tdee} kcal/j. Repères généraux (Mifflin-St Jeor), pas un avis médical ni diététique — ajuste selon tes sensations et consulte un pro au besoin.</small>`;const cws=$('#coachWeekSchedule');if(cws)cws.onclick=()=>{const n=scheduleCoachWeek(wk.sessions,4);cws.textContent=n?`✓ ${n} programmées`:'Déjà programmé';setTimeout(()=>{cws.textContent='📅 Programmer (4 sem.)';},2000);};const cmm=$('#coachMenuMore');if(cmm)cmm.onclick=()=>{coachMenuSeed++;renderCoachWeight();};lastCoachPlan={plan,week:wk.sessions,meals:meals.map(m=>({meal:m.meal,kcal:m.kcal,example:mealIdea(m.meal,m.kcal,coachMenuSeed).example}))};const cpc=$('#coachPlanCopy');if(cpc)cpc.onclick=()=>{navigator.clipboard?.writeText(coachPlanText(lastCoachPlan));cpc.textContent='Copié ✓';setTimeout(()=>{cpc.textContent='📋 Copier mon plan';},1500);};
+  /* Le rangement en sections vient APRÈS que tout le corps est peint : il déplace des
+     nœuds existants, il lui faut donc un corps complet. */
+  grouperCoachPoids();rangerProfilCoach();}
+/* Range le corps du Coach Poids en sections repliables APRÈS le rendu, plutôt que de découper
+   le gabarit d'un seul tenant qui le produit : le rendu reste une seule chaîne, lisible, et le
+   rangement est une passe indépendante qu'on peut tester seule.
+   <details> natif exprès : pliage au clavier, lisible par un lecteur d'écran, et aucun risque
+   de règle auteur qui écrase [hidden] — le piège qui a peint une bande vide deux fois ici. */
+const CW_MEMO='irl-coach-poids-sections';
+function coachPoidsOuvertes(){try{return JSON.parse(localStorage.getItem(CW_MEMO)||'{}')||{};}catch(_){return{};}}
+function grouperCoachPoids(){
+  const el=$('#coachWeightBody');if(!el||typeof coachWeightLayout!=='function')return;
+  /* Filet, pas garde active : renderCoachWeight réécrit innerHTML, donc les sections du corps
+     sont détruites à chaque rendu et cette ligne ne se déclenche jamais aujourd'hui. Elle tient si
+     un jour le rendu devient incrémental. Le vrai risque d'empilement est sur .cw-profile, qui vit
+     HORS de #coachWeightBody et survit au rendu — cette garde-là porte, et une mutation le prouve. */
+  if(el.querySelector(':scope > .cw-sec'))return;
+  const memo=coachPoidsOuvertes(),plan=coachWeightLayout(memo);
+  plan.forEach(sec=>{
+    // On ne crée la section que si au moins un de ses blocs existe : selon l'objectif, certains
+    // blocs ne sont pas produits (pas de paliers sans cible), et un titre seul serait une promesse vide.
+    const blocs=sec.blocs.map(c=>el.querySelector(':scope > .'+c)).filter(Boolean);
+    if(!blocs.length)return;
+    const d=document.createElement('details');
+    d.className='cw-sec';d.dataset.sec=sec.key;d.open=sec.ouvert;
+    const s=document.createElement('summary');
+    s.className='cw-sec-sum';
+    s.innerHTML=`<span class="cw-sec-emo" aria-hidden="true">${sec.emoji}</span><b>${escapeHtml(sec.titre)}</b><span class="cw-sec-chev" aria-hidden="true">›</span>`;
+    d.appendChild(s);
+    el.insertBefore(d,blocs[0]);
+    blocs.forEach(b=>d.appendChild(b));
+    d.addEventListener('toggle',()=>{const m=coachPoidsOuvertes();m[sec.key]=d.open;try{localStorage.setItem(CW_MEMO,JSON.stringify(m));}catch(_){}});
+  });
+}
+/* Le profil (âge, sexe, activité) occupait 259 px en permanence pour trois champs qu'on
+   renseigne une fois. Il se replie une fois complet, et se rouvre de lui-même s'il manque
+   quelque chose — tant qu'il est vide, le coach estime la dépense énergétique à l'aveugle. */
+function rangerProfilCoach(){
+  const p=document.querySelector('.cw-profile');if(!p||p.closest('.cw-sec-profil'))return;
+  if(typeof coachProfileNeedsAttention!=='function')return;
+  const manque=coachProfileNeedsAttention(state.profile);
+  const memo=coachPoidsOuvertes();
+  const d=document.createElement('details');
+  d.className='cw-sec cw-sec-profil';d.dataset.sec='profil';
+  d.open=Object.prototype.hasOwnProperty.call(memo,'profil')?!!memo.profil:manque;
+  const s=document.createElement('summary');s.className='cw-sec-sum';
+  s.innerHTML=`<span class="cw-sec-emo" aria-hidden="true">👤</span><b>Mon profil</b>${manque?'<span class="cw-sec-todo">à compléter</span>':''}<span class="cw-sec-chev" aria-hidden="true">›</span>`;
+  p.parentNode.insertBefore(d,p);d.appendChild(s);d.appendChild(p);
+  d.addEventListener('toggle',()=>{const m=coachPoidsOuvertes();m.profil=d.open;try{localStorage.setItem(CW_MEMO,JSON.stringify(m));}catch(_){}});
+}
 function scheduleCoachWeek(sessions,weeks){weeks=weeks||4;if(!Array.isArray(sessions)||!sessions.length)return 0;const today=new Date();today.setHours(12,0,0,0);const monday=new Date(today),dow=(monday.getDay()+6)%7;monday.setDate(monday.getDate()-dow+7);let added=0;for(let w=0;w<weeks;w++){sessions.forEach(s=>{const day=new Date(monday);day.setDate(day.getDate()+w*7+((s.weekday+6)%7));const dk=dateKey(day),refId=`coachweek-${s.type}-${s.weekday}-${dk}`;if(state.agenda.some(a=>a.refId===refId))return;state.agenda.push(normalizeAgendaItem({id:Date.now()+added,title:`${coachSessionLabel(s.type)} · ${s.minutes} min`,date:dk,time:'18:00',kind:'sport',source:'coachweek',refId}));added++;});}if(added){save();if(typeof refreshAgendaViews==='function')refreshAgendaViews();renderMyDay&&renderMyDay();renderCommandCenter&&renderCommandCenter();renderMonthCalendar&&renderMonthCalendar();}return added;}
 function renderWeight() {
   const weights = [...state.weights].sort((a,b) => a.date.localeCompare(b.date)), last = weights.at(-1), first = weights[0], target = Number(state.goals.targetWeight);
