@@ -67,6 +67,13 @@ Deux autres corrections de la revue :
 survivaient toujours. Il utilise maintenant 3 récurrents pour 1 bloc — la configuration réelle d'un
 jour de cours — et exige qu'un `[data-edit-agenda]` survive à la coupe. Validé par mutation.
 
+## Note de traçabilité
+
+Le réglage de capacité (itération 3) a été livré dans le commit `0d9afc2`, dont le message ne
+décrit que les correctifs de la revue — les deux travaux se sont retrouvés dans le même `git add`.
+Le code est bien là ; c'est le message qui est incomplet. Noté ici plutôt que réécrit : master a
+deux écrivains, et une réécriture d'historique coûterait plus cher que cette ligne.
+
 ## État
 
 **606 tests + SMOKE OK.** Quatre commits sur master depuis v2.5.1, aucune release.
