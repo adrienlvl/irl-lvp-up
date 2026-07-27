@@ -283,3 +283,25 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 /* Les rails de progression étaient les derniers fonds écrits en dur : invisibles
    au passage en thème clair sans le rattrapage manuel de theme.css. */
 .xp-track{background:var(--fill-1);box-shadow:inset 0 0 0 1px var(--line)}
+
+/* ===== Grille semaine sur écran étroit ====================================
+   Mesuré sur 390 px : 7 colonnes donnaient 41 px chacune, soit trois lettres
+   avant les points de suspension. Techniquement rien ne débordait — mais on ne
+   lisait plus que des rayures colorées. On préfère une semaine qui se fait
+   glisser du doigt, avec des colonnes réellement lisibles.
+   L'en-tête et le corps défilent ENSEMBLE (scroll horizontal porté par
+   #weekGrid), sinon les jours se décalent de leurs colonnes au premier geste. */
+@media(max-width:560px){
+  #weekGrid{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding-bottom:var(--sp-1)}
+  #weekGrid::-webkit-scrollbar{height:8px}
+  #weekGrid::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:var(--r-pill)}
+  /* 44 px de gouttière + 7 × 80 px : de quoi afficher « 14:00 » et deux mots. */
+  .wt-heads,.wt-alldays,.wt-scroll{min-width:604px}
+  /* On GARDE la compensation de barre de défilement : .wt-scroll conserve son défilement
+     vertical, donc son contenu reste plus étroit que les en-têtes de la même largeur. */
+  /* La géométrie des en-têtes est déjà réglée par la requête 760 px (36 px = gouttière de
+     32 px + son écart de 4 px). La surcharger ici décalait les jours de 12 px. */
+  .wt-scroll{max-height:min(56vh,460px)}
+  .wt-event{font-size:var(--fs-2xs)}
+  .wt-event b{font-size:var(--fs-3xs)}
+}

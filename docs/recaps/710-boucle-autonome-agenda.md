@@ -67,6 +67,35 @@ Deux autres corrections de la revue :
 survivaient toujours. Il utilise maintenant 3 récurrents pour 1 bloc — la configuration réelle d'un
 jour de cours — et exige qu'un `[data-edit-agenda]` survive à la coupe. Validé par mutation.
 
+
+## Itérations 4 et 5 — le Coach voit l'agenda, et l'app tient sur un iPhone
+
+**Itération 4** (demandée par Adrien) : le Coach jugeait les piliers sans jamais ouvrir l'agenda.
+Il signale maintenant une journée saturée — la veille au soir plutôt qu'à 19 h — et un bloc
+repoussé 3 fois ou plus. Quand les deux se présentent, la décision passe avant la surcharge :
+elle ne se résoudra jamais seule. Un check existant (`altStatusRefresh`) a rattrapé au passage un
+défaut que je venais d'introduire : la carte du coach restait affichée avec son état périmé
+quand le focus disparaissait.
+
+**Rendu iPhone**, mesuré par sonde à 390 × 844 :
+
+| | Avant | Après |
+|---|---|---|
+| Colonne de texte de l'en-tête | 110 px | **348 px** |
+| Titre | 3 lignes | **1 ligne** |
+| Hauteur d'en-tête | 262 px | **191 px** |
+| Colonne de la grille semaine | 41 px | **79 px** |
+
+**Itération 5** : la vue semaine tenait ses 7 colonnes dans 390 px — 41 px chacune, soit trois
+lettres avant les points de suspension. Rien ne débordait techniquement, mais on ne lisait plus
+que des rayures colorées. Elle se fait maintenant glisser du doigt, avec des colonnes lisibles.
+
+L'alignement en-tête/colonne a cassé **trois fois de suite** pendant cette itération (44 px,
+puis 48 px, puis un override qui écrasait un réglage déjà correct). Les en-têtes vivent hors du
+conteneur défilant : leur première piste doit reproduire « gouttière + écart » du corps, et
+quelques pixels d'écart ne se voient pas à l'œil. C'est devenu un test d'invariant qui compare
+les deux déclarations dans chaque requête média — validé par mutation.
+
 ## Note de traçabilité
 
 Le réglage de capacité (itération 3) a été livré dans le commit `0d9afc2`, dont le message ne

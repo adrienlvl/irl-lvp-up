@@ -707,6 +707,10 @@ function renderWeekPage(){const qd=$('#weekQuickDate');if(qd&&!qd.value)qd.value
   const premier=tous.length?Math.min(...tous.map(t=>t.start)):8*60;
   const scroller=grille.querySelector('.wt-scroll');
   if(scroller){
+    /* Les en-têtes vivent HORS du conteneur défilant : ils ne perdent pas la largeur que la
+       barre de défilement verticale prend au corps. On mesure cette largeur au lieu de la
+       deviner — elle change avec l'OS et le réglage système. */
+    grille.style.setProperty('--wt-sb',Math.max(0,scroller.offsetWidth-scroller.clientWidth)+'px');
     // `premier` est en minutes : on impose la cible en pixels, sinon placerGrilleHoraire
     // retombe sur le premier bloc rencontré dans le DOM — donc celui du lundi.
     scroller.dataset.scrollto=String(Math.max(0,Math.round((premier-gStart)*pxm-20)));
