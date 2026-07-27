@@ -2323,6 +2323,13 @@ chaque document**). Attention : **deux recommandations étaient des « non »**.
 > mono-écran, fond de fenêtre déduit du mauvais thème) — détail dans `recaps/703-demarrage-et-distribution.md`.
 > Trou de couverture bouché au passage : **aucun test ne vérifiait que les `url()` du CSS existent**.
 
+> **Fait le 2026-07-27 (2.1.0)** : la couche de tokens CSS, la hiérarchie typographique, les 47
+> exercices reliés entre eux, les tenues isométriques et les feuilles de route de skill — soit les
+> cinq chantiers qui restaient en tête de liste. Détail dans `recaps/704-jalon-2-1-design-contenu-athlete.md`.
+> Le relevé du terrain a montré que le thème clair était **à moitié cassé** (accent en dur 74 fois,
+> deux variables consommées sans définition), et la revue adversariale a rattrapé 6 défauts de plus,
+> dont 2 régressions du lot lui-même.
+
 **Vrais chantiers — à traiter comme des vagues, pas comme des boucles :**
 
 - [ ] **A0.11 — Système de design (le plus structurant).** 17 feuilles CSS, **aucune couche de tokens** : les
