@@ -103,3 +103,67 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
   .athlete-subnav button{flex:1 1 44%;min-width:0;font-size:var(--fs-2xs);padding:var(--sp-3) var(--sp-3)}
   .ph-pills button{flex:1 1 auto}
 }
+
+/* ===== Vue semaine à l'échelle du temps (2.4.0) ==============================
+   Avant : sept listes de pastilles. On voyait CE QU'il y avait, jamais QUAND —
+   ni les trous, ni les chevauchements. La grille reprend la géométrie de la vue
+   jour, avec une gouttière d'heures partagée par les sept colonnes. */
+#weekGrid{display:block}
+.wt-heads,.wt-alldays{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));gap:var(--sp-1);align-items:end}
+.wt-alldays{margin-top:var(--sp-1);align-items:start}
+.wt-gutter-head{font-size:var(--fs-3xs);color:var(--muted);text-align:right;padding-right:var(--sp-2);align-self:center}
+.wt-head{display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:transparent;color:var(--muted);font:inherit;cursor:pointer;padding:var(--sp-2) 0;border-radius:var(--r-sm)}
+.wt-head:hover{background:var(--fill-1);color:var(--text)}
+.wt-head b{font-size:var(--fs-3xs);font-weight:var(--fw-bold);text-transform:uppercase;letter-spacing:.06em}
+.wt-head span{font-size:var(--fs-lg);font-weight:var(--fw-black);color:var(--text);line-height:var(--lh-tight)}
+.wt-head small{font-size:var(--fs-3xs);color:var(--muted);min-height:1em}
+.wt-head.wt-today{background:var(--accent-soft)}
+.wt-head.wt-today b,.wt-head.wt-today span{color:var(--accent)}
+.wt-allday-col{display:flex;flex-direction:column;gap:2px;min-width:0}
+.wt-chip{font-size:var(--fs-3xs);padding:2px var(--sp-2);border-radius:var(--r-xs);background:var(--cat-focus);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wt-chip.sport{background:var(--cat-sport)}
+.wt-chip.life{background:var(--cat-life)}
+.wt-chip.study{background:var(--cat-study)}
+.wt-chip.done{opacity:.5;text-decoration:line-through}
+.wt-body{--wt-hour-h:51px;display:grid;grid-template-columns:44px 1fr;gap:var(--sp-1);margin-top:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);overflow:hidden;position:relative}
+.wt-gutter{position:relative}
+.wt-hour{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.wt-hour span{position:absolute;right:var(--sp-2);top:2px;font-size:var(--fs-3xs);color:var(--muted);font-variant-numeric:tabular-nums}
+.wt-cols{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px}
+/* Les lignes d'heure traversent toute la grille : sans elles, les sept colonnes
+   flottent sans repère commun et on ne compare plus rien. */
+.wt-cols::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--wt-hour-h) - 1px),var(--line) calc(var(--wt-hour-h) - 1px),var(--line) var(--wt-hour-h))}
+.wt-col{position:relative;border-left:1px solid var(--line)}
+.wt-col:first-child{border-left:0}
+.wt-col-today{background:var(--accent-soft)}
+.wt-event{position:absolute;border-radius:var(--r-xs);padding:1px var(--sp-2);overflow:hidden;font-size:var(--fs-3xs);line-height:1.25;color:var(--text);background:var(--cat-focus);border-left:3px solid var(--cat-focus-line);cursor:pointer}
+.wt-event.sport{background:var(--cat-sport);border-left-color:var(--cat-sport-line)}
+.wt-event.life{background:var(--cat-life);border-left-color:var(--cat-life-line)}
+.wt-event.study{background:var(--cat-study);border-left-color:var(--cat-study-line)}
+.wt-event b{display:block;font-variant-numeric:tabular-nums;font-size:var(--fs-3xs);opacity:.8}
+.wt-event span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--fw-med)}
+.wt-event.done{opacity:.5;text-decoration:line-through}
+.wt-event.wt-high{box-shadow:inset 0 0 0 1.5px var(--danger)}
+.wt-event.wt-conflict{box-shadow:inset 0 0 0 1.5px var(--warn)}
+.wt-now{position:absolute;left:0;right:0;height:2px;background:var(--danger);pointer-events:none;z-index:3}
+.wt-vide{margin:var(--sp-5) 0 0;color:var(--muted);font-size:var(--fs-xs);text-align:center}
+@media(max-width:760px){
+  .wt-heads,.wt-alldays{grid-template-columns:32px repeat(7,minmax(0,1fr))}
+  .wt-body{grid-template-columns:32px 1fr}
+  .wt-head span{font-size:var(--fs-md)}
+  .wt-event span{font-size:var(--fs-3xs)}
+}
+
+/* ===== Vue mois : densité et débordement (2.4.0) ============================
+   Une case empilait TOUT sans limite : une journée chargée écrasait la hauteur
+   des six lignes et rendait le mois illisible. On montre trois entrées, on
+   annonce le reste — le clic ouvre déjà la journée complète. */
+.month-day{display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.month-day.month-full .month-event:nth-of-type(n+4){display:none}
+.month-more{margin-top:auto;font-size:var(--fs-3xs);color:var(--muted);font-weight:var(--fw-bold);padding-left:var(--sp-1)}
+.month-day.today .month-more{color:var(--accent)}
+/* Le week-end se distingue sans crier : c'est un repère de lecture, pas une alerte. */
+.month-calendar .month-day:nth-child(7n-1),.month-calendar .month-day:nth-child(7n){background:var(--fill-1)}
+.month-calendar .month-day.today{background:var(--accent-veil)}
+.month-day>b{font-size:var(--fs-2xs);color:var(--muted);font-weight:var(--fw-bold)}
+.month-day.today>b{color:var(--accent);font-weight:var(--fw-black)}

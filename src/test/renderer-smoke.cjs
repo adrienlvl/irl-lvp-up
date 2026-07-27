@@ -992,7 +992,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.3.0'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.4.0'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2631,6 +2631,41 @@ app.whenReady().then(async () => {
         if (sombre.some(v => !v) || clair.some(v => !v)) return false;
         return sombre.every((v, i) => v !== clair[i]) && !!lire('--cat-sport-line');
       } catch(e){ checks.__errCat = String(e && e.message); return false; } })();
+      // Vue semaine à l'échelle du temps (BLOQUANT). Avant : sept listes de pastilles — on
+      // voyait CE QU'il y avait, jamais QUAND, ni les trous, ni les chevauchements.
+      checks.weekTimeGrid = (() => {
+        try {
+          if (typeof renderWeekPage !== 'function') return false;
+          const lundi = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; })();
+          const k = n => { const d = new Date(lundi); d.setDate(d.getDate() + n); return dateKey(d); };  // localDate() ignore son argument
+          const save = state.agenda;
+          state.agenda = [
+            { id: 9001, date: k(0), time: '09:00', durationMin: 120, title: 'Cours', kind: 'study' },
+            { id: 9002, date: k(1), time: '10:00', durationMin: 90, title: 'A', kind: 'study', priority: 'high' },
+            { id: 9003, date: k(1), time: '10:30', durationMin: 60, title: 'B', kind: 'focus' },
+            { id: 9004, date: k(3), allDay: true, title: 'Toute la journée', kind: 'life' }
+          ];
+          renderWeekPage();
+          const g = document.getElementById('weekGrid');
+          const corps = g.querySelector('.wt-body');
+          const evts = g.querySelectorAll('.wt-event');
+          const chips = g.querySelectorAll('.wt-chip');
+          // Deux blocs qui se chevauchent doivent SE PARTAGER la largeur, pas se superposer :
+          // c'est tout l'intérêt d'une grille par rapport à une liste.
+          const colJ2 = [...g.querySelectorAll('.wt-col')][1];
+          const paire = colJ2 ? [...colJ2.querySelectorAll('.wt-event')] : [];
+          const cote = paire.length === 2 && paire[0].style.left !== paire[1].style.left;
+          const ok = !!corps && g.querySelectorAll('.wt-head').length === 7
+            && g.querySelectorAll('.wt-col').length === 7
+            && evts.length === 3 && chips.length === 1 && cote
+            && g.querySelectorAll('.wt-conflict').length === 2
+            && g.querySelectorAll('.wt-high').length === 1
+            && g.querySelectorAll('.week-chip').length === 0
+            && parseFloat(corps.style.height) > 0;
+          state.agenda = save; renderWeekPage();
+          return ok;
+        } catch (e) { checks.__errWeek = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2666,6 +2701,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.weekTimeGrid) errors.push('Grille semaine KO (7 en-têtes, 7 colonnes, blocs positionnés à l’heure, chevauchements côte à côte, plus aucune .week-chip de l’ancien rendu)');
     if (!checks.agendaDuration) errors.push('Durée de bloc KO (#weekQuickDuration / #calendarAgendaDuration / #recDuration doivent EXISTER dans le HTML, et parseDurationInput comprendre 1h30)');
     if (!checks.agendaConflit) errors.push('Détection de conflit KO (busyBlocksForDay doit inclure les occurrences récurrentes, sinon poser un bloc pendant un cours importé ne déclenche rien)');
     if (!checks.agendaCharge) errors.push('Jauge de charge KO (#dayLoadBar : visible et « saturée » pour 5 h 30 planifiées, masquée pour un jour vide)');
