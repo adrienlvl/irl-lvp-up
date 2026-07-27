@@ -132,3 +132,41 @@ deux écrivains, et une réécriture d'historique coûterait plus cher que cette
 **606 tests + SMOKE OK.** Quatre commits sur master depuis v2.5.1, aucune release.
 
 Domaine : qualité
+
+## Itération 8 — modifier une occurrence récurrente seule
+
+Le chantier le plus demandé du backlog Agenda, et le seul qui touche au MODÈLE.
+
+Jusqu'ici un récurrent savait être sauté (`skipLog`) et validé (`doneLog`), jamais
+**modifié**. Un cours décalé d'une semaine obligeait à supprimer le récurrent et
+tout ressaisir.
+
+`overrides: { 'YYYY-MM-DD': { time?, durationMin?, title?, moveTo? } }` — une
+exception ne stocke QUE ce qui diffère. L'absence d'une clé veut dire « comme
+d'habitude », ce qui n'est pas la même chose que la valeur vide (`time:''` est un
+bloc sans horaire, volontairement).
+
+Points durs rencontrés :
+- **Le déplacement se lit dans les deux sens.** `recurringOccurs` doit rendre faux
+  à la date d'origine ET vrai à la date d'arrivée. La recherche « qui vient
+  d'ailleurs ? » exige que la source tienne encore debout (règle respectée, non
+  sautée), sinon une exception périmée fait apparaître un bloc fantôme.
+- **La validation vit sur la date d'ORIGINE.** Cocher le mardi un cours venu du
+  lundi doit écrire lundi. Sans ça la coche ne tenait pas et le bloc ressortait.
+- **Trois consommateurs lisaient encore la base** : `todayItems`, `busyBlocksForDay`
+  et le calendrier mensuel. Le deuxième est le plus vicieux — un cours déplacé
+  bloquait le mauvais créneau, et le bon restait faussement libre pour le coach.
+- **`openOverlay` laisse un `<dialog>` fermé.** Les champs se remplissaient sans
+  que rien ne s'affiche. Les `<dialog>` s'ouvrent avec `showModal()`.
+
+### La mutation qui a servi à quelque chose
+Sur trois mutations, la première a SURVÉCU : rendre les consommateurs aveugles à
+l'exception ne faisait pas rougir le smoke. Cause — mon assertion cherchait
+« 14:00 » dans tout `#dayView`, or **l'axe de la grille horaire affiche 14:00 en
+permanence**. Le check était creux. Resserré sur la ligne qui porte le titre du
+cours (et qui ne doit plus contenir 09:00), les trois mutations mordent.
+
+Leçon à ajouter à la liste : *une assertion de texte sur un conteneur qui contient
+déjà la chaîne cherchée ne prouve rien — viser l'élément, pas la vue.*
+
+615 tests · SMOKE OK · aucun débordement en 390 px.

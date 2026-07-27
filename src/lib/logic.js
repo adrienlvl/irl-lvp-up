@@ -611,6 +611,39 @@ function ageLabel(age) {
 //         startDate:'YYYY-MM-DD', until:'YYYY-MM-DD'?}. weekdays : 0=dim..6=sam.
 // Modèle stocké : {id, title, time, durationMin, kind, priority, rule}.
 const RECUR_FREQ = ['daily', 'weekly', 'monthly', 'yearly'];
+/* On pouvait sauter une occurrence (skipLog) et la valider (doneLog), jamais la MODIFIER.
+   Or un cours qui change d'heure une semaine ne justifie pas de casser la récurrence : sans
+   exception par date, il fallait supprimer le récurrent et tout ressaisir.
+   Une exception ne stocke QUE ce qui diffère — l'absence d'une clé veut dire « comme d'habitude »,
+   ce qui n'est pas la même chose que la valeur vide (time:'' = bloc sans horaire, volontairement). */
+function sanitizeRecurringOverrides(raw) {
+  const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const out = {};
+  Object.keys(src).forEach(d => {
+    if (!isRealDateKey(d)) return;
+    const o = src[d];
+    if (!o || typeof o !== 'object') return;
+    const ov = {};
+    if (Object.prototype.hasOwnProperty.call(o, 'time')) {
+      const t = String(o.time || '');
+      if (t === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(t)) ov.time = t;
+    }
+    if (Object.prototype.hasOwnProperty.call(o, 'durationMin')) {
+      const n = Number(o.durationMin);
+      if (Number.isFinite(n)) ov.durationMin = Math.max(5, Math.min(600, Math.round(n)));
+    }
+    if (Object.prototype.hasOwnProperty.call(o, 'title')) {
+      const t = String(o.title || '').trim().slice(0, 70);
+      if (t) ov.title = t;
+    }
+    // Déplacer vers SA PROPRE date n'est pas un déplacement : on ne le garde pas, sinon
+    // la recherche « qui vient d'ailleurs ? » se mordrait la queue.
+    if (isRealDateKey(o.moveTo) && o.moveTo !== d) ov.moveTo = o.moveTo;
+    if (Object.keys(ov).length) out[d] = ov;
+  });
+  return out;
+}
+
 function normalizeRecurring(item) {
   const x = item && typeof item === 'object' ? item : {};
   const r = x.rule && typeof x.rule === 'object' ? x.rule : {};
@@ -625,6 +658,7 @@ function normalizeRecurring(item) {
     paused: Boolean(x.paused),
     doneLog: Array.isArray(x.doneLog) ? x.doneLog.filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) : [],
     skipLog: Array.isArray(x.skipLog) ? x.skipLog.filter(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) : [],
+    overrides: sanitizeRecurringOverrides(x.overrides),
     rule: {
       freq: RECUR_FREQ.includes(r.freq) ? r.freq : 'weekly',
       interval: Math.max(1, Math.min(52, Math.round(Number(r.interval) || 1))),
@@ -640,8 +674,76 @@ function normalizeRecurring(item) {
 function recurringOccurs(rec, dateKey) {
   const r = normalizeRecurring(rec);
   if (r.paused) return false;
+  // Une occurrence DÉPLACÉE ici compte, même si la règle ne prévoit rien ce jour-là.
+  // On exige que sa date d'origine tienne encore debout (règle respectée, pas sautée) :
+  // sinon une exception périmée ferait apparaître un bloc fantôme.
+  if (sourceDeplaceeVers(r, dateKey)) return true;
   if (r.skipLog.includes(dateKey)) return false;
+  // Partie ailleurs cette semaine-là : plus rien à afficher à sa place d'origine.
+  const ov = r.overrides[dateKey];
+  if (ov && ov.moveTo) return false;
   return recurrenceMatches(r.rule, dateKey);
+}
+
+// Quelle date d'origine a été déplacée vers `dateKey` ? (chaîne, ou '' si aucune)
+function sourceDeplaceeVers(r, dateKey) {
+  if (!isRealDateKey(dateKey)) return '';
+  const dates = Object.keys(r.overrides);
+  for (let i = 0; i < dates.length; i++) {
+    const d = dates[i];
+    if (r.overrides[d].moveTo !== dateKey) continue;
+    if (r.skipLog.includes(d)) continue;
+    if (!recurrenceMatches(r.rule, d)) continue;
+    return d;
+  }
+  return '';
+}
+
+/* Les champs EFFECTIFS d'une occurrence : la base du récurrent, plus l'exception du jour.
+   Rend null quand il n'y a pas d'occurrence — l'appelant n'a pas à redemander à recurringOccurs. */
+function recurringOccurrence(rec, dateKey) {
+  const r = normalizeRecurring(rec);
+  if (!recurringOccurs(r, dateKey)) return null;
+  const venuDe = sourceDeplaceeVers(r, dateKey);
+  const source = venuDe || dateKey;
+  const ov = r.overrides[source] || {};
+  const a = k => Object.prototype.hasOwnProperty.call(ov, k);
+  return {
+    id: r.id,
+    date: dateKey,
+    sourceDate: source,
+    deplacee: !!venuDe,
+    modifiee: Object.keys(ov).length > 0,
+    title: a('title') ? ov.title : r.title,
+    time: a('time') ? ov.time : r.time,
+    durationMin: a('durationMin') ? ov.durationMin : r.durationMin,
+    kind: r.kind,
+    priority: r.priority
+  };
+}
+
+/* Pose (ou complète) l'exception d'un jour. `patch` ne porte QUE ce qui change ; passer
+   null efface l'exception et l'occurrence redevient normale. Pur, comme setRecurringDone. */
+function setRecurringOverride(recurring, recId, dateKey, patch) {
+  const list = Array.isArray(recurring) ? recurring : [];
+  if (!isRealDateKey(dateKey)) return { recurring: list, changed: false };
+  let changed = false;
+  const out = list.map(rec => {
+    if (!rec || rec.id !== recId) return rec;
+    const actuels = sanitizeRecurringOverrides(rec.overrides);
+    const avant = JSON.stringify(actuels[dateKey] || null);
+    const suivants = { ...actuels };
+    if (patch === null) delete suivants[dateKey];
+    else {
+      const fusion = sanitizeRecurringOverrides({ [dateKey]: { ...(actuels[dateKey] || {}), ...(patch || {}) } });
+      if (fusion[dateKey]) suivants[dateKey] = fusion[dateKey];
+      else delete suivants[dateKey];
+    }
+    if (JSON.stringify(suivants[dateKey] || null) === avant) return rec;
+    changed = true;
+    return { ...rec, overrides: suivants };
+  });
+  return { recurring: changed ? out : list, changed };
 }
 
 // Un jour donné (clé YYYY-MM-DD) correspond-il à la règle de récurrence ? Pur.
@@ -1374,7 +1476,12 @@ function todayItems(state, date) {
   birthdaysForDay(s.birthdays, date).forEach(b => { const al = ageLabel(b.age); items.push({ id: 'bday-' + b.id, time: '', title: `🎂 ${b.name}${al ? ` (${al})` : ''}`, kind: 'birthday', priority: 'normal', allDay: true, completed: false, planId: null, type: 'birthday' }); });
   // Événements récurrents : occurrence du jour, validable (doneLog par date)
   (Array.isArray(s.recurring) ? s.recurring : []).map(normalizeRecurring).forEach(r => {
-    if (recurringOccurs(r, date)) items.push({ id: 'rec-' + r.id, time: r.time || '', title: r.title, kind: r.kind, priority: r.priority, allDay: !r.time, completed: r.doneLog.includes(date), planId: null, type: 'recurring', recId: r.id, recurring: true });
+    /* On lit l'occurrence EFFECTIVE et non le récurrent : sans ça, un cours déplacé à 14 h
+       s'afficherait encore à 9 h. La validation reste indexée sur la date d'ORIGINE — cocher
+       un cours déplacé au mardi doit cocher le lundi dont il vient, sinon il ressort le mardi
+       suivant comme s'il n'avait pas été fait. */
+    const occ = recurringOccurrence(r, date);
+    if (occ) items.push({ id: 'rec-' + r.id, time: occ.time || '', title: occ.title, kind: occ.kind, priority: occ.priority, allDay: !occ.time, completed: r.doneLog.includes(occ.sourceDate), planId: null, type: 'recurring', recId: r.id, recurring: true, sourceDate: occ.sourceDate, deplacee: occ.deplacee, modifiee: occ.modifiee });
   });
   // Chronologique, puis priorité (haute avant basse) à heure égale.
   return items.sort((x, y) => String(x.time).localeCompare(String(y.time)) || priorityRank(x.priority) - priorityRank(y.priority));
@@ -5950,11 +6057,15 @@ function busyBlocksForDay(state, dateKey, opts) {
     // L'identifiant d'une occurrence est une CHAÎNE 'rec-<id>' : jamais comparable à l'id
     // numérique d'un bloc d'agenda, donc aucune exclusion croisée par accident.
     if (o.excludeRecId != null && r.id === o.excludeRecId) return;
-    if (!recurringOccurs(r, dateKey) || r.doneLog.includes(dateKey) || !aUneHeure(r.time)) return;
+    /* Occurrence effective, sinon la détection de conflit et le calcul de charge raisonnent
+       sur l'horaire d'origine : un cours déplacé bloquerait le mauvais créneau, et le bon
+       resterait faussement libre. */
+    const occ = recurringOccurrence(r, dateKey);
+    if (!occ || r.doneLog.includes(occ.sourceDate) || !aUneHeure(occ.time)) return;
     out.push({
-      id: 'rec-' + r.id, date: dateKey, time: r.time,
-      durationMin: Math.max(1, Math.round(Number(r.durationMin) || 60)), travelMin: 0,
-      title: r.title, kind: r.kind, priority: r.priority || 'normal',
+      id: 'rec-' + r.id, date: dateKey, time: occ.time,
+      durationMin: Math.max(1, Math.round(Number(occ.durationMin) || 60)), travelMin: 0,
+      title: occ.title, kind: occ.kind, priority: occ.priority || 'normal',
       allDay: false, completed: false, origin: 'recurring'
     });
   });
@@ -11897,5 +12008,5 @@ function orderCoachNotes(insight) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, capacityFromHours, capacityToHours, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, coachAgendaWarning, coachTraining, COACH_TRAINING_ORDER, coachWeightLayout, coachProfileNeedsAttention, COACH_WEIGHT_SECTIONS, COACH_WEIGHT_TOUJOURS, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, recurringOccurrence, setRecurringOverride, sanitizeRecurringOverrides, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, capacityFromHours, capacityToHours, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, coachAgendaWarning, coachTraining, COACH_TRAINING_ORDER, coachWeightLayout, coachProfileNeedsAttention, COACH_WEIGHT_SECTIONS, COACH_WEIGHT_TOUJOURS, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

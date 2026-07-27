@@ -2955,6 +2955,51 @@ app.whenReady().then(async () => {
           return tactile && libres && court && plie && pasDeDoublon;
         } catch (e) { checks.__errCwSec = String(e && e.message); return false; }
       })();
+      checks.exceptionRecurrente = (() => {
+        try {
+          if (typeof recurringOccurrence !== 'function' || typeof ouvrirExceptionRecurrente !== 'function') return false;
+          const sa = state.agenda, sr = state.recurring, auj = localDate();
+          // Jeu d'essai réaliste : un cours qui tombe AUJOURD'HUI, seule source de la journée.
+          state.agenda = [];
+          const jour = new Date(auj + 'T12:00:00').getDay();
+          state.recurring = [{ id: 9700, title: 'Cours de compta', time: '09:00', durationMin: 120,
+            kind: 'study', rule: { freq: 'weekly', interval: 1, weekdays: [jour], startDate: auj } }];
+          document.getElementById('openWeekPage').click();
+          document.querySelector('#agendaViewSwitch [data-view="day"]')?.click();
+          const bouton = document.querySelector('#dayView [data-day-recocc]');
+          if (!bouton) { checks.__errRecOcc = 'bouton « cette fois » absent'; state.agenda = sa; state.recurring = sr; return false; }
+          bouton.click();
+          const d = document.getElementById('recOccDialog');
+          // Le RENDU, pas la propriété : un dialogue ouvert doit être peint et mesurable.
+          const ouvert = !!d && d.open && getComputedStyle(d).display !== 'none'
+            && d.getBoundingClientRect().width > 100;
+          // Il doit être pré-rempli avec l'occurrence du jour, sinon enregistrer écraserait
+          // l'heure habituelle par du vide.
+          const prerempli = document.getElementById('recOccTime').value === '09:00'
+            && document.getElementById('recOccDate').value === auj;
+          // On décale à 14 h : le modèle ET l'affichage doivent suivre.
+          document.getElementById('recOccTime').value = '14:00';
+          document.getElementById('recOccForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          const occ = recurringOccurrence(state.recurring[0], auj);
+          const applique = !!occ && occ.time === '14:00' && occ.modifiee === true;
+          // La semaine suivante garde l'habitude : c'est tout l'objet de la fonctionnalité.
+          const dem = new Date(auj + 'T12:00:00'); dem.setDate(dem.getDate() + 7);
+          const suivante = recurringOccurrence(state.recurring[0], dem.toISOString().slice(0, 10));
+          const habitude = !!suivante && suivante.time === '09:00';
+          /* Et l'écran le montre vraiment. On vise LE BLOC, pas la vue entière : l'axe de la
+             grille horaire affiche « 14:00 » en permanence, donc chercher cette chaîne dans
+             #dayView restait vrai même quand le rendu lisait encore l'heure d'origine — une
+             mutation me l'a prouvé. On cherche donc la ligne qui porte le titre du cours. */
+          const ligne = [...document.querySelectorAll('#dayView .my-day-item, #dayView .dg-event')]
+            .find(e => (e.textContent || '').indexOf('Cours de compta') !== -1);
+          const vu = !!ligne && (ligne.textContent || '').indexOf('14:00') !== -1
+            && (ligne.textContent || '').indexOf('09:00') === -1;
+          document.getElementById('recOccDialog').close();
+          state.agenda = sa; state.recurring = sr;
+          renderAgenda();
+          return ouvert && prerempli && applique && habitude && vu;
+        } catch (e) { checks.__errRecOcc = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2990,6 +3035,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
     if (!checks.coachPoidsSections) errors.push('Coach Poids non rangé (.cw-sec : 5 sections repliables attendues, titres tapables ≥44 px, poids+calories hors section, panneau sous 2000 px, replier doit vraiment retirer de la hauteur, et deux rendus ne doivent pas imbriquer les sections)');
     if (!checks.coachEntrainement) errors.push('Coach muet sur l’entraînement (#coachTraining : silencieux sans séance, mais doit signaler chiffres à l’appui 4 semaines de poussée sans tirage, avec une action et sans déborder)');
     if (!checks.coachAgenda) errors.push('Coach aveugle à l’agenda (#coachAgenda : muet un jour calme, mais doit NOMMER un bloc repoussé 4 fois et pointer dessus)');

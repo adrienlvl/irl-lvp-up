@@ -13574,3 +13574,116 @@ test('coachProfileNeedsAttention : s’ouvre tant qu’il manque de quoi calcule
   assert.doesNotThrow(() => f(null));
   assert.equal(f(null), true);
 });
+
+test('occurrence récurrente : modifier une seule fois sans casser la série', () => {
+  const cours = { id: 7, title: 'Cours de compta', time: '09:00', durationMin: 120, kind: 'study',
+    rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } };
+  const LUN = '2026-07-27', LUN2 = '2026-08-03', MAR = '2026-07-28';
+
+  // Sans exception, rien ne change : l'occurrence est celle de la règle.
+  const brut = L.recurringOccurrence(cours, LUN);
+  assert.equal(brut.time, '09:00');
+  assert.equal(brut.modifiee, false);
+  assert.equal(brut.deplacee, false);
+  assert.equal(brut.sourceDate, LUN);
+  assert.equal(L.recurringOccurrence(cours, MAR), null, 'pas de cours le mardi');
+
+  // Décalé à 14 h cette semaine-là — et cette semaine-là SEULEMENT.
+  const r1 = L.setRecurringOverride([cours], 7, LUN, { time: '14:00', durationMin: 60 });
+  assert.equal(r1.changed, true);
+  const rec1 = r1.recurring[0];
+  assert.equal(L.recurringOccurrence(rec1, LUN).time, '14:00');
+  assert.equal(L.recurringOccurrence(rec1, LUN).durationMin, 60);
+  assert.equal(L.recurringOccurrence(rec1, LUN).modifiee, true);
+  assert.equal(L.recurringOccurrence(rec1, LUN2).time, '09:00', 'la semaine suivante garde l’habitude');
+  assert.equal(L.recurringOccurrence(rec1, LUN2).durationMin, 120);
+  // La source n'est pas modifiée : setRecurringOverride est pure.
+  assert.equal(L.recurringOccurrence(cours, LUN).time, '09:00', 'l’original est intact');
+
+  // Déplacé au mardi : il disparaît du lundi et apparaît le mardi, une seule fois.
+  const rec2 = L.setRecurringOverride([cours], 7, LUN, { moveTo: MAR, time: '10:00' }).recurring[0];
+  assert.equal(L.recurringOccurs(rec2, LUN), false, 'parti de son lundi');
+  const m = L.recurringOccurrence(rec2, MAR);
+  assert.equal(m.time, '10:00');
+  assert.equal(m.deplacee, true);
+  assert.equal(m.sourceDate, LUN, 'il se souvient d’où il vient');
+  assert.equal(L.recurringOccurs(rec2, LUN2), true, 'le lundi suivant n’a pas bougé');
+
+  // Une exception PÉRIMÉE ne doit pas faire apparaître de bloc fantôme : si la règle ne couvre
+  // plus la date d'origine, ce qui en venait n'existe plus non plus.
+  const change = { ...cours, rule: { ...cours.rule, weekdays: [2] }, overrides: { [LUN]: { moveTo: '2026-07-30' } } };
+  assert.equal(L.recurringOccurs(change, '2026-07-30'), false);
+  // Idem si la date d'origine a été sautée entre-temps.
+  const saute = { ...cours, skipLog: [LUN], overrides: { [LUN]: { moveTo: MAR } } };
+  assert.equal(L.recurringOccurs(saute, MAR), false);
+
+  // Effacer l'exception remet tout en place.
+  const rec3 = L.setRecurringOverride([rec2], 7, LUN, null).recurring[0];
+  assert.equal(L.recurringOccurs(rec3, LUN), true);
+  assert.equal(L.recurringOccurs(rec3, MAR), false);
+  assert.equal(L.recurringOccurrence(rec3, LUN).time, '09:00');
+
+  // Déplacer vers sa propre date n'est pas un déplacement : sinon la recherche « qui vient
+  // d'ailleurs ? » se mordrait la queue et le bloc se dédoublerait.
+  assert.equal(L.setRecurringOverride([cours], 7, LUN, { moveTo: LUN }).changed, false);
+  // Poser deux fois la même exception ne « change » rien : pas de sauvegarde inutile.
+  assert.equal(L.setRecurringOverride([rec1], 7, LUN, { time: '14:00', durationMin: 60 }).changed, false);
+  // Un patch se FUSIONNE avec l'exception déjà là, il ne l'écrase pas.
+  const fusion = L.setRecurringOverride([rec1], 7, LUN, { title: 'Compta — TD' }).recurring[0];
+  assert.equal(L.recurringOccurrence(fusion, LUN).title, 'Compta — TD');
+  assert.equal(L.recurringOccurrence(fusion, LUN).time, '14:00', 'l’heure posée avant tient toujours');
+
+  // Une date invalide ou un id inconnu ne touchent à rien.
+  assert.equal(L.setRecurringOverride([cours], 7, 'pas-une-date', { time: '10:00' }).changed, false);
+  assert.equal(L.setRecurringOverride([cours], 999, LUN, { time: '10:00' }).changed, false);
+  // Une pause l'emporte sur tout, y compris sur une occurrence déplacée ici.
+  assert.equal(L.recurringOccurs({ ...rec2, paused: true }, MAR), false);
+});
+
+test('les exceptions traversent l’agenda, les conflits et la validation', () => {
+  const cours = { id: 7, title: 'Cours de compta', time: '09:00', durationMin: 120, kind: 'study',
+    rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } };
+  const LUN = '2026-07-27', MAR = '2026-07-28';
+  const vide = { agenda: [], birthdays: [], plans: [], todos: [] };
+
+  // L'agenda du jour affiche l'heure du jour, pas celle de la règle.
+  const dec = L.setRecurringOverride([cours], 7, LUN, { time: '14:00', durationMin: 60 }).recurring;
+  const item = L.todayItems({ ...vide, recurring: dec }, LUN).find(i => i.type === 'recurring');
+  assert.equal(item.time, '14:00');
+  assert.equal(item.modifiee, true);
+
+  // Le calcul d'occupation doit bloquer le BON créneau : sinon 14 h paraît libre
+  // et le coach propose d'y caser autre chose, en plein sur le cours.
+  const busy = L.busyBlocksForDay({ agenda: [], recurring: dec }, LUN);
+  assert.equal(busy.length, 1);
+  assert.equal(busy[0].time, '14:00');
+  assert.equal(busy[0].durationMin, 60);
+
+  // Un cours déplacé et validé reste validé : la coche vit sur la date d'ORIGINE.
+  const bouge = L.setRecurringOverride([cours], 7, LUN, { moveTo: MAR }).recurring;
+  bouge[0].doneLog = [LUN];
+  const mardi = L.todayItems({ ...vide, recurring: bouge }, MAR).find(i => i.type === 'recurring');
+  assert.equal(mardi.completed, true, 'coché le lundi, donc coché quand il s’affiche le mardi');
+  assert.equal(mardi.sourceDate, LUN);
+  // Et il ne bloque plus le créneau du lundi, puisqu'il n'y est plus.
+  assert.equal(L.busyBlocksForDay({ agenda: [], recurring: bouge }, LUN).length, 0);
+});
+
+test('sanitizeRecurringOverrides : une sauvegarde abîmée ne casse pas l’agenda', () => {
+  const f = L.sanitizeRecurringOverrides;
+  assert.deepEqual(f(null), {});
+  assert.deepEqual(f('nawak'), {});
+  assert.deepEqual(f([1, 2]), {}, 'un tableau n’est pas une table d’exceptions');
+  assert.deepEqual(f({ 'pas-une-date': { time: '10:00' } }), {}, 'clé invalide écartée');
+  assert.deepEqual(f({ '2026-07-27': { time: '99:99' } }), {}, 'heure impossible écartée');
+  assert.deepEqual(f({ '2026-07-27': { moveTo: 'demain' } }), {}, 'destination invalide écartée');
+  // Une exception vide n'est pas gardée : elle ferait afficher « modifié » sans rien changer.
+  assert.deepEqual(f({ '2026-07-27': {} }), {});
+  // time:'' est une valeur LÉGITIME (bloc sans horaire), à distinguer de « non renseigné ».
+  assert.deepEqual(f({ '2026-07-27': { time: '' } }), { '2026-07-27': { time: '' } });
+  // Les durées sont bornées comme partout ailleurs.
+  assert.equal(f({ '2026-07-27': { durationMin: 9999 } })['2026-07-27'].durationMin, 600);
+  assert.equal(f({ '2026-07-27': { durationMin: 1 } })['2026-07-27'].durationMin, 5);
+  // normalizeRecurring assainit aussi : une sauvegarde d'avant cette version n'a pas le champ.
+  assert.deepEqual(L.normalizeRecurring({ id: 1, title: 'X' }).overrides, {});
+});
