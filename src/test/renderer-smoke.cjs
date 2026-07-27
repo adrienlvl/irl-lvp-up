@@ -992,7 +992,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.4.0'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.5.0'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2666,6 +2666,47 @@ app.whenReady().then(async () => {
           return ok;
         } catch (e) { checks.__errWeek = String(e && e.message); return false; }
       })();
+      // La grille doit couvrir la JOURNÉE, pas l'intervalle des événements (BLOQUANT).
+      // Avant : une journée dont le dernier bloc finit à 18 h donnait une page qui s'arrête à
+      // 18 h — comme si la soirée n'existait pas, et sans nulle part où poser un bloc à 21 h.
+      checks.agendaJournee = (() => {
+        try {
+          const save = state.agenda, auj = localDate();
+          state.agenda = [{ id: 9101, date: auj, time: '14:00', durationMin: 60, title: 'T', kind: 'study' }];
+          document.getElementById('openWeekPage').click();
+          // Un check précédent a pu laisser la vue sur « Semaine » : on force le mode jour,
+          // sinon #dayView est masqué et la mesure porte sur du vide.
+          document.querySelector('#agendaViewSwitch [data-view="day"]')?.click();
+          const heures = [...document.querySelectorAll('#dayView .dg-hour span')].map(e => e.textContent);
+          const sc = document.querySelector('#dayView .dg-scroll');
+          const grille = document.querySelector('#dayView .day-grid');
+          const ok = heures.length >= 18
+            && heures[0] === '06:00' && heures[heures.length - 1] === '24:00'
+            && !!sc && sc.clientHeight > 0
+            // La grille dépasse son cadre : c'est le défilement interne qui évite d'allonger
+            // la page de 800 px pour montrer des heures vides.
+            && parseFloat(grille.style.height) > sc.clientHeight
+            // …et elle s'ouvre sur le premier bloc réel, pas sur 6 h du matin.
+            && sc.scrollTop > 100;
+          state.agenda = save; renderAgenda();
+          return ok;
+        } catch (e) { checks.__errJournee = String(e && e.message); return false; }
+      })();
+      // Les commandes de l'agenda : un seul sélecteur à 3 vues, import et PDF rangés.
+      checks.agendaCommandes = (() => {
+        const sw = document.getElementById('agendaViewSwitch');
+        if (!sw || sw.querySelectorAll('button').length !== 3) return false;
+        const menu = document.querySelector('.agenda-settings');
+        if (!menu || menu.open) return false;                       // replié par défaut
+        const dedans = ['importIcsWeek', 'printWeekReport']
+          .every(id => { const el = document.getElementById(id); return el && el.closest('.as-menu'); });
+        // Le formulaire porte de vraies étiquettes, et son détail est replié.
+        const etiq = document.querySelectorAll('#weekQuickAdd .wqa-f>span').length;
+        const plus = document.querySelector('.wqa-more');
+        return dedans && etiq >= 5 && !!plus && !plus.open
+          && !!document.getElementById('openCalendarPage')
+          && !!document.getElementById('openCalendarPage').closest('#agendaViewSwitch');
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2701,6 +2742,8 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.agendaJournee) errors.push('Plage horaire KO (la grille doit couvrir 06:00→24:00, défiler dans son cadre, et s’ouvrir sur le premier bloc)');
+    if (!checks.agendaCommandes) errors.push('Commandes agenda KO (sélecteur à 3 vues dont Mois ; import et Bilan PDF dans le menu réglages replié ; formulaire étiqueté avec détails repliés)');
     if (!checks.weekTimeGrid) errors.push('Grille semaine KO (7 en-têtes, 7 colonnes, blocs positionnés à l’heure, chevauchements côte à côte, plus aucune .week-chip de l’ancien rendu)');
     if (!checks.agendaDuration) errors.push('Durée de bloc KO (#weekQuickDuration / #calendarAgendaDuration / #recDuration doivent EXISTER dans le HTML, et parseDurationInput comprendre 1h30)');
     if (!checks.agendaConflit) errors.push('Détection de conflit KO (busyBlocksForDay doit inclure les occurrences récurrentes, sinon poser un bloc pendant un cours importé ne déclenche rien)');

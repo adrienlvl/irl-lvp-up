@@ -167,3 +167,70 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 .month-calendar .month-day.today{background:var(--accent-veil)}
 .month-day>b{font-size:var(--fs-2xs);color:var(--muted);font-weight:var(--fw-bold)}
 .month-day.today>b{color:var(--accent);font-weight:var(--fw-black)}
+
+/* ===== Agenda : plage horaire, sélecteur de vue, formulaire, réglages (2.5.0) ==
+   Quatre retours d'Adrien, dans l'ordre où ils gênent. */
+
+/* 1. La grille couvre 6 h → minuit et défile à l'intérieur : la page ne s'allonge
+      pas de 900 px, mais la soirée existe enfin. */
+.wt-scroll{max-height:min(60vh,540px);overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2)}
+.wt-scroll .wt-body{border:0;border-radius:0;margin-top:0;background:transparent}
+.wt-scroll::-webkit-scrollbar{width:10px}
+.wt-scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:var(--r-pill)}
+
+/* 2. Un seul contrôle segmenté pour les trois vues, au lieu de deux boutons ici
+      et un troisième perdu dans la barre d'outils. */
+.agenda-view-switch{display:inline-flex;gap:0;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);margin:var(--sp-5) 0}
+.agenda-view-switch button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:var(--fs-sm);font-weight:var(--fw-bold);padding:var(--sp-2) var(--sp-6);border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+.agenda-view-switch button:hover{color:var(--text)}
+.agenda-view-switch button.active{background:var(--accent);color:var(--accent-ink)}
+
+/* 3. Réglages : actions rares, repliées. Les exposer en permanence leur donnait
+      le poids d'une navigation quotidienne. */
+.agenda-settings{position:relative;display:inline-block}
+.agenda-settings>summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:var(--fs-sm);font-weight:var(--fw-bold);padding:var(--sp-3) var(--sp-5);border-radius:var(--r-pill)}
+.agenda-settings>summary::-webkit-details-marker{display:none}
+.agenda-settings>summary:hover{color:var(--text);border-color:var(--accent-line)}
+.agenda-settings[open]>summary{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-ring)}
+.as-menu{position:absolute;z-index:20;top:calc(100% + var(--sp-2));right:0;min-width:290px;display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-3);background:var(--dialog-bg);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-pop)}
+.as-item{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:var(--sp-4);align-items:center;text-align:left;border:0;background:transparent;color:var(--text);font:inherit;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);cursor:pointer}
+.as-item:hover{background:var(--fill-1)}
+.as-item>span{grid-row:1/3;font-size:var(--fs-xl)}
+.as-item>b{font-size:var(--fs-sm);font-weight:var(--fw-bold)}
+.as-item>small{font-size:var(--fs-2xs);color:var(--muted)}
+
+/* 4. Le formulaire : dix champs nus alignés, sans étiquette, avec des placeholders
+      pour seule indication. L'essentiel devant, le reste replié. */
+.week-quick-add{display:block;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-5);margin-top:var(--sp-6)}
+.wqa-main{display:flex;flex-wrap:wrap;gap:var(--sp-4);align-items:flex-end}
+.wqa-f{display:flex;flex-direction:column;gap:var(--sp-1);min-width:0}
+.wqa-f>span{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.wqa-f input,.wqa-f select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--sp-3) var(--sp-4);font:inherit;font-size:var(--fs-sm);min-width:0}
+.wqa-f input:focus,.wqa-f select:focus{outline:2px solid var(--accent-ring);outline-offset:-1px;border-color:transparent}
+.wqa-title{flex:1 1 240px}
+.wqa-add{flex:none;padding:var(--sp-3) var(--sp-7)}
+.wqa-more{margin-top:var(--sp-5);border-top:1px solid var(--line);padding-top:var(--sp-4)}
+.wqa-more>summary{cursor:pointer;font-size:var(--fs-2xs);font-weight:var(--fw-bold);color:var(--muted);list-style:none}
+.wqa-more>summary::-webkit-details-marker{display:none}
+.wqa-more>summary::before{content:"▸ ";color:var(--accent)}
+.wqa-more[open]>summary::before{content:"▾ "}
+.wqa-more>summary:hover{color:var(--text)}
+.wqa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--sp-4);margin-top:var(--sp-4)}
+.wqa-notes{grid-column:1/-1}
+.wqa-check{grid-column:1/-1;display:flex;align-items:center;gap:var(--sp-3);font-size:var(--fs-sm);color:var(--muted)}
+@media(max-width:700px){
+  .wqa-main{gap:var(--sp-3)}
+  .wqa-title{flex:1 1 100%}
+  .wqa-add{width:100%}
+  .as-menu{right:auto;left:0;min-width:min(88vw,290px)}
+}
+/* La vue jour couvre elle aussi 6 h → minuit : sans défilement interne, la page
+   s'allongeait de près de 800 px pour montrer des heures vides. */
+.dg-scroll{max-height:min(62vh,560px);overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);margin:var(--sp-5) 0 var(--sp-6)}
+.dg-scroll .day-grid{border:0;border-radius:0;margin:0;background:transparent}
+.dg-scroll::-webkit-scrollbar{width:10px}
+.dg-scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:var(--r-pill)}
+.wqa-travel{display:flex;gap:var(--sp-2);align-items:stretch;min-width:0}
+.wqa-travel input{flex:1;min-width:0}
+.wqa-est{flex:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:var(--r-sm);padding:0 var(--sp-4);cursor:pointer;font-size:var(--fs-md)}
+.wqa-est:hover{border-color:var(--accent-line)}
