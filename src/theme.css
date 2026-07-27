@@ -24,3 +24,16 @@
 :root[data-theme="light"] .mission-step{background:#f5f7fb}
 /* Boutons/toggle du thème */
 .theme-toggle{border:0;background:var(--card);color:var(--text);width:42px;height:42px;border-radius:50%;font-size:1.25rem;cursor:pointer;border:1px solid var(--line)}
+
+/* Les états « actif » peignaient le texte en --accent sur un voile de --accent : en thème
+   clair les deux convergent (3,4–4,5:1, sous le seuil AA). On garde le voile, on fonce l'encre.
+   theme.css est chargé en dernier : ces règles gagnent sans toucher pages.css, et ne
+   s'appliquent qu'au thème clair. */
+:root[data-theme="light"]{--accent-ink-veil:#1d5606;--warn-ink-veil:#8a3f07;--danger-ink-veil:#b91c1c}
+:root[data-theme="light"] .athlete-subnav button.active,
+:root[data-theme="light"] .ph-pills button.active,
+:root[data-theme="light"] .agenda-settings[open]>summary,
+:root[data-theme="light"] .wt-head.wt-today b,
+:root[data-theme="light"] .wt-head.wt-today span{color:var(--accent-ink-veil)}
+:root[data-theme="light"] .conflict-hint{color:var(--warn-ink-veil)}
+:root[data-theme="light"] .dl-word.dl-sature{color:var(--danger-ink-veil)}

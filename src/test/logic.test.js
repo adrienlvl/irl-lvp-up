@@ -6619,7 +6619,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.5.0');
+  assert.equal(L.CHANGELOG[0].v, '2.5.1');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -13275,7 +13275,7 @@ test('rescheduleOptions / moveAgendaItem / postponePrompt : reposer un bloc, et 
     recurring: []
   };
   const item = state.agenda[1];
-  const opts = L.rescheduleOptions(state, item, '2026-07-28', { now: '19:00' });
+  const opts = L.rescheduleOptions(state, item, '2026-07-28', { now: '19:00', today: '2026-07-28' });
   assert.ok(opts.length >= 1 && opts.length <= 3, 'au plus 3 propositions');
   assert.equal(opts[0].label.startsWith('Aujourd’hui'), true);
   assert.equal(opts[0].time, '19:15', 'maintenant + 15 min, et ça rentre avant la muscu ? non → après');
@@ -13288,7 +13288,7 @@ test('rescheduleOptions / moveAgendaItem / postponePrompt : reposer un bloc, et 
   });
   // Un bloc « journée entière » n'a pas d'heure à proposer.
   assert.deepEqual(L.rescheduleOptions(state, { ...item, allDay: true }, '2026-07-28', { now: '19:00' }), []);
-  assert.deepEqual(L.rescheduleOptions(state, item, 'pas-une-date', { now: '19:00' }), []);
+  assert.deepEqual(L.rescheduleOptions(state, item, 'pas-une-date', { now: '19:00', today: '2026-07-28' }), []);
   assert.deepEqual(L.rescheduleOptions(state, null, '2026-07-28', {}), []);
 
   // Déplacer : le compteur monte, et la date d'origine est mémorisée une seule fois.
@@ -13368,4 +13368,24 @@ test('dayLoad / lightenSuggestions : la journée tient-elle vraiment ?', () => {
   assert.equal(sugg.length, 2);
   assert.equal(L.lightenSuggestions(state, '2026-07-28', 1).length, 1);
   assert.deepEqual(L.lightenSuggestions(state, '2026-07-30', 3), []);
+});
+
+test('rescheduleOptions : un bloc du passé se repose à partir d’AUJOURD’HUI, pas d’hier', () => {
+  const state = { agenda: [], recurring: [] };
+  const bloc = { id: 1, title: 'Révision', durationMin: 60, date: '2026-07-20' };
+  // Le bloc date d'il y a une semaine. Avant, la boucle partait de SA date : le premier
+  // créneau proposé s'appelait « Aujourd’hui » tout en pointant le 20 juillet.
+  const opts = L.rescheduleOptions(state, bloc, '2026-07-20', { now: '19:00', today: '2026-07-28' });
+  assert.ok(opts.length > 0);
+  assert.ok(opts.every(o => o.date >= '2026-07-28'), 'aucun créneau dans le passé');
+  assert.equal(opts[0].date, '2026-07-28');
+  assert.match(opts[0].label, /Aujourd’hui/, 'et le libellé dit la vérité');
+
+  // Un bloc futur garde sa propre date de départ, et « Aujourd’hui » ne s'y applique pas.
+  const futur = L.rescheduleOptions(state, { ...bloc, date: '2026-08-05' }, '2026-08-05', { now: '19:00', today: '2026-07-28' });
+  assert.equal(futur[0].date, '2026-08-05');
+  assert.equal(/Aujourd’hui|Demain/.test(futur[0].label), false, 'le 5 août n’est ni aujourd’hui ni demain');
+  // Le garde-fou « maintenant + 15 min » ne doit s'appliquer QU'au vrai jour courant :
+  // sur un jour futur, la matinée reste proposable.
+  assert.equal(futur[0].time, '08:00', 'la matinée d’un jour futur n’est pas perdue');
 });

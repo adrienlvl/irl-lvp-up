@@ -109,7 +109,10 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
    ni les trous, ni les chevauchements. La grille reprend la géométrie de la vue
    jour, avec une gouttière d'heures partagée par les sept colonnes. */
 #weekGrid{display:block}
-.wt-heads,.wt-alldays{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));gap:var(--sp-1);align-items:end}
+/* Les en-têtes doivent reproduire EXACTEMENT la géométrie de .wt-cols : 44px de gouttière
+   + son gap replié en une piste, le même gap de 1px, et la place que la barre de défilement
+   prend au corps sans la prendre aux en-têtes. Sinon les jours glissent de plusieurs pixels. */
+.wt-heads,.wt-alldays{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));gap:1px;align-items:end;padding-right:var(--wt-sb,11px)}
 .wt-alldays{margin-top:var(--sp-1);align-items:start}
 .wt-gutter-head{font-size:var(--fs-3xs);color:var(--muted);text-align:right;padding-right:var(--sp-2);align-self:center}
 .wt-head{display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:transparent;color:var(--muted);font:inherit;cursor:pointer;padding:var(--sp-2) 0;border-radius:var(--r-sm)}
@@ -148,7 +151,7 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 .wt-now{position:absolute;left:0;right:0;height:2px;background:var(--danger);pointer-events:none;z-index:3}
 .wt-vide{margin:var(--sp-5) 0 0;color:var(--muted);font-size:var(--fs-xs);text-align:center}
 @media(max-width:760px){
-  .wt-heads,.wt-alldays{grid-template-columns:32px repeat(7,minmax(0,1fr))}
+  .wt-heads,.wt-alldays{grid-template-columns:36px repeat(7,minmax(0,1fr))}
   .wt-body{grid-template-columns:32px 1fr}
   .wt-head span{font-size:var(--fs-md)}
   .wt-event span{font-size:var(--fs-3xs)}

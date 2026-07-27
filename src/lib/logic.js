@@ -3349,6 +3349,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.5.1', emoji: '🧯', text: 'CORRECTIFS APRÈS RELECTURE COMPLÈTE DES QUATRE DERNIÈRES MISES À JOUR. Douze défauts trouvés et corrigés, dont deux graves que les 605 tests ne voyaient pas. 1) LA FICHE D’UN EXERCICE NE S’OUVRAIT PLUS dès qu’il avait été chargé avec du poids : un bout de code destiné au calendrier s’était retrouvé collé dans la fiche, et la faisait planter en silence. 2) LA PAGE ATHLÈTE POUVAIT S’AFFICHER ENTIÈREMENT VIDE — après l’onboarding, depuis « À rattraper » ou « Le focus du moment » — parce que quatre endroits demandaient encore un onglet qui n’existe plus depuis la réorganisation. 3) La durée saisie dans l’ajout rapide servait à l’alerte de chevauchement puis était JETÉE : le bloc durait 60 min quand même. 4) Cliquer un bloc dans la nouvelle grille semaine ne faisait rien. 5) La grille s’ouvrait sur le premier bloc du lundi au lieu du premier bloc de la semaine. 6) Le « +3 autres » de la vue mois n’apparaissait nulle part. 7) « Replanifier » proposait « Aujourd’hui » sur la date du bloc : pour un bloc d’hier, ça proposait hier. 8) Les liens du tableau de bord vers un panneau Athlète faisaient défiler vers un panneau masqué. 9) La jauge de charge du jour restait affichée, et fausse, en vue semaine. 10) Le formulaire d’ajout gardait son ancienne mise en page. 11) Les en-têtes de jour étaient décalés jusqu’à 12 px de leurs colonnes. 12) En thème clair, les boutons actifs passaient sous le seuil de contraste lisible.' },
   { v: '2.5.0', emoji: '🕕', text: 'QUATRE CORRECTIONS SUR L’AGENDA, DEMANDÉES PAR TOI. 1) TU VOIS ENFIN TA JOURNÉE ENTIÈRE. La grille se collait au premier et au dernier bloc : si ta journée finissait à 18 h, la page s’arrêtait à 18 h — comme si la soirée n’existait pas, et sans nulle part où poser un bloc à 21 h. Elle couvre maintenant 6 h → minuit, en vue jour COMME en vue semaine, et elle défile dans son cadre pour ne pas allonger la page de 800 pixels. Elle s’ouvre directement sur ton premier bloc, pas sur six heures de vide. 2) LE FORMULAIRE D’AJOUT est refait : de vraies étiquettes (Quoi ? Jour, Heure, Durée, Type) au lieu de dix champs nus alignés, et tout le reste — lieu, trajet, notes, priorité, journée entière — replié sous « Plus de détails ». 3) UN SEUL SÉLECTEUR DE VUE à trois segments : Jour · Semaine · Mois. « Vue mois » était un bouton perdu dans la barre d’outils, entre l’import et le PDF. 4) IMPORTER UN CALENDRIER et BILAN PDF passent dans un menu ⚙️ Réglages replié : ce sont des actions rares, elles n’avaient pas à occuper le même rang que « Aujourd’hui ».' },
   { v: '2.4.0', emoji: '🗓️', text: 'LE DESIGN DE L’AGENDA, POUR DE VRAI. 1) TA SEMAINE SE LIT ENFIN À L’ÉCHELLE DU TEMPS. C’étaient sept listes de pastilles empilées : tu voyais CE QUE tu avais, jamais QUAND. Maintenant c’est une vraie grille horaire, comme la vue jour — une colonne par jour, chaque bloc à son heure et à sa hauteur réelle, la ligne rouge de l’heure actuelle, et les blocs qui se chevauchent placés CÔTE À CÔTE au lieu de se cacher. Les trous de la semaine deviennent visibles d’un coup d’œil : c’est là que tu peux caser quelque chose. Les journées entières passent dans un bandeau à part, en haut, au lieu de polluer la grille. 2) LA VUE MOIS NE DÉBORDE PLUS EN SILENCE. Une journée chargée empilait tout, écrasait la hauteur des six lignes et rendait le mois illisible : elle montre trois entrées et annonce « +4 autres ». Le week-end se distingue discrètement, et le jour même ressort enfin. 3) LES DERNIÈRES COULEURS EN DUR SONT PARTIES : les pastilles de semaine et le texte des blocs du jour étaient figés en clair sur fond sombre — donc invisibles en thème clair. 19 valeurs de plus migrées.' },
   { v: '2.3.0', emoji: '🧭', text: 'RANGEMENT. 1) L’ONGLET ATHLÈTE PASSE DE 2 À 4 SOUS-ONGLETS : Aujourd’hui (décider, faire ta séance) · Programme (ton objectif, ta semaine, tes routines) · Progrès · Corps. Avant, « Séance » empilait 20 panneaux sur 8540 pixels, soit une dizaine d’écrans à faire défiler — parce que toute la grille d’entraînement basculait du côté de son premier panneau reconnu, entraînant standards, skills, tenues et feuille de route avec elle. Résultat : 7 panneaux sur « Aujourd’hui » au lieu de 20, et 6 sur « Progrès » au lieu de 18. 2) LES CINQ CARTES DE PROGRESSION N’EN FONT PLUS QU’UNE : records, standards de force, arbre de skills, tenues isométriques et feuille de route deviennent cinq pastilles dans un seul panneau « Ta progression ». 3) DEUX PANNEAUX QUI TRAÎNAIENT PARTOUT sont rangés : le coach du tableau de bord n’apparaît plus dans Athlète. 4) LES COULEURS DE L’AGENDA : sport, vie perso, révision et focus étaient définies CINQ fois dans cinq fichiers, avec cinq nuances différentes, et aucune ne basculait en thème clair — les pastilles du mois restaient bleu nuit sur fond blanc. Une seule définition désormais, et une version claire pour chaque.' },
@@ -6026,20 +6027,25 @@ function rescheduleOptions(state, item, fromKey, opts) {
   const dayEnd = o.dayEnd || '22:00';
   const nowMin = timeToMinutes(o.now);
   const JOURS = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
+  // Les libellés et le garde-fou « pas dans le passé » s'ancrent sur le VRAI jour courant,
+  // pas sur l'indice de boucle : un bloc daté d'hier ne se repose pas hier.
+  const aujourd = isRealDateKey(o.today) ? o.today : localDate();
+  const depart = fromKey < aujourd ? aujourd : fromKey;
   const out = [];
   for (let i = 0; i < horizon && out.length < 3; i++) {
-    const jour = dateAfterDays(fromKey, i);
+    const jour = dateAfterDays(depart, i);
     // Le jour même, on ne propose rien avant « maintenant + 15 min » : un créneau déjà passé
     // n'est pas une option.
     let after = '08:00';
-    if (i === 0) {
+    if (jour === aujourd) {
       if (nowMin == null) continue;
       after = minutesToTime(Math.min(23 * 60 + 55, nowMin + 15));
     }
     const libre = nextFreeSlot(busyBlocksForDay(state, jour, { excludeId: it.id }), { date: jour, durationMin: dur, after, dayEnd });
     if (!libre) continue;
     const d = new Date(jour + 'T00:00:00');
-    const label = i === 0 ? `Aujourd’hui ${libre}` : i === 1 ? `Demain ${libre}` : `${JOURS[d.getDay()]} ${libre}`;
+    const demain = dateAfterDays(aujourd, 1);
+    const label = jour === aujourd ? `Aujourd’hui ${libre}` : jour === demain ? `Demain ${libre}` : `${JOURS[d.getDay()]} ${libre}`;
     out.push({ date: jour, time: libre, label });
   }
   return out;

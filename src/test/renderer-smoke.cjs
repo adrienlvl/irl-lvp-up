@@ -992,7 +992,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.5.0'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.5.1'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2707,6 +2707,61 @@ app.whenReady().then(async () => {
           && !!document.getElementById('openCalendarPage')
           && !!document.getElementById('openCalendarPage').closest('#agendaViewSwitch');
       })();
+      // La fiche d'exercice s'ouvre-t-elle pour un exercice DÉJÀ CHARGÉ ? (BLOQUANT)
+      // Les 604 tests étaient verts alors qu'elle levait un ReferenceError : la branche
+      // fautive n'existe que si une séance a été enregistrée AVEC une charge, ce que l'état
+      // de test ne contenait jamais. C'est exactement le trou qu'il faut boucher.
+      checks.ficheAvecCharge = (() => {
+        try {
+          if (typeof openExerciseDetail !== 'function') return false;
+          const save = state.workouts;
+          const ex = exercises.find(x => x.name === 'Pompes classiques');
+          state.workouts = [{ date: localDate(), exercises: [{ name: ex.name, setLogs: [{ load: 20, reps: 8, completed: true }] }] }];
+          openExerciseDetail(ex);
+          const dlg = document.getElementById('exerciseDetailDialog');
+          const titre = document.getElementById('exerciseDetailTitle');
+          const notes = document.getElementById('exerciseDetailNotes');
+          const ouvert = !!dlg && dlg.open && titre.textContent === ex.name
+            && notes.innerHTML.indexOf('Meilleure série') !== -1
+            // Le fragment de la vue mois n'a rien à faire ici.
+            && notes.innerHTML.indexOf('month-more') === -1;
+          if (dlg && dlg.open) dlg.close();
+          state.workouts = save;
+          return ouvert;
+        } catch (e) { checks.__errFiche = String(e && e.message); return false; }
+      })();
+      // Un onglet Athlète inconnu ne doit JAMAIS vider la page (BLOQUANT).
+      // Quatre appelants passaient encore 'seance' après le renommage de 2.3.0.
+      checks.athleteTabRobuste = (() => {
+        try {
+          const shell = document.querySelector('main.app-shell');
+          showPage('athlete');
+          const vis = () => [...shell.querySelectorAll('section.panel, article.panel')].filter(e => e.offsetParent !== null).length;
+          showAthleteTab('seance');                    // l'ancien nom, encore présent dans le code
+          const apresVieuxNom = vis();
+          showAthleteTab('nimportequoi');
+          const apresInconnu = vis();
+          const boutonActif = document.querySelectorAll('.athlete-subnav button.active').length;
+          showAthleteTab('aujourdhui');
+          // Un nom inconnu doit retomber sur « Aujourd'hui », pas tout masquer.
+          return apresVieuxNom >= 3 && apresInconnu >= 3 && boutonActif === 1
+            && !/showAthleteTab\('seance'\)/.test('');
+        } catch (e) { checks.__errTab = String(e && e.message); return false; }
+      })();
+      // La vue mois annonce vraiment son débordement, et le repère est DANS la case.
+      checks.moisDebordement = (() => {
+        try {
+          const save = state.agenda;
+          const jour = localDate();
+          state.agenda = [1, 2, 3, 4, 5].map(n => ({ id: 9200 + n, date: jour, time: '0' + (8 + n) + ':00', durationMin: 30, title: 'B' + n, kind: 'life' }));
+          renderMonthCalendar();
+          const cel = document.querySelector('.month-day[data-cal-day="' + jour + '"]');
+          const plus = cel ? cel.querySelector('.month-more') : null;
+          const ok = !!cel && cel.classList.contains('month-full') && !!plus && plus.textContent.indexOf('+2') !== -1;
+          state.agenda = save; renderMonthCalendar();
+          return ok;
+        } catch (e) { checks.__errMois = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2742,6 +2797,9 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.ficheAvecCharge) errors.push('Fiche exercice KO (elle doit s’ouvrir pour un exercice avec charge enregistrée — c’est le cas que l’état de test ne couvrait pas)');
+    if (!checks.athleteTabRobuste) errors.push('Sous-onglet Athlète KO (un nom d’onglet inconnu, comme l’ancien « seance », doit retomber sur « Aujourd’hui » et jamais vider la page)');
+    if (!checks.moisDebordement) errors.push('Débordement vue mois KO (une case à 5 entrées doit porter .month-full ET un repère .month-more « +2 »)');
     if (!checks.agendaJournee) errors.push('Plage horaire KO (la grille doit couvrir 06:00→24:00, défiler dans son cadre, et s’ouvrir sur le premier bloc)');
     if (!checks.agendaCommandes) errors.push('Commandes agenda KO (sélecteur à 3 vues dont Mois ; import et Bilan PDF dans le menu réglages replié ; formulaire étiqueté avec détails repliés)');
     if (!checks.weekTimeGrid) errors.push('Grille semaine KO (7 en-têtes, 7 colonnes, blocs positionnés à l’heure, chevauchements côte à côte, plus aucune .week-chip de l’ancien rendu)');
