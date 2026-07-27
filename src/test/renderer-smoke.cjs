@@ -1906,7 +1906,10 @@ app.whenReady().then(async () => {
         // ACCORD DU PARTICIPE en vue Jour (#552) : « fait(s) » s'accorde avec le nombre RÉALISÉ
         // (numérateur), pas avec le total — « 1/3 faits » était faux.
         dayViewPlural: (() => {
-          const saved = state.agenda, savedCursor = new Date(dayCursor);
+          // todayItems agrège aussi les occurrences récurrentes : sans neutraliser state.recurring,
+          // « 1/3 » devient « 1/4 » et l'accord testé porte sur le mauvais nombre.
+          const saved = state.agenda, savedRec = state.recurring, savedCursor = new Date(dayCursor);
+          state.recurring = [];
           let ok = true;
           try {
             const d = new Date(), p = n => (n < 10 ? '0' + n : '' + n);
@@ -1922,7 +1925,7 @@ app.whenReady().then(async () => {
             state.agenda[1].completed = true; renderDayView();
             ok = ok && /2\\/3 faits/.test(document.querySelector('#dayView .day-view-head').textContent);
           } catch (e) { ok = false; }
-          state.agenda = saved; dayCursor = savedCursor;
+          state.agenda = saved; state.recurring = savedRec; dayCursor = savedCursor;
           try { renderDayView(); } catch (e) {}
           return ok;
         })(),
@@ -2566,7 +2569,9 @@ app.whenReady().then(async () => {
       checks.agendaCharge = (() => {
         const el = document.getElementById('dayLoadBar');
         if (!el || typeof renderDayLoad !== 'function' || typeof dayLoad !== 'function') return false;
-        const save = state.agenda;
+        // Idem : dayLoad somme l'agenda ET les récurrents, il faut donc partir d'un jour vierge.
+        const save = state.agenda, saveRec = state.recurring;
+        state.recurring = [];
         const jour = localDate();
         state.agenda = [
           { id: 901, date: jour, time: '08:00', durationMin: 240, title: 'Révision', kind: 'study' },
@@ -2577,7 +2582,7 @@ app.whenReady().then(async () => {
         state.agenda = [];
         renderDayLoad(jour);
         const vide = el.hidden === true;
-        state.agenda = save; renderDayLoad(jour);
+        state.agenda = save; state.recurring = saveRec; renderDayLoad(jour);
         return rempli && vide;
       })();
       // Onglet Athlète (BLOQUANT). Avant : 38 panneaux, dont 20 empilés sur 8540 px dans le
@@ -2638,7 +2643,10 @@ app.whenReady().then(async () => {
           if (typeof renderWeekPage !== 'function') return false;
           const lundi = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; })();
           const k = n => { const d = new Date(lundi); d.setDate(d.getDate() + n); return dateKey(d); };  // localDate() ignore son argument
-          const save = state.agenda;
+          // Un check doit MAÎTRISER ses entrées : la vue semaine agrège aussi les occurrences
+          // récurrentes, donc un récurrent resté dans l'état ajoute des blocs et fausse le compte.
+          const save = state.agenda, saveRec = state.recurring;
+          state.recurring = [];
           state.agenda = [
             { id: 9001, date: k(0), time: '09:00', durationMin: 120, title: 'Cours', kind: 'study' },
             { id: 9002, date: k(1), time: '10:00', durationMin: 90, title: 'A', kind: 'study', priority: 'high' },
@@ -2662,7 +2670,7 @@ app.whenReady().then(async () => {
             && g.querySelectorAll('.wt-high').length === 1
             && g.querySelectorAll('.week-chip').length === 0
             && parseFloat(corps.style.height) > 0;
-          state.agenda = save; renderWeekPage();
+          state.agenda = save; state.recurring = saveRec; renderWeekPage();
           return ok;
         } catch (e) { checks.__errWeek = String(e && e.message); return false; }
       })();
@@ -2774,6 +2782,40 @@ app.whenReady().then(async () => {
           return ok;
         } catch (e) { checks.__errMois = String(e && e.message); return false; }
       })();
+      // Modifier un bloc doit prévenir d'un chevauchement, comme en créer un (BLOQUANT).
+      // Créer un bloc sur un cours prévenait ; le DÉPLACER dessus ne prévenait pas — alors que
+      // c'est le geste le plus courant, et que le cours vit dans state.recurring.
+      checks.editionConflit = (() => {
+        try {
+          if (typeof openAgendaEdit !== 'function') return false;
+          const saveA = state.agenda, saveR = state.recurring, jour = localDate();
+          state.recurring = [{ id: 80, title: 'Cours de droit', time: '17:00', durationMin: 120, kind: 'study',
+            rule: { freq: 'daily', startDate: '2026-01-01', interval: 1 }, doneLog: [], skipLog: [] }];
+          state.agenda = [{ id: 500, date: jour, time: '21:00', durationMin: 60, title: 'Muscu', kind: 'sport' }];
+          let question = null;
+          const vrai = window.confirm;
+          window.confirm = m => { question = m; return false; };   // on refuse
+          openAgendaEdit(500);
+          document.getElementById('editAgendaTime').value = '18:00';
+          document.getElementById('editAgendaDuration').value = '1h30';
+          document.getElementById('agendaEditForm').dispatchEvent(new Event('submit', { cancelable: true }));
+          const alerte = !!question && question.indexOf('Cours de droit') !== -1;
+          const intact = state.agenda[0].time === '21:00';         // refusé → rien ne bouge
+          window.confirm = () => true;                             // on accepte
+          openAgendaEdit(500);
+          document.getElementById('editAgendaTime').value = '18:00';
+          document.getElementById('editAgendaDuration').value = '1h30';
+          document.getElementById('agendaEditForm').dispatchEvent(new Event('submit', { cancelable: true }));
+          // Ce champ était un type="number" : il ne pouvait pas recevoir « 1h30 », alors que
+          // les trois autres formulaires le comprennent.
+          const duree = state.agenda[0].durationMin === 90;
+          window.confirm = vrai;
+          const dlg = document.getElementById('agendaEditDialog');
+          if (dlg && dlg.open) dlg.close();
+          state.agenda = saveA; state.recurring = saveR;
+          return alerte && intact && duree;
+        } catch (e) { checks.__errEdit = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2809,6 +2851,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.editionConflit) errors.push('Édition d’un bloc KO (déplacer un bloc sur un cours récurrent doit prévenir du chevauchement, ne rien changer si on refuse, et comprendre « 1h30 »)');
     if (!checks.ficheAvecCharge) errors.push('Fiche exercice KO (elle doit s’ouvrir pour un exercice avec charge enregistrée — c’est le cas que l’état de test ne couvrait pas)');
     if (!checks.athleteTabRobuste) errors.push('Sous-onglet Athlète KO (un nom d’onglet inconnu, comme l’ancien « seance », doit retomber sur « Aujourd’hui » et jamais vider la page)');
     if (!checks.moisDebordement) errors.push('Débordement vue mois KO (une case à 5 entrées doit porter .month-full ET un repère .month-more « +2 »)');
