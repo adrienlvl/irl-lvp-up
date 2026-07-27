@@ -234,7 +234,9 @@ Corriger au passage l'en-tête menteur : afficher `plan.applied.course` (compté
 
 - [x] **Étape 1** — plancher de `runPlanWeek` retiré (commit « Le programme auto annonçait un nombre de séances… »).
       Vérifié à la main avant correction : « muscle » annonçait 1 course et en générait 3.
-- [ ] Étape 2 — persister le nombre de séances voulu dans `state.goals`
+- [x] **Étape 2** — nombre de séances réglable et persistant (`goals.progSessions`, `goals.runs`).
+      Décision de forme isolée dans `objectiveWeekShape()`, pure. Sans consigne, chaque objectif
+      garde exactement sa forme d’avant. Bornes annoncées, jamais silencieuses.
 - [ ] Étape 3 — `trainingPolicy` (brique scientifique)
 - [ ] Étape 4 — `trainingWeekPlan` + `trainingPlanInputs`
 - [ ] Étape 5 — le Programme auto consomme le plan

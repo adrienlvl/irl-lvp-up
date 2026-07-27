@@ -198,3 +198,33 @@ Boucle recentrée sur **le Coach et l'onglet Athlète**. Pistes de départ :
   vérifier qu'elles ne crient pas toutes en même temps.
 - `coachTraining` n'expose qu'une piste sur six ; les autres restent invisibles.
 - Mandat coaching élite : progression, standards de force, sources réelles.
+
+## Itérations 10-11 — contenu du Coach, puis le programme qui obéit
+
+**10.** Deux ajouts au Coach, tous deux déjà calculés et jamais montrés : « ce qui te bride
+aujourd'hui » (readinessLimiter/Driver, invisibles depuis toujours) et les cinq pistes
+d'entraînement secondaires que `coachTraining` annonçait sans permettre de les lire.
+
+**11.** Le programme auto obéit enfin. Le nombre de séances était figé dans une constante.
+
+### L'incident du harnais mort
+Un commentaire que j'ai écrit dans le smoke contenait des **backticks**. Ce bloc vit dans un
+template literal passé à `executeJavaScript` : le backtick l'a TERMINÉ au milieu, et le harnais
+n'a plus démarré du tout. Or **quand il ne démarre pas, les filtres rendent du VIDE** — ce qui
+ressemble à un silence, pas à un échec. J'ai cru pendant deux exécutions que mes mutations
+étaient concluantes alors que rien ne tournait.
+
+Deux leçons, écrites sur place dans le fichier :
+- **Aucun backtick dans renderer-smoke.cjs** hors délimiteurs.
+- **Une sortie vide n'est pas un succès** : toujours exiger la ligne `SMOKE OK`, jamais se
+  contenter de l'absence d'erreur.
+
+### Deux tests faux avant deux bugs
+Sur les 5 échecs rencontrés à l'itération 11, **4 venaient de mes tests, pas du code** :
+un plafond intentionnel pris pour un bug, et surtout un **jeu d'essai synthétique** dont les
+zones ne correspondaient à aucun focus — toutes les séances sortaient vides et le test accusait
+le code. Rebranché sur la vraie bibliothèque d'exercices, tout passait.
+
+Leçon : *un jeu d'essai irréaliste ne prouve rien, ni dans un sens ni dans l'autre.*
+
+620 tests · SMOKE OK · 390 px propre.
