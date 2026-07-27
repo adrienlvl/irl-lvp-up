@@ -13783,3 +13783,96 @@ test('coachTraining expose les pistes qu’il ne met pas en avant', () => {
   // Chaque piste secondaire est affichable telle quelle.
   r.autres.forEach(p => { assert.ok(p.titre && p.constat && p.action); });
 });
+
+test('objectiveWeekShape : le volume devient réglable sans changer l’objectif', () => {
+  const f = L.objectiveWeekShape;
+
+  // Sans réglage, RIEN ne bouge : aucune régression sur les programmes existants.
+  L.FITNESS_OBJECTIVES.forEach(o => {
+    const s = f(o.key, {});
+    assert.equal(s.muscu, o.split.length, `${o.key} garde ses séances de muscu`);
+    assert.equal(s.runs, o.runs, `${o.key} garde ses courses`);
+    /* Sans réglage, aucun ajustement de VOLUME ne doit être signalé. L'avertissement
+       « des jours en porteront deux » fait exception : il est vrai pour « sèche » (7 séances
+       natives) même sans rien demander, et c'est une information utile, pas une plainte. */
+    s.ajustements.forEach(aj => assert.match(aj, /porteront deux/,
+      `${o.key} ne devrait rien ajuster sans consigne, or : ${aj}`));
+  });
+
+  // Demander plus de séances étire la répartition NATIVE : un objectif endurance qui passe
+  // à 8 gagne surtout des courses, un objectif muscle surtout de la muscu. Sinon changer le
+  // volume changerait l'objectif, ce qui n'a aucun sens.
+  const endur = f('endurance', { sessions: 8 }), musc = f('muscle', { sessions: 8 });
+  assert.equal(endur.total, 8);
+  assert.equal(musc.total, 8);
+  assert.ok(endur.runs > endur.muscu, 'endurance reste orienté course');
+  assert.ok(musc.muscu > musc.runs, 'muscle reste orienté muscu');
+
+  // Demander moins fonctionne aussi.
+  assert.equal(f('seche', { sessions: 3 }).total, 3);
+
+  // Imposer les courses : 0 course est un choix légitime (semaine 100 % muscu).
+  const zero = f('seche', { sessions: 5, runs: 0 });
+  assert.equal(zero.runs, 0);
+  assert.equal(zero.muscu, 5);
+
+  // 'auto' veut dire « laisse l'objectif décider », pas « zéro ».
+  assert.equal(f('seche', { runs: 'auto' }).runs, 4);
+  assert.equal(f('seche', { runs: '' }).runs, 4);
+  assert.equal(f('seche', { runs: null }).runs, 4);
+
+  // Les bornes sont DITES, jamais appliquées en silence : rogner sans le dire est ce qui
+  // fait qu'on cesse de croire un coach.
+  const trop = f('forme', { sessions: 20 });
+  assert.equal(trop.total, 10, 'plafonné à 10');
+  assert.ok(trop.ajustements.some(a => /10 séances maximum/.test(a)), 'et il le dit');
+  assert.ok(f('forme', { sessions: 8 }).ajustements.some(a => /deux/.test(a)),
+    'au-delà de 6, prévenir que des jours porteront deux séances');
+
+  // Plus de courses que de séances : cohérent et annoncé.
+  const absurde = f('forme', { sessions: 2, runs: 5 });
+  assert.equal(absurde.muscu, 0);
+  assert.equal(absurde.runs, 2);
+  assert.ok(absurde.ajustements.length > 0);
+
+  // Un objectif qui contient de la muscu n'en perd pas TOUT par simple arrondi.
+  const petit = f('endurance', { sessions: 2 });
+  assert.ok(petit.muscu >= 1, 'au moins une séance de muscu subsiste');
+
+  // Entrées abîmées.
+  assert.equal(f('nawak', { sessions: 4 }), null);
+  assert.doesNotThrow(() => f('forme', null));
+  assert.doesNotThrow(() => f('forme', { sessions: 'abc', runs: 'abc' }));
+  assert.equal(f('forme', { sessions: 'abc' }).total, 4, 'illisible = pas de consigne');
+});
+
+test('objectiveProgram honore le réglage et annonce ce qu’il pose', () => {
+  /* La VRAIE bibliothèque, pas un jeu synthétique : mes faux exercices portaient des zones
+     qui ne correspondaient à aucun focus, donc toutes les séances sortaient vides et le test
+     accusait le code à tort. Un jeu d'essai irréaliste ne prouve rien. */
+  const { exercises: ex } = require('../lib/exercises-data.js');
+
+  [{}, { sessions: 8 }, { sessions: 3 }, { sessions: 5, runs: 0 }].forEach(cas => {
+    const p = L.objectiveProgram('muscle', ex, cas);
+    const m = p.week.filter(s => s.kind === 'muscu').length;
+    const c = p.week.filter(s => s.kind === 'course').length;
+    // Le bug d'origine : l'en-tête annonçait la constante pendant que la semaine posait autre chose.
+    assert.equal(p.strength, m, `l’en-tête annonce ${p.strength} muscu, la semaine en pose ${m}`);
+    assert.equal(p.runs, c, `l’en-tête annonce ${p.runs} courses, la semaine en pose ${c}`);
+  });
+
+  // Plus de séances que le split n'en prévoit : le cycle se répète au lieu de s'arrêter.
+  /* 9 séances dont 2 courses demanderaient 7 muscu : le plafond de 6 s'applique — au-delà
+     on empile sans récupérer — et il doit être ANNONCÉ, jamais appliqué en silence. */
+  const grand = L.objectiveProgram('forme', ex, { sessions: 9, runs: 2 });
+  assert.equal(grand.week.filter(s => s.kind === 'muscu').length, 6, 'plafonné à 6 muscu');
+  assert.ok((grand.ajustements || []).some(x => /6 séances de musculation maximum/.test(x)),
+    'le plafond est dit, pas subi');
+  const seances = grand.week.filter(s => s.kind === 'muscu');
+  assert.ok(seances.every(s => s.exercises && s.exercises.length),
+    'chaque séance de muscu a de vrais exercices, même au-delà du cycle');
+  /* Répéter le cycle ne doit pas servir six fois la MÊME séance : sans variation de graine,
+     demander plus de volume donnerait six copies identiques — inutile et démotivant. */
+  const signatures = new Set(seances.map(s => s.exercises.map(e => e.name).join('|')));
+  assert.ok(signatures.size >= 3, `${signatures.size} séances distinctes sur ${seances.length}`);
+});

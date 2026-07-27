@@ -3058,6 +3058,41 @@ app.whenReady().then(async () => {
           return muet && nomme && tient && listees;
         } catch (e) { checks.__errContenu = String(e && e.message); return false; }
       })();
+      checks.volumeReglable = (() => {
+        try {
+          if (typeof objectiveWeekShape !== 'function' || typeof runObjectiveProgram !== 'function') return false;
+          const champ = document.getElementById('progSessions');
+          const selCourses = document.getElementById('progRuns');
+          if (!champ || !selCourses) return false;
+          const sg = JSON.parse(JSON.stringify(state.goals));
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          // 16 px minimum : en dessous, Safari zoome tout seul quand on touche le champ.
+          const taille = parseFloat(getComputedStyle(champ).fontSize) >= 16;
+          // Sans consigne, le programme garde la forme native de son objectif.
+          state.goals.progSessions = ''; state.goals.runs = 'auto';
+          runObjectiveProgram();
+          const nat = document.querySelectorAll('#objectiveResult .op-day').length;
+          // Adrien demande 8 seances : l'ecran doit en poser 8, pas la valeur figee.
+          state.goals.progSessions = 8;
+          runObjectiveProgram();
+          const huit = document.querySelectorAll('#objectiveResult .op-day').length === 8;
+          // Et le champ doit refleter le reglage au rendu suivant.
+          const reflete = document.getElementById('progSessions').value === '8';
+          // Au-dela de 6, prevenir que des jours porteront deux seances : rogner ou empiler
+          // en silence est ce qui fait qu'on cesse de croire un coach.
+          const dit = !!document.querySelector('#objectiveResult .op-ajust');
+          // Descendre est possible aussi : le plancher de 3 courses l'interdisait avant.
+          state.goals.progSessions = 2; state.goals.runs = 0;
+          runObjectiveProgram();
+          const deux = document.querySelectorAll('#objectiveResult .op-day').length === 2;
+          const zeroCourse = document.querySelectorAll('#objectiveResult .op-course').length === 0;
+          state.goals = sg;
+          runObjectiveProgram();
+          showPage('dashboard');
+          return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
+        } catch (e) { checks.__errVol = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3094,6 +3129,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');
     if (!checks.coachContenu) errors.push('Coach sans contenu de forme (#coachForme : muet quand tout va bien, mais doit NOMMER la cause chiffrée d’une nuit de 4 h avec un geste ; et #coachAutres doit lister les pistes secondaires, pas seulement les compter)');
     if (!checks.coachPoidsSections) errors.push('Coach Poids non rangé (.cw-sec : 5 sections repliables attendues, titres tapables ≥44 px, poids+calories hors section, panneau sous 2000 px, replier doit vraiment retirer de la hauteur, et deux rendus ne doivent pas imbriquer les sections)');
     if (!checks.coachEntrainement) errors.push('Coach muet sur l’entraînement (#coachTraining : silencieux sans séance, mais doit signaler chiffres à l’appui 4 semaines de poussée sans tirage, avec une action et sans déborder)');

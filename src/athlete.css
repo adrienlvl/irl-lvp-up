@@ -180,3 +180,12 @@
 .cw-sec>:not(summary):last-child{margin-bottom:12px}
 .cw-sec-profil .cw-profile{margin:12px}
 :focus-visible.cw-sec-sum,.cw-sec-sum:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* Réglage du volume du programme auto. Le nombre de séances était figé dans la constante
+   de l'objectif ; ces deux commandes le rendent enfin réglable, à côté du choix d'objectif
+   plutôt que dans un écran de réglages où personne n'irait le chercher. */
+.op-dial{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);white-space:nowrap}
+.op-dial input,.op-dial select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px 9px;font-size:1rem}
+/* 16 px minimum sur iPhone : en dessous, Safari zoome tout seul dès qu'on touche le champ. */
+.op-dial input{width:4.6em}
+.op-ajust{margin-top:6px;padding:8px 11px;border-radius:var(--r-sm);font-size:.76rem;color:var(--text);background:color-mix(in srgb,var(--warn) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 28%,transparent)}
