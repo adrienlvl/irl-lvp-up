@@ -2759,14 +2759,21 @@ app.whenReady().then(async () => {
       // La vue mois annonce vraiment son débordement, et le repère est DANS la case.
       checks.moisDebordement = (() => {
         try {
-          const save = state.agenda, saveRec = state.recurring;
+          // renderMonthCalendar compte QUATRE sources : sans neutraliser anniversaires, examens
+          // et course objectif, un anniversaire tombant aujourd'hui faisait passer le repère de
+          // « +2 » à « +3 » et rendait ce check rouge sans aucun rapport avec le code.
+          const save = state.agenda, saveRec = state.recurring, saveB = state.birthdays, saveE = state.examGoals, saveR = state.raceGoal;
+          state.birthdays = []; state.examGoals = []; state.raceGoal = null;
           const jour = localDate();
           // Le mélange des TYPES est indispensable : les récurrents sortent en <span> et les
           // blocs en <button>. C'est précisément ce mélange qui rendait le plafond CSS inopérant
           // (nth-of-type compte par type) — un jeu d'essai homogène ne l'aurait jamais montré.
-          state.recurring = [{ id: 71, title: 'Cours', time: '08:00', durationMin: 60, kind: 'study',
-            rule: { freq: 'daily', startDate: '2026-01-01', interval: 1 }, doneLog: [], skipLog: [] }];
-          state.agenda = [1, 2, 3, 4].map(n => ({ id: 9200 + n, date: jour, time: '1' + n + ':00', durationMin: 30, title: 'B' + n, kind: 'life' }));
+          // TROIS récurrents pour UN bloc perso : c'est la configuration réelle d'un jour de
+          // cours, et celle qui faisait disparaître le rendez-vous. Le jeu d'essai précédent
+          // (1 récurrent, 4 blocs) laissait passer le défaut.
+          state.recurring = [1, 2, 3].map(n => ({ id: 70 + n, title: 'Cours ' + n, time: '0' + (7 + n) + ':00', durationMin: 60, kind: 'study',
+            rule: { freq: 'daily', startDate: '2026-01-01', interval: 1 }, doneLog: [], skipLog: [] }));
+          state.agenda = [{ id: 9201, date: jour, time: '16:00', durationMin: 60, title: 'Entretien alternance', kind: 'life' }];
           renderMonthCalendar();
           const cel = document.querySelector('.month-day[data-cal-day="' + jour + '"]');
           const evts = cel ? [...cel.querySelectorAll('.month-event')] : [];
@@ -2775,10 +2782,13 @@ app.whenReady().then(async () => {
           // On compte ce qui est RÉELLEMENT visible : la première version de ce check se
           // contentait de l'étiquette, et passait donc sur une case qui débordait quand même.
           const ok = !!cel && cel.classList.contains('month-full')
-            && vus.length === 3 && !!plus && plus.textContent.indexOf('+2') !== -1
+            && vus.length === 3 && !!plus && plus.textContent.indexOf('+1') !== -1
+            // LE point : le rendez-vous perso doit survivre à la coupe. C'est le seul élément
+            // modifiable d'un clic depuis le mois ; le sacrifier retire l'action, pas juste l'info.
+            && cel.querySelectorAll('[data-edit-agenda]').length >= 1
             // …et le repère doit fermer la case, pas s'intercaler au milieu.
             && cel.lastElementChild === plus;
-          state.agenda = save; state.recurring = saveRec; renderMonthCalendar();
+          state.agenda = save; state.recurring = saveRec; state.birthdays = saveB; state.examGoals = saveE; state.raceGoal = saveR; renderMonthCalendar();
           return ok;
         } catch (e) { checks.__errMois = String(e && e.message); return false; }
       })();
@@ -2816,6 +2826,36 @@ app.whenReady().then(async () => {
           return alerte && intact && duree;
         } catch (e) { checks.__errEdit = String(e && e.message); return false; }
       })();
+      // La capacité doit être RÉGLABLE et réellement consommée par la jauge (BLOQUANT).
+      // Elle était codée en dur : une jauge dont le seuil ne correspond pas à ta vie passe au
+      // rouge tous les jours, et une alerte permanente n'est plus une alerte.
+      checks.capaciteReglable = (() => {
+        try {
+          const dlg = document.getElementById('capacityDialog');
+          const bouton = document.getElementById('openCapacity');
+          if (!dlg || !bouton || !bouton.closest('.as-menu')) return false;
+          const saveA = state.agenda, saveR = state.recurring, saveC = state.dayCapacity;
+          state.recurring = [];
+          const jour = localDate();
+          state.agenda = [{ id: 9400, date: jour, time: '09:00', durationMin: 240, title: 'Révision', kind: 'study' }];
+          // Capacité large : 4 h planifiées doivent tenir.
+          state.dayCapacity = capacityFromHours([8, 8, 8, 8, 8, 8, 8]);
+          renderDayLoad(jour);
+          const large = document.getElementById('dayLoadBar').innerHTML.indexOf('saturée') === -1;
+          // Capacité serrée : les MÊMES 4 h doivent saturer. Si les deux donnent le même verdict,
+          // c'est que le réglage n'est pas lu.
+          state.dayCapacity = capacityFromHours([2, 2, 2, 2, 2, 2, 2]);
+          renderDayLoad(jour);
+          const serre = document.getElementById('dayLoadBar').innerHTML.indexOf('saturée') !== -1;
+          bouton.click();
+          const champs = [...dlg.querySelectorAll('[data-cap]')];
+          const prerempli = champs.length === 7 && champs.every(c => c.value !== '');
+          if (dlg.open) dlg.close();
+          state.agenda = saveA; state.recurring = saveR; state.dayCapacity = saveC;
+          renderDayLoad(jour);
+          return large && serre && prerempli;
+        } catch (e) { checks.__errCap = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2851,6 +2891,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.capaciteReglable) errors.push('Capacité KO (#openCapacity dans le menu réglages, formulaire pré-rempli, et la MÊME journée doit saturer à 2 h de capacité mais pas à 8 h)');
     if (!checks.editionConflit) errors.push('Édition d’un bloc KO (déplacer un bloc sur un cours récurrent doit prévenir du chevauchement, ne rien changer si on refuse, et comprendre « 1h30 »)');
     if (!checks.ficheAvecCharge) errors.push('Fiche exercice KO (elle doit s’ouvrir pour un exercice avec charge enregistrée — c’est le cas que l’état de test ne couvrait pas)');
     if (!checks.athleteTabRobuste) errors.push('Sous-onglet Athlète KO (un nom d’onglet inconnu, comme l’ancien « seance », doit retomber sur « Aujourd’hui » et jamais vider la page)');

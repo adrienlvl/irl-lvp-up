@@ -13389,3 +13389,38 @@ test('rescheduleOptions : un bloc du passé se repose à partir d’AUJOURD’HU
   // sur un jour futur, la matinée reste proposable.
   assert.equal(futur[0].time, '08:00', 'la matinée d’un jour futur n’est pas perdue');
 });
+
+test('capacityFromHours / capacityToHours : le décalage lundi↔dimanche ne doit jamais glisser', () => {
+  // La grille interne est indexée DIMANCHE→SAMEDI (Date.getDay()), le formulaire commence
+  // le lundi. Une erreur d'un cran ici ferait juger le samedi avec la capacité du dimanche,
+  // sans que rien ne le signale.
+  const m = L.capacityFromHours([3, 3, 3, 3, 3, 6, 6]);   // lun..dim
+  assert.equal(m.length, 7);
+  assert.equal(m[0], 360, 'index 0 = dimanche → 6 h');
+  assert.equal(m[1], 180, 'index 1 = lundi → 3 h');
+  assert.equal(m[6], 360, 'index 6 = samedi → 6 h');
+  assert.deepEqual(m, L.DAY_CAPACITY_DEFAULT, 'ces valeurs SONT le défaut');
+
+  // Une grille asymétrique prouve que chaque jour tombe à sa place.
+  const asym = L.capacityFromHours([1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(asym, [420, 60, 120, 180, 240, 300, 360], 'dim=7h, lun=1h … sam=6h');
+  assert.deepEqual(L.capacityToHours(asym), [1, 2, 3, 4, 5, 6, 7], 'aller-retour sans perte');
+
+  // Bornes et saisies illisibles : une seule case fautive ne doit pas effacer les six autres.
+  assert.equal(L.capacityFromHours([99, 3, 3, 3, 3, 6, 6])[1], 960, 'plafonné à 16 h');
+  assert.equal(L.capacityFromHours([-4, 3, 3, 3, 3, 6, 6])[1], 180, 'négatif → défaut du jour');
+  const partiel = L.capacityFromHours([2, 'bonjour', 3, 3, 3, 6, 6]);
+  assert.equal(partiel[1], 120, 'lundi lu');
+  assert.equal(partiel[2], 180, 'mardi illisible → défaut du mardi, pas zéro');
+  assert.equal(L.capacityFromHours([0, 0, 0, 0, 0, 0, 0])[1], 0, 'zéro est une réponse valable');
+  assert.deepEqual(L.capacityFromHours(null), L.DAY_CAPACITY_DEFAULT);
+  assert.deepEqual(L.capacityToHours(null), [3, 3, 3, 3, 3, 6, 6]);
+  assert.deepEqual(L.capacityToHours([1, 2, 3]), [3, 3, 3, 3, 3, 6, 6], 'grille incomplète → défaut');
+
+  // Et la jauge doit réellement CONSOMMER ce réglage.
+  const state = { agenda: [{ id: 1, date: '2026-07-28', time: '09:00', durationMin: 240, title: 'X', kind: 'study' }], recurring: [] };
+  const serre = L.dayLoad(state, '2026-07-28', { capacity: L.capacityFromHours([2, 2, 2, 2, 2, 6, 6]) });
+  const large = L.dayLoad(state, '2026-07-28', { capacity: L.capacityFromHours([8, 8, 8, 8, 8, 8, 8]) });
+  assert.equal(serre.status, 'sature', '4 h planifiées sur 2 h de capacité');
+  assert.equal(large.status, 'ok', '4 h planifiées sur 8 h de capacité');
+});

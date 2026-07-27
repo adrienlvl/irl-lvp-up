@@ -705,12 +705,24 @@ function renderMonthCalendar() { const y=calendarCursor.getFullYear(),m=calendar
    d'agenda). La règle ne masquait donc rien — la case débordait TOUT EN annonçant « +2 autres ».
    Le repère se pose aussi en DERNIER, alors qu'il s'intercalait avant les blocs d'agenda. */
 const _MAX_MOIS=3;
-const _entrees=[
+/* state.agenda n'est jamais trié : sans ce tri, la place restante allait au bloc le plus
+   ANCIENNEMENT CRÉÉ, pas au plus tôt dans la journée. */
+const _bl=items.slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')))
+  .map(a=>`<button class="month-event ${a.kind} prio-${a.priority||'normal'} ${a.completed?'completed':''}" data-edit-agenda="${a.id}" title="Cliquer pour modifier ou supprimer">${a.priority==='high'?'🔴 ':''}${a.time} ${escapeHtml(a.title)} ${a.completed?'✓':'✎'}</button>`);
+const _mk=[
   ...keyDateMarkers(state.examGoals,state.raceGoal,date).map(m=>`<span class="month-event ${m.kind==='exam'?'exam-mark':'race-mark'}" title="${m.kind==='exam'?'Examen':'Course objectif'} : ${escapeHtml(m.label)}">${m.kind==='exam'?'📚':'🏁'} ${escapeHtml(m.label)}</span>`),
-  ...bdays.map(b=>{const al=ageLabel(b.age);return `<span class="month-event birthday" title="Anniversaire de ${escapeHtml(b.name)}${al?` (${al})`:''}">🎂 ${escapeHtml(b.name)}</span>`;}),
-  ...recs.map(r=>`<span class="month-event ${r.kind} recurring" title="Récurrent : ${escapeHtml(r.title)}">↻ ${r.time?r.time+' ':''}${escapeHtml(r.title)}</span>`),
-  ...items.map(a=>`<button class="month-event ${a.kind} prio-${a.priority||'normal'} ${a.completed?'completed':''}" data-edit-agenda="${a.id}" title="Cliquer pour modifier ou supprimer">${a.priority==='high'?'🔴 ':''}${a.time} ${escapeHtml(a.title)} ${a.completed?'✓':'✎'}</button>`)
+  ...bdays.map(b=>{const al=ageLabel(b.age);return `<span class="month-event birthday" title="Anniversaire de ${escapeHtml(b.name)}${al?` (${al})`:''}">🎂 ${escapeHtml(b.name)}</span>`;})
 ];
+const _rc=recs.map(r=>`<span class="month-event ${r.kind} recurring" title="Récurrent : ${escapeHtml(r.title)}">↻ ${r.time?r.time+' ':''}${escapeHtml(r.title)}</span>`);
+/* Concaténés bout à bout, les blocs d'agenda arrivaient toujours en DERNIER, donc étaient les
+   premiers coupés : trois cours récurrents (un emploi du temps importé en aligne facilement
+   autant) effaçaient tous les rendez-vous ponctuels — les seuls porteurs de data-edit-agenda,
+   donc les seuls modifiables d'un clic depuis le mois. On sert les groupes à tour de rôle :
+   aucun n'est structurellement sacrifié, et l'agenda passe en premier de chaque tour. */
+const _groupes=[_bl,_mk,_rc].filter(g=>g.length);
+const _entrees=[];
+const _profondeur=Math.max(0,..._groupes.map(g=>g.length));
+for(let i=0;i<_profondeur;i++) for(const g of _groupes) if(g[i]!==undefined) _entrees.push(g[i]);
 const _totalJour=_entrees.length,_reste=_totalJour-_MAX_MOIS;
 cells.push(`<div class="month-day ${muted?'muted':''} ${date===localDate()?'today':''} ${_reste>0?'month-full':''}" data-cal-day="${date}" data-count="${_totalJour}" title="${_totalJour?`${_totalJour} entrée${_totalJour>1?'s':''} · `:''}Voir cette journée"><b>${d.getDate()}</b>${_entrees.slice(0,_MAX_MOIS).join('')}${_reste>0?`<span class="month-more">+${_reste} autre${_reste>1?'s':''}</span>`:''}</div>`)} $('#monthCalendar').innerHTML=cells.join(''); }
 function resetExerciseFilters(){const s=$('#exerciseSearch');if(s)s.value='';const fam=$('#exerciseFamily');if(fam)fam.value='all';const eq=$('#exerciseEquipment');if(eq)eq.value='all';const g=$('#exerciseGoal');if(g)g.value='all';libraryNewOnly=false;libraryFavOnly=false;$('#exerciseNewOnly')?.classList.remove('active');$('#exerciseFavOnly')?.classList.remove('active');renderExerciseLibrary();}
@@ -1058,6 +1070,29 @@ function proposerReplanification(id){
   state.agenda=r.agenda;save();render();
   flashToast(`↪️ Déplacé : ${choix.label}`);
 }
+/* Réglage de la capacité quotidienne. La jauge « journée saturée » comparait ce qui est planifié
+   à des valeurs codées en dur (3 h en semaine, 6 h le week-end) qu'on ne pouvait pas toucher.
+   Une jauge dont le seuil ne correspond pas à ta vie passe au rouge tous les jours — et une
+   alerte permanente n'est plus une alerte, on l'ignore. */
+function ouvrirCapacite(){
+  const dlg=$('#capacityDialog');if(!dlg)return;
+  const h=capacityToHours(state.dayCapacity||DAY_CAPACITY_DEFAULT);
+  dlg.querySelectorAll('[data-cap]').forEach(inp=>{inp.value=String(h[Number(inp.dataset.cap)]);});
+  if(!dlg.open)dlg.showModal();
+}
+$('#openCapacity')?.addEventListener('click',()=>{const menu=document.querySelector('.agenda-settings');if(menu)menu.open=false;ouvrirCapacite();});
+$('#closeCapacity')?.addEventListener('click',()=>$('#capacityDialog')?.close());
+$('#resetCapacity')?.addEventListener('click',()=>{state.dayCapacity=null;save();ouvrirCapacite();renderAgenda();flashToast('⚖️ Capacité revenue au défaut');});
+$('#capacityForm')?.addEventListener('submit',e=>{
+  e.preventDefault();
+  /* On lit dans l'ordre déclaré (lundi→dimanche) et c'est capacityFromHours qui fait le
+     décalage vers l'indexation dimanche→samedi de Date.getDay(). */
+  const heures=[...document.querySelectorAll('#capacityForm [data-cap]')]
+    .sort((a,b)=>Number(a.dataset.cap)-Number(b.dataset.cap)).map(i=>i.value);
+  state.dayCapacity=capacityFromHours(heures);
+  save();$('#capacityDialog')?.close();renderAgenda();
+  flashToast('⚖️ Capacité enregistrée');
+});
 function confirmerSiConflit(candidat,libelle){
   if(typeof scheduleConflicts!=='function')return true;
   // busyBlocksForDay fusionne l'agenda ET les occurrences récurrentes : poser une muscu
@@ -1233,7 +1268,12 @@ $('#agendaEditForm')?.addEventListener('submit',e=>{e.preventDefault();const id=
   const _dureeE=parseDurationInput($('#editAgendaDuration').value,state.agenda[i].durationMin||60);
   /* CRÉER un bloc sur un cours prévenait ; le DÉPLACER dessus ne prévenait pas — alors que
      c'est le geste le plus courant. On passe l'id pour ne pas se heurter à soi-même. */
-  if(!allDay&&_heureE&&!confirmerSiConflit({date:_dateE,time:_heureE,durationMin:_dureeE,id},_titreE))return;
+  /* …mais SEULEMENT si le créneau a bougé. Un bloc qui chevauche légitimement un cours
+     rejouait l'alerte à chaque enregistrement, même en ne changeant que le titre — et
+     répondre « Annuler » jetait alors la modification sans rien dire. */
+  const _av=state.agenda[i];
+  const _creneauChange=(allDay!==Boolean(_av.allDay))||_dateE!==_av.date||_heureE!==(_av.time||'')||_dureeE!==(Number(_av.durationMin)||60);
+  if(!allDay&&_heureE&&_creneauChange&&!confirmerSiConflit({date:_dateE,time:_heureE,durationMin:_dureeE,id},_titreE))return;
   state.agenda[i]=normalizeAgendaItem({...state.agenda[i],title:_titreE,date:_dateE,time:_heureE,kind:$('#editAgendaKind').value,priority:$('#editAgendaPriority').value,allDay,location:$('#editAgendaLocation').value.trim(),travelMin:Number($('#editAgendaTravel').value)||0,notes:$('#editAgendaNotes').value.trim(),durationMin:_dureeE});save();$('#agendaEditDialog').close();renderAgenda();renderMonthCalendar();renderMyDay();renderCommandCenter();renderDailyCompass();});
 $('#duplicateAgendaEdit')?.addEventListener('click',()=>{const id=Number($('#agendaEditForm').dataset.id),it=state.agenda.find(a=>a.id===id);if(!it)return;const copy=duplicateAgendaItem(it,Date.now());if(!copy)return;const fresh=normalizeAgendaItem(copy);state.agenda.push(fresh);save();renderAgenda();renderMonthCalendar();renderMyDay();renderCommandCenter();renderDailyCompass();openAgendaEdit(fresh.id);});
 $('#deleteAgendaEdit')?.addEventListener('click',()=>{const id=Number($('#agendaEditForm').dataset.id),it=state.agenda.find(a=>a.id===id);if(!it)return;if(!confirm('Supprimer cet événement ?'))return;state.agenda=state.agenda.filter(a=>a.id!==id);if(it.planId)state.plans=state.plans.filter(p=>p.id!==it.planId);save();$('#agendaEditDialog').close();renderAgenda();renderMonthCalendar();renderMyDay();renderCommandCenter();renderDailyCompass();});
