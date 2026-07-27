@@ -13714,3 +13714,54 @@ test('revue : le saut et la ré-importation ne perdent pas les exceptions', () =
   assert.equal(L.recurringOccurrence(apres, LUN).time, '14:00', 'l’exception survit à l’import');
   assert.deepEqual(apres.doneLog, ['2026-07-20'], 'les validations aussi, comme avant');
 });
+
+test('coachFormeCause : le coach dit enfin CE QUI fait ta forme', () => {
+  const f = L.coachFormeCause;
+  const j = r => f({ date: '2026-07-28', ...r });
+
+  // Le frein sort pour chacun des trois facteurs, avec le chiffre qui le justifie.
+  const nuit = j({ sleep: 4, fatigue: 2, soreness: 2 });
+  assert.equal(nuit.ton, 'frein');
+  assert.equal(nuit.facteur, 'sleep');
+  assert.match(nuit.texte, /4 h/, 'le chiffre est dans la phrase : « 4 h » se corrige, « 42/100 » non');
+  assert.ok(nuit.action.length > 20, 'et un geste concret suit');
+
+  assert.equal(j({ sleep: 7.5, fatigue: 5, soreness: 2 }).facteur, 'fatigue');
+  assert.equal(j({ sleep: 7.5, fatigue: 2, soreness: 5 }).facteur, 'soreness');
+
+  // Les décimales se disent à la française — une app en français n'écrit pas « 5.5 h ».
+  const demi = j({ sleep: 3.5, fatigue: 2, soreness: 2 });
+  assert.match(demi.texte, /3,5 h/);
+  assert.ok(demi.texte.indexOf('3.5') === -1, 'pas de point décimal');
+
+  // Quand rien ne ressort, le coach se tait : une carte affichée tous les jours n'informe plus.
+  assert.equal(j({ sleep: 9, fatigue: 1, soreness: 1 }), null);
+  assert.equal(f(null), null);
+  assert.equal(f(undefined), null);
+  assert.doesNotThrow(() => f('nawak'));
+
+  // Chaque retour porte de quoi être rendu sans deviner.
+  [nuit, j({ sleep: 7.5, fatigue: 5, soreness: 2 })].forEach(c => {
+    assert.ok(['frein', 'moteur'].includes(c.ton));
+    assert.ok(c.titre && c.texte && c.action);
+    assert.ok(L.READINESS_LABELS[c.facteur], 'le facteur a un libellé connu');
+  });
+});
+
+test('coachTraining expose les pistes qu’il ne met pas en avant', () => {
+  const auj = '2026-07-28';
+  const w = [];
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() - i * 2);
+    w.push({ date: d.toISOString().slice(0, 10), exercises: [{ name: 'Pompes classiques', sets: 4 }] });
+  }
+  const r = L.coachTraining({ workouts: w }, auj);
+  assert.ok(r, 'au moins une piste');
+  assert.ok(Array.isArray(r.autres), 'les autres pistes sont accessibles, plus jetées');
+  // `total` doit rester cohérent avec ce qu'on peut réellement lire.
+  assert.equal(r.autres.length, r.total - 1, 'une en avant, le reste dans autres');
+  // La piste mise en avant ne se répète pas dans la liste.
+  assert.ok(!r.autres.some(p => p.type === r.type), 'pas de doublon avec la piste principale');
+  // Chaque piste secondaire est affichable telle quelle.
+  r.autres.forEach(p => { assert.ok(p.titre && p.constat && p.action); });
+});

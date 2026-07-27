@@ -422,3 +422,37 @@ body::before{
   content:"";position:fixed;top:0;left:0;right:0;z-index:9999;pointer-events:none;
   height:env(safe-area-inset-top);background:#0d1220;
 }
+
+/* ── Cause de la forme + pistes secondaires du coach ─────────────────────────
+   Le coach affichait un score de forme sans jamais dire ce qui le fabrique, et
+   annonçait « +2 autres points » sans permettre de les lire. Les deux manquaient
+   alors que tout était déjà calculé.
+   Règle [hidden] écrite JUSTE SOUS chaque display: deux bandes vides ont déjà été
+   peintes dans ce dépôt faute de l'avoir fait (whatsnew-card, puis coach-agenda). */
+.coach-forme{display:flex;gap:var(--sp-4);align-items:flex-start;width:100%;text-align:left;margin-top:var(--sp-4);padding:var(--sp-4);border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--indigo) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--indigo) 28%,transparent);color:var(--text);font:inherit;cursor:pointer}
+.coach-forme[hidden]{display:none}
+.coach-forme:hover{background:color-mix(in srgb,var(--indigo) 16%,transparent)}
+/* Un frein se lit comme un avertissement, un moteur comme une opportunité. */
+.coach-forme[data-ton="moteur"]{background:color-mix(in srgb,var(--ok) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ok) 28%,transparent)}
+.coach-forme[data-ton="moteur"]:hover{background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.cf-emo{font-size:var(--fs-lg);line-height:1.1;flex:0 0 auto}
+/* min-width:0 : sans lui un texte long pousse la carte hors de l’écran en 390 px. */
+.cf-body{display:grid;gap:2px;min-width:0;flex:1 1 auto}
+.cf-body b{font-size:var(--fs-md);font-weight:650}
+.cf-body>span{font-size:var(--fs-sm);color:var(--muted)}
+.cf-action{color:var(--text)!important;font-weight:550}
+
+.coach-autres{display:block;margin-top:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);overflow:hidden}
+.coach-autres[hidden]{display:none}
+.ca-sum{display:flex;align-items:center;gap:var(--sp-3);padding:12px 14px;cursor:pointer;list-style:none;min-height:44px;font-size:var(--fs-sm);font-weight:600;color:var(--muted)}
+.ca-sum::-webkit-details-marker{display:none}
+.ca-sum:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+#coachAutresLabel{flex:1 1 auto;min-width:0}
+.ca-chev{flex:0 0 auto;font-size:var(--fs-md);line-height:1;transition:transform .18s ease}
+.coach-autres[open] .ca-chev{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.ca-chev{transition:none}}
+.ca-liste{display:grid;gap:var(--sp-3);padding:0 14px 14px}
+.ca-item{display:grid;gap:2px;min-width:0;padding:10px 12px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line)}
+.ca-item b{font-size:var(--fs-sm);font-weight:650;color:var(--text)}
+.ca-item>span{font-size:var(--fs-xs);color:var(--muted)}
+.ca-act{color:var(--text)!important;font-weight:550}

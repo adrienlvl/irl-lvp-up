@@ -3009,6 +3009,55 @@ app.whenReady().then(async () => {
           return ouvert && prerempli && applique && habitude && vu && sautePris;
         } catch (e) { checks.__errRecOcc = String(e && e.message); return false; }
       })();
+      checks.coachContenu = (() => {
+        try {
+          if (typeof coachFormeCause !== 'function' || typeof renderCoachFocus !== 'function') return false;
+          const fe = document.getElementById('coachForme');
+          const ae = document.getElementById('coachAutres');
+          if (!fe || !ae) return false;
+          const sr = state.recovery, sw = state.workouts, sa = state.agenda, srec = state.recurring;
+          state.agenda = []; state.recurring = [];
+          const auj = localDate();
+          // Belle forme : le coach n'a rien à dire. On teste le RENDU, pas la propriété —
+          // .coach-forme pose display:flex, une règle auteur qui bat [hidden]{display:none}.
+          state.recovery = [{ date: auj, sleep: 9, fatigue: 1, soreness: 1 }];
+          state.workouts = [];
+          renderCoachFocus();
+          const muet = fe.hidden === true && getComputedStyle(fe).display === 'none';
+          // Nuit de 4 h : la cause doit être NOMMÉE, avec son chiffre et un geste.
+          state.recovery = [{ date: auj, sleep: 4, fatigue: 2, soreness: 2 }];
+          renderCoachFocus();
+          const vu = getComputedStyle(fe).display !== 'none';
+          const nomme = vu && fe.dataset.facteur === 'sleep' && fe.dataset.ton === 'frein'
+            && fe.innerHTML.indexOf('4 h') !== -1
+            && fe.querySelector('.cf-action') !== null;
+          const tient = fe.scrollWidth <= fe.clientWidth + 1;
+          // Plusieurs pistes d'entraînement : les secondaires doivent être LISIBLES,
+          // pas juste comptées. Le coach annonçait « +2 autres » sans jamais les montrer.
+          const w = [];
+          for (let i = 0; i < 10; i++) {
+            const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() - i * 2);
+            w.push({ date: d.toISOString().slice(0, 10), exercises: [{ name: 'Pompes classiques', sets: 4 }] });
+          }
+          state.workouts = w;
+          renderCoachFocus();
+          const piste = coachTraining(state, auj);
+          // Ce jeu d'essai produit DEUX pistes : l'exiger, sinon vider la liste des pistes
+          // secondaires rendrait la condition vide et la mutation passerait (c'est arrive).
+          // JAMAIS de backtick dans ce fichier hors des delimiteurs : tout ce bloc vit dans un
+          // template literal passe a executeJavaScript, un backtick le TERMINE au milieu et le
+          // harnais ne demarre plus du tout — les greps rendent alors du vide, pas un echec.
+          let listees = !!piste && piste.autres.length >= 1;
+          if (listees) {
+            listees = getComputedStyle(ae).display !== 'none'
+              && ae.querySelectorAll('.ca-item').length === piste.autres.length
+              && (document.getElementById('coachAutresListe').textContent || '').indexOf(piste.autres[0].titre) !== -1;
+          }
+          state.recovery = sr; state.workouts = sw; state.agenda = sa; state.recurring = srec;
+          renderCoachFocus();
+          return muet && nomme && tient && listees;
+        } catch (e) { checks.__errContenu = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3045,6 +3094,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.coachContenu) errors.push('Coach sans contenu de forme (#coachForme : muet quand tout va bien, mais doit NOMMER la cause chiffrée d’une nuit de 4 h avec un geste ; et #coachAutres doit lister les pistes secondaires, pas seulement les compter)');
     if (!checks.coachPoidsSections) errors.push('Coach Poids non rangé (.cw-sec : 5 sections repliables attendues, titres tapables ≥44 px, poids+calories hors section, panneau sous 2000 px, replier doit vraiment retirer de la hauteur, et deux rendus ne doivent pas imbriquer les sections)');
     if (!checks.coachEntrainement) errors.push('Coach muet sur l’entraînement (#coachTraining : silencieux sans séance, mais doit signaler chiffres à l’appui 4 semaines de poussée sans tirage, avec une action et sans déborder)');
     if (!checks.coachAgenda) errors.push('Coach aveugle à l’agenda (#coachAgenda : muet un jour calme, mais doit NOMMER un bloc repoussé 4 fois et pointer dessus)');

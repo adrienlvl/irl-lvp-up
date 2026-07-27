@@ -278,6 +278,10 @@ $('#coachTraining')?.addEventListener('click',()=>{const el=$('#coachTraining');
   const t=el.dataset.type,versProgramme=t==='desequilibre'||t==='plateau'||t==='zone';
   showPage('athlete');
   if(typeof showAthleteTab==='function')showAthleteTab(versProgramme?'programme':'progres');});
+/* Le frein se corrige au check-in de récupération : c'est là qu'on met à jour sommeil, fatigue
+   et courbatures, donc là qu'on agit sur ce que la carte vient de nommer. */
+$('#coachForme')?.addEventListener('click',()=>{const el=$('#coachForme');if(!el||el.hidden)return;
+  showPage('athlete');if(typeof showAthleteTab==='function')showAthleteTab('corps');});
 function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});
   /* L'avertissement d'agenda est INDÉPENDANT du focus : une journée saturée mérite d'être dite
      même les jours où le coach n'a rien d'autre à signaler. Il est donc rendu avant le retour
@@ -301,6 +305,28 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
       _te.innerHTML=`<span class="ct-emo" aria-hidden="true">${emo}</span><span class="ct-body"><b>${escapeHtml(_ct.titre)}</b><span>${escapeHtml(_ct.constat)}</span><span class="ct-action">${escapeHtml(_ct.action)}</span>${reste}</span>`;}
     else{_te.hidden=true;_te.innerHTML='';}
   }
+  /* Ce qui te bride (ou te porte) aujourd'hui. Le coach affichait un score de forme sans jamais
+     dire ce qui le fabrique : « 4 h de sommeil » se corrige, « forme 42/100 » ne se corrige pas. */
+  const _fe=$('#coachForme');
+  let _fc=null;
+  if(_fe){
+    const _rec=(state.recovery||[]).find(x=>x&&x.date===localDate())||(state.recovery||[]).at(-1);
+    _fc=(typeof coachFormeCause==='function')?coachFormeCause(_rec):null;
+    if(_fc){_fe.hidden=false;_fe.dataset.ton=_fc.ton;_fe.dataset.facteur=_fc.facteur;
+      const _emo=_fc.ton==='frein'?{sleep:'😴',fatigue:'🔋',soreness:'🦵'}[_fc.facteur]:'⚡';
+      _fe.innerHTML=`<span class="cf-emo" aria-hidden="true">${_emo}</span><span class="cf-body"><b>${escapeHtml(_fc.titre)}</b><span>${escapeHtml(_fc.texte)}</span><span class="cf-action">${escapeHtml(_fc.action)}</span></span>`;}
+    else{_fe.hidden=true;_fe.innerHTML='';}
+  }
+  /* Les pistes qu'on ne met pas en avant existaient déjà — le coach annonçait « +2 autres points »
+     sans permettre de les lire. Une piste en avant reste le principe ; le reste n'est plus caché. */
+  const _ae2=$('#coachAutres');
+  if(_ae2){
+    const _autres=(_ct&&Array.isArray(_ct.autres))?_ct.autres:[];
+    if(_autres.length){_ae2.hidden=false;
+      $('#coachAutresLabel').textContent=`${_autres.length} autre${_autres.length>1?'s':''} point${_autres.length>1?'s':''} à surveiller`;
+      $('#coachAutresListe').innerHTML=_autres.map(p=>`<div class="ca-item"><b>${escapeHtml(p.titre)}</b><span>${escapeHtml(p.constat)}</span><span class="ca-act">${escapeHtml(p.action)}</span></div>`).join('');}
+    else{_ae2.hidden=true;$('#coachAutresListe').innerHTML='';}
+  }
   if(!f){
     /* Plus de focus : la carte doit être VIDÉE dans tous les cas — sinon l'ancien conseil
        reste affiché avec son data-coach-page périmé, et le clic mène à la mauvaise page.
@@ -309,7 +335,7 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
     const fl0=$('#coachFollow');if(fl0)fl0.hidden=true;
     const mb1=$('#coachMoreBtn'),mp1=$('#coachMore');
     if(mb1)mb1.hidden=true;if(mp1){mp1.hidden=true;mp1.textContent='';}
-    panel.hidden=!_av&&!_ct;
+    panel.hidden=!_av&&!_ct&&!_fc;
     return;
   }
     // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le
