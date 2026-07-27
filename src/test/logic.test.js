@@ -13687,3 +13687,30 @@ test('sanitizeRecurringOverrides : une sauvegarde abîmée ne casse pas l’agen
   // normalizeRecurring assainit aussi : une sauvegarde d'avant cette version n'a pas le champ.
   assert.deepEqual(L.normalizeRecurring({ id: 1, title: 'X' }).overrides, {});
 });
+
+test('revue : le saut et la ré-importation ne perdent pas les exceptions', () => {
+  const cours = { id: 7, refId: 'ics-42', title: 'Cours de compta', time: '09:00', durationMin: 120,
+    kind: 'study', rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } };
+  const LUN = '2026-07-27', MAR = '2026-07-28';
+
+  // Sauter une occurrence DÉPLACÉE : le saut doit porter sur la date d'origine, sinon
+  // recurringOccurs voit d'abord « elle vient d'ailleurs » et la rend quand même.
+  const bouge = L.setRecurringOverride([cours], 7, LUN, { moveTo: MAR }).recurring[0];
+  assert.equal(L.recurringOccurs(bouge, MAR), true, 'elle est bien là avant le saut');
+  const sauteMauvaiseDate = { ...bouge, skipLog: [MAR] };
+  assert.equal(L.recurringOccurs(sauteMauvaiseDate, MAR), true,
+    'sauter la date AFFICHÉE ne suffit pas — c’est précisément le piège');
+  const sauteBonneDate = { ...bouge, skipLog: [LUN] };
+  assert.equal(L.recurringOccurs(sauteBonneDate, MAR), false, 'sauter l’origine la fait disparaître');
+  assert.equal(L.recurringOccurs(sauteBonneDate, LUN), false, 'et elle ne revient pas à sa place');
+
+  // Une ré-importation du calendrier ne doit pas effacer ce qu'Adrien a saisi à la main.
+  const avecException = L.setRecurringOverride([cours], 7, LUN, { time: '14:00' }).recurring[0];
+  avecException.doneLog = ['2026-07-20'];
+  const reimporte = L.mergeRecurring([avecException], [{ refId: 'ics-42', title: 'Cours de compta',
+    time: '09:00', durationMin: 120, kind: 'study',
+    rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-07-06' } }]);
+  const apres = reimporte.find(r => r.refId === 'ics-42');
+  assert.equal(L.recurringOccurrence(apres, LUN).time, '14:00', 'l’exception survit à l’import');
+  assert.deepEqual(apres.doneLog, ['2026-07-20'], 'les validations aussi, comme avant');
+});

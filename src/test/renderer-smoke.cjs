@@ -2995,9 +2995,18 @@ app.whenReady().then(async () => {
           const vu = !!ligne && (ligne.textContent || '').indexOf('14:00') !== -1
             && (ligne.textContent || '').indexOf('09:00') === -1;
           document.getElementById('recOccDialog').close();
+          /* Sauter une occurrence DÉPLACÉE passait à la trappe : skipRecurringOn écrivait la date
+             affichée, alors que recurringOccurs voit d’abord « elle vient d’ailleurs » et la rend
+             quand même — le clic sur « ⤫ sauter » ne faisait rien. On teste le vrai chemin. */
+          const dem2 = new Date(auj + 'T12:00:00'); dem2.setDate(dem2.getDate() + 1);
+          const cible = dem2.toISOString().slice(0, 10);
+          state.recurring = setRecurringOverride(state.recurring, 9700, auj, { moveTo: cible }).recurring;
+          const avantSaut = recurringOccurs(state.recurring[0], cible);
+          skipRecurringOn(9700, cible);
+          const sautePris = avantSaut === true && recurringOccurs(state.recurring[0], cible) === false;
           state.agenda = sa; state.recurring = sr;
           renderAgenda();
-          return ouvert && prerempli && applique && habitude && vu;
+          return ouvert && prerempli && applique && habitude && vu && sautePris;
         } catch (e) { checks.__errRecOcc = String(e && e.message); return false; }
       })();
       return checks;

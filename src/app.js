@@ -1370,7 +1370,14 @@ function completeRecurringOn(recId,date){const r=state.recurring.find(x=>x.id===
   const occ=(typeof recurringOccurrence==='function')?recurringOccurrence(r,date):null;
   const cible=occ?occ.sourceDate:date;
   if(r.doneLog.includes(cible))return false;r.doneLog.push(cible);if(r.kind==='study'){award(15,'focus');}else{save();renderDashboardCore();}return true;}
-function skipRecurringOn(recId,date){const r=state.recurring.find(x=>x.id===Number(recId));if(!r)return false;r.skipLog=Array.isArray(r.skipLog)?r.skipLog:[];if(!r.skipLog.includes(date))r.skipLog.push(date);save();return true;}
+function skipRecurringOn(recId,date){const r=state.recurring.find(x=>x.id===Number(recId));if(!r)return false;r.skipLog=Array.isArray(r.skipLog)?r.skipLog:[];
+  /* Comme la validation, un saut se pose sur la date d'ORIGINE. Sans ça, sauter un cours déplacé
+     au mardi écrivait « mardi » alors que la règle le place le lundi : recurringOccurs voyait
+     d'abord qu'une occurrence venait d'ailleurs et la rendait quand même. Le clic sur
+     « ⤫ sauter » ne faisait donc RIEN sur un bloc déplacé. */
+  const occ=(typeof recurringOccurrence==='function')?recurringOccurrence(r,date):null;
+  const cible=occ?occ.sourceDate:date;
+  if(!r.skipLog.includes(cible))r.skipLog.push(cible);save();return true;}
 $('#myDayList').onclick=e=>{const start=e.target.closest('[data-myday-start]');if(start){const plan=state.plans.find(p=>p.id===Number(start.dataset.mydayStart));if(plan)startPlannedWorkout(plan);return;}const rec=e.target.closest('[data-myday-recdone]');if(rec){if(completeRecurringOn(rec.dataset.mydayRecdone,localDate())){renderMyDay();renderCommandCenter();}return;}const doneButton=e.target.closest('[data-myday-done]');if(!doneButton)return;const item=state.agenda.find(a=>a.id===Number(doneButton.dataset.mydayDone));if(!item||item.completed)return;item.completed=true;if(item.kind==='study'){award(15,'focus');}else{save();renderDashboardCore();}renderCommandCenter();};
 $('#todoPriorityBtn').onclick=()=>{todoPrioritySelected=!todoPrioritySelected;$('#todoPriorityBtn').classList.toggle('active',todoPrioritySelected);};
 $('#todoForm').onsubmit=e=>{e.preventDefault();const text=$('#todoInput').value.trim();if(!text)return;state.todos.push(normalizeTodo({id:Date.now(),text,date:localDate(),priority:todoPrioritySelected?'high':'normal',createdAt:Date.now()}));todoPrioritySelected=false;$('#todoPriorityBtn').classList.remove('active');$('#todoInput').value='';save();renderTodos();renderMyDay();};

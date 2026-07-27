@@ -1445,7 +1445,11 @@ function mergeRecurring(existing, imported) {
     const old = e.refId ? previous.get(e.refId) : undefined;
     if (!old) return normalizeRecurring(e);
     const o = normalizeRecurring(old);
-    return normalizeRecurring({ ...e, id: o.id, doneLog: o.doneLog, skipLog: o.skipLog, paused: o.paused });
+    /* `overrides` fait partie de ce qu'Adrien a saisi À LA MAIN, au même titre que les
+       validations et les sauts : une ré-importation du calendrier ne doit pas effacer
+       « ce lundi-là, le cours est à 14 h ». L'oublier ici perdait toutes les exceptions
+       au prochain import, sans rien dire. */
+    return normalizeRecurring({ ...e, id: o.id, doneLog: o.doneLog, skipLog: o.skipLog, paused: o.paused, overrides: o.overrides });
   });
   const refs = new Set(incoming.filter(e => e.refId).map(e => e.refId));
   return list.filter(r => !(r && r.refId && refs.has(r.refId))).concat(merged);
