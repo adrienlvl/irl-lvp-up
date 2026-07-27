@@ -3159,6 +3159,18 @@ app.whenReady().then(async () => {
           });
           d.close();
         });
+        // 5. ZOOM AU FOCUS iOS : Safari agrandit la page dès qu'on touche un champ dont le
+        //    texte fait moins de 16 px, et ne dézoome jamais. Il faut pincer pour revenir.
+        //    Trois formulaires étaient concernés, dont l'ajout rapide de bloc.
+        out.champsSous16 = [];
+        document.getElementById('openWeekPage').click();
+        document.querySelectorAll('input,select,textarea').forEach(e => {
+          if (e.offsetParent === null || e.type === 'checkbox' || e.type === 'radio') return;
+          const px = parseFloat(getComputedStyle(e).fontSize);
+          if (px < 16 && out.champsSous16.length < 6) {
+            out.champsSous16.push((e.id || '(sans id)') + ' : ' + Math.round(px * 10) / 10 + 'px');
+          }
+        });
         // 4. La grille semaine doit rester lisible (elle tombait à 41 px par colonne).
         showPage('dashboard');
         document.getElementById('openWeekPage').click();
@@ -3173,6 +3185,7 @@ app.whenReady().then(async () => {
     if (m.pageDeborde) errors.push('Passe mobile : la page déborde horizontalement à 390 px');
     if (m.enTeteTexte < 260) errors.push('Passe mobile : le texte de l’en-tête n’a que ' + m.enTeteTexte + ' px (il en faut au moins 260, il tombait à 110)');
     if (m.colonneSemaine < 60) errors.push('Passe mobile : colonnes de la semaine à ' + m.colonneSemaine + ' px (illisible sous 60)');
+    if (m.champsSous16 && m.champsSous16.length) errors.push('Passe mobile : champs sous 16 px — iOS zoomera au focus et ne dézoomera pas : ' + m.champsSous16.join(', '));
     if (m.dialoguesMobile && m.dialoguesMobile.length) errors.push('Passe mobile : dialogues — ' + m.dialoguesMobile.join(', '));
     if (m.deborde.length) errors.push('Passe mobile : éléments qui débordent de leur boîte — ' + m.deborde.map(d => d.el + ' (' + d.page + ', +' + d.de + 'px)').join(', '));
     mob.destroy();

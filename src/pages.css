@@ -342,3 +342,50 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
   .agenda-form>.zone-plan-actions{grid-column:1/-1}
   .agenda-form input,.agenda-form select{min-width:0}
 }
+
+/* ===== iOS : le zoom au focus =============================================
+   Safari sur iPhone AGRANDIT la page dès qu'on touche un champ dont le texte
+   fait moins de 16 px — et il ne dézoome pas ensuite. Il faut pincer pour
+   revenir. Trois de nos formulaires étaient concernés, dont l'ajout rapide de
+   bloc : le chemin le plus fréquent de l'app.
+   On ne cible que les pointeurs grossiers (doigt) : au clavier-souris, les
+   tailles fines restent, elles servent la densité. `max()` préserve tout ce qui
+   est DÉJÀ plus grand que 16 px. */
+/* Deux déclencheurs : la largeur (vérifiable en sonde, et c'est le cas d'Adrien) ET le
+   pointeur grossier (tablettes en paysage, qu'une règle de largeur raterait). */
+/* !important assume : un sélecteur d'élément nu (0,0,1) perd contre la moindre règle de
+   classe comme `.wqa-f input` (0,1,1). Or ceci n'est pas une préférence de design mais une
+   contrainte de plateforme — aucune feuille ne doit pouvoir la contredire, sinon le zoom
+   revient sur ce champ-là précisément. */
+@media (max-width:700px), (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),
+  select, textarea { font-size: max(16px, 1em) !important }
+}
+
+/* ===== iOS : zones sûres, survol collant, défilement =======================
+   L'app déclare viewport-fit=cover et black-translucent : en mode installé le
+   contenu passe SOUS la barre d'état (47 px) et sous l'indicateur d'accueil
+   (34 px). Les trois pages plein écran s'ouvraient avec 24 px de marge en
+   haut : leur titre passait sous l'heure et la batterie. */
+.calendar-page, .week-page, .ultra-page {
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+}
+/* Les dialogues plein écran collaient leur titre et leur croix sous la barre d'état. */
+@media(max-width:650px){
+  dialog { margin-top: max(11px, env(safe-area-inset-top)) }
+}
+/* Boutons flottants et bandeaux : l'indicateur d'accueil mange le bas de l'écran. */
+.back-to-top, .app-toast, .undo-toast, .update-banner {
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px))
+}
+/* Sur un écran tactile il n'y a pas de survol : iOS applique :hover au premier
+   appui et le GARDE jusqu'au tap suivant ailleurs. Résultat, un panneau reste
+   décalé de 2 px et une quête reste surlignée après qu'on l'a touchée. */
+@media (hover: none) {
+  .panel:hover { transform: none; border-color: var(--line) }
+  .quest:hover { background: transparent; transform: none }
+  button:hover { filter: none }
+}

@@ -209,6 +209,11 @@ const OVERLAY_IDS=['weekPage','calendarPage','ultraPage'];
 let overlayReturnFocus=null;
 function anyOverlayOpen(){return OVERLAY_IDS.some(id=>{const el=document.getElementById(id);return el&&!el.hidden;});}
 function openOverlay(el,opener){
+  /* Sans verrou, la page du dessous continue de défiler sous le doigt derrière un overlay —
+     très visible sur iPhone, où le geste traverse. On mémorise la position pour la rendre
+     à la fermeture, sinon on revient en haut de page. */
+  try{if(!document.body.dataset.scrollLock){document.body.dataset.scrollLock=String(window.scrollY||0);document.body.style.position='fixed';document.body.style.top=(-(window.scrollY||0))+'px';document.body.style.width='100%';}}catch(_){}
+
   if(!el)return;
   // null seulement au 1er ouvert : une TRANSITION (semaine → mois) doit garder le déclencheur d'origine.
   if(overlayReturnFocus===null)overlayReturnFocus=opener||document.activeElement;
@@ -223,6 +228,8 @@ function closeOverlay(el){
   if(!el)return;
   el.hidden=true;
   if(anyOverlayOpen())return; // une autre couche reste ouverte : on garde inert et le focus de retour
+  /* On rend la position mémorisée : sans ça, fermer un overlay renvoie en haut de page. */
+  try{const y=document.body.dataset.scrollLock;if(y!==undefined){document.body.style.position='';document.body.style.top='';document.body.style.width='';delete document.body.dataset.scrollLock;window.scrollTo(0,Number(y)||0);}}catch(_){}
   const main=document.querySelector('main.app-shell');
   if(main){main.removeAttribute('inert');main.removeAttribute('aria-hidden');}
   const back=overlayReturnFocus;overlayReturnFocus=null;
