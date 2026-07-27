@@ -9687,15 +9687,24 @@ function onboardingNutritionEstimate(inputs) {
 // mix endurance facile / tempo / fractionné / sortie longue, réparti sur la semaine (longue le dimanche).
 // opts.days (0=Dim…6=Sam) peut imposer les jours. Renvoie { sessions:[{weekday,type,label,minutes,why}], count, totalMinutes }. Pur + testé.
 function runPlanWeek(count, opts) {
-  const want = Math.max(3, Math.min(6, Math.round(Number(count) || 4)));
-  const PATTERN = { 3: [2, 4, 0], 4: [1, 3, 5, 0], 5: [1, 2, 4, 5, 0], 6: [1, 2, 3, 4, 5, 0] };
+  /* Le plancher était à 3 : demander 1 course en rendait 3, et demander 0 en rendait 4
+     (`Number(count) || 4` transforme un zéro légitime en défaut). Conséquence visible à
+     l'écran : l'objectif « prendre du muscle » annonçait « 1 course/sem » et en programmait
+     3 — 7 séances au lieu de 5, deux chiffres qui se contredisaient dans le même bloc.
+     Number.isFinite et pas `|| 4`, sinon 0 n'est jamais respecté. */
+  /* null, undefined et '' veulent dire « non renseigné » et retombent sur le défaut.
+     Sans ce test, Number(null) vaut 0 : un état sauvegardé sans le champ supprimerait
+     silencieusement TOUTES les courses. Seul un zéro EXPLICITE vaut zéro. */
+  const brut = (count === null || count === undefined || count === '') ? 4 : Number(count);
+  const want = Math.max(0, Math.min(6, Math.round(Number.isFinite(brut) ? brut : 4)));
+  const PATTERN = { 0: [], 1: [3], 2: [2, 5], 3: [2, 4, 0], 4: [1, 3, 5, 0], 5: [1, 2, 4, 5, 0], 6: [1, 2, 3, 4, 5, 0] };
   // Mélanges de séances selon l'accent : équilibré (défaut), endurance (volume/longues),
   // vitesse (tempo/fractionné, ex. sèche), facile (footing de récup, ex. jours de muscu lourds).
   const TEMPLATES = {
-    balanced: { 3: ['facile', 'tempo', 'longue'], 4: ['facile', 'fractionne', 'facile', 'longue'], 5: ['facile', 'fractionne', 'facile', 'tempo', 'longue'], 6: ['facile', 'fractionne', 'facile', 'tempo', 'facile', 'longue'] },
-    endurance: { 3: ['facile', 'facile', 'longue'], 4: ['facile', 'facile', 'tempo', 'longue'], 5: ['facile', 'facile', 'facile', 'tempo', 'longue'], 6: ['facile', 'facile', 'tempo', 'facile', 'facile', 'longue'] },
-    vitesse: { 3: ['fractionne', 'tempo', 'facile'], 4: ['fractionne', 'tempo', 'facile', 'longue'], 5: ['fractionne', 'tempo', 'fractionne', 'facile', 'longue'], 6: ['fractionne', 'tempo', 'facile', 'fractionne', 'tempo', 'longue'] },
-    facile: { 3: ['facile', 'facile', 'facile'], 4: ['facile', 'facile', 'facile', 'facile'], 5: ['facile', 'facile', 'tempo', 'facile', 'facile'], 6: ['facile', 'facile', 'facile', 'tempo', 'facile', 'facile'] },
+    balanced: { 0: [], 1: ['longue'], 2: ['facile', 'longue'], 3: ['facile', 'tempo', 'longue'], 4: ['facile', 'fractionne', 'facile', 'longue'], 5: ['facile', 'fractionne', 'facile', 'tempo', 'longue'], 6: ['facile', 'fractionne', 'facile', 'tempo', 'facile', 'longue'] },
+    endurance: { 0: [], 1: ['longue'], 2: ['facile', 'longue'], 3: ['facile', 'facile', 'longue'], 4: ['facile', 'facile', 'tempo', 'longue'], 5: ['facile', 'facile', 'facile', 'tempo', 'longue'], 6: ['facile', 'facile', 'tempo', 'facile', 'facile', 'longue'] },
+    vitesse: { 0: [], 1: ['fractionne'], 2: ['fractionne', 'longue'], 3: ['fractionne', 'tempo', 'facile'], 4: ['fractionne', 'tempo', 'facile', 'longue'], 5: ['fractionne', 'tempo', 'fractionne', 'facile', 'longue'], 6: ['fractionne', 'tempo', 'facile', 'fractionne', 'tempo', 'longue'] },
+    facile: { 0: [], 1: ['facile'], 2: ['facile', 'facile'], 3: ['facile', 'facile', 'facile'], 4: ['facile', 'facile', 'facile', 'facile'], 5: ['facile', 'facile', 'tempo', 'facile', 'facile'], 6: ['facile', 'facile', 'facile', 'tempo', 'facile', 'facile'] },
   };
   const META = {
     facile: { label: 'Course facile', minutes: 35, why: 'Endurance fondamentale : à l’aise, tu peux parler.' },

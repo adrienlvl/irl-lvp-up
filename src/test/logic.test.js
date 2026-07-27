@@ -6037,7 +6037,25 @@ test('runPlanWeek : semaine de course, sortie longue en fin, garde-fous', () => 
   assert.equal(p.totalMinutes, 175, '35+35+35+70');
   assert.equal(L.runPlanWeek(5).count, 5);
   assert.equal(L.runPlanWeek(99).count, 6, 'plafonné à 6');
-  assert.equal(L.runPlanWeek(1).count, 3, 'plancher 3');
+  /* Le plancher de 3 courses a été RETIRÉ sciemment. Il rendait l'app menteuse : l'objectif
+     « prendre du muscle » annonce 1 course/sem et en programmait 3 — 7 séances au lieu de 5,
+     deux chiffres contradictoires dans le même bloc à l'écran. Et il interdisait à tout réglage
+     du nombre de séances de descendre sous 3. On honore désormais ce qui est demandé. */
+  assert.equal(L.runPlanWeek(1).count, 1, 'une course demandée = une course');
+  assert.equal(L.runPlanWeek(2).count, 2);
+  assert.equal(L.runPlanWeek(0).count, 0, 'zéro course est un choix légitime (semaine 100 % muscu)');
+  // La seule sortie de la semaine doit être la PLUS UTILE à l'objectif, pas un footing par défaut.
+  assert.deepEqual(L.runPlanWeek(1, { emphasis: 'endurance' }).sessions.map(s => s.type), ['longue']);
+  assert.deepEqual(L.runPlanWeek(1, { emphasis: 'vitesse' }).sessions.map(s => s.type), ['fractionne']);
+  /* null / undefined / '' veulent dire « non renseigné » et retombent sur le défaut : sans ça
+     Number(null) vaut 0, et un état sauvegardé sans le champ effacerait toutes les courses. */
+  assert.equal(L.runPlanWeek(null).count, 4, 'non renseigné n’est pas zéro');
+  assert.equal(L.runPlanWeek(undefined).count, 4);
+  assert.equal(L.runPlanWeek('').count, 4);
+  // Chaque objectif doit désormais générer EXACTEMENT ce qu'il annonce à l'écran.
+  L.FITNESS_OBJECTIVES.forEach(o => {
+    assert.equal(L.runPlanWeek(o.runs).count, o.runs, `l’objectif ${o.key} annonce ${o.runs} course(s)`);
+  });
   // jours imposés
   assert.deepEqual(L.runPlanWeek(4, { days: [1, 2, 3, 4] }).sessions.map(s => s.weekday), [1, 2, 3, 4]);
   // accents (emphasis) : mix de types adapté à l'objectif
