@@ -271,6 +271,13 @@ $('#coachAgenda')?.addEventListener('click',()=>{const el=$('#coachAgenda');if(!
   const bloc=(state.agenda||[]).find(a=>a&&String(a.id)===String(cible));
   if(cible!=null&&cible!==''&&bloc&&typeof openAgendaEdit==='function'){openAgendaEdit(Number(cible));return;}
   $('#openWeekPage')?.click();});
+/* Une piste d'entraînement sans porte de sortie ne sert à rien : le clic emmène là où on peut
+   agir. Déséquilibre, plateau, zone oubliée → le catalogue d'exercices, pour en choisir un.
+   Charge, fatigue, affûtage → la progression, pour voir la courbe qui a déclenché l'alerte. */
+$('#coachTraining')?.addEventListener('click',()=>{const el=$('#coachTraining');if(!el||el.hidden)return;
+  const t=el.dataset.type,versProgramme=t==='desequilibre'||t==='plateau'||t==='zone';
+  showPage('athlete');
+  if(typeof showAthleteTab==='function')showAthleteTab(versProgramme?'programme':'progres');});
 function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus');if(!panel||!el||typeof adaptiveCoachFocus!=='function')return;const nowD=new Date(),f=adaptiveCoachFocus(state,localDate(),{nowMinutes:nowD.getHours()*60+nowD.getMinutes()});
   /* L'avertissement d'agenda est INDÉPENDANT du focus : une journée saturée mérite d'être dite
      même les jours où le coach n'a rien d'autre à signaler. Il est donc rendu avant le retour
@@ -282,6 +289,18 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
       _ae.innerHTML=`<span class="ca-emo" aria-hidden="true">${_av.type==='report'?'🔁':'⚠️'}</span><span class="ca-body"><b>${escapeHtml(_av.titre)}</b><span>${escapeHtml(_av.texte)}</span><span class="ca-action">${escapeHtml(_av.action)}</span></span>`;}
     else{_ae.hidden=true;_ae.innerHTML='';}
   }
+  /* Le coach d'entraînement est lui aussi INDÉPENDANT du focus : « tu montes trop vite » ou
+     « il te faut une décharge » doit se dire même un jour où le focus parle nutrition.
+     L'app calculait déjà seize signaux d'entraînement dont le coach n'en lisait que trois. */
+  const _ct=(typeof coachTraining==='function')?coachTraining(state,localDate()):null;
+  const _te=$('#coachTraining');
+  if(_te){
+    if(_ct){_te.hidden=false;_te.dataset.type=_ct.type;_te.dataset.discipline=_ct.discipline;
+      const emo={charge:'📈',fatigue:'🔋',affutage:'🏁',desequilibre:'⚖️',plateau:'🧱',zone:'🎯'}[_ct.type]||'💪';
+      const reste=_ct.total>1?`<span class="ct-reste">+${_ct.total-1} autre${_ct.total>2?'s':''} point${_ct.total>2?'s':''} à surveiller</span>`:'';
+      _te.innerHTML=`<span class="ct-emo" aria-hidden="true">${emo}</span><span class="ct-body"><b>${escapeHtml(_ct.titre)}</b><span>${escapeHtml(_ct.constat)}</span><span class="ct-action">${escapeHtml(_ct.action)}</span>${reste}</span>`;}
+    else{_te.hidden=true;_te.innerHTML='';}
+  }
   if(!f){
     /* Plus de focus : la carte doit être VIDÉE dans tous les cas — sinon l'ancien conseil
        reste affiché avec son data-coach-page périmé, et le clic mène à la mauvaise page.
@@ -290,7 +309,7 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
     const fl0=$('#coachFollow');if(fl0)fl0.hidden=true;
     const mb1=$('#coachMoreBtn'),mp1=$('#coachMore');
     if(mb1)mb1.hidden=true;if(mp1){mp1.hidden=true;mp1.textContent='';}
-    panel.hidden=!_av;
+    panel.hidden=!_av&&!_ct;
     return;
   }
     // Journal du coach (mémoire anti-radotage) : une entrée {date, pillar} par jour, mise à jour si le

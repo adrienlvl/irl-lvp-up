@@ -2883,6 +2883,40 @@ app.whenReady().then(async () => {
           return muet && parle;
         } catch (e) { checks.__errCoach = String(e && e.message); return false; }
       })();
+      checks.coachEntrainement = (() => {
+        try {
+          if (typeof coachTraining !== 'function' || typeof renderCoachFocus !== 'function') return false;
+          const el = document.getElementById('coachTraining');
+          if (!el) return false;
+          const sw = state.workouts, sr = state.raceGoal, sa = state.agenda, srec = state.recurring;
+          state.agenda = []; state.recurring = []; state.raceGoal = null;
+          const jour = localDate();
+          // Personne ne s'est entraîné : le coach d'entraînement se tait. On teste le RENDU
+          // et pas el.hidden — .coach-training pose display:flex, une règle auteur qui bat
+          // [hidden]{display:none}. Ce défaut a été commis deux fois ici avant celui-ci.
+          state.workouts = [];
+          renderCoachFocus();
+          const muet = el.hidden === true && getComputedStyle(el).display === 'none';
+          // Que de la poussée pendant quatre semaines : le déséquilibre le plus grave, celui
+          // où muscleBalance rend ratio:null. Il doit sortir, chiffré, avec une action.
+          const w = [];
+          for (let i = 0; i < 10; i++) {
+            const d = new Date(jour + 'T12:00:00'); d.setDate(d.getDate() - i * 2);
+            w.push({ date: d.toISOString().slice(0, 10), exercises: [{ name: 'Pompes classiques', sets: 4 }] });
+          }
+          state.workouts = w;
+          renderCoachFocus();
+          const vu = getComputedStyle(el).display !== 'none';
+          const parle = vu && el.dataset.type === 'desequilibre'
+            && el.innerHTML.indexOf('tirage') !== -1
+            && el.querySelector('.ct-action') !== null;
+          // La carte doit tenir dans un iPhone : un constat long ne pousse pas la page.
+          const tient = el.scrollWidth <= el.clientWidth + 1;
+          state.workouts = sw; state.raceGoal = sr; state.agenda = sa; state.recurring = srec;
+          renderCoachFocus();
+          return muet && parle && tient;
+        } catch (e) { checks.__errCoachT = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2918,6 +2952,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
+    if (!checks.coachEntrainement) errors.push('Coach muet sur l’entraînement (#coachTraining : silencieux sans séance, mais doit signaler chiffres à l’appui 4 semaines de poussée sans tirage, avec une action et sans déborder)');
     if (!checks.coachAgenda) errors.push('Coach aveugle à l’agenda (#coachAgenda : muet un jour calme, mais doit NOMMER un bloc repoussé 4 fois et pointer dessus)');
     if (!checks.capaciteReglable) errors.push('Capacité KO (#openCapacity dans le menu réglages, formulaire pré-rempli, et la MÊME journée doit saturer à 2 h de capacité mais pas à 8 h)');
     if (!checks.editionConflit) errors.push('Édition d’un bloc KO (déplacer un bloc sur un cours récurrent doit prévenir du chevauchement, ne rien changer si on refuse, et comprendre « 1h30 »)');

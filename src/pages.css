@@ -256,6 +256,27 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 .coach-agenda:hover{background:color-mix(in srgb,var(--warn) 16%,transparent)}
 .coach-agenda[data-type="report"]{background:color-mix(in srgb,var(--danger) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 30%,transparent)}
 .coach-agenda[data-type="report"]:hover{background:color-mix(in srgb,var(--danger) 16%,transparent)}
+
+/* Coach d’entraînement. Le bleu le distingue de l’orange de l’agenda : l’un parle du temps
+   qui manque, l’autre du corps qu’on abîme. La règle [hidden] est écrite JUSTE SOUS le
+   display, jamais ailleurs — deux fois dans ce dépôt une classe a posé display:flex sans
+   elle, et une bande vide s’est affichée tous les jours (whatsnew-card, puis coach-agenda). */
+.coach-training{display:flex;gap:var(--sp-4);align-items:flex-start;width:100%;text-align:left;margin-top:var(--sp-4);padding:var(--sp-4);border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--blue) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--blue) 28%,transparent);color:var(--text);font:inherit;cursor:pointer}
+.coach-training[hidden]{display:none}
+.coach-training:hover{background:color-mix(in srgb,var(--blue) 16%,transparent)}
+/* Ce qui blesse passe en rouge : la charge qui s’emballe et la fatigue accumulée ne sont pas
+   des conseils d’optimisation, ce sont les deux causes de blessure que l’app sait voir venir. */
+.coach-training[data-type="charge"],.coach-training[data-type="fatigue"]{background:color-mix(in srgb,var(--danger) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 30%,transparent)}
+.coach-training[data-type="charge"]:hover,.coach-training[data-type="fatigue"]:hover{background:color-mix(in srgb,var(--danger) 16%,transparent)}
+.coach-training[data-type="affutage"]{background:color-mix(in srgb,var(--gold) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 30%,transparent)}
+.ct-emo{font-size:var(--fs-lg);line-height:1.1;flex:0 0 auto}
+/* min-width:0 : sans lui, un constat long pousse la carte hors de l’écran en 390 px —
+   un élément flex refuse par défaut de descendre sous la largeur de son contenu. */
+.ct-body{display:grid;gap:2px;min-width:0;flex:1 1 auto}
+.ct-body b{font-size:var(--fs-md);font-weight:650}
+.ct-body>span{font-size:var(--fs-sm);color:var(--muted)}
+.ct-action{color:var(--text)!important;font-weight:550}
+.ct-reste{margin-top:2px;font-size:var(--fs-xs);color:var(--muted);opacity:.85}
 .ca-emo{font-size:var(--fs-xl);line-height:var(--lh-tight);flex:none}
 .ca-body{display:grid;gap:var(--sp-0);min-width:0}
 .ca-body>b{font-size:var(--fs-sm);font-weight:var(--fw-bold)}

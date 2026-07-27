@@ -13476,3 +13476,58 @@ test('coachAgendaWarning : le coach regarde enfin si le plan tient debout', () =
   const large = caw(charge, auj, { capacity: L.capacityFromHours([8, 8, 8, 8, 8, 8, 8]) });
   assert.equal(large, null, '5 h planifiées tiennent dans 8 h de capacité');
 });
+
+test('coachTraining : le coach parle enfin muscu, trail et course', () => {
+  const ct = L.coachTraining;
+  const auj = '2026-07-28';
+  const seances = (ex, n = 10) => {
+    const w = [];
+    for (let i = 0; i < n; i++) { const d = new Date(auj); d.setDate(d.getDate() - i * 2); w.push({ date: d.toISOString().slice(0, 10), exercises: ex }); }
+    return w;
+  };
+
+  // Rien d'enregistré → le coach se tait. On ne commente pas un entraînement qui n'existe pas.
+  assert.equal(ct({ workouts: [] }, auj), null);
+  assert.equal(ct(null, auj), null);
+  assert.equal(ct({ workouts: seances([{ name: 'Pompes classiques', sets: 4 }]) }, 'pas-une-date'), null);
+
+  // Déséquilibre poussée/tirage : le cas ZÉRO doit sortir, or muscleBalance rend ratio:null
+  // dans ce cas précis — un test sur le seul ratio laisserait passer le pire déséquilibre.
+  const poussee = ct({ workouts: seances([{ name: 'Pompes classiques', sets: 4 }]) }, auj);
+  assert.equal(poussee.type, 'desequilibre');
+  assert.equal(poussee.discipline, 'muscu');
+  assert.match(poussee.titre, /pas assez de tirage/);
+  assert.match(poussee.constat, /0 de tirage/, 'le chiffre justifie le constat');
+  assert.match(poussee.action, /tractions|rowing/, 'et l’action est concrète');
+
+  // L'autre sens doit être détecté aussi, avec le bon message.
+  const tirage = ct({ workouts: seances([{ name: 'Tractions', sets: 4 }]) }, auj);
+  assert.equal(tirage.type, 'desequilibre');
+  assert.match(tirage.titre, /pas assez de poussée/);
+
+  // Affûtage : une course dans 10 jours doit primer sur le reste — c'est daté, pas rattrapable.
+  const avecCourse = {
+    workouts: seances([{ name: 'Pompes classiques', sets: 4 }]),
+    raceGoal: { date: '2026-08-05', km: 42 }
+  };
+  const taper = ct(avecCourse, auj);
+  assert.equal(taper.type, 'affutage');
+  assert.equal(taper.discipline, 'trail');
+  assert.match(taper.titre, /Affûtage/);
+  assert.ok(taper.action && taper.action.length > 20, 'la phase donne une consigne, pas un mot');
+
+  // Une course lointaine ne déclenche pas l'affûtage : on ne lève pas le pied 6 mois avant.
+  const loin = ct({ ...avecCourse, raceGoal: { date: '2027-06-01' } }, auj);
+  assert.notEqual(loin.type, 'affutage');
+
+  // Chaque piste porte de quoi être rendue sans deviner.
+  [poussee, tirage, taper].forEach(p => {
+    assert.ok(['muscu', 'trail', 'run'].includes(p.discipline), 'discipline connue');
+    assert.ok(p.titre && p.constat && p.action, 'titre + constat + action');
+    assert.ok(Number.isFinite(p.urgence), 'urgence chiffrée, pour trancher entre deux pistes');
+    assert.ok(p.total >= 1, 'on sait combien de pistes existaient');
+  });
+
+  // Une date impossible ne fait pas exploser la fonction.
+  assert.doesNotThrow(() => ct({ workouts: [{ date: '2026-13-99', exercises: [{ name: 'X', sets: 3 }] }] }, auj));
+});
