@@ -2868,7 +2868,11 @@ app.whenReady().then(async () => {
           // Journée calme : le coach se tait. Une alerte permanente n'est plus une alerte.
           state.agenda = [];
           renderCoachFocus();
-          const muet = el.hidden === true;
+          // On teste le RENDU, pas la propriété : la règle auteur display:flex de .coach-agenda
+          // bat la règle [hidden] du navigateur. La version précédente lisait el.hidden === true
+          // et restait verte sur une bande orange vide, peinte chaque jour. Le check
+          // whatsNewDismiss existait déjà pour ce motif exact — je l’ai refait.
+          const muet = el.hidden === true && getComputedStyle(el).display === 'none';
           // Bloc repoussé 4 fois : il doit être NOMMÉ, et cliquable pour trancher.
           state.agenda = [{ id: 9500, date: jour, time: '18:00', durationMin: 60, title: 'Relancer Decathlon', kind: 'focus', movedCount: 4, firstDate: '2026-07-20' }];
           renderCoachFocus();
@@ -3093,11 +3097,15 @@ app.whenReady().then(async () => {
   // Adrien utilise l'app sur iPhone. Les défauts de mise en page à cette largeur sont
   // INVISIBLES dans la fenêtre de 1200 px ci-dessus : on rouvre donc une fenêtre étroite.
   try {
+    /* Un harnais de test ne doit JAMAIS pouvoir se suspendre : cette passe a bloqué le smoke
+       16 minutes sans consommer de CPU. Tout est désormais borné par une course contre un
+       délai — si la fenêtre mobile ne répond pas, on le SIGNALE et on continue. */
+    const limite = (p, ms, quoi) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(quoi + ' : pas de réponse en ' + ms + ' ms')), ms))]);
     const mob = new BrowserWindow({ show: false, width: 390, height: 844, useContentSize: true,
       webPreferences: { preload: path.join(__dirname, '..', 'preload.cjs'), contextIsolation: true } });
-    await mob.loadFile(path.join(__dirname, '..', 'index.html'));
+    await limite(mob.loadFile(path.join(__dirname, '..', 'index.html')), 20000, 'chargement mobile');
     await new Promise(r => setTimeout(r, 2200));
-    const m = await mob.webContents.executeJavaScript(`(() => {
+    const m = await limite(mob.webContents.executeJavaScript(`(() => {
       const out = { deborde: [], pageDeborde: false, enTeteTexte: 0, colonneSemaine: 0 };
       try {
         // 1. Rien ne doit dépasser horizontalement de la page.
@@ -3136,7 +3144,7 @@ app.whenReady().then(async () => {
         out.colonneSemaine = c ? Math.round(c.getBoundingClientRect().width) : 0;
       } catch (e) { out.erreur = String(e && e.message); }
       return out;
-    })()`);
+    })()`), 25000, 'mesures mobiles');
     console.log('MOBILE ' + JSON.stringify(m));
     if (m.erreur) errors.push('Passe mobile : exception — ' + m.erreur);
     if (m.pageDeborde) errors.push('Passe mobile : la page déborde horizontalement à 390 px');
@@ -3145,7 +3153,8 @@ app.whenReady().then(async () => {
     if (m.deborde.length) errors.push('Passe mobile : éléments qui débordent de leur boîte — ' + m.deborde.map(d => d.el + ' (' + d.page + ', +' + d.de + 'px)').join(', '));
     mob.destroy();
   } catch (e) {
-    errors.push('Passe mobile : impossible à exécuter — ' + e.message);
+    errors.push('Passe mobile : ' + e.message);
+    try { BrowserWindow.getAllWindows().forEach(w => { if (!w.isDestroyed() && w.getSize()[0] === 390) w.destroy(); }); } catch (_) {}
   }
 
   clearTimeout(bail);

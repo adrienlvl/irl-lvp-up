@@ -109,16 +109,37 @@ test('CSS : la première piste des en-têtes de semaine = gouttière + écart du
   const sp1 = Number((tokens.match(/--sp-1:\s*(\d+)px/) || [])[1]);
   assert.ok(Number.isFinite(sp1), '--sp-1 doit être défini en pixels');
 
-  // Chaque déclaration de .wt-body porte la gouttière ; chaque .wt-heads porte la piste d'en-tête.
-  const gouttieres = [...css.matchAll(/\.wt-body\{[^}]*grid-template-columns:(\d+)px 1fr/g)].map(m => Number(m[1]));
-  const entetes = [...css.matchAll(/\.wt-heads,\.wt-alldays[^{]*\{[^}]*grid-template-columns:(\d+)px repeat\(7/g)].map(m => Number(m[1]));
-  assert.ok(gouttieres.length >= 1, 'au moins une gouttière déclarée');
-  assert.equal(entetes.length, gouttieres.length,
-    `autant de pistes d’en-tête que de gouttières (${entetes.length} vs ${gouttieres.length}) — sinon une requête média en redéfinit une sans l’autre`);
+  // On resout la cascade PAR PALIER de largeur au lieu d appairer par ordre d apparition :
+  // deplacer une declaration d une requete media a l autre laissait le test au vert alors que
+  // les jours se decalaient de 12 px entre 561 et 760 px.
+  const src = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const segs = [];
+  const re = /@media\(max-width:(\d+)px\)\{/g;
+  let m, pos = 0;
+  while ((m = re.exec(src))) {
+    let d = 1, i = m.index + m[0].length;
+    while (i < src.length && d > 0) { if (src[i] === "{") d++; else if (src[i] === "}") d--; i++; }
+    segs.push({ max: Infinity, txt: src.slice(pos, m.index) });
+    segs.push({ max: Number(m[1]), txt: src.slice(m.index + m[0].length, i - 1) });
+    pos = i; re.lastIndex = i;
+  }
+  segs.push({ max: Infinity, txt: src.slice(pos) });
 
-  // Les déclarations se suivent dans le même ordre (défaut, puis requêtes média).
-  gouttieres.forEach((g, i) => {
-    assert.equal(entetes[i], g + sp1,
-      `en-tête ${entetes[i]}px pour une gouttière de ${g}px + ${sp1}px d’écart → ${g + sp1}px attendus (les jours se décaleraient de ${Math.abs(entetes[i] - g - sp1)}px)`);
-  });
+  const lireG = t => [...t.matchAll(/\.wt-body\{[^}]*grid-template-columns:(\d+)px 1fr/g)].map(x => Number(x[1])).pop();
+  const lireE = t => [...t.matchAll(/\.wt-heads,\.wt-alldays[^{]*\{[^}]*grid-template-columns:(\d+)px repeat\(7/g)].map(x => Number(x[1])).pop();
+
+  const paliers = segs.map(x => x.max).filter(Number.isFinite);
+  const largeurs = [...new Set([1200, ...paliers.flatMap(p => [p, p + 1])])].sort((a, b) => b - a);
+  const rates = [];
+  for (const w of largeurs) {
+    let g, e;
+    for (const seg of segs) {          // cascade : le dernier segment applicable gagne
+      if (w > seg.max) continue;
+      const a = lireG(seg.txt); if (a !== undefined) g = a;
+      const b = lireE(seg.txt); if (b !== undefined) e = b;
+    }
+    if (g === undefined || e === undefined) { rates.push(w + "px : gouttière ou piste d’en-tête non définie"); continue; }
+    if (e !== g + sp1) rates.push(w + "px : en-tête " + e + "px pour une gouttière de " + g + "px + " + sp1 + "px d’écart → les jours se décalent de " + Math.abs(e - g - sp1) + "px");
+  }
+  assert.deepEqual(rates, [], "en-têtes de semaine désalignés du corps");
 });

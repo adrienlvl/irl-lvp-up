@@ -9101,8 +9101,13 @@ function coachAgendaWarning(state, todayKey, opts) {
       titre: jour === todayKey ? 'Ta journée ne tient pas debout' : 'Demain est déjà trop plein',
       texte: `${h(charge.totalMin)} planifiées pour ${h(charge.capacityMin)} de capacité — ${h(charge.overflowMin)} de trop`
         + (charge.endEstimate ? `, tu finirais vers ${charge.endEstimate}` : '') + '.',
+      /* lightenSuggestions ne propose QUE des blocs d'agenda. Quand la saturation vient des
+         récurrents (cours, séance hebdo), il n'y a ni haute priorité ni rien à abandonner :
+         le dire autrement, sinon le coach ment devant une jauge qui affiche l'inverse. */
       action: aLeger ? `Commence par déplacer « ${aLeger.title} » (${aLeger.time}, ${aLeger.durationMin} min).`
-        : 'Tout est en haute priorité : il va falloir en abandonner un.',
+        : (charge.blocks > 0 && !(state && state.agenda || []).some(a => a && a.date === jour && !a.completed && !a.allDay)
+            ? 'Ce sont tes cours qui remplissent la journée : ne prévois rien d’autre, ou saute-en un.'
+            : 'Tout ce qui reste est en haute priorité : il va falloir en abandonner un.'),
       cible: aLeger ? aLeger.id : null
     });
   });
@@ -9115,7 +9120,11 @@ function coachAgendaWarning(state, todayKey, opts) {
   if (repousses.length) {
     const p = repousses[0];
     alertes.push({
-      type: 'report', date: p.date, urgence: 1,
+      type: 'report', date: p.date,
+      /* Un bloc daté du passé, repoussé puis abandonné sans être coché, resterait prioritaire
+         à VIE et masquerait la surcharge du jour — la vraie information du moment. On le
+         garde, mais il cède le pas à une journée d'aujourd'hui qui déborde. */
+      urgence: (isRealDateKey(p.date) && p.date < todayKey) ? 2.5 : 1,
       titre: `« ${p.title} » te suit depuis trop longtemps`,
       texte: `Repoussé ${Math.round(Number(p.movedCount) || 0)} fois`
         + (isRealDateKey(p.firstDate) ? `, prévu au départ le ${p.firstDate.split('-').reverse().slice(0, 2).join('/')}` : '') + '.',

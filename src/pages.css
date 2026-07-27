@@ -226,7 +226,7 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
   .wqa-main{gap:var(--sp-3)}
   .wqa-title{flex:1 1 100%}
   .wqa-add{width:100%}
-  .as-menu{right:auto;left:0;min-width:min(88vw,290px)}
+  .as-menu{right:0;left:auto;min-width:0;width:min(88vw,290px)}
 }
 /* La vue jour couvre elle aussi 6 h → minuit : sans défilement interne, la page
    s'allongeait de près de 800 px pour montrer des heures vides. */
@@ -252,6 +252,7 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 /* Avertissement d'agenda dans la carte du coach : une journée qui ne tient pas debout, ou une
    décision repoussée. Distinct du focus, parce que ce n'est pas un conseil mais un constat. */
 .coach-agenda{display:flex;gap:var(--sp-4);align-items:flex-start;width:100%;text-align:left;margin-top:var(--sp-5);padding:var(--sp-4);border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--warn) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 30%,transparent);color:var(--text);font:inherit;cursor:pointer}
+.coach-agenda[hidden],.coach-focus[hidden]{display:none}
 .coach-agenda:hover{background:color-mix(in srgb,var(--warn) 16%,transparent)}
 .coach-agenda[data-type="report"]{background:color-mix(in srgb,var(--danger) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 30%,transparent)}
 .coach-agenda[data-type="report"]:hover{background:color-mix(in srgb,var(--danger) 16%,transparent)}
