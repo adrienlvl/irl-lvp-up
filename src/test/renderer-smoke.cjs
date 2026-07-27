@@ -1008,7 +1008,7 @@ app.whenReady().then(async () => {
           const conseil = document.getElementById("coachTargetAdvice");
           return doublonRetire && enregistre && !!conseil && !conseil.hidden;
         })(),
-        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.1.0'; })(),
+        whatsNew: typeof whatsNewSince === 'function' && typeof compareVersions === 'function' && typeof CHANGELOG !== 'undefined' && !!document.getElementById('whatsNewCard') && (() => { const log = [{ v: '1.9.190', emoji: '✨', text: 'C' }, { v: '1.9.189', emoji: '📈', text: 'B' }, { v: '1.9.188', emoji: '🧘', text: 'A' }]; const seen = whatsNewSince('1.9.188', log); return compareVersions('1.10.0', '1.9.99') === 1 && whatsNewSince('', log).length === 0 && seen.length === 2 && seen[0].v === '1.9.190' && whatsNewSince('1.9.190', log).length === 0 && Array.isArray(CHANGELOG) && CHANGELOG[0].v === '2.2.0'; })(),
         ageLabel: typeof ageLabel === 'function' && ageLabel(1) === '1 an' && ageLabel(2) === '2 ans' && ageLabel(0) === '0 an' && ageLabel(null) === '' && ageLabel('x') === '',
         ageLabelList: typeof renderBirthdays === 'function' && !!document.getElementById('birthdayList') && (() => {
           // La liste de gestion des anniversaires doit accorder l'âge au singulier (« 1 an »),
@@ -2553,6 +2553,49 @@ app.whenReady().then(async () => {
         const relies = exercises.filter(x => x.easier || x.harder).length;
         return aLien && navigue && scrollOk && relies >= 30;
       })();
+      // Agenda (BLOQUANT). Le défaut d'origine : app.js lisait #weekQuickDuration, un champ
+      // qui n'existait dans AUCUN formulaire — donc tout bloc créé durait 60 min en silence.
+      // Ce check vérifie que chaque identifiant lu par le code existe réellement dans le DOM.
+      checks.agendaDuration = (() => {
+        const ids = ['weekQuickDuration', 'calendarAgendaDuration', 'recDuration'];
+        if (!ids.every(id => document.getElementById(id))) return false;
+        if (typeof parseDurationInput !== 'function') return false;
+        return parseDurationInput('1h30') === 90 && parseDurationInput('') === 60 && parseDurationInput('999') === 600;
+      })();
+      // La détection de conflit doit voir les COURS RÉCURRENTS, pas seulement l'agenda :
+      // poser une muscu pendant son cours de 17 h ne déclenchait rien.
+      checks.agendaConflit = (() => {
+        if (typeof busyBlocksForDay !== 'function' || typeof conflictLabel !== 'function') return false;
+        const jour = '2026-07-28';   // un mardi
+        const faux = {
+          agenda: [{ id: 1, date: jour, time: '18:00', durationMin: 60, title: 'Muscu', kind: 'sport' }],
+          recurring: [{ id: 9, title: 'Cours de droit', time: '17:00', durationMin: 120, kind: 'study',
+            rule: { freq: 'weekly', startDate: '2026-01-06', weekdays: [2], interval: 1 }, doneLog: [], skipLog: [] }]
+        };
+        const occupe = busyBlocksForDay(faux, jour, {});
+        if (occupe.length !== 2 || occupe[0].origin !== 'recurring') return false;
+        const txt = conflictLabel(scheduleConflicts(occupe, { date: jour, time: '18:00', durationMin: 60, id: null }), '19:00');
+        return txt.indexOf('Cours de droit') !== -1 && txt.indexOf('19:00') !== -1
+          && !!document.getElementById('calendarConflictHint');
+      })();
+      // La jauge de charge doit se peindre pour un jour rempli, et rester muette un jour vide.
+      checks.agendaCharge = (() => {
+        const el = document.getElementById('dayLoadBar');
+        if (!el || typeof renderDayLoad !== 'function' || typeof dayLoad !== 'function') return false;
+        const save = state.agenda;
+        const jour = localDate();
+        state.agenda = [
+          { id: 901, date: jour, time: '08:00', durationMin: 240, title: 'Révision', kind: 'study' },
+          { id: 902, date: jour, time: '18:00', durationMin: 90, title: 'Muscu', kind: 'sport' }
+        ];
+        renderDayLoad(jour);
+        const rempli = !el.hidden && el.innerHTML.indexOf('saturée') !== -1;
+        state.agenda = [];
+        renderDayLoad(jour);
+        const vide = el.hidden === true;
+        state.agenda = save; renderDayLoad(jour);
+        return rempli && vide;
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -2585,6 +2628,9 @@ app.whenReady().then(async () => {
     if (!checks.typeHierarchy) errors.push('Hiérarchie typographique KO (le titre de page doit dépasser le titre de carte d’au moins 6 px)');
     if (!checks.isoHoldsUi) errors.push('Tenues isométriques KO (isometricProgress / #isoHolds : 70 s de gainage → palier Intermédiaire + conseil de volume, et aucune tenue jamais enregistrée)');
     if (!checks.skillRoadmapUi) errors.push('Feuille de route KO (skillRoadmap / #skillRoadmapPick / #skillRoadmap : sélecteur peuplé, clic sur une marche → compteur ET état persistés)');
+    if (!checks.agendaDuration) errors.push('Durée de bloc KO (#weekQuickDuration / #calendarAgendaDuration / #recDuration doivent EXISTER dans le HTML, et parseDurationInput comprendre 1h30)');
+    if (!checks.agendaConflit) errors.push('Détection de conflit KO (busyBlocksForDay doit inclure les occurrences récurrentes, sinon poser un bloc pendant un cours importé ne déclenche rien)');
+    if (!checks.agendaCharge) errors.push('Jauge de charge KO (#dayLoadBar : visible et « saturée » pour 5 h 30 planifiées, masquée pour un jour vide)');
     if (!checks.exerciseChain) errors.push('Chaîne d’exercices KO (champs easier/harder de exercises-data.js : bouton présent, clic ouvrant la fiche voisine, ≥30 exercices reliés)');
     if (!checks.progression) errors.push('Suggestion de progression KO (progressionSuggestion : séance legacy `w.exercise` doit être comptée, pas seulement `exercises[]`)');
     if (!checks.guidedTarget) errors.push('Séance guidée : progression incohérente (#guidedProgressionHint / #guidedTarget / guidedProgressionLines) — feu vert doit suivre la double progression sans « +0,5 kg », récup basse doit CONSOLIDER sans « monte la charge »');

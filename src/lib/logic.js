@@ -866,6 +866,9 @@ function normalizeAgendaItem(item) {
     date: isRealDateKey(x.date) ? x.date : '',
     time: typeof x.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.time) ? x.time : '',
     durationMin: Math.max(5, Math.min(600, Number(x.durationMin) || 60)),
+    // Suivi des reports : combien de fois CE bloc a ete deplace a la main, et depuis quelle date.
+    movedCount: Math.max(0, Math.min(99, Math.round(Number(x.movedCount) || 0))),
+    firstDate: isRealDateKey(x.firstDate) ? x.firstDate : '',
     kind: AGENDA_KINDS.includes(x.kind) ? x.kind : 'life',
     source: AGENDA_SOURCES.includes(x.source) ? x.source : (x.planId ? 'training' : 'manual'),
     priority: AGENDA_PRIORITIES.includes(x.priority) ? x.priority : 'normal',
@@ -886,6 +889,10 @@ function duplicateAgendaItem(item, newId, targetDate) {
   copy.id = Number(newId) || Date.now();
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(targetDate || ''))) copy.date = targetDate;
   copy.completed = false;
+  // Une copie n'herite pas de l'historique de reports de l'original : sinon un bloc duplique
+  // s'annoncerait « repousse 4 fois » alors qu'il vient de naitre.
+  copy.movedCount = 0;
+  copy.firstDate = '';
   delete copy.planId;
   delete copy.recId;
   delete copy.refId;
@@ -3342,6 +3349,7 @@ function installNudge(state, ctx) {
 // Journal des nouveautés (le plus récent EN PREMIER). CHANGELOG[0].v = version courante de l'app.
 // Sert à l'écran « Nouveautés » après une mise à jour auto. À compléter à chaque release notable.
 const CHANGELOG = [
+  { v: '2.2.0', emoji: '🗓️', text: 'L’AGENDA DEVIENT SÉRIEUX. 1) TU PEUX ENFIN DIRE COMBIEN DE TEMPS ÇA DURE. C’était le trou noir : aucun formulaire n’avait de champ durée, donc TOUT ce que tu créais durait 60 minutes en silence — la grille du jour, le total planifié, les conflits et l’heure de départ décrivaient une journée qui n’existait pas. Trois champs ajoutés, et ils comprennent « 90 », « 1h30 », « 2h », « 45 min ». 2) L’ALERTE DE CHEVAUCHEMENT VOIT ENFIN TES COURS. Elle ne regardait que tes blocs perso : poser une muscu à 18 h pendant ton cours de 17 h–19 h importé de Google ne déclenchait rien, parce que les cours récurrents vivent ailleurs. Maintenant l’app regarde TOUT ce qui occupe la journée, et te le dit PENDANT que tu choisis ton heure — pas après. 3) LA CHARGE DU JOUR. Une jauge en tête de la vue jour : ce que tu as empilé, face à ce qui tient réellement dans un mardi. Elle te dit à quelle heure tu finirais, et propose d’alléger — sans jamais toucher à ce que tu as mis en haute priorité. 4) REPLANIFIER. Au lieu du seul « → demain » qui déversait la journée entière sur le lendemain, l’app te propose 3 créneaux VRAIMENT libres (trajets et cours compris). Et elle compte : au bout de 3 reports elle te demande si ce bloc mérite encore d’exister.' },
   { v: '2.1.0', emoji: '🎨', text: 'Gros lot. 1) L’APP A ENFIN UN SYSTÈME DE DESIGN : couleurs, tailles et espacements viennent maintenant d’un seul fichier. Concrètement, le thème clair était à moitié cassé — le vert d’accent était écrit en dur à 74 endroits, donc fonds, bordures et contours de sélection restaient vert fluo pendant que le texte passait au vert foncé ; et trois couleurs étaient utilisées sans avoir jamais été définies. Réparé partout. 2) LA HIÉRARCHIE : les titres de carte étaient presque aussi gros que les titres de page — 47 panneaux criaient au même volume. Les titres de carte se rangent, la page respire. 3) LES 47 EXERCICES SONT RELIÉS : chaque fiche propose la marche d’avant (« trop dur ? commence par… ») et celle d’après (« trop facile ? passe à… »), et un clic t’y emmène. 4) TENUES ISOMÉTRIQUES : un panneau qui compte en SECONDES — gainage, chaise au mur, suspension, L-sit… avec ton record, ton palier, et le bon conseil (accumuler du temps en séries plutôt que retenter ton max chaque séance). 5) OBJECTIF DE SKILL GUIDÉ : huit feuilles de route, marche par marche, avec un critère chiffré à chaque étape et de l’XP quand tu en valides une. Et surtout, ça commence là où il faut : « TA PREMIÈRE TRACTION » (suspension → tirages d’omoplates → rowing australien → négatives de 5 s → assistées → la première), puis « 8 TRACTIONS D’AFFILÉE ». L’app te propose d’office la bonne feuille selon ce que tu logges : zéro traction → la première ; 3 tractions → viser 8 ; 16 tractions → le muscle-up. Viennent ensuite front lever, pistol, HSPU, L-sit et planche. 6) Au passage, quatre surfaces restées en bleu nuit basculent enfin avec le thème — dont les LISTES DÉROULANTES, qui affichaient du texte sombre sur fond sombre en thème clair.' },
   { v: '2.0.302', emoji: '⚡', text: 'Lancement et installation nettement plus légers. L’app pesait 135 Mo à l’installation, dont 41 Mo rien qu’en planches d’illustrations d’exercices : elles sont passées en WebP et ne pèsent plus que 2,6 Mo — mêmes images, à l’œil identiques (l’écart a été mesuré, pas estimé), mais 36 Mo de moins à télécharger, à l’installation ET à chaque mise à jour. Au lancement, la fenêtre n’apparaît plus avant d’être prête (fini le rectangle vide d’une demi-seconde) et elle RETIENT sa taille, sa position et son état agrandi d’une fois sur l’autre. Le mode de thème « selon l’heure » ne clignote plus au démarrage. Enfin, l’app s’appelle « IRL LVP UP » partout — la petite icône près de l’horloge disait encore « Level Up IRL ».' },
   { v: '2.0.301', emoji: '🏋️', text: 'Nouveau dans Athlète → Mes progrès (sous les Standards de force) : le coach de SURCHARGE AU GILET. Pour chaque mouvement que tu fais lesté (tractions, pompes, dips avec le gilet), il applique la double progression : tant que tu es sous ~10 reps propres, il te dit de gagner des reps ; quand tu tiens le haut de la fourchette, il te dit d’ajouter du lest (par pas de 2,5 kg) et de redescendre dans la fourchette. Il repère ta meilleure série lestée et te donne le prochain pas concret. Ne s’affiche que si tu t’entraînes avec du lest. (Athlète — surcharge au gilet)' },
@@ -5881,6 +5889,235 @@ function scheduleConflicts(agenda, candidate) {
 // Renvoie 'HH:MM' du premier créneau qui accueille toute la durée sans chevaucher un bloc horaire
 // (hors journée entière / terminé / soi-même), ou null si rien ne rentre avant dayEnd. Le contact
 // bord à bord est autorisé (18:00 juste après un bloc qui finit à 18:00). Pur + testé.
+// ===== Agenda : durée, occupation réelle, report, charge (vague 2.2) =====================
+
+// Une durée saisie à la main. Le champ n'existait nulle part : tout bloc créé durait 60 min en
+// silence, donc la grille du jour, le total planifié, les conflits et l'heure de départ décrivaient
+// une journée qui n'existait pas. Accepte « 90 », « 1h30 », « 2h », « 45 min », « 1,5h ». Pur.
+function parseDurationInput(value, fallback) {
+  const brut = Number(fallback);
+  const def = Number.isFinite(brut) ? Math.max(5, Math.min(600, Math.round(brut))) : 60;
+  if (value == null) return def;
+  const s = String(value).trim().toLowerCase().replace(',', '.').replace(/\s+/g, '');
+  if (!s) return def;
+  const borne = n => Math.max(5, Math.min(600, Math.round(n)));
+  // « 1h30 », « 1h », « 1.5h », « 1h30min »
+  const hm = /^(-?\d+(?:\.\d+)?)h(\d{1,2})?(?:min|m)?$/.exec(s);
+  if (hm) {
+    const h = parseFloat(hm[1]);
+    const m = hm[2] ? parseInt(hm[2], 10) : 0;
+    if (!Number.isFinite(h) || m > 59) return def;
+    return borne(h * 60 + m);
+  }
+  // « 90 », « 90min », « 90 m »
+  const mm = /^(-?\d+(?:\.\d+)?)(?:min|m)?$/.exec(s);
+  if (mm) {
+    const n = parseFloat(mm[1]);
+    return Number.isFinite(n) ? borne(n) : def;
+  }
+  return def;
+}
+
+// TOUT ce qui occupe réellement un jour : les blocs d'agenda ET les occurrences récurrentes.
+// scheduleConflicts et nextFreeSlot ne lisaient que state.agenda, or les cours importés vivent
+// dans state.recurring : poser une muscu pendant son cours de 17 h ne déclenchait rien.
+// Le format rendu est directement consommable par ces deux fonctions, sans les réécrire. Pur.
+function busyBlocksForDay(state, dateKey, opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  const s = state && typeof state === 'object' ? state : {};
+  if (!isRealDateKey(dateKey)) return [];
+  const aUneHeure = t => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(t || ''));
+  const out = [];
+  (Array.isArray(s.agenda) ? s.agenda : []).forEach(a => {
+    if (!a || a.date !== dateKey || a.allDay || a.completed || !aUneHeure(a.time)) return;
+    if (o.excludeId != null && a.id === o.excludeId) return;
+    out.push({
+      id: a.id, date: dateKey, time: a.time,
+      durationMin: Math.max(1, Math.round(Number(a.durationMin) || 60)),
+      travelMin: Math.max(0, Math.round(Number(a.travelMin) || 0)),
+      title: String(a.title || 'Bloc'), kind: a.kind || 'life',
+      priority: a.priority || 'normal', allDay: false, completed: false, origin: 'agenda'
+    });
+  });
+  (Array.isArray(s.recurring) ? s.recurring : []).forEach(rec => {
+    if (!rec) return;
+    const r = normalizeRecurring(rec);
+    // L'identifiant d'une occurrence est une CHAÎNE 'rec-<id>' : jamais comparable à l'id
+    // numérique d'un bloc d'agenda, donc aucune exclusion croisée par accident.
+    if (o.excludeRecId != null && r.id === o.excludeRecId) return;
+    if (!recurringOccurs(r, dateKey) || r.doneLog.includes(dateKey) || !aUneHeure(r.time)) return;
+    out.push({
+      id: 'rec-' + r.id, date: dateKey, time: r.time,
+      durationMin: Math.max(1, Math.round(Number(r.durationMin) || 60)), travelMin: 0,
+      title: r.title, kind: r.kind, priority: r.priority || 'normal',
+      allDay: false, completed: false, origin: 'recurring'
+    });
+  });
+  return out.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+}
+
+// La phrase à afficher sous le champ heure. '' quand tout va bien : un bandeau vide ne doit
+// jamais s'afficher. Pur.
+function conflictLabel(conflicts, freeSlot) {
+  const list = Array.isArray(conflicts) ? conflicts.filter(Boolean) : [];
+  if (!list.length) return '';
+  const p = list[0];
+  const autres = list.length - 1;
+  let txt = `Chevauche ${p.title} ${p.time}–${p.endTime}`;
+  if (autres > 0) txt += ` et ${autres} autre${autres > 1 ? 's' : ''}`;
+  txt += '.';
+  if (freeSlot) txt += ` Prochain créneau libre : ${freeSlot}.`;
+  return txt;
+}
+
+// L'XP d'un bloc, en un seul endroit : valider et dévalider doivent lire la MÊME règle, sinon
+// annuler une validation laisse de l'XP fantôme. Pur.
+function xpForAgendaItem(item) {
+  const it = item && typeof item === 'object' ? item : {};
+  const kind = it.kind || it.type || '';
+  if (kind === 'study') return { xp: 15, category: 'focus' };
+  return { xp: 0, category: '' };
+}
+
+// Cocher / décocher un bloc. Immuable, et no-op si l'état demandé est déjà celui en place —
+// c'est ce qui empêche de retirer deux fois l'XP d'un même bloc. Pur.
+function setAgendaCompleted(agenda, id, done) {
+  const list = Array.isArray(agenda) ? agenda : [];
+  const veut = !!done;
+  let item = null, changed = false;
+  const out = list.map(a => {
+    if (!a || a.id !== id) return a;
+    if (!!a.completed === veut) { item = a; return a; }
+    changed = true; item = { ...a, completed: veut };
+    return item;
+  });
+  return { agenda: changed ? out : list, item, changed };
+}
+
+// Idem pour une occurrence récurrente : la validation vit dans doneLog, jamais dans skipLog
+// (sauter une occurrence et la faire sont deux choses différentes). Pur.
+function setRecurringDone(recurring, recId, dateKey, done) {
+  const list = Array.isArray(recurring) ? recurring : [];
+  const veut = !!done;
+  if (!isRealDateKey(dateKey)) return { recurring: list, changed: false };
+  let changed = false;
+  const out = list.map(rec => {
+    if (!rec || rec.id !== recId) return rec;
+    const log = Array.isArray(rec.doneLog) ? rec.doneLog : [];
+    const dedans = log.includes(dateKey);
+    if (dedans === veut) return rec;
+    changed = true;
+    return { ...rec, doneLog: veut ? log.concat(dateKey) : log.filter(d => d !== dateKey) };
+  });
+  return { recurring: changed ? out : list, changed };
+}
+
+// Jusqu'à 3 créneaux réellement libres pour reposer un bloc. Le seul geste existant était
+// « → demain », donc une journée qui déborde se déversait entière sur le lendemain. Pur.
+function rescheduleOptions(state, item, fromKey, opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  const it = item && typeof item === 'object' ? item : null;
+  if (!it || it.allDay || !isRealDateKey(fromKey)) return [];
+  const dur = Math.max(5, Math.min(600, Math.round(Number(it.durationMin) || 60)));
+  const horizon = Math.max(1, Math.min(30, Math.round(Number(o.horizonDays) || 7)));
+  const dayEnd = o.dayEnd || '22:00';
+  const nowMin = timeToMinutes(o.now);
+  const JOURS = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
+  const out = [];
+  for (let i = 0; i < horizon && out.length < 3; i++) {
+    const jour = dateAfterDays(fromKey, i);
+    // Le jour même, on ne propose rien avant « maintenant + 15 min » : un créneau déjà passé
+    // n'est pas une option.
+    let after = '08:00';
+    if (i === 0) {
+      if (nowMin == null) continue;
+      after = minutesToTime(Math.min(23 * 60 + 55, nowMin + 15));
+    }
+    const libre = nextFreeSlot(busyBlocksForDay(state, jour, { excludeId: it.id }), { date: jour, durationMin: dur, after, dayEnd });
+    if (!libre) continue;
+    const d = new Date(jour + 'T00:00:00');
+    const label = i === 0 ? `Aujourd’hui ${libre}` : i === 1 ? `Demain ${libre}` : `${JOURS[d.getDay()]} ${libre}`;
+    out.push({ date: jour, time: libre, label });
+  }
+  return out;
+}
+
+// Déplacer un bloc en comptant les reports. Le compteur ne doit bouger QUE sur une action
+// d'Adrien : les imports et les replanifications automatiques passent ailleurs, sinon le
+// compteur ment et l'avertissement devient du bruit. Pur.
+function moveAgendaItem(agenda, id, date, time) {
+  const list = Array.isArray(agenda) ? agenda : [];
+  if (!isRealDateKey(date)) return { agenda: list, item: null, changed: false };
+  let item = null, changed = false;
+  const out = list.map(a => {
+    if (!a || a.id !== id) return a;
+    const heure = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(time || '')) ? time : a.time;
+    if (a.date === date && a.time === heure) { item = a; return a; }
+    changed = true;
+    item = {
+      ...a, date, time: heure,
+      firstDate: isRealDateKey(a.firstDate) ? a.firstDate : (isRealDateKey(a.date) ? a.date : ''),
+      movedCount: Math.min(99, Math.max(0, Math.round(Number(a.movedCount) || 0)) + 1)
+    };
+    return item;
+  });
+  return { agenda: changed ? out : list, item, changed };
+}
+
+// Un bloc repoussé encore et encore n'est pas un problème d'agenda, c'est un problème de
+// décision. Au bout de 3 reports on le dit ; au bout de 6 on insiste. Pur.
+function postponePrompt(item) {
+  const n = Math.max(0, Math.round(Number(item && item.movedCount) || 0));
+  if (n >= 6) return `Repoussé ${n} fois. Il ne rentrera pas comme ça : coupe-le en deux, réduis-le à 20 min, ou abandonne-le pour de bon.`;
+  if (n >= 3) return `Repoussé ${n} fois — le couper à 20 min, le caler ailleurs, ou l’abandonner ?`;
+  return '';
+}
+
+// Capacité par défaut, en minutes de blocs planifiables. Un mardi de cours n'a pas la même
+// place qu'un dimanche : sans ça, une jauge unique serait rouge tous les jours et donc ignorée.
+const DAY_CAPACITY_DEFAULT = [360, 180, 180, 180, 180, 180, 360]; // dimanche → samedi
+
+// La charge d'une journée, confrontée à sa capacité. dayPlannedMinutes calculait déjà la somme
+// et ne la comparait à rien : on découvrait l'impossible à 19 h. Pur.
+function dayLoad(state, dateKey, opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  const vide = { plannedMin: 0, travelMin: 0, totalMin: 0, capacityMin: 0, pct: 0, status: 'ok', endEstimate: null, overflowMin: 0, blocks: 0 };
+  if (!isRealDateKey(dateKey)) return vide;
+  const blocs = busyBlocksForDay(state, dateKey, {});
+  const plannedMin = blocs.reduce((s, b) => s + b.durationMin, 0);
+  const travelMin = blocs.reduce((s, b) => s + (b.travelMin || 0), 0);
+  const totalMin = plannedMin + travelMin;
+  const grille = Array.isArray(o.capacity) && o.capacity.length === 7 ? o.capacity : DAY_CAPACITY_DEFAULT;
+  const jour = new Date(dateKey + 'T00:00:00').getDay();
+  const capacityMin = Math.max(0, Math.round(Number(grille[jour]) || 0));
+  const pct = capacityMin > 0 ? Math.round((totalMin / capacityMin) * 100) : (totalMin > 0 ? 999 : 0);
+  const status = pct >= 100 ? 'sature' : pct >= 85 ? 'charge' : 'ok';
+  // Heure de fin estimée : le dernier bloc de la journée, trajet compris.
+  let endEstimate = null;
+  if (blocs.length) {
+    const fin = blocs.reduce((max, b) => {
+      const s = timeToMinutes(b.time);
+      return s == null ? max : Math.max(max, s + b.durationMin + (b.travelMin || 0));
+    }, 0);
+    endEstimate = fin > 0 ? minutesToTime(fin % (24 * 60)) : null;
+    if (fin >= 24 * 60 && endEstimate) endEstimate += ' (demain)';
+  }
+  return { plannedMin, travelMin, totalMin, capacityMin, pct, status, endEstimate, overflowMin: Math.max(0, totalMin - capacityMin), blocks: blocs.length };
+}
+
+// Quoi enlever quand la journée déborde. On ne touche jamais à ce qui est en haute priorité :
+// une suggestion qui propose de sacrifier l'examen de demain se fait fermer une fois et plus
+// jamais rouvrir. Pur.
+function lightenSuggestions(state, dateKey, limit) {
+  const max = Math.max(1, Math.min(10, Math.round(Number(limit) || 3)));
+  const blocs = busyBlocksForDay(state, dateKey, {}).filter(b => b.origin === 'agenda' && b.priority !== 'high');
+  const rang = p => (p === 'low' ? 0 : 1);
+  return blocs
+    .sort((a, b) => (rang(a.priority) - rang(b.priority)) || (String(b.time).localeCompare(String(a.time))))
+    .slice(0, max)
+    .map(b => ({ id: b.id, title: b.title, time: b.time, durationMin: b.durationMin, priority: b.priority }));
+}
+
 function nextFreeSlot(agenda, opts) {
   const o = opts && typeof opts === 'object' ? opts : {};
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(o.date || ''))) return null;
@@ -11419,5 +11656,5 @@ function orderCoachNotes(insight) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

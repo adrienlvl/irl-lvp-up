@@ -65,3 +65,24 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
 .ex-chain-btn small{color:var(--muted);font-size:var(--fs-3xs);font-weight:var(--fw-bold)}
 .ex-chain-btn b{font-size:var(--fs-sm)}
 .ex-chain-btn:hover{border-color:var(--accent-line)}
+
+/* ===== Agenda : durée, conflit, charge du jour (vague 2.2) =====================
+   Écrit sur les tokens de design-tokens.css, sans une seule valeur en dur. */
+.dur-input{width:88px;flex:none;text-align:center}
+.conflict-hint{margin:0 0 var(--sp-4);padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn);font-size:var(--fs-xs);font-weight:var(--fw-med);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 35%,transparent)}
+.day-load{margin:0 0 var(--sp-5);padding:var(--sp-4);border-radius:var(--r-md);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);position:relative}
+.dl-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-3)}
+.dl-word{font-size:var(--fs-sm);font-weight:var(--fw-black)}
+.dl-word.dl-ok{color:var(--ok)}
+.dl-word.dl-charge{color:var(--warn)}
+.dl-word.dl-sature{color:var(--danger)}
+.dl-num{font-size:var(--fs-2xs);color:var(--muted);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums}
+.dl-bar{height:7px;border-radius:var(--r-xs);background:var(--fill-1);overflow:hidden;margin:var(--sp-2) 0;box-shadow:inset 0 0 0 1px var(--line)}
+.dl-bar i{display:block;height:100%;border-radius:var(--r-xs)}
+.dl-bar i.dl-ok{background:linear-gradient(90deg,var(--accent),var(--teal))}
+.dl-bar i.dl-charge{background:linear-gradient(90deg,var(--warn),var(--gold))}
+.dl-bar i.dl-sature{background:linear-gradient(90deg,var(--danger),var(--warn))}
+.dl-foot{display:block;color:var(--muted);font-size:var(--fs-2xs)}
+.dl-foot b{color:var(--text)}
+.dl-lighten{position:absolute;top:var(--sp-4);right:var(--sp-4);border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:var(--r-pill);padding:var(--sp-1) var(--sp-4);font-size:var(--fs-3xs);font-weight:var(--fw-bold);cursor:pointer}
+.dl-lighten:hover{border-color:var(--accent-line);color:var(--accent)}

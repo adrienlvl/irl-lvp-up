@@ -6619,7 +6619,7 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.1.0');
+  assert.equal(L.CHANGELOG[0].v, '2.2.0');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
@@ -13152,4 +13152,220 @@ test('suggestedSkillGoal : la feuille proposée suit ton niveau réel de tractio
   [[], w('Tractions', 1), w('Tractions', 30), w('Pompes classiques', 40)].forEach(hist => {
     assert.ok(ids.includes(ssg(hist, {})), 'la suggestion doit être une feuille existante');
   });
+});
+
+test('parseDurationInput : une durée saisie à la main, sous toutes ses formes', () => {
+  const p = L.parseDurationInput;
+  assert.equal(p(90), 90);
+  assert.equal(p('90'), 90);
+  assert.equal(p('90min'), 90);
+  assert.equal(p('45 min'), 45);
+  assert.equal(p('1h30'), 90);
+  assert.equal(p('1h'), 60);
+  assert.equal(p('2h'), 120);
+  assert.equal(p('1,5h'), 90, 'la virgule française doit passer');
+  assert.equal(p('1.5h'), 90);
+  assert.equal(p('1h30min'), 90);
+  // Bornes : on clampe une valeur lisible, on ne la jette pas.
+  assert.equal(p('0'), 5);
+  assert.equal(p('-5'), 5);
+  assert.equal(p('999'), 600);
+  // Illisible ou vide → le repli, pas une valeur inventée.
+  assert.equal(p(''), 60);
+  assert.equal(p('   '), 60);
+  assert.equal(p(null), 60);
+  assert.equal(p(undefined), 60);
+  assert.equal(p('bonjour'), 60);
+  assert.equal(p('1h75'), 60, 'des minutes impossibles → repli');
+  assert.equal(p('', 30), 30, 'le repli est paramétrable');
+  assert.equal(p('bonjour', 45), 45);
+  assert.equal(p('bonjour', 9999), 600, 'même le repli est borné');
+});
+
+test('busyBlocksForDay : ce qui occupe VRAIMENT un jour (agenda + récurrents)', () => {
+  const bb = L.busyBlocksForDay;
+  const cours = { id: 9, title: 'Cours de droit', time: '17:00', durationMin: 120, kind: 'study',
+    rule: { freq: 'weekly', startDate: '2026-01-06', weekdays: [2], interval: 1 }, doneLog: [], skipLog: [] };
+  const state = {
+    agenda: [
+      { id: 1, date: '2026-07-28', time: '18:00', durationMin: 60, title: 'Muscu', kind: 'sport' },
+      { id: 2, date: '2026-07-28', time: '', durationMin: 60, title: 'Sans heure', kind: 'life' },
+      { id: 3, date: '2026-07-28', allDay: true, title: 'Journée entière', kind: 'life' },
+      { id: 4, date: '2026-07-28', time: '09:00', durationMin: 30, title: 'Fait', completed: true, kind: 'life' },
+      { id: 5, date: '2026-07-29', time: '10:00', durationMin: 60, title: 'Autre jour', kind: 'life' }
+    ],
+    recurring: [cours]
+  };
+
+  const b = bb(state, '2026-07-28', {});
+  assert.deepEqual(b.map(x => x.title), ['Cours de droit', 'Muscu'], 'triés par heure, et le récurrent compte');
+  assert.equal(b[0].origin, 'recurring');
+  assert.equal(b[1].origin, 'agenda');
+  // Sans heure, journée entière, déjà fait, autre jour : rien de tout ça n'occupe un créneau.
+  assert.equal(b.length, 2);
+
+  // C'était LE bug : les cours vivent dans state.recurring, que scheduleConflicts ne lisait pas.
+  const conflits = L.scheduleConflicts(b, { date: '2026-07-28', time: '18:00', durationMin: 60, id: null });
+  assert.equal(conflits.length, 2);
+  assert.equal(conflits[0].title, 'Cours de droit');
+  assert.match(L.conflictLabel(conflits, '19:00'), /Chevauche Cours de droit 17:00–19:00 et 1 autre\. Prochain créneau libre : 19:00\./);
+
+  // L'identifiant d'une occurrence est une CHAÎNE : jamais confondu avec un id d'agenda.
+  assert.equal(b[0].id, 'rec-9');
+  assert.equal(bb(state, '2026-07-28', { excludeId: 1 }).length, 1, 's’éditer soi-même ne se heurte pas à soi-même');
+  assert.equal(bb(state, '2026-07-28', { excludeRecId: 9 }).length, 1);
+
+  // Une occurrence faite ou sautée ne bloque plus le créneau.
+  const fait = { ...state, recurring: [{ ...cours, doneLog: ['2026-07-28'] }] };
+  assert.equal(bb(fait, '2026-07-28', {}).length, 1);
+  const saute = { ...state, recurring: [{ ...cours, skipLog: ['2026-07-28'] }] };
+  assert.equal(bb(saute, '2026-07-28', {}).length, 1);
+  const pause = { ...state, recurring: [{ ...cours, paused: true }] };
+  assert.equal(bb(pause, '2026-07-28', {}).length, 1);
+  // Un mercredi : le cours du mardi n'occupe rien.
+  assert.equal(bb(state, '2026-07-29', {}).map(x => x.title).join(), 'Autre jour');
+
+  // Garde-fous
+  assert.deepEqual(bb(null, '2026-07-28', {}), []);
+  assert.deepEqual(bb(state, '2026-13-99', {}), [], 'date impossible → rien');
+  assert.deepEqual(bb({}, '2026-07-28', {}), []);
+  assert.equal(L.conflictLabel([], '19:00'), '', 'aucun conflit → aucune phrase');
+  assert.equal(L.conflictLabel(null, null), '');
+});
+
+test('xpForAgendaItem / setAgendaCompleted / setRecurringDone : cocher et décocher', () => {
+  // L'XP se lit au même endroit dans les deux sens, sinon annuler laisse de l'XP fantôme.
+  assert.deepEqual(L.xpForAgendaItem({ kind: 'study' }), { xp: 15, category: 'focus' });
+  assert.deepEqual(L.xpForAgendaItem({ type: 'study' }), { xp: 15, category: 'focus' });
+  assert.deepEqual(L.xpForAgendaItem({ kind: 'sport' }), { xp: 0, category: '' });
+  assert.deepEqual(L.xpForAgendaItem(null), { xp: 0, category: '' });
+
+  const agenda = [{ id: 1, title: 'A', completed: false }, { id: 2, title: 'B', completed: true }];
+  const coche = L.setAgendaCompleted(agenda, 1, true);
+  assert.equal(coche.changed, true);
+  assert.equal(coche.item.completed, true);
+  assert.equal(agenda[0].completed, false, 'immuable : la source n’est pas touchée');
+
+  // No-op : c'est ce qui empêche de retirer deux fois l'XP du même bloc.
+  const deja = L.setAgendaCompleted(agenda, 2, true);
+  assert.equal(deja.changed, false);
+  assert.equal(deja.agenda, agenda, 'même référence quand rien ne change');
+  const inconnu = L.setAgendaCompleted(agenda, 42, true);
+  assert.equal(inconnu.changed, false);
+  assert.equal(inconnu.item, null);
+  assert.equal(L.setAgendaCompleted(agenda, 2, false).item.completed, false, 'on peut décocher');
+
+  // Récurrents : la validation vit dans doneLog, jamais dans skipLog.
+  const rec = [{ id: 7, doneLog: [], skipLog: ['2026-07-21'] }];
+  const r1 = L.setRecurringDone(rec, 7, '2026-07-28', true);
+  assert.deepEqual(r1.recurring[0].doneLog, ['2026-07-28']);
+  assert.deepEqual(r1.recurring[0].skipLog, ['2026-07-21'], 'skipLog intact');
+  assert.equal(L.setRecurringDone(r1.recurring, 7, '2026-07-28', true).changed, false, 'pas de doublon');
+  assert.deepEqual(L.setRecurringDone(r1.recurring, 7, '2026-07-28', false).recurring[0].doneLog, []);
+  assert.equal(L.setRecurringDone(rec, 7, '2026-13-99', true).changed, false, 'date impossible → refus');
+  assert.equal(L.setRecurringDone(rec, 999, '2026-07-28', true).changed, false);
+});
+
+test('rescheduleOptions / moveAgendaItem / postponePrompt : reposer un bloc, et compter', () => {
+  const state = {
+    agenda: [
+      { id: 1, date: '2026-07-28', time: '18:00', durationMin: 60, title: 'Muscu', kind: 'sport' },
+      { id: 2, date: '2026-07-28', time: '20:00', durationMin: 90, title: 'Révision', kind: 'study' }
+    ],
+    recurring: []
+  };
+  const item = state.agenda[1];
+  const opts = L.rescheduleOptions(state, item, '2026-07-28', { now: '19:00' });
+  assert.ok(opts.length >= 1 && opts.length <= 3, 'au plus 3 propositions');
+  assert.equal(opts[0].label.startsWith('Aujourd’hui'), true);
+  assert.equal(opts[0].time, '19:15', 'maintenant + 15 min, et ça rentre avant la muscu ? non → après');
+  assert.equal(opts[1].label.startsWith('Demain'), true);
+  // Le créneau proposé ne doit JAMAIS tomber sur un bloc occupé.
+  opts.forEach(o => {
+    const busy = L.busyBlocksForDay(state, o.date, { excludeId: item.id });
+    assert.deepEqual(L.scheduleConflicts(busy, { date: o.date, time: o.time, durationMin: item.durationMin, id: item.id }), [],
+      `le créneau ${o.label} doit être réellement libre`);
+  });
+  // Un bloc « journée entière » n'a pas d'heure à proposer.
+  assert.deepEqual(L.rescheduleOptions(state, { ...item, allDay: true }, '2026-07-28', { now: '19:00' }), []);
+  assert.deepEqual(L.rescheduleOptions(state, item, 'pas-une-date', { now: '19:00' }), []);
+  assert.deepEqual(L.rescheduleOptions(state, null, '2026-07-28', {}), []);
+
+  // Déplacer : le compteur monte, et la date d'origine est mémorisée une seule fois.
+  const m1 = L.moveAgendaItem(state.agenda, 2, '2026-07-29', '08:00');
+  assert.equal(m1.changed, true);
+  assert.equal(m1.item.date, '2026-07-29');
+  assert.equal(m1.item.movedCount, 1);
+  assert.equal(m1.item.firstDate, '2026-07-28', 'on garde la date d’origine');
+  const m2 = L.moveAgendaItem(m1.agenda, 2, '2026-07-30', '08:00');
+  assert.equal(m2.item.movedCount, 2);
+  assert.equal(m2.item.firstDate, '2026-07-28', 'la date d’origine ne bouge plus');
+  // Reposer au même endroit n'est pas un report.
+  assert.equal(L.moveAgendaItem(m2.agenda, 2, '2026-07-30', '08:00').changed, false);
+  assert.equal(L.moveAgendaItem(state.agenda, 2, 'pas-une-date', '08:00').changed, false);
+
+  // L'avertissement se déclenche sur les seuils, pas avant.
+  assert.equal(L.postponePrompt({ movedCount: 0 }), '');
+  assert.equal(L.postponePrompt({ movedCount: 2 }), '');
+  assert.match(L.postponePrompt({ movedCount: 3 }), /Repoussé 3 fois/);
+  assert.match(L.postponePrompt({ movedCount: 6 }), /ne rentrera pas comme ça/);
+  assert.equal(L.postponePrompt(null), '');
+
+  // Une copie ne porte pas l'historique de l'original.
+  const copie = L.duplicateAgendaItem(m2.item, 99, '2026-08-01');
+  assert.equal(copie.movedCount, 0);
+  assert.equal(copie.firstDate, '');
+  assert.equal(copie.completed, false);
+  // Et le modèle accepte ces champs sur un item existant sans les inventer.
+  const n = L.normalizeAgendaItem({ title: 'X', date: '2026-07-28' });
+  assert.equal(n.movedCount, 0);
+  assert.equal(n.firstDate, '');
+  assert.equal(L.normalizeAgendaItem({ movedCount: 500 }).movedCount, 99);
+  assert.equal(L.normalizeAgendaItem({ firstDate: '2026-13-99' }).firstDate, '', 'date impossible neutralisée');
+});
+
+test('dayLoad / lightenSuggestions : la journée tient-elle vraiment ?', () => {
+  const state = {
+    agenda: [
+      { id: 1, date: '2026-07-28', time: '18:00', durationMin: 60, title: 'Muscu', kind: 'sport', travelMin: 20 },
+      { id: 2, date: '2026-07-28', time: '20:00', durationMin: 90, title: 'Révision', kind: 'study', priority: 'low' },
+      { id: 3, date: '2026-07-28', time: '08:00', durationMin: 60, title: 'Examen blanc', kind: 'study', priority: 'high' }
+    ],
+    recurring: []
+  };
+  const l = L.dayLoad(state, '2026-07-28', {});
+  assert.equal(l.plannedMin, 210);
+  assert.equal(l.travelMin, 20, 'le trajet compte dans la charge');
+  assert.equal(l.totalMin, 230);
+  assert.equal(l.capacityMin, 180, 'un mardi, pas un dimanche');
+  assert.equal(l.pct, 128);
+  assert.equal(l.status, 'sature');
+  assert.equal(l.overflowMin, 50);
+  assert.equal(l.endEstimate, '21:30');
+  assert.equal(l.blocks, 3);
+
+  // Un dimanche a plus de place : même charge, autre verdict.
+  const dim = { ...state, agenda: state.agenda.map(a => ({ ...a, date: '2026-08-02' })) };
+  const ld = L.dayLoad(dim, '2026-08-02', {});
+  assert.equal(ld.capacityMin, 360);
+  assert.equal(ld.status, 'ok');
+
+  // Jour vide : pas de bandeau, et surtout pas de division par zéro.
+  const vide = L.dayLoad(state, '2026-07-30', {});
+  assert.equal(vide.totalMin, 0); assert.equal(vide.pct, 0); assert.equal(vide.status, 'ok'); assert.equal(vide.endEstimate, null);
+  assert.equal(L.dayLoad(state, '2026-07-28', { capacity: [0, 0, 0, 0, 0, 0, 0] }).pct, 999, 'capacité nulle → pas de NaN');
+  assert.equal(L.dayLoad(null, '2026-07-28', {}).totalMin, 0);
+  assert.equal(L.dayLoad(state, 'pas-une-date', {}).status, 'ok');
+
+  // Une journée qui finit après minuit se dit honnêtement.
+  const tard = { agenda: [{ id: 1, date: '2026-07-28', time: '23:00', durationMin: 120, title: 'Nuit', kind: 'life' }], recurring: [] };
+  assert.match(L.dayLoad(tard, '2026-07-28', {}).endEstimate, /\(demain\)/);
+
+  // Alléger : jamais la haute priorité. Proposer de sacrifier l'examen se fait fermer une fois.
+  const sugg = L.lightenSuggestions(state, '2026-07-28', 3);
+  assert.equal(sugg.some(s => s.title === 'Examen blanc'), false, 'la haute priorité est intouchable');
+  assert.equal(sugg[0].title, 'Révision', 'la basse priorité part en premier');
+  assert.equal(sugg.length, 2);
+  assert.equal(L.lightenSuggestions(state, '2026-07-28', 1).length, 1);
+  assert.deepEqual(L.lightenSuggestions(state, '2026-07-30', 3), []);
 });
