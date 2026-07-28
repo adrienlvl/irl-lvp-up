@@ -14723,3 +14723,50 @@ test('deux semaines, deux usages : ce qui reste, et ce qu’on répète', () => 
   const lundi = plan({ progSessions: 6, runs: 3 }, [], '2026-07-27');
   assert.equal(lundi.week.length, lundi.semaineType.length);
 });
+
+test('les zones choisies pilotent le plan, la mémoire départage', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  // Semaine passée : haut du corps. Sans consigne, la mémoire voudrait les jambes.
+  const haut = ['Pompes classiques', 'Tractions supination', 'Développé militaire kettlebell'];
+  haut.forEach(n => assert.ok(L.exerciseZones(n).length > 0, `${n} doit exister`));
+  const w = haut.map((n, i) => {
+    const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - (6 - i * 2));
+    return { date: d.toISOString().slice(0, 10), exercises: [{ name: n, sets: 4, completedSets: 4 }] };
+  });
+  const base = {
+    fitnessObjective: 'muscle',
+    profile: { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'maintien', availableDays: [1, 3, 5], level: 'intermediaire' },
+    goals: {}, weights: [{ date: AUJ, value: 82 }], recovery: [], workouts: w
+  };
+  const focus = zones => {
+    const st = { ...base, profile: { ...base.profile, zonesVoulues: zones } };
+    return L.trainingWeekPlan(L.trainingPlanInputs(st, AUJ), exercises)
+      .week.filter(s => s.kind === 'muscu').map(s => s.focus);
+  };
+
+  /* « Ma semaine » savait faire une chose que le plan unifié ne savait pas : choisir ses
+     zones. Il produisait pour ça une TROISIÈME semaine, aveugle au déficit et à la forme.
+     On garde la capacité, on jette le doublon. */
+  const sansConsigne = focus([]);
+  assert.equal(sansConsigne[0], 'legs', 'sans consigne, la mémoire mène : jambes reposées');
+
+  // Le choix d'Adrien PRIME sur la mémoire — sinon cocher « bras » ne servirait à rien.
+  const bras = focus(['arms', 'chest']);
+  assert.notEqual(bras[0], 'legs', 'demander les bras doit changer l’ordre');
+  assert.ok(['push', 'upper', 'pull'].includes(bras[0]), `focus haut du corps attendu, obtenu ${bras[0]}`);
+
+  const dos = focus(['back']);
+  assert.ok(['pull', 'upper'].includes(dos[0]), `focus dos attendu, obtenu ${dos[0]}`);
+
+  // Demander ce que la mémoire proposait déjà ne casse rien.
+  assert.equal(focus(['legs', 'glutes'])[0], 'legs');
+
+  // Le plan porte les zones, pour que le rendu puisse le dire plutôt que le deviner.
+  const st = { ...base, profile: { ...base.profile, zonesVoulues: ['arms'] } };
+  assert.deepEqual(L.trainingWeekPlan(L.trainingPlanInputs(st, AUJ), exercises).zones, ['arms']);
+
+  // Zones abîmées : on les ignore sans rien casser.
+  assert.doesNotThrow(() => focus(['nawak', '', null]));
+  assert.deepEqual(focus([]), sansConsigne, 'un tableau vide ne change rien');
+});

@@ -4328,6 +4328,10 @@ function trainingPlanInputs(state, todayKey) {
     jours: Array.isArray(p.availableDays) ? p.availableDays : [],
     niveau: p.level, equipement: p.equipment, seed: st.objectiveSeed || 0,
     energie: energie, acwr: charge, readiness: forme, todayKey: todayKey,
+    /* Les zones qu'Adrien a cochées lui-même. Elles PRIMENT sur la mémoire : s'il demande
+       les bras, on lui donne les bras, même si les jambes sont plus reposées. La mémoire
+       départage ensuite à l'intérieur de ce qu'il a demandé. */
+    zones: Array.isArray(p.zonesVoulues) ? p.zonesVoulues.filter(z => typeof z === 'string' && z) : [],
     memoire: (typeof semaineMemoire === 'function') ? semaineMemoire(st, todayKey) : null,
     enCours: (typeof semaineEnCours === 'function') ? semaineEnCours(st, todayKey) : null
   };
@@ -4435,13 +4439,28 @@ function trainingWeekPlan(input, exercises) {
   if (ec && resteMuscu + resteRuns === 0) {
     ajustements.push('Ta semaine est complète — le reste est du bonus, pas du retard.');
   }
+  /* Priorité composée, calculée UNE fois et lue par les deux semaines : d'abord ce qu'Adrien
+     a demandé (départagé par la fraîcheur entre ses zones), puis le reste. Sans ça, choisir
+     « bras » n'aurait servi à rien dès que les jambes étaient plus reposées.
+     Une seule variable pour les deux appels : mon premier patch n'en avait modifié qu'un,
+     et les zones n'agissaient que sur la semaine invisible. */
+  const prioriteComposee = (function () {
+    const mem = (i.memoire && Array.isArray(i.memoire.priorite)) ? i.memoire.priorite : [];
+    const veut = Array.isArray(i.zones) ? i.zones.filter(function (z) { return z; }) : [];
+    if (!veut.length) return mem.length ? mem : null;
+    const parFraicheur = mem.length
+      ? veut.slice().sort(function (a, b) { return mem.indexOf(a) - mem.indexOf(b); })
+      : veut.slice();
+    const reste = mem.filter(function (z) { return veut.indexOf(z) === -1; });
+    return parFraicheur.concat(reste);
+  })();
   /* La semaine TYPE (complète) sert à programmer les semaines suivantes : elles ne sont pas
      amputées de ce qui a été fait CETTE semaine. On la calcule toujours, même hors milieu
      de semaine, pour que les appelants aient un contrat stable. */
   const complet = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
     sessions: muscu + runs, runs: runs, seed: i.seed, equipment: i.equipement,
     perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
-    prioriteZones: (i.memoire && Array.isArray(i.memoire.priorite)) ? i.memoire.priorite : null,
+    prioriteZones: prioriteComposee,
     semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
   });
   /* Zéro séance restante doit donner zéro séance. objectiveWeekShape borne le total à 1
@@ -4471,7 +4490,7 @@ function trainingWeekPlan(input, exercises) {
     perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
     /* La semaine suivante tient compte de la précédente : sans ça le plan reproposait
        éternellement la même chose, quoi qu'Adrien ait fait ou sauté. */
-    prioriteZones: (i.memoire && Array.isArray(i.memoire.priorite)) ? i.memoire.priorite : null,
+    prioriteZones: prioriteComposee,
     /* La semaine du bloc fait tourner le protocole : sans elle, la meme seance dure
        reviendrait a l identique pendant tout le cycle. */
     semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
@@ -4507,6 +4526,7 @@ function trainingWeekPlan(input, exercises) {
   return Object.assign({}, programme, {
     week: semaine, politique: politique, energie: i.energie || null, ajustements: ajustements,
     memoire: i.memoire || null, enCours: i.enCours || null,
+    zones: Array.isArray(i.zones) ? i.zones : [],
     /* semaineType = la semaine entière, à répéter. week = ce qui reste aujourd'hui.
        Programmer 4 semaines depuis `week` amputerait les 3 suivantes. */
     semaineType: (complet && Array.isArray(complet.week))
