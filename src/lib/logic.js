@@ -2985,6 +2985,46 @@ function mondayOf(date) { const x = new Date(date); const day = x.getDay() || 7;
 // On part du lundi de la semaine de `todayKey`, on couvre `weeks` semaines, et on SAUTE les jours déjà
 // PASSÉS de la semaine courante (date < todayKey) : ainsi la semaine en cours reçoit déjà ses séances
 // restantes au lieu d'attendre lundi prochain. Renvoie [{date, weekday, dayIndex, week}] triés. Pur + testé.
+/* Adrien : « le programme commence jeudi alors qu'on est mardi ? Normalement les séances
+   devraient être à partir de demain non ? »
+   Mesuré : avec tous les jours cochés le programme démarre AUJOURD'HUI, avec lun/mer/ven il
+   démarre DEMAIN. L'app fait donc ce qu'il faut — elle place les séances sur les jours qu'il a
+   lui-même cochés. Mais elle ne le DIT nulle part : un départ jeudi ressemble à un bug quand
+   on ignore que mardi et mercredi ne sont pas dans ses jours d'entraînement.
+   Un comportement correct qu'on n'explique pas est indiscernable d'un défaut. Pur + testé. */
+const JOURS_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+function premiereSeanceInfo(semaine, joursChoisis, todayKey) {
+  const list = Array.isArray(semaine) ? semaine.filter(function (s) { return s && Number.isFinite(Number(s.weekday)); }) : [];
+  if (!list.length || !isRealDateKey(todayKey)) return null;
+  const auj = new Date(todayKey + 'T12:00:00');
+  const jourAuj = auj.getDay();
+
+  /* Le premier jour ATTEINT : on avance depuis aujourd'hui jusqu'au premier weekday présent
+     dans la semaine. On ne recalcule pas les dates — on cherche le décalage, ce qui reste vrai
+     quel que soit le placement exact. */
+  const presents = {};
+  list.forEach(function (s) { presents[Number(s.weekday)] = true; });
+  let decalage = null;
+  for (let d = 0; d < 7; d++) {
+    if (presents[(jourAuj + d) % 7]) { decalage = d; break; }
+  }
+  if (decalage === null) return null;
+
+  const cible = new Date(auj); cible.setDate(cible.getDate() + decalage);
+  const choisis = Array.isArray(joursChoisis) ? joursChoisis.filter(function (j) { return Number.isFinite(Number(j)); }) : [];
+
+  return {
+    dans: decalage,
+    jour: JOURS_FR[cible.getDay()],
+    date: cible.toISOString().slice(0, 10),
+    quand: decalage === 0 ? 'aujourd’hui' : decalage === 1 ? 'demain' : JOURS_FR[cible.getDay()],
+    /* On n'explique QUE si le départ n'est ni aujourd'hui ni demain : au-delà, l'attente
+       surprend et mérite sa raison. En deçà, la phrase serait du bruit. */
+    explique: decalage >= 2 && choisis.length > 0 && choisis.length < 7,
+    joursChoisis: choisis.map(function (j) { return JOURS_FR[Number(j) % 7]; })
+  };
+}
+
 function weekProgramSchedule(days, todayKey, weeks) {
   const list = Array.isArray(days) ? days : [];
   // isRealDateKey (pas la simple regex format) : une date impossible (« 2026-13-40 ») ferait une
@@ -6963,11 +7003,71 @@ const PROGRAMMES_NUTRITION = [
     conseil: 'Assez rapide pour se voir sur la balance, assez doux pour que les séances restent bonnes.' },
   { cle: 'agressif', nom: 'Agressif', pct: -28, resume: 'Rapide, exigeant.',
     conseil: 'Tiens tes protéines et garde la musculation : c’est ce qui décide si tu perds du gras ou du muscle. Prévois une semaine à l’équilibre toutes les 6 à 8 semaines.' },
+  { cle: 'tres-agressif', nom: 'Très agressif', pct: -35, resume: 'Le plus loin qu’on aille.',
+    conseil: 'À ce rythme tu perds vite, mais la force et les séances en paient le prix. Tiens-le 4 à 6 semaines maximum, protéines hautes, musculation maintenue — puis repasse à l’équilibré. Au-delà, ce n’est plus un déficit, c’est une restriction.' },
   { cle: 'maintien', nom: 'Maintien', pct: 0, resume: 'On stabilise.',
     conseil: 'Utile après une perte : le poids se consolide et la performance remonte.' },
   { cle: 'prise', nom: 'Prise de masse', pct: 10, resume: 'Construire, en acceptant un peu de gras.',
     conseil: 'Un surplus léger suffit : au-delà, c’est surtout du gras qui s’ajoute.' }
 ];
+
+/* REPAS CALÉS SUR LA CIBLE. Adrien : « faut me proposer des repas aussi qui sont adaptés ».
+   Mesuré : les idées de repas étaient une liste FIGÉE, choisie sur le seul `profile.goal` —
+   du texte générique, sans un chiffre, identique qu'on vise 2000 ou 3400 kcal.
+
+   On construit une journée à partir de sa cible réelle : quatre repas dont les portions se
+   règlent pour tomber près du total, avec les protéines réparties (30 à 40 g par prise, ce que
+   le corps utilise le mieux sur un repas).
+
+   Les valeurs sont des ORDRES DE GRANDEUR d'aliments courants — riz, poulet, fromage blanc —
+   et le texte le dit (« ≈ »). Aucune table nutritionnelle n'est citée comme référence : ce
+   serait s'appuyer sur une source qu'on n'a pas vérifiée. Ce qui est vérifié, c'est la
+   RÉPARTITION : la cible protéines vient de proteinTarget, elle-même adossée à Morton 2018.
+   Pur + testé. */
+const BASES_REPAS = [
+  { cle: 'matin', nom: 'Petit-déjeuner', part: 0.25,
+    plat: 'Flocons d’avoine + fromage blanc + fruit', prot: 0.28,
+    astuce: 'Prépare-le la veille : c’est le repas qu’on saute quand on est pressé.' },
+  { cle: 'midi', nom: 'Déjeuner', part: 0.35,
+    plat: 'Riz ou pommes de terre + viande blanche ou poisson + légumes', prot: 0.35,
+    astuce: 'La portion de féculents est le curseur : elle monte les jours de séance.' },
+  { cle: 'collation', nom: 'Collation', part: 0.12,
+    plat: 'Fromage blanc ou skyr + oléagineux', prot: 0.15,
+    astuce: 'Place-la avant la séance ou dans le creux de l’après-midi.' },
+  { cle: 'soir', nom: 'Dîner', part: 0.28,
+    plat: 'Œufs, légumineuses ou poisson + légumes + un peu de féculent', prot: 0.22,
+    astuce: 'Garde des protéines le soir : c’est la plus longue période sans manger.' }
+];
+
+function repasPourCible(kcal, proteinesG, objectif) {
+  const c = Math.round(Number(kcal) || 0);
+  const p = Math.round(Number(proteinesG) || 0);
+  // Sans cible chiffrée on ne propose rien : une portion sans total est un conseil en l'air.
+  if (!(c > 0) || !(p > 0)) return null;
+
+  const repas = BASES_REPAS.map(function (b) {
+    return {
+      cle: b.cle, nom: b.nom, plat: b.plat, astuce: b.astuce,
+      kcal: Math.round(c * b.part / 10) * 10,
+      prot: Math.round(p * b.prot)
+    };
+  });
+
+  /* L'arrondi des quatre repas ne retombe pas exactement sur la cible. On le DIT plutôt que de
+     maquiller les chiffres pour qu'ils tombent juste — un total qui ne s'additionne pas est
+     plus honnête qu'un chiffre trafiqué. */
+  const totalKcal = repas.reduce(function (a, x) { return a + x.kcal; }, 0);
+  const totalProt = repas.reduce(function (a, x) { return a + x.prot; }, 0);
+
+  const but = String(objectif || '');
+  const note = but === 'prise'
+    ? 'En surplus, l’ajout se fait surtout sur les féculents et les matières grasses de qualité — pas sur la portion de protéines, déjà suffisante.'
+    : but === 'perte'
+      ? 'En déficit, garde les protéines et les légumes constants : c’est le volume de féculents et de gras qui absorbe la baisse.'
+      : 'À l’équilibre, la régularité des portions compte plus que leur composition exacte.';
+
+  return { repas: repas, totalKcal: totalKcal, totalProt: totalProt, cibleKcal: c, cibleProt: p, note: note };
+}
 
 function programmesNutrition(energie, poids) {
   const e = energie && typeof energie === 'object' ? energie : null;
@@ -6998,6 +7098,9 @@ function programmesNutrition(energie, poids) {
     if (pctSem !== null && pctSem > 1) {
       alertes.push('Environ ' + String(Math.round(pctSem * 10) / 10).replace('.', ',')
         + ' % de ton poids par semaine : au-delà de 1 %, la perte se paie en muscle et en performance.');
+    }
+    if (p.pct <= -32 && !plancherAtteint) {
+      alertes.push('Ce rythme n’est pas tenable longtemps : 4 à 6 semaines, puis un retour à l’équilibre. Sans ça, la fatigue et la perte de muscle rattrapent le gain.');
     }
     if (p.pct <= -25 && !plancherAtteint) {
       alertes.push('Déficit marqué : monte les protéines et garde la musculation, c’est ce qui protège le muscle (Longland et al. 2016, AJCN).');
@@ -13567,5 +13670,5 @@ function orderCoachNotes(insight) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, recurringOccurrence, setRecurringOverride, sanitizeRecurringOverrides, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, exerciceSansCharge, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, zoneRattrapage, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveWeekShape, conseilObjectif, CONSEILS_OBJECTIF, trainingWeekPlan, trainingPlanInputs, semaineMemoire, semaineEnCours, planDuJour, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, bilanDeBloc, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, analysePerformance, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, coachAdherence, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, programmesNutrition, programmeNutritionChoisi, appliquerProgrammeNutrition, rythmeVerdict, dureePlateau, energyPlan, trainingPolicy, POLITIQUE_NIVEAUX, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, capacityFromHours, capacityToHours, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, coachAgendaWarning, coachTraining, COACH_TRAINING_ORDER, coachWeightLayout, coachProfileNeedsAttention, COACH_WEIGHT_SECTIONS, COACH_WEIGHT_TOUJOURS, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, coachFormeCause, recoveryFraiche, etatFragile, READINESS_LABELS, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, formatDuration, formatKm, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { weekProgramSchedule, premiereSeanceInfo, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, recurringOccurrence, setRecurringOverride, sanitizeRecurringOverrides, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, exerciceSansCharge, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, zoneRattrapage, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveWeekShape, conseilObjectif, CONSEILS_OBJECTIF, trainingWeekPlan, trainingPlanInputs, semaineMemoire, semaineEnCours, planDuJour, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, bilanDeBloc, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, analysePerformance, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, coachAdherence, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, programmesNutrition, repasPourCible, programmeNutritionChoisi, appliquerProgrammeNutrition, rythmeVerdict, dureePlateau, energyPlan, trainingPolicy, POLITIQUE_NIVEAUX, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, capacityFromHours, capacityToHours, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, coachAgendaWarning, coachTraining, COACH_TRAINING_ORDER, coachWeightLayout, coachProfileNeedsAttention, COACH_WEIGHT_SECTIONS, COACH_WEIGHT_TOUJOURS, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, coachFormeCause, recoveryFraiche, etatFragile, READINESS_LABELS, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, formatDuration, formatKm, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

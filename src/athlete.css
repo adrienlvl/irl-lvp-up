@@ -278,3 +278,24 @@
   font-size:var(--fs-3xs);font-weight:750;padding:3px 9px;border-radius:var(--r-pill);
   white-space:nowrap;letter-spacing:.02em}
 .oc-focus{margin:0;color:var(--muted);font-size:var(--fs-2xs);line-height:1.55}
+
+/* JOURNÉE DE REPAS calée sur la cible. Repliée par défaut : c'est un détail qu'on ouvre quand
+   on en a besoin, pas une liste qui pousse le reste du panneau vers le bas. */
+.onc-repas{margin-top:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--input-bg);padding:9px 11px}
+.onc-repas[hidden]{display:none}
+.onc-repas summary{cursor:pointer;color:var(--text);font-size:var(--fs-2xs);line-height:1.5;
+  list-style:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.onc-repas summary::-webkit-details-marker{display:none}
+.onc-repas summary small{color:var(--muted);margin-left:auto;white-space:nowrap}
+.or-liste{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:grid;gap:var(--sp-2)}
+.or-liste[hidden]{display:none}
+.or-liste li{display:grid;gap:3px;padding:8px 0;border-top:1px solid var(--line);min-width:0}
+.or-liste li:first-child{border-top:0;padding-top:0}
+.or-tete{display:flex;justify-content:space-between;gap:var(--sp-2);align-items:baseline;min-width:0}
+.or-tete b{font-size:var(--fs-2xs);color:var(--text)}
+.or-tete em{font-style:normal;color:var(--accent);font-weight:700;font-size:var(--fs-3xs);
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.or-liste li span{color:var(--text);font-size:var(--fs-2xs);line-height:1.5;overflow-wrap:anywhere}
+.or-liste li small{color:var(--muted);font-size:var(--fs-3xs);line-height:1.5}
+.or-note{margin:var(--sp-2) 0 0;color:var(--muted);font-size:var(--fs-3xs);line-height:1.55}

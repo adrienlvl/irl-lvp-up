@@ -14369,6 +14369,65 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('repasPourCible + très agressif + première séance : les trois demandes d’Adrien', () => {
+  /* 1. « Tu peux pas être plus agressif ? » — oui, jusqu'à -35 %, et pas au-delà : le plancher
+     du métabolisme de base mordrait de toute façon et on afficherait un pourcentage qu'on ne
+     tient pas. Les garde-fous ne bougent pas. */
+  const e = L.energyPlan({ weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+    sessionsPerWeek: 4, goal: 'perte', targetWeight: 74, todayKey: '2026-07-28' });
+  const liste = L.programmesNutrition(e, 80);
+  const par = c => liste.filter(x => x.cle === c)[0];
+  assert.ok(par('tres-agressif'), 'l’option la plus agressive existe');
+  assert.ok(par('tres-agressif').kcal < par('agressif').kcal, 'et elle coupe VRAIMENT plus');
+  assert.ok(par('tres-agressif').alertes.length > par('agressif').alertes.length,
+    'avec plus d’avertissements : ' + par('tres-agressif').alertes.length);
+  assert.ok(par('tres-agressif').alertes.some(x => /4 à 6 semaines/.test(x)),
+    'dont la durée tenable, qui est LA question sur un déficit de ce niveau');
+  assert.ok(liste.every(x => x.kcal >= e.bmr), 'le plancher tient pour TOUS, y compris le plus dur');
+
+  // La liste se lit du plus doux au plus dur : un ordre incohérent fait choisir au hasard.
+  const idx = c => liste.findIndex(x => x.cle === c);
+  assert.ok(idx('prudent') < idx('equilibre'), 'prudent avant équilibré');
+  assert.ok(idx('equilibre') < idx('agressif'), 'équilibré avant agressif');
+  assert.ok(idx('agressif') < idx('tres-agressif'), 'agressif avant très agressif');
+
+  /* 2. « Faut me proposer des repas adaptés » — les idées étaient une liste FIGÉE sur le seul
+     objectif, sans un chiffre, identique qu'on vise 2000 ou 3400 kcal. */
+  const bas = L.repasPourCible(2001, 145, 'perte');
+  const haut = L.repasPourCible(3387, 145, 'prise');
+  assert.ok(bas && haut, 'une journée est proposée dans les deux cas');
+  assert.equal(bas.repas.length, 4, 'quatre repas');
+  assert.ok(haut.repas[0].kcal > bas.repas[0].kcal,
+    'et les portions SUIVENT la cible : ' + bas.repas[0].kcal + ' vs ' + haut.repas[0].kcal);
+  assert.ok(Math.abs(bas.totalKcal - bas.cibleKcal) <= 40, 'le total tombe près de la cible');
+  assert.ok(Math.abs(bas.totalProt - bas.cibleProt) <= 5, 'et les protéines aussi');
+  assert.ok(bas.repas.every(r => r.prot > 0), 'chaque repas porte des protéines');
+  assert.notEqual(bas.note, haut.note, 'le conseil diffère entre déficit et surplus');
+  assert.equal(L.repasPourCible(0, 145, 'perte'), null, 'sans cible chiffrée : aucune proposition');
+  assert.equal(L.repasPourCible(2000, 0, 'perte'), null, 'sans protéines non plus');
+
+  /* 3. « Le programme commence jeudi alors qu'on est mardi ? » — l'app plaçait correctement les
+     séances sur ses jours cochés, mais ne le disait NULLE PART. Un comportement correct qu'on
+     n'explique pas est indiscernable d'un défaut. */
+  const MARDI = '2026-07-28';
+  const sem = j => j.map(w => ({ weekday: w, kind: 'muscu', title: 'X' }));
+  const tous = L.premiereSeanceInfo(sem([1, 2, 3, 4, 5, 6, 0]), [1, 2, 3, 4, 5, 6, 0], MARDI);
+  assert.equal(tous.dans, 0, 'tous les jours cochés → ça démarre aujourd’hui');
+  assert.equal(tous.explique, false, 'et on n’explique rien : il n’y a rien à expliquer');
+  const lmv = L.premiereSeanceInfo(sem([1, 3, 5]), [1, 3, 5], MARDI);
+  assert.equal(lmv.quand, 'demain', 'lun/mer/ven un mardi → demain');
+  assert.equal(lmv.explique, false, 'demain ne surprend pas : pas d’explication');
+  /* LE CAS D'ADRIEN : jours qui excluent mardi ET mercredi. C'est le seul qui DISCRIMINE —
+     à J+0 ou J+1 les deux versions se tairaient. */
+  const jsd = L.premiereSeanceInfo(sem([4, 6, 0]), [4, 6, 0], MARDI);
+  assert.equal(jsd.dans, 2, 'jeu/sam/dim un mardi → jeudi');
+  assert.equal(jsd.quand, 'jeudi');
+  assert.equal(jsd.explique, true, 'DEUX jours d’attente : là on explique');
+  assert.ok(jsd.joursChoisis.indexOf('jeudi') !== -1, 'en nommant ses jours : ' + jsd.joursChoisis.join(', '));
+  assert.equal(L.premiereSeanceInfo([], [1, 3], MARDI), null, 'aucune séance → rien');
+  assert.equal(L.premiereSeanceInfo(sem([1]), [1], 'pas-une-date'), null, 'date abîmée → rien');
+});
+
 test('programmesNutrition : le choix est ouvert, mais rien n’est caché', () => {
   const e = L.energyPlan({ weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
     sessionsPerWeek: 4, goal: 'perte', targetWeight: 74, todayKey: '2026-07-28' });

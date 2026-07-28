@@ -3185,6 +3185,46 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.repasEtDepart = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function' || typeof repasPourCible !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          /* Jours d entrainement qui excluent mardi ET mercredi : c est le cas d Adrien,
+             celui ou le depart en jeudi surprend et merite sa raison. */
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [4, 6, 0] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4,
+            progSessions: '', nutritionPlan: 'tres-agressif' });
+          state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+
+          const rep = document.querySelector('#objectiveResult .onc-repas');
+          const dep = document.querySelector('#objectiveResult .op-depart');
+          // Le RENDU, pas la propriete : un bloc non peint ne nourrit personne.
+          const txtRep = (rep && getComputedStyle(rep).display !== 'none') ? (rep.textContent || '') : '';
+          const txtDep = (dep && getComputedStyle(dep).display !== 'none') ? (dep.textContent || '') : '';
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__repasDepart = 'repas[' + txtRep.slice(0, 55) + '] depart[' + txtDep.slice(0, 55) + ']';
+          // Les repas doivent citer des CHIFFRES, sinon c est la liste figee d avant.
+          const chiffres = txtRep.indexOf('kcal') !== -1 && txtRep.indexOf(' g') !== -1;
+          const quatre = txtRep.indexOf('Petit-déjeuner') !== -1 && txtRep.indexOf('Dîner') !== -1;
+          // Et le depart doit etre EXPLIQUE, pas seulement annonce.
+          const explique = txtDep.indexOf('Première séance') !== -1 && txtDep.indexOf('jours d’entraînement') !== -1;
+          return chiffres && quatre && explique;
+        } catch (e) { checks.__errRepas = String(e && e.message); return false; }
+      })();
+
       checks.nutritionAuChoix = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function' || typeof programmesNutrition !== 'function') return false;
@@ -4280,6 +4320,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.repasEtDepart) errors.push('Deux demandes d’Adrien : des REPAS calés sur la cible choisie (avec kcal et protéines par repas, pas une liste figée) et l’EXPLICATION de la date de départ quand la première séance n’est ni aujourd’hui ni demain — un comportement correct qu’on n’explique pas est indiscernable d’un défaut');
     if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur. Et le bandeau de pilotage, trois lignes plus haut, doit annoncer LA MÊME cible : deux nombres pour la même chose dans le même panneau, c’est le défaut que ce dépôt traque');
     if (!checks.reposReglTenu) errors.push('Le repos réglé à la main (+15 s, préréglages) doit être CELUI qui tourne : il était écrasé par la valeur prescrite au rendu suivant, donc le réglage d’Adrien n’a jamais servi une seule fois. Et changer d’exercice doit reprendre le repos prescrit du nouveau mouvement');
     if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer. Elle doit AUSSI redemander « prêt ? » en changeant d’exercice, et ne pas lancer de repos après la dernière série');
