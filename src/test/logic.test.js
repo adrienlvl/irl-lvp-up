@@ -1833,10 +1833,12 @@ test('weeklyInsights : bilan hebdo intelligent (objectifs + tendance)', () => {
   assert.ok(goal1done.some(i => i.tone === 'good' && /1\/1 séance — objectif atteint/.test(i.text)), '1/1 séance au singulier (objectif atteint)');
   assert.ok(!goal1done.some(i => /\/1 séances/.test(i.text)), 'pas de pluriel fautif quand objectif = 1');
   const goal1none = L.weeklyInsights({ workouts: [], goals: { sessions: 1 } }, '2026-07-06', '2026-07-11');
-  assert.ok(goal1none.some(i => i.tone === 'warn' && /0\/1 séance — encore 1 séance pour ton objectif hebdo\./.test(i.text)), '0/1 séance : le reste porte le nom « séance » au singulier');
+  assert.ok(goal1none.some(i => i.text.indexOf('0/1 séance — 1 séance à caser') === 0), '0/1 séance : le reste porte « séance » au singulier (formulation mise à jour — le message cite les jours restants ; contrat changé sciemment)');
+  assert.ok(!goal1none.some(i => /1 séances à caser/.test(i.text)), 'et jamais « 1 séances »');
   // le reste à faire porte le nom « séance(s) » accordé sur le nombre restant (aligné sur app.js « N séance(s) pour boucler ton objectif »)
   const goalMany = L.weeklyInsights({ workouts: [{ date: '2026-07-08', type: 'strength', duration: 50, effort: 3 }], goals: { sessions: 4 } }, '2026-07-06', '2026-07-11');
-  assert.ok(goalMany.some(i => i.tone === 'warn' && /1\/4 séances — encore 3 séances pour ton objectif hebdo\./.test(i.text)), 'encore 3 séances (pluriel du reste)');
+  assert.ok(goalMany.some(i => i.text.indexOf('1/4 séances — 3 séances en 2 jours') === 0), 'accord au pluriel sur le RESTE (même remarque de contrat)');
+  assert.ok(!goalMany.some(i => /3 séance en/.test(i.text)), 'et jamais « 3 séance »');
   // état vide → un message d'amorce
   const empty = L.weeklyInsights({}, '2026-07-06', '2026-07-11');
   assert.equal(empty.length, 1);
@@ -14035,6 +14037,54 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   const sans = L.calorieAdjustment(w, 'perte', 2098);
   assert.equal(sans.deficitMarque, false);
   assert.match(sans.message, /ajoute du cardio/);
+});
+
+test('weeklyInsights : le même retard ne se juge pas pareil un mardi et un dimanche', () => {
+  const LUNDI = '2026-07-27';
+  const etat = n => ({
+    goals: { sessions: 4 },
+    workouts: Array.from({ length: n }, (_, k) => ({
+      id: k + 1, date: LUNDI, type: 'strength', duration: 50, effort: 3, exercises: []
+    })),
+    recovery: [], nutrition: []
+  });
+  const cible = (st, auj) => L.weeklyInsights(st, LUNDI, auj).filter(x => x.emoji === '🎯')[0];
+
+  /* SONDÉ AVANT D'ÉCRIRE : « 1/4 séances — encore 3 séances pour ton objectif hebdo » était
+     RIGOUREUSEMENT le même texte un mardi et un dimanche soir. Le mardi c'est une information ;
+     le dimanche, un reproche sur une semaine déjà jouée. Un bilan qui ignore où l'on en est
+     dans la semaine ne bilan rien : il compte. */
+  const mardi = cible(etat(1), '2026-07-28');
+  const dimanche = cible(etat(1), '2026-08-02');
+  assert.ok(mardi && dimanche, 'les deux jours produisent bien un verdict');
+  assert.notEqual(mardi.text, dimanche.text, 'MÊME retard, deux lectures différentes');
+
+  // Mardi : 3 séances sur 6 jours restants, c'est faisable — donc ni alarme ni reproche.
+  assert.equal(mardi.tone, 'info', 'ton neutre quand c’est encore jouable : ' + mardi.text);
+  assert.ok(/6 jours/.test(mardi.text), 'et le nombre de jours restants est CITÉ : ' + mardi.text);
+  assert.ok(/dans les temps/.test(mardi.text));
+
+  // Dimanche : 3 séances en 1 jour, ce n'est pas jouable — le conseil utile devient la cible.
+  assert.equal(dimanche.tone, 'warn');
+  assert.ok(/trop serré/.test(dimanche.text), dimanche.text);
+  assert.ok(/Vise 2\/4/.test(dimanche.text), 'on propose une cible ATTEIGNABLE, pas un rattrapage impossible');
+
+  /* Le seuil porte sur la FAISABILITÉ, pas sur le retard : à retard égal le verdict bascule
+     quand les jours manquent. On l'écrit sur le passage exact. */
+  const jeudi = cible(etat(1), '2026-07-30');   // 3 séances / 4 jours → jouable
+  const samedi = cible(etat(1), '2026-08-01');  // 3 séances / 2 jours → non
+  assert.equal(jeudi.tone, 'info', jeudi.text);
+  assert.equal(samedi.tone, 'warn', samedi.text);
+
+  // L'objectif atteint garde son message d'origine : on n'a pas touché à ce chemin.
+  const atteint = L.weeklyInsights(etat(4), LUNDI, '2026-07-28').filter(x => x.emoji === '✅')[0];
+  assert.ok(atteint && /objectif atteint/.test(atteint.text), 'chemin « atteint » intact');
+
+  /* Sans date exploitable on ne juge PAS le rythme : on compte, comme avant. Affirmer « tu es
+     dans les temps » sans savoir quel jour on est serait une affirmation gratuite. */
+  const flou = cible(etat(1), 'pas-une-date');
+  assert.ok(flou && /encore 3 séances/.test(flou.text), 'repli sur le comptage : ' + flou.text);
+  assert.ok(!/jours?\b.*restant|dans les temps/.test(flou.text), 'et aucun jugement de rythme');
 });
 
 test('sleepCoachInsight : la source ne vient QUE sur l’irrégularité', () => {

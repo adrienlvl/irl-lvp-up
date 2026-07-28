@@ -2917,7 +2917,27 @@ function weeklyInsights(state, mondayKey, todayKey) {
   const goalSessions = Math.round(Number(goals.sessions) || 0);
   if (goalSessions > 0) {
     if (cur.sessions >= goalSessions) out.push({ emoji: '✅', tone: 'good', text: `${cur.sessions}/${goalSessions} séance${goalSessions > 1 ? 's' : ''} — objectif atteint, bravo !` });
-    else { const left = goalSessions - cur.sessions; out.push({ emoji: '🎯', tone: 'warn', text: `${cur.sessions}/${goalSessions} séance${goalSessions > 1 ? 's' : ''} — encore ${left} séance${left > 1 ? 's' : ''} pour ton objectif hebdo.` }); }
+    else {
+      const left = goalSessions - cur.sessions;
+      let restants = null;
+      try {
+        const ec = (typeof semaineEnCours === 'function') ? semaineEnCours(s, todayKey) : null;
+        if (ec && Array.isArray(ec.joursRestants)) restants = ec.joursRestants.length;
+      } catch (_) { restants = null; }
+      const nS = left > 1 ? 's' : '';
+      const tete = `${cur.sessions}/${goalSessions} séance${goalSessions > 1 ? 's' : ''}`;
+      let txt, ton;
+      if (restants === null) {
+        // Sans date exploitable on ne juge pas le rythme : on se contente de compter.
+        txt = `${tete} — encore ${left} séance${nS} pour ton objectif hebdo.`; ton = 'warn';
+      } else if (left <= restants) {
+        txt = `${tete} — ${left} séance${nS} à caser sur ${restants} jour${restants > 1 ? 's' : ''} : tu es dans les temps.`;
+        ton = 'info';
+      } else {
+        txt = `${tete} — ${left} séance${nS} en ${restants} jour${restants > 1 ? 's' : ''}, c’est trop serré. Vise ${cur.sessions + restants}/${goalSessions} et garde la régularité.`;
+        ton = 'warn';
+      }
+      out.push({ emoji: '🎯', tone: ton, text: txt }); }
   } else if (cur.sessions > 0) out.push({ emoji: '🏋️', tone: 'info', text: `${cur.sessions} séance${cur.sessions > 1 ? 's' : ''} cette semaine.` });
   const goalKm = Number(goals.distance) || 0;
   // Accord de « couru(s) » sur la distance RÉELLEMENT parcourue (cur.km). Règle FR : pluriel ssi
