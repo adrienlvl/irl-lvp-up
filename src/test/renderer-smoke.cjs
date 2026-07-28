@@ -5,6 +5,7 @@
  * Lancé via `npm run test:smoke`.
  */
 const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('fs');
 const path = require('path');
 
 // Stubs des canaux IPC attendus par preload/app.js (sinon rejets non gérés parasites).
@@ -67,7 +68,7 @@ app.whenReady().then(async () => {
           return okBad && okGood;
         })(),
         photosApi: typeof loadGalleryPhotos === 'function' && typeof migratePhotosToDisk === 'function' && !!(window.desktop && window.desktop.savePhoto),
-        photoCompare: typeof photoComparePair === 'function' && !!document.getElementById('photoCompare') && (() => { const c = photoComparePair([{ date: '2026-05-01', file: 'a' }, { date: '2026-07-10', file: 'b' }], [{ date: '2026-05-02', value: 84 }, { date: '2026-07-09', value: 79 }]); return c && c.before.date === '2026-05-01' && c.after.date === '2026-07-10' && c.weightDelta === -5 && photoComparePair([{ date: '2026-05-01' }]) === null; })(),
+        photoCompare:  typeof photoComparePair === 'function' && !!document.getElementById('photoCompare') && (() => { const c = photoComparePair([{ date: '2026-05-01', file: 'a' }, { date: '2026-07-10', file: 'b' }], [{ date: '2026-05-02', value: 84 }, { date: '2026-07-09', value: 79 }]); return c && c.before.date === '2026-05-01' && c.after.date === '2026-07-10' && c.weightDelta === -5 && photoComparePair([{ date: '2026-05-01' }]) === null; })(),
         studyPlanner: !!document.getElementById('studyPlanForm') && typeof planStudySessions === 'function' && typeof buildIcs === 'function',
         examCountdown: typeof examCountdown === 'function' && typeof renderExamCountdown === 'function' && typeof nearestExam === 'function' && !!document.getElementById('examCountdown') && examCountdown({ title: 'BTS', date: '2099-01-11' }, '2099-01-01').daysLeft === 10 && (c => c.title === 'Compta' && c.daysLeft === 7)(examCountdown([{ title: 'Droit', date: '2099-01-25' }, { title: 'Compta', date: '2099-01-08' }], '2099-01-01')),
         studyProgress: typeof studyStats === 'function' && !!document.getElementById('studyProgress') && (s => s.total === 2 && s.done === 1 && s.upcoming === 1)(studyStats([{ kind: 'study', date: '2026-07-05', completed: true }, { kind: 'study', date: '2099-07-12', completed: false }], '2026-07-10')),
@@ -3284,6 +3285,36 @@ app.whenReady().then(async () => {
           return compagnonPrudent && pasDeScorePerime && ditDepuisQuand;
         } catch (e) { checks.__errForme = String(e && e.message); return false; }
       })();
+      checks.formeToujoursFraiche = (() => {
+        try {
+          if (typeof renderUltraPage !== 'function' || typeof etatFragile !== 'function') return false;
+          const sr = state.recovery;
+          const auj = localDate();
+          const vieux = new Date(auj + 'T12:00:00'); vieux.setDate(vieux.getDate() - 21);
+          const veille = new Date(auj + 'T12:00:00'); veille.setDate(veille.getDate() - 1);
+          const mauvais = { sleep: 4, fatigue: 5, soreness: 5 };
+          const lire = () => {
+            showPage('ultra');
+            renderUltraPage();
+            const el = document.getElementById('ultraPriority');
+            return el ? (el.textContent || '') : '';
+          };
+          /* Une SEULE entree, tres vieille, et mauvaise. L'app ne doit rien affirmer sur la
+             forme du jour : elle n'a pas de mesure du jour. C'etait le bug — six rendus
+             lisaient recovery.at(-1) et te declaraient fragile pour toujours. */
+          state.recovery = [Object.assign({ date: vieux.toISOString().slice(0, 10) }, mauvais)];
+          const perime = lire();
+          // La MEME entree, mais d'hier : la, l'app doit parler.
+          state.recovery = [Object.assign({ date: veille.toISOString().slice(0, 10) }, mauvais)];
+          const frais = lire();
+          state.recovery = sr;
+          try { renderUltraPage(); } catch (_) {}
+          const motFragile = /fragile|R.cup.rer d.abord/i;
+          // Il faut AVOIR VU le cas frais parler, sinon le check passerait a vide.
+          return motFragile.test(frais) && !motFragile.test(perime);
+        } catch (e) { return false; }
+      })();
+
       checks.rythmePerte = (() => {
         try {
           if (typeof rythmeVerdict !== 'function' || typeof renderCoachWeight !== 'function') return false;
@@ -3370,6 +3401,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
     if (!checks.proteinTargetUnified) errors.push('Cible protéines désunifiée (la valeur affichée dans #nutritionStatus doit suivre proteinTarget pour le poids courant, quel qu’il soit)');
+    if (!checks.formeToujoursFraiche) errors.push('Un rendu affirme « récupération fragile » à partir d’un check-in périmé (ou ne le dit plus quand il est frais) : la forme du jour doit venir du jour — passe par etatFragile/recoveryFraiche, pas par recovery.at(-1)');
     if (!checks.rythmePerte) errors.push('Coach Poids muet sur le rythme (perdre 1,3 kg/sem quand le rythme sûr est 0,64 doit déclencher une alerte citant LES DEUX chiffres et une action ; au bon rythme le verdict rassure ; avec une seule pesée il se tait)');
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
@@ -3549,6 +3581,7 @@ app.whenReady().then(async () => {
     if (!checks.readinessTrend) errors.push('Tendance de forme KO (readinessTrend / #readinessTrend — doublon de date compté deux fois ?)');
     if (!checks.deloadWiring) errors.push('Décharge muscu KO (deloadRecommendation reçoit l\'objet readinessScore au lieu du score → branche fatigue morte, carte « Décharge conseillée » jamais affichée)');
     if (!checks.wellnessBestStreak) errors.push('Record série bien-être KO (wellnessBestStreak — date impossible gonfle le record ?)');
+
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
   } catch (e) {
     errors.push('exception: ' + e.message);

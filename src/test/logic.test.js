@@ -14232,6 +14232,37 @@ test('goals.runs : zéro est une valeur, une valeur illisible ne l’est pas', (
   assert.equal(norm(99), 6, 'borné');
 });
 
+test('etatFragile : un seul seuil, et il exige une mesure du jour', () => {
+  const f = L.etatFragile;
+  const AUJ = '2026-07-28';
+
+  /* Le seuil « fragile » (sommeil < 6 h, fatigue ≥ 4, courbatures ≥ 4) était recopié à
+     l'identique dans SIX rendus, tous sur `recovery.at(-1)`. Conséquence : une mauvaise nuit
+     saisie il y a trois semaines, plus aucune saisie depuis, et l'app te déclarait fragile
+     indéfiniment — elle baissait les charges et affichait « récupération basse » sur la foi
+     d'une donnée morte. */
+  assert.equal(f([{ date: AUJ, sleep: 5, fatigue: 2, soreness: 2 }], AUJ), true, 'nuit courte du jour');
+  assert.equal(f([{ date: AUJ, sleep: 8, fatigue: 4, soreness: 1 }], AUJ), true, 'fatigue 4/5');
+  assert.equal(f([{ date: AUJ, sleep: 8, fatigue: 1, soreness: 5 }], AUJ), true, 'courbatures 5/5');
+  assert.equal(f([{ date: AUJ, sleep: 8, fatigue: 2, soreness: 2 }], AUJ), false, 'bonne forme');
+
+  // Le cœur du correctif : la même mauvaise entrée, mais vieille, ne dit plus rien.
+  const vieille = [{ date: '2026-07-04', sleep: 4, fatigue: 5, soreness: 5 }];
+  assert.equal(f(vieille, AUJ), false, 'trois semaines : on ne suppose pas, on se tait');
+  assert.equal(f([{ date: '2026-07-27', sleep: 4 }], AUJ), true, 'hier compte encore');
+
+  /* Le formulaire enregistre `Number(champ.value) || 0` : un champ sommeil laissé vide vaut 0
+     en base. L'ancien test `sleep < 6` lisait ce 0 comme « zéro heure de sommeil ». */
+  assert.equal(f([{ date: AUJ, sleep: 0, fatigue: 2, soreness: 2 }], AUJ), false,
+    'sommeil non renseigné n’est pas une nuit blanche');
+  assert.equal(f([{ date: AUJ, sleep: 0, fatigue: 4, soreness: 2 }], AUJ), true,
+    'mais la fatigue renseignée à côté compte toujours');
+
+  assert.equal(f([], AUJ), false, 'aucun journal : aucune affirmation');
+  assert.equal(f(null, AUJ), false, 'entrée absente tolérée');
+  assert.equal(f([{ date: '2026-07-30', sleep: 3 }], AUJ), false, 'date future : donnée abîmée');
+});
+
 test('recoveryFraiche : une seule notion de « ta forme du jour »', () => {
   const f = L.recoveryFraiche;
   const AUJ = '2026-07-28';
