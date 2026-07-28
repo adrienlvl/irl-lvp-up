@@ -1780,3 +1780,49 @@ tester le sujet.
 
 ### Reste
 - Rien en attente d'Adrien.
+
+---
+
+## Itération 56 — Le champ dénivelé fabriquait ses propres chiffres
+
+Première ligne de la roadmap (712) : la dette n°1, reproduite avant d'être corrigée.
+
+### Reproduction
+
+Une seule saisie réelle — 450 m hier. Puis trois clics sur « Enregistrer » **sans rien taper** :
+
+| Étape | Champ affiché | Entrée du jour | Total stocké |
+|---|---|---|---|
+| Après rendu | 450 | — | 450 |
+| Clic 1 | 900 | 450 | **900** |
+| Clic 2 | 1350 | 900 | **1350** |
+| Clic 3 | 1800 | 1350 | **1800** |
+
+Le bilan annonçait alors *« Cette semaine : 1800 m D+ »*. `renderAthlete` pré-remplissait le
+champ avec la SOMME hebdomadaire, que `#saveTrail` réenregistrait comme la valeur DU JOUR.
+
+### Ce qui a été fait
+
+Le champ montre l'entrée du jour, celle qu'on modifie. Le total de la semaine reste dans
+`#trailInsight`, qui dit « Cette semaine » — c'est là qu'il est juste. Et les libellés le disent :
+« Dénivelé positif **du jour** », « Sortie longue **du jour** ». *Un champ qui ne dit pas ce qu'il
+contient est la moitié du défaut.*
+
+Voisin durci : `state.trail` n'est normalisé que comme tableau, ses entrées ne passent par aucun
+normaliseur. Une sauvegarde importée peut porter `elevation:'450'`, et `0 + '450'` vaut `'0450'`.
+
+### Ce que cette itération a appris
+
+*Un jeu d'essai trop propre rend un garde-fou creux.* Ma deuxième mutation a survécu parce que
+mes données de test n'utilisaient que des nombres — le durcissement n'était jamais exercé. Et
+mon assertion cherchait `« 450 m D+ »`, que `« 0450 m D+ »` contient : **ne jamais asserter une
+chaîne qu'une chaîne fautive contient aussi.** Corrigé, la mutation affiche fièrement
+« Cette semaine : 04500 m D+ ».
+
+**Mutations.** 2 posées, 2 détectées après correction du jeu d'essai.
+
+665 tests · SMOKE OK. Rien publié : dernière release v2.12.1.
+
+### Reste (roadmap 712)
+- Sondes des 4 écrans jamais regardés en 390 px : Focus & vie, Réglages, vue jour, dialogues.
+- Puis le coût annoncé des réglages, puis l'arbitrage sous budget de temps.
