@@ -848,3 +848,45 @@ là-dedans : `indexOf` et `split(String.fromCharCode(10))` ne traversent aucun �
 `setLogs` : il aurait affiché « 0 série » sur les séances modernes. Écarté sciemment.
 
 646 tests · SMOKE OK · 390 px propre.
+
+## Itération 33 — un diagnostic qui dit par quoi commencer
+
+**Balayage d'abord.** Le défaut de l'itération 32 (panneau aveugle au format moderne)
+appartenait-il à une famille ? Vérifié : `exerciseEntries` et `neglectedZoneReport` gèrent bien
+les deux formats, et la séance guidée écrit `completedSets` À CÔTÉ de `setLogs`. Le panneau
+Analyse était le dernier aveugle. Mesuré, pas supposé.
+
+**Le vrai manque.** Onze fonctions écrites et testées ne sont rendues NULLE PART
+(`sleepRegularity`, `proteinAdherenceTrend`, `zoneTopExercises`, `blockProgressText`…). L'app
+nommait « Zone à rattraper : Épaules » sans jamais dire quoi faire. `zoneRattrapage` croise le
+classement existant avec le filtre matériel — proposer du kettlebell à qui n'en a pas, c'est un
+coach qui ignore ton équipement.
+
+### Ce que cette itération a appris
+
+*Mon jeu d'essai n'était pas réaliste, et j'ai failli corriger l'app pour ça.* Mes séances
+n'avaient que `setLogs` ; une séance guidée réelle écrit AUSSI `completedSets`. J'ai cru un
+instant que `neglectedZoneReport` était aveugle — c'est ma sonde qui l'était.
+
+*Un remplacement a visé la mauvaise occurrence.* `state.workouts = w;` existe dans plusieurs
+checks : mon patch a injecté `state.blockStart` dans le check VOISIN, sans restauration, et
+trois checks sans rapport sont tombés. Le harnais l'a dit franchement — mais la cause n'était
+pas là où l'échec s'affichait.
+
+*Backticks dans le harnais : troisième fois.* Cette fois j'ai ajouté au patch une vérification
+automatique des backticks suspects après écriture, au lieu de compter sur ma vigilance.
+
+*J'ai renoncé à un check, et je l'écris.* Le rendu de cette zone est derrière un bloc
+d'entraînement actif que je n'ai pas su reproduire dans le harnais en un temps raisonnable.
+Plutôt que de poser un check creux — ou de le laisser rouge — je garde les tests purs
+(mutation-validés) et je note le câblage écran comme NON garanti. Un garde-fou qu'on croit
+avoir est pire que pas de garde-fou du tout.
+
+647 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- Câblage écran de `zoneRattrapage` non gardé (voir ci-dessus).
+- Dix fonctions encore jamais rendues : sommeil (`sleepRegularity`, `bedtimeRegularity`,
+  `sleepDurationTrend`), adhérence (`proteinAdherenceTrend`, `hydrationAdherenceTrend`,
+  `fieldAdherenceTrend`), force (`blockProgressText`, `progressSets`), `focusMinutesTrend`,
+  `workoutDominantZone`.
