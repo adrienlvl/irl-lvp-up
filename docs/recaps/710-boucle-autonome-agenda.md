@@ -1985,3 +1985,50 @@ condition de l'écrire.
 - Le coût annoncé des réglages reste à faire : le vrai manque n'est pas la phrase de
   répartition, mais qu'aucun réglage ne dise ce qu'il change AVANT qu'on y touche.
 - Puis l'arbitrage sous budget de temps.
+
+---
+
+## Itération 60 — Un réglage dit ce qu'il vient de coûter
+
+Roadmap 712, chantier « le coût annoncé des réglages ». Les réglages du Plan de bataille
+s'appliquaient en silence : on voit le nouvel état, jamais l'écart.
+
+### Mesuré avant de construire
+
+Passer de 3 à 5 courses avec 4 séances par semaine **ne change pas le nombre de séances**
+(4 → 4) mais fait disparaître la **seule** séance de musculation, en ajoutant 25 min. Rien à
+l'écran ne le signalait, et rien ne permettait de le déduire.
+
+Vérifié aussi que l'écart est du **signal** : la graine de variation change les exercices sans
+toucher aux comptes ni aux minutes, donc elle ne déclenche aucune phrase.
+
+### Ce qui a été livré
+
+`deltaPlan` compare l'ancienne semaine à la nouvelle et nomme l'écart — **après** l'effet, avec
+la mesure réelle :
+
+- « +2 séances, +1 h 30 par semaine. »
+- « +25 min par semaine — et ta musculation disparaît complètement. »
+- « 1 séance de musculation remplacée par de la course. » *(même nombre de séances, mêmes
+  minutes : le changement le plus dur à repérer à l'œil)*
+
+Silence quand rien de chiffrable ne bouge.
+
+### Ce que cette itération a appris
+
+*Une redondance rend la couverture invisible.* J'avais deux gardes de silence. Chacune couvrait
+l'autre : mutées séparément, **toutes deux survivaient**, et seule leur mutation simultanée
+échouait. Un raccourci redondant ne coûte rien à l'exécution mais ment sur ce qui est testé. Je
+l'ai supprimé — la garde restante est désormais détectée seule.
+
+*Un check qui ne remet pas la scène à zéro ne teste pas son sujet.* Mon assertion « rien au
+premier rendu » passait pour de mauvaises raisons : un plan calculé plus tôt dans le harnais
+servait de référence. Il a fallu effacer explicitement cette référence.
+
+**Mutations.** 5 posées, 5 détectées après suppression de la redondance.
+
+669 tests · SMOKE OK · **publié en v2.13.0**.
+
+### Boucle arrêtée à la demande d'Adrien
+Roadmap 712 à jour. Reste, dans l'ordre : l'arbitrage sous budget de temps (le plus gros saut
+qualitatif), la mémoire des blocs, puis la distribution si elle a lieu.
