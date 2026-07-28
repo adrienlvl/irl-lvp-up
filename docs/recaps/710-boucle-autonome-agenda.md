@@ -777,3 +777,40 @@ que `cutPct` (45 % tenus à J-3 pour 48 % visés). Une mutation qui remplace la 
 l'intention est attrapée par une assertion dédiée.
 
 644 tests · SMOKE OK · 390 px propre.
+
+## Itération 31 — kilomètres dans les coachs, puis précision de saisie (demande d'Adrien)
+
+**1. La dernière capacité unique du panneau orphelin.** L'audit ouvert à l'itération 30 est
+terminé : `buildTrainingWeek` consommait cinq options, dont `weeklyKm`+`emphasis` →
+`runDistances`. Lui seul prescrivait des **kilomètres** ; les trois coachs unifiés ne disaient
+que « Course facile · 35 min ». Câblé. Distances prescrites SEULEMENT si le volume hebdo est
+renseigné — sinon `runDistances` retombe sur un défaut (14/22/26 km) qu'Adrien n'a jamais
+saisi, et prescrire une distance qu'il n'a pas choisie serait inventer une donnée.
+L'affûtage rabote désormais les km autant que les minutes, et le message cite l'unité que
+l'écran affiche.
+
+**2. Demande d'Adrien en cours d'itération** : secondes impossibles, 5,14 km refusé, visuel à
+revoir. Les deux blocages étaient réels et vérifiables dans le markup (aucun champ secondes ;
+`step="0.1"` faisant refuser 5,14 par le NAVIGATEUR). Contrat de `combineDuration` changé
+sciemment, stockage laissé en minutes (aucune migration).
+
+### Ce que cette itération a appris
+
+*Une mutation a survécu et je ne l'ai pas maquillée.* J'affirmais que la plus grosse distance
+est attribuée « par rôle et non par position » : dans les quatre gabarits, la sortie longue est
+toujours en dernier, donc les deux implémentations sont **indiscernables**. Le code par rôle
+reste défensif, mais l'assertion ne revendique plus que ce qu'elle prouve.
+
+*J'ai encore mis des backticks dans renderer-smoke.cjs* — dans un commentaire, autour de `step`
+et `checkValidity()`. La règle est écrite dans ce fichier, par moi. Cette fois elle a été
+attrapée par `node --check` avant le run, pas par un grep vide.
+
+*Tester la contrainte VÉCUE.* Pour la distance, `checkValidity()` teste ce qu'Adrien a
+rencontré — le refus du navigateur — et non notre idée de ce que le champ accepte.
+
+*La précision doit se REVOIR.* J'ai introduit puis corrigé le défaut dans la même itération :
+durée fractionnaire affichée « 93.33333333333333 min », distance rabotée par `toFixed(1)`.
+Promettre le mètre et l'effacer à l'affichage, c'était le fil rouge appliqué à la demande
+elle-même. Sondé : la liste affichait aussi « +undefined XP » sur une séance importée.
+
+645 tests · SMOKE OK · 390 px propre.
