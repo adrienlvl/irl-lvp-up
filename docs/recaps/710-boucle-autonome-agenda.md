@@ -1302,3 +1302,31 @@ réglage égal au prescrit, les deux défauts seraient restés invisibles.
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**, la seule chose que je ne tranche
   pas seul. Depuis l'itération 30 le masquer ne ferait plus perdre de fonctionnalité.
+
+## Itération 45 — revue : j'avais corrigé un site sur sept
+
+Revue due, portant sur mes propres corrections des itérations 42-44.
+
+**Ce qui tient.** Le décalage de créneau est stable au reclic (45 séances, mêmes heures,
+aucun doublon, aucune dérive sur trois clics consécutifs). Vérifié en exécutant.
+
+**Ce qui ne tenait pas.** À l'itération 43 j'ai fait lire la dernière PESÉE à l'alerte
+nutrition. Je n'ai pas lu ses voisines : `proteinTarget` était appelé avec le poids du Profil à
+**sept endroits**. Écart mesuré : 145 g/jour affichés au lieu de 120 — vingt-cinq grammes, et
+le coach d'adhérence jugeait Adrien contre cette cible fausse.
+
+### Ce que cette itération a appris
+
+*Chercher une chaîne ne remplace pas lire les voisines.* Six sites trouvés par grep sur
+`proteinTarget(state.profile.weight,` ; le septième était écrit avec l'optional chaining
+(`state.profile?.weight`) et restait invisible. C'est la SONDE qui l'a montré : la jauge du
+jour affichait 165 g pendant que le panneau compléments affichait 145, à deux écrans d'écart.
+
+*Corriger un site crée une incohérence si on ne corrige pas les autres.* Avant l'itération 43,
+les sept écrans étaient faux ENSEMBLE — cohérents dans l'erreur. En en corrigeant un seul,
+j'avais créé le défaut que ce dépôt traque : deux nombres pour la même chose.
+
+656 tests · SMOKE OK · 390 px propre.
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
