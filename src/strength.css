@@ -290,3 +290,21 @@
 .op-nutri small{display:block;color:var(--muted);font-size:.78rem;line-height:1.4}
 @media(max-width:650px){.op-macros span{min-width:0;flex-basis:calc(50% - 4px)}}
 @media(max-width:650px){.op-week{grid-template-columns:1fr}.op-bar select{min-width:0}.op-phase{min-width:0}}
+
+/* ANALYSE « Force & endurance ». Le panneau rendait un pavé de texte brut sans hiérarchie :
+   quatre chiffres importants noyés dans des phrases. Une ligne = une icône, un titre, LA
+   valeur en évidence, puis l'explication en retrait — on lit le chiffre d'abord, la raison
+   ensuite. `minmax(0,1fr)` et non `1fr` : à 390 px, `1fr` refuse de passer sous la largeur
+   du texte et fait déborder la ligne. */
+.an-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--sp-2);align-items:start;
+  padding:var(--sp-3) 0;border-top:1px solid var(--line)}
+.an-row[hidden]{display:none}
+.an-row:first-child{border-top:0;padding-top:0}
+.an-ico{font-size:1.15rem;line-height:1.3}
+.an-txt{display:grid;gap:3px;min-width:0}
+.an-txt[hidden]{display:none}
+.an-txt b{font-size:var(--fs-xs);color:var(--muted);font-weight:700;letter-spacing:.02em}
+.an-val{font-size:var(--fs-md);font-weight:750;color:var(--text);line-height:1.35;
+  font-variant-numeric:tabular-nums}
+.an-txt small{color:var(--muted);font-size:var(--fs-2xs);line-height:1.5}
+.an-vide{color:var(--muted);font-size:var(--fs-xs);line-height:1.5;margin:0}

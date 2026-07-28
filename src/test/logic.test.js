@@ -14037,6 +14037,51 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('analysePerformance : le panneau Analyse voit enfin les séances modernes', () => {
+  const AUJ = '2026-07-28';
+  const jour = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+
+  /* Le panneau « Force & endurance » filtrait sur `w.exercise && w.load` — le format LEGACY à
+     plat — alors que l'app enregistre `exercises[].setLogs[]` depuis longtemps. Il ne voyait
+     donc RIEN des séances réelles, et sommait `load × sets × reps` pour le volume : zéro sur
+     toute séance moderne. Un panneau d'analyse aveugle à ce que l'app écrit. */
+  const modernes = [];
+  for (let k = 7; k >= 0; k--) {
+    modernes.push({ date: jour(k * 7 + 5), type: 'strength', duration: 50, effort: 3, exercises: [
+      { name: 'Développé couché', setLogs: [{ reps: 8, load: 60 + (7 - k) * 2 }, { reps: 8, load: 60 + (7 - k) * 2 }] },
+      { name: 'Squat', setLogs: [{ reps: 8, load: 80 + (7 - k) * 2.5 }, { reps: 8, load: 80 + (7 - k) * 2.5 }] }
+    ] });
+    modernes.push({ date: jour(k * 7 + 2), type: 'run', duration: 45, distance: 9.2, effort: 3, exercises: [] });
+  }
+  const poids = [];
+  for (let i = 8; i >= 0; i--) poids.push({ date: jour(i * 7), value: 78 - i * 0.35 });
+
+  const r = L.analysePerformance(modernes, poids, AUJ, jour(3));
+  const par = k => r.filter(x => x.cle === k)[0];
+  assert.ok(r.length >= 3, 'une séance moderne produit une vraie analyse, pas une ligne');
+
+  // Le 1RM estimé (Epley) existait, testé, et n'était affiché nulle part.
+  assert.ok(par('records'), 'les maxima estimés sont là');
+  assert.ok(/Squat/.test(par('records').valeur), 'et ils nomment l’exercice le plus lourd d’abord');
+  assert.ok(/Epley/.test(par('records').note), 'la formule est nommée : un chiffre sans méthode ne se discute pas');
+
+  /* L'allure est pondérée par la DISTANCE : moyenner les allures donnerait le même poids à une
+     sortie de 3 km et à une de 20, ce qui est faux. On l'écrit sur un jeu où ça se voit. */
+  const inegal = [
+    { date: jour(3), type: 'run', duration: 15, distance: 3, exercises: [] },   // 5:00/km
+    { date: jour(1), type: 'run', duration: 120, distance: 20, exercises: [] }  // 6:00/km
+  ];
+  const a = L.analysePerformance(inegal, [], AUJ, jour(7)).filter(x => x.cle === 'allure')[0];
+  assert.ok(a, 'l’allure est calculée');
+  // 135 min / 23 km = 5,87 min/km ≈ 5 min 52 s, et NON la moyenne naïve (5 min 30 s).
+  assert.ok(/5 min 5\d s/.test(a.valeur), 'pondérée par la distance, pas moyennée à l’aveugle : ' + a.valeur);
+
+  // Aucun historique : on le DIT, on n'affiche pas des lignes vides.
+  assert.deepEqual(L.analysePerformance([], [], AUJ, jour(7)), [], 'rien à dire → aucune ligne');
+  assert.deepEqual(L.analysePerformance(modernes, poids, 'pas-une-date', jour(7)), [],
+    'date abîmée → aucune affirmation');
+});
+
 test('trainingWeekPlan : des kilomètres, et seulement si Adrien les a renseignés', () => {
   const { exercises } = require('../lib/exercises-data.js');
   const AUJ = '2026-07-28';

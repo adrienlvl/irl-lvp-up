@@ -3122,6 +3122,58 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.analyseModerne = (() => {
+        try {
+          if (typeof renderGrowth !== 'function' || typeof analysePerformance !== 'function') return false;
+          const sw = state.workouts, sg = state.weights;
+          const jour = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+          };
+          const lire = function () {
+            showPage('athlete');
+            renderGrowth();
+            const el = document.getElementById('performanceAnalysis');
+            if (!el || getComputedStyle(el).display === 'none') return { n: 0, t: '' };
+            return { n: el.querySelectorAll('.an-row').length, t: (el.textContent || '') };
+          };
+
+          /* Une seance MODERNE : exercices + setLogs, ce que l'app enregistre reellement.
+             L'ancienne analyse filtrait sur w.exercise && w.load — le format LEGACY a plat —
+             donc elle ne voyait RIEN de tout ca, et sommait load x sets x reps pour le volume,
+             soit zero sur ces seances. Un panneau d'analyse aveugle a ce que l'app ecrit. */
+          const w = [];
+          for (let k = 7; k >= 0; k--) {
+            w.push({ id: 90000 + k, date: jour(k * 7 + 5), type: 'strength', duration: 50, effort: 3, xp: 40,
+              exercises: [
+                { name: 'Développé couché', setLogs: [{ reps: 8, load: 60 + (7 - k) * 2 }, { reps: 8, load: 60 + (7 - k) * 2 }] },
+                { name: 'Squat', setLogs: [{ reps: 8, load: 80 + (7 - k) * 2.5 }, { reps: 8, load: 80 + (7 - k) * 2.5 }] }
+              ] });
+            w.push({ id: 95000 + k, date: jour(k * 7 + 2), type: 'run', duration: 45, distance: 9.2, effort: 3, xp: 35, exercises: [] });
+          }
+          state.workouts = w;
+          state.weights = [];
+          for (let i = 8; i >= 0; i--) state.weights.push({ date: jour(i * 7), value: 78 - i * 0.35 });
+          const plein = lire();
+
+          // Sans aucune seance, le panneau doit le DIRE, pas afficher des lignes vides.
+          state.workouts = []; state.weights = [];
+          const vide = lire();
+
+          state.workouts = sw; state.weights = sg;
+          try { renderGrowth(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__analyseVue = plein.t.split(String.fromCharCode(10)).join(' ').slice(0, 110);
+          /* On exige les CHIFFRES, pas seulement des lignes : un rendu qui affiche quatre
+             cadres vides passerait un test qui compte les lignes. Le 1RM estime (Epley) et
+             l'allure ponderee sont precisement ce que l'ancienne version ne pouvait pas dire. */
+          const aRecords = /Squat/.test(plein.t) && /kg/.test(plein.t);
+          const aAllure = plein.t.indexOf(' s / km') !== -1;
+          return plein.n >= 3 && aRecords && aAllure && vide.n === 0 && vide.t.length > 20;
+        } catch (e) { checks.__errAnalyse = String(e && e.message); return false; }
+      })();
+
       checks.precisionSeance = (() => {
         try {
           const dlg = document.getElementById('workoutDialog');
@@ -3556,6 +3608,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
+    if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');
     if (!checks.affutageExplique) errors.push('Course objectif dans 10 jours : le Programme auto raccourcit les sorties sans l’expliquer (ou l’explique sans course). Le volume qui rétrécit sans un mot ressemble à un bug, pas à du coaching — le message doit citer le J-N, la coupe réellement tenue et Bosquet 2007');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — le bandeau de pilotage doit citer l’objectif de poids et la cible kcal, et le compagnon ne doit pas annoncer une séance du jour absente de cette semaine alors qu’il affirme la partager)');
