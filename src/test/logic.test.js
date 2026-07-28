@@ -11017,7 +11017,15 @@ test('adaptiveCoachFocus : focus nutrition — PENTE de poids (stagnation, déri
   assert.equal(stall.weightGoalPct, 50);
   assert.equal(stall.weightPace, 0);
   assert.match(stall.insight, /Et ça paie : 50%/);
-  assert.match(stall.insight, /Mais la balance ne descend plus \(0 kg\/sem sur tes dernières pesées\) — baisse un peu tes calories ou ajoute du cardio/);
+  /* CONTRAT CHANGÉ SCIEMMENT. Cette branche sert quand le déficit est INCONNU — plateau non
+     confirmé (moins de 14 jours) ou profil incomplet. Y prescrire « baisse tes calories ou
+     ajoute du cardio » était doublement prématuré : sur un déficit déjà marqué c'est le
+     contraire du bon conseil, et sur une stagnation non confirmée il n'y a rien à corriger.
+     Le conseil est maintenant vrai quel que soit le déficit ; quand le plateau se confirme,
+     le bloc `adj` le remplace par le conseil chiffré, lui bien informé. */
+  assert.match(stall.insight, /Mais la balance ne descend plus \(0 kg\/sem sur tes dernières pesées\)/);
+  assert.match(stall.insight, /vérifie tes portions réelles, ton sommeil et ton sel/);
+  assert.ok(stall.insight.indexOf('ajoute du cardio') === -1, 'pas de cardio prescrit sur un déficit inconnu');
   // DÉRIVE : objectif de perte mais les dernières pesées remontent (82 → 83) → « repartent à la hausse ».
   const drift = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: [
     { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82.2 },
@@ -11098,7 +11106,9 @@ test('adaptiveCoachFocus : focus nutrition — plateau confirmé → cible calor
   // Sans profil (BMR incalculable) → energyPlan null → on garde le message qualitatif, calorieTarget null.
   const noProfile = L.adaptiveCoachFocus({ nutrition, goals: { targetWeight: 79 }, weights: flatWeights }, today);
   assert.equal(noProfile.calorieTarget, null);
-  assert.match(noProfile.insight, /baisse un peu tes calories ou ajoute du cardio/);
+  // Sans profil complet, le déficit est inconnu : conseil prudent, jamais de prescription chiffrée.
+  assert.match(noProfile.insight, /vérifie tes portions réelles/);
+  assert.ok(noProfile.insight.indexOf('ajoute du cardio') === -1);
 });
 
 test('adaptiveCoachFocus : focus nutrition — balance flat + tour de taille qui fond → RECADRAGE recomposition', () => {
@@ -14213,4 +14223,40 @@ test('goals.runs : zéro est une valeur, une valeur illisible ne l’est pas', (
   assert.equal(norm('0'), 0);
   assert.equal(norm(3), 3);
   assert.equal(norm(99), 6, 'borné');
+});
+
+test('recoveryFraiche : une seule notion de « ta forme du jour »', () => {
+  const f = L.recoveryFraiche;
+  const AUJ = '2026-07-28';
+
+  /* Quatorze endroits lisaient `recovery.at(-1)` sans regarder sa date : un check-in vieux de
+     trois semaines servait à affirmer « ta forme du jour ». Un score présenté comme actuel
+     doit l'être — sinon le coach affirme faux avec l'aplomb d'une mesure fraîche. */
+  const journal = [
+    { date: '2026-07-04', sleep: 4 },
+    { date: '2026-07-26', sleep: 7 },
+    { date: '2026-07-28', sleep: 8 }
+  ];
+  assert.equal(f(journal, AUJ).date, '2026-07-28', 'le plus proche du jour gagne');
+  assert.equal(f(journal.slice(0, 2), AUJ).date, '2026-07-26', 'avant-hier reste acceptable');
+  assert.equal(f([{ date: '2026-07-25', sleep: 7 }], AUJ), null, 'trois jours : trop vieux');
+  assert.equal(f([{ date: '2026-07-04', sleep: 4 }], AUJ), null, 'trois semaines : silence');
+
+  // Une date FUTURE est une donnée abîmée, pas une mesure du jour.
+  assert.equal(f([{ date: '2026-08-05', sleep: 9 }], AUJ), null);
+
+  // La fenêtre est réglable, pour les usages qui tolèrent plus d'ancienneté.
+  assert.equal(f([{ date: '2026-07-25', sleep: 7 }], AUJ, 5).date, '2026-07-25');
+  assert.equal(f([{ date: '2026-07-28', sleep: 7 }], AUJ, 0).date, '2026-07-28', 'fenêtre 0 = aujourd’hui seulement');
+  assert.equal(f([{ date: '2026-07-27', sleep: 7 }], AUJ, 0), null);
+
+  // Un objet seul est accepté comme un journal d'un élément : les appelants n'ont pas tous une liste.
+  assert.equal(f({ date: AUJ, sleep: 8 }, AUJ).sleep, 8);
+
+  // Entrées abîmées : jamais d'exception, jamais d'affirmation.
+  assert.equal(f([], AUJ), null);
+  assert.equal(f(null, AUJ), null);
+  assert.equal(f(journal, 'pas-une-date'), null);
+  assert.equal(f([{ sleep: 8 }], AUJ), null, 'un check-in sans date ne prouve pas sa fraîcheur');
+  assert.doesNotThrow(() => f('nawak', AUJ));
 });

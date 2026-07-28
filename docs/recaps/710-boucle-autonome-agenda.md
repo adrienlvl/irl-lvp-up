@@ -353,3 +353,38 @@ masquer n'est pas à moi de le trancher.
   d'un check-in vieux de trois semaines (même défaut que celui corrigé sur #coachForme).
 
 629 tests · SMOKE OK · 390 px propre.
+
+## Itération 18 — les 13 défauts de la revue sont soldés
+
+Deux derniers, et tous deux du même genre : **le coach parlait avec plus d'assurance
+que ses données ne le permettaient.**
+
+### « Ajoute du cardio » quand le déficit est inconnu
+Cette branche sert quand le plateau n'est PAS confirmé (moins de 14 jours) ou que le
+profil est incomplet — donc quand le déficit est inconnu. Y prescrire une coupe et du
+cardio était doublement prématuré : contraire au bon conseil sur un déficit déjà
+marqué, et sans objet sur une stagnation qui n'en est pas encore une.
+Remplacé par un conseil vrai quel que soit le déficit. Quand le plateau se confirme,
+le bloc informé reprend la main avec son chiffre.
+
+### Une seule notion de « ta forme du jour »
+**Quatorze** endroits lisaient `recovery.at(-1)` sans regarder sa date. `recoveryFraiche`
+centralise : au-delà de 2 jours elle rend null, et l'appelant se tait. Les deux panneaux
+qui AFFIRMENT sur aujourd'hui (mission control, compagnon d'entraînement) sont branchés.
+Les autres usages (ajuster l'intensité d'une séance à partir du dernier état connu)
+restent légitimes et n'ont pas été touchés.
+
+### Le fil rouge de la journée
+Presque tous les défauts trouvés se ramènent à **un écart entre ce que l'app DIT et ce
+qu'elle FAIT** :
+- volumeFactor annonçait une coupe qui n'existait pas ;
+- duresMax promettait une semaine que l'app ne produisait pas ;
+- le compteur annonçait 24 séances pour 28 affichées ;
+- le bandeau réclamait des champs déjà remplis ;
+- le sélecteur affichait « auto » sur un 0 enregistré ;
+- deux panneaux affirmaient « aujourd'hui » sur des données de trois semaines.
+
+Ce n'est pas six bugs, c'est **un seul réflexe** : écrire la phrase avant l'effet, ou
+la garder après que l'effet a changé. Le garde-fou est dans les consignes.
+
+630 tests · SMOKE OK · 390 px propre.
