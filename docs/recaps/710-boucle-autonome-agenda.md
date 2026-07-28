@@ -1036,3 +1036,43 @@ contre 0 min plus tard » — l'absence de donnée présentée comme un résulta
 - Quatre fonctions jamais rendues, à VÉRIFIER une par une avant de construire :
   `focusMinutesTrend`, `blockProgressText`, `progressSets`, `workoutDominantZone`.
 - Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
+
+## Itération 38 — la liste de dette était fausse, le bilan hebdo ne l'était pas
+
+**Vérification d'abord (leçon de l'itération 37).** Les quatre dernières fonctions « jamais
+exploitées » : `focusMinutesTrend`, `blockProgressText`, `progressSets`, `workoutDominantZone`.
+Deux commandes ont suffi — **toutes les quatre sont consommées par des fonctions qui, elles,
+sont rendues** (`adaptiveCoachFocus`, `shareableBlockProgress`, `phaseSetsForDay`,
+`contextualWellnessRoutine`). La liste du mandat est fausse sur toute la ligne, comme elle
+l'était pour `sleepRegularity`. Vérifier a coûté deux minutes et m'a évité un second doublon.
+
+**Donc : mesurer l'écran, pas la liste.** Sondé le bilan hebdomadaire, jamais examiné :
+« 1/4 séances — encore 3 séances pour ton objectif hebdo » est RIGOUREUSEMENT le même texte,
+même ton, un mardi et un dimanche soir. `semaineEnCours` calculait déjà les jours restants,
+pour le plan seulement. Le verdict suit désormais la FAISABILITÉ : 3 séances sur 6 jours →
+neutre, 3 sur 1 jour → « trop serré, vise 2/4 » — une cible atteignable plutôt qu'un
+rattrapage impossible.
+
+### Ce que cette itération a appris
+
+*Ma sonde était fautive avant l'app.* J'ai d'abord cru que le bilan comptait mal (1 séance sur
+5 posées) : mes dates tombaient hors de la semaine courante. Vérifier avant d'accuser, encore.
+
+*Deux tests existants sont tombés, et j'ai tranché.* Contrat changé sciemment : leur sujet réel
+est l'accord singulier/pluriel, pas la phrase. Réassertés sur la formulation actuelle, raison
+écrite sur place — jamais assouplis en silence.
+
+*J'ai écrit une branche inatteignable et je l'ai retirée.* `joursRestants` contient toujours
+aujourd'hui : sa longueur ne vaut jamais 0, donc mon cas « la semaine est finie » était mort.
+Du code qui prétend couvrir une situation impossible ment sur la couverture réelle.
+
+*Le piège d'échappement, hors du harnais cette fois.* Un `\/` dans un patch écrit en heredoc
+s'est fait manger et a produit une regex invalide qui a cassé TOUT le fichier de tests
+(« # pass 0 »). Même parade : `indexOf` ne traverse aucun échappement.
+
+651 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- **La liste « fonctions jamais exploitées » du mandat est périmée** : les 4 dernières sont
+  toutes consommées par des fonctions rendues. Chercher la profondeur en SONDANT l'écran.
+- Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
