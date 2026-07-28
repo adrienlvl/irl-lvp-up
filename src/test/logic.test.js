@@ -14297,3 +14297,43 @@ test('planDuJour : un jour de repos PRÉVU n’est pas un retard', () => {
   assert.equal(L.planDuJour(plan, 'pas-une-date'), null);
   assert.doesNotThrow(() => L.planDuJour({ week: 'nawak' }, '2026-07-28'));
 });
+
+test('la séance dure du plan est un vrai protocole, daté quand la source en est une', () => {
+  /* Le plan prescrivait « Fractionné — Intervalles rapides : booste la VMA », alors que l'app
+     savait écrire le protocole complet avec sa source. Ce contenu ne servait QUE le panneau
+     « Ma semaine ». On le fait remonter dans le plan unifié. */
+  const s1 = L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 1 }).sessions.find(x => x.type === 'fractionne');
+  assert.match(s1.label, /VO2max/);
+  assert.ok(s1.why.length > 100, 'le protocole complet, pas un intitulé');
+  assert.match(s1.why, /échauffement/, 'avec l’échauffement');
+  assert.equal(s1.source, 'Billat 2000');
+
+  // Le protocole TOURNE : sans ça, la même séance reviendrait à l'identique tout le cycle.
+  const labels = [1, 2, 3, 5].map(w => L.runPlanWeek(4, { emphasis: 'vitesse', semaine: w }).sessions.find(x => x.type === 'fractionne').label);
+  assert.ok(new Set(labels).size >= 3, `${new Set(labels).size} protocoles distincts sur 4 semaines`);
+
+  /* La source n'est portée que si elle RESSEMBLE à une référence (Nom + année). qualitySession
+     renvoie aussi des libellés descriptifs (« côtes VO2max ») qu'il serait malhonnête
+     d'afficher comme une citation — le dépôt ne cite que des références réelles. */
+  const s3 = L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 3 }).sessions.find(x => x.type === 'fractionne');
+  assert.match(s3.label, /côtes/);
+  assert.equal(s3.source, undefined, 'un libellé descriptif n’est pas cité comme source');
+
+  // Sans numéro de semaine, le comportement d'origine est intact : aucune régression.
+  const sans = L.runPlanWeek(4, { emphasis: 'vitesse' }).sessions.find(x => x.type === 'fractionne');
+  assert.equal(sans.label, 'Fractionné');
+  assert.equal(sans.source, undefined);
+
+  // Les séances NON dures ne sont jamais réécrites.
+  const facile = L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 1 }).sessions.find(x => x.type === 'facile');
+  if (facile) { assert.equal(facile.label, 'Course facile'); assert.equal(facile.source, undefined); }
+
+  // Le plafond de séances dures reste prioritaire : pas de protocole si on n'en veut aucune.
+  const zero = L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 1, duresMax: 0 });
+  assert.equal(zero.sessions.filter(x => x.type === 'fractionne').length, 0);
+  assert.ok(zero.sessions.every(x => !x.source), 'aucune source sur une semaine sans séance dure');
+
+  // Une semaine illisible ne fait rien exploser et ne réécrit rien.
+  assert.doesNotThrow(() => L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 'nawak' }));
+  assert.equal(L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 'nawak' }).sessions.find(x => x.type === 'fractionne').label, 'Fractionné');
+});

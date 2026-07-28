@@ -4324,7 +4324,10 @@ function trainingWeekPlan(input, exercises) {
   const perReel = Math.max(3, Math.round(perBase * politique.volumeFactor));
   const programme = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
     sessions: muscu + runs, runs: runs, seed: i.seed, equipment: i.equipement,
-    perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax
+    perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
+    /* La semaine du bloc fait tourner le protocole : sans elle, la meme seance dure
+       reviendrait a l identique pendant tout le cycle. */
+    semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
   });
   if (!programme) return null;
   const _mv = _messageVolume(perBase, perReel);
@@ -4363,7 +4366,7 @@ function objectiveProgram(key, exercises, opts) {
      un cycle push/pull/legs/upper redemandé donne push/pull/legs/upper/push… et garde sa logique. */
   const focus = Array.from({ length: forme.muscu }, (_, i) => o.split[i % o.split.length]);
   const muscu = focus.map((f, fi) => ({ kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45, exercises: pickExercisesForZones(FOCUS_ZONES[f], pool, per, seed ? seed + fi : fi) }));
-  const runs = runPlanWeek(forme.runs, { emphasis: o.runEmphasis, duresMax: opts && opts.duresMax }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why }));
+  const runs = runPlanWeek(forme.runs, { emphasis: o.runEmphasis, duresMax: opts && opts.duresMax, semaine: opts && opts.semaine }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why, source: s.source || null, protocole: s.protocole || null }));
   const ordered = []; let mi = 0, ri = 0;
   while (mi < muscu.length || ri < runs.length) { if (mi < muscu.length) ordered.push(muscu[mi++]); if (ri < runs.length) ordered.push(runs[ri++]); }
   const total = ordered.length;
@@ -10027,7 +10030,24 @@ function runPlanWeek(count, opts) {
       return vues <= max ? t : 'facile';
     });
   }
-  const sessions = types.map((type, i) => ({ weekday: days[i], type, ...META[type] })).sort((a, b) => order(a.weekday) - order(b.weekday));
+  /* Quand la semaine du bloc est connue, la seance INTENSE recoit un protocole precis au lieu
+     d un intitule generique. `qualitySession` tourne semaine apres semaine (30/30, cotes,
+     4x4 norvegien...), ce qui evite de repeter la meme seance pendant un mois. */
+  const _sem = Number(o.semaine);
+  const _qs = (Number.isFinite(_sem) && typeof qualitySession === 'function') ? qualitySession(_sem) : null;
+  const sessions = types.map(function (type, i) {
+    const base = { weekday: days[i], type: type, ...META[type] };
+    if (_qs && type === 'fractionne') {
+      base.label = _qs.title.replace(/^\S+\s/, '');
+      base.why = _qs.note;
+      base.protocole = _qs.key;
+      /* La source n est portee que si elle RESSEMBLE a une reference (Nom + annee) :
+         qualitySession renvoie aussi des libelles descriptifs comme « cotes VO2max », qu il
+         serait malhonnete d afficher comme une citation. */
+      if (/^[A-Z][A-Za-zÀ-ÿ-]+\s+(19|20)\d{2}$/.test(String(_qs.source || ''))) base.source = _qs.source;
+    }
+    return base;
+  }).sort(function (a, b) { return order(a.weekday) - order(b.weekday); });
   return { sessions, count: sessions.length, totalMinutes: sessions.reduce((a, s) => a + s.minutes, 0) };
 }
 
