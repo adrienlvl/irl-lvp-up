@@ -1677,3 +1677,57 @@ l'assertion creuse). 664 tests · SMOKE OK · 390 px propre · **publié en v2.1
 
 ### Reste
 - Rien en attente d'Adrien. L'étape 11 est close.
+
+---
+
+## Itération 54 — Le coach sommeil disait « régulier » sans jamais regarder son propre chiffre
+
+**Profondeur (A).** Sonde du bilan hebdo et du coach sommeil avec 14 nuits réalistes — deux
+écrans que le journal signalait comme jamais sondés.
+
+*Note de méthode : ma première sonde était fausse.* J'ai posé l'état APRÈS le rendu initial, donc
+les panneaux affichaient encore l'écran vide. Seules les fonctions pures étaient exploitables —
+et ce sont elles qui ont livré le défaut.
+
+### Le défaut
+
+`sleepCoachInsight` calculait `bedtimeStdevMin: 56` — puis concluait **« rythme régulier »**.
+
+| Rythme mesuré | Verdict rendu |
+|---|---|
+| 23:10 en semaine, 01:15 le week-end (56 min d'écart-type) | « Sommeil solide […] rythme régulier. » |
+| 23:15 tous les jours (0 min d'écart-type) | **la même phrase, mot pour mot** |
+
+Seuil binaire à 60 min, et en dessous l'app **affirmait** la régularité sans jamais montrer le
+chiffre qu'elle venait de calculer. Le fil rouge, encore : un écart entre ce que l'app dit et ce
+qu'elle sait.
+
+### Ce qui a été fait
+
+Trois bandes. Sous 30 min, le verdict **cite la mesure** au lieu de l'étiqueter. Entre 30 et 60,
+le ton reste calme mais le chiffre est montré et la cause nommée. Au-delà, inchangé.
+
+`decalageWeekEnd` nomme la cause avec des données déjà présentes : sur le rythme le plus répandu,
+la dispersion vient de **deux nuits sur sept**. Dire « ton coucher varie » envoie corriger sept
+soirs quand deux suffisent.
+
+### Ce que cette itération a appris
+
+*Un seuil binaire cache un continuum.* Le vrai défaut n'était pas la valeur du seuil mais le fait
+qu'en dessous, l'app se taise sur un nombre qu'elle avait.
+
+*Un test qui tombe peut avoir raison sur le fond et tort sur la lettre.* Celui qui exigeait
+« rythme régulier » s'appelle « verdict mesuré » : asserter la MESURE est plus fidèle à son
+sujet, et plus strict. Contrat changé sciemment, écrit sur place.
+
+*Ma propre règle enfreinte, encore.* `node -e` a mangé les apostrophes d'un patch — le script
+`.cjs` écrit via Write existe précisément pour ça.
+
+**Mutations.** 4 posées, 4 détectées — mais la 3e a d'abord **survécu** : mon garde-fou du
+minimum de deux nuits n'avait pas de cas discriminant. Une mutation qui survit est un check
+creux, jamais une bonne nouvelle.
+
+665 tests · SMOKE OK · 390 px propre · **publié en v2.12.0**.
+
+### Reste
+- Rien en attente d'Adrien.
