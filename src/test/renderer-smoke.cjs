@@ -3367,6 +3367,11 @@ app.whenReady().then(async () => {
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
+    /* Quels checks ont un message dédié ? On le lit dans la source du harnais plutôt que de
+       tenir une liste à la main : une liste manuelle se désynchronise au premier ajout. */
+    const gardesExplicites = new Set((fs.readFileSync(__filename, 'utf8')
+      .match(/if \(!checks\.[A-Za-z0-9_]+\)/g) || [])
+      .map(function (x) { return x.slice('if (!checks.'.length, -1); }));
     if (!checks.logicLoaded) errors.push('lib/logic.js non chargé (localDate/pct/computeStreak absents)');
     if (!checks.normalize) errors.push('normalizeState absente');
     if (!checks.normalizeHardening) errors.push('Assainissement scalaires normalizeState KO (compteurs/goals/wellnessWeeklyGoal non bornés)');
@@ -3582,6 +3587,22 @@ app.whenReady().then(async () => {
     if (!checks.deloadWiring) errors.push('Décharge muscu KO (deloadRecommendation reçoit l\'objet readinessScore au lieu du score → branche fatigue morte, carte « Décharge conseillée » jamais affichée)');
     if (!checks.wellnessBestStreak) errors.push('Record série bien-être KO (wellnessBestStreak — date impossible gonfle le record ?)');
 
+    /* MÉTA-GARDE — aucun check ne peut valoir `false` en silence.
+       Mesure faite sur un run réel : le harnais calcule 394 checks booléens et 210 seulement
+       sont suivis d'un `if (!checks.X) errors.push(...)`. Les 184 autres calculent un verdict
+       que RIEN ne lit — et l'un d'eux (proteinTargetUnified) était faux depuis longtemps sans
+       que personne le voie. C'est, au niveau du harnais, exactement le défaut qu'on traque
+       dans l'app : calculer quelque chose et ne pas s'en servir.
+       Écrire 184 messages à la main serait long et ne protégerait pas le PROCHAIN check ajouté
+       sans message. Une règle unique les couvre tous, y compris ceux de demain.
+       Le message est générique à dessein : il nomme le check, à charge du lecteur d'écrire un
+       vrai message le jour où il tombe. Mieux vaut un échec brut qu'un silence. */
+    Object.keys(checks).forEach(function (k) {
+      if (checks[k] !== false) return;
+      // Déjà gardé par un message explicite ? Alors il a déjà parlé, on ne double pas.
+      if (gardesExplicites.has(k)) return;
+      errors.push('Check « ' + k + ' » est FAUX et n’a aucun message d’erreur dédié : un verdict que personne ne lit ne garde rien. Écris-lui un message, ou corrige ce qu’il vient de trouver.');
+    });
     if (checks.exercises < 1) errors.push('#exerciseCards vide → renderExerciseLibrary KO');
   } catch (e) {
     errors.push('exception: ' + e.message);
