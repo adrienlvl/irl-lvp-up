@@ -468,3 +468,35 @@ APRÈS l'effet, en citant la valeur produite.
 15 trouvailles non vérifiées. Les plus sérieuses en attente : `duresMax` annoncé
 au-dessus d'une semaine qui en pose deux, `recoveryFraiche` branché sur 2 sites sur 14,
 « la même semaine que ton Programme auto » affiché quand les deux panneaux sont vides.
+
+## Itération 23 — une réfutation, une confirmation
+
+Deux trouvailles de plus vérifiées à la main.
+
+### RÉFUTÉE : « le bandeau promet une séance dure, la semaine en pose deux »
+Exécuté : déficit modéré → `duresMax: 1`, et la semaine posée contient exactement
+**une** séance dure. Le plafond fonctionne. La trouvaille décrivait l'état d'AVANT le
+correctif de l'itération 16 — le chercheur a raisonné sur le code sans l'exécuter.
+
+*Une trouvaille de revue est une hypothèse, pas un fait. Elle se vérifie par exécution.*
+
+### CONFIRMÉE : deux panneaux de la même page se contredisaient
+Avec un check-in vieux de 20 jours :
+- compagnon : « Récupération **inconnue** » (correct, `recoveryFraiche` l'a rejeté)
+- panneau Récupération : « **100/100** · Forme du jour · Prêt à pousser »
+
+Et c'est le FAUX qui était le plus affirmatif. Le panneau lisait `recovery.at(-1)` sans
+regarder sa date. Il dit désormais « Dernier check-in il y a 20 jours · refais-le pour
+connaître ta forme du jour » — ni vert ni rouge : une absence de mesure n'est pas un
+verdict.
+
+### Ma sonde m'a menti avant que le code ne le fasse
+Premier essai : le score restait à 100/100 après correction. J'ai failli conclure que le
+patch ne marchait pas. En réalité ma sonde appelait `renderRecovery()` — **qui n'existe
+pas** — sous un `typeof === 'function'`, donc rien ne se re-rendait et je mesurais l'état
+initial. Le vrai nom est `renderRoadmapFeatures`.
+
+*Un garde `typeof x === 'function'` qui protège un appel FAUX transforme un test en
+mesure du vide. Faire échouer bruyamment quand la fonction attendue n'existe pas.*
+
+633 tests · SMOKE OK · 390 px propre.

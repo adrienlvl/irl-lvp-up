@@ -208,3 +208,9 @@
    ou pas. Discrète : c'est une caution, pas le message principal. */
 .op-src{display:block;margin-top:4px;font-size:.68rem;color:var(--muted);opacity:.9;font-style:italic}
 .op-src[hidden]{display:none}
+
+/* Score de forme périmé : ni vert ni rouge — c'est une absence de mesure, pas un verdict.
+   Afficher un score de 20 jours comme « ta forme du jour » était la contradiction la plus
+   visible entre deux panneaux de la même page. */
+.recovery-score.stale{background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
+.recovery-score.stale b{color:var(--muted)}

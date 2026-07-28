@@ -3230,6 +3230,40 @@ app.whenReady().then(async () => {
           return libelleAnnonce && memeSeance;
         } catch (e) { checks.__errBtn = String(e && e.message); return false; }
       })();
+      checks.formeCoherente = (() => {
+        try {
+          if (typeof recoveryFraiche !== 'function' || typeof renderRoadmapFeatures !== 'function') return false;
+          const sr = state.recovery, sw = state.workouts, sp = state.plans;
+          const auj = localDate();
+          const vieux = new Date(auj + 'T12:00:00'); vieux.setDate(vieux.getDate() - 20);
+          /* Check-in PÉRIMÉ de 20 jours. Deux panneaux de la MÊME page se contredisaient :
+             le compagnon disait « Récupération inconnue » pendant que le panneau
+             Récupération affichait « 100/100 · Forme du jour · Prêt à pousser ». Et c'est
+             le FAUX qui était le plus affirmatif. */
+          state.recovery = [{ date: vieux.toISOString().slice(0, 10), sleep: 9, fatigue: 1, soreness: 1 }];
+          state.workouts = []; state.plans = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
+          renderTrainingCompanion();
+          const signaux = (document.getElementById('todayCoachSignals') || {}).textContent || '';
+          const compagnonPrudent = signaux.indexOf('Récupération inconnue') !== -1;
+
+          if (typeof showAthleteTab === 'function') showAthleteTab('corps');
+          renderRoadmapFeatures();
+          const el = document.getElementById('recoveryScore');
+          const txt = el ? (el.textContent || '') : '';
+          // Le panneau ne doit PLUS affirmer une forme du jour sur des données de 20 jours,
+          // et doit dire depuis quand — sinon Adrien croirait le chiffre.
+          const pasDeScorePerime = txt.indexOf('Forme du jour · ') === -1;
+          const ditDepuisQuand = /il y a 20 jours/.test(txt);
+
+          state.recovery = sr; state.workouts = sw; state.plans = sp;
+          renderRoadmapFeatures();
+          showPage('dashboard');
+          return compagnonPrudent && pasDeScorePerime && ditDepuisQuand;
+        } catch (e) { checks.__errForme = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3266,6 +3300,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — et le bandeau de pilotage doit citer l’objectif de poids et la cible kcal)');
