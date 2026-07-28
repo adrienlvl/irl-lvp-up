@@ -256,3 +256,26 @@ Trexler 2014, Murach 2016) ont été produites **de mémoire** par un agent et n
 vérifiées. Ne PAS les afficher dans l’app avant de les avoir contrôlées une par une :
 l’app affiche déjà des sources réelles (Billat 2000, Helgerud 2007 dans `qualitySession`),
 en ajouter des fausses détruirait la crédibilité que cette refonte cherche précisément.
+
+---
+
+## Étape 11 — élément nouveau qui change la décision (itération 30)
+
+L'étape 11 reste **la décision d'Adrien** : fusionner ou masquer le panneau « Ma semaine »
+(`.weekly-program-panel` / `buildTrainingWeek`), troisième générateur de semaine.
+
+**Ce qu'on ne savait pas en posant la question.** `buildTrainingWeek` était le **seul**
+générateur de toute l'app à savoir affûter avant une course objectif : lui seul appelait
+`taperPlan`. `objectiveProgram` — qui alimente le Programme auto, le Coach Poids et le
+compagnon — ne l'a jamais su. Masquer « Ma semaine » aurait donc **supprimé la seule gestion
+de course de l'application**, sans que rien ne le signale.
+
+**Depuis l'itération 30, ce n'est plus le cas** : l'affûtage vit dans `trainingWeekPlan`
+(entrées `raceDaysLeft` / `raceKm`, coupe des durées, message citant la coupe réellement
+tenue et Bosquet 2007), donc les trois coachs connectés l'honorent. Le check bloquant
+`affutageExplique` le garde.
+
+**Conséquence pour la décision** : masquer « Ma semaine » ne fait plus perdre de
+fonctionnalité côté course. Il reste à vérifier, avant de trancher, si ce panneau porte
+d'autres capacités uniques du même genre — la leçon de l'itération 30 est précisément qu'un
+panneau qu'on croit redondant peut être le seul à faire quelque chose d'utile.
