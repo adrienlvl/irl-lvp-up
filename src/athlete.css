@@ -214,3 +214,15 @@
    visible entre deux panneaux de la même page. */
 .recovery-score.stale{background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);color:var(--muted)}
 .recovery-score.stale b{color:var(--muted)}
+
+/* Verdict de rythme. Rouge quand ça descend trop vite : c'est le seul endroit de l'app qui
+   dit que perdre plus vite n'est pas mieux — l'information la plus actionnable de la page,
+   donc placée avant les sections repliables et jamais derrière un clic. */
+.cw-rythme{display:grid;gap:3px;margin:10px 0;padding:11px 13px;border-radius:var(--r-md);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.cw-rythme[hidden]{display:none}
+.cw-rythme b{font-size:.9rem;font-weight:650;color:var(--text)}
+.cw-rythme>span{font-size:.79rem;color:var(--muted);min-width:0}
+.cw-rythme-act{color:var(--text)!important;font-weight:550}
+.cw-rythme[data-statut="rapide"]{background:color-mix(in srgb,var(--danger) 11%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 30%,transparent)}
+.cw-rythme[data-statut="bon"]{background:color-mix(in srgb,var(--ok) 11%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ok) 28%,transparent)}
+.cw-rythme[data-statut="inverse"]{background:color-mix(in srgb,var(--warn) 11%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 28%,transparent)}

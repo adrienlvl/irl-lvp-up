@@ -14382,3 +14382,59 @@ test('les ajustements n’attribuent pas à Adrien un choix qu’il n’a pas fa
     assert.equal(Number(m[1]), reel.exercises.length, 'le nombre annoncé est celui de la séance produite');
   });
 });
+
+test('rythmeVerdict : perdre plus vite n’est pas mieux', () => {
+  const plan = L.energyPlan({ weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte', targetWeight: 73 });
+  const bmi = L.bmiInfo(82, 180);
+  const sur = L.safeLossRate(82, bmi.bmi, plan.tdee, plan.bmr);
+  assert.ok(sur && sur.ratePerWeek > 0, 'l’app calcule bien un rythme sûr');
+
+  /* Le Coach Poids connaissait les DEUX nombres — rythme sûr et rythme réel — et ne les
+     confrontait jamais. Mesuré : 0,64 kg/sem sûr contre 1,3 réel, soit deux fois trop vite,
+     et weightTrend renvoyait onTrack:true. Perdre plus vite n'est pas mieux : au-delà d'un
+     certain rythme, ce qui part n'est plus seulement du gras. */
+  const vite = L.rythmeVerdict({ ratePerWeek: -1.3 }, sur, 'perte');
+  assert.equal(vite.statut, 'rapide');
+  assert.ok(vite.ratio > 1.5);
+  assert.match(vite.texte, /0,64/, 'le rythme sûr est cité, pas seulement le réel');
+  assert.match(vite.texte, /1,3/);
+  assert.match(vite.action, /Remonte tes calories/);
+  // Décimales à la française : une app en français n'écrit pas « 1.3 kg/sem ».
+  assert.ok(vite.texte.indexOf('1.3') === -1 && vite.texte.indexOf('0.64') === -1);
+
+  const bon = L.rythmeVerdict({ ratePerWeek: -0.6 }, sur, 'perte');
+  assert.equal(bon.statut, 'bon');
+  assert.match(bon.action, /Ne change rien/);
+
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -0.2 }, sur, 'perte').statut, 'lent');
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -0.03 }, sur, 'perte').statut, 'plat');
+  // Sens inverse : on ne dit pas « trop lent » à quelqu'un qui reprend du poids.
+  assert.equal(L.rythmeVerdict({ ratePerWeek: 0.4 }, sur, 'perte').statut, 'inverse');
+
+  /* Le seuil est un RAPPORT au rythme sûr, pas une valeur absolue : 0,8 kg/sem est
+     raisonnable à 110 kg et excessif à 60 kg. On vérifie que le même chiffre change de
+     verdict selon le rythme sûr — sinon la comparaison ne servirait à rien. */
+  const surLent = { ratePerWeek: 0.35 }, surRapide = { ratePerWeek: 0.9 };
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -0.8 }, surLent, 'perte').statut, 'rapide');
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -0.8 }, surRapide, 'perte').statut, 'bon');
+
+  // En prise, c'est l'inverse qui alerte.
+  const prise = L.rythmeVerdict({ ratePerWeek: 1.2 }, { ratePerWeek: 0.3 }, 'prise');
+  assert.equal(prise.statut, 'rapide');
+  assert.match(prise.titre, /prends trop vite/);
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -0.5 }, { ratePerWeek: 0.3 }, 'prise').statut, 'inverse');
+
+  // Entrées abîmées : jamais d'exception, jamais de verdict inventé.
+  assert.equal(L.rythmeVerdict(null, sur, 'perte'), null);
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -1 }, null, 'perte'), null);
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -1 }, sur, 'maintien'), null, 'pas de verdict sans objectif de sens');
+  assert.equal(L.rythmeVerdict({ ratePerWeek: 'x' }, sur, 'perte'), null);
+  assert.equal(L.rythmeVerdict({ ratePerWeek: -1 }, { ratePerWeek: 0 }, 'perte'), null);
+  assert.doesNotThrow(() => L.rythmeVerdict('nawak', sur, 'perte'));
+
+  // Chaque verdict est affichable tel quel.
+  [vite, bon, prise].forEach(v => {
+    assert.ok(v.titre && v.texte && v.action);
+    assert.ok(Number.isFinite(v.ratio));
+  });
+});

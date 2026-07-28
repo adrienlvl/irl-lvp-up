@@ -3264,6 +3264,55 @@ app.whenReady().then(async () => {
           return compagnonPrudent && pasDeScorePerime && ditDepuisQuand;
         } catch (e) { checks.__errForme = String(e && e.message); return false; }
       })();
+      checks.rythmePerte = (() => {
+        try {
+          if (typeof rythmeVerdict !== 'function' || typeof renderCoachWeight !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights;
+          const auj = localDate();
+          const semaines = perte => {
+            const a = [];
+            for (let i = 7; i >= 0; i--) {
+              const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() - i * 7);
+              a.push({ date: d.toISOString().slice(0, 10), value: 82 + i * perte });
+            }
+            return a;
+          };
+          state.profile = Object.assign({}, state.profile, { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73 });
+          showPage('poids');
+
+          /* 1,3 kg/sem contre un rythme sûr de 0,64 : l'app disait onTrack:true et n'affichait
+             RIEN. Perdre plus vite n'est pas mieux — c'est le seul endroit qui le dit. */
+          state.weights = semaines(1.3);
+          renderCoachWeight();
+          const el = document.querySelector('.cw-rythme');
+          const vu = !!el && getComputedStyle(el).display !== 'none';
+          const alerte = vu && el.dataset.statut === 'rapide';
+          // Les DEUX chiffres doivent être cités : sans le rythme sûr, l'alerte n'est pas vérifiable.
+          const txt = vu ? (el.textContent || '') : '';
+          const deuxChiffres = /1,3/.test(txt) && /0,64/.test(txt);
+          const donneUneAction = vu && !!el.querySelector('.cw-rythme-act');
+          const tient = vu && el.scrollWidth <= el.clientWidth + 1;
+
+          // Au bon rythme, le verdict change : sinon ce serait une alerte permanente.
+          state.weights = semaines(0.6);
+          renderCoachWeight();
+          const el2 = document.querySelector('.cw-rythme');
+          const rassure = !!el2 && el2.dataset.statut === 'bon';
+
+          // Une seule pesée ne fait pas une tendance : on ne prononce aucun verdict.
+          state.weights = [{ date: auj, value: 82 }];
+          renderCoachWeight();
+          const muet = !document.querySelector('.cw-rythme');
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          renderCoachWeight();
+          showPage('dashboard');
+          return alerte && deuxChiffres && donneUneAction && tient && rassure && muet;
+        } catch (e) { checks.__errRythme = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3300,6 +3349,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.rythmePerte) errors.push('Coach Poids muet sur le rythme (perdre 1,3 kg/sem quand le rythme sûr est 0,64 doit déclencher une alerte citant LES DEUX chiffres et une action ; au bon rythme le verdict rassure ; avec une seule pesée il se tait)');
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');

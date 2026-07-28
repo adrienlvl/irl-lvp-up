@@ -500,3 +500,34 @@ initial. Le vrai nom est `renderRoadmapFeatures`.
 mesure du vide. Faire échouer bruyamment quand la fonction attendue n'existe pas.*
 
 633 tests · SMOKE OK · 390 px propre.
+
+## Itération 24 — enfin du contenu neuf dans le Coach Poids
+
+Adrien a posé la bonne question : « t'as ajouté du contenu aux coachs ? »
+Réponse honnête après vérification : **oui pour le coach du jour et le compagnon
+d'entraînement, non pour le Coach Poids.** Sur 22 commits depuis v2.7.0, la majorité
+sont des correctifs — dont beaucoup de défauts que j'avais moi-même introduits.
+
+Le Coach Poids avait été RÉORGANISÉ (sections repliables) et CONNECTÉ (sa semaine nomme
+enfin de vraies séances), mais n'avait reçu **aucune analyse nouvelle**.
+
+### Ce qui manquait : le RYTHME
+L'app calculait déjà les deux nombres et ne les confrontait jamais :
+- rythme sûr calculé par `safeLossRate` : **0,64 kg/sem**
+- rythme réel calculé par `weightTrend` : **1,3 kg/sem**
+- verdict affiché : `onTrack: true`, et rien d'autre.
+
+Deux fois trop vite, et l'app disait que tout allait bien. C'est le seul endroit qui
+dit maintenant que **perdre plus vite n'est pas mieux**.
+
+Le seuil est un RAPPORT au rythme sûr, jamais une valeur absolue : 0,8 kg/sem est
+raisonnable à 110 kg et excessif à 60 kg. Une mutation qui remplace le rapport par un
+seuil absolu fait rougir la suite.
+
+### Sur la crédibilité scientifique
+Aucune référence inventée. Le raisonnement est énoncé (au-delà d'un certain rythme ce
+qui part n'est plus seulement du gras), et le levier qui protège la masse maigre est
+déjà tenu ailleurs dans l'app avec une source réelle — protéines à 2,4 g/kg,
+Longland 2016 AJCN, déjà citée dans `energyPlan`.
+
+634 tests · SMOKE OK · 390 px propre.
