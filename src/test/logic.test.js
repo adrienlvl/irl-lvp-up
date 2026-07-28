@@ -14176,6 +14176,40 @@ test('coachAdherence : « 5/7 » ne dit pas si tu montes ou si tu lâches', () =
     'date abîmée → rien');
 });
 
+test('un seul endroit répond à « quel poids ? »', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  /* DÉFAUT RÉEL, itération 45 : `proteinTarget` était appelé avec le poids du PROFIL à sept
+     endroits. Six ont été trouvés par recherche de chaîne ; le septième, écrit avec l'optional
+     chaining (`state.profile?.weight`), est resté invisible — et affichait 165 g pendant que
+     le panneau voisin affichait 145. Vingt-cinq grammes d'écart sur la même journée.
+
+     La cause profonde n'est pas le septième site : c'est que la règle « dernière pesée, profil
+     en repli » était RECOPIÉE à la main partout. Une règle recopiée finit par diverger, et
+     chaque copie a l'air correcte isolément. Ce test interdit les copies. */
+  assert.ok(/function poidsActuel\(/.test(app), 'la fonction de référence existe');
+
+  // Toute fonction qui dépend du poids doit passer par elle.
+  const parProfil = (app.match(/proteinTarget\(\s*state\.profile/g) || []).length;
+  assert.equal(parProfil, 0,
+    'proteinTarget ne doit JAMAIS lire le profil directement : ' + parProfil + ' appel(s) fautif(s)');
+
+  /* La règle elle-même ne doit plus être réécrite à la main. On tolère les REPLIS explicites
+     (`x || profile.weight`), qui ne servent que faute de mieux et sont documentés là où ils
+     sont — mais pas une nouvelle copie de la règle complète. */
+  const copies = (app.match(/state\.weights\.at\(-1\)\?\.value\s*\|\|\s*Number\(state\.profile\.weight\)/g) || []).length;
+  assert.equal(copies, 0,
+    copies + ' copie(s) manuelle(s) de « dernière pesée, profil en repli » — utilise poidsActuel()');
+
+  // Et le helper lui-même doit bien lire les pesées, pas seulement le profil.
+  const i = app.indexOf('function poidsActuel(');
+  const corps = app.slice(i, i + 260);
+  assert.ok(corps.indexOf('state.weights') !== -1, 'poidsActuel lit les pesées');
+  assert.ok(corps.indexOf('state.profile') !== -1, 'et retombe sur le profil faute de mieux');
+});
+
 test('aucun champ d’état fantôme : ce que app.js lit doit exister', () => {
   const fs = require('fs');
   const path = require('path');
