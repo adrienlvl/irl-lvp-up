@@ -3157,11 +3157,42 @@ app.whenReady().then(async () => {
           const memesSeances = memeNombre && prog.every((t, i) => coach[i].indexOf(t) !== -1);
           const lienVu = !!lien && getComputedStyle(lien).display !== 'none';
 
+          /* Le TROISIÈME écran : celui qui écrit « c'est la même semaine que sur ton
+             Programme auto et ton Coach Poids ». Il faisait l'affirmation sans que rien ne
+             la vérifie. S'il annonce une séance du jour, elle doit exister dans la semaine
+             que les deux autres affichent — sinon la phrase est fausse à l'écran. */
+          /* Le TROISIÈME écran : celui qui écrit « c’est la même semaine que sur ton
+             Programme auto et ton Coach Poids ». Il faisait cette affirmation sans que rien
+             ne la vérifie. On ne conditionne PAS sur « il l’affirme » : selon le jour et
+             l’état laissé par les autres checks, le plan place une séance ou du repos, et
+             une première version conditionnée n’a rien testé du tout — la mutation l’a
+             révélé, pas la couleur du verdict. On vérifie donc l’ACCORD entre ce que le
+             compagnon annonce et ce que le plan prévoit, dans les DEUX cas. */
+          let compagnonTenu = true;
+          if (typeof renderTrainingCompanion === 'function' && typeof planDuJour === 'function'
+              && typeof trainingPlanInputs === 'function') {
+            state.recovery = [{ date: localDate(), sleep: 8, fatigue: 1, soreness: 1 }];
+            showPage('dashboard');
+            renderTrainingCompanion();
+            const tEl = document.getElementById('todayCoachTitle');
+            const titre = tEl ? (tEl.textContent || '') : '';
+            const plan = trainingWeekPlan(trainingPlanInputs(state, localDate()), state.exercises || []);
+            const dj = planDuJour(plan, localDate());
+            checks.__compagnonTitre = titre.slice(0, 60);
+            if (dj && dj.repos) {
+              // Le plan ne place rien : l’écran doit le dire, pas inventer une séance.
+              compagnonTenu = /[Rr]epos/.test(titre);
+            } else if (dj && dj.seances && dj.seances.length) {
+              // Le plan place une séance : c’est CELLE-LÀ que l’écran doit nommer.
+              const attendue = String(dj.seances[0].title || '');
+              compagnonTenu = !!attendue && titre.indexOf(attendue) !== -1;
+            }
+          }
           state.profile = sp; state.goals = sg; state.weights = sw;
           state.recovery = sr; state.workouts = swk; state.fitnessObjective = so;
           renderCoachWeight();
           showPage('dashboard');
-          return pilotVu && pilotDit && memeNombre && memesSeances && lienVu;
+          return pilotVu && pilotDit && memeNombre && memesSeances && lienVu && compagnonTenu;
         } catch (e) { checks.__errConn = String(e && e.message); return false; }
       })();
       checks.agendaSansDoublon = (() => {
@@ -3411,7 +3442,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
-    if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — et le bandeau de pilotage doit citer l’objectif de poids et la cible kcal)');
+    if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — le bandeau de pilotage doit citer l’objectif de poids et la cible kcal, et le compagnon ne doit pas annoncer une séance du jour absente de cette semaine alors qu’il affirme la partager)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');
     if (!checks.coachContenu) errors.push('Coach sans contenu de forme (#coachForme : muet quand tout va bien, mais doit NOMMER la cause chiffrée d’une nuit de 4 h avec un geste ; et #coachAutres doit lister les pistes secondaires, pas seulement les compter)');
     if (!checks.coachPoidsSections) errors.push('Coach Poids non rangé (.cw-sec : 5 sections repliables attendues, titres tapables ≥44 px, poids+calories hors section, panneau sous 2000 px, replier doit vraiment retirer de la hauteur, et deux rendus ne doivent pas imbriquer les sections)');
