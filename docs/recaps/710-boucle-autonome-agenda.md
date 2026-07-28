@@ -1880,3 +1880,54 @@ donc prouvée au rendu, pas seulement en logique.
 - Étendre la passe mobile aux 3 pages et 10 dialogues non couverts (aucun défaut trouvé
   aujourd'hui, mais rien ne les empêche d'en gagner un demain).
 - Puis le coût annoncé des réglages, puis l'arbitrage sous budget de temps.
+
+---
+
+## Itération 58 — Revue : le dénivelé avait deux sources, et la mienne ne servait à rien
+
+Revue adversariale due. Cible : **mon propre code des itérations 53 à 57**.
+
+### Le défaut, et il vient de moi
+
+À l'itération 53, j'ai fait lire au Plan de bataille `state.ultraPlan.elevation` plutôt que
+`state.trail`, pour éviter le quirk d'inflation du panneau trail. **J'ai corrigé ce quirk à
+l'itération 56** — la raison a disparu, la division est restée.
+
+| Ce qu'Adrien fait | Panneau trail | Plan de bataille |
+|---|---|---|
+| Saisit 600 m dans le panneau trail | « Cette semaine : 600 m D+ » | **rien du tout** |
+| Pose 1 200 dans le nouveau réglage | « Cette semaine : 600 m D+ » | « 1 200 m D+ répartis… » |
+
+Deux chiffres pour la même chose sur le même écran, et la saisie historique qui ne pilote rien —
+exactement ce que je passe mon temps à corriger ailleurs.
+
+### Ce qui a été fait
+
+`dplusHebdo` répond seule : le réglage explicite s'il existe (une intention prime sur un
+constat), sinon ce qui a été enregistré. Et le plan **nomme l'origine** : « 600 m D+ enregistrés
+cette semaine » ou « 1 200 m D+ (ton réglage) ». *Un chiffre dont on ignore l'origine ne se
+corrige pas.*
+
+### Ce que je ne prétends pas
+
+**La 5e mutation survit.** Le retour à la ligne ajouté à l'en-tête de séance corrige un
+débordement de 18 px mesuré une fois, que je n'ai **pas réussi à reproduire en trois
+tentatives** — probablement un DOM résiduel de mon propre check mesuré par la passe mobile. Le
+CSS reste (défensif, l'en-tête porte maintenant trois étiquettes) mais il n'est **pas couvert**.
+
+*Une mutation qui survit signifie d'ordinaire un check creux ou un harnais mort. Ici, ni l'un ni
+l'autre : le scénario lui-même n'est pas reproductible. Le dire vaut mieux que de fabriquer un
+test qui ferait semblant.*
+
+### Ce que cette itération a appris
+
+*Une raison technique qui disparaît laisse une architecture qui reste.* Le contournement de
+l'itération 53 était justifié le jour où je l'ai écrit ; trois itérations plus tard il ne l'était
+plus, et rien ne me l'a signalé. Il a fallu une revue pour le voir.
+
+**Mutations.** 5 posées, 4 détectées, 1 assumée non couverte.
+
+667 tests · SMOKE OK. Rien publié : dernière release v2.12.2.
+
+### Reste (roadmap 712)
+- Le coût annoncé des réglages, puis l'arbitrage sous budget de temps.
