@@ -428,3 +428,43 @@ semaine qui pose deux séances dures, `recoveryFraiche` branché sur 2 sites sur
 sont vides.
 
 632 tests · SMOKE OK · 390 px propre.
+
+## Itération 22 — le fil rouge, troisième passage dans mon propre code
+
+Deux trouvailles de la revue vérifiées à la main (les agents restent limités), toutes
+deux confirmées, toutes deux dans du code que j'ai écrit cette semaine.
+
+### « Tu as demandé 5 courses » — non, il ne les a pas demandées
+Adrien règle le TOTAL de séances et laisse les courses en « auto ». Le nombre de
+courses est alors DÉDUIT par `objectiveWeekShape`. Le message le lui attribuait quand
+même : on lui reprochait une décision qu'il n'avait pas prise.
+Distinction posée : « tu as demandé » seulement s'il a réglé les courses lui-même,
+« ton volume donne » sinon — avec la sortie correspondante (baisser le total OU choisir
+les courses).
+
+### « je viserais environ 70 % » — la coupe valait 80 %, et elle avait déjà eu lieu
+Le message citait `volumeFactor` (l'intention) au lieu de la coupe mesurée (4 exercices
+sur 5 = 80 %). Et il disait « je viserais », comme un conseil, alors que la réduction
+était déjà appliquée.
+
+### Un test qui encodait MA croyance, pas le code
+J'avais écrit « sur un réglage manuel, rien n'est coupé ». Faux : `perReel` est calculé
+sans condition. Le bon comportement est celui du code — Adrien a demandé à choisir son
+nombre de SÉANCES, pas à désactiver la protection contre le surentraînement en déficit.
+Contrat clarifié, et le message dit maintenant explicitement ce qui n'a PAS bougé.
+
+**Trois fois de suite le même réflexe, sous trois formes :**
+1. écrire le message avant l'effet (volumeFactor décoratif) ;
+2. écrire le libellé sans le comportement (`action='planSeance'` jamais traité) ;
+3. écrire l'intention au lieu de la mesure (70 % annoncé, 80 % appliqué).
+
+C'est toujours la même chose : **le texte est facile, l'effet est difficile, et rien ne
+les relie tant qu'on ne mesure pas.** D'où la règle qui marche : pousser le message
+APRÈS l'effet, en citant la valeur produite.
+
+633 tests · SMOKE OK · 390 px propre.
+
+### Reste dû
+15 trouvailles non vérifiées. Les plus sérieuses en attente : `duresMax` annoncé
+au-dessus d'une semaine qui en pose deux, `recoveryFraiche` branché sur 2 sites sur 14,
+« la même semaine que ton Programme auto » affiché quand les deux panneaux sont vides.

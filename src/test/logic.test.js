@@ -14155,11 +14155,18 @@ test('la politique AGIT vraiment : elle ne se contente pas de l’annoncer', () 
   assert.match(msg, /\d+ exercices par séance au lieu de \d+/, 'avec les deux chiffres réels');
   assert.ok(!/environ 30 %/.test(msg), 'plus de pourcentage théorique non vérifiable');
 
-  // Sur un réglage MANUEL, rien n'est coupé : le message ne doit pas prétendre le contraire.
+  /* CONTRAT CLARIFIÉ SCIEMMENT. J'avais écrit ce test en croyant qu'un réglage manuel
+     empêchait TOUTE coupe. Faux : le nombre de SÉANCES est bien celui d'Adrien — son
+     réglage gagne — mais le volume PAR SÉANCE reste réduit en déficit. C'est le bon
+     comportement : il a demandé à choisir son nombre de séances, pas à désactiver la
+     protection. Ce que le message doit faire, c'est le dire avec les vrais chiffres. */
   const manuel = { ...enDeficit, goals: { ...enDeficit.goals, progSessions: 6 } };
   const pm = L.trainingWeekPlan(L.trainingPlanInputs(manuel, AUJ), exercises);
-  assert.ok(!pm.ajustements.some(a => /Volume réduit/.test(a)),
-    'aucune coupe annoncée quand aucune coupe n’a lieu');
+  assert.equal(pm.week.length, 6, 'le nombre de séances demandé est respecté');
+  const msgM = pm.ajustements.find(x => /Volume réduit/.test(x));
+  assert.ok(msgM, 'la coupe par séance est annoncée, pas passée sous silence');
+  assert.match(msgM, /le nombre de séances, eux, ne bougent pas/,
+    'et le message précise ce qui N’A PAS été touché');
 });
 
 test('runPlanWeek : le plafond de séances dures rétrograde, il ne supprime pas', () => {
@@ -14336,4 +14343,42 @@ test('la séance dure du plan est un vrai protocole, daté quand la source en es
   // Une semaine illisible ne fait rien exploser et ne réécrit rien.
   assert.doesNotThrow(() => L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 'nawak' }));
   assert.equal(L.runPlanWeek(4, { emphasis: 'vitesse', semaine: 'nawak' }).sessions.find(x => x.type === 'fractionne').label, 'Fractionné');
+});
+
+test('les ajustements n’attribuent pas à Adrien un choix qu’il n’a pas fait', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const base = {
+    fitnessObjective: 'seche',
+    profile: { weight: 95, height: 180, age: 28, sex: 'homme', activityLevel: 'modere', goal: 'perte', availableDays: [1, 3, 5], level: 'intermediaire' },
+    weights: [{ date: AUJ, value: 95 }], recovery: [], workouts: []
+  };
+  const plan = goals => L.trainingWeekPlan(L.trainingPlanInputs({ ...base, goals: { targetWeight: 78, ...goals } }, AUJ), exercises);
+
+  /* Le message disait « Tu as demandé 5 courses » alors qu'Adrien avait laissé « auto » et
+     n'avait fixé QUE le total : les 5 courses étaient DÉDUITES. Lui prêter ce choix, c'est
+     lui reprocher une décision qu'il n'a pas prise. */
+  const auto = plan({ progSessions: 8, runs: 'auto' }).ajustements.join(' ');
+  assert.ok(auto.indexOf('Tu as demandé') === -1, 'aucun « tu as demandé » quand les courses sont en auto');
+  assert.match(auto, /Ton volume donne \d+ courses/, 'on dit d’où vient le nombre');
+
+  // Quand Adrien règle VRAIMENT les courses, on peut le lui attribuer.
+  const manuel = plan({ progSessions: 8, runs: 5 }).ajustements.join(' ');
+  assert.match(manuel, /Tu as demandé 5 courses/);
+
+  /* Le message de volume citait volumeFactor (70 %) alors que la coupe réelle valait 4/5,
+     soit 80 % — l'intention au lieu de la mesure. Et il disait « je viserais », comme un
+     conseil, alors que la coupe avait DÉJÀ eu lieu. */
+  [{ progSessions: 8, runs: 'auto' }, { progSessions: 8, runs: 5 }, { progSessions: '', runs: 'auto' }].forEach(g => {
+    const p = plan(g);
+    const msg = p.ajustements.find(a => /Volume réduit/.test(a));
+    assert.ok(msg, 'la coupe de volume est annoncée dans tous les cas');
+    assert.ok(!/je viserais environ/.test(p.ajustements.join(' ')),
+      'plus de formulation « je viserais » : la coupe a déjà eu lieu');
+    // Le chiffre cité doit être celui des séances RÉELLEMENT produites.
+    const m = /(\d+) exercices par séance au lieu de (\d+)/.exec(msg);
+    assert.ok(m, 'les deux nombres réels sont cités');
+    const reel = p.week.filter(s => s.kind === 'muscu')[0];
+    assert.equal(Number(m[1]), reel.exercises.length, 'le nombre annoncé est celui de la séance produite');
+  });
 });

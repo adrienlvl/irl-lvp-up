@@ -4296,7 +4296,13 @@ function trainingWeekPlan(input, exercises) {
       ? 'tu es en surplus, le cardio mangerait ton avance.'
       : 'ta récupération ne suit pas ce volume.'));
   } else if (regleALaMain && voulue.runs > politique.coursesMax) {
-    ajustements.push('Tu as demandé ' + voulue.runs + ' courses ; à ce niveau de déficit j’en viserais ' + politique.coursesMax + '. C’est ton appel — surveille ta récupération.');
+    /* On ne dit « tu as demandé » QUE si Adrien a réglé les courses lui-même. Quand il a
+       laissé « auto » et n'a fixé que le total, le nombre de courses est DÉDUIT : le lui
+       attribuer, c'est lui prêter un choix qu'il n'a pas fait. */
+    const _coursesChoisies = i.runs !== null && i.runs !== undefined && i.runs !== '' && i.runs !== 'auto';
+    ajustements.push(_coursesChoisies
+      ? 'Tu as demandé ' + voulue.runs + ' courses ; à ce niveau de déficit j’en viserais ' + politique.coursesMax + '. C’est ton appel — surveille ta récupération.'
+      : 'Ton volume donne ' + voulue.runs + ' courses ; à ce niveau de déficit j’en viserais ' + politique.coursesMax + '. Baisse le total ou choisis toi-même le nombre de courses.');
   }
 
   /* La musculation garde sa FRÉQUENCE quoi qu'il arrive : c'est elle qui protège le muscle
@@ -4306,13 +4312,13 @@ function trainingWeekPlan(input, exercises) {
      « volume réduit de 30 % » alors que volumeFactor n'était consommé nulle part : la
      politique était décorative. Elle agit maintenant, et on annonce la coupe MESURÉE. */
   const _messageVolume = function (perBase, perReel) {
-    if (regleALaMain) {
-      return politique.volumeFactor < 1
-        ? 'À ce niveau de déficit, je viserais environ ' + Math.round(politique.volumeFactor * 100) + ' % de ton volume habituel — et surtout : ne baisse pas les charges.'
-        : null;
-    }
+    /* Le nombre de SÉANCES reste celui d'Adrien (son réglage gagne), mais le volume PAR
+       séance est bel et bien réduit dans les deux cas. Annoncer « je viserais 70 % »
+       laissait croire à un simple conseil, et citait l'intention (volumeFactor) au lieu de
+       la coupe mesurée (4 exercices sur 5, soit 80 %). Un seul message, les vrais chiffres. */
     if (perReel >= perBase) return null;
-    return 'Volume réduit : ' + perReel + ' exercices par séance au lieu de ' + perBase + ' — les charges, elles, ne bougent pas.';
+    return 'Volume réduit : ' + perReel + ' exercices par séance au lieu de ' + perBase
+      + ' — les charges et le nombre de séances, eux, ne bougent pas.';
   };
   politique.raisons.forEach(function (r) { ajustements.push(r.charAt(0).toUpperCase() + r.slice(1) + '.'); });
   // (le message de volume est poussé plus bas, une fois perReel connu)
