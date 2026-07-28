@@ -890,3 +890,38 @@ avoir est pire que pas de garde-fou du tout.
   `sleepDurationTrend`), adhérence (`proteinAdherenceTrend`, `hydrationAdherenceTrend`,
   `fieldAdherenceTrend`), force (`blockProgressText`, `progressSets`), `focusMinutesTrend`,
   `workoutDominantZone`.
+
+## Itération 34 — la dette d'hier payée, et ce qu'elle cachait
+
+**Dette soldée.** Hier j'avais noté noir sur blanc : « câblage écran de `zoneRattrapage` non
+gardé ». J'ai posé le check aujourd'hui. Il a trouvé le défaut en un run : je passais
+`state.exercises`, **un champ qui n'existe pas** — seule occurrence du fichier, et c'était la
+mienne. La fonction rendait `[]` à tous les coups : la ligne « Par quoi commencer » ne s'est
+jamais affichée. Fonctionnalité livrée verte, mutation-validée côté logique, **morte à l'écran**.
+
+C'est le fil rouge du dépôt appliqué à mon propre travail : un écart entre ce que l'app dit
+faire et ce qu'elle fait. Et la seule chose qui l'a révélé est le garde-fou que j'avais renoncé
+à poser. **Renoncer à un check coûte plus cher que de le poser.**
+
+### Ce que cette itération a appris
+
+*Mes trois échecs d'hier avaient une cause unique et bête* : les sondes lisaient l'état APRÈS
+la restauration, donc elles mesuraient toujours l'écran d'avant. Déplacées au moment du rendu,
+elles ont tout montré en trois minutes — panneau visible, zone négligée présente, bibliothèque
+vide. J'ai passé une itération entière à conclure « le panneau est inatteignable » alors que je
+regardais au mauvais instant.
+
+*Une mutation a survécu, et elle avait raison.* La zone négligée du jeu d'essai était « abdos »,
+dont les meilleurs exercices sont tous au poids du corps : le filtre matériel n'y changeait
+rien, donc le test n'en prouvait rien. Jeu d'essai corrigé pour que la zone bascule sur le dos,
+et l'assertion EXIGE désormais que le cas « tout le matériel » propose un exercice qui en
+demande — si la zone redevenait non discriminante, le check tomberait au lieu de passer à vide.
+
+647 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- Dix fonctions encore jamais rendues : sommeil (`sleepRegularity`, `bedtimeRegularity`,
+  `sleepDurationTrend`), adhérence (`proteinAdherenceTrend`, `hydrationAdherenceTrend`,
+  `fieldAdherenceTrend`), force (`blockProgressText`, `progressSets`), `focusMinutesTrend`,
+  `workoutDominantZone`.
+- Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
