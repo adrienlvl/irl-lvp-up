@@ -995,3 +995,44 @@ qu'il attrape tout — chaque garde couvre son périmètre, à condition qu'on s
 - Cinq fonctions encore jamais rendues : `focusMinutesTrend`, `blockProgressText`,
   `progressSets`, `workoutDominantZone`, `bedtimeRegularityTrend`.
 - Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
+
+## Itération 37 — revue : j'avais construit un doublon
+
+**La question posée.** J'ai ajouté trois blocs de coaching en trois itérations. Est-ce que
+l'écran est saturé ? Mesuré : **douze blocs, 2199 caractères d'avis** au total. Répartis sur
+plusieurs pages, donc pas de saturation — mais **trois blocs sommeil dans le MÊME panneau**,
+dont deux qui disent la même chose avec le même chiffre :
+
+- `#sleepCoach` : « Durée correcte (moy. 7.5 h) mais coucher irrégulier (~75 min d'écart) »
+- `#sleepRegularite` : « Ton heure de coucher part dans tous les sens — ±75 min »
+
+**J'ai créé le second à l'itération 35 sans lire `sleepCoachInsight`**, qui couvrait déjà ce
+sujet en appelant les mêmes fonctions, et qui possède même une option `actionCarried` pour ne
+pas répéter un conseil porté ailleurs. La piste du mandat disait ces fonctions « jamais
+rendues » — c'était inexact, et je ne l'ai pas vérifié.
+
+**Correction : l'occupant gagne.** Mon bloc est retiré en entier (fonction, rendu, markup,
+styles, test, check), et la seule chose qu'il apportait vraiment — la référence vérifiée — est
+reversée dans l'occupant, uniquement sur les verdicts d'irrégularité. Bilan : 214 lignes
+supprimées, 86 ajoutées.
+
+### Ce que cette itération a appris
+
+*Ajouter est plus facile que vérifier, et c'est le piège de l'axe « profondeur ».* Trois
+itérations à empiler du contenu utile, et l'une d'elles a produit un doublon visible à
+l'écran. Mesurer l'ÉCRAN — pas la liste des fonctions non rendues — était le seul moyen de le
+voir.
+
+*Une piste de mandat n'est pas une mesure.* « `sleepRegularity` jamais rendue » était faux :
+elle était consommée par une fonction rendue. Je l'ai pris pour argent comptant à l'itération
+35 alors que ma propre règle dit de vérifier ce que la fonction rend AVANT de construire.
+
+*Le même sondage a trouvé un second défaut, plus ancien* : « 0 min de focus le lendemain,
+contre 0 min plus tard » — l'absence de donnée présentée comme un résultat.
+
+650 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- Quatre fonctions jamais rendues, à VÉRIFIER une par une avant de construire :
+  `focusMinutesTrend`, `blockProgressText`, `progressSets`, `workoutDominantZone`.
+- Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
