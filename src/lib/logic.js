@@ -4825,13 +4825,27 @@ function trainingWeekPlan(input, exercises) {
   /* L'avertissement se basait sur un seuil fixe de 6 jours. En cours de semaine il ne reste
      parfois que deux jours cochés : six séances dessus font TROIS par jour, et l'app n'en
      disait rien. On compte sur les jours réellement disponibles. */
-  const total = programme.week.length;
-  const nbJours = joursUtiles.length || 7;
-  const parJour = Math.ceil(total / nbJours);
-  if (parJour > 1) {
-    ajustements.push(total + ' séance' + (total > 1 ? 's' : '') + ' sur ' + nbJours + ' jour'
-      + (nbJours > 1 ? 's' : '') + ' disponible' + (nbJours > 1 ? 's' : '') + ' : jusqu’à '
-      + parJour + ' par jour.');
+  /* On DÉCRIT la semaine réellement construite, pas une capacité théorique. Mesuré : avec
+     lundi et mardi cochés un mercredi, plus aucun jour choisi ne reste — `joursUtiles` retombait
+     sur tous les jours restants du calendrier (5) et `parJour` sur une moyenne arrondie. La
+     phrase annonçait « 6 séances sur 5 jours disponibles : jusqu'à 2 par jour » juste au-dessus
+     d'une semaine qui en empilait 3 le lundi et 3 le mardi. Deux chiffres faux dans la même
+     phrase, contredits par le plan affiché en dessous.
+     Et « disponibles » se lisait comme « tes jours cochés » alors qu'il s'agit de ce qui reste
+     de la semaine : on dit « réparties sur », qui décrit sans prétendre. */
+  const total = semaine.length;
+  const _parJour = {};
+  semaine.forEach(function (s) {
+    const j = Number(s && s.weekday);
+    if (Number.isFinite(j)) _parJour[j] = (_parJour[j] || 0) + 1;
+  });
+  const joursOccupes = Object.keys(_parJour);
+  const nbJours = joursOccupes.length;
+  // Le VRAI maximum d'un jour, pas la moyenne : c'est la journée la plus chargée qui fait mal.
+  const parJour = joursOccupes.reduce(function (a, k) { return Math.max(a, _parJour[k]); }, 0);
+  if (nbJours > 0 && parJour > 1) {
+    ajustements.push(total + ' séance' + (total > 1 ? 's' : '') + ' réparties sur ' + nbJours
+      + ' jour' + (nbJours > 1 ? 's' : '') + ' : jusqu’à ' + parJour + ' le même jour.');
   }
 
   return Object.assign({}, programme, {

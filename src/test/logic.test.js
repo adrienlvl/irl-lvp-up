@@ -14376,6 +14376,56 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('la répartition annoncée est celle de la semaine réellement construite', () => {
+  /* DÉFAUT MESURÉ. La phrase se calculait sur `joursUtiles.length || 7` et une MOYENNE
+     arrondie. Avec lundi et mardi cochés un mercredi, plus aucun jour choisi ne reste :
+     joursUtiles retombait sur tous les jours restants du calendrier, et la phrase annonçait un
+     nombre de jours et un « par jour » que le plan affiché juste en dessous contredisait.
+     Une phrase est une affirmation : elle doit citer la mesure réelle, pas une capacité. */
+  const EX = require('../lib/exercises-data.js');
+  const exos = EX.EXERCISES || EX;
+  const plan = jours => L.trainingWeekPlan(L.trainingPlanInputs({
+    fitnessObjective: 'seche',
+    profile: { weight: 84, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+      goal: 'perte', level: 'intermediaire', availableDays: jours,
+      equipment: { handles: true, vest: true, kettlebell: true, pullup: true } },
+    goals: { sessions: 5, runs: 3, targetWeight: 76, progSessions: 6 },
+    weights: [{ date: '2026-07-29', value: 84 }], workouts: [], recovery: []
+  }, '2026-07-29'), exos);
+
+  /* L'INVARIANT, vérifié sur plusieurs configurations de jours — dont celle où AUCUN jour
+     coché ne reste dans la semaine (lundi/mardi un mercredi), le cas qui produisait la phrase
+     fausse. Sur un seul jeu de jours, un code qui recopierait une constante passerait. */
+  [[4, 5, 6], [1, 2], [3], [1, 2, 3, 4, 5, 6, 0], [2, 4]].forEach(jours => {
+    const p = plan(jours);
+    const parJour = {};
+    (p.week || []).forEach(s => { parJour[s.weekday] = (parJour[s.weekday] || 0) + 1; });
+    const nbJours = Object.keys(parJour).length;
+    const vals = Object.keys(parJour).map(k => parJour[k]);
+    const maxParJour = vals.length ? Math.max.apply(null, vals) : 0;
+    const phrase = (p.ajustements || []).filter(x => x.indexOf('réparties sur') !== -1)[0] || '';
+
+    if (maxParJour > 1) {
+      assert.ok(phrase, 'jours ' + jours.join('/') + ' : ' + maxParJour + ' séances le même jour doit être signalé');
+      assert.ok(phrase.indexOf(' ' + nbJours + ' jour') !== -1,
+        'le nombre de jours annoncé est celui de la semaine construite (' + nbJours + ') — ' + phrase);
+      assert.ok(phrase.indexOf('jusqu’à ' + maxParJour + ' le même jour') !== -1,
+        'et le maximum annoncé est le VRAI maximum (' + maxParJour + '), pas une moyenne — ' + phrase);
+      assert.ok(phrase.indexOf(String((p.week || []).length) + ' séance') === 0,
+        'la phrase commence par le nombre réel de séances — ' + phrase);
+    } else {
+      assert.equal(phrase, '', 'une séance par jour au plus : rien à signaler (' + jours.join('/') + ')');
+    }
+  });
+
+  // Le cas qui DISCRIMINE le « vrai maximum » contre une moyenne : tout empilé sur un jour.
+  const unSeul = plan([3]);
+  const p1 = (unSeul.ajustements || []).filter(x => x.indexOf('réparties sur') !== -1)[0] || '';
+  assert.match(p1, /sur 1 jour :/, 'singulier correct : ' + p1);
+  assert.ok(p1.indexOf('jusqu’à 6 le même jour') !== -1, 'six séances le même jour, dit tel quel : ' + p1);
+  assert.doesNotMatch(p1, /disponible/, 'plus de « disponibles » : ça se lisait comme les jours cochés');
+});
+
 test('dplusHebdo : un seul dénivelé hebdomadaire, et on dit d’où il vient', () => {
   /* DÉFAUT MESURÉ EN REVUE. À l'itération 53 le Plan de bataille lisait ultraPlan.elevation
      tandis que le panneau trail écrivait state.trail : le panneau annonçait « Cette semaine :

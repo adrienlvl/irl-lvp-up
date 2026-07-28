@@ -3185,6 +3185,65 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.repartitionDite = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          /* Beaucoup de seances sur peu de jours : le SEUL etat ou la phrase existe. Avec une
+             seance par jour elle ne s affiche pas et le check serait vacant. */
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 84, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', level: 'intermediaire',
+            availableDays: [1, 2] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 76, sessions: 5, runs: 3, progSessions: 6 });
+          state.weights = [{ date: localDate(), value: 84 }]; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+
+          // On compte sur le RENDU : chaque bloc de seance porte son jour en tete (Lun, Mar...).
+          const jours = {};
+          Array.prototype.slice.call(document.querySelectorAll('#objectiveResult .op-day .op-day-h b'))
+            .forEach(function (b) {
+              const tx = String(b.textContent || '').trim();
+              const j = tx.slice(0, 3);
+              if (j) jours[j] = (jours[j] || 0) + 1;
+            });
+          const noms = Object.keys(jours);
+          const nbJours = noms.length;
+          let maxParJour = 0;
+          noms.forEach(function (k) { if (jours[k] > maxParJour) maxParJour = jours[k]; });
+          const nbSeances = document.querySelectorAll('#objectiveResult .op-day').length;
+
+          const ajust = Array.prototype.slice.call(document.querySelectorAll('#objectiveResult .op-ajust'))
+            .filter(function (e) { return getComputedStyle(e).display !== 'none'; })
+            .map(function (e) { return String(e.textContent || ''); })
+            .filter(function (x) { return x.indexOf('réparties sur') !== -1; })[0] || '';
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__repartition = 'blocs=' + nbSeances + ' jours=' + nbJours + ' max=' + maxParJour
+            + ' phrase[' + ajust.slice(0, 70) + ']';
+          /* La phrase doit concorder avec les blocs AFFICHES A COTE D ELLE. Avant : elle
+             annoncait « 6 seances sur 5 jours : jusqu a 2 par jour » au-dessus d une semaine
+             qui n en montrait pas 5 — deux chiffres faux dans la meme phrase. */
+          if (maxParJour <= 1) return false;
+          /* On reconstruit la phrase EXACTE a partir des mesures du DOM : tous les ajustements
+             vivent dans un seul .op-ajust, donc chercher un fragment isole ne prouverait rien. */
+          const attendu = nbSeances + ' séance' + (nbSeances > 1 ? 's' : '')
+            + ' réparties sur ' + nbJours + ' jour' + (nbJours > 1 ? 's' : '')
+            + ' : jusqu’à ' + maxParJour + ' le même jour.';
+          checks.__repartitionAttendu = attendu;
+          return nbSeances > 0 && ajust.indexOf(attendu) !== -1;
+        } catch (e) { checks.__errRepartition = String(e && e.message); return false; }
+      })();
+
       checks.dplusUneSeuleSource = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function' || typeof renderAthlete !== 'function') return false;
@@ -4772,6 +4831,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.repartitionDite) errors.push('Plan de bataille : la phrase de répartition doit concorder avec les blocs de séance affichés juste à côté — nombre de séances, nombre de jours OCCUPÉS et VRAI maximum d’un jour. Mesurée avant correctif : « 6 séances sur 5 jours disponibles : jusqu’à 2 par jour » au-dessus d’une semaine qui contredisait les deux chiffres');
     if (!checks.dplusUneSeuleSource) errors.push('Dénivelé : le panneau trail et le Plan de bataille doivent annoncer LE MÊME chiffre quand aucun réglage n’est posé — mesuré avant correctif : « Cette semaine : 600 m D+ » d’un côté, 1 200 m répartis de l’autre, et une saisie trail qui ne pilotait rien. Le plan doit aussi NOMMER l’origine du chiffre (mesure ou réglage)');
     if (!checks.whatsNewPlafonne) errors.push('Carte « Quoi de neuf » : au plus trois versions dépliées, le reste PRÉSENT mais replié, et la carte sous trois écrans d’iPhone — mesuré à 4 948 px (5,9 écrans, 64 % de la page Réglages) après six releases d’absence, sans aucun plafond');
     if (!checks.dplusStable) errors.push('Panneau trail : le champ dénivelé doit montrer TA SAISIE DU JOUR, pas le cumul de la semaine — sinon « Enregistrer » réenregistre le total comme la valeur du jour et le chiffre enfle à chaque clic (mesuré : 450 → 900 → 1350 → 1800 sans rien taper). Trois enregistrements à vide ne doivent pas bouger le total hebdomadaire d’un mètre');
