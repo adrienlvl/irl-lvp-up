@@ -3234,6 +3234,45 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errNutri = String(e && e.message); return false; }
       })();
 
+      checks.reposReglTenu = (() => {
+        try {
+          if (typeof openGuidedWorkout !== 'function' || typeof adjustGuidedRest !== 'function') return false;
+          openGuidedWorkout({ title: 'Test repos', exercises: [
+            { name: 'Kettlebell swing', sets: 3, reps: 10 },
+            { name: 'Pompes classiques', sets: 2, reps: 12 }
+          ] });
+          const go = document.getElementById('guidedReadyGo'); if (go) go.click();
+          const sk = document.getElementById('guidedCountdownSkip'); if (sk) sk.click();
+
+          const prescrit = guidedRestSeconds;
+          /* Adrien monte le repos de 45 s. Mesure d avant : le repos qui partait durait la
+             valeur PRESCRITE — renderGuidedWorkout remettait guidedRestSeconds a p.rest, et
+             ce rendu a lieu juste avant que le repos demarre. Son reglage n a jamais servi. */
+          adjustGuidedRest(15); adjustGuidedRest(15); adjustGuidedRest(15);
+          const regle = guidedRestSeconds;
+
+          const v = document.querySelector('[data-complete-guided-set="0"]');
+          if (v) v.click();
+          const pendant = guidedRestSeconds;
+          if (typeof endGuidedRest === 'function') endGuidedRest();
+          const apres = guidedRestSeconds;
+
+          /* Changer d exercice, c est changer de mouvement — et souvent de temps de repos
+             utile : le nouveau doit reprendre SA valeur prescrite. */
+          const nx = document.getElementById('guidedNext'); if (nx) nx.click();
+          const apresChangement = guidedRestSeconds;
+
+          try { const d = document.getElementById('guidedWorkoutDialog'); if (d && d.open) d.close(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__repos = 'prescrit=' + prescrit + ' regle=' + regle + ' pendant=' + pendant
+            + ' apres=' + apres + ' exoSuivant=' + apresChangement;
+          // Il faut que le reglage ait VRAIMENT change quelque chose, sinon on ne teste rien.
+          return regle > prescrit && pendant === regle && apres === regle
+            && apresChangement !== regle;
+        } catch (e) { checks.__errRepos = String(e && e.message); return false; }
+      })();
+
       checks.seanceEtapeParEtape = (() => {
         try {
           if (typeof openGuidedWorkout !== 'function') return false;
@@ -4087,6 +4126,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur. Et le bandeau de pilotage, trois lignes plus haut, doit annoncer LA MÊME cible : deux nombres pour la même chose dans le même panneau, c’est le défaut que ce dépôt traque');
+    if (!checks.reposReglTenu) errors.push('Le repos réglé à la main (+15 s, préréglages) doit être CELUI qui tourne : il était écrasé par la valeur prescrite au rendu suivant, donc le réglage d’Adrien n’a jamais servi une seule fois. Et changer d’exercice doit reprendre le repos prescrit du nouveau mouvement');
     if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer. Elle doit AUSSI redemander « prêt ? » en changeant d’exercice, et ne pas lancer de repos après la dernière série');
     if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
