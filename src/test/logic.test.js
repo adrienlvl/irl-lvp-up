@@ -14487,3 +14487,62 @@ test('affûtage : le coach passe au jour près quand la course approche', () => 
   assert.doesNotThrow(() => L.coachTraining({ workouts: w, raceGoal: { date: 'nawak' } }, AUJ));
   assert.doesNotThrow(() => L.coachTraining({ workouts: w, raceGoal: null }, AUJ));
 });
+
+test('dureePlateau : le coach mesure depuis quand, au lieu de l’inventer', () => {
+  const AUJ = '2026-07-28';
+  const plat = (jours, pas) => {
+    const a = [];
+    for (let i = jours; i >= 0; i -= (pas || 3)) {
+      const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - i);
+      a.push({ date: d.toISOString().slice(0, 10), value: 82 });
+    }
+    return a;
+  };
+
+  /* weightTrend rend EXACTEMENT la même chose pour trois jours plats et trois mois plats —
+     vérifié. Et pourtant l'app écrivait « une balance plate quelques jours n'est pas encore
+     un plateau ». Sur douze semaines de stagnation, c'est faux, et c'est le pire moment
+     pour dire à quelqu'un qu'il s'inquiète trop vite. */
+  assert.equal(L.dureePlateau(plat(3), AUJ).jours, 3);
+  assert.equal(L.dureePlateau(plat(90, 7), AUJ).jours, 84);
+  assert.equal(L.dureePlateau(plat(3), AUJ).confirme, false);
+  assert.equal(L.dureePlateau(plat(21), AUJ).confirme, true, 'au-delà de 2 semaines, ce n’est plus une fluctuation');
+
+  /* Le poids fluctue naturellement (eau, sel, transit) : ce n'est pas l'égalité stricte qui
+     compte mais le maintien dans une BANDE. Une variation sous le seuil ne coupe pas le
+     plateau ; une variation au-dessus le coupe. */
+  const bruit = plat(30);
+  bruit.forEach((w, i) => { w.value = 82 + (i % 2 ? 0.3 : -0.3); });
+  assert.ok(L.dureePlateau(bruit, AUJ).jours >= 28, 'le bruit ne coupe pas le plateau');
+  const marche = plat(30);
+  marche[3].value = 85;
+  assert.ok(L.dureePlateau(marche, AUJ).jours < 30, 'une vraie marche le coupe');
+
+  // Le plateau commence APRÈS la dernière pesée hors bande, pas au début de l'historique.
+  const perte = [];
+  for (let i = 60; i >= 0; i -= 6) {
+    const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - i);
+    perte.push({ date: d.toISOString().slice(0, 10), value: i > 24 ? 82 + (i - 24) * 0.25 : 82 });
+  }
+  const p = L.dureePlateau(perte, AUJ);
+  assert.ok(p.jours > 0 && p.jours <= 25, `plateau de ${p.jours} j, pas les 60 j d’historique`);
+
+  // Pas de plateau inventé quand il n'y a rien à mesurer.
+  assert.equal(L.dureePlateau([{ date: AUJ, value: 82 }], AUJ), null, 'une seule pesée n’est pas un plateau');
+  assert.equal(L.dureePlateau([], AUJ), null);
+  assert.equal(L.dureePlateau(null, AUJ), null);
+  assert.equal(L.dureePlateau(plat(30), 'nawak'), null);
+  assert.doesNotThrow(() => L.dureePlateau('nawak', AUJ));
+
+  /* Et le verdict ne parle de durée QUE si on la lui donne : sans mesure, il décrit le
+     rythme sans inventer depuis combien de temps ça dure. */
+  const sur = { ratePerWeek: 0.64 };
+  const sans = L.rythmeVerdict({ ratePerWeek: 0 }, sur, 'perte');
+  assert.equal(sans.jours, null);
+  assert.ok(!/depuis/.test(sans.texte), 'aucune durée affirmée sans mesure');
+  const avec = L.rythmeVerdict({ ratePerWeek: 0 }, sur, 'perte', L.dureePlateau(plat(21), AUJ));
+  assert.equal(avec.jours, 21);
+  assert.match(avec.texte, /depuis 21 jours/);
+  assert.match(avec.titre, /Plateau confirmé/);
+  assert.match(avec.action, /plus une fluctuation/, 'le conseil change quand le plateau est confirmé');
+});

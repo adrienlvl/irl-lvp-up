@@ -564,3 +564,30 @@ maintenant une sonde qui abîme ce qu'elle mesure. Vérifier l'instrument avant 
 le code.*
 
 635 tests · SMOKE OK · 390 px propre.
+
+## Itération 26 — « quelques jours » alors que ça durait trois mois
+
+Trouvaille de la revue vérifiée à la main, **confirmée**, et c'est encore une phrase que
+j'avais écrite moi-même à l'itération 18.
+
+`weightTrend` rend **exactement la même chose** pour trois jours plats et trois MOIS
+plats — mesuré. Et l'app écrivait pourtant :
+
+> « Une balance plate quelques jours n'est pas encore un plateau. »
+
+Sur douze semaines de stagnation, c'est faux ET c'est le pire moment pour se tromper :
+on répond « tu t'inquiètes trop vite » à quelqu'un qui bloque depuis longtemps.
+
+### Corrigé en MESURANT, pas en retirant la phrase
+`dureePlateau` compte depuis quand le poids tient dans une bande. Une bande et non
+l'égalité stricte : le poids fluctue naturellement (eau, sel, transit), et compter
+chaque oscillation comme un mouvement réduirait tout plateau à un jour.
+
+Le coach dit maintenant « Moins de 100 g par semaine **depuis 21 jours** », et son titre
+passe à « Plateau confirmé » au-delà de deux semaines — avec un conseil différent :
+à cette durée, ce n'est plus une fluctuation.
+
+**Et sans mesure, il ne dit rien** : le focus du jour, qui n'a pas la donnée, a simplement
+perdu son « quelques jours ». Mieux vaut une phrase plus courte qu'une durée inventée.
+
+636 tests · SMOKE OK · 390 px propre.
