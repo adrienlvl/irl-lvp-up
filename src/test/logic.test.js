@@ -14376,6 +14376,76 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('deltaPlan : ce qu’un réglage vient de coûter, y compris ce qu’il supprime', () => {
+  /* Les réglages du Plan de bataille s'appliquent en silence : on voit le nouvel état, jamais
+     l'écart. MESURÉ : passer de 3 à 5 courses avec 4 séances ne change PAS le nombre de séances
+     (4 → 4) mais fait disparaître la seule séance de musculation. Invisible sur un écran qui
+     n'affiche que le résultat. */
+  const EX = require('../lib/exercises-data.js');
+  const exos = EX.EXERCISES || EX;
+  const plan = (sessions, runs, seed) => L.trainingWeekPlan(L.trainingPlanInputs({
+    fitnessObjective: 'seche', objectiveSeed: seed || 0,
+    profile: { weight: 84, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+      goal: 'perte', level: 'intermediaire', availableDays: [1, 2, 4, 5, 6],
+      equipment: { handles: true, vest: true, kettlebell: true, pullup: true } },
+    goals: { sessions: 5, runs: runs, targetWeight: 76, progSessions: sessions },
+    weights: [{ date: '2026-07-30', value: 84 }], workouts: [], recovery: []
+  }, '2026-07-30'), exos);
+
+  const base = plan(4, 3);
+
+  // Plus de séances : l'écart cite le temps, qui est le vrai coût.
+  const plus = L.deltaPlan(base, plan(6, 3));
+  assert.ok(plus, 'un changement chiffrable produit un écart');
+  assert.equal(plus.seances, 2);
+  assert.match(plus.texte, /\+2 séances/, plus.texte);
+  assert.match(plus.texte, /\+1 h 30 par semaine/, 'le temps en heures : ' + plus.texte);
+
+  /* LE CAS QUI COMPTE, et la raison d'être de la fonction : même nombre de séances, mais une
+     discipline entière disparaît. Sans cette phrase, rien à l'écran ne le signale. */
+  const silencieux = L.deltaPlan(base, plan(4, 5));
+  assert.ok(silencieux, 'un écart existe même à nombre de séances constant');
+  assert.equal(silencieux.seances, 0, 'le nombre de séances ne bouge pas — c’est le piège');
+  assert.ok(silencieux.minutes > 0, 'mais le temps monte : ' + silencieux.minutes + ' min');
+  assert.match(silencieux.alerte, /musculation disparaît/, 'la perte est NOMMÉE : ' + silencieux.alerte);
+  assert.match(silencieux.texte, /musculation disparaît complètement/, silencieux.texte);
+
+  // Le sens compte : revenir en arrière doit se lire en négatif, pas en valeur absolue.
+  const retour = L.deltaPlan(plan(6, 3), base);
+  assert.equal(retour.seances, -2);
+  assert.match(retour.texte, /−2 séances/, 'signe moins : ' + retour.texte);
+  assert.match(retour.texte, /−1 h 30 par semaine/, retour.texte);
+
+  /* SILENCE quand rien ne bouge : une phrase qui apparaît à chaque rendu cesse d'être lue.
+     Et la graine de variation ne doit PAS la déclencher — sinon l'écart serait du bruit. */
+  assert.equal(L.deltaPlan(base, plan(4, 3)), null, 'même réglage : rien à dire');
+  assert.equal(L.deltaPlan(plan(4, 3, 0), plan(4, 3, 2)), null,
+    'changer d’exercices ne change ni les comptes ni les minutes : aucun écart annoncé');
+  // Premier rendu : pas de référence, donc pas d'écart inventé.
+  assert.equal(L.deltaPlan(null, base), null, 'sans plan précédent : rien');
+  assert.equal(L.deltaPlan(base, null), null, 'sans plan nouveau non plus');
+  assert.equal(L.deltaPlan({}, {}), null, 'objets sans semaine : rien');
+
+  /* ÉCHANGE À VOLUME CONSTANT — le changement le plus dur à repérer à l'œil : même nombre de
+     séances, mêmes minutes, mais une musculation devenue course. La garde « rien à dire »
+     l'étouffait. C'est aussi le cas qui rend les deux gardes discriminables : sans lui, chacune
+     couvrait l'autre et les mutations individuelles survivaient toutes les deux. */
+  const sem = (m, c, min) => ({ week: [].concat(
+    Array.from({ length: m }, () => ({ kind: 'muscu', minutes: min })),
+    Array.from({ length: c }, () => ({ kind: 'course', minutes: min }))) });
+  const echange = L.deltaPlan(sem(2, 2, 45), sem(1, 3, 45));
+  assert.ok(echange, 'un échange à volume constant reste un changement');
+  assert.equal(echange.seances, 0, 'même nombre de séances');
+  assert.equal(echange.minutes, 0, 'et mêmes minutes — rien d’autre ne le signalerait');
+  assert.match(echange.texte, /musculation remplacée par de la course/, echange.texte);
+  assert.match(L.deltaPlan(sem(1, 3, 45), sem(2, 2, 45)).texte, /course remplacée par de la musculation/,
+    'et dans l’autre sens');
+  // Priorité : une discipline qui tombe à ZÉRO prime sur un simple échange.
+  assert.match(L.deltaPlan(sem(1, 3, 45), sem(0, 4, 45)).texte, /disparaît complètement/,
+    'la disparition passe avant l’échange');
+  assert.equal(L.deltaPlan(sem(2, 2, 45), sem(2, 2, 45)), null, 'et rien ne bouge : silence');
+});
+
 test('la répartition annoncée est celle de la semaine réellement construite', () => {
   /* DÉFAUT MESURÉ. La phrase se calculait sur `joursUtiles.length || 7` et une MOYENNE
      arrondie. Avec lundi et mardi cochés un mercredi, plus aucun jour choisi ne reste :

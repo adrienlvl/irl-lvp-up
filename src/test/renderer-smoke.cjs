@@ -3185,6 +3185,61 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.coutDuReglage = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 84, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', level: 'intermediaire',
+            availableDays: [1, 2, 4, 5, 6] });
+          state.weights = [{ date: localDate(), value: 84 }]; state.workouts = [];
+          const voir = () => {
+            const e = document.querySelector('#objectiveResult .op-delta');
+            if (!e || getComputedStyle(e).display === 'none' || e.getBoundingClientRect().height === 0) return '';
+            return String(e.textContent || '');
+          };
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+
+          /* 1er rendu : on EFFACE la reference, sinon un plan calcule plus tot dans le
+             harnais servirait de point de comparaison et le check ne testerait pas son sujet. */
+          try { lastObjectiveProgram = null; } catch (_) {}
+          state.goals = Object.assign({}, state.goals, { targetWeight: 76, sessions: 5, runs: 3, progSessions: 4 });
+          runObjectiveProgram();
+          const premier = voir();
+          // Re-rendu a reglage IDENTIQUE : toujours rien, sinon la phrase serait du bruit.
+          runObjectiveProgram();
+          const identique = voir();
+
+          // On monte les seances : l ecart doit citer le temps.
+          state.goals = Object.assign({}, state.goals, { progSessions: 6 });
+          runObjectiveProgram();
+          const monte = voir();
+
+          /* LE CAS QUI COMPTE : meme nombre de seances, mais la musculation disparait.
+             On repart de 4 seances puis on pousse les courses a 5. */
+          state.goals = Object.assign({}, state.goals, { progSessions: 4, runs: 3 });
+          runObjectiveProgram();
+          state.goals = Object.assign({}, state.goals, { runs: 5 });
+          runObjectiveProgram();
+          const perte = voir();
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__cout = 'premier[' + premier.slice(0, 30) + '] identique[' + identique.slice(0, 30)
+            + '] monte[' + monte.slice(0, 55) + '] perte[' + perte.slice(0, 70) + ']';
+          return premier === '' && identique === ''
+            && monte.indexOf('séance') !== -1 && monte.indexOf('par semaine') !== -1
+            && perte.indexOf('musculation disparaît') !== -1;
+        } catch (e) { checks.__errCout = String(e && e.message); return false; }
+      })();
+
       checks.repartitionDite = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4831,6 +4886,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.coutDuReglage) errors.push('Plan de bataille : changer un réglage doit AFFICHER ce que ça coûte — le temps gagné ou perdu, et surtout la disparition d’une discipline entière (mesuré : passer de 3 à 5 courses garde 4 séances mais efface la musculation, invisible sur un écran qui n’affiche que le résultat). Et rien ne doit s’afficher au premier rendu ni à réglage inchangé, sinon la phrase devient du bruit');
     if (!checks.repartitionDite) errors.push('Plan de bataille : la phrase de répartition doit concorder avec les blocs de séance affichés juste à côté — nombre de séances, nombre de jours OCCUPÉS et VRAI maximum d’un jour. Mesurée avant correctif : « 6 séances sur 5 jours disponibles : jusqu’à 2 par jour » au-dessus d’une semaine qui contredisait les deux chiffres');
     if (!checks.dplusUneSeuleSource) errors.push('Dénivelé : le panneau trail et le Plan de bataille doivent annoncer LE MÊME chiffre quand aucun réglage n’est posé — mesuré avant correctif : « Cette semaine : 600 m D+ » d’un côté, 1 200 m répartis de l’autre, et une saisie trail qui ne pilotait rien. Le plan doit aussi NOMMER l’origine du chiffre (mesure ou réglage)');
     if (!checks.whatsNewPlafonne) errors.push('Carte « Quoi de neuf » : au plus trois versions dépliées, le reste PRÉSENT mais replié, et la carte sous trois écrans d’iPhone — mesuré à 4 948 px (5,9 écrans, 64 % de la page Réglages) après six releases d’absence, sans aucun plafond');

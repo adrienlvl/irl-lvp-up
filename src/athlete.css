@@ -209,6 +209,13 @@
 /* Le terrain : dénivelé hebdo et sortie longue visée, portés depuis le panneau Ultra-trail. */
 .op-trail-dials{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
 .op-trail-dials[hidden]{display:none}
+/* Ce qu'un réglage vient de coûter. Cadré et non grisé : c'est une information qu'on ne peut
+   déduire de rien d'autre à l'écran — notamment quand une discipline entière disparaît. */
+.op-delta{margin:var(--sp-2) 0 0;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);
+  background:var(--accent-soft);color:var(--text);font-size:var(--fs-3xs);line-height:1.5;
+  overflow-wrap:anywhere}
+.op-delta[hidden]{display:none}
+.op-delta b{margin-right:var(--sp-1)}
 .op-trail{margin:var(--sp-2) 0 0;padding:var(--sp-2) var(--sp-3);border-left:3px solid var(--accent-line);
   border-radius:0 var(--r-sm) var(--r-sm) 0;background:var(--surface-2);color:var(--text);
   font-size:var(--fs-3xs);line-height:1.5}
