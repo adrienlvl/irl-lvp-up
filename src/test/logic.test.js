@@ -14498,6 +14498,54 @@ test('trainingWeekPlan : des kilomètres, et seulement si Adrien les a renseign�
   assert.ok(/min\)/.test(msg(plan(0, 10))), 'pas de distances → il retombe sur les minutes');
 });
 
+test('phaseCourse : le cap de préparation, et il ne ment pas sur ce que le plan fait', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const dans = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const etat = j => ({
+    fitnessObjective: 'athletique',
+    profile: { weight: 75, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', goal: 'maintien', level: 'intermediaire' },
+    goals: { targetWeight: 74, sessions: 4, runs: 4, progSessions: '', distance: 40 },
+    weights: [{ date: AUJ, value: 75 }], recovery: [], workouts: [],
+    raceGoal: j === null ? null : { type: 42, distanceKm: 42, date: dans(j) }
+  });
+  const plan = j => L.trainingWeekPlan(L.trainingPlanInputs(etat(j), AUJ), exercises);
+
+  /* MESURÉ AVANT D'ÉCRIRE : à 40 jours d'un marathon, le plan CONNAISSAIT l'échéance
+     (raceDaysLeft = 40) et n'en disait rien — l'affûtage ne démarre qu'à J-14. Entre
+     l'inscription et les deux dernières semaines, aucun cap. `racePhase` existait, testée,
+     et n'apparaissait ZÉRO fois dans app.js. */
+  assert.equal(plan(90).phaseCourse.label, 'Développement');
+  assert.equal(plan(40).phaseCourse.label, 'Spécifique');
+  assert.ok(plan(40).phaseCourse.focus, 'et la phase dit sur quoi travailler');
+  assert.equal(plan(40).phaseCourse.jours, 40, 'le J-N est cité');
+
+  /* NULL N'EST PAS ZÉRO — ma propre règle, dans laquelle je suis retombé : sans course,
+     `raceDaysLeft` est null, `Number(null)` vaut 0, et l'app annonçait « phase Affûtage » à
+     quelqu'un qui n'a aucune course inscrite. */
+  assert.equal(plan(null).phaseCourse, null, 'aucune course → aucun cap annoncé');
+
+  /* LA PHASE DOIT DIRE CE QUE LE PLAN FAIT. `racePhase` bascule en affûtage à 2 semaines
+     alors que `taperPlan` ne réduit rien avant J-14 : annoncer « Affûtage » pendant que le
+     plan tourne à plein régime serait l'écart exact que ce dépôt traque. C'est J-20 qui
+     DISCRIMINE — à J-10 les deux versions diraient « Affûtage ». */
+  const p20 = plan(20);
+  assert.equal(p20.taper, null, 'à J-20 le plan n’affûte pas encore');
+  assert.notEqual(p20.phaseCourse.label, 'Affûtage', 'donc il ne l’annonce pas : ' + p20.phaseCourse.label);
+  const p10 = plan(10);
+  assert.ok(p10.taper, 'à J-10 le plan affûte');
+  assert.equal(p10.phaseCourse.label, 'Affûtage', 'et il l’annonce');
+
+  /* UN SEUL AVIS PAR SUJET : pendant l'affûtage, le message de taper dit déjà quoi faire du
+     volume avec les vrais kilomètres. Le focus de phase se tait pour ne pas répéter en moins
+     précis — c'est le doublon que ce dépôt a passé deux itérations à supprimer. */
+  assert.equal(p10.phaseCourse.focus, null, 'le focus se tait quand l’affûtage parle');
+  assert.ok((p10.ajustements || []).some(x => /avant ta course/.test(x)), 'et l’affûtage, lui, parle');
+
+  // Course passée : plus de cap.
+  assert.equal(plan(-3).phaseCourse, null, 'course derrière nous → rien');
+});
+
 test('trainingWeekPlan : une course qui approche allège vraiment la semaine', () => {
   const { exercises } = require('../lib/exercises-data.js');
   const AUJ = '2026-07-28';

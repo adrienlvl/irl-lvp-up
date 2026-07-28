@@ -3637,6 +3637,52 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errPrecision = String(e && e.message); return false; }
       })();
 
+      checks.capDeCourse = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, srg = state.raceGoal, swk = state.workouts;
+          const dans = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() + n);
+            return d.toISOString().slice(0, 10);
+          };
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 75, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', goal: 'maintien' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4, progSessions: '', distance: 40 });
+          state.weights = [{ date: localDate(), value: 75 }]; state.workouts = [];
+
+          const lire = function () {
+            showPage('athlete');
+            if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+            runObjectiveProgram();
+            const el = document.querySelector('#objectiveResult .op-cap');
+            // Le RENDU, pas la propriete : un bloc present mais non peint n oriente personne.
+            if (!el || getComputedStyle(el).display === 'none') return '';
+            return (el.textContent || '');
+          };
+
+          // A 40 jours : le plan connaissait l echeance et n en disait RIEN.
+          state.raceGoal = { type: 42, distanceKm: 42, date: dans(40) };
+          const loin = lire();
+          // Sans course : aucun cap ne doit s afficher.
+          state.raceGoal = { type: '', distanceKm: 0, date: '' };
+          const sansCourse = lire();
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.raceGoal = srg; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__cap = loin.slice(0, 110);
+          const parle = loin.indexOf('Ta course') !== -1 && loin.indexOf('40 jours') !== -1;
+          const phase = loin.indexOf('Spécifique') !== -1;
+          // La phase doit dire ce que le plan FAIT : a J-40 il n affute pas.
+          const pasDAffutage = loin.indexOf('Affûtage') === -1;
+          return parle && phase && pasDAffutage && sansCourse === '';
+        } catch (e) { checks.__errCap = String(e && e.message); return false; }
+      })();
+
       checks.affutageExplique = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4014,6 +4060,7 @@ app.whenReady().then(async () => {
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');
+    if (!checks.capDeCourse) errors.push('Course objectif : le Plan de bataille doit dire dans quelle PHASE de préparation tu es (à J-40 : « Spécifique », avec son focus) — il connaissait l’échéance et n’en disait rien avant l’affûtage. Et il doit se taire sans course, ni annoncer « Affûtage » tant qu’il n’affûte pas');
     if (!checks.affutageExplique) errors.push('Course objectif dans 10 jours : le Programme auto raccourcit les sorties sans l’expliquer (ou l’explique sans course). Le volume qui rétrécit sans un mot ressemble à un bug, pas à du coaching — le message doit citer le J-N, la coupe réellement tenue et Bosquet 2007');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — le bandeau de pilotage doit citer l’objectif de poids et la cible kcal, et le compagnon ne doit pas annoncer une séance du jour absente de cette semaine alors qu’il affirme la partager)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');

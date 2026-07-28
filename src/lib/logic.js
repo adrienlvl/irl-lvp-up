@@ -4769,6 +4769,27 @@ function trainingWeekPlan(input, exercises) {
     /* L'affûtage doit être EXPLIQUÉ, pas seulement subi : sans ça les distances rétrécissent
        de moitié sans un mot, ce qui ressemble à un bug plutôt qu'à du coaching. On le sort
        tel que `objectiveProgram` l'a calculé — une seule vérité, pas un second calcul. */
+    /* Où en es-tu dans ta préparation : le repère manquait entre l'inscription et
+       l'affûtage. Le `focus` n'est porté QUE hors affûtage — sinon il répéterait, en moins
+       précis, ce que le message de taper dit déjà avec les kilomètres réels. */
+    phaseCourse: (function () {
+      const brut = i.raceDaysLeft;
+      if (brut === null || brut === undefined || brut === '') return null;
+      const j = Number(brut);
+      if (!Number.isFinite(j) || j < 0 || typeof racePhase !== 'function') return null;
+      const sem = Math.floor(j / 7);
+      let ph = racePhase(sem);
+      if (!ph) return null;
+      // On n'annonce l'affûtage que si le plan affûte VRAIMENT.
+      if (ph.key === 'taper' && !_affutage) ph = racePhase(4) || ph;
+      // On n'annonce l'affûtage que si le plan affûte VRAIMENT.
+
+      return {
+        cle: ph.key, label: ph.label, jours: j, semaines: sem,
+        // Le conseil de phase se tait quand l'affûtage parle : un seul avis par sujet.
+        focus: _affutage ? null : ph.focus
+      };
+    })(),
     taper: _affutage,
     /* Le conseil se calcule sur la semaine RÉELLEMENT produite, pas sur l'objectif seul :
        prévenir de l'interférence course/jambes quand aucune course n'est posée userait
