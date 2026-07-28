@@ -11061,7 +11061,14 @@ test('adaptiveCoachFocus : focus nutrition — plateau confirmé → cible calor
   assert.equal(stallPro.weightPace, 0);
   assert.equal(typeof stallPro.calorieTarget, 'number', 'cible calorique concrète exposée');
   assert.ok(stallPro.calorieTarget > 0);
-  assert.match(stallPro.insight, /Mais la balance ne descend plus \(0 kg\/sem sur tes dernières pesées\) — vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/);
+  /* CONTRAT CHANGÉ SCIEMMENT. Dans ce scénario le déficit est déjà à 25 % de la dépense :
+     conseiller de couper encore ET d'ajouter du cardio creusait un trou déjà profond, sur le
+     même écran qu'un plan d'entraînement qui, lui, réduit le volume. Le coach ne dit plus une
+     chose et son contraire. Le conseil chiffré reste, mais seulement quand il est tenable. */
+  assert.match(stallPro.insight, /déficit est déjà à \d+ % de ta dépense : ne coupe pas plus/);
+  assert.ok(stallPro.insight.indexOf('ajoute du cardio') === -1, 'plus de cardio réclamé sur un déficit marqué');
+  // L'ancienne formulation ne doit plus jamais apparaître dans ce scénario.
+  assert.ok(!/vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/.test(stallPro.insight));
   assert.ok(!/baisse un peu tes calories/.test(stallPro.insight), 'plateau + profil : conseil chiffré, plus le message vague');
   // DÉRIVE perte + profil → même conseil chiffré (calorieAdjustment couvre rate >= -0,1).
   const driftPro = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: [
@@ -11069,7 +11076,9 @@ test('adaptiveCoachFocus : focus nutrition — plateau confirmé → cible calor
     { date: '2026-06-30', value: 82.4 }, { date: '2026-07-05', value: 82.6 }, { date: '2026-07-10', value: 82.8 },
     { date: '2026-07-14', value: 83 },
   ] }, today);
-  assert.match(driftPro.insight, /repartent à la hausse \(\+0,21 kg\/sem\) — vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/);
+  // Même raison : sur un déficit déjà marqué, on ne réclame pas de cardio en plus.
+  assert.match(driftPro.insight, /repartent à la hausse \(\+0,21 kg\/sem\)/);
+  assert.ok(driftPro.insight.indexOf('ajoute du cardio') === -1);
   assert.ok(!/resserre tes calories/.test(driftPro.insight), 'dérive + profil : conseil chiffré');
   // PRISE + profil → cible chiffrée « de plus » (jamais « de moins »).
   const gainPro = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 85 }, weights: [
@@ -11810,14 +11819,21 @@ test('adaptiveCoachFocus : focus nutrition — jour de fatigue → plateau const
   // NON-RÉGRESSION 1 : sans check-in du jour, le plateau garde son push chiffré (cas #499/plateau intact).
   const rested = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: flatWeights }, today);
   assert.equal(rested.readinessNutriGuard, null);
-  assert.match(rested.insight, /vise ~\d+ kcal\/j \(environ \d+ de moins\) ou ajoute du cardio/);
-  assert.equal(typeof rested.calorieTarget, 'number');
+  /* CONTRAT CHANGÉ SCIEMMENT (même raison qu'au test du plateau confirmé) : dans ce jeu
+     d'essai le déficit est déjà à 25 % de la dépense. Réclamer du cardio EN PLUS y creusait
+     un trou déjà profond, à rebours du plan d'entraînement affiché sur le même écran.
+     Ce que ce test garde : le coach CONSTATE le plateau et donne une cible chiffrée. */
+  assert.match(rested.insight, /déficit est déjà à \d+ % de ta dépense/);
+  assert.ok(rested.insight.indexOf('ajoute du cardio') === -1);
+  assert.equal(typeof rested.calorieTarget, 'number', 'la cible chiffrée reste fournie');
 
   // NON-RÉGRESSION 2 : forme du jour OK (readiness ≥ 50) → push conservé.
   const okForm = L.adaptiveCoachFocus({ nutrition, profile, goals: { targetWeight: 79 }, weights: flatWeights, recovery: [{ date: today, sleep: 8, fatigue: 1, soreness: 1 }] }, today);
   assert.equal(okForm.pillar, 'nutrition');
   assert.equal(okForm.readinessNutriGuard, null);
-  assert.match(okForm.insight, /ou ajoute du cardio/);
+  // Idem : le push est conservé, mais sans réclamer de cardio sur un déficit déjà marqué.
+  assert.match(okForm.insight, /déficit est déjà à \d+ % de ta dépense|vise ~\d+ kcal/);
+  assert.ok(okForm.insight.indexOf('ajoute du cardio') === -1);
 
   // NON-RÉGRESSION 3 : objectif de PRISE, le push « mange plus » n’est PAS contre-indiqué un jour de
   // fatigue → il reste (le gate ne vise que la PERTE).
@@ -13896,4 +13912,93 @@ test('coachFormeCause : ne parle pas de « ta forme du jour » avec des données
   assert.equal(f({ sleep: 4, fatigue: 2, soreness: 2 }, AUJ), null);
   // Sans date du jour fournie, l'ancien comportement est préservé (compat des appelants).
   assert.ok(f(nuit('2026-07-04')), 'sans todayKey, pas de test de fraîcheur');
+});
+
+test('trainingPolicy : en déficit on retire du volume, jamais des charges', () => {
+  const f = L.trainingPolicy;
+
+  // Déficit marqué (700 sur 2798 = 25 %) : le volume tombe, les séances dures disparaissent,
+  // mais la FRÉQUENCE de musculation est préservée — c'est elle qui protège le muscle.
+  const marque = f({ goal: 'perte', deficit: 700, tdee: 2798 });
+  assert.equal(marque.niveau, 'marque');
+  assert.ok(marque.volumeFactor < 1, 'le volume baisse');
+  assert.equal(marque.duresMax, 0, 'plus de séance dure');
+  assert.equal(marque.forceMaintenue, true);
+  assert.ok(marque.seancesForceMin >= 3, 'au moins 3 séances de force en sèche');
+  assert.equal(marque.deficitPart, 25);
+
+  // Le même déficit ABSOLU ne pèse pas pareil selon la dépense : 700 sur 2 000 est brutal,
+  // 700 sur 4 000 est modéré. C'est la PART qui décide, pas les kcal.
+  assert.equal(f({ goal: 'perte', deficit: 700, tdee: 2000 }).niveau, 'marque');
+  assert.equal(f({ goal: 'perte', deficit: 700, tdee: 4500 }).niveau, 'modere');
+
+  // Gradation continue.
+  assert.equal(f({ goal: 'perte', deficit: 420, tdee: 2800 }).niveau, 'modere');
+  assert.equal(f({ goal: 'perte', deficit: 140, tdee: 2800 }).niveau, 'leger');
+  assert.equal(f({ goal: 'maintien', deficit: 0, tdee: 2800 }).niveau, 'neutre');
+
+  // En prise, le cardio est CONTENU pour ne pas manger le surplus — l'inverse de la sèche.
+  const prise = f({ goal: 'prise', deficit: -300, tdee: 2800 });
+  assert.equal(prise.niveau, 'surplus');
+  assert.ok(prise.coursesMax <= 2);
+  assert.equal(prise.volumeFactor, 1, 'le volume n’est pas bridé en surplus');
+
+  // Le volume ne monte JAMAIS à cause du déficit : la politique ne fait que restreindre.
+  L.POLITIQUE_NIVEAUX.forEach(() => {});
+  [700, 420, 140, 0].forEach(d => {
+    assert.ok(f({ goal: 'perte', deficit: d, tdee: 2800 }).volumeFactor <= 1);
+  });
+
+  // Les modulateurs ne peuvent que RESTREINDRE, et un signal absent n'autorise jamais plus.
+  const charge = f({ goal: 'maintien', deficit: 0, tdee: 2800, acwr: 1.7 });
+  assert.ok(charge.volumeFactor < 1 && charge.duresMax === 0);
+  assert.ok(charge.raisons.some(r => /charge/.test(r)));
+  const basse = f({ goal: 'maintien', deficit: 0, tdee: 2800, readiness: 35 });
+  assert.ok(basse.volumeFactor < 1 && basse.duresMax === 0);
+  // Un signal absent laisse le niveau intact.
+  assert.equal(f({ goal: 'maintien', deficit: 0, tdee: 2800, acwr: null, readiness: undefined }).volumeFactor, 1);
+  // Une bonne forme ne débride pas au-delà du niveau énergétique.
+  assert.ok(f({ goal: 'perte', deficit: 700, tdee: 2798, readiness: 95 }).volumeFactor <= 0.70);
+
+  // Chaque retour est affichable tel quel, et les entrées abîmées ne font rien exploser.
+  [marque, prise, charge].forEach(p => {
+    assert.ok(p.resume && p.resume.length > 20);
+    assert.ok(Array.isArray(p.raisons));
+    assert.ok(Number.isFinite(p.volumeFactor) && Number.isFinite(p.coursesMax));
+  });
+  assert.doesNotThrow(() => f(null));
+  assert.equal(f(null).niveau, 'neutre');
+  assert.equal(f({ goal: 'perte', deficit: 'x', tdee: 'y' }).niveau, 'neutre');
+});
+
+test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creusé', () => {
+  const w = [];
+  for (let i = 0; i < 24; i++) {
+    const d = new Date('2026-07-28T12:00:00'); d.setDate(d.getDate() - i);
+    w.push({ date: d.toISOString().slice(0, 10), value: 82 });
+  }
+
+  // Déficit à 25 % de la dépense : couper encore ET ajouter du cardio, c'est creuser un
+  // trou déjà profond — à rebours du plan d'entraînement affiché sur le même écran.
+  const creuse = L.calorieAdjustment(w, 'perte', 2098, null, { tdee: 2798 });
+  assert.equal(creuse.deficitMarque, true);
+  assert.equal(creuse.suggestion, 'hold');
+  assert.match(creuse.message, /ne coupe pas plus/);
+  assert.ok(creuse.message.indexOf('ajoute du cardio') === -1);
+  /* Les CHIFFRES restent calculés : les avoir mis à zéro faisait croire aux consommateurs
+     en aval qu'on était au plancher calorique, et le coach du jour basculait sur le mauvais
+     message. Le drapeau porte la décision, pas une valeur maquillée. */
+  assert.ok(creuse.delta > 0, 'delta conservé');
+  assert.ok(creuse.newTarget > 0 && creuse.newTarget < 2098, 'newTarget conservé');
+
+  // Déficit léger : le conseil classique reste, il est tenable.
+  const leger = L.calorieAdjustment(w, 'perte', 2098, null, { tdee: 2300 });
+  assert.equal(leger.deficitMarque, false);
+  assert.equal(leger.suggestion, 'reduce');
+  assert.match(leger.message, /ajoute du cardio/);
+
+  // Sans dépense fournie, l'ancien comportement est préservé : aucun appelant ne casse.
+  const sans = L.calorieAdjustment(w, 'perte', 2098);
+  assert.equal(sans.deficitMarque, false);
+  assert.match(sans.message, /ajoute du cardio/);
 });

@@ -6006,6 +6006,73 @@ function energyPlan(opts) {
   return { bmr, tdee, goal, diff: Math.abs(diff), ratePerWeek, deficit, dailyTarget, proteinG, fatG, carbG, weeks, targetDate };
 }
 
+/* Ce que l'énergie disponible autorise comme entraînement. Jusqu'ici les deux vivaient sans se
+   parler : le Coach Poids calculait un déficit pendant que le programme proposait son volume
+   habituel, et `calorieAdjustment` allait jusqu'à conseiller « ajoute du cardio » sur un déficit
+   déjà marqué — c'est-à-dire creuser un trou déjà profond.
+
+   Le raisonnement, sans citer de référence que je n'ai pas vérifiée :
+   — un déficit énergétique réduit la capacité de RÉCUPÉRATION, donc le volume soutenable ;
+   — ce qui préserve la masse maigre en déficit, c'est de continuer à soulever LOURD ; baisser
+     les charges est précisément ce qui fait perdre du muscle, pas baisser le volume ;
+   — on retire donc du VOLUME et des séances dures, jamais de l'intensité ni de la fréquence
+     de musculation. Le levier nutritionnel complémentaire (protéines à 2,4 g/kg en déficit)
+     est déjà tenu par energyPlan.
+
+   Fonction PURE et volontairement petite : elle décide, elle ne construit rien. C'est le
+   garde-fou contre la fonction à seize entrées dont personne ne prédit la sortie. */
+const POLITIQUE_NIVEAUX = ['surplus', 'neutre', 'leger', 'modere', 'marque'];
+function trainingPolicy(input) {
+  const i = input && typeof input === 'object' ? input : {};
+  const tdee = Number(i.tdee) > 0 ? Number(i.tdee) : 0;
+  const deficit = Number(i.deficit) || 0;
+  const goal = i.goal === 'perte' || i.goal === 'prise' ? i.goal : 'maintien';
+  // Part du déficit dans la dépense : 500 kcal ne pèsent pas pareil sur 2 000 et sur 3 500.
+  const part = tdee > 0 && goal === 'perte' ? Math.max(0, deficit) / tdee : 0;
+
+  let niveau, volumeFactor, coursesMax, duresMax, resume;
+  if (goal === 'prise') {
+    niveau = 'surplus'; volumeFactor = 1; coursesMax = 2; duresMax = 1;
+    resume = 'Tu es en surplus : le volume peut monter, mais garde le cardio contenu pour ne pas manger ton surplus.';
+  } else if (part >= 0.20) {
+    niveau = 'marque'; volumeFactor = 0.70; coursesMax = 3; duresMax = 0;
+    resume = 'Déficit marqué : on retire du volume, pas des charges. Tes séances de muscu restent lourdes — c’est ce qui protège ton muscle.';
+  } else if (part >= 0.10) {
+    niveau = 'modere'; volumeFactor = 0.85; coursesMax = 4; duresMax = 1;
+    resume = 'Déficit modéré : une seule séance dure par semaine, le reste en aisance.';
+  } else if (part > 0) {
+    niveau = 'leger'; volumeFactor = 1; coursesMax = 5; duresMax = 2;
+    resume = 'Déficit léger : ta récupération suit, tu peux garder ton volume habituel.';
+  } else {
+    niveau = 'neutre'; volumeFactor = 1; coursesMax = 6; duresMax = 2;
+    resume = 'Pas de contrainte énergétique : le volume dépend de ton objectif et de ton temps.';
+  }
+
+  /* Deux modulateurs, appliqués APRÈS le niveau et seulement s'ils sont fournis. Ils ne peuvent
+     que RESTREINDRE : un signal absent ne doit jamais servir à autoriser plus. */
+  const raisons = [];
+  const acwr = Number(i.acwr);
+  if (Number.isFinite(acwr) && acwr > 1.5) {
+    volumeFactor = Math.min(volumeFactor, 0.75); duresMax = Math.min(duresMax, 0);
+    raisons.push('ta charge des 7 derniers jours dépasse 1,5× ta moyenne : on lève le pied cette semaine');
+  }
+  const forme = Number(i.readiness);
+  if (Number.isFinite(forme) && forme < 50) {
+    volumeFactor = Math.min(volumeFactor, 0.80); duresMax = Math.min(duresMax, 0);
+    raisons.push('ta forme est basse : pas de séance dure tant qu’elle ne remonte pas');
+  }
+
+  return {
+    niveau, volumeFactor: Math.round(volumeFactor * 100) / 100,
+    coursesMax, duresMax,
+    // La musculation garde sa FRÉQUENCE et ses CHARGES quoi qu'il arrive : c'est le point
+    // qui distingue une sèche réussie d'une fonte de muscle.
+    forceMaintenue: true, seancesForceMin: goal === 'perte' ? 3 : 2,
+    deficitPart: Math.round(part * 100),
+    resume, raisons
+  };
+}
+
 // ---- Conflits d'horaire dans l'agenda ----
 // `dayColumns()` sait DESSINER deux événements qui se chevauchent (côte à côte dans la grille du
 // jour), mais rien n'AVERTISSAIT jamais qu'on venait de se planifier deux choses en même temps.
@@ -7544,11 +7611,15 @@ function adaptiveCoachFocus(state, todayKey, opts) {
               } else if (typeof energyPlan === 'function' && typeof calorieAdjustment === 'function') {
                 const plan = energyPlan({ weight: wt.current, height: s.profile && s.profile.height, age: s.profile && s.profile.age, sex: s.profile && s.profile.sex, activityLevel: s.profile && s.profile.activityLevel, sessionsPerWeek: s.goals && s.goals.sessions, targetWeight: tgtW, todayKey });
                 if (plan && plan.goal === wantGoal) {
-                  const adj = calorieAdjustment(s.weights, plan.goal, plan.dailyTarget);
+                  const adj = calorieAdjustment(s.weights, plan.goal, plan.dailyTarget, null, { tdee: plan.tdee });
                   if (adj && adj.stagnating) {
                     calorieTarget = adj.newTarget;
                     if (adj.delta > 0) {
-                      tail = wantGoal === 'perte'
+                      tail = adj.deficitMarque
+                        /* Même garde-fou que dans calorieAdjustment : ce texte-ci était la
+                           SECONDE voix qui réclamait du cardio sur un déficit déjà creusé. */
+                        ? ` — ton déficit est déjà à ${adj.deficitPart} % de ta dépense : ne coupe pas plus, marche davantage et garde tes charges.`
+                        : wantGoal === 'perte'
                         ? ` — vise ~${adj.newTarget} kcal/j (environ ${adj.delta} de moins) ou ajoute du cardio pour relancer.`
                         : ` — vise ~${adj.newTarget} kcal/j (environ ${adj.delta} de plus) pour relancer la prise.`;
                     } else {
@@ -10135,7 +10206,7 @@ function unwrapBackup(parsed) {
 // la cible d'ajustement ne descend JAMAIS sous max(1200, floor). Sans `floor`, repli sur le garde-fou
 // générique 1200 kcal (rétro-compatible). Renvoie { stagnating, suggestion:'reduce'|'increase'|null, delta,
 // newTarget, ratePerWeek, message }. Pur + testé.
-function calorieAdjustment(weights, goal, dailyTarget, floor) {
+function calorieAdjustment(weights, goal, dailyTarget, floor, opts) {
   const list = (Array.isArray(weights) ? weights : [])
     .filter(w => w && /^\d{4}-\d{2}-\d{2}$/.test(String(w.date || '')) && Number.isFinite(Number(w.value)))
     .map(w => ({ date: w.date, value: Number(w.value) }))
@@ -10178,10 +10249,22 @@ function calorieAdjustment(weights, goal, dailyTarget, floor) {
     const verdict = ratePerWeek > 0.1
       ? `Ton poids repart à la hausse (${rateTxt}) alors que tu vises la perte.`
       : `Ton poids stagne (${rateTxt}).`;
-    const message = cut > 0
+    /* Conseiller « ajoute du cardio » quand le déficit dépasse déjà 20 % de la dépense, c'est
+       creuser un trou déjà profond : la récupération lâche avant la balance, et c'est là qu'on
+       perd du muscle. L'app le disait pourtant, sur le MÊME écran que son plan d'entraînement
+       qui, lui, réduit le volume. On arrête de dire une chose et son contraire. */
+    const _tdee = Number(opts && opts.tdee) || 0;
+    const _part = _tdee > 0 ? Math.max(0, _tdee - dt) / _tdee : 0;
+    const deficitMarque = _part >= 0.20;
+    const message = deficitMarque
+      ? `${verdict} Ton déficit est déjà à ${Math.round(_part * 100)} % de ta dépense : ne coupe pas plus et n'ajoute pas de cardio. Marche davantage, garde tes séances de muscu lourdes, et tiens tes protéines — une stagnation à ce niveau vient plus souvent du sommeil et du stress que des calories.`
+      : cut > 0
       ? `${verdict} Baisse d'environ ${cut} kcal/jour ou ajoute du cardio pour relancer la perte.`
       : `${verdict} Tu es déjà au plancher calorique (~${FLOOR} kcal) — relance par le cardio ou plus d'activité plutôt qu'une nouvelle baisse.`;
-    return { stagnating: true, suggestion: 'reduce', delta: cut, newTarget, ratePerWeek, message };
+    /* On NE MAQUILLE PAS les chiffres : delta et newTarget gardent leur valeur calculée.
+       Les avoir mis a zero faisait croire aux consommateurs en aval qu'on etait au PLANCHER
+       calorique, et le coach du jour basculait sur le mauvais message. Le drapeau suffit. */
+    return { stagnating: true, suggestion: deficitMarque ? 'hold' : 'reduce', delta: cut, newTarget, ratePerWeek, message, deficitMarque, deficitPart: Math.round(_part * 100) };
   }
   if (goal === 'prise' && ratePerWeek <= 0.1) {
     // Symétrique : < -0,1 kg/sem = le poids RECULE alors qu'on vise la prise (mauvais sens), pas un
@@ -12126,5 +12209,5 @@ function orderCoachNotes(insight) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, recurringOccurrence, setRecurringOverride, sanitizeRecurringOverrides, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveWeekShape, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, capacityFromHours, capacityToHours, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, coachAgendaWarning, coachTraining, COACH_TRAINING_ORDER, coachWeightLayout, coachProfileNeedsAttention, COACH_WEIGHT_SECTIONS, COACH_WEIGHT_TOUJOURS, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, coachFormeCause, READINESS_LABELS, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
+  module.exports = { weekProgramSchedule, weightForecastModel, splitCoachSentences, coachNoteUrgency, orderCoachNotes, localDate, nextThemeMode, resolveTheme, sanitizeWindowBounds, dateKey, weekStart, isRealDateKey, pct, levelFromXp, leveledUp, xpWithinLevel, computeStreak, nextStreakMilestone, dailyGreeting, suggestedQuests, normalizeAgendaItem, duplicateAgendaItem, departureInfo, reminderAnchorMinutes, dayPlannedMinutes, dayPlanText, AGENDA_KINDS, AGENDA_SOURCES, AGENDA_PRIORITIES, priorityRank, normalizeTodo, todosForDay, JOB_STATUSES, JOB_STATUS_LABEL, normalizeApplication, nextAlternanceTarget, compareApplications, alternanceDeadline, applicationStats, applicationFunnel, parseCsv, parseApplicationsCsv, jobStatusFromText, jobDateFromText, parseAlternanceTargets, parseSheetApplications, normalizeBirthday, birthdaysForDay, upcomingBirthdays, ageLabel, normalizeRecurring, recurrenceMatches, recurringOccurs, recurringOccurrence, setRecurringOverride, sanitizeRecurringOverrides, RECUR_FREQ, normalizeHabit, applyHabitEdit, habitStreak, habitBestStreak, habitConsistency, habitWeekMap, habitsWeekPulse, habitsForDay, habitsAtRisk, icsEscape, unescapeIcs, buildIcs, buildRRuleLine, parseIcs, parseIcsDateTime, parseRRule, isPrivateHost, normalizeCalendarUrl, isAllowedSheetHost, normalizeSheetCsvUrl, mergeApplications, filterApplications, TRAVEL_HOSTS, isAllowedTravelUrl, buildGeocodeUrl, buildRouteUrl, haversineKm, travelModes, planStudySessions, mergePlannedEvents, mergeRecurring, todayItems, tomorrowPreview, weekItems, glcPlanningToEvents, prescriptionFor, formatFor, mondayOf, weeklyAggregate, weeklySummary, weeklySummaryText, shareableWeek, monthLabelFr, monthlyRecap, monthlyRecapText, shareableMonth, weeklyInsights, RACE_PRESETS, weeksBetween, weeklyWorkoutStreak, dailyStreak, bestDailyStreak, completeDaysStreak, logQuestDay, questPerfectStreak, logLifeStep, lifeStepStats, recentReflectionNotes, recentWins, recentLessons, recentFocusOutcomes, intentionFollowThrough, trainingHeatmap, acuteChronicRatio, racePhase, raceGoalStatus, taperDaysFor, taperPlan, downhillPrep, loadAdvice, weekLoadNote, daysUntil, normalizeExamGoal, normalizeExamGoals, nearestExam, sortExamGoals, upsertExamGoal, removeExamGoal, examCountdown, examReminderDue, studyPacing, studyStats, studyBySubject, keyDateMarkers, upcomingKeyDates, upcomingPriorityItems, nextTrainingSession, nextStudySession, missedSessions, overdueStudy, RACE_LADDER, intermediateGoals, proteinTarget, PROTEIN_SNACKS, proteinSnackSuggestion, nutritionCsv, hydrationPlan, buildWeekPlan, volumeRamp, warmupFor, prehabFor, cooldownFor, supplementTiming, mealMacro, generateMeals, MEAL_STYLES, isValidEan, normalizeBarcodeMap, barcodeLookup, learnBarcode, buildShoppingList, remainingShopping, SHOPPING_STAPLES, TRAINING_GOALS, EXERCISE_ZONES, exerciseZones, equipmentOptions, activeExerciseFilters, toggleFavorite, weeklyZoneCoverage, weeklySetsPerZone, setLandmark, deloadRecommendation, muscleBalance, pushPullAdvice, zoneFreshness, suggestTrainingFocus, neglectedZoneReport, runPlanWeek, coachSessionLabel, neglectedZone, goalMatch, goalRank, zoneTopExercises, BODY_GOALS, bodyGoalWorkout, pickExercisesForZones, exerciseAvailable, filterByEquipment, EQUIP_LABELS, FITNESS_OBJECTIVES, objectiveProgram, objectiveWeekShape, assignProgramDays, objectiveNutrition, onboardingNutritionEstimate, programWeekSummary, macroBreakdown, objectiveProgramText, shareableProgram, onboardingSetup, TRAINING_SLOTS, sessionTimesForSlot, perSessionForLevel, onboardingFirstSession, onboardingCompleteness, sanitizeOnboardingDraft, suggestObjective, STARTER_HABITS, starterHabitFor, objectiveWelcome, starterChecklist, isIosInstallable, installNudge, CHANGELOG, compareVersions, whatsNewSince, MEMBERSHIP_TIERS, membershipInfo, shareAppPayload, LAUNCH_TARGETS, launchTarget, shouldReacquireWakeLock, pendingBadgeCount, VIBRATION_PATTERNS, vibrationPattern, WELLNESS_ROUTINES, wellnessRoutine, suggestedRoutine, surpriseRoutine, WELLNESS_PARCOURS, wellnessParcours, shareableRoutine, routinesByTimeBudget, expressRoutine, workoutDominantZone, contextualWellnessRoutine, logWellnessDone, wellnessStreak, wellnessBestStreak, wellnessCountInWindow, wellnessMinutesForKey, wellnessMinutesInWindow, bestWellnessWeek, shareableWellness, WELLNESS_FAMILIES, wellnessFamilyBreakdown, wellnessGoalProgress, wellnessInactivity, WELLNESS_ZONE_ROUTINES, neglectedMobilityZone, WELLNESS_STREAK_BADGES, WELLNESS_TOTAL_BADGES, wellnessBadges, newWellnessBadge, wellnessWeekHeatmap, wellnessRecurringEvent, blockPhase, progressSets, currentBlock, phaseSetsForDay, archiveBlock, blockHistorySummary, nextBlockAdvice, blockPhaseHeadsUp, blockWindowStats, blockComparison, blocksByObjective, weeklyTonnageTrend, bestSessionTonnage, bestTonnageWeek, trainingConsistency, trainingByWeekday, weekTrainingBalance, bestE1rmByExercise, strengthStandards, STRENGTH_TIERS, calisthenicsProgress, SKILL_LADDERS, vestProgression, isometricProgress, ISO_HOLDS, skillRoadmap, SKILL_ROADMAPS, suggestedSkillGoal, blockExerciseProgress, blockProgressText, shareableBlockProgress, quickSessionPlan, buildZonePlan, buildTrainingWeek, qualitySession, isoWeekNumber, runDistances, WEEKDAY_FR, dayColumns, waterStatus, hydrationPace, waterGoalFor, daysHittingTarget, proteinDaysOnTarget, proteinStreak, fieldAdherenceTrend, proteinAdherenceTrend, hydrationAdherenceTrend, basalMetabolicRate, bmiInfo, activityFactor, activityLevelFactor, dateAfterWeeks, paceStatus, safeLossRate, energyPlan, trainingPolicy, POLITIQUE_NIVEAUX, weightTargetAdvice, weightMilestones, weightGoalProgress, trackingCadenceAdvice, upsertWeight, upsertMeasurement, backupFilename, unwrapBackup, fitDimensions, dataUrlBytes, timeToMinutes, minutesToTime, scheduleConflicts, nextFreeSlot, parseDurationInput, busyBlocksForDay, conflictLabel, xpForAgendaItem, setAgendaCompleted, setRecurringDone, rescheduleOptions, moveAgendaItem, postponePrompt, dayLoad, lightenSuggestions, DAY_CAPACITY_DEFAULT, capacityFromHours, capacityToHours, pruneProgramSessionsFrom, upcomingSessions, showsEnduranceBase, attentionDigest, adaptiveCoachFocus, coachDayPriority, coachFollowThrough, coachAgendaWarning, coachTraining, COACH_TRAINING_ORDER, coachWeightLayout, coachProfileNeedsAttention, COACH_WEIGHT_SECTIONS, COACH_WEIGHT_TOUJOURS, describeBackup, backupImportWarnings, formatBytes, storageHealthSummary, calorieAdjustment, weightForecast, coachWeekPlan, mealSplit, nutritionTips, mealIdea, coachPlanText, coachSteps, weeklyAdherence, upsertAdherenceSnapshot, readinessScore, readinessLimiter, readinessDriver, coachFormeCause, READINESS_LABELS, readinessTrend, morningEnergyTrend, morningStreak, sleepDebtHours, weeklySleepStats, sleepSeries, sleepRegularity, bedtimeRegularity, sleepDurationTrend, bedtimeRegularityTrend, focusMinutesTrend, sleepCoachInsight, sleepImpactReport, bedtimeAnchor, bedtimeFromAnchor, recentBedtimeAnchor, dateAfterDays, normalizeSleepPlan, startSleepPlan, sleepPlanDay, sleepEveningTips, sleepPlanAdherence, sleepBedtimeReward, personalRecords, newRecords, weightTrend, dietBreakRecommendation, measurementDelta, measurementRecentDelta, measurementSeries, photoComparePair, recompositionInsight, computeAchievements, lifetimeStats, lastLoggedSession, workoutsTable, workoutsWithExercise, loggedExerciseNames, exerciseVolumeSeries, estimatedOneRmSeries, strengthPlateau, strengthPlateauAny, strengthForecast, bestStrengthForecast, estimate1RM, formatClock, restBarPct, adjustRestSeconds, loadPercentages, progressionSuggestion, progressionIncrement, progressionText, guidedProgressionLines, strengthRecords, nextStrengthMilestone, exerciseHistoryStats, lastExerciseSession, adjustGuidedSets, liveSetRecord, exerciseAlternatives, splitDuration, combineDuration, guidedSnapshot, guidedSnapshotEquals, resumableGuided, focusTimerStart, focusTimerState, focusTimerPause, focusTimerResume, breakSuggestion, restStart, restState, sessionMinutes, workoutTonnage, workoutSetCount, lifetimeTonnage, completedTonnage, completedSetCount, sessionSummary, runPace, runKmInWindow, weeklyKmRamp, runWeekGoal, FOCUS_WEEK_TARGET_MIN, focusWeekGoal, focusByTask, trailReadiness, agendaMatch };
 }

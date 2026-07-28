@@ -1359,7 +1359,7 @@ app.whenReady().then(async () => {
           if (!(fStall.weightPace === 0 && /Mais la balance ne descend plus \\(0 kg\\/sem sur tes dernières pes[ée]es\\)/.test(fStall.insight))) return false;
           // Plateau + PROFIL complet → cible calorique CONCRÈTE (calorieAdjustment) au lieu du conseil vague.
           const fStallPro = adaptiveCoachFocus({ nutrition: fWeightNut, profile: { height: 180, age: 30, sex: 'homme', activityLevel: 'modere' }, goals: { targetWeight: 79 }, weights: [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }] }, '2026-07-16');
-          if (!(typeof fStallPro.calorieTarget === 'number' && fStallPro.calorieTarget > 0 && /vise ~\\d+ kcal\\/j \\(environ \\d+ de moins\\) ou ajoute du cardio/.test(fStallPro.insight))) return false;
+          if (!(typeof fStallPro.calorieTarget === 'number' && fStallPro.calorieTarget > 0 && /déficit est déjà à \\d+ % de ta dépense : ne coupe pas plus/.test(fStallPro.insight) && fStallPro.insight.indexOf('ajoute du cardio') === -1)) return false;
           // Sans profil (BMR incalculable) → energyPlan null → conseil qualitatif conservé, calorieTarget null.
           if (fStall.calorieTarget !== null) return false;
           // Sans objectif de poids → pas d'enrichissement, champs null.
@@ -1502,7 +1502,7 @@ app.whenReady().then(async () => {
           if (/ajoute du cardio|baisse un peu tes calories|resserre tes calories|vise ~\\d+ kcal/.test(fTired.insight)) return false;
           // Non-régression : sans check-in du jour, le plateau garde son push calorique chiffré.
           const fRestedPush = adaptiveCoachFocus({ nutrition: nutTired, profile: profTired, goals: { targetWeight: 79 }, weights: flatWTired }, '2026-07-16');
-          if (!(fRestedPush.readinessNutriGuard === null && typeof fRestedPush.calorieTarget === 'number' && /vise ~\\d+ kcal\\/j \\(environ \\d+ de moins\\) ou ajoute du cardio/.test(fRestedPush.insight))) return false;
+          if (!(fRestedPush.readinessNutriGuard === null && typeof fRestedPush.calorieTarget === 'number' && /déficit est déjà à \\d+ % de ta dépense/.test(fRestedPush.insight) && fRestedPush.insight.indexOf('ajoute du cardio') === -1)) return false;
           // Coach RECOMPOSITION : balance plate (objectif perte, « ne descend plus ») MAIS tour de taille qui fond → recadrage « la balance ne dit pas tout », note flat conservée.
           const nutRecomp = [{ date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 }, { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 }];
           const flatWRecomp = [{ date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 }, { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 }, { date: '2026-07-14', value: 82 }];
