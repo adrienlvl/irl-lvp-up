@@ -738,3 +738,42 @@ poids, alors que le sommeil d'il y a trois semaines ne dit rien de la forme d'au
 Vérifié avant de conclure, pas corrigé par réflexe.
 
 643 tests · SMOKE OK · 390 px propre.
+
+## Itération 30 — l'affûtage atteint enfin les coachs unifiés (axe A : profondeur)
+
+**Sondé avant de juger, et le mandat était inexact sur deux points** — ce qui valait la peine
+d'être vérifié : `taperPlan` *est* rendu (`.wp-taper`), et `qualitySession` affiche bien sa
+source (« Billat 2000 » est dans la note). Mais la sonde a trouvé bien pire à côté.
+
+**Le défaut.** Marathon dans 10 jours → le plan unifié posait une **VO2max 12×30/30** et une
+**sortie longue de 70 min**, pendant que le compagnon annonçait « Cap : objectif dans 1 sem. ».
+L'app disait une chose et faisait l'inverse — le fil rouge, en pire : elle prescrivait la
+semaine la plus dure possible au pire moment.
+
+**La cause, plus nette que prévu.** `taperPlan` n'est appelé que par `buildTrainingWeek`, le
+générateur du panneau « Ma semaine » — **celui qu'on envisage justement de masquer (étape 11)**.
+`objectiveProgram`, qui alimente les trois coachs connectés, n'a jamais su affûter. Le seul
+générateur qui honorait la course était l'orphelin. Masquer « Ma semaine » sans ce correctif
+aurait donc *supprimé* la seule gestion de course de l'app.
+
+**Le correctif.** La course entre dans `trainingPlanInputs` (J-N dérivé exactement comme le
+coach le fait déjà — deux calculs du même J-N divergent tôt ou tard), et `trainingWeekPlan`
+rabote les durées. Bosquet 2007 : couper le VOLUME, garder la FRÉQUENCE et l'INTENSITÉ — la
+séance qualité reste, plus courte. 175 → 150 → 115 → 96 min à J-14 / J-10 / J-3.
+
+### Ce que cette itération a appris
+
+*J'ai raccordé la mauvaise fonction d'abord.* J'ai passé `raceDaysLeft` à `objectiveProgram` en
+supposant qu'il savait affûter — la sonde a rendu « pas d'affûtage » trois fois de suite. Deux
+paramètres morts retirés. Supposer la capacité d'une fonction coûte autant que supposer sa
+signature.
+
+*Le piège du même tableau.* `semaine` **est** `programme.week` quand `assignProgramDays` ne
+s'applique pas : mesurer l'avant après la boucle aurait rendu 0 % et fait disparaître le
+message en silence. Relevé avant de couper.
+
+*Annoncer la mesure, pas l'intention.* Le plancher à 20 min rend la coupe réelle plus faible
+que `cutPct` (45 % tenus à J-3 pour 48 % visés). Une mutation qui remplace la mesure par
+l'intention est attrapée par une assertion dédiée.
+
+644 tests · SMOKE OK · 390 px propre.
