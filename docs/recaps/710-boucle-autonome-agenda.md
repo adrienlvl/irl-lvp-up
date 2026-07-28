@@ -228,3 +228,48 @@ le code. Rebranché sur la vraie bibliothèque d'exercices, tout passait.
 Leçon : *un jeu d'essai irréaliste ne prouve rien, ni dans un sens ni dans l'autre.*
 
 620 tests · SMOKE OK · 390 px propre.
+
+## Itération 12 — revue partielle, et un incident de méthode
+
+### La revue multi-agents n'a PAS tourné
+Les quatre agents chercheurs ont tous heurté la limite de session. Le workflow a
+rendu `{confirmees:[], rejetees:[], note:'aucune trouvaille brute'}` — **ce qui
+ressemble à « aucun défaut trouvé » alors que rien n'a été examiné.**
+
+C'est la deuxième fois dans cette boucle qu'un résultat vide se fait passer pour
+un succès (la première : le harnais de smoke mort qui rendait des greps vides).
+La règle vaut donc au-delà du smoke : **un résultat vide doit être prouvé vide,
+jamais supposé.** Un workflow qui rend une liste vide doit être recoupé avec son
+compte d'agents en erreur (`agents_error`) avant d'être cru.
+
+### Revue manuelle, quatre angles
+1. **Régressions du plancher retiré** — `runPlanWeek` n'a que deux appelants :
+   `runRunPlan` (dont le sélecteur ne propose que 4/5/6, jamais < 3) et
+   `objectiveProgram`. `PATTERN[0] = []` ne provoque aucun `days[i]` indéfini,
+   la boucle `.map` ne s'exécute pas. RAS.
+2. **Migration** — `{...defaults, ...input}` est une fusion de SURFACE : un
+   `goals` sauvegardé remplace entièrement celui par défaut, donc `runs` arrive
+   `undefined` → normalisé en `'auto'`. Couvert.
+   Et surtout : `goals.progSessions` (volume du programme) et `goals.sessions`
+   (objectif hebdo, qui alimente la dépense énergétique) restent **étanches** —
+   vérifié, les quatre appels `sessionsPerWeek:` lisent `goals.sessions`. Sans
+   ça, régler son programme aurait déplacé ses calories.
+3. **Rendu** — `#coachForme` et `#coachAutres` sont rendus AVANT le retour
+   anticipé `if(!f)`, donc visibles même les jours sans focus. Règles `[hidden]`
+   présentes sous chaque `display:`.
+4. **Cohérence** — **UN DÉFAUT TROUVÉ ET CORRIGÉ** (voir ci-dessous).
+
+### Le défaut : le coach affirmait faux
+La carte « ce qui te bride aujourd'hui » retombe sur le DERNIER check-in quand
+il n'y en a pas du jour. Avec un check-in du 4 juillet, le 28 elle affirmait
+« 4 h — c'est ce qui pèse le plus sur ta forme du jour ».
+
+Un score chiffré reste ambigu ; **une phrase est une affirmation, et elle doit
+être vraie.** Au-delà de 2 jours le coach se tait.
+
+### Ce que cette revue n'a PAS couvert
+Faute d'agents : la relecture croisée du diff CSS, les chemins d'import/export
+de sauvegarde, et une vérification adversariale indépendante de mes propres
+conclusions. **La revue complète reste due.**
+
+621 tests · SMOKE OK · 390 px propre.
