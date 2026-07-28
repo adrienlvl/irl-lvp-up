@@ -3162,8 +3162,29 @@ app.whenReady().then(async () => {
           const sansSec = sec.value === '';
 
           try { dlg.close(); } catch (_) {}
+
+          /* L'AFFICHAGE. toFixed(1) montrait « 5.1 km » sur une seance saisie a 5,143, et
+             une duree fractionnaire se serait affichee « 93.33333333333333 min ». Promettre
+             le metre puis l'effacer a l'ecran serait le fil rouge applique a la demande
+             elle-meme : on verifie donc ce qu'Adrien RELIT, pas ce qu'on a stocke. */
+          const sw = state.workouts;
+          state.workouts = [{ id: 987654, date: localDate(), type: 'run', duration: 93.33333333333333,
+            distance: 5.143, effort: 3, exercises: [] }];
+          let lu = '';
+          try {
+            showPage('athlete');
+            if (typeof renderAthlete === 'function') renderAthlete();
+            const el = document.getElementById('workoutList');
+            lu = el ? (el.textContent || '') : '';
+          } catch (_) {}
+          state.workouts = sw;
+          try { if (typeof renderAthlete === 'function') renderAthlete(); } catch (_) {}
+          checks.__precisionLue = lu.slice(0, 90);
+          const dureeVue = lu.indexOf('1 h 33 min 20 s') !== -1;
+          const kmVu = lu.indexOf('5,143 km') !== -1;
+
           showPage('dashboard');
-          return vu && km514 && km5143 && retour === '1/33/20' && sansSec;
+          return vu && km514 && km5143 && retour === '1/33/20' && sansSec && dureeVue && kmVu;
         } catch (e) { checks.__errPrecision = String(e && e.message); return false; }
       })();
 

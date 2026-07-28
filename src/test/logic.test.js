@@ -2327,6 +2327,15 @@ test('splitDuration / combineDuration : saisie d’une durée en heures + minute
   assert.equal(L.formatDuration(45), '45 min', 'pas de « 0 s » parasite quand il n’y en a pas');
   assert.equal(L.formatDuration(0.5), '30 s', 'moins d’une minute reste lisible');
   assert.ok(Math.abs(L.combineDuration(0, 0, 30) - 0.5) < 1e-9, '30 s = une demi-minute');
+
+  /* La précision doit se REVOIR, pas seulement se saisir : `toFixed(1)` affichait « 5.1 km »
+     sur une séance enregistrée à 5,143. Promettre le mètre puis l'effacer à l'affichage aurait
+     été le fil rouge du dépôt appliqué à la demande d'Adrien elle-même. */
+  assert.equal(L.formatKm(5.143), '5,143', 'le mètre survit à l’affichage');
+  assert.equal(L.formatKm(8.5), '8,5', 'virgule française');
+  assert.equal(L.formatKm(10), '10', 'pas de « 10,000 km » : les zéros inutiles sont du bruit');
+  assert.equal(L.formatKm(0), '', 'aucune distance → rien à afficher');
+  assert.equal(L.formatKm('x'), '', 'valeur abîmée → rien, pas « NaN km »');
   assert.equal(L.combineDuration(3, 0, 0, 120), 120, 'plafond personnalisé (4e argument désormais)');
   assert.equal(L.combineDuration(-1, -5), 0, 'négatifs → 0');
 
