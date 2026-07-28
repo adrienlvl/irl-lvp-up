@@ -3185,6 +3185,54 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.risqueConscient = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          /* Cible a IMC 16 ET rythme le plus dur : le SEUL scenario ou le nouvel
+             avertissement doit apparaitre. Une cible saine ne discriminerait rien. */
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [1, 3, 5] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 52, sessions: 4, runs: 4,
+            progSessions: '', nutritionPlan: 'tres-agressif' });
+          state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+
+          const sel = document.querySelector('#nutriPlanSelect');
+          const options = sel ? Array.prototype.map.call(sel.options, o => o.textContent).join(' | ') : '';
+          const retenu = sel ? String(sel.value) : '';
+          const al = document.querySelector('#objectiveResult .onc-alertes');
+          const txtAl = (al && getComputedStyle(al).display !== 'none') ? (al.textContent || '') : '';
+          /* Le principe vit dans un <details> : on l OUVRE et on mesure une hauteur reelle.
+             getComputedStyle seul rendrait 'block' meme replie — ce ne serait pas un test de rendu. */
+          const det = document.querySelector('#objectiveResult .onc-repas');
+          if (det) det.open = true;
+          const pr = document.querySelector('#objectiveResult .or-principe');
+          const vuPr = !!(pr && getComputedStyle(pr).display !== 'none' && pr.getBoundingClientRect().height > 0);
+          const txtPr = vuPr ? (pr.textContent || '') : '';
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__risque = 'opt[' + options.slice(0, 70) + '] retenu[' + retenu + '] al[' + txtAl.slice(0, 70) + '] pr[' + txtPr.slice(0, 45) + ']';
+          // 1. Decision d Adrien : aucun choix retire, et celui enregistre reste selectionne.
+          const choixIntact = options.indexOf('Très agressif') !== -1 && retenu === 'tres-agressif';
+          // 2. Mais le risque est NOMME a l ecran : IMC vise + vers qui se tourner.
+          const nomme = txtAl.indexOf('insuffisance pondérale') !== -1 && txtAl.indexOf('diététicien') !== -1;
+          // 3. Et le principe anti-restriction accompagne bien les repas.
+          const principe = txtPr.indexOf('pas des règles') !== -1;
+          return choixIntact && nomme && principe;
+        } catch (e) { checks.__errRisque = String(e && e.message); return false; }
+      })();
+
       checks.repasEtDepart = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function' || typeof repasPourCible !== 'function') return false;
@@ -4320,6 +4368,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.risqueConscient) errors.push('Sécurité alimentaire : sur une cible de poids en insuffisance pondérale, l’app doit LAISSER les rythmes agressifs (décision d’Adrien) mais nommer le risque à l’écran — IMC visé, ce qui se dégrade, et vers qui se tourner — et afficher le principe « des idées, pas des règles » avec les repas');
     if (!checks.repasEtDepart) errors.push('Deux demandes d’Adrien : des REPAS calés sur la cible choisie (avec kcal et protéines par repas, pas une liste figée) et l’EXPLICATION de la date de départ quand la première séance n’est ni aujourd’hui ni demain — un comportement correct qu’on n’explique pas est indiscernable d’un défaut');
     if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur. Et le bandeau de pilotage, trois lignes plus haut, doit annoncer LA MÊME cible : deux nombres pour la même chose dans le même panneau, c’est le défaut que ce dépôt traque');
     if (!checks.reposReglTenu) errors.push('Le repos réglé à la main (+15 s, préréglages) doit être CELUI qui tourne : il était écrasé par la valeur prescrite au rendu suivant, donc le réglage d’Adrien n’a jamais servi une seule fois. Et changer d’exercice doit reprendre le repos prescrit du nouveau mouvement');

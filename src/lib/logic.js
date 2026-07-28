@@ -4484,6 +4484,7 @@ function trainingPlanInputs(state, todayKey) {
   /* Le plan énergétique n'est calculable qu'avec un profil complet. Sans lui on ne devine
      PAS : la politique retombera sur « neutre », ce qui est honnête plutôt que faux. */
   let energie = null;
+  let gardeCible = null;
   if (poids > 0 && Number(p.height) > 0 && Number(p.age) > 0) {
     try {
       energie = energyPlan({
@@ -4495,8 +4496,20 @@ function trainingPlanInputs(state, todayKey) {
     /* Le programme nutritionnel choisi par Adrien s'applique ICI, à la source : le bandeau
        de pilotage, la politique d'entraînement et le Coach Poids lisent tous ce même objet.
        L'appliquer plus loin, au moment de l'affichage, recréerait deux vérités. */
+    /* Le verdict sur la CIBLE de poids se calcule ici, à la même source que le reste, et
+       voyage avec le plan : c'est lui qui décide, pour l'app entière, si les rythmes les plus
+       durs sont proposés à l'écran ET appliqués au calcul. Le calculer deux fois — une pour
+       l'affichage, une pour l'application — recréerait les deux vérités qu'on vient d'éviter. */
+    if (typeof weightTargetAdvice === 'function') {
+      try {
+        gardeCible = weightTargetAdvice({
+          weight: poids, targetWeight: g.targetWeight, height: p.height, age: p.age,
+          sex: p.sex, activityLevel: p.activityLevel, sessionsPerWeek: g.sessions
+        });
+      } catch (_) { gardeCible = null; }
+    }
     if (energie && typeof appliquerProgrammeNutrition === 'function') {
-      try { energie = appliquerProgrammeNutrition(energie, poids, g.nutritionPlan); } catch (_) {}
+      try { energie = appliquerProgrammeNutrition(energie, poids, g.nutritionPlan, gardeCible); } catch (_) {}
     }
   }
 
@@ -4544,6 +4557,8 @@ function trainingPlanInputs(state, todayKey) {
     jours: Array.isArray(p.availableDays) ? p.availableDays : [],
     niveau: p.level, equipement: p.equipment, seed: st.objectiveSeed || 0,
     energie: energie, acwr: charge, readiness: forme, todayKey: todayKey,
+    // Le verdict sur la cible de poids suit le plan pour que l'écran et le calcul s'accordent.
+    gardeCible: gardeCible,
     /* Les zones qu'Adrien a cochées lui-même. Elles PRIMENT sur la mémoire : s'il demande
        les bras, on lui donne les bras, même si les jambes sont plus reposées. La mémoire
        départage ensuite à l'intérieur de ce qu'il a demandé. */
@@ -4687,6 +4702,8 @@ function trainingWeekPlan(input, exercises) {
   if (ec && resteMuscu + resteRuns === 0) {
     return Object.assign({}, voulue, {
       key: i.objectif, week: [], politique: politique, energie: i.energie || null,
+    // Le verdict sur la cible voyage AVEC le plan : l'écran ne doit pas le recalculer de son côté.
+    gardeCible: i.gardeCible || null,
       ajustements: ajustements, memoire: i.memoire || null, enCours: i.enCours || null,
       dejaFait: { muscu: dejaMuscu, course: dejaCourse },
       /* Même semaine complète que d'habitude : ce n'est pas parce qu'il ne reste rien
@@ -4804,7 +4821,9 @@ function trainingWeekPlan(input, exercises) {
   }
 
   return Object.assign({}, programme, {
-    week: semaine, politique: politique, energie: i.energie || null, ajustements: ajustements,
+    week: semaine, politique: politique, energie: i.energie || null,
+    // Le verdict sur la cible voyage AVEC le plan : l'écran ne doit pas le recalculer de son côté.
+    gardeCible: i.gardeCible || null, ajustements: ajustements,
     memoire: i.memoire || null, enCours: i.enCours || null,
     zones: Array.isArray(i.zones) ? i.zones : [],
     /* Le poids RÉELLEMENT utilisé par le plan (dernière pesée, profil en repli). Exposé
@@ -7024,30 +7043,61 @@ const PROGRAMMES_NUTRITION = [
    serait s'appuyer sur une source qu'on n'a pas vérifiée. Ce qui est vérifié, c'est la
    RÉPARTITION : la cible protéines vient de proteinTarget, elle-même adossée à Morton 2018.
    Pur + testé. */
+/* PLUSIEURS IDÉES PAR REPAS, et non une seule. Adrien : « faut que tu donnes des idées de
+   repas autre que ça ». Une assiette unique répétée tous les jours n'est pas un conseil, c'est
+   une consigne — et une consigne alimentaire rigide est exactement ce qu'on ne veut pas
+   installer. On propose donc quatre pistes par créneau, dont des options sans viande, et on
+   fait tourner selon le jour. */
 const BASES_REPAS = [
-  { cle: 'matin', nom: 'Petit-déjeuner', part: 0.25,
-    plat: 'Flocons d’avoine + fromage blanc + fruit', prot: 0.28,
-    astuce: 'Prépare-le la veille : c’est le repas qu’on saute quand on est pressé.' },
-  { cle: 'midi', nom: 'Déjeuner', part: 0.35,
-    plat: 'Riz ou pommes de terre + viande blanche ou poisson + légumes', prot: 0.35,
-    astuce: 'La portion de féculents est le curseur : elle monte les jours de séance.' },
-  { cle: 'collation', nom: 'Collation', part: 0.12,
-    plat: 'Fromage blanc ou skyr + oléagineux', prot: 0.15,
-    astuce: 'Place-la avant la séance ou dans le creux de l’après-midi.' },
-  { cle: 'soir', nom: 'Dîner', part: 0.28,
-    plat: 'Œufs, légumineuses ou poisson + légumes + un peu de féculent', prot: 0.22,
-    astuce: 'Garde des protéines le soir : c’est la plus longue période sans manger.' }
+  { cle: 'matin', nom: 'Petit-déjeuner', part: 0.25, prot: 0.28,
+    idees: ['Flocons d’avoine, fromage blanc et un fruit',
+      'Pain complet grillé, œufs brouillés et un fruit',
+      'Porridge au lait, banane et une cuillère de purée de cacahuète',
+      'Yaourt grec, muesli et fruits rouges'],
+    astuce: 'Se prépare la veille si tes matins sont courts.' },
+  { cle: 'midi', nom: 'Déjeuner', part: 0.35, prot: 0.35,
+    idees: ['Riz, poulet et légumes de saison',
+      'Pâtes complètes, thon et tomates',
+      'Pommes de terre, saumon et haricots verts',
+      'Semoule, pois chiches et légumes rôtis'],
+    astuce: 'Les jours de séance, sers-toi un peu plus de féculents.' },
+  { cle: 'collation', nom: 'Collation', part: 0.12, prot: 0.15,
+    idees: ['Fromage blanc et une poignée d’amandes',
+      'Un skyr et un fruit',
+      'Pain, houmous et bâtonnets de carotte',
+      'Deux œufs durs et un fruit'],
+    astuce: 'Utile quand le repas suivant est loin. Facultative sinon.' },
+  { cle: 'soir', nom: 'Dîner', part: 0.28, prot: 0.22,
+    idees: ['Omelette, salade verte et pain complet',
+      'Soupe de légumes, lentilles et un peu de fromage',
+      'Poisson blanc, quinoa et légumes verts',
+      'Wok de tofu, riz et légumes croquants'],
+    astuce: 'Un repas simple et rassasiant vaut mieux qu’un repas parfait.' }
 ];
 
-function repasPourCible(kcal, proteinesG, objectif) {
+/* Le message qui accompagne TOUJOURS les repas, quel que soit le programme. Adrien : « le but
+   n'est pas non plus que j'ai des troubles du comportement alimentaire, et pareil si
+   l'application est mise sur l'App Store ». Il a raison, et c'est le genre de phrase qu'une app
+   de suivi du poids doit assumer d'écrire noir sur blanc. */
+const PRINCIPE_REPAS = 'Ce sont des idées, pas des règles. Aucun aliment n’est interdit, ces chiffres sont des ordres de grandeur, et un jour au-dessus ou en dessous ne change rien à la trajectoire. Si compter devient une charge, arrête de compter : le suivi est là pour t’aider, pas pour te surveiller.';
+
+function repasPourCible(kcal, proteinesG, objectif, variante) {
   const c = Math.round(Number(kcal) || 0);
   const p = Math.round(Number(proteinesG) || 0);
   // Sans cible chiffrée on ne propose rien : une portion sans total est un conseil en l'air.
   if (!(c > 0) || !(p > 0)) return null;
 
-  const repas = BASES_REPAS.map(function (b) {
+  /* Rotation déterministe : même jour → mêmes idées (sinon l'écran changerait à chaque
+     rendu), jour suivant → autre combinaison. Le décalage par créneau évite que les quatre
+     repas tournent en bloc. `Number(null)` valant 0, l'absence de variante donne la
+     première combinaison — un repli, pas un hasard. */
+  const v = Math.abs(Math.trunc(Number(variante) || 0));
+
+  const repas = BASES_REPAS.map(function (b, i) {
     return {
-      cle: b.cle, nom: b.nom, plat: b.plat, astuce: b.astuce,
+      cle: b.cle, nom: b.nom, astuce: b.astuce,
+      plat: b.idees[(v + i) % b.idees.length],
+      autresIdees: b.idees.length - 1,
       kcal: Math.round(c * b.part / 10) * 10,
       prot: Math.round(p * b.prot)
     };
@@ -7059,21 +7109,42 @@ function repasPourCible(kcal, proteinesG, objectif) {
   const totalKcal = repas.reduce(function (a, x) { return a + x.kcal; }, 0);
   const totalProt = repas.reduce(function (a, x) { return a + x.prot; }, 0);
 
+  /* Formulations revues pour ne rien poser en interdit ni en compensation : on décrit ce qui
+     bouge d'une assiette à l'autre, sans jamais dire qu'un aliment se « mérite » ou se
+     « rattrape ». C'est la même exigence que le principe ci-dessous. */
   const but = String(objectif || '');
   const note = but === 'prise'
-    ? 'En surplus, l’ajout se fait surtout sur les féculents et les matières grasses de qualité — pas sur la portion de protéines, déjà suffisante.'
+    ? 'En surplus, ce sont surtout les féculents et les bonnes matières grasses qui montent : la portion de protéines, elle, est déjà suffisante.'
     : but === 'perte'
-      ? 'En déficit, garde les protéines et les légumes constants : c’est le volume de féculents et de gras qui absorbe la baisse.'
-      : 'À l’équilibre, la régularité des portions compte plus que leur composition exacte.';
+      ? 'En déficit, les protéines et les légumes restent stables, et c’est le reste qui varie un peu. Rien n’est supprimé.'
+      : 'À l’équilibre, la régularité compte plus que la composition exacte de chaque assiette.';
 
-  return { repas: repas, totalKcal: totalKcal, totalProt: totalProt, cibleKcal: c, cibleProt: p, note: note };
+  return {
+    repas: repas, totalKcal: totalKcal, totalProt: totalProt, cibleKcal: c, cibleProt: p,
+    note: note, principe: PRINCIPE_REPAS
+  };
 }
 
-function programmesNutrition(energie, poids) {
+function programmesNutrition(energie, poids, garde) {
   const e = energie && typeof energie === 'object' ? energie : null;
   if (!e || !(Number(e.tdee) > 0) || !(Number(e.bmr) > 0)) return [];
   const tdee = Number(e.tdee), bmr = Number(e.bmr);
   const kg = Number(poids) > 0 ? Number(poids) : null;
+
+  /* SÉCURITÉ ALIMENTAIRE. L'app SAIT déjà quand une cible de poids est dangereuse :
+     weightTargetAdvice rend `level: 'stop'` avec le bon message (« Cette cible te mettrait en
+     insuffisance pondérale (IMC 16) […] parles-en à un professionnel de santé »).
+     Mesuré : programmesNutrition ne lisait PAS ce drapeau, et proposait quand même « Très
+     agressif » à 2001 kcal à quelqu'un visant un IMC de 16. Une app qui alerte d'un côté et
+     offre le contraire de l'autre n'alerte pas — elle se contredit, et c'est exactement par là
+     qu'un outil de suivi du poids devient nocif.
+     DÉCISION D'ADRIEN, explicite : on laisse tous les choix, on n'en retire aucun — mais le
+     risque doit être CONSCIENT, pas deviné. Le drapeau ne filtre donc rien : il attache un
+     avertissement nommé à chaque rythme en déficit, et un second, plus dur, aux rythmes
+     agressifs. Retirer l'option n'apprend rien à personne ; la nommer, si. */
+  const cibleStop = !!(garde && garde.level === 'stop' && garde.direction === 'perte');
+  const imcCible = cibleStop && Number(garde.targetBmi) > 0
+    ? String(garde.targetBmi).replace('.', ',') : null;
 
   return PROGRAMMES_NUTRITION.map(function (p) {
     /* `auto` n a pas de pourcentage fixe : sa cible EST celle que le plan energetique a
@@ -7106,6 +7177,16 @@ function programmesNutrition(energie, poids) {
       alertes.push('Déficit marqué : monte les protéines et garde la musculation, c’est ce qui protège le muscle (Longland et al. 2016, AJCN).');
     }
     const pctReel = (p.pct === null) ? Math.round((kcal / tdee - 1) * 100) : p.pct;
+    /* Le risque se NOMME, il ne se sous-entend pas. Un « attention, sois prudent » ne rend
+       personne conscient de quoi que ce soit : on dit l'IMC visé, ce qui se dégrade, et vers
+       qui se tourner. C'est la contrepartie de laisser le choix ouvert. */
+    if (cibleStop && pctReel < 0) {
+      alertes.push('⚠️ Ta cible de poids correspond à un IMC de ' + (imcCible || 'moins de 18,5')
+        + ' : c’est une insuffisance pondérale, pas un objectif de forme. Descendre jusque-là coûte du muscle et de la densité osseuse, dérègle le sommeil et les hormones, et abîme le rapport à l’alimentation. Parles-en à un médecin ou à un diététicien avant de suivre ce rythme.');
+    }
+    if (cibleStop && pctReel <= -25) {
+      alertes.push('Ce rythme-là, sur cette cible-là, est la combinaison la plus risquée que cette app puisse afficher. Si tu la choisis en connaissance de cause : une échéance courte, un poids plancher fixé à l’avance, et une pesée par semaine — pas une par jour.');
+    }
     return {
       cle: p.cle, nom: p.nom, pct: pctReel, kcal: kcal, resume: p.resume, conseil: p.conseil,
       rythmeKgSem: kgSem, plancherAtteint: plancherAtteint, alertes: alertes
@@ -7126,10 +7207,10 @@ function programmesNutrition(energie, poids) {
    « agressif » réduit aussi le volume d'entraînement. C'est le but — un déficit plus dur laisse
    moins de capacité, et le dire est plus honnête que de faire comme si de rien n'était.
    Pur + testé. */
-function appliquerProgrammeNutrition(energie, poids, cle) {
+function appliquerProgrammeNutrition(energie, poids, cle, garde) {
   const e = energie && typeof energie === 'object' ? energie : null;
   if (!e || !(Number(e.tdee) > 0)) return e;
-  const choisi = programmeNutritionChoisi(e, poids, cle);
+  const choisi = programmeNutritionChoisi(e, poids, cle, garde);
   if (!choisi) return e;
   // « auto » = la recommandation de l app : il n y a rien a reecrire.
   if (choisi.cle === 'auto') return Object.assign({}, e, { programmeNutrition: 'auto' });
@@ -7168,8 +7249,12 @@ function appliquerProgrammeNutrition(energie, poids, cle) {
   });
 }
 
-function programmeNutritionChoisi(energie, poids, cle) {
-  const liste = programmesNutrition(energie, poids);
+/* Le garde-fou de cible descend jusqu'ICI, et pas seulement à l'affichage : il ne retire
+   aucune option (choix d'Adrien), mais c'est lui qui porte les avertissements. Sans le
+   transmettre, le programme RETENU serait rendu sans ses alertes de risque — averti dans la
+   liste, muet une fois sélectionné. Le même écart entre ce que l'app dit et ce qu'elle fait. */
+function programmeNutritionChoisi(energie, poids, cle, garde) {
+  const liste = programmesNutrition(energie, poids, garde);
   if (!liste.length) return null;
   const trouve = liste.filter(function (p) { return p.cle === cle; })[0];
   /* Sans choix explicite, on rend « auto » : la recommandation de l app, c est-a-dire le

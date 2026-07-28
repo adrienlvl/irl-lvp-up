@@ -299,3 +299,9 @@
 .or-liste li span{color:var(--text);font-size:var(--fs-2xs);line-height:1.5;overflow-wrap:anywhere}
 .or-liste li small{color:var(--muted);font-size:var(--fs-3xs);line-height:1.5}
 .or-note{margin:var(--sp-2) 0 0;color:var(--muted);font-size:var(--fs-3xs);line-height:1.55}
+/* Le principe « des idées, pas des règles » accompagne toujours les repas. Il est cadré et non
+   grisé : c'est la phrase qui protège d'un rapport rigide à la nourriture, elle doit se lire,
+   pas se fondre dans les notes secondaires. */
+.or-principe{margin:var(--sp-3) 0 0;padding:var(--sp-2) var(--sp-3);border-left:3px solid var(--accent-line);
+  border-radius:0 var(--r-sm) var(--r-sm) 0;background:var(--surface-2);color:var(--text);
+  font-size:var(--fs-3xs);line-height:1.6}

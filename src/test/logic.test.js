@@ -14369,6 +14369,93 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('cible risquée : on ne retire aucun choix, on nomme le risque', () => {
+  const base = { weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', sessionsPerWeek: 4 };
+  const plan = c => L.energyPlan(Object.assign({}, base, { goal: 'perte', targetWeight: c, todayKey: '2026-07-28' }));
+  const garde = c => L.weightTargetAdvice(Object.assign({}, base, { targetWeight: c }));
+
+  /* LE SCÉNARIO QUI DISCRIMINE : il faut les DEUX cibles. Avec une seule, un code qui
+     avertit tout le temps (ou jamais) passerait le test. */
+  const sain = garde(74), stop = garde(52);
+  assert.equal(sain.level, 'ok', 'cible 74 kg pour 1m80 : rien à signaler');
+  assert.equal(stop.level, 'stop', 'cible 52 kg pour 1m80 : IMC ' + stop.targetBmi + ', signalée');
+
+  const listeSaine = L.programmesNutrition(plan(74), 80, sain);
+  const listeStop = L.programmesNutrition(plan(52), 80, stop);
+  /* DÉCISION D'ADRIEN : « laisse les choix agressifs mais faut mettre des warnings ». Aucune
+     option ne disparaît — ce test échouerait si je reprenais l'idée de filtrer. */
+  assert.equal(listeStop.length, listeSaine.length, 'même nombre d’options dans les deux cas');
+  assert.ok(listeStop.some(p => p.cle === 'tres-agressif'), 'le rythme le plus dur reste offert');
+  assert.ok(listeStop.some(p => p.cle === 'agressif'), 'l’agressif aussi');
+
+  const ta = c => c.filter(p => p.cle === 'tres-agressif')[0];
+  assert.equal(ta(listeStop).kcal, ta(listeSaine).kcal, 'et la cible calorique ne change pas');
+  // Ce qui change, c'est la CONSCIENCE du risque.
+  assert.ok(ta(listeStop).alertes.length > ta(listeSaine).alertes.length,
+    'plus d’avertissements sur la cible risquée : ' + ta(listeStop).alertes.length + ' vs ' + ta(listeSaine).alertes.length);
+  const txt = ta(listeStop).alertes.join(' ');
+  assert.ok(txt.indexOf('insuffisance pondérale') !== -1, 'le risque est nommé, pas sous-entendu');
+  assert.ok(txt.indexOf(String(stop.targetBmi)) !== -1, 'avec l’IMC réellement visé');
+  assert.ok(/médecin|diététicien/.test(txt), 'et vers qui se tourner');
+  // Un « sois prudent » sans contenu ne rend personne conscient : on exige du concret.
+  assert.ok(/muscle|osseuse|hormon/.test(txt), 'en disant ce qui se dégrade');
+
+  /* Le programme RETENU doit porter ses alertes : averti dans la liste puis muet une fois
+     sélectionné, c'est le même écart entre ce que l'app dit et ce qu'elle fait. */
+  const choisi = L.programmeNutritionChoisi(plan(52), 80, 'tres-agressif', stop);
+  assert.equal(choisi.cle, 'tres-agressif', 'le choix est bien retenu, pas rétrogradé');
+  assert.ok(choisi.alertes.some(x => x.indexOf('insuffisance pondérale') !== -1),
+    'et il porte l’avertissement');
+  // Et il s'APPLIQUE : Adrien garde la main sur son plan.
+  const applique = L.appliquerProgrammeNutrition(plan(52), 80, 'tres-agressif', stop);
+  assert.equal(applique.programmeNutrition, 'tres-agressif', 'le plan suit le choix');
+
+  // Cible saine : aucun de ces avertissements ne doit polluer l'écran.
+  assert.ok(ta(listeSaine).alertes.every(x => x.indexOf('insuffisance pondérale') === -1),
+    'pas d’alarme sur une cible raisonnable');
+  // Sans garde-fou transmis : comportement d'avant, aucune régression.
+  assert.equal(L.programmesNutrition(plan(52), 80).length, listeStop.length, 'appel sans garde : même liste');
+  assert.ok(ta(L.programmesNutrition(plan(52), 80)).alertes.every(x => x.indexOf('insuffisance pondérale') === -1),
+    'et sans les alertes de cible, faute de drapeau');
+});
+
+test('repas : des idées qui tournent, et jamais une règle alimentaire', () => {
+  const j1 = L.repasPourCible(2400, 145, 'perte', 1);
+  const j2 = L.repasPourCible(2400, 145, 'perte', 2);
+  assert.ok(j1 && j2, 'une journée est proposée');
+  /* Adrien : « faut que tu donnes des idées de repas autre que ça ». La liste était FIGÉE :
+     la même assiette tous les jours n'est pas un conseil, c'est une consigne. */
+  assert.notEqual(j1.repas[0].plat, j2.repas[0].plat, 'un autre jour, une autre idée');
+  assert.equal(j1.repas[0].kcal, j2.repas[0].kcal, 'mais les portions ne bougent pas avec la variante');
+  assert.equal(L.repasPourCible(2400, 145, 'perte', 1).repas[0].plat, j1.repas[0].plat,
+    'même jour = même proposition : pas un tirage au sort à chaque rendu');
+  assert.equal(new Set(j1.repas.map(r => r.plat)).size, 4, 'quatre propositions distinctes');
+  assert.ok(j1.repas.every(r => r.autresIdees >= 1), 'chaque créneau garde des alternatives');
+  // Les quatre créneaux ne tournent pas en bloc : sinon la rotation serait deux fois plus pauvre.
+  const idx = v => L.repasPourCible(2400, 145, 'perte', v).repas.map(r => r.plat).join('|');
+  assert.notEqual(idx(0), idx(1), 'la combinaison entière change d’un jour à l’autre');
+
+  /* LE POINT D'ADRIEN : « le but n'est pas non plus que j'aie des troubles du comportement
+     alimentaire ». Le principe est présent quel que soit le programme choisi. */
+  ['perte', 'prise', 'maintien'].forEach(function (but) {
+    const r = L.repasPourCible(2400, 145, but, 3);
+    assert.ok(r.principe.indexOf('pas des règles') !== -1, 'des idées, pas des règles (' + but + ')');
+    assert.ok(r.principe.indexOf('interdit') !== -1, 'aucun aliment interdit (' + but + ')');
+    assert.ok(r.principe.indexOf('arrête de compter') !== -1, 'et une porte de sortie (' + but + ')');
+  });
+  // Aucun cadrage moralisant ni compensatoire dans ce qui s'affiche.
+  const affiche = j1.repas.map(r => r.plat + ' ' + r.astuce).join(' ') + ' ' + j1.note;
+  assert.ok(!/mérit|compens|rattrap|brûler|interdi/i.test(affiche), 'rien à mériter ni à rattraper : ' + affiche.slice(0, 70));
+  // Des pistes sans viande existent : une voie unique serait une contrainte de plus.
+  const rotation = [0, 1, 2, 3].map(v => JSON.stringify(L.repasPourCible(2400, 145, 'perte', v))).join(' ');
+  assert.ok(/tofu|pois chiches|lentilles/.test(rotation), 'la rotation propose du végétarien');
+
+  // Variante absente ou abîmée : repli déterministe. (Number(null) et Number('nawak')||0 valent 0.)
+  assert.equal(L.repasPourCible(2400, 145, 'perte').repas[0].plat,
+    L.repasPourCible(2400, 145, 'perte', 0).repas[0].plat, 'sans variante = première combinaison');
+  assert.ok(L.repasPourCible(2400, 145, 'perte', 'nawak'), 'variante illisible : on rend quand même');
+});
+
 test('repasPourCible + très agressif + première séance : les trois demandes d’Adrien', () => {
   /* 1. « Tu peux pas être plus agressif ? » — oui, jusqu'à -35 %, et pas au-delà : le plancher
      du métabolisme de base mordrait de toute façon et on afficherait un pourcentage qu'on ne
