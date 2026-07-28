@@ -3185,6 +3185,60 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.reglagesPortes = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [1], zonesVoulues: [] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4, progSessions: '' });
+          state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+
+          const det = document.querySelector('.op-reglages');
+          if (det) det.open = true;
+          const jours = Array.prototype.slice.call(document.querySelectorAll('#progDays input'));
+          const zones = Array.prototype.slice.call(document.querySelectorAll('#progZones input'));
+          // Le RENDU, pas la propriete : une case non peinte ne se coche pas au doigt.
+          const peint = jours.length === 7 && zones.length === 7
+            && jours[0].getBoundingClientRect().height > 0
+            && zones[0].getBoundingClientRect().height > 0;
+          // Cible du pouce : 44 px de haut sur l etiquette entiere.
+          const _lab = jours[0] ? jours[0].closest('label') : null;
+          const cliquable = !!(_lab && _lab.getBoundingClientRect().height >= 40);
+          // L etat DOIT etre reflete : sinon l ecran ment sur ce qui est enregistre.
+          const reflete = jours.filter(function (i) { return i.checked; }).length === 1
+            && jours.filter(function (i) { return i.checked; })[0].value === '1';
+
+          /* ECRITURE : on coche dimanche et samedi, dans cet ordre. Le tri doit etre
+             lundi-d abord — un tri numerique mettrait dimanche (0) en tete, et
+             premiereSeanceInfo affiche les jours DANS L ORDRE STOCKE. */
+          const par = v => jours.filter(function (i) { return i.value === v; })[0];
+          par('0').checked = true; par('0').dispatchEvent(new Event('change', { bubbles: true }));
+          par('6').checked = true; par('6').dispatchEvent(new Event('change', { bubbles: true }));
+          const ecritJours = (state.profile.availableDays || []).join(',');
+          const zpar = v => zones.filter(function (i) { return i.value === v; })[0];
+          zpar('back').checked = true; zpar('back').dispatchEvent(new Event('change', { bubbles: true }));
+          const ecritZones = (state.profile.zonesVoulues || []).join(',');
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__reglages = 'peint=' + peint + ' clic=' + cliquable + ' reflet=' + reflete
+            + ' jours[' + ecritJours + '] zones[' + ecritZones + ']';
+          // Lundi d abord : 1,6,0 et surtout PAS 0,1,6.
+          return peint && cliquable && reflete && ecritJours === '1,6,0' && ecritZones === 'back';
+        } catch (e) { checks.__errReglages = String(e && e.message); return false; }
+      })();
+
       checks.planificateurSurvit = (() => {
         try {
           if (typeof scheduleObjectiveProgram !== 'function' || typeof runObjectiveProgram !== 'function') return false;
@@ -3323,11 +3377,16 @@ app.whenReady().then(async () => {
           const sp = JSON.parse(JSON.stringify(state.profile || {}));
           const sg = JSON.parse(JSON.stringify(state.goals || {}));
           const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
-          /* Jours d entrainement qui excluent mardi ET mercredi : c est le cas d Adrien,
-             celui ou le depart en jeudi surprend et merite sa raison. */
+          /* Le sujet du check est « une attente d AU MOINS DEUX JOURS doit etre expliquee ».
+             Les jours etaient codes en dur ([4,6,0]) : ils donnaient bien deux jours d attente
+             un MARDI, et un seul jour des le lendemain — le check tombait tout seul en changeant
+             de date, sur du code correct. On CONSTRUIT donc le scenario a partir du jour
+             courant : deux jours qui commencent a J+2. */
+          const _auj = new Date(localDate() + 'T12:00:00').getDay();
+          const _joursTest = [(_auj + 2) % 7, (_auj + 4) % 7];
           state.fitnessObjective = 'athletique';
           state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
-            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [4, 6, 0] });
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: _joursTest });
           state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4,
             progSessions: '', nutritionPlan: 'tres-agressif' });
           state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
@@ -4452,6 +4511,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.reglagesPortes) errors.push('Les jours d’entraînement et les zones à privilégier doivent se régler DEPUIS le Plan de bataille : ce sont les seules données que le plan consomme sans pouvoir les écrire une fois les autres panneaux masqués, et les jours doivent être triés lundi-d’abord (premiereSeanceInfo les affiche dans l’ordre stocké)');
     if (!checks.planificateurSurvit) errors.push('scheduleObjectiveProgram doit survivre à un agenda saturé : le chemin « créneau toujours pris après trois décalages » incrémentait `_perdues`, une variable déclarée nulle part dans cette fonction — donc un ReferenceError dans ce qui devient le seul planificateur de l’app');
     if (!checks.nutritionUnSeulChiffre) errors.push('Plan de bataille : le bloc macros et le sélecteur de programme doivent annoncer LA MÊME cible calorique — la sonde a mesuré 2294 kcal dans les macros à côté de 2518 dans le sélecteur, parce que le bloc lisait objectiveNutrition, une source aveugle à la cible de poids et au programme choisi');
     if (!checks.risqueConscient) errors.push('Sécurité alimentaire : sur une cible de poids en insuffisance pondérale, l’app doit LAISSER les rythmes agressifs (décision d’Adrien) mais nommer le risque à l’écran — IMC visé, ce qui se dégrade, et vers qui se tourner — et afficher le principe « des idées, pas des règles » avec les repas');
