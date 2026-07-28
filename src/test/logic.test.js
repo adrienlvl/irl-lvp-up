@@ -14460,7 +14460,44 @@ test('repartitionDplus : le dénivelé entre dans le plan, au prorata du temps d
   /* L'arrondi à 10 m ne doit pas faire perdre de mètres : on vérifie sur un total qui ne
      tombe pas rond, sinon le test passerait sans rien discriminer. */
   const bancal = L.repartitionDplus(sem, 1237);
-  assert.equal(bancal.reduce((a, b) => a + b, 0), 1237, 'reste d’arrondi rendu à la plus grosse part');
+  assert.equal(bancal.reduce((a, b) => a + b, 0), 1237, 'reste d’arrondi entièrement redistribué');
+
+  /* BALAYAGE — le garde-fou qui manquait. Ma première version n'assertait la somme que sur DEUX
+     totaux, tous deux grands ; le défaut ne se voyait que sur les PETITS. Quand chaque part
+     s'arrondit vers le haut, le reste devient négatif et peut dépasser la plus grosse part :
+     l'écrêtage à 0 cassait alors l'invariant. Mesuré avant correctif : 20 m sur quatre courses
+     de même durée rendaient 0+10+10+10 = 30 m, soit 50 % de plus que la saisie.
+     Un invariant se teste sur un domaine, pas sur deux exemples choisis. */
+  const egales = [{ kind: 'course', minutes: 40 }, { kind: 'course', minutes: 40 },
+    { kind: 'course', minutes: 40 }, { kind: 'course', minutes: 40 }];
+  let ecarts = 0, negatifs = 0, essais = 0;
+  [sem, egales].forEach(semaine => {
+    for (let total = 1; total <= 2000; total++) {
+      const r = L.repartitionDplus(semaine, total);
+      essais++;
+      if (r.reduce((a, b) => a + b, 0) !== total) ecarts++;
+      if (r.some(v => v < 0)) negatifs++;
+    }
+  });
+  assert.ok(essais >= 4000, 'le balayage couvre bien tout le domaine : ' + essais + ' cas');
+  assert.equal(ecarts, 0, 'la somme retombe sur la saisie pour TOUS les totaux, pas seulement les gros');
+  assert.equal(negatifs, 0, 'et aucune part négative');
+  // Le cas exact qui échouait, nommé pour qu'une régression le pointe du doigt.
+  assert.equal(L.repartitionDplus(egales, 20).reduce((a, b) => a + b, 0), 20,
+    '20 m sur quatre courses égales : rendait 30 m avant correctif');
+
+  /* LE SUJET, PAS SEULEMENT LA SOMME. Une mutation qui coupait la redistribution par paliers a
+     SURVÉCU : le total restait exact parce que tout le reste tombait sur une seule course.
+     La somme était juste, la règle annoncée — « au prorata du temps passé debout » — violée :
+     20 m rendaient 20+0+0+0 au lieu de 10+10+0+0. Un test qui n'assertait que la somme laissait
+     passer un partage arbitraire. À durée égale, l'écart entre parts ne peut dépasser un palier
+     d'arrondi (10 m) : au-delà, ce n'est plus un prorata. */
+  for (let total = 10; total <= 500; total += 10) {
+    const r = L.repartitionDplus(egales, total).filter((_, i) => true);
+    const ecart = Math.max.apply(null, r) - Math.min.apply(null, r);
+    assert.ok(ecart <= 10,
+      'quatre courses de même durée se partagent le D+ à un palier près (total ' + total + ' → ' + r.join('/') + ')');
+  }
 
   // Replis : rien d'inventé, et aucune division par zéro.
   assert.deepEqual(L.repartitionDplus(sem, 0), [0, 0, 0, 0], 'sans D+ saisi, aucun D+ affiché');

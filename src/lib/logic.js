@@ -7171,16 +7171,31 @@ function repartitionDplus(semaine, dplusHebdo) {
     ? mins.map(function (m) { return m / somme; })
     : idx.map(function () { return 1 / idx.length; });
 
-  // Arrondi à 10 m : annoncer « 233 m D+ » sur une prévision hebdomadaire serait une fausse précision.
-  const brut = parts.map(function (p) { return Math.round(total * p / 10) * 10; });
-  /* Le reste d'arrondi va à la plus grosse part, pour que la somme affichée retombe EXACTEMENT
-     sur le D+ demandé — sinon l'écran contredit la saisie. */
-  const reste = total - brut.reduce(function (a, b) { return a + b; }, 0);
-  if (reste !== 0) {
-    let max = 0;
-    brut.forEach(function (v, k) { if (v > brut[max]) max = k; });
-    brut[max] = Math.max(0, brut[max] + reste);
+  /* Arrondi à 10 m — annoncer « 233 m D+ » sur une prévision hebdomadaire serait une fausse
+     précision — mais la somme doit retomber EXACTEMENT sur la saisie, sinon l'écran contredit
+     ce qu'Adrien a tapé.
+
+     Première version : arrondir chaque part au plus proche, puis verser le reste à la plus
+     grosse. Défaut trouvé en revue adversariale : quand chaque part s'arrondit VERS LE HAUT, le
+     reste est négatif et peut dépasser la plus grosse part ; l'écrêtage à 0 cassait alors
+     l'invariant. Mesuré : 20 m sur quatre courses de même durée rendaient 0+10+10+10 = 30 m.
+
+     On procède donc par plus forts restes : on tronque chaque part à la dizaine INFÉRIEURE
+     (la somme ne peut plus dépasser le total), puis on redistribue ce qui manque par paliers de
+     10 aux parts dont la fraction perdue est la plus grande, l'appoint final allant à la
+     première. Somme exacte par construction, et jamais de valeur négative. */
+  const exact = parts.map(function (p) { return total * p; });
+  const brut = exact.map(function (v) { return Math.floor(v / 10) * 10; });
+  let reste = total - brut.reduce(function (a, b) { return a + b; }, 0);
+  const ordre = exact.map(function (_, k) { return k; })
+    .sort(function (a, b) { return (exact[b] - brut[b]) - (exact[a] - brut[a]); });
+  let tour = 0;
+  while (reste >= 10 && ordre.length) {
+    brut[ordre[tour % ordre.length]] += 10;
+    reste -= 10; tour++;
   }
+  // L'appoint sous la dizaine (un total qui ne tombe pas rond) va à la part la plus lésée.
+  if (reste > 0 && ordre.length) brut[ordre[0]] += reste;
   idx.forEach(function (i, k) { out[i] = brut[k]; });
   return out;
 }
