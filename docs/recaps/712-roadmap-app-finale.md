@@ -42,10 +42,11 @@ câblage : elles viendront de ce que l'app ne sait pas encore faire.
 
 Chacune a été **constatée**, pas supposée.
 
-1. **Le champ dénivelé s'auto-gonfle.** `renderAthlete` réinjecte la SOMME hebdomadaire des D+
-   dans `#elevationInput`, que `#saveTrail` réenregistre comme la valeur DU JOUR. Recliquer
-   « Enregistrer » sans rien changer multiplie le chiffre. Le Plan de bataille est insulté (il
-   lit `state.ultraPlan`), mais le panneau trail et la page Ultra, non. *Vérifié le 2026-07-29.*
+1. ~~**Le champ dénivelé s'auto-gonfle.**~~ **RÉGLÉ le 2026-07-29 (itération 56).** Le champ
+   était pré-rempli avec la SOMME hebdomadaire, que `#saveTrail` réenregistrait comme la valeur
+   DU JOUR : trois clics sans rien taper faisaient 450 → 900 → 1350 → 1800 m. Le champ montre
+   désormais la saisie du jour, les libellés disent « du jour », et les agrégats coercent les
+   chaînes (`state.trail` n'est pas normalisé). Verrouillé par un check bloquant.
 2. **Écrans jamais sondés en 390 px.** Focus & vie, Réglages, la vue jour, et les dialogues
    (fiche exercice, replanifier). Chaque sonde précédente sur un écran neuf a trouvé quelque
    chose ; il n'y a pas de raison que ceux-là fassent exception.
