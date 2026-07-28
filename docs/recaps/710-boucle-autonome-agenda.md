@@ -1330,3 +1330,35 @@ j'avais créé le défaut que ce dépôt traque : deux nombres pour la même cho
 
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
+
+## Itération 46 — fermer la famille, pas seulement le défaut
+
+L'itération 45 avait corrigé sept appels de `proteinTarget` sur un poids périmé. Le septième
+site m'avait échappé parce qu'il était écrit avec l'optional chaining. Mais ce n'était que le
+symptôme : la cause est que la règle « dernière pesée, profil en repli » était **recopiée à la
+main** partout. Chaque copie a l'air correcte isolément ; c'est l'ensemble qui dérive.
+
+**Balayage, y compris la forme qui m'avait échappé.** Douze lectures du poids du Profil
+restaient : huit déjà justes, et cinq replis explicites **légitimes** — vérifiés un par un
+(`weightGoalProgress` attend un `fallbackStart` qui ne sert que sans aucune pesée ; l'onboarding
+pré-remplit un champ). Quatre copies manuelles unifiées.
+
+**Garde structurelle** : un balayage ne protège que le jour où on le fait. Le test interdit
+désormais qu'une nouvelle copie apparaisse, et vérifie que le helper lit bien les pesées —
+sinon il garderait une fonction vide.
+
+### Ce que cette itération a appris
+
+*Corriger les sites ne ferme pas la famille.* Trois fois en cinq itérations, le même schéma :
+je corrige les occurrences trouvées, une m'échappe, et la divergence recommence. Ce qui ferme
+la famille, c'est une garde qui rend la copie impossible — comme la méta-garde du harnais
+(it. 29) et la garde anti-champ fantôme (it. 35).
+
+*Ne pas remplacer en masse.* Cinq des douze lectures étaient des replis corrects. Un
+remplacement global aurait cassé `weightGoalProgress`, dont le troisième argument n'est PAS le
+poids courant. Lire avant de remplacer, même quand le motif semble uniforme.
+
+657 tests · SMOKE OK · 390 px propre.
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
