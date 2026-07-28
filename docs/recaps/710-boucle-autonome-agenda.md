@@ -1195,3 +1195,42 @@ fonctionnalité aurait laissé la séance guidée à moitié cassée pour Adrien
   2e séance de même type le même jour ; le repos réglé par ±15 s effacé avant le repos
   automatique ; l'alerte « au-delà de 1 %/semaine » calculée sur le poids du Profil.
 - Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
+
+## Itération 42 — le cap de course (axe A, profondeur)
+
+Premier point de la liste que j'avais annoncée à Adrien. Mesuré avant d'écrire : à 40 jours
+d'un marathon, le plan CONNAÎT l'échéance et n'en dit rien — l'affûtage ne démarre qu'à J-14.
+Entre l'inscription et les deux dernières semaines, aucun cap. `racePhase` existait, testée,
+et n'apparaissait **zéro fois** dans `app.js`.
+
+Le Plan de bataille affiche désormais : « 🏁 Ta course dans 40 jours · **Spécifique** » avec
+le focus de la phase.
+
+### Ce que cette itération a appris
+
+*Je suis retombé dans `Number(null) === 0`* — la règle est écrite noir sur blanc dans mon
+propre mandat. Sans course, `raceDaysLeft` est null, devient 0, et l'app annonçait « phase
+Affûtage » à quelqu'un qui n'a aucune course. Trouvé en sondant ma fonction AVANT de la
+brancher, ce qui est la seule bonne nouvelle.
+
+*Une phase qui ment est pire que pas de phase.* `racePhase` bascule en affûtage à 2 semaines
+alors que `taperPlan` ne réduit rien avant J-14 : le libellé aurait annoncé « Affûtage »
+pendant que le plan tournait à plein régime. Le test porte sur **J-20**, le seul point qui
+discrimine — à J-10 les deux versions diraient la même chose.
+
+*Le doublon évité par construction.* Pendant l'affûtage, le focus de phase se tait : le message
+de taper dit déjà quoi faire du volume avec les kilomètres réels. Après deux itérations passées
+à supprimer des doublons que j'avais créés, celui-ci a été prévu dès l'écriture.
+
+*Une mutation doit rester retrouvable.* L'une des trois remplaçait une ligne par du vide :
+impossible à restaurer ensuite. Réparée à la main.
+
+655 tests · SMOKE OK · 390 px propre.
+
+### Reste de la liste annoncée à Adrien
+1. ~~La phase de course~~ — faite.
+2. L'alerte nutrition « au-delà de 1 %/semaine » se calcule sur `state.profile.weight` (Profil,
+   potentiellement périmé) et non sur la dernière pesée. **Vérifié, pas encore corrigé.**
+3. Soupçons non vérifiés : garde par créneau qui perdrait une 2e séance de même type le même
+   jour ; repos réglé à la main possiblement écrasé.
+4. Étape 11 (panneau « Ma semaine ») : décision d'Adrien.
