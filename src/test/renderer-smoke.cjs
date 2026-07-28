@@ -846,7 +846,7 @@ app.whenReady().then(async () => {
           try {
             const prog = buildTrainingWeek(['chest', 'back', 'legs'], 3, 2, false);
             if (!prog) return false;
-            state.agenda = [];
+            state.agenda = []; state.workouts = []; state.blockStart = '';
             const n = scheduleWeekProgram(prog, 4);
             const planned = state.agenda.filter(a => a.source === 'planner');
             const today = localDate();
@@ -2171,8 +2171,8 @@ app.whenReady().then(async () => {
             const patch = onboardingSetup(onboardingInputs());
             const expProg = objectiveProgram(patch.fitnessObjective, exercises, { equipment: patch.profile.equipment, perSession: (typeof perSessionForLevel === 'function' ? perSessionForLevel(patch.profile.level) : 5) });
             expProg.week = assignProgramDays(expProg.week, patch.profile.availableDays);
-            const expectedScheduled = expProg.week.length * 4;
-            ok = ok && patch.fitnessObjective === 'muscle' && expectedScheduled > 0;
+            const plafondSemaines = expProg.week.length * 4;
+            ok = ok && patch.fitnessObjective === 'muscle' && plafondSemaines > 0;
             // Agenda / quêtes / habitudes vierges et bloc à zéro pour compter précisément ce que
             // l'onboarding pose (sinon des créneaux ou quêtes préexistants fausseraient le décompte).
             state.agenda = []; state.quests = []; state.habits = [];
@@ -2188,7 +2188,14 @@ app.whenReady().then(async () => {
             //     réécrit le champ source='objprog' en 'manual' — non listé dans AGENDA_SOURCES — mais
             //     conserve refId (spread) et kind:'sport'. Le refId est donc le marqueur fiable.
             const slots = state.agenda.filter(a => a && typeof a.refId === 'string' && a.refId.indexOf('objprog-') === 0 && a.kind === 'sport');
-            ok = ok && slots.length === expectedScheduled && slots.length > 0;
+            ok = ok && slots.length > 0 && slots.length <= plafondSemaines;
+            // Rien dans le passé : on ne programme pas des séances déjà écoulées.
+            ok = ok && slots.every(function (a) { return String(a.date || '') >= localDate(); });
+            // Et au moins une DÈS cette semaine — c'est précisément ce qui manquait.
+            ok = ok && slots.some(function (a) {
+              const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() + (7 - ((d.getDay() + 6) % 7)) - 1);
+              return String(a.date || '') <= d.toISOString().slice(0, 10);
+            });
             // 4c. Les quêtes du jour et l'habitude de départ sont créées.
             ok = ok && state.quests.length > 0
               && state.habits.some(h => h && h.name === starterHabitFor('muscle').name);
@@ -2202,7 +2209,7 @@ app.whenReady().then(async () => {
             const recapBody = document.getElementById('onboardingRecapBody');
             const athleteBtn = document.querySelector('[data-page="athlete"]');
             ok = ok && !!recap && recap.open === true;
-            ok = ok && !!recapBody && recapBody.textContent.indexOf(String(expectedScheduled)) !== -1;
+            ok = ok && !!recapBody && recapBody.textContent.indexOf(String(slots.length)) !== -1;
             ok = ok && !!athleteBtn && athleteBtn.classList.contains('active');
             try { if (recap && recap.open) recap.close(); } catch (_) {}
           } catch (e) { ok = false; }
@@ -3172,6 +3179,54 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.programmeCetteSemaine = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function' || typeof scheduleObjectiveProgram !== 'function') return false;
+          const sa = state.agenda, sb = state.blockStart;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29, sex: 'homme',
+            activityLevel: 'actif', goal: 'perte', availableDays: [1, 2, 3, 4, 5, 6, 0], level: 'intermediaire' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4, distance: 40, progSessions: '' });
+          state.fitnessObjective = 'athletique';
+          state.weights = [{ date: localDate(), value: 80 }];
+          state.agenda = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          const bouton = document.getElementById('objectiveSchedule');
+          if (!bouton || getComputedStyle(bouton).display === 'none') return false;
+          bouton.click();
+
+          /* Adrien : « je n ai pas les seances dans le calendrier ». Mesure d avant :
+             28 seances ecrites, ZERO dans la semaine en cours — tout partait de lundi
+             prochain, et l Agenda s ouvre sur la semaine courante. */
+          const auj = localDate();
+          const lundi = (typeof mondayOf === 'function') ? dateKey(mondayOf(new Date())) : auj;
+          const finSemaine = (function () {
+            const d = new Date(lundi + 'T12:00:00'); d.setDate(d.getDate() + 6);
+            return d.toISOString().slice(0, 10);
+          })();
+          const dates = state.agenda.map(function (a) { return String((a && a.date) || ''); })
+            .filter(function (d) { return d.length === 10; });
+          const cetteSemaine = dates.filter(function (d) { return d >= auj && d <= finSemaine; }).length;
+          const dansLePasse = dates.filter(function (d) { return d < auj; }).length;
+
+          checks.__ancrage = dates.length + ' posees, ' + cetteSemaine + ' cette semaine, ' + dansLePasse + ' au passe';
+
+          state.agenda = sa; state.blockStart = sb; state.profile = sp; state.goals = sg;
+          state.weights = sw; state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          // Il faut des seances DES CETTE SEMAINE, et AUCUNE dans le passe.
+          return dates.length > 0 && cetteSemaine > 0 && dansLePasse === 0;
+        } catch (e) { checks.__errAncrage = String(e && e.message); return false; }
+      })();
+
       checks.sommeilUneSeuleVoix = (() => {
         try {
           if (typeof renderWeeklySleep !== 'function' || typeof sleepCoachInsight !== 'function') return false;
@@ -3537,7 +3592,7 @@ app.whenReady().then(async () => {
           showPage('athlete');
           if (typeof showAthleteTab === 'function') showAthleteTab('programme');
           runObjectiveProgram();
-          scheduleObjectiveProgram(lastObjectiveProgram.week, 4);
+          scheduleObjectiveProgram(lastObjectiveProgram, 4);
           const apresProg = state.agenda.length;
 
           /* Les deux écrans montrent la MÊME semaine : cliquer le second bouton ne doit RIEN
@@ -3555,7 +3610,7 @@ app.whenReady().then(async () => {
             parCreneau[c] = (parCreneau[c] || 0) + 1;
           });
           const doubles = Object.keys(parCreneau).filter(function (k) { return parCreneau[k] > 1; }).length;
-
+          
           state.agenda = sa; state.blockStart = sb; state.blockHistory = sh;
           state.profile = sp; state.goals = sg; state.weights = sw; state.fitnessObjective = so;
           showPage('dashboard');
@@ -3769,6 +3824,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
