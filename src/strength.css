@@ -346,3 +346,26 @@
 .op-ramp-row[hidden]{display:none}
 .op-phase{min-width:0;overflow-wrap:anywhere;text-align:center;font-size:var(--fs-3xs);
   padding:5px 4px;line-height:1.25}
+
+/* BILAN DE BLOC. Ce qu'on a accompli en huit semaines : les chiffres d'abord, gros et
+   scannables, puis les gains par exercice, puis le verdict. L'écran disait quoi faire ensuite
+   sans jamais dire ce que le bloc avait produit. */
+.block-bilan{display:grid;gap:var(--sp-2);margin:var(--sp-3) 0;padding:11px 13px;
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:var(--r-md);background:var(--surface-2)}
+.block-bilan[hidden]{display:none}
+.bb-chiffres{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);color:var(--muted);
+  font-size:var(--fs-2xs)}
+.bb-chiffres b{color:var(--text);font-size:var(--fs-md);font-weight:750;
+  font-variant-numeric:tabular-nums;margin-right:3px}
+.bb-delta{font-weight:750;font-size:var(--fs-2xs)}
+.bb-up{color:var(--accent)}
+.bb-down{color:var(--muted)}
+.bb-progres{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.bb-progres[hidden]{display:none}
+.bb-progres li{display:flex;justify-content:space-between;gap:var(--sp-2);min-width:0;
+  font-size:var(--fs-2xs);color:var(--muted);line-height:1.45}
+.bb-progres li span{min-width:0;overflow-wrap:anywhere}
+.bb-progres li em{font-style:normal;color:var(--text);font-weight:700;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.bb-verdict{margin:0;color:var(--text);font-size:var(--fs-2xs);line-height:1.55;font-weight:650}

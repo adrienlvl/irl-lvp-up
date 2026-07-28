@@ -3553,6 +3553,47 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errUnicite = String(e && e.message); return false; }
       })();
 
+      checks.bilanDeFinDeBloc = (() => {
+        try {
+          if (typeof renderBlockStatus !== 'function' || typeof bilanDeBloc !== 'function') return false;
+          const sw = state.workouts, sb = state.blockStart;
+          const jb = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+          };
+          /* Deux blocs consecutifs avec des charges qui MONTENT : c est le cas ou le bilan a
+             quelque chose a dire. Un seul bloc, et la comparaison ne se declenche pas. */
+          const w = [];
+          for (let k = 15; k >= 0; k--) {
+            const c = 60 + (15 - k), sq = 80 + (15 - k) * 1.5;
+            w.push({ id: 50000 + k, date: jb(k * 7 + 3), type: 'strength', duration: 50, effort: 3, xp: 30,
+              exercises: [
+                { name: 'Développé couché', completedSets: 3, sets: 3, setLogs: [{ reps: 8, load: c, completed: true }, { reps: 8, load: c, completed: true }, { reps: 6, load: c + 2, completed: true }] },
+                { name: 'Squat', completedSets: 2, sets: 2, setLogs: [{ reps: 8, load: sq, completed: true }, { reps: 8, load: sq, completed: true }] }
+              ] });
+          }
+          state.workouts = w;
+          // Bloc DEMARRE il y a 8 semaines et un jour : il doit etre termine.
+          state.blockStart = jb(57);
+          showPage('athlete');
+          renderBlockStatus();
+          const el = document.querySelector('.block-bilan');
+          // Le RENDU, pas la propriete : un bilan non peint ne raconte rien.
+          const txt = (el && getComputedStyle(el).display !== 'none') ? (el.textContent || '') : '';
+
+          state.workouts = sw; state.blockStart = sb;
+          try { renderBlockStatus(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__bilan = txt.slice(0, 110);
+          const chiffres = txt.indexOf('séance') !== -1 && txt.indexOf('kg soulevés') !== -1;
+          // On EXIGE la comparaison et un gain nomme : sans eux le bilan ne dit rien d utile.
+          const compare = txt.indexOf('%') !== -1;
+          const gain = txt.indexOf('Squat') !== -1 || txt.indexOf('Développé') !== -1;
+          return chiffres && compare && gain;
+        } catch (e) { checks.__errBilan = String(e && e.message); return false; }
+      })();
+
       checks.rattrapageZone = (() => {
         try {
           if (typeof renderBlockStatus !== 'function' || typeof zoneRattrapage !== 'function') return false;
@@ -4187,6 +4228,7 @@ app.whenReady().then(async () => {
     if (!checks.aucuneSeancePerdue) errors.push('Des séances du programme disparaissent en silence : quand deux séances du même type tombent le même jour (plus de séances que de jours cochés), la garde par créneau renonçait au lieu de décaler — 18 séances sur 48 étaient perdues. Le plan annonce N séances, l’agenda doit en recevoir N');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
+    if (!checks.bilanDeFinDeBloc) errors.push('Fin de bloc : l’écran dit quoi faire ensuite sans jamais dire ce que les 8 semaines ont produit. Il doit citer les séances, le tonnage, la variation vs le bloc précédent et les charges gagnées — tout est calculé, rien n’était affiché');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');

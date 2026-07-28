@@ -14176,6 +14176,60 @@ test('coachAdherence : « 5/7 » ne dit pas si tu montes ou si tu lâches', () =
     'date abîmée → rien');
 });
 
+test('bilanDeBloc : huit semaines de travail méritent un bilan', () => {
+  const AUJ = '2026-07-28';
+  const j = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const seances = (n, charge) => {
+    const w = [];
+    for (let s = n; s >= 0; s--) {
+      const m = charge(s);
+      w.push({ date: j(s * 7 + 3), type: 'strength', duration: 50, effort: 3, exercises: [
+        { name: 'Développé couché', completedSets: 3, sets: 3, setLogs: [
+          { reps: 8, load: m.c, completed: true }, { reps: 8, load: m.c, completed: true }, { reps: 6, load: m.c + 2, completed: true }] },
+        { name: 'Squat', completedSets: 2, sets: 2, setLogs: [
+          { reps: 8, load: m.s, completed: true }, { reps: 8, load: m.s, completed: true }] }
+      ] });
+    }
+    return w;
+  };
+
+  /* MESURÉ AVANT D'ÉCRIRE : à la fin d'un bloc, l'écran dit « Bloc de 8 semaines terminé »,
+     donne le conseil pour la suite… et ne dit RIEN de ce que le bloc a produit. `blockWindowStats`
+     et `bestE1rmByExercise` calculaient tout et n'étaient appelées depuis app.js pour cet écran
+     ni l'une ni l'autre. */
+  const monte = L.bilanDeBloc(seances(15, s => ({ c: 60 + (15 - s), s: 80 + (15 - s) * 1.5 })), j(56), AUJ, 8);
+  assert.ok(monte, 'un bloc avec des séances produit un bilan');
+  assert.ok(monte.seances > 0 && monte.tonnage > 0, 'les chiffres du bloc sont là');
+  assert.ok(monte.deltaPct > 0, 'et la comparaison au bloc précédent : ' + monte.deltaPct + ' %');
+  assert.ok(monte.progres.length > 0, 'les gains par exercice sont listés');
+  assert.ok(monte.progres[0].gain > 0 && monte.progres[0].avant > 0, 'avec un avant ET un après');
+  assert.ok(/a payé/.test(monte.verdict), monte.verdict);
+
+  /* « Pas de bloc précédent » n'est PAS « un bloc précédent à zéro ». Sans séance avant, toute
+     variation serait un artefact : on constate au lieu de juger. C'est le cas d'un premier
+     bloc, donc du premier vrai usage de l'app. */
+  const premier = L.bilanDeBloc(seances(7, () => ({ c: 60, s: 80 })), j(56), AUJ, 8);
+  assert.equal(premier.compare, false, 'aucun bloc avant → pas de comparaison');
+  assert.equal(premier.deltaPct, null, 'et surtout pas un pourcentage inventé');
+  assert.ok(/[Pp]remier bloc/.test(premier.verdict), premier.verdict);
+
+  /* Le verdict distingue VOLUME et FORCE : monter le tonnage sans gagner en charge, c'est
+     travailler plus pour le même résultat. On l'écrit sur le cas qui DISCRIMINE — charges
+     identiques d'un bloc à l'autre, mais plus de séances dans le second. */
+  const plus = seances(15, () => ({ c: 70, s: 90 }));
+  plus.push({ date: j(10), type: 'strength', duration: 50, effort: 3, exercises: [
+    { name: 'Squat', completedSets: 2, sets: 2, setLogs: [
+      { reps: 8, load: 90, completed: true }, { reps: 8, load: 90, completed: true }] }] });
+  const volume = L.bilanDeBloc(plus, j(56), AUJ, 8);
+  assert.ok(volume.deltaPct > 0, 'le volume a bien monté : ' + volume.deltaPct + ' %');
+  assert.equal(volume.progres.filter(x => x.gain > 0).length, 0, 'mais aucune charge n’a bougé');
+  assert.ok(/même résultat|charges stables/.test(volume.verdict), volume.verdict);
+
+  // Aucune séance : rien à raconter, on se tait plutôt que d'afficher des zéros.
+  assert.equal(L.bilanDeBloc([], j(56), AUJ, 8), null, 'aucune séance → aucun bilan');
+  assert.equal(L.bilanDeBloc(seances(2, () => ({ c: 60, s: 80 })), 'pas-une-date', AUJ, 8), null, 'date abîmée → rien');
+});
+
 test('un seul endroit répond à « quel poids ? »', () => {
   const fs = require('fs');
   const path = require('path');
