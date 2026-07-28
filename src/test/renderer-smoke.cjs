@@ -965,7 +965,7 @@ app.whenReady().then(async () => {
         })(),
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
-        currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-08-10').done === true && currentBlock('', 'x') === null; })(),
+        currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-09-07').done === true && currentBlock('', 'x') === null; })(),
         blockHeadsUp: typeof blockPhaseHeadsUp === 'function' && (() => { const s4 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-27')); const s3 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-20')); return s4 && s4.phase === 'deload' && s4.showNextAdvice === true && s3 && s3.phase === 'preload' && s3.showNextAdvice === false && blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-06')) === null && blockPhaseHeadsUp(null) === null; })(),
         nextBlockAdvice: typeof nextBlockAdvice === 'function' && nextBlockAdvice({ adherence: 30 }).action === 'ease' && nextBlockAdvice({ adherence: 85, loadStatus: 'push' }).action === 'progress' && nextBlockAdvice({}).action === 'keep',
         blockForecast: typeof bestStrengthForecast === 'function' && (() => { const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-06-08', 'Squat', 90, 1), wo('2026-06-15', 'Squat', 92.5, 1), wo('2026-06-22', 'Squat', 95, 1), wo('2026-06-29', 'Squat', 97.5, 1)]; const f = bestStrengthForecast(workouts, { step: 5, todayKey: '2026-06-29' }); return f && f.exercise === 'Squat' && f.milestone === 100 && f.weeks === 1 && bestStrengthForecast([], {}) === null; })(),
@@ -3680,7 +3680,7 @@ app.whenReady().then(async () => {
           showPage('athlete');
           if (typeof showAthleteTab === 'function') showAthleteTab('programme');
           runObjectiveProgram();
-          scheduleObjectiveProgram(lastObjectiveProgram, 4);
+          scheduleObjectiveProgram(lastObjectiveProgram);
           const apresProg = state.agenda.length;
 
           /* Les deux écrans montrent la MÊME semaine : cliquer le second bouton ne doit RIEN

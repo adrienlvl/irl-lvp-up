@@ -4144,7 +4144,7 @@ test('onboardingNutritionEstimate : estimation calories en direct à l’onboard
   assert.equal(L.onboardingNutritionEstimate({}), null);
   assert.equal(L.onboardingNutritionEstimate(null), null);
 });
-test('currentBlock : suivi de la semaine dans le bloc de 4 semaines', () => {
+test('currentBlock : suivi de la semaine dans le bloc de 8 semaines (2 cycles)', () => {
   const start = '2026-07-06'; // lundi
   assert.equal(L.currentBlock(start, '2026-07-06').week, 1);
   assert.equal(L.currentBlock(start, '2026-07-06').phase.phase, 'Base');
@@ -4153,8 +4153,17 @@ test('currentBlock : suivi de la semaine dans le bloc de 4 semaines', () => {
   assert.equal(w2.week, 2); assert.equal(w2.phase.phase, 'Volume'); assert.equal(w2.deloadInWeeks, 2);
   const w4 = L.currentBlock(start, '2026-07-29'); // semaine 4 (23 j)
   assert.equal(w4.week, 4); assert.ok(w4.phase.deload); assert.equal(w4.deloadInWeeks, 0);
-  const over = L.currentBlock(start, '2026-08-10'); // au-delà
-  assert.equal(over.done, true); assert.equal(over.week, 4);
+  // Second mésocycle : la périodisation repart sur Base, elle ne se fige pas.
+  const w5 = L.currentBlock(start, '2026-08-05'); // semaine 5 (30 j)
+  assert.equal(w5.week, 5); assert.equal(w5.phase.phase, 'Base');
+  assert.equal(w5.deloadInWeeks, 3, 'la décharge revient toutes les 4 semaines');
+  const w8 = L.currentBlock(start, '2026-08-26'); // semaine 8 (51 j)
+  assert.equal(w8.week, 8); assert.ok(w8.phase.deload, 'S8 est bien une décharge');
+  const over = L.currentBlock(start, '2026-09-07'); // au-delà des 8 semaines
+  assert.equal(over.done, true); assert.equal(over.week, 8);
+  assert.equal(over.weeksTotal, 8, 'le bloc dure bien 8 semaines');
+  // Le paramètre reste ouvert : un bloc plus court doit rester possible sans toucher au code.
+  assert.equal(L.currentBlock(start, '2026-08-05', 4).done, true, '4 semaines demandées → terminé à S5');
   assert.equal(L.currentBlock(start, '2026-07-01'), null, 'avant le début → null');
   assert.equal(L.currentBlock('', '2026-07-10'), null);
 });
@@ -4170,7 +4179,8 @@ test('currentBlock : 7 jours calendaires = 7 jours même à travers un changemen
     assert.equal(spring.daysIntoWeek, 0, '7 j calendaires = pile 1 semaine');
     assert.equal(L.phaseSetsForDay(3, '2026-03-23', '2026-03-30'), 4, 'S2 Volume = +1 malgré le DST');
     // Fin de bloc : 28 j calendaires = bloc terminé, même à travers le DST.
-    assert.equal(L.currentBlock('2026-03-23', '2026-04-20').done, true, '28 j → bloc terminé');
+    assert.equal(L.currentBlock('2026-03-23', '2026-05-18').done, true, '56 j → bloc de 8 semaines terminé');
+    assert.equal(L.currentBlock('2026-03-23', '2026-04-20').week, 5, '28 j → on entre dans le second cycle');
   } finally {
     if (orig === undefined) delete process.env.TZ; else process.env.TZ = orig;
   }

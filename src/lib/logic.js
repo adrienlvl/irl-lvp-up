@@ -5380,7 +5380,7 @@ function progressSets(baseSets, weekIndex) {
 // Suivi du bloc de périodisation de 4 semaines à partir de sa date de début (lundi) et d'aujourd'hui.
 // Renvoie { week (1..4), phase, weeksTotal, done, daysIntoWeek, deloadInWeeks } ou null si invalide
 // ou aujourd'hui avant le début. Au-delà de 4 semaines, done=true (proposer un nouveau bloc). Pur + testé.
-function currentBlock(blockStartKey, todayKey) {
+function currentBlock(blockStartKey, todayKey, weeks) {
   const s = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(blockStartKey || ''));
   const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(todayKey || ''));
   if (!s || !t) return null;
@@ -5392,14 +5392,17 @@ function currentBlock(blockStartKey, todayKey) {
   const days = Math.round((today - start) / 86400000);
   if (days < 0) return null;
   const weekIndex = Math.floor(days / 7);
-  const done = weekIndex >= 4;
+  const total = Math.max(1, Math.min(16, Math.round(Number(weeks) || 8)));
+  const done = weekIndex >= total;
   return {
-    week: done ? 4 : weekIndex + 1,
-    phase: blockPhase(Math.min(weekIndex, 3)),
-    weeksTotal: 4,
+    week: done ? total : weekIndex + 1,
+    // On NE clampe plus a 3 : au-dela de la 4e semaine, le second mesocycle recommence.
+    phase: blockPhase(Math.min(weekIndex, total - 1)),
+    weeksTotal: total,
     done,
     daysIntoWeek: days % 7,
-    deloadInWeeks: done ? 0 : Math.max(0, 3 - weekIndex),
+    // La decharge revient toutes les 4 semaines, pas seulement a la fin du bloc.
+    deloadInWeeks: done ? 0 : ((3 - (weekIndex % 4)) + 4) % 4,
   };
 }
 // Heads-up anticipé de fin de bloc à partir de l'état du bloc (sortie de currentBlock) : prévient

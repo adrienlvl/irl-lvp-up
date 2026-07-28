@@ -337,3 +337,12 @@
    pas. Ajoutée quand le bloc « régularité » en double a été retiré — un seul avis par sujet. */
 .sc-src{display:block;color:var(--muted);font-size:var(--fs-3xs);opacity:.85;margin-top:5px}
 .sc-src[hidden]{display:none}
+
+/* Rampe de progression : huit phases au lieu de quatre depuis le passage à 8 semaines.
+   Les pastilles doivent pouvoir RÉTRÉCIR — un item flex a `min-width:auto` par défaut et
+   refuse de passer sous la largeur de son texte, ce qui faisait déborder la ligne de 36 px
+   sur iPhone. Deux colonnes par cycle : la périodisation se lit d'un coup d'œil. */
+.op-ramp-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.op-ramp-row[hidden]{display:none}
+.op-phase{min-width:0;overflow-wrap:anywhere;text-align:center;font-size:var(--fs-3xs);
+  padding:5px 4px;line-height:1.25}
