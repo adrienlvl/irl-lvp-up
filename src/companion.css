@@ -103,3 +103,35 @@
    colonnes, sinon un trou reste à sa place. */
 .guided-set-row .gs-load.gs-off{display:none}
 .guided-set-row:has(.gs-load.gs-off){grid-template-columns:auto minmax(0,1fr) auto}
+
+/* SÉANCE GUIDÉE — départ et enchaînement série par série (demande d'Adrien : « demander si je
+   suis prêt, compte à rebours de 5 s, série 1, repos, série 2… »). */
+.guided-ready{display:grid;gap:var(--sp-3);place-items:center;text-align:center;padding:var(--sp-5) var(--sp-3);
+  border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface-2);margin:var(--sp-3) 0}
+.guided-ready[hidden]{display:none}
+.gr-ex{font-size:var(--fs-lg);font-weight:750;color:var(--text);line-height:1.2;text-wrap:balance}
+.gr-plan{color:var(--muted);font-size:var(--fs-sm);line-height:1.5}
+.gr-go{min-height:52px;padding:0 var(--sp-5);font-size:var(--fs-md);font-weight:750}
+.gr-hint{color:var(--muted);font-size:var(--fs-2xs);line-height:1.5;max-width:34ch}
+
+/* Le décompte prend toute la place : à ce moment-là il n'y a rien d'autre à regarder. */
+.guided-countdown{display:grid;gap:var(--sp-2);place-items:center;padding:var(--sp-6) var(--sp-3);
+  border:1px solid var(--accent);border-radius:var(--r-lg);background:var(--accent-soft);margin:var(--sp-3) 0}
+.guided-countdown[hidden]{display:none}
+.gc-num{font-size:4.5rem;font-weight:800;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.gc-lbl{color:var(--muted);font-size:var(--fs-sm)}
+.gc-skip{margin-top:var(--sp-2)}
+
+/* La série COURANTE saute aux yeux ; celles d'après s'effacent sans disparaître — on veut voir
+   ce qui reste, sans le confondre avec ce qu'on fait maintenant. */
+.guided-set-row.gs-now{border:2px solid var(--accent);background:var(--accent-soft);
+  border-radius:var(--r-md);padding:var(--sp-2);box-shadow:0 0 0 4px rgba(0,0,0,.04)}
+.guided-set-row.gs-now b{color:var(--accent);font-size:var(--fs-md)}
+.guided-set-row.gs-todo{opacity:.45}
+.guided-set-row.gs-todo:hover{opacity:.75}
+@media(prefers-reduced-motion:no-preference){.guided-set-row.gs-now{transition:opacity .2s ease}}
+
+/* `.guided-set-log` pose `display:grid` : sans cette règle, l'attribut `hidden` est battu par
+   l'auteur et la liste des séries restait affichée SOUS l'écran « prêt ? ». C'est le piège que
+   ce dépôt a déjà rencontré deux fois — toute classe qui pose display: doit avoir la sienne. */
+.guided-set-log[hidden]{display:none}

@@ -43,6 +43,7 @@ app.whenReady().then(async () => {
     }
   });
   win.webContents.on('console-message', (_e, level, message) => {
+    if (/Blocked call to navigator.vibrate/i.test(message)) return;
     if (level >= 3 || /uncaught|is not defined|is not a function|\[IRL\]/i.test(message)) {
       errors.push('console: ' + message);
     }
@@ -3179,6 +3180,58 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.seanceEtapeParEtape = (() => {
+        try {
+          if (typeof openGuidedWorkout !== 'function') return false;
+          openGuidedWorkout({ title: 'Test guidee', exercises: [{ name: 'Kettlebell swing', sets: 3, reps: 10 }] });
+          const vu = function (id) {
+            const e = document.getElementById(id);
+            // Le RENDU, pas la propriete : une regle auteur peut battre l attribut hidden.
+            return !!e && getComputedStyle(e).display !== 'none';
+          };
+
+          /* 1. Adrien : « demander avant de commencer la seance si je suis pret ». A
+             l ouverture on ne doit PAS tomber sur une liste de champs a remplir. */
+          const pretAffiche = vu('guidedReady');
+          const seriesCachees = !vu('guidedSetLog');
+
+          // 2. « mettre un compte a rebours de 5 secondes »
+          const go = document.getElementById('guidedReadyGo');
+          if (go) go.click();
+          const compteAffiche = vu('guidedCountdown');
+          const num = document.getElementById('guidedCountdownNum');
+          const part5 = !!num && String(num.textContent || '').trim() === '5';
+
+          // On passe le decompte plutot que d attendre 5 s dans le harnais.
+          const skip = document.getElementById('guidedCountdownSkip');
+          if (skip) skip.click();
+          const compteFini = !vu('guidedCountdown');
+          const seriesVisibles = vu('guidedSetLog');
+
+          /* 3. « serie 1, repos, serie 2… » : UNE seule serie doit etre mise en avant, et
+             c est la premiere non validee. Sans ca on retombe sur la liste indifferenciee. */
+          const now = document.querySelectorAll('#guidedSetLog .guided-set-row.gs-now');
+          const unSeul = now.length === 1;
+          const premiere = unSeul && now[0].getAttribute('data-guided-set') === '0';
+          const suivantesEffacees = document.querySelectorAll('#guidedSetLog .guided-set-row.gs-todo').length >= 1;
+
+          // 4. On valide la serie 1 : la courante doit passer a la 2.
+          const b1 = document.querySelector('[data-complete-guided-set="0"]');
+          if (b1) b1.click();
+          const now2 = document.querySelectorAll('#guidedSetLog .guided-set-row.gs-now');
+          const avance = now2.length === 1 && now2[0].getAttribute('data-guided-set') === '1';
+
+          checks.__guidee = 'pret=' + pretAffiche + ' cach=' + seriesCachees + ' cpt=' + compteAffiche + ' p5=' + part5 + ' fini=' + compteFini + ' vis=' + seriesVisibles + ' un=' + unSeul + ' prem=' + premiere + ' todo=' + suivantesEffacees + ' av=' + avance;
+
+          const d = document.getElementById('guidedWorkoutDialog');
+          try { if (d && d.open) d.close(); } catch (_) {}
+          showPage('dashboard');
+
+          return pretAffiche && seriesCachees && compteAffiche && part5 && compteFini
+            && seriesVisibles && unSeul && premiere && suivantesEffacees && avance;
+        } catch (e) { checks.__errGuidee = String(e && e.message); return false; }
+      })();
+
       checks.chargeMasquee = (() => {
         try {
           if (typeof openGuidedWorkout !== 'function' || typeof exerciceSansCharge !== 'function') return false;
@@ -3859,6 +3912,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer');
     if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
