@@ -273,8 +273,13 @@
 .op-day{background:var(--surface-2,#111728);border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:9px}
 .op-day.op-course{border-color:rgba(94,178,255,.35)}
 .op-day.op-muscu{border-color:var(--accent-line)}
-.op-day-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.op-day-h b{font-size:.9rem}
+/* L'en-tête porte maintenant jusqu'à trois étiquettes (durée, D+, sortie longue visée) en plus
+   du titre. Sans retour à la ligne, « Sortie longue · 14 km » + « ⛰️ 250 m D+ » débordait de
+   18 px en 390 px — mesuré. Le titre garde min-width:0, sinon un titre long refuse de se
+   compresser et pousse les étiquettes hors de la boîte malgré le wrap. */
+.op-day-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.op-day-h[hidden]{display:none}
+.op-day-h b{font-size:.9rem;min-width:0;overflow-wrap:anywhere}
 .op-day-h small{color:var(--muted);font-size:.72rem;white-space:nowrap}
 .op-ex{list-style:none;margin:0;padding:0;display:grid;gap:5px}
 .op-ex li{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:.82rem}

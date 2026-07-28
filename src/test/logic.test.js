@@ -14376,6 +14376,53 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('dplusHebdo : un seul dénivelé hebdomadaire, et on dit d’où il vient', () => {
+  /* DÉFAUT MESURÉ EN REVUE. À l'itération 53 le Plan de bataille lisait ultraPlan.elevation
+     tandis que le panneau trail écrivait state.trail : le panneau annonçait « Cette semaine :
+     600 m D+ » pendant que le plan répartissait 1 200 m juste en dessous, et tant qu'Adrien ne
+     touchait pas au nouveau réglage sa saisie historique ne pilotait RIEN. */
+  const sem = '2026-07-27', auj = '2026-07-29';
+  const journal = [{ date: '2026-07-28', elevation: 600 }, { date: '2026-07-29', elevation: 450 }];
+
+  // Sans réglage : c'est la MESURE qui pilote, et on le dit.
+  const mesure = L.dplusHebdo(journal, { elevation: 0 }, auj, sem);
+  assert.equal(mesure.valeur, 1050, 'la somme de la semaine : ' + mesure.valeur);
+  assert.equal(mesure.source, 'mesure', 'origine nommée');
+  assert.equal(mesure.mesure, 1050);
+  assert.equal(mesure.reglage, 0);
+
+  // Avec réglage : l'intention PRIME sur le constat, et l'origine change.
+  const regle = L.dplusHebdo(journal, { elevation: 1200 }, auj, sem);
+  assert.equal(regle.valeur, 1200, 'le réglage explicite gagne');
+  assert.equal(regle.source, 'reglage');
+  assert.equal(regle.mesure, 1050, 'mais la mesure reste consultable : elle nourrit l’aide de saisie');
+  assert.notEqual(regle.valeur, mesure.valeur, 'les deux cas se distinguent — sinon rien n’est testé');
+
+  // Rien nulle part : on n'invente pas un dénivelé.
+  const vide = L.dplusHebdo([], { elevation: 0 }, auj, sem);
+  assert.equal(vide.valeur, 0);
+  assert.equal(vide.source, 'aucune', 'ni réglage ni mesure : aucune origine à annoncer');
+
+  /* FENÊTRE : ce qui précède le lundi ou suit aujourd'hui ne compte pas dans « cette semaine ».
+     Sans ce filtre, le plan répartirait du dénivelé d'il y a trois semaines. */
+  const large = [{ date: '2026-07-20', elevation: 9999 }].concat(journal).concat([{ date: '2026-08-05', elevation: 8888 }]);
+  assert.equal(L.dplusHebdo(large, null, auj, sem).valeur, 1050, 'hors semaine : écarté');
+
+  /* `state.trail` n'est normalisé que comme TABLEAU : une sauvegarde importée porte des chaînes,
+     et `0 + '450'` vaut '0450'. */
+  const chaines = [{ date: '2026-07-28', elevation: '600' }, { date: '2026-07-29', elevation: '450' }];
+  assert.equal(L.dplusHebdo(chaines, null, auj, sem).valeur, 1050, 'chaînes coercées, pas concaténées');
+  // Valeurs aberrantes : un négatif ne retire pas du dénivelé.
+  assert.equal(L.dplusHebdo(journal.concat([{ date: '2026-07-29', elevation: -500 }]), null, auj, sem).valeur, 1050,
+    'un négatif est ignoré, il ne se soustrait pas');
+  assert.equal(L.dplusHebdo(journal.concat([{ date: 'nawak', elevation: 700 }]), null, auj, sem).valeur, 1050,
+    'une date abîmée n’entre pas dans la semaine');
+  // Entrées absentes : rien d'inventé, aucune exception.
+  assert.equal(L.dplusHebdo(null, null, auj, sem).valeur, 0);
+  assert.equal(L.dplusHebdo(journal, { elevation: 1200 }, 'pas-une-date', 'pas-une-date').valeur, 1200,
+    'sans fenêtre exploitable, le réglage répond quand même');
+});
+
 test('whatsNewCap : les nouveautés se replient, elles ne se perdent pas', () => {
   /* MESURÉ à la sonde 390×844 : sur la page Réglages, la carte « Quoi de neuf » faisait
      4 948 px après six releases d'absence — 5,9 écrans d'iPhone, 64 % de la hauteur de la page.

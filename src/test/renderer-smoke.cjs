@@ -3185,6 +3185,59 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.dplusUneSeuleSource = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function' || typeof renderAthlete !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const su = JSON.parse(JSON.stringify(state.ultraPlan || {}));
+          const st = state.trail, sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          state.profile = Object.assign({}, state.profile, { weight: 75, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'trail', availableDays: [1, 3, 5, 6] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 72, sessions: 3, runs: 4, progSessions: '' });
+          state.weights = [{ date: localDate(), value: 75 }]; state.workouts = [];
+          state.fitnessObjective = 'endurance';
+
+          const nombre = txt => {
+            let n = '';
+            for (let k = 0; k < txt.length; k++) { const c = txt.charAt(k); if (c >= '0' && c <= '9') n += c; else if (n) break; }
+            return Number(n) || 0;
+          };
+          const lire = sel => { const e = document.querySelector(sel); return e ? String(e.textContent || '') : ''; };
+
+          /* CAS 1 — il saisit son denivele dans le panneau trail et ne touche a rien d autre.
+             C est le scenario ou sa saisie ne pilotait RIEN : le plan n affichait aucun D+. */
+          state.trail = [{ date: localDate(), elevation: 600, longRun: 90 }];
+          state.ultraPlan = Object.assign({}, state.ultraPlan, { elevation: 0, longRun: 0 });
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          renderAthlete(); runObjectiveProgram();
+          const insight1 = lire('#trailInsight');
+          const plan1 = lire('#objectiveResult .op-trail');
+          const nInsight = nombre(insight1.slice(insight1.indexOf('semaine') + 7));
+          const nPlan = nombre(plan1.slice(plan1.indexOf('D+') > 0 ? 0 : 0));
+
+          // CAS 2 — un reglage explicite : il doit PRIMER, et l origine changer de nom.
+          state.ultraPlan = Object.assign({}, state.ultraPlan, { elevation: 1200 });
+          renderAthlete(); runObjectiveProgram();
+          const plan2 = lire('#objectiveResult .op-trail');
+
+          state.profile = sp; state.goals = sg; state.ultraPlan = su; state.trail = st;
+          state.weights = sw; state.fitnessObjective = so; state.workouts = swk;
+          try { renderAthlete(); runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__dplusSrc = 'insight=' + nInsight + ' plan=' + nPlan + ' plan1[' + plan1.slice(0, 45) + '] plan2[' + plan2.slice(0, 45) + ']';
+          /* UN SEUL AVIS PAR SUJET : sans reglage, le plan doit annoncer EXACTEMENT le chiffre
+             du panneau trail, et dire qu il vient d une mesure. Avec reglage, il doit changer
+             de valeur ET d origine — sinon les deux cas ne se distinguent pas. */
+          return nInsight === 600 && nPlan === 600
+            && plan1.indexOf('enregistrés cette semaine') !== -1
+            && plan2.indexOf('1200') !== -1 && plan2.indexOf('ton réglage') !== -1
+            && plan1 !== plan2;
+        } catch (e) { checks.__errDplusSrc = String(e && e.message); return false; }
+      })();
+
       checks.whatsNewPlafonne = (() => {
         try {
           if (typeof renderWhatsNew !== 'function' || typeof CHANGELOG === 'undefined') return false;
@@ -4719,6 +4772,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.dplusUneSeuleSource) errors.push('Dénivelé : le panneau trail et le Plan de bataille doivent annoncer LE MÊME chiffre quand aucun réglage n’est posé — mesuré avant correctif : « Cette semaine : 600 m D+ » d’un côté, 1 200 m répartis de l’autre, et une saisie trail qui ne pilotait rien. Le plan doit aussi NOMMER l’origine du chiffre (mesure ou réglage)');
     if (!checks.whatsNewPlafonne) errors.push('Carte « Quoi de neuf » : au plus trois versions dépliées, le reste PRÉSENT mais replié, et la carte sous trois écrans d’iPhone — mesuré à 4 948 px (5,9 écrans, 64 % de la page Réglages) après six releases d’absence, sans aucun plafond');
     if (!checks.dplusStable) errors.push('Panneau trail : le champ dénivelé doit montrer TA SAISIE DU JOUR, pas le cumul de la semaine — sinon « Enregistrer » réenregistre le total comme la valeur du jour et le chiffre enfle à chaque clic (mesuré : 450 → 900 → 1350 → 1800 sans rien taper). Trois enregistrements à vide ne doivent pas bouger le total hebdomadaire d’un mètre');
     if (!checks.coucherChiffre) errors.push('Coach sommeil : un coucher qui dérive le week-end (23:10 / 01:15, 56 min d’écart-type) et un coucher à heure fixe ne doivent PAS produire le même verdict à l’écran — le premier doit porter le chiffre mesuré et nommer le week-end, le second dire « heure fixe »');
@@ -4963,6 +5017,24 @@ app.whenReady().then(async () => {
         out.enTeteTexte = t ? Math.round(t.parentElement.getBoundingClientRect().width) : 0;
         // 3. Aucun élément visible ne doit déborder de sa boîte sans défilement prévu.
         //    C'est ce qui a attrapé le sélecteur d'objectif coupé et la barre bien-être.
+        /* On SEME un dénivelé avant de parcourir les pages : sans lui, les étiquettes D+ et
+           « visée N min » ne sont pas rendues et la passe ne voit qu'un en-tête de séance nu.
+           Mesuré : avec ces étiquettes, l'en-tête débordait de 18 px en 390 px — et la mutation
+           qui retirait le retour à la ligne SURVIVAIT, faute d'un état qui l'exerce. */
+        const _ultraAvant = JSON.parse(JSON.stringify(state.ultraPlan || {}));
+        const _profAvant = JSON.parse(JSON.stringify(state.profile || {}));
+        const _goalsAvant = JSON.parse(JSON.stringify(state.goals || {}));
+        const _objAvant = state.fitnessObjective;
+        /* Profil trail COMPLET : sans volume hebdo renseigné, les titres de course ne portent
+           pas de distance (« Course facile » au lieu de « Sortie longue · 14 km ») et l'en-tête
+           reste court — la passe ne verrait alors rien à déborder. */
+        state.ultraPlan = Object.assign({}, state.ultraPlan, { elevation: 1200, longRun: 120 });
+        state.profile = Object.assign({}, state.profile, { weight: 75, height: 180, age: 29,
+          sex: 'homme', activityLevel: 'actif', goal: 'trail', availableDays: [1, 3, 5, 6] });
+        state.goals = Object.assign({}, state.goals, { targetWeight: 72, sessions: 3, runs: 4,
+          progSessions: '', weeklyKm: 40 });
+        state.fitnessObjective = 'endurance';
+        try { if (typeof runObjectiveProgram === 'function') runObjectiveProgram(); } catch (_) {}
         const pages = ['athlete', 'nutrition', 'alternance', 'poids', 'focus'];
         for (const p of pages) {
           showPage(p);
@@ -4984,6 +5056,10 @@ app.whenReady().then(async () => {
           });
           }
         }
+        // On rend l'état comme on l'a trouvé : les mesures suivantes ne doivent rien hériter.
+        state.ultraPlan = _ultraAvant; state.fitnessObjective = _objAvant;
+        state.profile = _profAvant; state.goals = _goalsAvant;
+        try { if (typeof runObjectiveProgram === 'function') runObjectiveProgram(); } catch (_) {}
         // 3 bis. Les DIALOGUES : la passe ne regardait que les panneaux, alors que c'est dans
         //        le formulaire d'édition d'un bloc qu'on a trouvé 106 px de débordement.
         out.dialoguesMobile = [];
