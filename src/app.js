@@ -958,20 +958,8 @@ function renderWeeklySleep(){const num=n=>String(n).replace('.',',');
   const el=$('#weeklySleep');if(el&&typeof weeklySleepStats==='function'){const since=dateKey(new Date(Date.now()-6*864e5));const st=weeklySleepStats(state.recovery,since,localDate());if(!st){el.hidden=true;el.innerHTML='';}else{el.hidden=false;el.className='weekly-sleep wsl-'+st.status;const label=st.status==='court'?'sommeil court 😴':st.status==='ok'?'bon sommeil 👍':'excellent sommeil 🌟';el.innerHTML=`<span>😴 <b>${num(st.avg)} h</b>/nuit sur ${st.nights} nuit${st.nights>1?'s':''} · ${label}</span><small>plus courte : ${num(st.min)} h</small>`;}}
   renderSleepPlan();
   // L'effet du coucher sur le lendemain (moteur de motivation) : la preuve chiffrée que se coucher tôt paie.
-  const siEl=$('#sleepImpact');if(siEl&&typeof sleepImpactReport==='function'){const si=sleepImpactReport(state,localDate());if(!si){siEl.hidden=true;siEl.innerHTML='';}else{siEl.hidden=false;siEl.className='sleep-impact'+(si.confidence==='low'?' si-low':'');siEl.innerHTML=`<span>📊 <b>L’effet de ton coucher</b>${si.confidence==='low'?' <small>· tendance à confirmer</small>':''}</span><p>${escapeHtml(si.verdict)}</p>`;}}
-  {const rgEl=$('#sleepRegularite');
-   /* La regularite compte autant que la duree, et l app n en disait rien : trois mesures
-      calculees que personne ne lisait. On nomme UN seul frein, le plus limitant. */
-   const rg=(rgEl&&typeof coachRegulariteSommeil==='function')?coachRegulariteSommeil(state.recovery,localDate()):null;
-   if(rgEl){
-     if(rg){rgEl.hidden=false;rgEl.innerHTML=`<div class="sr-head"><span class="sr-ico" aria-hidden="true">🌙</span><b>${escapeHtml(rg.titre)}</b></div>`
-       +`<div class="sr-val">${escapeHtml(rg.valeur)}</div>`
-       +`<p class="sr-corps">${escapeHtml(rg.corps)}</p>`
-       +`<p class="sr-action">${escapeHtml(rg.action)}</p>`
-       +(rg.source?`<small class="sr-src">📚 ${escapeHtml(rg.source)}</small>`:'');}
-     else{rgEl.hidden=true;rgEl.innerHTML='';}
-   }}
-  const scEl=$('#sleepCoach');if(!scEl||typeof sleepCoachInsight!=='function')return;const sc=sleepCoachInsight(state.recovery,localDate(),{planActive:!!(state.sleepPlan&&state.sleepPlan.active)});if(!sc){scEl.hidden=true;scEl.innerHTML='';return;}scEl.hidden=false;scEl.className='sleep-coach sc-'+sc.tone;const icon=sc.tone==='urgent'?'🚨':sc.tone==='attention'?'⚠️':'🌙';scEl.innerHTML=`<span>${icon} <b>Bilan sommeil</b></span><p>${escapeHtml(sc.verdict)}</p>`;}
+  const siEl=$('#sleepImpact');if(siEl&&typeof sleepImpactReport==='function'){const si=(function(){const r=sleepImpactReport(state,localDate());if(!r||!r.early||!r.late)return r||null;const fe=Number(r.early.focusMin)||0,fl=Number(r.late.focusMin)||0;const ee=Number(r.early.energy)||0,el=Number(r.late.energy)||0;if(fe<=0&&fl<=0&&ee<=0&&el<=0)return null;return r;})();if(!si){siEl.hidden=true;siEl.innerHTML='';}else{siEl.hidden=false;siEl.className='sleep-impact'+(si.confidence==='low'?' si-low':'');siEl.innerHTML=`<span>📊 <b>L’effet de ton coucher</b>${si.confidence==='low'?' <small>· tendance à confirmer</small>':''}</span><p>${escapeHtml(si.verdict)}</p>`;}}
+  const scEl=$('#sleepCoach');if(!scEl||typeof sleepCoachInsight!=='function')return;const sc=sleepCoachInsight(state.recovery,localDate(),{planActive:!!(state.sleepPlan&&state.sleepPlan.active)});if(!sc){scEl.hidden=true;scEl.innerHTML='';return;}scEl.hidden=false;scEl.className='sleep-coach sc-'+sc.tone;const icon=sc.tone==='urgent'?'🚨':sc.tone==='attention'?'⚠️':'🌙';scEl.innerHTML=`<span>${icon} <b>Bilan sommeil</b></span><p>${escapeHtml(sc.verdict)}</p>`+(sc.source?`<small class="sc-src">📚 ${escapeHtml(sc.source)}</small>`:'');}
 // Récup : coach de recalage du sommeil — heure de coucher CIBLE du soir, progression vers l'objectif
 // nocturne, adaptation aux écarts, arrivée estimée (+ conseils du soir et adhérence en étape 4).
 let sleepPlanEditing=false;

@@ -3172,50 +3172,54 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
-      checks.regulariteSommeil = (() => {
+      checks.sommeilUneSeuleVoix = (() => {
         try {
-          if (typeof renderWeeklySleep !== 'function' || typeof coachRegulariteSommeil !== 'function') return false;
-          const sr = state.recovery;
+          if (typeof renderWeeklySleep !== 'function' || typeof sleepCoachInsight !== 'function') return false;
+          const sr = state.recovery, sw = state.workouts;
           const jn = function (n) {
             const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
             return d.toISOString().slice(0, 10);
           };
-          const semer = function (fn) {
-            const r = [];
-            for (let i = 13; i >= 0; i--) r.push(Object.assign({ date: jn(i) }, fn(i)));
-            return r;
-          };
-          const lire = function () {
-            showPage('dashboard');
-            renderWeeklySleep();
-            const el = document.getElementById('sleepRegularite');
-            // Le RENDU, pas la propriete : l attribut hidden peut etre battu par une regle auteur.
-            if (!el || getComputedStyle(el).display === 'none') return '';
-            return (el.textContent || '');
-          };
-
-          /* Duree correcte mais coucher qui saute de 2 h 30 : le cas ou la REGULARITE est le
-             frein, et ou l app ne disait rien du tout avant. */
-          state.recovery = semer(function (i) { return { sleep: 7.5, fatigue: 2, soreness: 2, bedtime: i % 2 ? '23:00' : '01:30' }; });
-          const irregulier = lire();
-          /* Moins d'une semaine : le panneau doit se TAIRE. On sonde a SIX nuits et non a
-             deux : sleepRegularity rend deja null sous trois nuits, donc un jeu a deux
-             nuits passerait sans jamais toucher notre seuil. */
+          /* Coucher qui saute de 2 h 30 sur 14 nuits : le cas ou DEUX panneaux disaient la
+             meme chose avec le meme chiffre, l un sous l autre. */
           state.recovery = [];
-          for (let i = 5; i >= 0; i--) state.recovery.push({ date: jn(i), sleep: 7, fatigue: 2, soreness: 2, bedtime: i % 2 ? '22:00' : '02:00' });
-          const troisNuits = lire();
+          for (let i = 13; i >= 0; i--) {
+            state.recovery.push({ date: jn(i), sleep: 7.5, fatigue: 2, soreness: 2, bedtime: i % 2 ? '23:00' : '01:30' });
+          }
+          state.workouts = [];
+          showPage('dashboard');
+          renderWeeklySleep();
 
-          state.recovery = sr;
+          /* On compte les panneaux du bloc Recuperation qui PARLENT de coucher irregulier.
+             Un seul avis par sujet : deux, c est le defaut qu on vient de corriger. */
+          const panneaux = ['sleepCoach', 'sleepRegularite', 'sleepImpact', 'sleepPlan'];
+          let voix = 0;
+          let vu = '';
+          panneaux.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el || getComputedStyle(el).display === 'none') return;
+            const t = (el.textContent || '');
+            if (t.indexOf('irrégulier') !== -1 || t.indexOf('irrégularité') !== -1) { voix++; vu += id + ' '; }
+          });
+          checks.__sommeilVoix = voix + ' : ' + vu;
+
+          // Le panneau restant doit porter la SOURCE — c est ce que le doublon apportait.
+          const sc = document.getElementById('sleepCoach');
+          const source = sc && getComputedStyle(sc).display !== 'none'
+            && (sc.textContent || '').indexOf('Windred') !== -1;
+
+          /* Et l impact sommeil ne doit pas affirmer sur du vide : il affichait
+             « 0 min de focus le lendemain, contre 0 min plus tard ». */
+          const si = document.getElementById('sleepImpact');
+          const siVu = si && getComputedStyle(si).display !== 'none';
+          const impactVide = siVu && (si.textContent || '').indexOf('0 min de focus') !== -1;
+
+          state.recovery = sr; state.workouts = sw;
           try { renderWeeklySleep(); } catch (_) {}
 
-          checks.__sommeilVu = irregulier.slice(0, 110);
-          const parle = irregulier.indexOf('coucher') !== -1;
-          // On EXIGE le chiffre : un conseil sans mesure est un article de blog.
-          const chiffre = irregulier.indexOf('min') !== -1;
-          // Et la SOURCE, la seule chose qui distingue un conseil fonde d'une phrase inventee.
-          const source = irregulier.indexOf('Windred') !== -1;
-          return parle && chiffre && source && troisNuits === '';
-        } catch (e) { checks.__errSommeil = String(e && e.message); return false; }
+          // Il faut AVOIR VU une voix parler, sinon 0 passerait pour une reussite.
+          return voix === 1 && source && !impactVide;
+        } catch (e) { checks.__errUnicite = String(e && e.message); return false; }
       })();
 
       checks.rattrapageZone = (() => {
@@ -3765,7 +3769,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
-    if (!checks.regulariteSommeil) errors.push('Régularité du sommeil muette (#sleepRegularite) : un coucher qui saute de 2 h 30 doit être signalé, CHIFFRÉ et sourcé (Windred 2023) — et le panneau doit se taire sous une semaine de données au lieu de deviner');
+    if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');

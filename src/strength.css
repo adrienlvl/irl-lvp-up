@@ -315,21 +315,7 @@
 .an-txt small{color:var(--muted);font-size:var(--fs-2xs);line-height:1.5}
 .an-vide{color:var(--muted);font-size:var(--fs-xs);line-height:1.5;margin:0}
 
-/* RÉGULARITÉ DU SOMMEIL. Le chiffre d'abord (c'est lui qu'on scanne), l'explication ensuite,
-   l'action en évidence. Bordure gauche comme les autres blocs de coaching du dépôt. */
-.sleep-reg{margin-top:10px;padding:11px 13px;border:1px solid var(--line);
-  border-left:3px solid var(--accent);border-radius:var(--r-md);background:var(--surface-2)}
-.sleep-reg[hidden]{display:none}
-.sr-head{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:5px}
-.sr-head[hidden]{display:none}
-.sr-head b{font-size:var(--fs-sm);color:var(--text);line-height:1.3}
-.sr-ico{font-size:1.05rem}
-.sr-val{font-size:var(--fs-md);font-weight:750;color:var(--accent);line-height:1.35;
-  font-variant-numeric:tabular-nums;margin-bottom:6px}
-.sleep-reg p{margin:0 0 6px;color:var(--muted);font-size:var(--fs-2xs);line-height:1.55}
-.sr-action{color:var(--text)!important;font-weight:650}
-.sr-src{display:block;color:var(--muted);font-size:var(--fs-3xs);opacity:.85;margin-top:2px}
-.sr-src[hidden]{display:none}
+
 
 /* TENDANCE D'ADHÉRENCE. Le chiffre comparatif d'abord — « 7/7 → 2/7 » se lit d'un coup d'œil,
    une phrase ne se lit pas. Même grammaire visuelle que le bloc régularité du sommeil. */
@@ -346,3 +332,8 @@
 .adh-action{color:var(--text)!important;font-weight:650}
 .adh-src{display:block;color:var(--muted);font-size:var(--fs-3xs);opacity:.85;margin-top:2px}
 .adh-src[hidden]{display:none}
+
+/* La référence sous le bilan sommeil. Discrète : elle appuie le verdict, elle ne le concurrence
+   pas. Ajoutée quand le bloc « régularité » en double a été retiré — un seul avis par sujet. */
+.sc-src{display:block;color:var(--muted);font-size:var(--fs-3xs);opacity:.85;margin-top:5px}
+.sc-src[hidden]{display:none}

@@ -14037,6 +14037,31 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('sleepCoachInsight : la source ne vient QUE sur l’irrégularité', () => {
+  const AUJ = '2026-07-28';
+  const j = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const nuits = fn => { const r = []; for (let i = 13; i >= 0; i--) r.push(Object.assign({ date: j(i) }, fn(i))); return r; };
+
+  /* À l'itération 35 j'ai créé un panneau « régularité du sommeil » SANS lire cette fonction :
+     elle couvrait déjà le même sujet avec les mêmes chiffres, et l'écran affichait deux fois
+     « coucher irrégulier de ~75 min » l'un sous l'autre. Le doublon est retiré ; ce qui lui
+     manquait vraiment — la référence — vit maintenant ici. */
+  const irregulier = L.sleepCoachInsight(nuits(i => ({ sleep: 7.5, bedtime: i % 2 ? '23:00' : '01:30' })), AUJ);
+  assert.ok(irregulier.irregular, 'le cas testé est bien celui d’un coucher irrégulier');
+  assert.ok(/Windred/.test(irregulier.source), 'la source accompagne le verdict d’irrégularité');
+  assert.ok(/zsad253/.test(irregulier.source), 'et elle est citable, pas approximative');
+
+  /* Windred parle de RÉGULARITÉ, pas de dette de sommeil : un verdict de durée ne doit donc
+     porter aucune référence. Une source posée là où elle ne dit rien est décorative. */
+  const court = L.sleepCoachInsight(nuits(() => ({ sleep: 5, bedtime: '23:00' })), AUJ);
+  assert.ok(/court/i.test(court.verdict), 'le cas testé est bien un sommeil court : ' + court.verdict);
+  assert.equal(court.irregular, false, 'et régulier, pour isoler la durée');
+  assert.equal(court.source, null, 'aucune source sur un verdict de durée');
+
+  const bon = L.sleepCoachInsight(nuits(() => ({ sleep: 7.8, bedtime: '23:05' })), AUJ);
+  assert.equal(bon.source, null, 'aucune source quand tout va bien non plus');
+});
+
 test('coachAdherence : « 5/7 » ne dit pas si tu montes ou si tu lâches', () => {
   const AUJ = '2026-07-28';
   const j = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
@@ -14082,65 +14107,6 @@ test('coachAdherence : « 5/7 » ne dit pas si tu montes ou si tu lâches', () =
     'aucune cible → on ne juge pas une adhérence à rien');
   assert.equal(L.coachAdherence(semaines(() => ({ protein: 150 })), { proteinTarget: 140, todayKey: 'pas-une-date' }), null,
     'date abîmée → rien');
-});
-
-test('coachRegulariteSommeil : la régularité, pas seulement la durée', () => {
-  const AUJ = '2026-07-28';
-  const j = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
-  const nuits = fn => { const r = []; for (let i = 13; i >= 0; i--) r.push(Object.assign({ date: j(i) }, fn(i))); return r; };
-
-  /* `sleepRegularity`, `bedtimeRegularity` et `sleepDurationTrend` existaient, testées, et
-     n'étaient affichées NULLE PART. Le message porte une idée que l'app ne disait pas du tout :
-     la RÉGULARITÉ compte, pas seulement la durée (Windred et al. 2023, SLEEP 47(1):zsad253 —
-     UK Biobank, 60 977 participants ; référence vérifiée en ligne avant d'être écrite). */
-
-  // 1. Durée correcte MAIS coucher qui saute de 2 h 30 : c'est le frein le plus fort.
-  const irregulier = L.coachRegulariteSommeil(nuits(i => ({ sleep: 7.5, bedtime: i % 2 ? '23:00' : '01:30' })), AUJ);
-  assert.equal(irregulier.cle, 'coucher', 'le coucher irrégulier prime sur tout le reste');
-  assert.ok(/±\d+ min/.test(irregulier.valeur), 'et il CHIFFRE l’irrégularité : ' + irregulier.valeur);
-  assert.ok(/Windred/.test(irregulier.source), 'la source est citée là où elle porte');
-
-  /* 2. Coucher régulier mais nuits courtes : autre frein, et SANS source — le seuil de 7 h est
-     une convention, pas un résultat vérifié. Mieux vaut aucune référence qu'une décorative. */
-  const court = L.coachRegulariteSommeil(nuits(() => ({ sleep: 6, bedtime: '23:00' })), AUJ);
-  assert.equal(court.cle, 'duree');
-  assert.ok(/60 min sous 7 h/.test(court.valeur), 'le manque est chiffré : ' + court.valeur);
-  assert.equal(court.source, null, 'pas de source inventée pour un seuil de convention');
-
-  // 3. Moyenne correcte qui cache des nuits en dents de scie.
-  const yoyo = L.coachRegulariteSommeil(nuits(i => ({ sleep: i % 2 ? 5 : 10, bedtime: '23:00' })), AUJ);
-  assert.equal(yoyo.cle, 'variabilite', 'une bonne moyenne ne suffit pas');
-
-  // 4. Tout va bien : le panneau parle aussi quand il n'y a rien à corriger.
-  const ok = L.coachRegulariteSommeil(nuits(() => ({ sleep: 7.6, bedtime: '23:10' })), AUJ);
-  assert.equal(ok.cle, 'ok');
-  assert.equal(ok.source, null);
-
-  /* UN SEUL frein à la fois : empiler trois conseils, c'est n'en faire suivre aucun. On l'écrit
-     sur le cas où DEUX problèmes coexistent — sinon l'assertion ne prouve rien. */
-  const deuxMaux = L.coachRegulariteSommeil(nuits(i => ({ sleep: 5.5, bedtime: i % 2 ? '22:00' : '02:00' })), AUJ);
-  assert.equal(deuxMaux.cle, 'coucher', 'coucher irrégulier ET nuits courtes → on nomme le plus limitant');
-  assert.ok(deuxMaux.action.length > 0 && deuxMaux.action.indexOf('Recule ton coucher') === -1,
-    'et on ne mélange pas les deux conseils');
-
-  /* Moins d'une semaine : on ne prétend pas voir une tendance dans du bruit.
-     LE CAS DISCRIMINANT EST 6 NUITS, pas 2 : `sleepRegularity` rend déjà null sous 3 nuits,
-     donc une assertion à 2 nuits passe sans jamais toucher notre seuil — la mutation qui
-     abaissait le seuil à 1 y a survécu. À 6 nuits la mesure existe et c'est bien NOTRE
-     garde qui doit se taire. */
-  const six = []; for (let i = 5; i >= 0; i--) six.push({ date: j(i), sleep: 7, bedtime: i % 2 ? '22:00' : '02:00' });
-  assert.ok(L.sleepRegularity(six, 14), 'à 6 nuits la mesure de base existe (sinon le test ne prouve rien)');
-  assert.equal(L.coachRegulariteSommeil(six, AUJ), null, '6 nuits → encore trop peu pour affirmer');
-  assert.equal(L.coachRegulariteSommeil([{ date: j(1), sleep: 7 }, { date: j(0), sleep: 7 }], AUJ), null,
-    '2 nuits → aucune affirmation non plus');
-  assert.equal(L.coachRegulariteSommeil([], AUJ), null, 'aucun check-in → rien');
-  assert.equal(L.coachRegulariteSommeil(nuits(() => ({ sleep: 7.5 })), 'pas-une-date'), null,
-    'date abîmée → rien');
-
-  /* Sans heure de coucher renseignée, on NE PEUT PAS parler de régularité du coucher : on se
-     rabat sur la durée plutôt que d'affirmer une mesure qu'on n'a pas. */
-  const sansCoucher = L.coachRegulariteSommeil(nuits(() => ({ sleep: 6 })), AUJ);
-  assert.notEqual(sansCoucher.cle, 'coucher', 'pas d’heure de coucher → pas de verdict sur le coucher');
 });
 
 test('aucun champ d’état fantôme : ce que app.js lit doit exister', () => {
