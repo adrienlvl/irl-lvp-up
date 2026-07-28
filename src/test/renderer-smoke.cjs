@@ -3122,6 +3122,66 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.rattrapageZone = (() => {
+        try {
+          if (typeof renderBlockStatus !== 'function' || typeof zoneRattrapage !== 'function') return false;
+          const sw = state.workouts, sb = state.blockStart;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const jr = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+          };
+          /* Un historique qui travaille TOUT sauf les epaules : c'est le scenario ou la zone
+             negligee existe vraiment. Et une seance guidee reelle ecrit completedSets A COTE
+             de setLogs — un jeu d essai qui n a que setLogs ne ressemble a rien de ce que
+             l app produit, et neglectedZoneReport le compte alors a zero. */
+          const w = [];
+          for (let k = 0; k < 8; k++) {
+            w.push({ id: 70000 + k, date: jr(k * 3 + 1), type: 'strength', duration: 45, effort: 3, xp: 30,
+              exercises: [
+                { name: 'Squat', completedSets: 2, sets: 2, setLogs: [{ reps: 8, load: 80, completed: true }, { reps: 8, load: 80, completed: true }] },
+                { name: 'Pompes classiques', completedSets: 1, sets: 1, setLogs: [{ reps: 12, load: 0, completed: true }] },
+                { name: 'Gainage planche', completedSets: 2, sets: 2, setLogs: [{ reps: 1, load: 0, completed: true }, { reps: 1, load: 0, completed: true }] }
+              ] });
+          }
+          state.workouts = w;
+          /* Le panneau reste masque tant qu aucun bloc n est en cours : renderBlockStatus sort
+             quand state.blockStart est absent. Sans ce reglage on mesurerait un ecran vide et
+             le check passerait a cote de son sujet. */
+          state.blockStart = jr(20);
+
+          const lire = function () {
+            showPage('athlete');
+            renderBlockStatus();
+            const el = document.querySelector('.bs-fix');
+            // Le RENDU, pas la propriete : un bloc present mais non peint ne conseille rien.
+            if (!el || getComputedStyle(el).display === 'none') return '';
+            return (el.textContent || '');
+          };
+
+          // Tout le materiel : le classement complet a le droit de proposer du kettlebell.
+          state.profile = Object.assign({}, state.profile, { equipment: null });
+          const avecMateriel = lire();
+          // AUCUN materiel : plus aucun exercice propose ne doit en demander.
+          state.profile = Object.assign({}, state.profile, { equipment: ['aucun'] });
+          const sansMateriel = lire();
+
+          state.workouts = sw; state.profile = sp; state.blockStart = sb;
+          try { renderBlockStatus(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__rattrapageVu = sansMateriel.slice(0, 100);
+          const bas = sansMateriel.toLowerCase();
+          const parle = sansMateriel.indexOf('Par quoi commencer') !== -1;
+          const propre = bas.indexOf('kettlebell') === -1 && bas.indexOf('barre') === -1 && bas.indexOf('halt') === -1;
+          // Il faut AVOIR VU le cas avec materiel parler, sinon le second cas ne prouve rien.
+          const avant = avecMateriel.toLowerCase();
+          const discrimine = avant.indexOf('kettlebell') !== -1 || avant.indexOf('barre') !== -1 || avant.indexOf('halt') !== -1;
+          const vuAvant = avecMateriel.indexOf('Par quoi commencer') !== -1 && discrimine;
+          return vuAvant && parle && propre && sansMateriel.length > 25;
+        } catch (e) { checks.__errRattrapage = String(e && e.message); return false; }
+      })();
+
       checks.analyseModerne = (() => {
         try {
           if (typeof renderGrowth !== 'function' || typeof analysePerformance !== 'function') return false;
@@ -3608,6 +3668,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
+    if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');
     if (!checks.affutageExplique) errors.push('Course objectif dans 10 jours : le Programme auto raccourcit les sorties sans l’expliquer (ou l’explique sans course). Le volume qui rétrécit sans un mot ressemble à un bug, pas à du coaching — le message doit citer le J-N, la coupe réellement tenue et Bosquet 2007');
