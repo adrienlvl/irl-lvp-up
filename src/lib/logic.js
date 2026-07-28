@@ -4397,9 +4397,26 @@ function trainingPlanInputs(state, todayKey) {
   if (!(Number(p.age) > 0)) manque.push('ton âge');
   if (!manque.length && !energie) manque.push('ton poids cible');
 
+  /* LA COURSE OBJECTIF. Mesuré avant d'écrire : avec un marathon dans 10 jours, le plan
+     unifié programmait une VO2max 12×30/30 ET une sortie longue — les deux séances les plus
+     dures possibles — pendant que le compagnon annonçait « Cap : objectif dans 1 sem. ».
+     `objectiveProgram` sait affûter depuis toujours (il réduit les distances par
+     `taperPlan().volumeMul`) ; on ne lui passait simplement jamais la course. Seul le panneau
+     « Ma semaine », celui qu'on envisage de masquer, l'honorait.
+     On dérive les jours EXACTEMENT comme le coach le fait déjà (même arrondi, même champ
+     `type` en guise de distance) : deux calculs différents du même J-N finiraient par diverger. */
+  let raceDaysLeft = null, raceKm = null;
+  const _course = st.raceGoal && isRealDateKey(st.raceGoal.date) ? st.raceGoal : null;
+  if (_course && isRealDateKey(todayKey)) {
+    const _j = Math.round((new Date(_course.date + 'T12:00:00') - new Date(todayKey + 'T12:00:00')) / 864e5);
+    // Une course PASSÉE n'affûte rien. Négatif = derrière nous, on n'y touche plus.
+    if (_j >= 0) { raceDaysLeft = _j; raceKm = _course.type || _course.distanceKm || null; }
+  }
+
   return {
     objectif: st.fitnessObjective || 'athletique',
     sessions: g.progSessions, runs: g.runs, manque: manque,
+    raceDaysLeft: raceDaysLeft, raceKm: raceKm,
     jours: Array.isArray(p.availableDays) ? p.availableDays : [],
     niveau: p.level, equipement: p.equipment, seed: st.objectiveSeed || 0,
     energie: energie, acwr: charge, readiness: forme, todayKey: todayKey,
@@ -4586,6 +4603,44 @@ function trainingWeekPlan(input, exercises) {
   const semaine = (joursUtiles.length && typeof assignProgramDays === 'function')
     ? assignProgramDays(programme.week, joursUtiles) : programme.week;
 
+  /* AFFÛTAGE. Mesuré avant d'écrire : avec un marathon dans 10 jours, ce plan posait une
+     VO2max 12×30/30 ET une sortie longue de 70 min, pendant que le compagnon annonçait
+     « Cap : objectif dans 1 sem. ». L'app disait une chose et faisait l'inverse.
+     Seul `buildTrainingWeek` — le générateur du panneau « Ma semaine », celui qu'on envisage
+     justement de masquer — savait affûter. `objectiveProgram` n'a jamais su le faire.
+     Bosquet 2007 : on réduit le VOLUME, on garde l'INTENSITÉ et la FRÉQUENCE. Les courses
+     d'ici portent des `minutes` et non des km, donc c'est la durée qu'on rabote — la séance
+     qualité RESTE au programme, plus courte. Le plancher à 20 min évite de transformer une
+     sortie en échauffement. */
+  const _affutage = (typeof taperPlan === 'function')
+    ? (taperPlan(i.raceDaysLeft, i.raceKm) || null) : null;
+  if (_affutage) {
+    const _mn = function (arr) {
+      return arr.filter(function (s) { return s && s.kind === 'course'; })
+        .reduce(function (a, s) { return a + (Number(s.minutes) || 0); }, 0);
+    };
+    /* On relève l'AVANT avant de couper : sans `assignProgramDays`, `semaine` EST
+       `programme.week` (même tableau, mêmes objets), donc mesurer après la boucle rendrait
+       zéro et le message disparaîtrait en silence. */
+    const _av = _mn(semaine);
+    semaine.forEach(function (s) {
+      if (!s || s.kind !== 'course') return;
+      const m = Number(s.minutes);
+      if (!Number.isFinite(m) || m <= 0) return;
+      s.minutes = Math.max(20, Math.round(m * _affutage.volumeMul));
+    });
+    /* Le message vient APRÈS la coupe et cite la coupe RÉELLEMENT appliquée, pas l'intention :
+       le plancher à 20 min rend souvent la réduction effective plus faible que `cutPct`, et
+       annoncer un chiffre qu'on n'a pas tenu est exactement le défaut qu'on traque partout. */
+    const _ap = _mn(semaine);
+    const _coupe = _av > 0 ? Math.round((1 - _ap / _av) * 100) : 0;
+    if (_coupe > 0) {
+      ajustements.push('J-' + _affutage.daysLeft + ' avant ta course : volume de course réduit de '
+        + _coupe + ' % (' + _av + ' → ' + _ap + ' min). Même nombre de sorties, même intensité — '
+        + 'la forme se révèle en réduisant la fatigue, pas en s’entraînant plus (Bosquet 2007).');
+    }
+  }
+
   /* L'avertissement se basait sur un seuil fixe de 6 jours. En cours de semaine il ne reste
      parfois que deux jours cochés : six séances dessus font TROIS par jour, et l'app n'en
      disait rien. On compte sur les jours réellement disponibles. */
@@ -4602,6 +4657,10 @@ function trainingWeekPlan(input, exercises) {
     week: semaine, politique: politique, energie: i.energie || null, ajustements: ajustements,
     memoire: i.memoire || null, enCours: i.enCours || null,
     zones: Array.isArray(i.zones) ? i.zones : [],
+    /* L'affûtage doit être EXPLIQUÉ, pas seulement subi : sans ça les distances rétrécissent
+       de moitié sans un mot, ce qui ressemble à un bug plutôt qu'à du coaching. On le sort
+       tel que `objectiveProgram` l'a calculé — une seule vérité, pas un second calcul. */
+    taper: _affutage,
     /* Le conseil se calcule sur la semaine RÉELLEMENT produite, pas sur l'objectif seul :
        prévenir de l'interférence course/jambes quand aucune course n'est posée userait
        l'avertissement pour rien. */

@@ -14013,6 +14013,52 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('trainingWeekPlan : une course qui approche allège vraiment la semaine', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const dans = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const etat = j => ({
+    fitnessObjective: 'athletique',
+    profile: { weight: 75, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', goal: 'maintien', level: 'intermediaire' },
+    goals: { targetWeight: 74, sessions: 4, progSessions: '', runs: 4 },
+    weights: [{ date: AUJ, value: 75 }], recovery: [], workouts: [],
+    raceGoal: j === null ? null : { type: 42, distanceKm: 42, date: dans(j) }
+  });
+  const minutes = p => p.week.filter(s => s.kind === 'course').reduce((a, s) => a + (Number(s.minutes) || 0), 0);
+  const plan = j => L.trainingWeekPlan(L.trainingPlanInputs(etat(j), AUJ), exercises);
+
+  /* MESURÉ AVANT D'ÉCRIRE : avec un marathon dans 10 jours, ce plan posait une VO2max
+     12×30/30 ET une sortie longue de 70 min, pendant que le compagnon annonçait « Cap :
+     objectif dans 1 sem. ». Seul `buildTrainingWeek` — le générateur du panneau « Ma
+     semaine », celui qu'on envisage de masquer — savait affûter ; `objectiveProgram`, jamais. */
+  const loin = plan(60), proche = plan(10), veille = plan(3);
+  assert.equal(loin.taper, null, 'à 60 jours, aucun affûtage : c’est la pleine charge');
+  assert.ok(proche.taper && proche.taper.daysLeft === 10, 'à 10 jours, l’affûtage existe');
+  assert.ok(minutes(proche) < minutes(loin), 'et il réduit RÉELLEMENT le volume de course');
+  assert.ok(minutes(veille) < minutes(proche), 'plus la course approche, plus la coupe est franche');
+
+  /* Bosquet 2007 : on coupe le VOLUME, on garde la FRÉQUENCE et l'INTENSITÉ. Un affûtage qui
+     supprimerait des sorties ou la séance qualité serait un autre conseil que celui qu'on cite. */
+  const courses = p => p.week.filter(s => s.kind === 'course').length;
+  assert.equal(courses(veille), courses(loin), 'même nombre de sorties : on ne coupe pas la fréquence');
+  assert.ok(veille.week.some(s => s.kind === 'course' && s.type === 'fractionne'),
+    'la séance qualité reste au programme, plus courte');
+
+  /* LE FIL ROUGE : le message doit venir APRÈS l'effet et citer la coupe RÉELLEMENT tenue.
+     Le plancher à 20 min rend souvent la réduction effective plus faible que `cutPct` —
+     annoncer `cutPct` serait annoncer une intention, pas une mesure. */
+  const msg = (veille.ajustements || []).filter(x => /J-3 avant ta course/.test(x))[0];
+  assert.ok(msg, 'la semaine explique pourquoi elle a rétréci');
+  const dit = Number(/réduit de (\d+) %/.exec(msg)[1]);
+  const reel = Math.round((1 - minutes(veille) / minutes(loin)) * 100);
+  assert.equal(dit, reel, 'le pourcentage annoncé est celui qu’on a tenu, pas celui qu’on visait');
+  assert.ok(dit < veille.taper.cutPct, 'et il est bien EN DEÇÀ de l’intention, plancher oblige');
+
+  // Une course passée n'affûte rien : le J-N deviendrait négatif et le plan se figerait.
+  assert.equal(plan(-5).taper, null, 'course derrière nous : plus d’affûtage');
+  assert.equal(plan(null).taper, null, 'aucune course : aucun affûtage');
+});
+
 test('trainingWeekPlan : UNE seule semaine, qui tient compte du poids', () => {
   const { exercises } = require('../lib/exercises-data.js');
   const AUJ = '2026-07-28';

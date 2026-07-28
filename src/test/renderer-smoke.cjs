@@ -3122,6 +3122,54 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.affutageExplique = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, sr = state.recovery, swk = state.workouts;
+          const so = state.fitnessObjective, srg = state.raceGoal;
+          const dans = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() + n);
+            return d.toISOString().slice(0, 10);
+          };
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 75, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', goal: 'maintien' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, progSessions: '', runs: 4 });
+          state.weights = [{ date: localDate(), value: 75 }];
+          state.recovery = []; state.workouts = [];
+
+          const lire = function () {
+            showPage('athlete');
+            if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+            runObjectiveProgram();
+            const el = document.querySelector('#objectiveResult .op-ajust');
+            // Le RENDU, pas la propriete : un bloc present mais non peint ne dit rien.
+            if (!el || getComputedStyle(el).display === 'none') return '';
+            return (el.textContent || '');
+          };
+
+          /* Sans course, l'ecran ne doit RIEN dire d'un affutage : une phrase de coaching
+             qui apparait sans raison est aussi fausse qu'une phrase absente. */
+          state.raceGoal = { type: '', distanceKm: 0, date: '' };
+          const sansCourse = lire();
+          // Marathon dans 10 jours : la semaine retrecit, l'ecran doit l'expliquer.
+          state.raceGoal = { type: 42, distanceKm: 42, date: dans(10) };
+          const avecCourse = lire();
+
+          state.profile = sp; state.goals = sg; state.weights = sw; state.recovery = sr;
+          state.workouts = swk; state.fitnessObjective = so; state.raceGoal = srg;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          const motif = /J-10 avant ta course/;
+          checks.__affutageVu = avecCourse.slice(0, 120);
+          /* On exige la SOURCE en plus du message : c'est elle qui distingue un conseil
+             fonde d'une phrase inventee, et le depot n'en cite que des verifiees. */
+          return motif.test(avecCourse) && /Bosquet 2007/.test(avecCourse) && !motif.test(sansCourse);
+        } catch (e) { checks.__errAffutage = String(e && e.message); return false; }
+      })();
+
       checks.coachsConnectes = (() => {
         try {
           if (typeof trainingWeekPlan !== 'function' || typeof runObjectiveProgram !== 'function') return false;
@@ -3442,6 +3490,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
+    if (!checks.affutageExplique) errors.push('Course objectif dans 10 jours : le Programme auto raccourcit les sorties sans l’expliquer (ou l’explique sans course). Le volume qui rétrécit sans un mot ressemble à un bug, pas à du coaching — le message doit citer le J-N, la coupe réellement tenue et Bosquet 2007');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — le bandeau de pilotage doit citer l’objectif de poids et la cible kcal, et le compagnon ne doit pas annoncer une séance du jour absente de cette semaine alors qu’il affirme la partager)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');
     if (!checks.coachContenu) errors.push('Coach sans contenu de forme (#coachForme : muet quand tout va bien, mais doit NOMMER la cause chiffrée d’une nuit de 4 h avec un geste ; et #coachAutres doit lister les pistes secondaires, pas seulement les compter)');
