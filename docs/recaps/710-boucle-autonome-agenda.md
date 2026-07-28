@@ -925,3 +925,39 @@ demande — si la zone redevenait non discriminante, le check tomberait au lieu 
   `fieldAdherenceTrend`), force (`blockProgressText`, `progressSets`), `focusMinutesTrend`,
   `workoutDominantZone`.
 - Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
+
+## Itération 35 — la famille du défaut d'hier fermée, puis la régularité du sommeil
+
+**1. Revue systématique.** Le défaut de l'itération 34 (`state.exercises`, un champ inventé,
+fonctionnalité muette et tests verts) posait une question : y en a-t-il d'autres ? Balayage
+outillé : 68 clés déclarées, 69 lues, **zéro fantôme**. Le mien était le seul. J'ai validé
+l'outil en y remettant le bug — il le retrouve et le nomme — puis j'en ai fait un test
+permanent. En JavaScript, lire une propriété absente ne coûte qu'un `undefined` silencieux :
+seule une garde structurelle peut fermer cette famille.
+
+**2. Profondeur (axe A).** `sleepRegularity`, `bedtimeRegularity`, `sleepDurationTrend` :
+trois mesures calculées, affichées nulle part. Le coach dit maintenant ce que l'app ne disait
+pas du tout — la RÉGULARITÉ compte, pas seulement la durée — avec Windred et al. 2023
+(SLEEP 47(1):zsad253, UK Biobank, 60 977 participants), **référence vérifiée en ligne avant
+d'être écrite**. Un seul frein nommé à la fois, et la source citée uniquement là où elle porte
+(le seuil de 7 h est une convention, pas un résultat : ce cas n'affiche aucune référence).
+
+### Ce que cette itération a appris
+
+*Une mutation a survécu, et elle avait raison — encore.* Mon assertion « 2 nuits → rien »
+passait parce que `sleepRegularity` rend déjà null sous 3 nuits : elle ne touchait JAMAIS mon
+seuil de 7. Le cas discriminant est **six** nuits, où la mesure existe et où c'est bien ma garde
+qui doit se taire. Deuxième itération d'affilée où la mutation révèle un test qui passe pour la
+mauvaise raison — c'est le seul outil qui distingue « ça marche » de « je n'ai rien testé ».
+
+*Ma vérification automatique des backticks a payé au premier essai.* Quatrième récidive du même
+piège, mais cette fois nommée avant le run au lieu de coûter un aller-retour. Une règle qu'on
+n'arrive pas à suivre doit devenir un outil.
+
+649 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- Sept fonctions encore jamais rendues : `focusMinutesTrend`, `proteinAdherenceTrend`,
+  `hydrationAdherenceTrend`, `fieldAdherenceTrend`, `blockProgressText`, `progressSets`,
+  `workoutDominantZone`.
+- Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
