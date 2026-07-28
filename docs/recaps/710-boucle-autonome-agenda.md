@@ -1826,3 +1826,57 @@ chaîne qu'une chaîne fautive contient aussi.** Corrigé, la mutation affiche f
 ### Reste (roadmap 712)
 - Sondes des 4 écrans jamais regardés en 390 px : Focus & vie, Réglages, vue jour, dialogues.
 - Puis le coût annoncé des réglages, puis l'arbitrage sous budget de temps.
+
+---
+
+## Itération 57 — Mes propres notes de version enterraient la page Réglages
+
+Deuxième ligne de la roadmap : sonder les écrans jamais mesurés en 390 px.
+
+### Le périmètre réel, mesuré avant de sonder
+
+La passe mobile du smoke ne couvre que **5 pages sur 8** et n'ouvre que **2 dialogues sur 12**.
+La page Réglages n'y figure pas. C'était donc bien un angle mort, pas une impression.
+
+### Ce que la sonde a trouvé
+
+Page Réglages : **7 741 px**, dont **4 948 px pour la seule carte « Quoi de neuf »** — 64 % de la
+page, 5,9 écrans d'iPhone.
+
+| Dernière visite | Entrées | Hauteur |
+|---|---|---|
+| À jour | 0 | 0 px |
+| 1 release de retard | 1 | 575 px |
+| 3 releases | 3 | 1 679 px |
+| **6 releases** | 6 | **4 948 px** |
+
+Le changelog compte **423 entrées** et la carte n'avait aucun plafond. Avec la cadence d'une
+release par jour, revenir après deux semaines enterrait la page — sous un mur de texte que
+**j'alimente moi-même** à chaque publication.
+
+### Ce qui a été fait
+
+`whatsNewCap` garde les trois plus récentes dépliées et replie le reste derrière « Voir les N
+versions plus anciennes ». Pire cas : **4 948 px → 1 730 px (−65 %)**, à nombre de caractères
+inchangé.
+
+### Ce que cette itération a appris
+
+*Un défaut peut venir de ma propre cadence.* Ce n'est pas un bug de code : c'est une conséquence
+de la façon dont je travaille, devenue visible seulement en mesurant l'écran.
+
+*Une sonde trop large produit de faux positifs.* Elle a signalé six champs « sous 16 px » dans
+l'onboarding — ce sont des cases à cocher, sur lesquelles Safari ne zoome pas. J'ai vérifié avant
+de corriger quoi que ce soit. **Un signalement de sonde n'est pas un défaut tant qu'on n'a pas
+regardé ce que c'est.**
+
+**Mutations.** 4 posées, 4 détectées. La plus parlante retire le pli du rendu : le compte total
+tombe de 6 à 3 — les anciennes disparaissaient vraiment. La garantie « rien n'est perdu » est
+donc prouvée au rendu, pas seulement en logique.
+
+666 tests · SMOKE OK. Rien publié : dernière release v2.12.2.
+
+### Reste (roadmap 712)
+- Étendre la passe mobile aux 3 pages et 10 dialogues non couverts (aucun défaut trouvé
+  aujourd'hui, mais rien ne les empêche d'en gagner un demain).
+- Puis le coût annoncé des réglages, puis l'arbitrage sous budget de temps.
