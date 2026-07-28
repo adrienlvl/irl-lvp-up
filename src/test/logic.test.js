@@ -14174,3 +14174,43 @@ test('runPlanWeek : le plafond de séances dures rétrograde, il ne supprime pas
   assert.deepEqual(L.runPlanWeek(4, { emphasis: 'vitesse', duresMax: null }).sessions.map(s => s.type), libre);
   assert.deepEqual(L.runPlanWeek(4, { emphasis: 'vitesse' }).sessions.map(s => s.type), libre);
 });
+
+test('le plan nomme les champs RÉELLEMENT manquants', () => {
+  const base = { weights: [], recovery: [], workouts: [] };
+  const inp = (profile, goals) => L.trainingPlanInputs({ ...base, profile, goals }, '2026-07-28');
+
+  /* Le bandeau réclamait « poids, taille et âge » alors que les trois étaient renseignés :
+     le champ réellement absent était la CIBLE de poids. Un message qui nomme le mauvais champ
+     envoie chercher au mauvais endroit — pire que pas de message du tout. */
+  assert.deepEqual(inp({ weight: 82, height: 180, age: 29, sex: 'homme' }, {}).manque, ['ton poids cible']);
+  assert.deepEqual(inp({}, {}).manque, ['ton poids', 'ta taille', 'ton âge']);
+  assert.deepEqual(inp({ weight: 82, age: 29 }, {}).manque, ['ta taille']);
+  // Profil complet : plus rien à réclamer, et le plan énergétique existe.
+  const complet = inp({ weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte' }, { targetWeight: 73 });
+  assert.deepEqual(complet.manque, []);
+  assert.ok(complet.energie);
+  // `manque` voyage jusqu'au pilotage, sinon le rendu devrait le recalculer.
+  const { exercises } = require('../lib/exercises-data.js');
+  const p = L.trainingWeekPlan(inp({ weight: 82, height: 180, age: 29, sex: 'homme' }, {}), exercises);
+  assert.deepEqual(p.pilotage.manque, ['ton poids cible']);
+});
+
+test('goals.runs : zéro est une valeur, une valeur illisible ne l’est pas', () => {
+  /* Deux défauts de la revue, une seule racine : ZÉRO traité comme ABSENT — le pendant du
+     piège « null n'est pas zéro ». `Number('nawak') || 0` vaut 0, donc une sauvegarde abîmée
+     supprimait TOUTES les courses du programme sans un mot. */
+  const norm = v => {
+    const n = Number(v);
+    return (v === 'auto' || v == null || v === '' || !Number.isFinite(n)) ? 'auto' : Math.max(0, Math.min(6, Math.round(n)));
+  };
+  assert.equal(norm('nawak'), 'auto', 'illisible → auto, JAMAIS zéro');
+  assert.equal(norm(NaN), 'auto');
+  assert.equal(norm(undefined), 'auto');
+  assert.equal(norm(null), 'auto');
+  assert.equal(norm(''), 'auto');
+  // Un zéro réellement lisible vaut bien zéro : « aucune course » est un choix légitime.
+  assert.equal(norm(0), 0);
+  assert.equal(norm('0'), 0);
+  assert.equal(norm(3), 3);
+  assert.equal(norm(99), 6, 'borné');
+});

@@ -245,7 +245,9 @@ Corriger au passage l'en-tête menteur : afficher `plan.applied.course` (compté
 - [x] **Étape 5** — le Programme auto consomme trainingWeekPlan et affiche le bandeau de pilotage.
 - [x] **Étape 6** — le Coach Poids affiche LE MÊME plan (mêmes séances, mêmes noms).
 - [x] **Étape 8** — un seul planificateur quand le plan est unifié : 48 séances ramenées à 24, zéro doublon (mesuré).
-- [ ] Étapes 9 à 11
+- [x] **Étape 10** — le tableau de bord applique le même plancher calorique que le Coach Poids.
+- [ ] Étape 11 — le panneau « Ma semaine » : fusionner ou masquer. DÉCISION PRODUIT, à trancher avec Adrien.
+      Il reste un 3ᵉ générateur de semaine, aveugle au déficit et à la forme. Son doublon d’agenda est neutralisé (garde-fou par créneau) mais le fond reste.
 
 ## Avertissement sur les sources scientifiques
 

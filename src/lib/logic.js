@@ -4228,9 +4228,15 @@ function trainingPlanInputs(state, todayKey) {
     charge = a && a.ratio ? a.ratio : null;
   } catch (_) { charge = null; }
 
+  const manque = [];
+  if (!(poids > 0)) manque.push('ton poids');
+  if (!(Number(p.height) > 0)) manque.push('ta taille');
+  if (!(Number(p.age) > 0)) manque.push('ton âge');
+  if (!manque.length && !energie) manque.push('ton poids cible');
+
   return {
     objectif: st.fitnessObjective || 'athletique',
-    sessions: g.progSessions, runs: g.runs,
+    sessions: g.progSessions, runs: g.runs, manque: manque,
     jours: Array.isArray(p.availableDays) ? p.availableDays : [],
     niveau: p.level, equipement: p.equipment, seed: st.objectiveSeed || 0,
     energie: energie, acwr: charge, readiness: forme, todayKey: todayKey
@@ -4315,7 +4321,8 @@ function trainingWeekPlan(input, exercises) {
     pilotage: {
       niveau: politique.niveau, resume: politique.resume,
       objectifPoids: e.goal || null, cible: e.dailyTarget || null,
-      deficitPart: politique.deficitPart || 0
+      deficitPart: politique.deficitPart || 0,
+      manque: Array.isArray(i.manque) ? i.manque : []
     }
   });
 }

@@ -309,3 +309,47 @@ Réécrit sur la grammaire du nombre réellement affiché.
 Leçon : *un test doit asserter son SUJET, pas une valeur qui se trouve vraie ce jour-là.*
 
 624 tests · SMOKE OK · 390 px propre.
+
+## Itérations 16-17 — la revue complète, et ce qu'elle a révélé
+
+La revue adversariale a enfin tourné en entier : **45 agents, 3 angles, chaque
+trouvaille soumise à 3 sceptiques chargés de la réfuter**. Résultat : **13 défauts
+confirmés**, dont plusieurs à 0 réfutation sur 3. Tous introduits par moi le matin
+même, en trois itérations.
+
+### Le plus grave : une politique décorative
+`volumeFactor` n'était consommé NULLE PART ailleurs que dans son propre message, et
+`duresMax` n'était lu nulle part du tout. Le coach annonçait « volume réduit de 30 % »
+et « une seule séance dure » au-dessus d'une semaine strictement inchangée.
+
+**Un coach qui prétend te protéger sans rien faire est pire qu'un coach muet.**
+Corrigé en rendant la politique réelle, pas en retirant la phrase.
+
+### La leçon de fond de ces deux itérations
+Trois défauts distincts venaient tous d'un même geste : **écrire le message avant
+d'écrire l'effet**. La phrase existait, l'action non. C'est confortable — ça se teste
+mal et ça se lit bien.
+
+Garde-fou ajouté aux consignes : *un message qui décrit un effet doit être poussé
+APRÈS l'effet, et citer la mesure réelle, pas l'intention.*
+
+### Zéro n'est pas absent (le pendant du piège de ce matin)
+`Number('nawak') || 0` vaut 0 : une sauvegarde abîmée supprimait TOUTES les courses.
+`String(0 || 'auto')` vaut 'auto' : choisir « 0 course » réaffichait « auto ».
+Le matin c'était « null n'est pas zéro » ; l'après-midi, « zéro n'est pas absent ».
+
+### Trois familles d'identifiants, trois plannings
+Le panneau « Ma semaine » écrivait une TROISIÈME famille de refId que la
+déduplication ignorait : 24 séances, puis 19 de plus, **9 créneaux doublés**.
+Garde-fou par CRÉNEAU posé (la déduplication par identifiant ne peut pas voir ce cas).
+
+**Décision produit en attente d'Adrien** : ce panneau reste un troisième générateur de
+semaine, aveugle au déficit et à la forme. Le fusionner avec le plan unifié ou le
+masquer n'est pas à moi de le trancher.
+
+### Restent à traiter (itération 18)
+- Le focus du moment conseille encore « ajoute du cardio » hors de la branche stagnation.
+- Le compagnon d'entraînement et le bilan hebdo affirment « ta forme du jour » à partir
+  d'un check-in vieux de trois semaines (même défaut que celui corrigé sur #coachForme).
+
+629 tests · SMOKE OK · 390 px propre.
