@@ -3270,6 +3270,40 @@ app.whenReady().then(async () => {
           const suivantesEffacees = document.querySelectorAll('#guidedSetLog .guided-set-row.gs-todo').length >= 1;
 
           // 4. On valide la serie 1 : la courante doit passer a la 2.
+          /* La seance a DEUX exercices : c est le seul moyen de verifier qu on redemande
+             « pret ? » en changeant de mouvement. Avec un seul exercice, le defaut etait
+             invisible — mon commentaire affirmait pourtant que c etait fait. */
+          openGuidedWorkout({ title: 'Test deux', exercises: [
+            { name: 'Kettlebell swing', sets: 2, reps: 10 },
+            { name: 'Pompes classiques', sets: 2, reps: 12 }
+          ] });
+          const go2 = document.getElementById('guidedReadyGo');
+          if (go2) go2.click();
+          const sk2 = document.getElementById('guidedCountdownSkip');
+          if (sk2) sk2.click();
+          // On valide les DEUX series du premier exercice.
+          const v0 = document.querySelector('[data-complete-guided-set="0"]');
+          if (v0) v0.click();
+          const v1 = document.querySelector('[data-complete-guided-set="1"]');
+          if (v1) v1.click();
+          /* Apres la DERNIERE serie, aucun repos ne doit partir : un repos inter-series sans
+             serie suivante fait attendre 90 s pour rien. */
+          const rb = document.getElementById('guidedRestButton');
+          const finExo = !!rb && (rb.textContent || '').indexOf('Exercice terminé') !== -1;
+          // Exercice suivant : l ecran « pret ? » doit revenir.
+          const nx = document.getElementById('guidedNext');
+          if (nx) nx.click();
+          const rdy2 = document.getElementById('guidedReady');
+          const redemande = !!rdy2 && getComputedStyle(rdy2).display !== 'none';
+          checks.__flux = 'finExo=' + finExo + ' redemande=' + redemande;
+          try { const d2 = document.getElementById('guidedWorkoutDialog'); if (d2 && d2.open) d2.close(); } catch (_) {}
+
+          // On rouvre la seance d un seul exercice pour la suite du check.
+          openGuidedWorkout({ title: 'Test guidee', exercises: [{ name: 'Kettlebell swing', sets: 3, reps: 10 }] });
+          const goA = document.getElementById('guidedReadyGo');
+          if (goA) goA.click();
+          const skA = document.getElementById('guidedCountdownSkip');
+          if (skA) skA.click();
           const b1 = document.querySelector('[data-complete-guided-set="0"]');
           if (b1) b1.click();
           const now2 = document.querySelectorAll('#guidedSetLog .guided-set-row.gs-now');
@@ -3281,7 +3315,7 @@ app.whenReady().then(async () => {
           try { if (d && d.open) d.close(); } catch (_) {}
           showPage('dashboard');
 
-          return pretAffiche && seriesCachees && compteAffiche && part5 && compteFini
+          return finExo && redemande && pretAffiche && seriesCachees && compteAffiche && part5 && compteFini
             && seriesVisibles && unSeul && premiere && suivantesEffacees && avance;
         } catch (e) { checks.__errGuidee = String(e && e.message); return false; }
       })();
@@ -3973,7 +4007,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur. Et le bandeau de pilotage, trois lignes plus haut, doit annoncer LA MÊME cible : deux nombres pour la même chose dans le même panneau, c’est le défaut que ce dépôt traque');
-    if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer');
+    if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer. Elle doit AUSSI redemander « prêt ? » en changeant d’exercice, et ne pas lancer de repos après la dernière série');
     if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
