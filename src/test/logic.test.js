@@ -14037,6 +14037,65 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('aucun champ d’état fantôme : ce que app.js lit doit exister', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  /* DÉFAUT RÉEL, trouvé à l'itération 34 : `zoneRattrapage` recevait `state.exercises`, un
+     champ que j'avais INVENTÉ — seule occurrence du fichier. La fonction rendait [] à tous les
+     coups et la ligne de conseil ne s'est jamais affichée : fonctionnalité livrée verte,
+     mutation-validée côté logique, morte à l'écran. Rien ne pouvait le voir, parce qu'en
+     JavaScript lire une propriété absente ne coûte qu'un `undefined` silencieux.
+
+     Ce test rend la famille entière impossible : tout `state.X` lu dans app.js doit être soit
+     déclaré dans `defaults`, soit assigné quelque part. On EXTRAIT les clés au lieu d'en tenir
+     une liste — une liste écrite à la main se désynchronise au premier ajout. */
+  const iDef = app.indexOf('const defaults');
+  assert.ok(iDef > 0, 'l’objet defaults est trouvable');
+  const debut = app.indexOf('{', iDef);
+  let prof = 0, fin = -1;
+  for (let i = debut; i < app.length; i++) {
+    if (app[i] === '{') prof++;
+    else if (app[i] === '}') { prof--; if (prof === 0) { fin = i; break; } }
+  }
+  assert.ok(fin > debut, 'les accolades de defaults sont équilibrées');
+  const bloc = app.slice(debut, fin + 1);
+
+  // Clés de PREMIER niveau : une clé imbriquée n'est pas un champ d'état.
+  const declarees = new Set();
+  prof = 0;
+  for (let i = 1; i < bloc.length - 1; i++) {
+    const c = bloc[i];
+    if (c === '{' || c === '[') { prof++; continue; }
+    if (c === '}' || c === ']') { prof--; continue; }
+    if (prof !== 0) continue;
+    const m = /^([A-Za-z_$][A-Za-z0-9_$]*)\s*:/.exec(bloc.slice(i));
+    if (m) { declarees.add(m[1]); i += m[0].length - 1; }
+  }
+  assert.ok(declarees.size > 40, 'on a bien extrait les clés (' + declarees.size + ')');
+
+  // Un champ créé par migration compte aussi : on ramasse les `state.X =`.
+  const assignees = new Set();
+  (app.match(/state\.([A-Za-z_$][A-Za-z0-9_$]*)\s*=[^=]/g) || []).forEach(x => {
+    assignees.add(/state\.([A-Za-z0-9_$]+)/.exec(x)[1]);
+  });
+
+  const lues = {};
+  app.split(/\r?\n/).forEach((l, i) => {
+    let mm; const re = /state\.([A-Za-z_$][A-Za-z0-9_$]*)/g;
+    while ((mm = re.exec(l))) {
+      if (!lues[mm[1]]) lues[mm[1]] = [];
+      if (lues[mm[1]].length < 3) lues[mm[1]].push(i + 1);
+    }
+  });
+
+  const fantomes = Object.keys(lues).filter(k => !declarees.has(k) && !assignees.has(k));
+  assert.deepEqual(fantomes, [],
+    'champs lus mais jamais déclarés ni assignés : '
+    + fantomes.map(k => 'state.' + k + ' (l. ' + lues[k].join(', ') + ')').join(' | '));
+});
+
 test('zoneRattrapage : un diagnostic qui dit enfin par quoi commencer', () => {
   const { exercises } = require('../lib/exercises-data.js');
 
