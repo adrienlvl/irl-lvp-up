@@ -11395,7 +11395,7 @@ function computeAchievements(state) {
     ['workouts-50', '🏅', 'Pilier', 'Enregistre 50 séances.', workouts.length >= 50],
     ['tonnage-10t', '🐘', '10 tonnes', 'Soulève 10 000 kg cumulés.', totalTonnage >= 10000],
     ['run-100', '🌍', 'Bornes avalées', 'Cours 100 km au total.', runKmTotal >= 100],
-    ['objective-set', '🧭', 'Cap physique', 'Choisis un objectif de programme auto.', !!s.fitnessObjective],
+    ['objective-set', '🧭', 'Cap physique', 'Choisis ton objectif et construis ton plan de bataille.', !!s.fitnessObjective],
     ['weight-goal', '🎖️', 'Cible atteinte', 'Atteins ta cible de poids.', weightGoalHit],
     ['variety', '🎨', 'Touche-à-tout', 'Travaille 8 exercices de muscu différents.', strengthNames.size >= 8],
   ];
