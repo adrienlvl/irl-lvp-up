@@ -11143,7 +11143,18 @@ const READINESS_LABELS = {
   fatigue: { nom: 'ta fatigue', unite: v => `${v}/5` },
   soreness: { nom: 'tes courbatures', unite: v => `${v}/5` }
 };
-function coachFormeCause(recovery) {
+function coachFormeCause(recovery, todayKey) {
+  /* La carte affirme « ta forme DU JOUR ». Or l'appelant retombe sur le dernier check-in
+     enregistré, qui peut dater de trois semaines : le coach affirmait alors quelque chose de
+     faux sur aujourd'hui, avec l'aplomb d'une mesure fraîche. Un score chiffré reste ambigu ;
+     « ton sommeil te bride aujourd'hui » est une affirmation, et elle doit être vraie.
+     Au-delà de 2 jours on se tait — mieux vaut rien dire que dire faux. */
+  if (isRealDateKey(todayKey)) {
+    const d = recovery && typeof recovery === 'object' ? recovery.date : null;
+    if (!isRealDateKey(d)) return null;
+    const jours = Math.round((new Date(todayKey + 'T12:00:00') - new Date(d + 'T12:00:00')) / 86400000);
+    if (jours < 0 || jours > 2) return null;
+  }
   const frein = readinessLimiter(recovery);
   if (frein && READINESS_LABELS[frein.factor]) {
     const l = READINESS_LABELS[frein.factor];

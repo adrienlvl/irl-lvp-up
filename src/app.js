@@ -319,7 +319,7 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
   let _fc=null;
   if(_fe){
     const _rec=(state.recovery||[]).find(x=>x&&x.date===localDate())||(state.recovery||[]).at(-1);
-    _fc=(typeof coachFormeCause==='function')?coachFormeCause(_rec):null;
+    _fc=(typeof coachFormeCause==='function')?coachFormeCause(_rec,localDate()):null;
     if(_fc){_fe.hidden=false;_fe.dataset.ton=_fc.ton;_fe.dataset.facteur=_fc.facteur;
       const _emo=_fc.ton==='frein'?{sleep:'😴',fatigue:'🔋',soreness:'🦵'}[_fc.facteur]:'⚡';
       _fe.innerHTML=`<span class="cf-emo" aria-hidden="true">${_emo}</span><span class="cf-body"><b>${escapeHtml(_fc.titre)}</b><span>${escapeHtml(_fc.texte)}</span><span class="cf-action">${escapeHtml(_fc.action)}</span></span>`;}

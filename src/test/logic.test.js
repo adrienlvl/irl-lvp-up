@@ -13876,3 +13876,24 @@ test('objectiveProgram honore le réglage et annonce ce qu’il pose', () => {
   const signatures = new Set(seances.map(s => s.exercises.map(e => e.name).join('|')));
   assert.ok(signatures.size >= 3, `${signatures.size} séances distinctes sur ${seances.length}`);
 });
+
+test('coachFormeCause : ne parle pas de « ta forme du jour » avec des données périmées', () => {
+  const f = L.coachFormeCause;
+  const AUJ = '2026-07-28';
+  const nuit = d => ({ date: d, sleep: 4, fatigue: 2, soreness: 2 });
+
+  // La carte AFFIRME (« ton sommeil te bride aujourd'hui »), là où un score chiffré reste
+  // ambigu. L'appelant retombe sur le dernier check-in enregistré : sans garde-fou, un
+  // check-in vieux de trois semaines faisait affirmer quelque chose de faux sur aujourd'hui.
+  assert.ok(f(nuit('2026-07-28'), AUJ), 'check-in du jour : il parle');
+  assert.ok(f(nuit('2026-07-27'), AUJ), 'hier aussi');
+  assert.ok(f(nuit('2026-07-26'), AUJ), 'avant-hier encore');
+  assert.equal(f(nuit('2026-07-25'), AUJ), null, 'trois jours : trop vieux pour affirmer');
+  assert.equal(f(nuit('2026-07-04'), AUJ), null, 'trois semaines : silence');
+  // Une date dans le futur est une donnée abîmée, pas une mesure d'aujourd'hui.
+  assert.equal(f(nuit('2026-08-01'), AUJ), null);
+  // Un check-in sans date ne prouve pas sa fraîcheur : on se tait.
+  assert.equal(f({ sleep: 4, fatigue: 2, soreness: 2 }, AUJ), null);
+  // Sans date du jour fournie, l'ancien comportement est préservé (compat des appelants).
+  assert.ok(f(nuit('2026-07-04')), 'sans todayKey, pas de test de fraîcheur');
+});
