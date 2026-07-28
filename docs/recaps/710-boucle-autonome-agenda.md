@@ -1577,3 +1577,51 @@ c'est l'inventaire des panneaux qui a montré qu'un panneau parlait avec quatre 
 
 ### Reste
 - Étape 11 (quatre générateurs de semaine sur l'onglet Programme) : **décision d'Adrien**.
+
+---
+
+## Itération 52 — Revue adversariale : deux défauts que je venais d'introduire
+
+Revue due après trois itérations de contenu (49, 50, 51). Cible choisie : **mes propres ajouts
+des deux dernières**, attaqués sur mes pièges documentés plutôt que sur du code ancien.
+
+### Défaut 1 — « zéro n'est pas absent », sur ma propre règle
+
+`macrosDuPlan` écrivait `Number(e.carbG) || repli.carbG`. Quand le plan tombe **légitimement**
+à 0 g de glucides — profil lourd en déficit marqué, où protéines et lipides dépassent déjà la
+cible — le bloc réaffichait les glucides de la source **abandonnée** : 777 g mesurés là où le
+plan disait 0. Livré la veille, dans le commit qui corrigeait précisément un problème de
+sources concurrentes.
+
+Corrigé en testant la **présence** d'un nombre, pas sa vérité. Un champ vraiment absent retombe
+toujours sur le repli — vérifié séparément.
+
+### Défaut 2 — la garde regardait la direction, pas l'IMC
+
+`garde.direction === 'perte'` laissait sans le moindre avertissement **le profil le plus exposé
+de tous** : quelqu'un déjà à IMC 16 qui garde son poids comme cible (donc direction
+« maintien ») et qui choisit « très agressif ». Trois alertes génériques, zéro sur le risque
+réel.
+
+Le risque tient à l'IMC **visé**, pas au sens du trajet — et l'alerte ne se déclenche de toute
+façon que sur un programme en déficit. Vérifié qu'une cible saine ne produit pas de fausse
+alarme.
+
+### Ce que cette revue a appris
+
+*Mes garanties les plus récentes sont les plus fragiles.* Les deux défauts datent de moins de
+24 h, et les deux ont été introduits dans des commits qui corrigeaient exactement ce genre de
+problème. Réviser le code neuf paie mieux que ratisser l'ancien.
+
+*Une condition de garde trop précise est un trou.* `direction === 'perte'` semblait prudent ;
+c'était une restriction qui excluait le cas le plus grave. Une garde doit se poser sur la cause
+du risque, pas sur le chemin le plus fréquent qui y mène.
+
+**Mutations.** Les deux mutations **remettent exactement les défauts d'origine** — c'est la
+seule forme qui prouve qu'un verrou attrape ce qu'il prétend attraper. Toutes deux détectées.
+
+662 tests · SMOKE OK.
+
+### Reste
+- Étape 11 (quatre générateurs de semaine sur l'onglet Programme) : **décision d'Adrien**,
+  reformulée avec les mesures de l'itération 51 et une recommandation.
