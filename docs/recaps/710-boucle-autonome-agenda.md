@@ -1731,3 +1731,52 @@ creux, jamais une bonne nouvelle.
 
 ### Reste
 - Rien en attente d'Adrien.
+
+---
+
+## Itération 55 — Revue adversariale : un invariant testé sur deux exemples n'est pas testé
+
+Revue due après deux itérations de contenu. Cible : **mon propre code des itérations 53 et 54**,
+attaqué sur mes pièges documentés plutôt que sur du code ancien — la méthode qui a payé à
+l'itération 52.
+
+### Le défaut
+
+`repartitionDplus` arrondissait chaque part au plus proche, puis versait le reste à la plus
+grosse, **écrêté à zéro**. Quand toutes les parts s'arrondissent vers le haut, ce reste est
+négatif et peut dépasser la plus grosse part.
+
+| D+ saisi | Ce que l'app affichait |
+|---|---|
+| 1200 m | 300 + 300 + 300 + 300 = **1200 m** ✓ |
+| **20 m** | 0 + 10 + 10 + 10 = **30 m** ✗ |
+
+Le défaut ne se voyait que sur les petits totaux. Mon test — écrit la veille — n'assertait la
+somme que sur **deux** totaux, tous deux grands.
+
+Corrigé par plus forts restes : troncature à la dizaine inférieure, puis redistribution par
+paliers de 10 aux parts les plus lésées. Somme exacte par construction. Balayage : **0 écart sur
+4 000 totaux**.
+
+### Ce que la mutation qui a survécu m'a appris
+
+Couper la redistribution laissait la somme **exacte** — tout le reste tombant sur une seule
+course — mais violait la règle annoncée : 20 m rendaient `20+0+0+0` au lieu de `10+10+0+0`. Un
+test qui n'assertait que la somme laissait passer un partage arbitraire.
+
+*Un invariant se teste sur un domaine, pas sur deux exemples choisis. Et asserter la conséquence
+(la somme) ne suffit pas quand la promesse porte sur la RÈGLE (le prorata).*
+
+### Vérifié sans défaut
+
+La phrase « sans aucun jour coché, l'app utilise toute la semaine », écrite à l'itération 53 sous
+le nouveau sélecteur. Mesuré : 6 jours sur 7 réellement utilisés. **L'affirmation tient** — une
+phrase d'interface vérifiée est aussi un résultat de revue.
+
+**Mutations.** 3 posées, 3 détectées — la 3e seulement après avoir cessé de tester la somme pour
+tester le sujet.
+
+665 tests · SMOKE OK. Rien de publié : la dernière release est v2.12.0.
+
+### Reste
+- Rien en attente d'Adrien.
