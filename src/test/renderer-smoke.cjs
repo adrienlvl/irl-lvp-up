@@ -3553,6 +3553,65 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errUnicite = String(e && e.message); return false; }
       })();
 
+      checks.arbitrageDit = (() => {
+        try {
+          if (typeof renderTrainingCompanion !== 'function' || typeof planDuJour !== 'function') return false;
+          const sw = state.workouts, sr = state.recovery, swe = state.weights;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const so = state.fitnessObjective;
+          const jn = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+          };
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [1, 2, 3, 4, 5, 6, 0], level: 'intermediaire' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4, distance: 40, progSessions: '' });
+          state.fitnessObjective = 'athletique';
+          state.weights = [{ date: localDate(), value: 80 }];
+
+          const lire = function () {
+            showPage('dashboard');
+            renderTrainingCompanion();
+            const e = document.getElementById('todayCoachText');
+            if (!e || getComputedStyle(e).display === 'none') return '';
+            return (e.textContent || '');
+          };
+          const prevu = function () {
+            try {
+              const p = trainingWeekPlan(trainingPlanInputs(state, localDate()), (typeof exercises !== 'undefined' ? exercises : []));
+              const d = planDuJour(p, localDate());
+              return (d && !d.repos && d.seances && d.seances.length) ? String(d.seances[0].title || '') : '';
+            } catch (_) { return ''; }
+          };
+
+          /* Seance TRES dure hier : le coach conseille du leger. Mesure d avant — le plan
+             prevoyait « Bas du corps », le coach disait « mobilite ou marche », et ne
+             mentionnait JAMAIS le plan. Deux avis opposes sur la meme journee. */
+          state.workouts = [{ id: 1, date: jn(1), type: 'strength', duration: 90, effort: 4, xp: 60,
+            exercises: [{ name: 'Squat', completedSets: 5, sets: 5, setLogs: [{ reps: 5, load: 120, completed: true }] }] }];
+          state.recovery = [{ date: localDate(), sleep: 7.2, fatigue: 2, soreness: 2 }];
+          const dur = lire(); const titreDur = prevu();
+
+          /* Journee normale : le coach SUIT le plan. Il ne doit alors pas repeter la seance
+             qu il vient de nommer — le doublon qu on passe son temps a supprimer. */
+          state.workouts = [];
+          const calme = lire(); const titreCalme = prevu();
+
+          state.workouts = sw; state.recovery = sr; state.weights = swe;
+          state.profile = sp; state.goals = sg; state.fitnessObjective = so;
+          try { renderTrainingCompanion(); } catch (_) {}
+
+          checks.__arbitrage = 'dur[' + dur.slice(0, 60) + '] calme[' + calme.slice(0, 45) + ']';
+          // Il faut que le plan ait VRAIMENT prevu une seance, sinon on ne teste rien.
+          if (!titreDur) return false;
+          const nomme = dur.indexOf(titreDur) !== -1 && dur.indexOf('Ton plan prévoit') !== -1;
+          // Et pas deux fois la meme seance quand le coach suit le plan.
+          const pasDeuxFois = !titreCalme || calme.split('Ton plan prévoit').length <= 2;
+          return nomme && pasDeuxFois;
+        } catch (e) { checks.__errArbitrage = String(e && e.message); return false; }
+      })();
+
       checks.bilanDeFinDeBloc = (() => {
         try {
           if (typeof renderBlockStatus !== 'function' || typeof bilanDeBloc !== 'function') return false;
@@ -4228,6 +4287,7 @@ app.whenReady().then(async () => {
     if (!checks.aucuneSeancePerdue) errors.push('Des séances du programme disparaissent en silence : quand deux séances du même type tombent le même jour (plus de séances que de jours cochés), la garde par créneau renonçait au lieu de décaler — 18 séances sur 48 étaient perdues. Le plan annonce N séances, l’agenda doit en recevoir N');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
+    if (!checks.arbitrageDit) errors.push('Le coach du tableau de bord conseille du léger pendant que le Plan de bataille prévoit une séance, SANS le dire : deux avis opposés sur la même journée. Quand il met le plan de côté, il doit nommer la séance qu’il décale — et ne pas la répéter quand il la suit');
     if (!checks.bilanDeFinDeBloc) errors.push('Fin de bloc : l’écran dit quoi faire ensuite sans jamais dire ce que les 8 semaines ont produit. Il doit citer les séances, le tonnage, la variation vs le bloc précédent et les charges gagnées — tout est calculé, rien n’était affiché');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
