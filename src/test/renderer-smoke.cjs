@@ -3122,6 +3122,51 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.precisionSeance = (() => {
+        try {
+          const dlg = document.getElementById('workoutDialog');
+          const h = document.getElementById('workoutHours');
+          const m = document.getElementById('workoutDuration');
+          const sec = document.getElementById('workoutSeconds');
+          const km = document.getElementById('workoutDistance');
+          if (!dlg || !h || !m || !sec || !km) return false;
+
+          showPage('athlete');
+          const bt = document.getElementById('addWorkoutButton');
+          if (bt) bt.click();
+          // Le RENDU, pas la propriete : un champ present mais non peint ne se saisit pas.
+          const vu = getComputedStyle(sec).display !== 'none' && sec.offsetParent !== null;
+
+          /* LA contrainte reelle qu'Adrien a rencontree : l'attribut step fait REFUSER la
+             valeur par le navigateur. Tester checkValidity() teste ce qu'il a vecu, pas notre idee
+             de ce que le champ accepte. 5,14 km etait rejete par step=0.1 ; il demande les
+             metres, donc on verifie aussi 5,143. */
+          km.value = '5.14';
+          const km514 = km.checkValidity();
+          km.value = '5.143';
+          const km5143 = km.checkValidity();
+          km.value = '';
+
+          /* L'aller-RETOUR : saisir 1 h 33 min 20 s, lire, puis reafficher doit rendre
+             EXACTEMENT la meme chose. Sans ca la precision promise se perd au premier
+             enregistrement, ce qui est pire que de ne pas la proposer. */
+          h.value = '1'; m.value = '33'; sec.value = '20';
+          const total = (typeof readDurationFields === 'function') ? readDurationFields() : null;
+          h.value = ''; m.value = ''; sec.value = '';
+          if (typeof setDurationFields === 'function') setDurationFields(total);
+          const retour = h.value + '/' + m.value + '/' + sec.value;
+          checks.__precisionRetour = retour + ' (' + String(total) + ' min)';
+
+          // Les secondes ne doivent PAS ecrire un « 0 » parasite quand il n'y en a pas.
+          if (typeof setDurationFields === 'function') setDurationFields(45);
+          const sansSec = sec.value === '';
+
+          try { dlg.close(); } catch (_) {}
+          showPage('dashboard');
+          return vu && km514 && km5143 && retour === '1/33/20' && sansSec;
+        } catch (e) { checks.__errPrecision = String(e && e.message); return false; }
+      })();
+
       checks.affutageExplique = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -3490,6 +3535,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
+    if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');
     if (!checks.affutageExplique) errors.push('Course objectif dans 10 jours : le Programme auto raccourcit les sorties sans l’expliquer (ou l’explique sans course). Le volume qui rétrécit sans un mot ressemble à un bug, pas à du coaching — le message doit citer le J-N, la coupe réellement tenue et Bosquet 2007');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — le bandeau de pilotage doit citer l’objectif de poids et la cible kcal, et le compagnon ne doit pas annoncer une séance du jour absente de cette semaine alors qu’il affirme la partager)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');

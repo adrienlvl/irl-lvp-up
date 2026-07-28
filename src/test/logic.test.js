@@ -2296,23 +2296,38 @@ test('weightTargetAdvice ↔ energyPlan : rythme et durée COHÉRENTS (même éc
   assert.equal(L.safeLossRate(0, 24, 2500, 1600), null, 'null si données invalides');
 });
 
-test('splitDuration / combineDuration : saisie d’une durée en heures + minutes', () => {
-  assert.deepEqual(L.splitDuration(45), { h: 0, m: 45 });
-  assert.deepEqual(L.splitDuration(90), { h: 1, m: 30 }, '1 h 30');
-  assert.deepEqual(L.splitDuration(60), { h: 1, m: 0 });
-  assert.deepEqual(L.splitDuration(0), { h: 0, m: 0 });
-  assert.deepEqual(L.splitDuration(-10), { h: 0, m: 0 }, 'négatif → 0');
-  assert.deepEqual(L.splitDuration('x'), { h: 0, m: 0 });
+test('splitDuration / combineDuration : saisie d’une durée en heures + minutes + secondes', () => {
+  /* CONTRAT CHANGÉ SCIEMMENT (demande d'Adrien : « 1h 33 min 20 sec pareil [impossible] »).
+     La signature passe de (h, m, max) à (h, m, s, max) et `splitDuration` rend aussi `s`.
+     Les assertions ci-dessous sont réécrites en conséquence — ce n'est pas un assouplissement :
+     chacune vérifie la même chose qu'avant, avec les secondes en plus. Le stockage reste en
+     MINUTES (aucune migration), les secondes étant une fraction de minute. */
+  assert.deepEqual(L.splitDuration(45), { h: 0, m: 45, s: 0 });
+  assert.deepEqual(L.splitDuration(90), { h: 1, m: 30, s: 0 }, '1 h 30');
+  assert.deepEqual(L.splitDuration(60), { h: 1, m: 0, s: 0 });
+  assert.deepEqual(L.splitDuration(0), { h: 0, m: 0, s: 0 });
+  assert.deepEqual(L.splitDuration(-10), { h: 0, m: 0, s: 0 }, 'négatif → 0');
+  assert.deepEqual(L.splitDuration('x'), { h: 0, m: 0, s: 0 });
 
-  assert.equal(L.combineDuration(1, 30), 90);
-  assert.equal(L.combineDuration(0, 45), 45);
-  assert.equal(L.combineDuration(2, 0), 120, 'heures seules');
-  assert.equal(L.combineDuration('', 45), 45, 'champ heures vide');
-  assert.equal(L.combineDuration(1, ''), 60, 'champ minutes vide');
+  assert.equal(L.combineDuration(1, 30, 0), 90);
+  assert.equal(L.combineDuration(0, 45, 0), 45);
+  assert.equal(L.combineDuration(2, 0, 0), 120, 'heures seules');
+  assert.equal(L.combineDuration('', 45, 0), 45, 'champ heures vide');
+  assert.equal(L.combineDuration(1, '', ''), 60, 'champs minutes et secondes vides');
   // on ne « corrige » pas l'utilisateur en silence : 1 h + 90 min = 150 min
-  assert.equal(L.combineDuration(1, 90), 150);
-  assert.equal(L.combineDuration(20, 0), 600, 'plafond 10 h');
-  assert.equal(L.combineDuration(3, 0, 120), 120, 'plafond personnalisé');
+  assert.equal(L.combineDuration(1, 90, 0), 150);
+  assert.equal(L.combineDuration(20, 0, 0), 600, 'plafond 10 h');
+
+  /* LE CAS D'ADRIEN, mot pour mot : 1 h 33 min 20 s. C'est l'aller-RETOUR qui compte —
+     saisir puis rouvrir la séance doit rendre exactement ce qu'il a tapé, sinon la
+     précision qu'on lui promet se perd au premier enregistrement. */
+  const t = L.combineDuration(1, 33, 20);
+  assert.deepEqual(L.splitDuration(t), { h: 1, m: 33, s: 20 }, 'aller-retour sans perte');
+  assert.equal(L.formatDuration(t), '1 h 33 min 20 s');
+  assert.equal(L.formatDuration(45), '45 min', 'pas de « 0 s » parasite quand il n’y en a pas');
+  assert.equal(L.formatDuration(0.5), '30 s', 'moins d’une minute reste lisible');
+  assert.ok(Math.abs(L.combineDuration(0, 0, 30) - 0.5) < 1e-9, '30 s = une demi-minute');
+  assert.equal(L.combineDuration(3, 0, 0, 120), 120, 'plafond personnalisé (4e argument désormais)');
   assert.equal(L.combineDuration(-1, -5), 0, 'négatifs → 0');
 
   // aller-retour : découper puis recomposer redonne la valeur d'origine (le modèle reste en minutes)
