@@ -279,3 +279,14 @@ tenue et Bosquet 2007), donc les trois coachs connectés l'honorent. Le check bl
 fonctionnalité côté course. Il reste à vérifier, avant de trancher, si ce panneau porte
 d'autres capacités uniques du même genre — la leçon de l'itération 30 est précisément qu'un
 panneau qu'on croit redondant peut être le seul à faire quelque chose d'utile.
+
+
+## Étape 11 — CLOSE le 2026-07-29
+
+Décision d Adrien : masquer les trois générateurs concurrents (`hidden`, jamais supprimés) ET intégrer l ultra-trail dans le Plan de bataille. Livré en itération 53, publié en v2.11.0.
+
+- Jours d entraînement et zones musculaires portés dans le Plan de bataille (ils n avaient d écrivain que dans les panneaux masqués).
+- Dénivelé hebdomadaire et sortie longue visée portés, avec `repartitionDplus`.
+- Deux bugs bloquants corrigés au passage : ReferenceError dans le futur planificateur unique, et absence d affûtage pour un ultra choisi dans la liste.
+
+Le plan d unification est terminé.

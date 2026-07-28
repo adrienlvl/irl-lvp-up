@@ -1625,3 +1625,55 @@ seule forme qui prouve qu'un verrou attrape ce qu'il prétend attraper. Toutes d
 ### Reste
 - Étape 11 (quatre générateurs de semaine sur l'onglet Programme) : **décision d'Adrien**,
   reformulée avec les mesures de l'itération 51 et une recommandation.
+
+---
+
+## Itération 53 — Étape 11 close : un seul générateur, et le dénivelé entre dans le plan
+
+**Décision d'Adrien**, après dix itérations où je la lui ai posée : « Masque-les, mais intègre
+l'ultra-trail dans le plan de bataille, faut que ça soit logique. »
+
+Cartographie préalable des quatre panneaux en parallèle (5 agents, 0 erreur), puis vérification
+personnelle de chaque affirmation qui commandait un geste. Quatre étaient critiques, **toutes
+confirmées** :
+
+1. **`_perdues` non déclaré** dans `scheduleObjectiveProgram` → `ReferenceError` dès qu'un
+   créneau reste pris après trois décalages. Or c'est le chemin qui devient l'unique
+   planificateur.
+2. **`raceKm = _course.type || _course.distanceKm`** → la clé `'ultra160'` passait en premier :
+   `taperDaysFor` rendait 7 jours au lieu de 18, `taperPlan(15,'ultra160')` rendait `null`.
+   **Un ultra choisi dans la liste n'affûtait pas.**
+3. **Deux classes posent `display:` sans règle `[hidden]`** — `.weekly-planner` et
+   `.run-plan-bar`. Le piège du dépôt, pour la troisième fois.
+4. **`availableDays` et `zonesVoulues` n'avaient d'écrivain que dans les panneaux à masquer**,
+   alors que le plan les LIT déjà.
+
+### Ce qui a été livré (4 commits + release)
+
+- Les deux bugs de plomberie, d'abord — ils conditionnaient le reste.
+- Les jours et les zones portés sous la barre du plan, **triés lundi-d'abord** (trois ordres
+  concurrents coexistent, et `premiereSeanceInfo` affiche dans l'ordre stocké).
+- `repartitionDplus` : le D+ hebdo réparti sur les courses **au prorata du temps debout**, somme
+  exacte, jamais dans le titre (l'affûtage y fait un remplacement ancré sur les km).
+- Les trois générateurs masqués par `hidden`, avec les règles CSS jumelles.
+
+### Ce que cette itération a appris
+
+*Une mutation qui survit dit quelque chose de vrai.* Retirer le `hidden` de
+`.weekly-program-panel` ne cassait rien : ce panneau appartient à `pageGroups.library` et la
+page Athlète le masquait déjà. Mon assertion était creuse — et la mutation m'a appris que ce
+panneau ne s'affichait pas là où je croyais.
+
+*Mon propre harnais peut être daté.* Le check `repasEtDepart` codait des jours donnant deux jours
+d'attente **un mardi** ; il est tombé tout seul au changement de date, sur du code correct. Le
+scénario se construit désormais depuis le jour courant.
+
+*Un appel de rendu peut annuler une écriture.* Appeler `renderWeekProgram()` depuis le nouvel
+écouteur de zones écrasait le choix qu'on venait d'enregistrer : cette fonction relit `#wpGoals`
+et réécrit l'état.
+
+**Mutations** : 9 posées sur l'itération, 9 détectées (dont une seulement après avoir corrigé
+l'assertion creuse). 664 tests · SMOKE OK · 390 px propre · **publié en v2.11.0**.
+
+### Reste
+- Rien en attente d'Adrien. L'étape 11 est close.
