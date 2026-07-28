@@ -14062,3 +14062,51 @@ test('trainingWeekPlan : UNE seule semaine, qui tient compte du poids', () => {
   assert.equal(L.trainingWeekPlan({ objectif: 'nawak' }, exercises), null);
   assert.doesNotThrow(() => L.trainingWeekPlan(null, exercises));
 });
+
+test('invariant : le coach du jour et le Coach Poids appliquent le MÊME plancher calorique', () => {
+  const w = [];
+  for (let i = 0; i < 24; i++) {
+    const d = new Date('2026-07-28T12:00:00'); d.setDate(d.getDate() - i);
+    w.push({ date: d.toISOString().slice(0, 10), value: 82 });
+  }
+  const profil = { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'sedentaire', goal: 'perte', targetWeight: 73 };
+  const plan = L.energyPlan(profil);
+  assert.ok(plan.bmr > 1200, 'ce test n’a de sens que si le métabolisme de base dépasse le plancher générique');
+
+  /* Le coach du jour appelait calorieAdjustment SANS le 4e argument : FLOOR retombait sur
+     1200 kcal alors que le Coach Poids passe le métabolisme de base. Deux écrans, deux cibles
+     pour la même situation — et celle du tableau de bord descendait SOUS le métabolisme de
+     base, ce que le Coach Poids refuse. On vérifie que l'écart est impossible. */
+  const avecPlancher = L.calorieAdjustment(w, 'perte', plan.bmr + 100, plan.bmr, { tdee: plan.tdee });
+  const sansPlancher = L.calorieAdjustment(w, 'perte', plan.bmr + 100, null, { tdee: plan.tdee });
+  assert.ok(avecPlancher.newTarget >= plan.bmr, 'jamais en dessous du métabolisme de base');
+  assert.ok(sansPlancher.newTarget < avecPlancher.newTarget,
+    'sans plancher la cible descend plus bas — c’est bien le 4e argument qui protège');
+
+  /* JEU D'ESSAI QUI DÉCLENCHE VRAIMENT LE PILIER NUTRITION. Mon premier essai faisait rendre
+     null à adaptiveCoachFocus : l'assertion, protégée par un `if`, ne s'exécutait jamais et la
+     mutation survivait. On EXIGE la cible plutôt que de la supposer. */
+  const today = '2026-07-16';
+  const nutrition = [
+    { date: '2026-07-04', protein: 100 }, { date: '2026-07-06', protein: 100 },
+    { date: '2026-07-08', protein: 100 }, { date: '2026-07-15', protein: 100 }
+  ];
+  const platWeights = [
+    { date: '2026-05-01', value: 85 }, { date: '2026-06-10', value: 82 }, { date: '2026-06-20', value: 82 },
+    { date: '2026-06-30', value: 82 }, { date: '2026-07-05', value: 82 }, { date: '2026-07-10', value: 82 },
+    { date: '2026-07-14', value: 82 }
+  ];
+  /* Profil SÉDENTAIRE, choisi exprès : la cible calorique tombe pile sur le métabolisme de
+     base, donc le plancher MORD. Avec un profil « modéré » la cible restait bien au-dessus
+     et le test ne discriminait rien — la mutation survivait. */
+  const profilFocus = { height: 180, age: 30, sex: 'homme', activityLevel: 'sedentaire' };
+  const planFocus = L.energyPlan({ weight: 82, height: 180, age: 30, sex: 'homme', activityLevel: 'sedentaire', goal: 'perte', targetWeight: 79 });
+  assert.ok(planFocus.bmr > 1200, 'le test n’a de sens que si le métabolisme dépasse le plancher générique de 1200');
+  assert.equal(planFocus.dailyTarget, planFocus.bmr, 'la cible est déjà au plancher : c’est le cas qui discrimine');
+
+  const focus = L.adaptiveCoachFocus({ nutrition, profile: profilFocus, goals: { targetWeight: 79 }, weights: platWeights }, today);
+  assert.equal(typeof focus.calorieTarget, 'number', 'le focus expose bien une cible chiffrée');
+  // Sans le plancher, ce même calcul descend à 1675 — sous le métabolisme de base.
+  assert.ok(focus.calorieTarget >= planFocus.bmr,
+    'le focus du jour propose ' + focus.calorieTarget + ' kcal, sous le métabolisme de base ' + planFocus.bmr);
+});

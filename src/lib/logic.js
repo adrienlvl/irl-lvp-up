@@ -7735,7 +7735,7 @@ function adaptiveCoachFocus(state, todayKey, opts) {
               } else if (typeof energyPlan === 'function' && typeof calorieAdjustment === 'function') {
                 const plan = energyPlan({ weight: wt.current, height: s.profile && s.profile.height, age: s.profile && s.profile.age, sex: s.profile && s.profile.sex, activityLevel: s.profile && s.profile.activityLevel, sessionsPerWeek: s.goals && s.goals.sessions, targetWeight: tgtW, todayKey });
                 if (plan && plan.goal === wantGoal) {
-                  const adj = calorieAdjustment(s.weights, plan.goal, plan.dailyTarget, null, { tdee: plan.tdee });
+                  const adj = calorieAdjustment(s.weights, plan.goal, plan.dailyTarget, plan.bmr, { tdee: plan.tdee });
                   if (adj && adj.stagnating) {
                     calorieTarget = adj.newTarget;
                     if (adj.delta > 0) {
