@@ -174,6 +174,12 @@
 .bs-forecast small{color:var(--muted);font-size:.76rem}
 .bs-neglect{margin-top:7px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);border-left:3px solid var(--pink,#fb7185);background:rgba(251,113,133,.07);font-size:.84rem}
 .bs-neglect small{color:var(--muted);font-size:.76rem}
+/* La conduite à tenir, sous le diagnostic. Séparée par un filet plutôt que par un cadre : elle
+   appartient au même constat, elle n'est pas un second message. */
+.bs-fix{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);color:var(--muted);
+  font-size:var(--fs-2xs);line-height:1.55}
+.bs-fix[hidden]{display:none}
+.bs-fix b{color:var(--text);font-weight:700}
 .bs-pushpull{margin-top:7px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);border-left:3px solid #fbbf24;background:rgba(251,191,36,.08);display:flex;flex-direction:column;gap:2px;font-size:.84rem}
 .bs-pushpull.bs-pp-ok{border-left-color:var(--accent);background:var(--accent-soft)}
 .bs-pushpull small{color:var(--muted);font-size:.76rem}

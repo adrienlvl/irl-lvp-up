@@ -14037,6 +14037,39 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('zoneRattrapage : un diagnostic qui dit enfin par quoi commencer', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+
+  /* L'app nommait le problème — « Zone à rattraper : Épaules (2 séries sur 28 j) » — et
+     s'arrêtait là. Un diagnostic sans conduite à tenir laisse Adrien où il était.
+     `zoneTopExercises` classait déjà les exercices et n'était affichée NULLE PART. */
+  const tout = L.zoneRattrapage('shoulders', exercises, null, 3);
+  assert.equal(tout.length, 3, 'trois exercices proposés');
+  assert.ok(tout.every(n => typeof n === 'string' && n), 'ce sont des noms d’exercices');
+
+  /* LE point qui compte : le matériel. Proposer « Développé militaire kettlebell » à quelqu'un
+     qui n'a pas de kettlebell, c'est un coach qui ne sait pas de quoi tu disposes. On écrit le
+     test sur le scénario où ça FAIT une différence — sans matériel, cet exercice doit sortir. */
+  const kb = tout.filter(n => /kettlebell/i.test(n));
+  assert.ok(kb.length > 0, 'avec tout le matériel, le kettlebell est bien proposé (sinon le test suivant ne prouve rien)');
+  const sans = L.zoneRattrapage('shoulders', exercises, ['aucun'], 3);
+  assert.equal(sans.length, 3, 'sans matériel, on trouve quand même trois exercices');
+  assert.ok(sans.every(n => !/kettlebell|barre|haltère/i.test(n)),
+    'et aucun ne demande de matériel : ' + sans.join(', '));
+
+  /* On demande LARGE au classement avant de filtrer : prendre les 3 premiers puis filtrer
+     pourrait n'en laisser aucun alors que la bibliothèque en a de faisables plus bas. */
+  ['abs', 'glutes', 'arms', 'legs', 'back', 'chest'].forEach(z => {
+    assert.ok(L.zoneRattrapage(z, exercises, ['aucun'], 3).length >= 1,
+      'chaque zone garde au moins une option sans matériel : ' + z);
+  });
+
+  // Mieux vaut se taire que conseiller l'infaisable ou l'inexistant.
+  assert.deepEqual(L.zoneRattrapage('nawak', exercises, null, 3), [], 'zone inconnue → rien');
+  assert.deepEqual(L.zoneRattrapage('abs', [], null, 3), [], 'aucune bibliothèque → rien, pas un repli inventé');
+  assert.deepEqual(L.zoneRattrapage('', exercises, null, 3), [], 'zone vide → rien');
+});
+
 test('analysePerformance : le panneau Analyse voit enfin les séances modernes', () => {
   const AUJ = '2026-07-28';
   const jour = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
