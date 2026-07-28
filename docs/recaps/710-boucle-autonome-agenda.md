@@ -691,3 +691,50 @@ Et il est maintenant **gardé** — une mutation qui décale la cible de 7 g le 
 conclure à un défaut de l'app.*
 
 642 tests · SMOKE OK · 390 px propre.
+
+## Itération 29 — le harnais tenu à ses propres règles
+
+Trois sujets, tous nés du même constat : **quelque chose calcule un verdict que rien ne lit.**
+
+**1. La méta-garde.** Mesure sur un run réel : 394 checks booléens, 212 suivis d'un
+`if (!checks.X) errors.push(...)`. Les autres pouvaient valoir `false` sans rien casser — et
+l'un d'eux l'était depuis longtemps. Plutôt que d'écrire 182 messages (long, et sans effet sur
+le *prochain* check ajouté sans message), une règle unique : aucun check ne peut être faux en
+silence, et la liste des checks déjà gardés se lit dans la source plutôt que tenue à la main.
+Validée en forçant `photoCompare` à false.
+
+**2. « Fragile » calculé sur un check-in mort.** Le seuil (sommeil < 6 h, fatigue ≥ 4,
+courbatures ≥ 4) était recopié à l'identique dans **six** rendus, tous sur
+`state.recovery.at(-1)`. Une mauvaise nuit saisie il y a trois semaines, plus rien de saisi
+depuis, et l'app te déclarait fragile indéfiniment : charges baissées, séance allégée,
+« récupération basse » affiché — sur la foi d'une donnée morte. `recoveryFraiche` existait
+pour ça, et **son propre commentaire disait « quatorze endroits LISAIENT », au passé, alors
+que huit le faisaient encore.** Un commentaire au passé sur un travail inachevé fait croire la
+dette payée. Corrigé : `etatFragile`, un seul seuil, qui exige une mesure du jour.
+Second défaut trouvé en chemin : le formulaire enregistre `Number(champ.value) || 0`, donc un
+champ sommeil vide vaut 0 en base, et `sleep < 6` lisait ce 0 comme une nuit blanche.
+
+**3. Le panneau qui affirme.** Le compagnon écrit « c'est la même semaine que sur ton Programme
+auto et ton Coach Poids ». Le check comparait ces deux-là entre eux, jamais celui qui promet.
+
+### Ce que cette itération a appris
+
+*Deux versions de mon propre check n'ont rien testé, SMOKE vert les deux fois.* La première
+conditionnait sur « il affirme » — sans check-in, le compagnon n'atteint jamais la phrase. La
+seconde tombait un jour de repos. **Seule la mutation l'a dit.** Un check vert ne prouve pas
+qu'il a exercé son sujet ; il prouve seulement qu'il n'a pas échoué, ce qui est aussi ce que
+fait un check qui ne s'exécute pas. C'est la même erreur que les 182 checks non gardés, à un
+étage au-dessus — et je l'ai commise en la corrigeant.
+
+*Une trouvaille réfutée proprement.* « Le compagnon affirme la même semaine alors que les deux
+panneaux sont vides » : sondé, faux. Le Programme auto affiche « Aligné sur ton Coach Poids »
+même sans objectif choisi. Ma première sonde visait `#coachWeekSchedule`, qui est un **bouton** —
+la semaine vit dans `.cw-week`. Mesurer le mauvais élément produit une fausse trouvaille aussi
+sûrement qu'un mauvais raisonnement.
+
+*Ne pas sur-généraliser.* `state.weights.at(-1)` suit le même motif que `recovery.at(-1)` mais
+n'est **pas** un défaut : une pesée d'il y a trois semaines reste une estimation valable du
+poids, alors que le sommeil d'il y a trois semaines ne dit rien de la forme d'aujourd'hui.
+Vérifié avant de conclure, pas corrigé par réflexe.
+
+643 tests · SMOKE OK · 390 px propre.
