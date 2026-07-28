@@ -961,3 +961,37 @@ n'arrive pas à suivre doit devenir un outil.
   `hydrationAdherenceTrend`, `fieldAdherenceTrend`, `blockProgressText`, `progressSets`,
   `workoutDominantZone`.
 - Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
+
+## Itération 36 — de « où tu en es » à « où tu vas » (axe A)
+
+**Le manque.** L'app affichait « 5/7 j ≥ 145 g » : la semaine en cours, et rien d'autre.
+`proteinAdherenceTrend` et `hydrationAdherenceTrend` comparaient déjà cette semaine à la
+précédente depuis toujours, et n'étaient lues NULLE PART. Un décrochage de 7/7 à 0/7 était
+donc parfaitement invisible. Le panneau dit maintenant les DEUX semaines, nomme un seul frein
+(le plus fort), et se tait tant qu'il n'y a rien à comparer.
+
+**Sondage payant, deux fois.** Ma première sonde a fait croire à un défaut d'hydratation
+(0 jour atteint alors que 2,6 ≥ 2,5) : en réalité la cible est en VERRES, pas en litres, et
+`Math.round` la ramenait à 3. Le code était juste, mon jeu d'essai faux. Puis la sonde de ma
+propre fonction a révélé un vrai défaut avant qu'il n'atteigne l'app : le tri retenait le PIRE,
+donc quand rien ne baissait je tombais sur le plus plat et l'app annonçait « stable » alors
+qu'un intrant avait gagné 7 jours.
+
+### Ce que cette itération a appris
+
+*Sonder AVANT de construire évite d'accuser le code.* Deux fois de suite, l'anomalie apparente
+venait de mon jeu d'essai (unité en verres) ou de ma propre logique (tri), jamais du code
+existant. La règle « vérifier ce que la fonction rend avant de bâtir autour » a payé
+directement.
+
+*Les trois mutations ne mordent pas au même endroit, et c'est normal.* Celle sur la source ne
+touche que le test node : le check du harnais n'exerce que le cas protéines, où la citation est
+correcte des deux côtés. Le noter explicitement vaut mieux que d'élargir le check jusqu'à ce
+qu'il attrape tout — chaque garde couvre son périmètre, à condition qu'on sache lequel.
+
+650 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- Cinq fonctions encore jamais rendues : `focusMinutesTrend`, `blockProgressText`,
+  `progressSets`, `workoutDominantZone`, `bedtimeRegularityTrend`.
+- Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
