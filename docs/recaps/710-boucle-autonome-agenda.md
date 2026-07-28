@@ -1076,3 +1076,50 @@ s'est fait manger et a produit une regex invalide qui a cassé TOUT le fichier d
 - **La liste « fonctions jamais exploitées » du mandat est périmée** : les 4 dernières sont
   toutes consommées par des fonctions rendues. Chercher la profondeur en SONDANT l'écran.
 - Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
+
+## Itération 39 — les six demandes d'Adrien, puis v2.9.0
+
+Diagnostic parallèle (6 sondes en lecture seule) avant toute écriture, puis reproduction en
+exécutant l'app pour ce que la lecture de code ne pouvait pas trancher.
+
+**1. « Programmer » ne remplissait pas l'agenda.** Reproduit en cliquant : 28 séances écrites,
+**0 dans la semaine en cours** — tout partait de lundi PROCHAIN. `weekProgramSchedule` faisait
+déjà ce qu'il fallait et l'autre bouton de l'app l'utilisait : deux boutons, deux règles.
+Aligné. Trois conséquences traitées : même ancrage sur le repli du Coach Poids, purge partant
+d'aujourd'hui, et **garde par créneau** ajouté (il n'existait que dans le planificateur — tant
+que le programme démarrait la semaine suivante, la collision était impossible).
+
+**2. 8 semaines.** `blockPhase` cyclait déjà modulo 4 : il suffisait d'arrêter d'écraser
+l'index. Deux mésocycles, décharge toutes les 4 semaines.
+
+**3. Séance guidée étape par étape.** Écran « prêt ? », décompte de 5 s passable, une série mise
+en avant à la fois, enchaînement automatique après le repos. La série courante est DÉDUITE
+(première non validée) et non stockée : un index et des cases à cocher finiraient par se
+contredire.
+
+**4. « Charge » sur des pompes.** C'était le placeholder de repli du champ kg, affiché dès que
+la suggestion de progression est nulle — donc toujours au poids du corps.
+
+**5. Nutrition au choix.** Cinq programmes ; le choix est ouvert, le coût est annoncé. Plancher
+au métabolisme de base, expliqué au lieu d'être imposé.
+
+**6. « Programme auto » → « Plan de bataille ».**
+
+### Ce que cette itération a appris
+
+*Le diagnostic parallèle a payé, mais l'exécution a tranché.* Les agents ont lu le code et
+trouvé la cause exacte (`monday + 7`) ; c'est la reproduction en cliquant pour de vrai qui a
+donné le chiffre qui compte : 0 séance dans la semaine en cours.
+
+*Ma méta-garde a servi pour la première fois en conditions réelles.* Le passage à 8 semaines a
+rendu le check `currentBlock` faux — il n'avait aucun message dédié et serait passé inaperçu.
+
+*Quatre checks/tests sont tombés, tous par contrat changé sciemment*, jamais assouplis :
+l'onboarding épinglait `week.length * 4` (ce qui n'est vrai que si l'on démarre lundi prochain),
+`agendaSansDoublon` posait 4 semaines à la main pendant que le bouton en pose 8, et deux tests
+de bloc dataient la fin à 28 jours.
+
+*Le piège de la mauvaise occurrence, deuxième fois.* En restaurant une mutation, un remplacement
+de `return false;` a frappé un filtre géographique sans rapport et cassé 4 tests.
+
+653 tests · SMOKE OK · 390 px propre · **v2.9.0 publiée** (installeur + latest.yml en ligne).
