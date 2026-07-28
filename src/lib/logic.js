@@ -4546,7 +4546,16 @@ function trainingPlanInputs(state, todayKey) {
   if (_course && isRealDateKey(todayKey)) {
     const _j = Math.round((new Date(_course.date + 'T12:00:00') - new Date(todayKey + 'T12:00:00')) / 864e5);
     // Une course PASSÉE n'affûte rien. Négatif = derrière nous, on n'y touche plus.
-    if (_j >= 0) { raceDaysLeft = _j; raceKm = _course.type || _course.distanceKm || null; }
+    /* `raceGoal.type` est une CLÉ de RACE_PRESETS ('ultra160'), pas un nombre — et elle passait
+       en premier. Mesuré : taperDaysFor('ultra160') rendait 7 jours au lieu de 18, et
+       taperPlan(15,'ultra160') rendait null là où taperPlan(15,170) rend une vraie fenêtre.
+       Autrement dit, pour un ultra choisi dans la liste déroulante, l'app N'AFFÛTAIT PAS.
+       On lit la distance saisie, puis celle du préréglage, et jamais la clé. */
+    if (_j >= 0) {
+      raceDaysLeft = _j;
+      const _preset = RACE_PRESETS[_course.type];
+      raceKm = Number(_course.distanceKm) || (_preset && Number(_preset.km)) || null;
+    }
   }
 
   return {

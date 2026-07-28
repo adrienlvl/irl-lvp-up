@@ -3185,6 +3185,51 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.planificateurSurvit = (() => {
+        try {
+          if (typeof scheduleObjectiveProgram !== 'function' || typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sa = state.agenda, sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [1, 2, 3, 4, 5, 6, 0] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 6, runs: 6, progSessions: '' });
+          state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
+
+          /* AGENDA SATURE : on occupe le creneau d origine ET les trois decalages de +90 min,
+             sur chaque jour des 8 prochaines semaines. C est le SEUL chemin qui atteignait
+             le compteur de creneaux perdus, une variable qui n existait pas dans cette
+             ReferenceError dans ce qui devient le seul planificateur de l app. */
+          const bouchon = [];
+          const t0 = new Date(localDate() + 'T12:00:00');
+          for (let d = 0; d < 60; d++) {
+            const jour = new Date(t0); jour.setDate(jour.getDate() + d);
+            const dk = jour.toISOString().slice(0, 10);
+            ['07:30', '09:00', '10:30', '12:00', '18:00', '19:30', '21:00'].forEach(function (h, k) {
+              bouchon.push({ id: 'bouchon-' + d + '-' + k, date: dk, time: h, title: 'Occupe',
+                kind: 'perso', durationMin: 90, source: 'manuel' });
+            });
+          }
+          state.agenda = bouchon;
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          let erreur = '';
+          try { scheduleObjectiveProgram(lastObjectiveProgram, 8); }
+          catch (e) { erreur = String(e && e.message); }
+
+          state.profile = sp; state.goals = sg; state.agenda = sa; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__planificateur = erreur ? ('ERREUR: ' + erreur) : 'aucune erreur sur agenda sature';
+          return erreur === '';
+        } catch (e) { checks.__errPlanif = String(e && e.message); return false; }
+      })();
+
       checks.nutritionUnSeulChiffre = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4407,6 +4452,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.planificateurSurvit) errors.push('scheduleObjectiveProgram doit survivre à un agenda saturé : le chemin « créneau toujours pris après trois décalages » incrémentait `_perdues`, une variable déclarée nulle part dans cette fonction — donc un ReferenceError dans ce qui devient le seul planificateur de l’app');
     if (!checks.nutritionUnSeulChiffre) errors.push('Plan de bataille : le bloc macros et le sélecteur de programme doivent annoncer LA MÊME cible calorique — la sonde a mesuré 2294 kcal dans les macros à côté de 2518 dans le sélecteur, parce que le bloc lisait objectiveNutrition, une source aveugle à la cible de poids et au programme choisi');
     if (!checks.risqueConscient) errors.push('Sécurité alimentaire : sur une cible de poids en insuffisance pondérale, l’app doit LAISSER les rythmes agressifs (décision d’Adrien) mais nommer le risque à l’écran — IMC visé, ce qui se dégrade, et vers qui se tourner — et afficher le principe « des idées, pas des règles » avec les repas');
     if (!checks.repasEtDepart) errors.push('Deux demandes d’Adrien : des REPAS calés sur la cible choisie (avec kcal et protéines par repas, pas une liste figée) et l’EXPLICATION de la date de départ quand la première séance n’est ni aujourd’hui ni demain — un comportement correct qu’on n’explique pas est indiscernable d’un défaut');

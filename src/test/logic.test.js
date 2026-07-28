@@ -14369,6 +14369,38 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('un ultra choisi dans la liste affûte vraiment : raceKm est une distance, pas une clé', () => {
+  /* DÉFAUT MESURÉ : trainingPlanInputs faisait `raceKm = _course.type || _course.distanceKm`.
+     Or `raceGoal.type` est une CLÉ de RACE_PRESETS ('ultra160'), et elle passait EN PREMIER.
+     Conséquence : taperDaysFor('ultra160') = 7 jours au lieu de 18, taperPlan(15,'ultra160')
+     = null. Pour un ultra choisi dans la liste déroulante, l'app n'affûtait PAS. */
+  assert.equal(L.taperDaysFor('ultra160'), 7, 'une clé traitée comme distance vaut 0 km → fenêtre courte');
+  assert.ok(L.taperDaysFor(170) > 7, 'alors qu\'un vrai ultra affûte plus longtemps : ' + L.taperDaysFor(170));
+  assert.equal(L.taperPlan(15, 'ultra160'), null, 'et à J-15 la clé ne déclenchait rien du tout');
+  assert.ok(L.taperPlan(15, 170), 'là où la distance réelle ouvre bien une fenêtre');
+
+  // LE SCÉNARIO QUI DISCRIMINE : un ultra saisi UNIQUEMENT par son préréglage, sans distanceKm.
+  const st = {
+    fitnessObjective: 'endurance',
+    profile: { weight: 75, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', availableDays: [1, 3, 5, 6] },
+    goals: { sessions: 3, runs: 4, targetWeight: 72 },
+    weights: [{ date: '2026-07-28', value: 75 }], workouts: [],
+    raceGoal: { type: 'ultra160', date: '2026-08-12' }
+  };
+  const i = L.trainingPlanInputs(st, '2026-07-28');
+  assert.equal(i.raceDaysLeft, 15, 'la course est bien dans 15 jours');
+  assert.equal(typeof i.raceKm, 'number', 'raceKm est un NOMBRE, pas la clé du préréglage');
+  assert.ok(i.raceKm > 100, 'et c\'est la distance du préréglage : ' + i.raceKm + ' km');
+  assert.ok(L.taperPlan(i.raceDaysLeft, i.raceKm), 'donc l\'affûtage se déclenche pour de bon');
+
+  // Une distance saisie à la main PRIME sur le préréglage : c'est la donnée la plus précise.
+  const st2 = Object.assign({}, st, { raceGoal: { type: 'ultra160', distanceKm: 42, date: '2026-08-12' } });
+  assert.equal(L.trainingPlanInputs(st2, '2026-07-28').raceKm, 42, 'la saisie manuelle gagne');
+  // Sans course : rien d'inventé.
+  const st3 = Object.assign({}, st, { raceGoal: null });
+  assert.equal(L.trainingPlanInputs(st3, '2026-07-28').raceKm, null, 'pas de course, pas de distance');
+});
+
 test('nutrition du Plan de bataille : un seul chiffre, et des macros qui suivent', () => {
   const base = { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
     sessionsPerWeek: 4, goal: 'perte', targetWeight: 73, todayKey: '2026-07-28' };
