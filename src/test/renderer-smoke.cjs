@@ -3122,6 +3122,56 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.tendanceAdherence = (() => {
+        try {
+          if (typeof renderGrowth !== 'function' || typeof coachAdherence !== 'function') return false;
+          const sn = state.nutrition;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const jn = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+          };
+          // Profil fixe : la cible proteines depend du poids, on ne la laisse pas flotter.
+          state.profile = Object.assign({}, state.profile, { weight: 80, goal: 'perte' });
+          const cible = proteinTarget(80, 'perte').gramsPerDay;
+
+          const lire = function () {
+            showPage('dashboard');
+            renderGrowth();
+            const el = document.getElementById('adherenceTendance');
+            // Le RENDU, pas la propriete : une regle auteur peut battre l attribut hidden.
+            if (!el || getComputedStyle(el).display === 'none') return '';
+            return (el.textContent || '');
+          };
+
+          /* Semaine precedente tenue, semaine en cours lachee : c est LE cas ou une tendance
+             sert a quelque chose et ou l ancien affichage (semaine en cours seule) ne disait
+             rien. On depasse la cible reelle, pas un chiffre invente. */
+          const nut = [];
+          for (let i = 13; i >= 0; i--) {
+            nut.push({ date: jn(i), protein: i < 7 ? Math.max(0, cible - 45) : cible + 10, water: 9 });
+          }
+          state.nutrition = nut;
+          const chute = lire();
+
+          /* UNE SEULE semaine : rien a comparer. Le panneau doit se TAIRE plutot que
+             d annoncer un effondrement a quelqu un qui vient de commencer. */
+          state.nutrition = [];
+          for (let i = 6; i >= 0; i--) state.nutrition.push({ date: jn(i), protein: cible + 10, water: 9 });
+          const debut = lire();
+
+          state.nutrition = sn; state.profile = sp;
+          try { renderGrowth(); } catch (_) {}
+
+          checks.__adherenceVue = chute.slice(0, 110);
+          const parle = chute.indexOf('décroches') !== -1;
+          // On EXIGE les DEUX semaines : c est toute la difference avec l ancien affichage.
+          const deuxSemaines = chute.indexOf('la semaine dernière') !== -1 && chute.indexOf('cette semaine') !== -1;
+          const source = chute.indexOf('Longland') !== -1;
+          return parle && deuxSemaines && source && debut === '';
+        } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
+      })();
+
       checks.regulariteSommeil = (() => {
         try {
           if (typeof renderWeeklySleep !== 'function' || typeof coachRegulariteSommeil !== 'function') return false;
@@ -3714,6 +3764,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
+    if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.regulariteSommeil) errors.push('Régularité du sommeil muette (#sleepRegularite) : un coucher qui saute de 2 h 30 doit être signalé, CHIFFRÉ et sourcé (Windred 2023) — et le panneau doit se taire sous une semaine de données au lieu de deviner');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');

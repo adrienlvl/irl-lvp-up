@@ -14037,6 +14037,53 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('coachAdherence : « 5/7 » ne dit pas si tu montes ou si tu lâches', () => {
+  const AUJ = '2026-07-28';
+  const j = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const semaines = fn => { const r = []; for (let i = 13; i >= 0; i--) r.push(Object.assign({ date: j(i) }, fn(i))); return r; };
+  const O = { proteinTarget: 140, waterGoal: 8, todayKey: AUJ };
+
+  /* L'app affichait « 5/7 j ≥ 145 g » — la semaine EN COURS, et rien d'autre.
+     `proteinAdherenceTrend` et `hydrationAdherenceTrend` comparaient déjà cette semaine à la
+     précédente et n'étaient lues NULLE PART : le décrochage passait inaperçu. */
+  const chute = L.coachAdherence(semaines(i => ({ protein: i < 7 ? 95 : 150, water: 9 })), O);
+  assert.equal(chute.cle, 'proteines');
+  assert.ok(/7 j\/7 la semaine dernière/.test(chute.valeur) && /0 j\/7 cette semaine/.test(chute.valeur),
+    'les DEUX semaines sont citées, pas seulement la courante : ' + chute.valeur);
+  assert.ok(/Longland/.test(chute.source), 'source citée là où elle porte');
+
+  /* La source ne vaut QUE pour les protéines : rien de vérifié dans ce dépôt sur
+     l'hydratation, donc aucune référence — mieux vaut rien qu'une citation décorative. */
+  const soif = L.coachAdherence(semaines(i => ({ protein: 150, water: i < 7 ? 3 : 9 })), O);
+  assert.equal(soif.cle, 'hydratation');
+  assert.equal(soif.source, null, 'pas de source inventée pour l’hydratation');
+
+  /* DÉFAUT TROUVÉ EN SONDANT ma propre fonction : le tri retenait le PIRE, donc quand rien ne
+     baissait on tombait sur le plus plat et l'app annonçait « stable » alors qu'un intrant
+     avait gagné 7 jours. Le test porte sur ce scénario précis. */
+  const mieux = L.coachAdherence(semaines(i => ({ protein: i < 7 ? 150 : 90, water: 9 })), O);
+  assert.equal(mieux.cle, 'proteines', 'une progression nette doit être NOMMÉE, pas rangée en « stable »');
+  assert.ok(/Tu progresses/.test(mieux.titre), mieux.titre);
+
+  // Un décrochage prime sur une progression : on ne félicite pas en laissant filer une chute.
+  const deux = L.coachAdherence(semaines(i => ({ protein: i < 7 ? 90 : 150, water: i < 7 ? 9 : 3 })), O);
+  assert.equal(deux.cle, 'proteines');
+  assert.ok(/décroches/.test(deux.titre), 'le décrochage passe devant : ' + deux.titre);
+
+  const stable = L.coachAdherence(semaines(() => ({ protein: 150, water: 9 })), O);
+  assert.equal(stable.cle, 'stable', 'et le panneau parle aussi quand tout va bien');
+
+  /* UNE SEULE semaine de données : `prev` vaut null, « rien à comparer » et non « zéro jour
+     tenu ». Les confondre annoncerait un effondrement à qui vient de commencer. */
+  const debut = [0, 1, 2, 3, 4, 5, 6].map(i => ({ date: j(i), protein: 150, water: 9 }));
+  assert.equal(L.coachAdherence(debut, O), null, 'une seule semaine → aucune tendance affirmée');
+  assert.equal(L.coachAdherence([], O), null, 'aucune donnée → rien');
+  assert.equal(L.coachAdherence(semaines(() => ({ protein: 150 })), { proteinTarget: 0, waterGoal: 0, todayKey: AUJ }), null,
+    'aucune cible → on ne juge pas une adhérence à rien');
+  assert.equal(L.coachAdherence(semaines(() => ({ protein: 150 })), { proteinTarget: 140, todayKey: 'pas-une-date' }), null,
+    'date abîmée → rien');
+});
+
 test('coachRegulariteSommeil : la régularité, pas seulement la durée', () => {
   const AUJ = '2026-07-28';
   const j = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
