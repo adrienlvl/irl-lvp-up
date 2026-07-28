@@ -3185,6 +3185,51 @@ app.whenReady().then(async () => {
           return apresProg > 0 && apresCoach === apresProg && doubles === 0;
         } catch (e) { checks.__errDbl = String(e && e.message); return false; }
       })();
+      checks.boutonLancePlan = (() => {
+        try {
+          if (typeof renderTrainingCompanion !== 'function' || typeof planDuJour !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, sr = state.recovery, swk = state.workouts, so = state.fitnessObjective, spl = state.plans;
+          const auj = localDate(), jour = new Date(auj + 'T12:00:00').getDay();
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte', level: 'intermediaire', availableDays: [jour] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73, progSessions: '', runs: 'auto' });
+          state.weights = [{ date: auj, value: 82 }];
+          // Check-in du jour BON : sinon les branches prioritaires (forme basse, check-in
+          // manquant) passent devant et la branche du plan n'est jamais atteinte.
+          state.recovery = [{ date: auj, sleep: 8, fatigue: 1, soreness: 1 }];
+          state.workouts = []; state.plans = [];
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
+          renderTrainingCompanion();
+
+          const plan = trainingWeekPlan(trainingPlanInputs(state, auj), exercises);
+          const duJour = planDuJour(plan, auj);
+          const muscu = ((duJour && duJour.seances) || []).filter(x => x.kind === 'muscu')[0];
+          // Le jeu d'essai DOIT produire une séance de muscu, sinon le test est vacant.
+          if (!muscu || !muscu.exercises || !muscu.exercises.length) { checks.__errBtn = 'jeu d essai sans seance de muscu'; state.profile = sp; state.goals = sg; state.weights = sw; state.recovery = sr; state.workouts = swk; state.fitnessObjective = so; state.plans = spl; return false; }
+          const attendus = muscu.exercises.map(e => e.name).join('|');
+
+          const btn = document.getElementById('todayCoachAction');
+          const libelleAnnonce = (btn.textContent || '').indexOf('Démarrer cette séance') !== -1;
+          btn.click();
+          /* LE point : le bouton doit lancer LA séance du plan. J'avais posé une action
+             jamais traitée, donc le clic retombait sur la rotation figée et lançait une
+             séance sans rapport avec ce qui était nommé juste au-dessus. */
+          const lances = (typeof guidedWorkout !== 'undefined' && guidedWorkout && guidedWorkout.exercises)
+            ? guidedWorkout.exercises.map(e => e.name).join('|') : '';
+          const memeSeance = lances.length > 0 && lances === attendus;
+
+          const dlg = document.getElementById('guidedWorkoutDialog');
+          if (dlg && dlg.open) dlg.close();
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.recovery = sr; state.workouts = swk; state.fitnessObjective = so; state.plans = spl;
+          renderTrainingCompanion();
+          showPage('dashboard');
+          return libelleAnnonce && memeSeance;
+        } catch (e) { checks.__errBtn = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3221,6 +3266,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — et le bandeau de pilotage doit citer l’objectif de poids et la cible kcal)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');

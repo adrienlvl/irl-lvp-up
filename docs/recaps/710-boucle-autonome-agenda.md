@@ -388,3 +388,43 @@ Ce n'est pas six bugs, c'est **un seul réflexe** : écrire la phrase avant l'ef
 la garder après que l'effet a changé. Le garde-fou est dans les consignes.
 
 630 tests · SMOKE OK · 390 px propre.
+
+## Itération 21 — un bouton qui mentait, et une revue qui n'en était pas une
+
+### La revue a rendu « 0 défaut confirmé ». C'était FAUX.
+57 agents sur 60 sont tombés en erreur (limite de session). Les 3 chercheurs, eux,
+avaient fini et produit **19 trouvailles** — toutes classées « rejetées » parce que
+leurs réfuteurs n'avaient jamais tourné : `votes = 0/0`, donc `survit = false`.
+
+**Un rejet par défaut n'est pas un rejet.** La règle « recouper toute liste vide avec
+`agents_error` » a fonctionné — sans elle j'aurais rapporté « aucun défaut » à Adrien
+alors que la première trouvaille était grave et vraie.
+
+### Le défaut : « Démarrer cette séance » lançait autre chose
+J'avais posé `action='planSeance'` à l'itération 19 **sans jamais le traiter**. Le
+gestionnaire connaît `recovery`, `planned`, `mobility`, puis RETOMBE sur la rotation
+figée. Le bouton nommait une séance et en lançait une autre.
+
+Et son jumeau : quand la journée n'a pas de muscu, le libellé disait « Voir mon
+programme » mais l'action restait `mobility` — le bouton ouvrait une séance guidée de
+mobilité au lieu de naviguer.
+
+Vérifié après correction : la séance lancée porte **exactement** les mêmes exercices,
+dans le même ordre, que celle nommée au-dessus.
+
+### La leçon, encore la même
+C'est le fil rouge, sous une forme nouvelle : **le libellé était écrit, le
+comportement non**. Écrire un `action='...'` sans écrire le `if` qui le traite, c'est
+exactement écrire la phrase avant l'effet.
+
+Garde-fou : *tout nouvel `action=` doit être suivi, dans le même commit, du cas qui
+le traite — et vérifié par un clic réel dans une sonde.*
+
+### Reste dû
+17 trouvailles non vérifiées (la réfutation n'a pas tourné). À reprendre quand les
+agents répondent. Plusieurs semblent sérieuses : `duresMax` annoncé au-dessus d'une
+semaine qui pose deux séances dures, `recoveryFraiche` branché sur 2 sites sur 14,
+« la même semaine que sur ton Programme auto » affiché alors que les deux panneaux
+sont vides.
+
+632 tests · SMOKE OK · 390 px propre.
