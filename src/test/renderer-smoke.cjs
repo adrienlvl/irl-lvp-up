@@ -3185,6 +3185,40 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.whatsNewPlafonne = (() => {
+        try {
+          if (typeof renderWhatsNew !== 'function' || typeof CHANGELOG === 'undefined') return false;
+          let vueAvant = null;
+          try { vueAvant = localStorage.getItem('irl-last-seen-version'); } catch (_) {}
+          showPage('settings');
+          /* Une version ancienne : c est le SEUL etat ou le plafond fait une difference.
+             A jour, la carte est masquee et le check serait vacant. */
+          const vieille = CHANGELOG[7] ? CHANGELOG[7].v : '2.5.0';
+          try { localStorage.setItem('irl-last-seen-version', vieille); } catch (_) {}
+          renderWhatsNew();
+
+          const carte = document.getElementById('whatsNewCard');
+          const vue = !!(carte && getComputedStyle(carte).display !== 'none' && carte.getBoundingClientRect().height > 0);
+          const listes = carte ? carte.querySelectorAll('.wn-list') : [];
+          const depliees = (listes.length && listes[0]) ? listes[0].querySelectorAll('li').length : 0;
+          const toutes = carte ? carte.querySelectorAll('.wn-list li').length : 0;
+          const pli = carte ? carte.querySelector('.wn-plus') : null;
+          const pliVu = !!(pli && getComputedStyle(pli).display !== 'none' && pli.getBoundingClientRect().height > 0);
+          const pliFerme = !!(pli && !pli.open);
+          const hauteur = carte ? Math.round(carte.getBoundingClientRect().height) : 0;
+
+          try { if (vueAvant === null) localStorage.removeItem('irl-last-seen-version'); else localStorage.setItem('irl-last-seen-version', vueAvant); } catch (_) {}
+          try { renderWhatsNew(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__whatsNew = 'vue=' + vue + ' depliees=' + depliees + ' toutes=' + toutes
+            + ' pliVu=' + pliVu + ' pliFerme=' + pliFerme + ' hauteur=' + hauteur;
+          /* Trois entrees depliees au plus, le reste PRESENT mais replie, et la carte tient
+             sous trois ecrans d iPhone. Avant : 4948 px, soit 5,9 ecrans. */
+          return vue && depliees === 3 && toutes > 3 && pliVu && pliFerme && hauteur < 844 * 3;
+        } catch (e) { checks.__errWhatsNew = String(e && e.message); return false; }
+      })();
+
       checks.dplusStable = (() => {
         try {
           if (typeof renderAthlete !== 'function') return false;
@@ -4685,6 +4719,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.whatsNewPlafonne) errors.push('Carte « Quoi de neuf » : au plus trois versions dépliées, le reste PRÉSENT mais replié, et la carte sous trois écrans d’iPhone — mesuré à 4 948 px (5,9 écrans, 64 % de la page Réglages) après six releases d’absence, sans aucun plafond');
     if (!checks.dplusStable) errors.push('Panneau trail : le champ dénivelé doit montrer TA SAISIE DU JOUR, pas le cumul de la semaine — sinon « Enregistrer » réenregistre le total comme la valeur du jour et le chiffre enfle à chaque clic (mesuré : 450 → 900 → 1350 → 1800 sans rien taper). Trois enregistrements à vide ne doivent pas bouger le total hebdomadaire d’un mètre');
     if (!checks.coucherChiffre) errors.push('Coach sommeil : un coucher qui dérive le week-end (23:10 / 01:15, 56 min d’écart-type) et un coucher à heure fixe ne doivent PAS produire le même verdict à l’écran — le premier doit porter le chiffre mesuré et nommer le week-end, le second dire « heure fixe »');
     if (!checks.generateursMasques) errors.push('Les trois générateurs de semaine concurrents doivent être MASQUÉS AU RENDU (display calculé à none, hauteur nulle) mais TOUJOURS PRÉSENTS dans le DOM — et le Plan de bataille, seul générateur restant, doit rester peint et son bouton cliquable. Deux des cibles posent display: sans règle [hidden] : sans la règle CSS jumelle, l’attribut est ignoré');

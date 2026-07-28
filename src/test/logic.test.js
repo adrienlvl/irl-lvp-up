@@ -14376,6 +14376,44 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('whatsNewCap : les nouveautés se replient, elles ne se perdent pas', () => {
+  /* MESURÉ à la sonde 390×844 : sur la page Réglages, la carte « Quoi de neuf » faisait
+     4 948 px après six releases d'absence — 5,9 écrans d'iPhone, 64 % de la hauteur de la page.
+     Le changelog compte 423 entrées et la carte n'avait aucun plafond. */
+  const faux = n => Array.from({ length: n }, (_, i) => ({ v: '9.0.' + (n - i), emoji: '✨', text: 'Entrée ' + (n - i) }));
+
+  // Sous le plafond : rien ne se replie, et surtout pas de « voir les 0 versions » creux.
+  const court = L.whatsNewCap(faux(2), 3);
+  assert.equal(court.recents.length, 2);
+  assert.equal(court.anciennes.length, 0);
+  assert.equal(court.resume, '', 'aucun résumé quand il n’y a rien à replier');
+
+  // LE SCÉNARIO QUI DISCRIMINE : au-dessus du plafond.
+  const long = L.whatsNewCap(faux(6), 3);
+  assert.equal(long.recents.length, 3, 'les trois plus récentes restent en entier');
+  assert.equal(long.anciennes.length, 3, 'le reste est replié');
+  assert.match(long.resume, /3 versions plus anciennes/, 'résumé au pluriel : ' + long.resume);
+  // RIEN N'EST PERDU : c'est une mise en ordre, pas une amputation.
+  assert.deepEqual(long.recents.concat(long.anciennes), faux(6), 'même contenu, même ordre');
+  // L'ordre compte : ce sont les PLUS RÉCENTES qu'on garde dépliées.
+  assert.equal(long.recents[0].text, 'Entrée 6', 'la plus récente est en tête');
+  assert.equal(long.anciennes[0].text, 'Entrée 3', 'et le pli commence juste après le plafond');
+
+  // Singulier / pluriel : une seule version repliée ne prend pas de « s ».
+  assert.match(L.whatsNewCap(faux(4), 3).resume, /^1 version plus ancienne$/, 'singulier correct');
+
+  /* Plafond abîmé : on montre toujours au moins la dernière. `Number(null)` vaut 0 et
+     `Number('nawak')||0` vaut 0 — un plafond à zéro n'afficherait plus rien. */
+  assert.equal(L.whatsNewCap(faux(6), 0).recents.length, 3, 'plafond 0 → repli sur la valeur par défaut');
+  assert.equal(L.whatsNewCap(faux(6), null).recents.length, 3, 'null non plus n’est pas un plafond');
+  assert.equal(L.whatsNewCap(faux(6), 'nawak').recents.length, 3, 'ni une chaîne illisible');
+  assert.equal(L.whatsNewCap(faux(6), 1).recents.length, 1, 'mais un plafond explicite à 1 est respecté');
+  // Entrées absentes ou liste vide : rien d'inventé.
+  assert.deepEqual(L.whatsNewCap([], 3), { recents: [], anciennes: [], resume: '' });
+  assert.deepEqual(L.whatsNewCap(null, 3), { recents: [], anciennes: [], resume: '' });
+  assert.equal(L.whatsNewCap([null, undefined], 3).recents.length, 0, 'les trous sont écartés');
+});
+
 test('coucher : trois bandes au lieu de deux, et le week-end est nommé', () => {
   /* DÉFAUT MESURÉ : le verdict était binaire à 60 min d'écart-type. En dessous il affirmait
      « rythme régulier » SANS montrer le chiffre calculé — si bien qu'un coucher à 23:10 en
