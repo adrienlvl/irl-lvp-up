@@ -1516,3 +1516,64 @@ n'atteignait pas le rendu, et n'est repassé qu'une fois la plomberie faite jusq
 
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
+
+---
+
+## Itération 51 — Sonde de l'onglet Athlète : trois nombres pour une seule nutrition
+
+**Déclencheur.** Adrien : « fais maintenant des grosses améliorations sur l'onglet Athlète et
+l'UI ». Première étape du protocole : **sonder avant de juger**. Sonde iPhone 390×844, structure
+et mesures réelles de chaque sous-onglet.
+
+### Ce que la sonde a trouvé
+
+Le panneau « Plan de bataille » affichait **trois nombres pour la même chose**, à quelques
+centimètres l'un de l'autre :
+
+| Endroit | Valeur |
+|---|---|
+| Bandeau de pilotage | 2518 kcal/j (−10 %) |
+| Sélecteur de programme | 2518 kcal/j · −10 % |
+| **Bloc macros « Nutrition alignée »** | **2294 kcal/j — déficit (−18 %)** |
+
+Le bloc macros venait d'`objectiveNutrition` — une **quatrième** source nutrition, aveugle à la
+cible de poids et au programme choisi, qui déduit son pourcentage du seul objectif physique.
+
+**Second défaut, trouvé en tirant le fil.** `appliquerProgrammeNutrition` déplaçait la cible
+sans toucher aux macros : « très agressif » faisait passer la cible de 2392 à 2024 kcal pendant
+que P/G/L totalisaient toujours **2394 kcal**. Qui mange ce qui est écrit mange l'ancienne
+cible ; le déficit choisi n'existait que dans le titre.
+
+### Ce qui a été fait
+
+`macrosDuPlan(energie, repli)` : le bloc lit le plan énergétique réel, celui sur lequel tout le
+reste est déjà aligné. Le conseil d'`objectiveNutrition` est conservé (du texte, pas un chiffre
+concurrent) et un profil incomplet retombe entièrement sur elle. Les glucides absorbent
+désormais l'écart de cible — protéines et lipides restent adossés au poids. Écart résiduel
+≤ 2 kcal, pur arrondi. Le pourcentage affiché se dérive de la cible **retenue**, jamais de
+l'intention : après un plancher au métabolisme de base, annoncer −35 % serait faux.
+
+### Ce que la sonde a révélé d'autre — pour l'étape 11
+
+L'onglet **Programme** porte **8 panneaux** et **quatre** générateurs de semaine, pas trois :
+
+1. `OBJECTIF ULTRA-TRAIL` → « Générer ma semaine »
+2. `PLAN DE BATAILLE` → « Construire mon plan » *(le bon : 8 semaines, aligné sur tout)*
+3. `COACH INTELLIGENT · Ma semaine d'entraînement` → « 🧠 Générer ma semaine » +
+   « 📅 Programmer dans mon agenda **(4 semaines)** »
+4. `CALENDRIER · MA SEMAINE À MA MESURE` → « Générer ma semaine »
+
+Le n°3 annonce encore **4 semaines** quand le Plan de bataille en programme 8. Décision toujours
+en attente d'Adrien : ce n'est plus « un doublon », c'est trois écrans concurrents autour du bon.
+
+### Ce que cette itération a appris
+
+*La sonde structurelle paie autant que la sonde fonctionnelle.* Je cherchais un défaut de rendu ;
+c'est l'inventaire des panneaux qui a montré qu'un panneau parlait avec quatre voix.
+
+**Mutations.** 3 posées (macros figées, repli systématique, pourcentage constant), 3 détectées.
+
+662 tests · SMOKE OK.
+
+### Reste
+- Étape 11 (quatre générateurs de semaine sur l'onglet Programme) : **décision d'Adrien**.
