@@ -1160,3 +1160,38 @@ pompes », pas « enlève-moi la possibilité de noter mon gilet lesté ».
 literal. La vérification automatique les attrape désormais, mais je continue d'en écrire.
 
 654 tests · SMOKE OK · 390 px propre.
+
+## Itération 41 — finir de vérifier au lieu d'ajouter
+
+La revue de l'itération 40 avait laissé 29 trouvailles non réfutées (workflow interrompu par la
+limite de session). Plutôt que d'empiler du neuf, j'ai tranché celles qui portaient sur la
+séance guidée — la fonctionnalité qu'Adrien a le plus détaillée.
+
+**Trois confirmées, toutes dans le flux que je venais de refaire :**
+
+1. L'écran « prêt ? » n'apparaissait **que pour le premier exercice** : `guidedIndex++` ne
+   remettait pas `guidedPret` à faux. Mon propre commentaire affirmait pourtant l'inverse —
+   « remis à faux à chaque changement d'exercice ». Un commentaire qui décrit une intention
+   jamais codée, écrit de ma main.
+2. Fermer le dialogue n'arrêtait pas le décompte : l'intervalle survivait et re-rendait un
+   écran fermé cinq secondes plus tard.
+3. Un repos complet partait après la **dernière** série — 90 s d'attente avant rien.
+
+### Ce que cette itération a appris
+
+*Le check ne pouvait pas voir le défaut n° 1.* Il exerçait une séance à UN exercice ; le
+« prêt ? » du second n'existait pas dans le scénario. Un garde-fou ne protège que ce que son
+jeu d'essai traverse — la leçon « écrire le test sur le scénario où la chose testée fait une
+différence », appliquée à un cas où le scénario lui-même était trop pauvre.
+
+*Vérifier les trouvailles en attente vaut mieux qu'en produire de nouvelles.* Les trois défauts
+corrigés ici étaient dans la liste depuis l'itération 40 ; les ignorer pour ajouter une
+fonctionnalité aurait laissé la séance guidée à moitié cassée pour Adrien.
+
+654 tests · SMOKE OK · 390 px propre.
+
+### Dette ouverte
+- Trouvailles de l'itération 40 encore non vérifiées : la garde par créneau qui perdrait une
+  2e séance de même type le même jour ; le repos réglé par ±15 s effacé avant le repos
+  automatique ; l'alerte « au-delà de 1 %/semaine » calculée sur le poids du Profil.
+- Étape 11 (panneau « Ma semaine ») : toujours la décision d'Adrien.
