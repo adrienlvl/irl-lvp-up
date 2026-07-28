@@ -14498,6 +14498,41 @@ test('trainingWeekPlan : des kilomètres, et seulement si Adrien les a renseign�
   assert.ok(/min\)/.test(msg(plan(0, 10))), 'pas de distances → il retombe sur les minutes');
 });
 
+test('le plan expose SON poids : l’alerte de sécurité ne s’éteint plus sur un profil périmé', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  /* Profil jamais mis à jour (80 kg), pesée réelle à 68. Le rendu relisait
+     `state.profile.weight` alors que le plan, lui, part de la dernière pesée. Conséquence
+     MESURÉE : même plan, mêmes calories, et l'alerte « au-delà de 1 % de ton poids par
+     semaine » DISPARAÎT — l'avertissement qui protège le muscle s'éteint précisément parce
+     qu'on a maigri. */
+  const etat = {
+    fitnessObjective: 'seche',
+    profile: { weight: 80, height: 178, age: 26, sex: 'homme', activityLevel: 'tres-actif', goal: 'perte', level: 'intermediaire' },
+    goals: { targetWeight: 64, sessions: 6, runs: 4, progSessions: '', nutritionPlan: 'agressif' },
+    weights: [{ date: AUJ, value: 68 }], recovery: [], workouts: []
+  };
+  const p = L.trainingWeekPlan(L.trainingPlanInputs(etat, AUJ), exercises);
+  assert.equal(p.poids, 68, 'le plan expose la dernière PESÉE, pas le profil');
+
+  const agr = k => L.programmesNutrition(p.energie, k).filter(x => x.cle === 'agressif')[0];
+  const vrai = agr(68), perime = agr(80);
+  assert.equal(vrai.kcal, perime.kcal, 'le poids ne change pas la cible — seulement le VERDICT sur le rythme');
+  const seuil = a => a.alertes.some(x => x.indexOf('de ton poids par semaine') !== -1);
+  assert.equal(seuil(vrai), true, 'à 68 kg, 0,73 kg/sem dépasse 1 % : l’alerte doit sortir');
+  assert.equal(seuil(perime), false, 'à 80 kg elle ne sortait pas — c’est bien le poids qui décide');
+
+  // Sans pesée, on retombe sur le profil : c'est le seul chiffre disponible, pas une invention.
+  const sansPesee = Object.assign({}, etat, { weights: [] });
+  assert.equal(L.trainingWeekPlan(L.trainingPlanInputs(sansPesee, AUJ), exercises).poids, 80,
+    'aucune pesée → le profil, faute de mieux');
+
+  // Profil vide ET aucune pesée : on ne fabrique pas un poids.
+  const rien = { fitnessObjective: 'seche', profile: {}, goals: {}, weights: [], recovery: [], workouts: [] };
+  const pr = L.trainingWeekPlan(L.trainingPlanInputs(rien, AUJ), exercises);
+  assert.ok(pr === null || pr.poids === null, 'aucun poids connu → null, pas un chiffre inventé');
+});
+
 test('phaseCourse : le cap de préparation, et il ne ment pas sur ce que le plan fait', () => {
   const { exercises } = require('../lib/exercises-data.js');
   const AUJ = '2026-07-28';

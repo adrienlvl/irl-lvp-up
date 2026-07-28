@@ -3637,6 +3637,40 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errPrecision = String(e && e.message); return false; }
       })();
 
+      checks.alerteSurLeVraiPoids = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          /* Profil jamais mis a jour (80 kg) et pesee reelle a 68 : c est LE cas ou l ecart
+             change le verdict. A 80 kg l alerte ne sort pas, a 68 elle sort. */
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 178, age: 26,
+            sex: 'homme', activityLevel: 'tres-actif', goal: 'perte', availableDays: [1, 2, 3, 4, 5, 6, 0] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 64, sessions: 6, runs: 4,
+            progSessions: '', nutritionPlan: 'agressif' });
+          state.weights = [{ date: localDate(), value: 68 }];
+          state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          const al = document.querySelector('#objectiveResult .onc-alertes');
+          // Le RENDU, pas la propriete : une alerte non peinte ne protege personne.
+          const txt = (al && getComputedStyle(al).display !== 'none') ? (al.textContent || '') : '';
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__alertePoids = txt.slice(0, 100);
+          // L alerte de rythme doit sortir : c est elle qui protege le muscle.
+          return txt.indexOf('de ton poids par semaine') !== -1;
+        } catch (e) { checks.__errAlerte = String(e && e.message); return false; }
+      })();
+
       checks.capDeCourse = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4060,6 +4094,7 @@ app.whenReady().then(async () => {
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');
+    if (!checks.alerteSurLeVraiPoids) errors.push('L’alerte « au-delà de 1 % de ton poids par semaine » se calcule sur le poids du PROFIL et non sur la dernière pesée : un profil jamais mis à jour l’éteint, précisément quand on a maigri. L’avertissement qui protège le muscle doit sortir sur le poids réel');
     if (!checks.capDeCourse) errors.push('Course objectif : le Plan de bataille doit dire dans quelle PHASE de préparation tu es (à J-40 : « Spécifique », avec son focus) — il connaissait l’échéance et n’en disait rien avant l’affûtage. Et il doit se taire sans course, ni annoncer « Affûtage » tant qu’il n’affûte pas');
     if (!checks.affutageExplique) errors.push('Course objectif dans 10 jours : le Programme auto raccourcit les sorties sans l’expliquer (ou l’explique sans course). Le volume qui rétrécit sans un mot ressemble à un bug, pas à du coaching — le message doit citer le J-N, la coupe réellement tenue et Bosquet 2007');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — le bandeau de pilotage doit citer l’objectif de poids et la cible kcal, et le compagnon ne doit pas annoncer une séance du jour absente de cette semaine alors qu’il affirme la partager)');

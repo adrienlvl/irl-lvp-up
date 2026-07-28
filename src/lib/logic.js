@@ -4499,6 +4499,7 @@ function trainingPlanInputs(state, todayKey) {
     objectif: st.fitnessObjective || 'athletique',
     sessions: g.progSessions, runs: g.runs, manque: manque,
     raceDaysLeft: raceDaysLeft, raceKm: raceKm,
+    poids: poids,
     weeklyKm: _volHebdo,
     jours: Array.isArray(p.availableDays) ? p.availableDays : [],
     niveau: p.level, equipement: p.equipment, seed: st.objectiveSeed || 0,
@@ -4766,6 +4767,10 @@ function trainingWeekPlan(input, exercises) {
     week: semaine, politique: politique, energie: i.energie || null, ajustements: ajustements,
     memoire: i.memoire || null, enCours: i.enCours || null,
     zones: Array.isArray(i.zones) ? i.zones : [],
+    /* Le poids RÉELLEMENT utilisé par le plan (dernière pesée, profil en repli). Exposé
+       pour que les écrans cessent de relire `state.profile.weight` de leur côté : deux
+       poids pour la même personne, c'est deux verdicts pour la même situation. */
+    poids: Number(i.poids) > 0 ? Number(i.poids) : null,
     /* L'affûtage doit être EXPLIQUÉ, pas seulement subi : sans ça les distances rétrécissent
        de moitié sans un mot, ce qui ressemble à un bug plutôt qu'à du coaching. On le sort
        tel que `objectiveProgram` l'a calculé — une seule vérité, pas un second calcul. */
