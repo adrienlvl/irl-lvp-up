@@ -237,11 +237,12 @@ Corriger au passage l'en-tête menteur : afficher `plan.applied.course` (compté
 - [x] **Étape 2** — nombre de séances réglable et persistant (`goals.progSessions`, `goals.runs`).
       Décision de forme isolée dans `objectiveWeekShape()`, pure. Sans consigne, chaque objectif
       garde exactement sa forme d’avant. Bornes annoncées, jamais silencieuses.
-- [ ] Étape 3 — `trainingPolicy` (brique scientifique)
-- [ ] Étape 4 — `trainingWeekPlan` + `trainingPlanInputs`
+- [x] **Étape 3** — `trainingPolicy` : en déficit on baisse le VOLUME, jamais les charges.
+- [x] **Étape 4** — `trainingWeekPlan` + `trainingPlanInputs` : composent les briques, ne les réécrivent pas.
 - [ ] Étape 5 — le Programme auto consomme le plan
 - [ ] Étape 6 — le Coach Poids affiche LE MÊME plan
-- [ ] Étapes 7 à 11
+- [x] **Étape 7** — plus de « ajoute du cardio » sur un déficit déjà marqué (3 sites).
+- [ ] Étapes 5, 6 (brancher les deux écrans) et 8 à 11
 
 ## Avertissement sur les sources scientifiques
 

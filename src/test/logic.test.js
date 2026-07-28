@@ -14002,3 +14002,63 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.equal(sans.deficitMarque, false);
   assert.match(sans.message, /ajoute du cardio/);
 });
+
+test('trainingWeekPlan : UNE seule semaine, qui tient compte du poids', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const base = {
+    fitnessObjective: 'seche',
+    profile: { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte', availableDays: [1, 3, 5], level: 'intermediaire' },
+    goals: { targetWeight: 73, sessions: 4, progSessions: '', runs: 'auto' },
+    weights: [{ date: AUJ, value: 82 }], recovery: [], workouts: []
+  };
+
+  const inp = L.trainingPlanInputs(base, AUJ);
+  assert.ok(inp.energie && inp.energie.tdee > 0, 'la dépense est calculée depuis le profil');
+  assert.equal(inp.objectif, 'seche');
+
+  const p = L.trainingWeekPlan(inp, exercises);
+  // LE point de la refonte : le programme lit enfin l'objectif de POIDS.
+  assert.equal(p.pilotage.objectifPoids, 'perte');
+  assert.equal(p.pilotage.niveau, 'marque', 'déficit à 25 % → politique marquée');
+  assert.ok(p.pilotage.cible > 0, 'la cible calorique voyage avec le plan');
+
+  // En déficit marqué : les courses sont bridées, la muscu garde sa fréquence.
+  const muscu = p.week.filter(s => s.kind === 'muscu').length;
+  const courses = p.week.filter(s => s.kind === 'course').length;
+  assert.ok(courses <= p.politique.coursesMax, 'courses plafonnées par la politique');
+  assert.ok(muscu >= 3, 'la fréquence de muscu est préservée — c’est elle qui protège le muscle');
+
+  // Chaque coupe est DITE, et les chiffres annoncés sont ceux du plan RÉEL.
+  assert.ok(p.ajustements.length > 0);
+  const promesse = p.ajustements.find(a => /porteront deux/.test(a));
+  if (promesse) {
+    const n = Number((promesse.match(/^(\d+)/) || [])[1]);
+    assert.equal(n, p.week.length, 'l’avertissement cite le total réel, pas celui d’avant la coupe');
+  }
+
+  // Les jours réellement cochés priment sur la table par défaut.
+  assert.ok(p.week.every(s => base.profile.availableDays.includes(s.weekday)),
+    'aucune séance posée un jour non coché');
+
+  /* UNE MESURE ABSENTE NE BRIDE PAS. Number(null) vaut 0 et Number.isFinite(0) est true :
+     sans filtre, l'absence de check-in fabriquait un signal « forme nulle ». */
+  assert.ok(!p.ajustements.some(a => /forme est basse/.test(a)),
+    'sans check-in, le coach n’invente pas une forme basse');
+  const avecCheckin = { ...base, recovery: [{ date: AUJ, sleep: 4, fatigue: 5, soreness: 4 }] };
+  const p2 = L.trainingWeekPlan(L.trainingPlanInputs(avecCheckin, AUJ), exercises);
+  assert.ok(p2.ajustements.some(a => /forme est basse/.test(a)),
+    'avec un vrai check-in bas, il le dit');
+
+  // Profil incomplet : pas de plan énergétique, donc politique neutre — honnête plutôt que faux.
+  const nu = { fitnessObjective: 'forme', profile: {}, goals: {}, weights: [], recovery: [], workouts: [] };
+  const pn = L.trainingWeekPlan(L.trainingPlanInputs(nu, AUJ), exercises);
+  assert.equal(pn.pilotage.niveau, 'neutre');
+  assert.equal(pn.pilotage.objectifPoids, null);
+  assert.ok(pn.week.length > 0, 'un programme reste proposé');
+
+  // Entrées abîmées.
+  assert.doesNotThrow(() => L.trainingPlanInputs(null, AUJ));
+  assert.equal(L.trainingWeekPlan({ objectif: 'nawak' }, exercises), null);
+  assert.doesNotThrow(() => L.trainingWeekPlan(null, exercises));
+});
