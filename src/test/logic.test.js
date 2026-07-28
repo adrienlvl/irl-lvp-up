@@ -14369,6 +14369,36 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('repartitionDplus : le dénivelé entre dans le plan, au prorata du temps debout', () => {
+  /* Le panneau Ultra-trail était le SEUL endroit où un D+ se saisissait, et RIEN ne le
+     consommait (`elevation` : zéro occurrence dans logic.js). On masque son générateur, donc
+     le Plan de bataille doit savoir raisonner en dénivelé — sinon masquer perd la fonction. */
+  const sem = [{ kind: 'muscu', minutes: 45 }, { kind: 'course', minutes: 35 },
+    { kind: 'course', minutes: 70 }, { kind: 'course', minutes: 35 }];
+  const r = L.repartitionDplus(sem, 1200);
+  assert.equal(r.length, sem.length, 'le tableau est aligné sur la semaine');
+  assert.equal(r[0], 0, 'une séance de muscu ne porte aucun dénivelé');
+  assert.equal(r.reduce((a, b) => a + b, 0), 1200,
+    'la somme retombe EXACTEMENT sur le D+ demandé, arrondis compris : ' + r.join('+'));
+  assert.equal(r[2], Math.max.apply(null, r), 'la sortie longue en prend la plus grosse part');
+  assert.ok(r[2] > r[1], '' + r[2] + ' m contre ' + r[1] + ' m sur une course courte');
+  assert.equal(r[1], r[3], 'à durée égale, part égale');
+
+  /* L'arrondi à 10 m ne doit pas faire perdre de mètres : on vérifie sur un total qui ne
+     tombe pas rond, sinon le test passerait sans rien discriminer. */
+  const bancal = L.repartitionDplus(sem, 1237);
+  assert.equal(bancal.reduce((a, b) => a + b, 0), 1237, 'reste d’arrondi rendu à la plus grosse part');
+
+  // Replis : rien d'inventé, et aucune division par zéro.
+  assert.deepEqual(L.repartitionDplus(sem, 0), [0, 0, 0, 0], 'sans D+ saisi, aucun D+ affiché');
+  assert.deepEqual(L.repartitionDplus(sem, null), [0, 0, 0, 0], 'null n’est pas un dénivelé');
+  assert.deepEqual(L.repartitionDplus([{ kind: 'muscu', minutes: 45 }], 800), [0],
+    'un D+ saisi sans course ne se pose sur rien');
+  const sansDuree = L.repartitionDplus([{ kind: 'course' }, { kind: 'course' }], 1000);
+  assert.deepEqual(sansDuree, [500, 500], 'sans durée exploitable : parts égales, pas tout sur la première');
+  assert.deepEqual(L.repartitionDplus(null, 900), [], 'pas de semaine, pas de répartition');
+});
+
 test('un ultra choisi dans la liste affûte vraiment : raceKm est une distance, pas une clé', () => {
   /* DÉFAUT MESURÉ : trainingPlanInputs faisait `raceKm = _course.type || _course.distanceKm`.
      Or `raceGoal.type` est une CLÉ de RACE_PRESETS ('ultra160'), et elle passait EN PREMIER.

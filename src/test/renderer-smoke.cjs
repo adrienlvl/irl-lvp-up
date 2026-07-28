@@ -3185,6 +3185,58 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.planTrail = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const su = JSON.parse(JSON.stringify(state.ultraPlan || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          // Endurance + un D+ saisi : le SEUL scenario ou le bloc trail doit apparaitre.
+          state.fitnessObjective = 'endurance';
+          state.profile = Object.assign({}, state.profile, { weight: 75, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'trail', availableDays: [1, 3, 5, 6] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 72, sessions: 3, runs: 4, progSessions: '' });
+          state.ultraPlan = Object.assign({}, state.ultraPlan, { elevation: 1200, longRun: 120 });
+          state.weights = [{ date: localDate(), value: 75 }]; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+
+          const ligne = document.querySelector('#objectiveResult .op-trail');
+          const vuLigne = !!(ligne && getComputedStyle(ligne).display !== 'none' && ligne.getBoundingClientRect().height > 0);
+          const txtLigne = vuLigne ? String(ligne.textContent || '') : '';
+          const badges = Array.prototype.slice.call(document.querySelectorAll('#objectiveResult .op-dplus'))
+            .filter(function (b) { return getComputedStyle(b).display !== 'none'; });
+          const txtBadges = badges.map(function (b) { return String(b.textContent || ''); }).join(' | ');
+          // Le D+ affiche sur les courses doit RETOMBER sur le D+ saisi, sinon l ecran ment.
+          let somme = 0;
+          badges.forEach(function (b) {
+            const tx = String(b.textContent || '');
+            if (tx.indexOf('D+') === -1) return;
+            let n = '';
+            for (let k = 0; k < tx.length; k++) { const c = tx.charAt(k); if (c >= '0' && c <= '9') n += c; else if (n) break; }
+            somme += Number(n) || 0;
+          });
+          /* PIEGE CENTRAL : le D+ ne doit JAMAIS entrer dans le titre de la seance. L affutage
+             y fait un remplacement ancre en fin de chaine sur les km ; un suffixe le ferait
+             echouer et afficherait deux distances contradictoires. */
+          const titres = Array.prototype.slice.call(document.querySelectorAll('#objectiveResult .op-day-h b'))
+            .map(function (b) { return String(b.textContent || ''); }).join(' | ');
+          const titrePropre = titres.indexOf('D+') === -1;
+
+          state.profile = sp; state.goals = sg; state.ultraPlan = su; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__trail = 'ligne[' + txtLigne.slice(0, 70) + '] badges[' + txtBadges.slice(0, 70) + '] somme=' + somme + ' titrePropre=' + titrePropre;
+          return vuLigne && txtLigne.indexOf('1200 m D+') !== -1 && txtLigne.indexOf('120 min') !== -1
+            && badges.length >= 2 && somme === 1200 && titrePropre;
+        } catch (e) { checks.__errTrail = String(e && e.message); return false; }
+      })();
+
       checks.reglagesPortes = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4511,6 +4563,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.planTrail) errors.push('Intégration ultra-trail : avec un profil endurance et un D+ saisi, le Plan de bataille doit afficher le dénivelé réparti sur ses courses (somme EXACTEMENT égale au D+ saisi) et la sortie longue visée — et surtout ne JAMAIS écrire le D+ dans le titre d’une séance, où l’affûtage fait un remplacement ancré sur les km');
     if (!checks.reglagesPortes) errors.push('Les jours d’entraînement et les zones à privilégier doivent se régler DEPUIS le Plan de bataille : ce sont les seules données que le plan consomme sans pouvoir les écrire une fois les autres panneaux masqués, et les jours doivent être triés lundi-d’abord (premiereSeanceInfo les affiche dans l’ordre stocké)');
     if (!checks.planificateurSurvit) errors.push('scheduleObjectiveProgram doit survivre à un agenda saturé : le chemin « créneau toujours pris après trois décalages » incrémentait `_perdues`, une variable déclarée nulle part dans cette fonction — donc un ReferenceError dans ce qui devient le seul planificateur de l’app');
     if (!checks.nutritionUnSeulChiffre) errors.push('Plan de bataille : le bloc macros et le sélecteur de programme doivent annoncer LA MÊME cible calorique — la sonde a mesuré 2294 kcal dans les macros à côté de 2518 dans le sélecteur, parce que le bloc lisait objectiveNutrition, une source aveugle à la cible de poids et au programme choisi');
