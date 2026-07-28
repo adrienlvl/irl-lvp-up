@@ -1420,3 +1420,36 @@ prouvent.
 
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
+
+## Itération 49 — trois demandes d'Adrien sur le même panneau
+
+**« Le programme commence jeudi alors qu'on est mardi ? »** Mesuré avant de juger : avec tous
+les jours cochés il démarre aujourd'hui, avec lun/mer/ven il démarre demain. **L'app était
+correcte** — elle place les séances sur les jours qu'Adrien a lui-même cochés. Elle ne le disait
+simplement nulle part. Un comportement correct qu'on n'explique pas est indiscernable d'un
+défaut, et c'est bien comme un bug qu'il l'a signalé.
+
+**« Faut me proposer des repas adaptés. »** Les idées de repas étaient une liste figée sur le
+seul objectif — sans un chiffre, identique qu'on vise 2000 ou 3400 kcal. Elles se calent
+désormais sur la cible du programme choisi.
+
+**« Tu peux pas être plus agressif ? »** Si : −35 %, avec les garde-fous inchangés et une alerte
+de plus sur la durée tenable.
+
+### Ce que cette itération a appris
+
+*Un signalement de bug peut porter sur un comportement correct.* La bonne réponse n'était pas de
+changer le placement des séances — il était juste — mais de l'expliquer. Corriger ce qui
+fonctionne aurait cassé quelque chose de bon.
+
+*L'ordre d'une liste est du contenu.* Ma première version insérait « très agressif » avant
+« agressif » : une échelle qui ne se lit pas dans l'ordre fait choisir au hasard. Le test
+l'assert explicitement.
+
+*Ne pas maquiller les arrondis.* Le total des quatre repas ne retombe pas exactement sur la
+cible ; on l'affiche tel quel plutôt que d'ajuster un chiffre pour que la somme soit belle.
+
+659 tests · SMOKE OK · 390 px propre.
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
