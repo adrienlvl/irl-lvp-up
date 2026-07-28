@@ -4254,18 +4254,31 @@ function trainingWeekPlan(input, exercises) {
      recalcule plus bas sur le total RÉEL — un chiffre faux vaut moins que pas de chiffre. */
   const ajustements = voulue.ajustements.filter(function (a) { return a.indexOf('porteront deux') === -1; });
 
-  const runs = Math.min(voulue.runs, politique.coursesMax);
-  if (runs < voulue.runs) {
+  /* QUI DÉCIDE ? Quand Adrien a réglé son volume À LA MAIN, son choix GAGNE : la politique
+     conseille, elle ne décide pas à sa place. Il a demandé de pouvoir mettre plus de séances,
+     lui en rendre moins sans qu'il l'ait voulu viderait le réglage de son sens.
+     Sur 'auto' en revanche, c'est bien la politique qui donne la forme — c'est ce que 'auto'
+     veut dire. Dans les deux cas l'écart est DIT, jamais subi en silence. */
+  const regleALaMain = (i.sessions !== null && i.sessions !== undefined && i.sessions !== '')
+    || (i.runs !== null && i.runs !== undefined && i.runs !== '' && i.runs !== 'auto');
+  const runs = regleALaMain ? voulue.runs : Math.min(voulue.runs, politique.coursesMax);
+  if (!regleALaMain && runs < voulue.runs) {
     ajustements.push(voulue.runs + ' courses ramenées à ' + runs + ' : ' + (politique.niveau === 'surplus'
       ? 'tu es en surplus, le cardio mangerait ton avance.'
       : 'ta récupération ne suit pas ce volume.'));
+  } else if (regleALaMain && voulue.runs > politique.coursesMax) {
+    ajustements.push('Tu as demandé ' + voulue.runs + ' courses ; à ce niveau de déficit j’en viserais ' + politique.coursesMax + '. C’est ton appel — surveille ta récupération.');
   }
 
   /* La musculation garde sa FRÉQUENCE quoi qu'il arrive : c'est elle qui protège le muscle
      quand l'énergie manque. On ne descend jamais en dessous du plancher de la politique. */
   const muscu = Math.max(Math.min(voulue.muscu, 6), Math.min(politique.seancesForceMin, voulue.muscu));
   if (politique.volumeFactor < 1) {
-    ajustements.push('Volume réduit d’environ ' + Math.round((1 - politique.volumeFactor) * 100) + ' % — les charges, elles, ne bougent pas.');
+    /* Le message doit décrire ce qui S'EST PASSÉ, pas une intention : sur un réglage manuel
+       aucune coupe n'a eu lieu, annoncer « volume réduit » serait faux. */
+    ajustements.push(regleALaMain
+      ? 'À ce niveau de déficit, je viserais environ ' + Math.round(politique.volumeFactor * 100) + ' % de ton volume habituel — et surtout : ne baisse pas les charges.'
+      : 'Volume réduit d’environ ' + Math.round((1 - politique.volumeFactor) * 100) + ' % — les charges, elles, ne bougent pas.');
   }
   politique.raisons.forEach(function (r) { ajustements.push(r.charAt(0).toUpperCase() + r.slice(1) + '.'); });
 

@@ -1025,7 +1025,10 @@ app.whenReady().then(async () => {
           runObjectiveProgram();
           const html = document.getElementById('objectiveResult').innerHTML;
           sel.value = savedVal; state.fitnessObjective = savedObj; state.objectiveSeed = savedSeed; runObjectiveProgram();
-          return html.indexOf('4 courses/sem.') !== -1 && html.indexOf('4 course/sem.') === -1;
+          const m = /(\\d+) (courses?)\\/sem\\./.exec(html);
+          if (!m) return false;
+          const n = Number(m[1]), mot = m[2];
+          return n >= 1 && mot === (n > 1 ? 'courses' : 'course');
         })(),
         dashboardInputLabels: (() => {
           // A11y : les champs du tableau de bord au placeholder seul (sans <label> englobant)
@@ -3093,6 +3096,48 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.coachsConnectes = (() => {
+        try {
+          if (typeof trainingWeekPlan !== 'function' || typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, sr = state.recovery, swk = state.workouts, so = state.fitnessObjective;
+          // Profil complet en perte, pour que la politique morde vraiment.
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte', availableDays: [1, 3, 5], level: 'intermediaire' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73, sessions: 4, progSessions: '', runs: 'auto' });
+          state.weights = [{ date: localDate(), value: 82 }];
+          state.recovery = []; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          const prog = [...document.querySelectorAll('#objectiveResult .op-day .op-day-h b')]
+            .map(e => (e.textContent || '').replace(/^[^·]*·\\s*/, '').trim());
+          const pilot = document.querySelector('#objectiveResult .op-pilot');
+          // Le RENDU, pas la propriete : le bandeau doit etre peint et porter les chiffres.
+          const pilotVu = !!pilot && getComputedStyle(pilot).display !== 'none';
+          const pilotDit = pilotVu && /kcal/.test(pilot.textContent) && /perdre du poids/.test(pilot.textContent);
+
+          showPage('poids');
+          renderCoachWeight();
+          const coach = [...document.querySelectorAll('.cw-week .cw-day span')].map(e => (e.textContent || '').trim());
+          const lien = document.querySelector('.cw-lien');
+
+          /* LE point de la refonte : les deux ecrans doivent afficher LA MEME semaine. On
+             compare les libelles reels, pas seulement le nombre — deux semaines de 6 seances
+             peuvent etre completement differentes, et c'etait precisement le defaut. */
+          const memeNombre = prog.length > 0 && prog.length === coach.length;
+          const memesSeances = memeNombre && prog.every((t, i) => coach[i].indexOf(t) !== -1);
+          const lienVu = !!lien && getComputedStyle(lien).display !== 'none';
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.recovery = sr; state.workouts = swk; state.fitnessObjective = so;
+          renderCoachWeight();
+          showPage('dashboard');
+          return pilotVu && pilotDit && memeNombre && memesSeances && lienVu;
+        } catch (e) { checks.__errConn = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3129,6 +3174,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — et le bandeau de pilotage doit citer l’objectif de poids et la cible kcal)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');
     if (!checks.coachContenu) errors.push('Coach sans contenu de forme (#coachForme : muet quand tout va bien, mais doit NOMMER la cause chiffrée d’une nuit de 4 h avec un geste ; et #coachAutres doit lister les pistes secondaires, pas seulement les compter)');
     if (!checks.coachPoidsSections) errors.push('Coach Poids non rangé (.cw-sec : 5 sections repliables attendues, titres tapables ≥44 px, poids+calories hors section, panneau sous 2000 px, replier doit vraiment retirer de la hauteur, et deux rendus ne doivent pas imbriquer les sections)');

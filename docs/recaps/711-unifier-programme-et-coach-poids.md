@@ -242,7 +242,9 @@ Corriger au passage l'en-tête menteur : afficher `plan.applied.course` (compté
 - [ ] Étape 5 — le Programme auto consomme le plan
 - [ ] Étape 6 — le Coach Poids affiche LE MÊME plan
 - [x] **Étape 7** — plus de « ajoute du cardio » sur un déficit déjà marqué (3 sites).
-- [ ] Étapes 5, 6 (brancher les deux écrans) et 8 à 11
+- [x] **Étape 5** — le Programme auto consomme trainingWeekPlan et affiche le bandeau de pilotage.
+- [x] **Étape 6** — le Coach Poids affiche LE MÊME plan (mêmes séances, mêmes noms).
+- [ ] Étape 8 (un seul planificateur d’agenda — sinon les deux boutons « Programmer » créent des doublons), 9 à 11
 
 ## Avertissement sur les sources scientifiques
 
