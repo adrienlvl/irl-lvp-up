@@ -273,3 +273,39 @@ de sauvegarde, et une vérification adversariale indépendante de mes propres
 conclusions. **La revue complète reste due.**
 
 621 tests · SMOKE OK · 390 px propre.
+
+## Itérations 14-15 — les coachs se parlent enfin
+
+**Mandat d'Adrien** : « Améliore beaucoup les coachs, et qu'ils soient connectés entre eux. »
+
+**14.** `trainingWeekPlan` + `trainingPlanInputs` : une seule source de vérité, qui
+COMPOSE les briques testées au lieu de les réécrire. Deux défauts trouvés par ma
+propre sonde avant tout test (readiness absente lue comme « forme nulle » ;
+« 7 séances » annoncées pour 6 posées).
+
+**15.** Les deux écrans branchés dessus, puis l'agenda dédoublé.
+
+### Ce que la sonde a tranché : qui décide ?
+Le profil par défaut étant en déficit, la politique ramenait **8 séances demandées
+à 7**. Elle passait outre un choix explicite — or Adrien avait justement demandé de
+pouvoir en mettre plus. Nouveau contrat :
+- **réglage manuel → le choix d'Adrien GAGNE**, la politique conseille sans imposer ;
+- **« auto » → la politique façonne**, c'est ce qu'auto veut dire.
+
+Dans les deux cas l'écart est dit. Et un message ne décrit que ce qui S'EST PASSÉ :
+sur un réglage manuel aucune coupe n'a lieu, annoncer « volume réduit » serait faux.
+
+### Le doublon d'agenda, mesuré
+Les deux écrans montrant la même semaine, chaque bouton « Programmer » écrivait avec
+son propre préfixe de refId (`objprog-` vs `coachweek-`), idempotent **dans sa famille
+seulement** : 24 séances puis 24 de plus, **12 créneaux portant deux blocs identiques**.
+Un seul planificateur désormais — le second clic ne fait rien, quel que soit l'écran.
+
+### Un test qui codait le mauvais sujet
+Le check du pluriel vérifiait « 4 courses/sem. » en dur : il testait donc le NOMBRE
+alors que son sujet est l'ACCORD. Il cassait au premier changement de volume légitime.
+Réécrit sur la grammaire du nombre réellement affiché.
+
+Leçon : *un test doit asserter son SUJET, pas une valeur qui se trouve vraie ce jour-là.*
+
+624 tests · SMOKE OK · 390 px propre.

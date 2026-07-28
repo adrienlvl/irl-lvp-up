@@ -3138,6 +3138,48 @@ app.whenReady().then(async () => {
           return pilotVu && pilotDit && memeNombre && memesSeances && lienVu;
         } catch (e) { checks.__errConn = String(e && e.message); return false; }
       })();
+      checks.agendaSansDoublon = (() => {
+        try {
+          if (typeof scheduleObjectiveProgram !== 'function' || typeof runObjectiveProgram !== 'function') return false;
+          const sa = state.agenda, sb = state.blockStart, sh = state.blockHistory;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective;
+          state.agenda = [];
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte', availableDays: [1, 3, 5], level: 'intermediaire' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73, progSessions: '', runs: 'auto' });
+          state.weights = [{ date: localDate(), value: 82 }];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          scheduleObjectiveProgram(lastObjectiveProgram.week, 4);
+          const apresProg = state.agenda.length;
+
+          /* Les deux écrans montrent la MÊME semaine : cliquer le second bouton ne doit RIEN
+             ajouter. Avant, chaque bouton écrivait avec son propre préfixe de refId et posait
+             48 séances au lieu de 24, dont 12 créneaux avec deux blocs identiques. */
+          showPage('poids');
+          renderCoachWeight();
+          const bouton = document.getElementById('coachWeekSchedule');
+          if (bouton) bouton.click();
+          const apresCoach = state.agenda.length;
+
+          const parCreneau = {};
+          state.agenda.forEach(function (a) {
+            const c = a.date + '|' + (a.time || '');
+            parCreneau[c] = (parCreneau[c] || 0) + 1;
+          });
+          const doubles = Object.keys(parCreneau).filter(function (k) { return parCreneau[k] > 1; }).length;
+
+          state.agenda = sa; state.blockStart = sb; state.blockHistory = sh;
+          state.profile = sp; state.goals = sg; state.weights = sw; state.fitnessObjective = so;
+          showPage('dashboard');
+          // Exiger apresProg > 0 : sans ça, un programme vide rendrait le test vacant.
+          return apresProg > 0 && apresCoach === apresProg && doubles === 0;
+        } catch (e) { checks.__errDbl = String(e && e.message); return false; }
+      })();
       return checks;
     })()`);
     console.log('CHECKS ' + JSON.stringify(checks));
@@ -3174,6 +3216,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.coachsConnectes) errors.push('Coachs déconnectés (le Programme auto et le Coach Poids doivent afficher LA MÊME semaine — mêmes libellés, pas seulement le même nombre — et le bandeau de pilotage doit citer l’objectif de poids et la cible kcal)');
     if (!checks.volumeReglable) errors.push('Volume du programme non réglable (#progSessions/#progRuns : demander 8 séances doit en poser 8, demander 2 sans course doit en poser 2 et zéro course, le champ doit refléter le réglage, les ajustements doivent être affichés, et le champ rester à 16 px minimum)');
     if (!checks.coachContenu) errors.push('Coach sans contenu de forme (#coachForme : muet quand tout va bien, mais doit NOMMER la cause chiffrée d’une nuit de 4 h avec un geste ; et #coachAutres doit lister les pistes secondaires, pas seulement les compter)');
