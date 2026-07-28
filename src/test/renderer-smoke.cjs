@@ -3185,6 +3185,47 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.generateursMasques = (() => {
+        try {
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          /* On mesure le RENDU CALCULE, jamais l attribut : hidden est purement decoratif
+             sur une classe qui pose display:. Ce depot s est fait avoir DEUX fois
+             (whatsnew-card, puis coach-agenda) — et ici DEUX des trois cibles posaient
+             display: sans regle [hidden] : .weekly-planner (grid) et .run-plan-bar (flex). */
+          showPage('library');
+          const _wpp=document.querySelector('.weekly-program-panel');
+          const _wppVu=!!(_wpp&&(getComputedStyle(_wpp).display!=='none'||_wpp.getBoundingClientRect().height>0));
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          const cibles = [
+            ['.weekly-planner', document.querySelector('.weekly-planner')],
+            ['#runPlanBar', document.getElementById('runPlanBar')],
+            ['#runPlanResult', document.getElementById('runPlanResult')]
+          ];
+          const encoreVus = (_wppVu?['.weekly-program-panel(library)']:[]).concat(cibles.filter(function (c) {
+            const el = c[1];
+            if (!el) return false;
+            return getComputedStyle(el).display !== 'none' || el.getBoundingClientRect().height > 0;
+          }).map(function (c) { return c[0]; }));
+          const tousPresents = !!_wpp && cibles.every(function (c) { return !!c[1]; });
+
+          /* Et le SEUL generateur restant doit, lui, etre bien vivant : masquer les trois
+             autres ne vaut que si celui qu on garde repond. */
+          const res = document.getElementById('objectiveResult');
+          const planVivant = !!(res && getComputedStyle(res).display !== 'none'
+            && String(res.textContent || '').length > 200);
+          const bouton = document.getElementById('objectiveGenerate');
+          const boutonVivant = !!(bouton && bouton.getBoundingClientRect().height > 0);
+
+          showPage('dashboard');
+          checks.__masquage = 'encoreVus[' + encoreVus.join(',') + '] tousPresents=' + tousPresents
+            + ' plan=' + planVivant + ' bouton=' + boutonVivant;
+          // tousPresents : on MASQUE, on ne supprime pas — le markup doit rester dans le DOM.
+          return encoreVus.length === 0 && tousPresents && planVivant && boutonVivant;
+        } catch (e) { checks.__errMasquage = String(e && e.message); return false; }
+      })();
+
       checks.planTrail = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4563,6 +4604,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.generateursMasques) errors.push('Les trois générateurs de semaine concurrents doivent être MASQUÉS AU RENDU (display calculé à none, hauteur nulle) mais TOUJOURS PRÉSENTS dans le DOM — et le Plan de bataille, seul générateur restant, doit rester peint et son bouton cliquable. Deux des cibles posent display: sans règle [hidden] : sans la règle CSS jumelle, l’attribut est ignoré');
     if (!checks.planTrail) errors.push('Intégration ultra-trail : avec un profil endurance et un D+ saisi, le Plan de bataille doit afficher le dénivelé réparti sur ses courses (somme EXACTEMENT égale au D+ saisi) et la sortie longue visée — et surtout ne JAMAIS écrire le D+ dans le titre d’une séance, où l’affûtage fait un remplacement ancré sur les km');
     if (!checks.reglagesPortes) errors.push('Les jours d’entraînement et les zones à privilégier doivent se régler DEPUIS le Plan de bataille : ce sont les seules données que le plan consomme sans pouvoir les écrire une fois les autres panneaux masqués, et les jours doivent être triés lundi-d’abord (premiereSeanceInfo les affiche dans l’ordre stocké)');
     if (!checks.planificateurSurvit) errors.push('scheduleObjectiveProgram doit survivre à un agenda saturé : le chemin « créneau toujours pris après trois décalages » incrémentait `_perdues`, une variable déclarée nulle part dans cette fonction — donc un ReferenceError dans ce qui devient le seul planificateur de l’app');
