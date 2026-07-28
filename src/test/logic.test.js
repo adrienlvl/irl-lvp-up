@@ -7863,7 +7863,14 @@ test('sleepCoachInsight : bilan qualité + régularité (1re étape du coach som
   assert.doesNotMatch(twoNights.verdict, /rythme régulier/, '2 nuits → toujours pas de régularité affirmée');
   const threeNights = L.sleepCoachInsight([{ date: '2026-07-08', sleep: 8 }, { date: '2026-07-09', sleep: 8 }, { date: '2026-07-10', sleep: 8 }], '2026-07-10');
   assert.equal(threeNights.stdev, 0, 'régularité mesurée dès 3 nuits');
-  assert.match(threeNights.verdict, /Sommeil solide.*rythme régulier/, '3 nuits régulières → verdict mesuré rétabli');
+  /* CONTRAT CHANGÉ SCIEMMENT (itération 54). Le verdict ne DIT plus « rythme régulier », il
+     MONTRE la mesure. Motif : cette étiquette était rendue à l'identique à quelqu'un dont le
+     coucher varie de 56 min et à quelqu'un dont il ne bouge pas d'une minute — une affirmation
+     sans preuve, alors que le chiffre est calculé juste au-dessus. Le test s'appelle « verdict
+     mesuré » : asserter la MESURE est plus fidèle à son sujet que l'étiquette, et plus strict. */
+  assert.match(threeNights.verdict, /Sommeil solide/, '3 nuits régulières → verdict positif');
+  assert.match(threeNights.verdict, /écart de 0 h/, 'et la régularité est CHIFFRÉE, pas seulement affirmée');
+  assert.doesNotMatch(threeNights.verdict, /rythme régulier/, 'plus d’étiquette sans le chiffre qui la justifie');
 });
 
 test('sleepCoachInsight : la régularité du COUCHER prime sur celle de la durée dès 3 nuits saisies', () => {
@@ -14367,6 +14374,72 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
   assert.equal(L.appliquerProgrammeNutrition(null, 80, 'agressif'), null);
   assert.equal(L.appliquerProgrammeNutrition(e, 80, 'nawak').dailyTarget, e.dailyTarget,
     'choix inconnu → on ne touche a rien');
+});
+
+test('coucher : trois bandes au lieu de deux, et le week-end est nommé', () => {
+  /* DÉFAUT MESURÉ : le verdict était binaire à 60 min d'écart-type. En dessous il affirmait
+     « rythme régulier » SANS montrer le chiffre calculé — si bien qu'un coucher à 23:10 en
+     semaine et 01:15 le week-end (56 min d'écart-type) recevait EXACTEMENT la même phrase
+     qu'un coucher qui ne bouge pas d'une minute. Deux comportements opposés, un seul verdict. */
+  const nuits = (cSem, cWe, dSem, dWe) => {
+    const r = [];
+    for (let s = 13; s >= 0; s--) {
+      const d = new Date('2026-07-29T12:00:00'); d.setDate(d.getDate() - s);
+      const k = d.toISOString().slice(0, 10), j = d.getDay(), we = (j === 0 || j === 6);
+      r.push({ date: k, sleep: we ? dWe : dSem, bedtime: we ? cWe : cSem, fatigue: 2, soreness: 2 });
+    }
+    return r;
+  };
+  const sc = rec => L.sleepCoachInsight(rec, '2026-07-29', { planActive: false });
+
+  // LE SCÉNARIO QUI DISCRIMINE : celui qui tombait exactement entre les deux anciennes bandes.
+  const derive = sc(nuits('23:10', '01:15', 6.6, 9.2));
+  assert.equal(derive.bedtimeStdevMin, 56, 'écart-type mesuré, entre les deux seuils');
+  assert.equal(derive.irregular, false, 'on ne crie pas au loup à 56 min');
+  assert.equal(derive.tone, 'ok', 'le ton reste calme');
+  assert.match(derive.verdict, /56 min/, 'mais le chiffre calculé est MONTRÉ, plus seulement gardé');
+  assert.match(derive.verdict, /week-end/, 'et la cause est nommée');
+  assert.match(derive.verdict, /23:10/, 'avec l’heure de semaine');
+  assert.match(derive.verdict, /01:15/, 'et celle du week-end');
+  assert.match(derive.verdict, /2 h 05/, 'l’écart en heures se lit mieux que « 125 min »');
+  assert.ok(derive.source, 'la source de régularité est portée sur cette bande aussi');
+
+  // Coucher fixe : le verdict doit être DIFFÉRENT — c'est tout l'objet du correctif.
+  const fixe = sc(nuits('23:15', '23:15', 7.3, 7.3));
+  assert.equal(fixe.bedtimeStdevMin, 0);
+  assert.notEqual(fixe.verdict, derive.verdict, 'deux comportements opposés, deux verdicts');
+  assert.doesNotMatch(fixe.verdict, /week-end/, 'rien à nommer quand rien ne dérive');
+  assert.match(fixe.verdict, /heure fixe/, '« à ~0 min près » se lirait mal');
+  assert.equal(fixe.source, null, 'pas de source de régularité quand il n’y a rien à corriger');
+
+  // Vraiment irrégulier : l'ancienne bande haute ne bouge pas.
+  const casse = sc(nuits('22:00', '03:00', 7, 5));
+  assert.equal(casse.irregular, true, 'au-delà de 60 min, toujours irrégulier');
+  assert.ok(casse.tone === 'urgent' || casse.tone === 'attention', 'et le ton monte : ' + casse.tone);
+
+  /* decalageWeekEnd : deux nuits minimum de chaque côté, sinon on nommerait « le week-end »
+     à partir d'une seule sortie. */
+  const d = L.decalageWeekEnd(nuits('23:10', '01:15', 6.6, 9.2), '2026-07-29');
+  assert.equal(d.semaine, '23:10'); assert.equal(d.weekEnd, '01:15');
+  assert.equal(d.ecartMin, 125, 'écart mesuré en minutes');
+  assert.ok(d.nuitsSemaine >= 2 && d.nuitsWeekEnd >= 2);
+  assert.equal(L.decalageWeekEnd([], '2026-07-29'), null, 'aucune nuit → rien');
+  /* LE CAS QUI DISCRIMINE le minimum de deux nuits par côté : avec UNE seule nuit de week-end,
+     on comparerait une soirée à une habitude, et on nommerait un « décalage du week-end » qui
+     n'est peut-être qu'une sortie isolée. Sans cette assertion, la mutation qui abaisse le seuil
+     à une nuit SURVIVAIT — mesuré. */
+  const base = nuits('23:10', '01:15', 7, 7);
+  const jourDe = r => new Date(r.date + 'T12:00:00').getDay();
+  const estWe = r => jourDe(r) === 0 || jourDe(r) === 6;
+  const unSeulWe = base.filter(r => !estWe(r)).concat([base.filter(estWe)[0]]);
+  assert.equal(unSeulWe.filter(estWe).length, 1, 'jeu d’essai : une seule nuit de week-end');
+  assert.ok(unSeulWe.filter(r => !estWe(r)).length >= 2, 'et assez de nuits de semaine en face');
+  assert.equal(L.decalageWeekEnd(unSeulWe, '2026-07-29'), null,
+    'une seule nuit de week-end ne suffit pas à nommer un décalage');
+  assert.equal(L.decalageWeekEnd(nuits('23:10', '01:15', 7, 7), 'pas-une-date'), null, 'date abîmée → rien');
+  // Minuit ne doit pas casser la moyenne : 23:50 et 00:10 sont à 20 min, pas à 23 h.
+  const autour = L.decalageWeekEnd(nuits('23:50', '00:10', 7, 7), '2026-07-29');
+  assert.ok(Math.abs(autour.ecartMin) <= 25, 'ancrage correct autour de minuit : ' + autour.ecartMin);
 });
 
 test('repartitionDplus : le dénivelé entre dans le plan, au prorata du temps debout', () => {

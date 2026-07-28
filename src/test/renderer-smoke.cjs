@@ -3185,6 +3185,46 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.coucherChiffre = (() => {
+        try {
+          const sr = state.recovery;
+          const lire = () => {
+            const el = document.getElementById('sleepCoach');
+            if (!el || getComputedStyle(el).display === 'none' || el.getBoundingClientRect().height === 0) return '';
+            return String(el.textContent || '');
+          };
+          const nuits = (cSem, cWe) => {
+            const r = [];
+            for (let k = 13; k >= 0; k--) {
+              const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - k);
+              const key = d.toISOString().slice(0, 10), j = d.getDay(), we = (j === 0 || j === 6);
+              r.push({ date: key, sleep: we ? 9.2 : 6.6, bedtime: we ? cWe : cSem, fatigue: 2, soreness: 2 });
+            }
+            return r;
+          };
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
+
+          state.recovery = nuits('23:10', '01:15');
+          if (typeof renderWeeklySleep === 'function') renderWeeklySleep();
+          const txtDerive = lire();
+          state.recovery = nuits('23:15', '23:15');
+          if (typeof renderWeeklySleep === 'function') renderWeeklySleep();
+          const txtFixe = lire();
+
+          state.recovery = sr;
+          try { if (typeof renderWeeklySleep === 'function') renderWeeklySleep(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__coucher = 'derive[' + txtDerive.slice(0, 95) + '] fixe[' + txtFixe.slice(0, 60) + ']';
+          /* Le RENDU doit porter le chiffre et la cause — et surtout les deux rythmes ne
+             doivent PAS produire le meme texte, ce qui etait exactement le defaut. */
+          return txtDerive.length > 20 && txtFixe.length > 20 && txtDerive !== txtFixe
+            && txtDerive.indexOf('56 min') !== -1 && txtDerive.indexOf('week-end') !== -1
+            && txtDerive.indexOf('23:10') !== -1 && txtFixe.indexOf('heure fixe') !== -1;
+        } catch (e) { checks.__errCoucher = String(e && e.message); return false; }
+      })();
+
       checks.generateursMasques = (() => {
         try {
           showPage('athlete');
@@ -4604,6 +4644,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.coucherChiffre) errors.push('Coach sommeil : un coucher qui dérive le week-end (23:10 / 01:15, 56 min d’écart-type) et un coucher à heure fixe ne doivent PAS produire le même verdict à l’écran — le premier doit porter le chiffre mesuré et nommer le week-end, le second dire « heure fixe »');
     if (!checks.generateursMasques) errors.push('Les trois générateurs de semaine concurrents doivent être MASQUÉS AU RENDU (display calculé à none, hauteur nulle) mais TOUJOURS PRÉSENTS dans le DOM — et le Plan de bataille, seul générateur restant, doit rester peint et son bouton cliquable. Deux des cibles posent display: sans règle [hidden] : sans la règle CSS jumelle, l’attribut est ignoré');
     if (!checks.planTrail) errors.push('Intégration ultra-trail : avec un profil endurance et un D+ saisi, le Plan de bataille doit afficher le dénivelé réparti sur ses courses (somme EXACTEMENT égale au D+ saisi) et la sortie longue visée — et surtout ne JAMAIS écrire le D+ dans le titre d’une séance, où l’affûtage fait un remplacement ancré sur les km');
     if (!checks.reglagesPortes) errors.push('Les jours d’entraînement et les zones à privilégier doivent se régler DEPUIS le Plan de bataille : ce sont les seules données que le plan consomme sans pouvoir les écrire une fois les autres panneaux masqués, et les jours doivent être triés lundi-d’abord (premiereSeanceInfo les affiche dans l’ordre stocké)');
