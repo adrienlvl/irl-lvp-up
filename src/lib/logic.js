@@ -4273,20 +4273,33 @@ function trainingWeekPlan(input, exercises) {
   /* La musculation garde sa FRÉQUENCE quoi qu'il arrive : c'est elle qui protège le muscle
      quand l'énergie manque. On ne descend jamais en dessous du plancher de la politique. */
   const muscu = Math.max(Math.min(voulue.muscu, 6), Math.min(politique.seancesForceMin, voulue.muscu));
-  if (politique.volumeFactor < 1) {
-    /* Le message doit décrire ce qui S'EST PASSÉ, pas une intention : sur un réglage manuel
-       aucune coupe n'a eu lieu, annoncer « volume réduit » serait faux. */
-    ajustements.push(regleALaMain
-      ? 'À ce niveau de déficit, je viserais environ ' + Math.round(politique.volumeFactor * 100) + ' % de ton volume habituel — et surtout : ne baisse pas les charges.'
-      : 'Volume réduit d’environ ' + Math.round((1 - politique.volumeFactor) * 100) + ' % — les charges, elles, ne bougent pas.');
-  }
+  /* Le message doit décrire ce qui S'EST PASSÉ, avec le chiffre RÉEL. Il annonçait
+     « volume réduit de 30 % » alors que volumeFactor n'était consommé nulle part : la
+     politique était décorative. Elle agit maintenant, et on annonce la coupe MESURÉE. */
+  const _messageVolume = function (perBase, perReel) {
+    if (regleALaMain) {
+      return politique.volumeFactor < 1
+        ? 'À ce niveau de déficit, je viserais environ ' + Math.round(politique.volumeFactor * 100) + ' % de ton volume habituel — et surtout : ne baisse pas les charges.'
+        : null;
+    }
+    if (perReel >= perBase) return null;
+    return 'Volume réduit : ' + perReel + ' exercices par séance au lieu de ' + perBase + ' — les charges, elles, ne bougent pas.';
+  };
   politique.raisons.forEach(function (r) { ajustements.push(r.charAt(0).toUpperCase() + r.slice(1) + '.'); });
+  // (le message de volume est poussé plus bas, une fois perReel connu)
 
+  /* volumeFactor s'applique au nombre d'EXERCICES par séance : c'est le vrai levier de volume,
+     et il laisse intactes la fréquence et les charges — exactement ce que la politique promet.
+     Plancher à 3 exercices : en dessous ce n'est plus une séance. */
+  const perBase = (typeof perSessionForLevel === 'function') ? perSessionForLevel(i.niveau) : 5;
+  const perReel = Math.max(3, Math.round(perBase * politique.volumeFactor));
   const programme = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
     sessions: muscu + runs, runs: runs, seed: i.seed, equipment: i.equipement,
-    perSession: (typeof perSessionForLevel === 'function') ? perSessionForLevel(i.niveau) : 5
+    perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax
   });
   if (!programme) return null;
+  const _mv = _messageVolume(perBase, perReel);
+  if (_mv) ajustements.push(_mv);
 
   // Les jours réellement cochés priment sur la table par défaut du programme.
   const semaine = (i.jours && i.jours.length && typeof assignProgramDays === 'function')
@@ -4320,7 +4333,7 @@ function objectiveProgram(key, exercises, opts) {
      un cycle push/pull/legs/upper redemandé donne push/pull/legs/upper/push… et garde sa logique. */
   const focus = Array.from({ length: forme.muscu }, (_, i) => o.split[i % o.split.length]);
   const muscu = focus.map((f, fi) => ({ kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45, exercises: pickExercisesForZones(FOCUS_ZONES[f], pool, per, seed ? seed + fi : fi) }));
-  const runs = runPlanWeek(forme.runs, { emphasis: o.runEmphasis }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why }));
+  const runs = runPlanWeek(forme.runs, { emphasis: o.runEmphasis, duresMax: opts && opts.duresMax }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why }));
   const ordered = []; let mi = 0, ri = 0;
   while (mi < muscu.length || ri < runs.length) { if (mi < muscu.length) ordered.push(muscu[mi++]); if (ri < runs.length) ordered.push(runs[ri++]); }
   const total = ordered.length;
@@ -9967,7 +9980,24 @@ function runPlanWeek(count, opts) {
   const template = TEMPLATES[o.emphasis] || TEMPLATES.balanced;
   const days = Array.isArray(o.days) && o.days.length >= want ? o.days.slice(0, want) : PATTERN[want];
   const order = w => (w + 6) % 7;
-  const sessions = template[want].map((type, i) => ({ weekday: days[i], type, ...META[type] })).sort((a, b) => order(a.weekday) - order(b.weekday));
+  /* Plafond de séances INTENSES. Sans lui, trainingPolicy annonçait « une seule séance dure
+     par semaine » au-dessus d'une semaine qui en posait trois : la politique était
+     décorative. On rétrograde les excédentaires en footing facile, en gardant les
+     PREMIÈRES (le template les ordonne déjà par importance pour l'objectif).
+     La sortie longue n'est PAS comptée comme dure : c'est du volume à basse intensité,
+     et c'est précisément ce qu'on veut garder quand on retire de l'intensité. */
+  const DURES = ['fractionne', 'tempo'];
+  let types = template[want].slice();
+  if (o.duresMax !== null && o.duresMax !== undefined && o.duresMax !== '' && Number.isFinite(Number(o.duresMax))) {
+    const max = Math.max(0, Math.round(Number(o.duresMax)));
+    let vues = 0;
+    types = types.map(t => {
+      if (!DURES.includes(t)) return t;
+      vues++;
+      return vues <= max ? t : 'facile';
+    });
+  }
+  const sessions = types.map((type, i) => ({ weekday: days[i], type, ...META[type] })).sort((a, b) => order(a.weekday) - order(b.weekday));
   return { sessions, count: sessions.length, totalMinutes: sessions.reduce((a, s) => a + s.minutes, 0) };
 }
 

@@ -14110,3 +14110,67 @@ test('invariant : le coach du jour et le Coach Poids appliquent le MÊME planche
   assert.ok(focus.calorieTarget >= planFocus.bmr,
     'le focus du jour propose ' + focus.calorieTarget + ' kcal, sous le métabolisme de base ' + planFocus.bmr);
 });
+
+test('la politique AGIT vraiment : elle ne se contente pas de l’annoncer', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const enDeficit = {
+    fitnessObjective: 'seche',
+    profile: { weight: 95, height: 180, age: 28, sex: 'homme', activityLevel: 'modere', goal: 'perte', availableDays: [1, 3, 5], level: 'intermediaire' },
+    goals: { targetWeight: 78, progSessions: '', runs: 'auto' },
+    weights: [{ date: AUJ, value: 95 }], recovery: [], workouts: []
+  };
+  const p = L.trainingWeekPlan(L.trainingPlanInputs(enDeficit, AUJ), exercises);
+  assert.equal(p.politique.niveau, 'marque');
+
+  /* volumeFactor n'était consommé NULLE PART : le plan annonçait « volume réduit de 30 % »
+     alors que la semaine générée était strictement identique. La politique était décorative —
+     le pire défaut possible pour un coach qui prétend te protéger. */
+  const parSeance = p.week.filter(s => s.kind === 'muscu').map(s => (s.exercises || []).length);
+  assert.ok(parSeance.length > 0);
+  const sansPolitique = L.objectiveProgram('seche', exercises, { perSession: 5 });
+  const refSeance = sansPolitique.week.filter(s => s.kind === 'muscu').map(s => (s.exercises || []).length)[0];
+  assert.ok(parSeance.every(n => n < refSeance),
+    `en déficit marqué chaque séance doit avoir MOINS de ${refSeance} exercices, or : ${parSeance.join(',')}`);
+
+  /* duresMax n'était lu nulle part : le bandeau promettait « une seule séance dure par semaine »
+     au-dessus d'une semaine qui en posait trois. */
+  assert.equal(p.politique.duresMax, 0, 'déficit marqué → aucune séance dure');
+  const dures = p.week.filter(s => s.kind === 'course' && (s.type === 'fractionne' || s.type === 'tempo'));
+  assert.equal(dures.length, 0, `la semaine contient ${dures.length} séance(s) dure(s) malgré duresMax=0`);
+
+  // Le message annonce le chiffre RÉEL de la coupe, pas un pourcentage théorique.
+  const msg = p.ajustements.find(a => /Volume réduit/.test(a));
+  assert.ok(msg, 'la coupe est annoncée');
+  assert.match(msg, /\d+ exercices par séance au lieu de \d+/, 'avec les deux chiffres réels');
+  assert.ok(!/environ 30 %/.test(msg), 'plus de pourcentage théorique non vérifiable');
+
+  // Sur un réglage MANUEL, rien n'est coupé : le message ne doit pas prétendre le contraire.
+  const manuel = { ...enDeficit, goals: { ...enDeficit.goals, progSessions: 6 } };
+  const pm = L.trainingWeekPlan(L.trainingPlanInputs(manuel, AUJ), exercises);
+  assert.ok(!pm.ajustements.some(a => /Volume réduit/.test(a)),
+    'aucune coupe annoncée quand aucune coupe n’a lieu');
+});
+
+test('runPlanWeek : le plafond de séances dures rétrograde, il ne supprime pas', () => {
+  // Sans plafond, la semaine « vitesse » à 4 courses contient fractionné + tempo.
+  const libre = L.runPlanWeek(4, { emphasis: 'vitesse' }).sessions.map(s => s.type);
+  assert.ok(libre.filter(t => t === 'fractionne' || t === 'tempo').length >= 2);
+
+  // Avec duresMax:1, une seule intense subsiste — mais le NOMBRE de courses ne bouge pas.
+  const une = L.runPlanWeek(4, { emphasis: 'vitesse', duresMax: 1 });
+  assert.equal(une.sessions.length, 4, 'on rétrograde, on ne supprime pas');
+  assert.equal(une.sessions.filter(s => s.type === 'fractionne' || s.type === 'tempo').length, 1);
+
+  const zero = L.runPlanWeek(4, { emphasis: 'vitesse', duresMax: 0 });
+  assert.equal(zero.sessions.length, 4);
+  assert.equal(zero.sessions.filter(s => s.type === 'fractionne' || s.type === 'tempo').length, 0);
+
+  /* La sortie LONGUE n'est pas comptée comme dure : c'est du volume à basse intensité, et
+     c'est précisément ce qu'on garde quand on retire de l'intensité. */
+  assert.ok(L.runPlanWeek(4, { emphasis: 'endurance', duresMax: 0 }).sessions.some(s => s.type === 'longue'));
+
+  // Absence de consigne = pas de plafond (null n'est pas zéro — piège déjà rencontré deux fois).
+  assert.deepEqual(L.runPlanWeek(4, { emphasis: 'vitesse', duresMax: null }).sessions.map(s => s.type), libre);
+  assert.deepEqual(L.runPlanWeek(4, { emphasis: 'vitesse' }).sessions.map(s => s.type), libre);
+});

@@ -930,11 +930,16 @@ app.whenReady().then(async () => {
           state.profile = { ...state.profile, weight: 80, height: 180, age: 30, sex: 'homme', activityLevel: 'modere' };
           renderCoachWeight();
           const html = document.getElementById('coachWeightBody').innerHTML;
-          const adjustShown = /Nouvelle cible/.test(html);                    // la note d'ajustement (avec chiffre) s'affiche
+          // Le bloc d'ajustement lui-même, quelle que soit sa forme : « Baisse d'environ X »
+          // quand c'est tenable, « ne coupe pas plus » quand le déficit est déjà marqué (auquel
+          // cas afficher une nouvelle cible se contredirait, donc elle est masquée).
+          const adjustShown = !!document.querySelector('#coachWeightBody .cw-adjust');
+          // Et il doit toujours porter un CONSEIL, pas seulement un constat.
+          const adjustParle = adjustShown && /Baisse d|ne coupe pas plus|plancher calorique/.test(html);
           const genericGone = !/ne va pas encore vers la cible/.test(html);   // …et la realLine générique redondante est coupée
           const noDietBreak = !/PAUSE DIÈTE/.test(html);                      // garde : ce scénario ne déclenche pas la pause diète
           state.weights = savedW; state.goals = savedGoals; state.profile = savedProfile; renderCoachWeight();
-          return adjustShown && genericGone && noDietBreak;
+          return adjustShown && adjustParle && genericGone && noDietBreak;
         })(),
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
