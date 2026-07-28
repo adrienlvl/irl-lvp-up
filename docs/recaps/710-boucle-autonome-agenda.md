@@ -1362,3 +1362,33 @@ poids courant. Lire avant de remplacer, même quand le motif semble uniforme.
 
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
+
+## Itération 47 — le bloc rendait un conseil, jamais un bilan (axe A)
+
+Mesuré avant d'écrire : à la fin d'un bloc de huit semaines, l'écran dit « Bloc de 8 semaines
+terminé », donne le conseil pour la suite, propose d'en générer un nouveau — et ne dit **rien**
+de ce que le bloc a produit. `blockWindowStats` et `bestE1rmByExercise` calculaient tout et
+n'étaient appelées depuis `app.js` pour cet écran ni l'une ni l'autre.
+
+Le bilan affiche désormais les séances, le tonnage, la variation vs le bloc précédent et les
+charges gagnées par exercice, avec un verdict.
+
+### Ce que cette itération a appris
+
+*Le verdict doit distinguer VOLUME et FORCE.* Monter le tonnage sans gagner en charge, c'est
+travailler plus pour le même résultat — et une app de coaching qui ne sait pas le dire félicite
+pour du travail perdu. Le test porte sur le cas qui discrimine : charges identiques, plus de
+séances.
+
+*« Pas de bloc précédent » n'est pas « un bloc précédent à zéro ».* Le premier bloc — donc le
+premier vrai usage de l'app — n'a rien à battre. `deltaPct` vaut null plutôt qu'un pourcentage
+fabriqué à partir de rien. Même famille que `Number(null) === 0`, transposée à une comparaison.
+
+*Un bloc plus léger n'est pas un échec.* Le verdict le dit : « si c'était voulu (fatigue, vie,
+blessure), c'est une bonne décision. » Un coach qui ne sait que féliciter la hausse pousse à la
+blessure.
+
+658 tests · SMOKE OK · 390 px propre.
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
