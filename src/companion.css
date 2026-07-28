@@ -101,8 +101,11 @@
    poignées de pompes). Il RESTE dans le DOM — saveGuidedExercise lit sa valeur sans garde —
    mais il ne prend plus de place et sort du parcours clavier. La ligne passe alors à trois
    colonnes, sinon un trou reste à sa place. */
-.guided-set-row .gs-load.gs-off{display:none}
-.guided-set-row:has(.gs-load.gs-off){grid-template-columns:auto minmax(0,1fr) auto}
+/* Charge FACULTATIVE (poids du corps, barre de traction, poignées) : le champ reste — le
+   gilet lesté doit pouvoir être noté, `vestProgression` en dépend — mais il s'efface
+   visuellement pour ne plus réclamer une valeur. Il redevient net dès qu'on le remplit. */
+.guided-set-row .gs-load.gs-lest{opacity:.55}
+.guided-set-row .gs-load.gs-lest:focus-within{opacity:1}
 
 /* SÉANCE GUIDÉE — départ et enchaînement série par série (demande d'Adrien : « demander si je
    suis prêt, compte à rebours de 5 s, série 1, repos, série 2… »). */

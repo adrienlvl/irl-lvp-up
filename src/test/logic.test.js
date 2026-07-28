@@ -4196,10 +4196,16 @@ test('phaseSetsForDay : séries d’une séance ajustées à la phase du bloc', 
 });
 test('blockPhaseHeadsUp : heads-up anticipé de fin de bloc', () => {
   const start = '2026-07-06';
-  // S4 (décharge) → heads-up avec reco du prochain bloc
+  // S4 sur 8 : décharge de MI-bloc — pas de reco de prochain bloc, le bloc continue.
   const s4 = L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-27'));
-  assert.ok(s4 && s4.phase === 'deload' && s4.showNextAdvice === true);
-  assert.ok(/décharge|dernière/i.test(s4.title + ' ' + s4.message));
+  assert.ok(s4 && s4.phase === 'deload', 'la décharge de mi-bloc est annoncée');
+  assert.ok(!s4.showNextAdvice, 'mais sans reco de prochain bloc : il en reste quatre semaines');
+  assert.ok(s4.title.indexOf('Dernière semaine') === -1, 'et ce n’est PAS la dernière semaine');
+  assert.ok(/décharge/i.test(s4.title + ' ' + s4.message));
+  // S8 : LA dernière semaine du bloc — c'est là que la reco du suivant a un sens.
+  const s8 = L.blockPhaseHeadsUp(L.currentBlock(start, '2026-08-24'));
+  assert.ok(s8 && s8.phase === 'deload' && s8.showNextAdvice === true, 'S8 : reco du prochain bloc');
+  assert.ok(s8.title.indexOf('Dernière semaine') !== -1, s8.title);
   // S3 (décharge la semaine prochaine) → heads-up preload sans reco
   const s3 = L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-20'));
   assert.ok(s3 && s3.phase === 'preload' && s3.showNextAdvice === false);
@@ -4207,7 +4213,8 @@ test('blockPhaseHeadsUp : heads-up anticipé de fin de bloc', () => {
   assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-06')), null, 'S1 → rien');
   assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-07-13')), null, 'S2 → rien');
   // bloc terminé → rien (la carte "terminé" prend le relais)
-  assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-08-03')), null, 'terminé → rien');
+  // Bloc terminé : plus rien (la carte « terminé » prend le relais) — 8 semaines plus tard.
+  assert.equal(L.blockPhaseHeadsUp(L.currentBlock(start, '2026-09-07')), null, 'terminé → rien');
   // entrée invalide → null
   assert.equal(L.blockPhaseHeadsUp(null), null);
   assert.equal(L.blockPhaseHeadsUp({ done: true }), null);
@@ -14228,6 +14235,52 @@ test('aucun champ d’état fantôme : ce que app.js lit doit exister', () => {
     + fantomes.map(k => 'state.' + k + ' (l. ' + lues[k].join(', ') + ')').join(' | '));
 });
 
+test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un texte', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const etat = choix => ({
+    fitnessObjective: 'athletique',
+    profile: { weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', goal: 'perte', level: 'intermediaire' },
+    goals: { targetWeight: 74, sessions: 4, runs: 4, progSessions: '', nutritionPlan: choix },
+    weights: [{ date: AUJ, value: 80 }], recovery: [], workouts: []
+  });
+  const plan = choix => L.trainingWeekPlan(L.trainingPlanInputs(etat(choix), AUJ), exercises);
+
+  /* MESURÉ APRÈS AVOIR LIVRÉ le sélecteur : choisir « agressif » affichait 2217 kcal dans le
+     bloc nutrition pendant que le bandeau de pilotage, TROIS LIGNES AU-DESSUS, annonçait encore
+     2463 — et le plan gardait 2463. Deux nombres pour la même chose dans le même panneau. */
+  const eq = plan('equilibre'), agr = plan('agressif'), pru = plan('prudent');
+  assert.ok(eq.pilotage.cible > 0, 'le plan porte bien une cible');
+  assert.ok(agr.pilotage.cible < eq.pilotage.cible, 'agressif coupe plus : ' + agr.pilotage.cible + ' < ' + eq.pilotage.cible);
+  assert.ok(pru.pilotage.cible > eq.pilotage.cible, 'prudent coupe moins : ' + pru.pilotage.cible + ' > ' + eq.pilotage.cible);
+
+  /* Le choix atteint la POLITIQUE d'entraînement, qui dérive son niveau du ratio déficit/TDEE.
+     C'est voulu : un déficit plus dur laisse moins de capacité, et le dire vaut mieux que de
+     faire comme si de rien n'était. On l'écrit sur le passage qui DISCRIMINE. */
+  assert.equal(pru.politique.niveau, 'modere', 'prudent → politique plus permissive');
+  assert.equal(agr.politique.niveau, 'marque', 'agressif → politique restrictive');
+  assert.notEqual(pru.politique.niveau, agr.politique.niveau, 'les deux choix ne se valent pas');
+
+  // Le rythme et l'échéance suivent : annoncer une date issue d'un autre régime serait faux.
+  const e = L.energyPlan({ weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+    sessionsPerWeek: 4, goal: 'perte', targetWeight: 74, todayKey: AUJ });
+  const a = L.appliquerProgrammeNutrition(e, 80, 'agressif');
+  const p = L.appliquerProgrammeNutrition(e, 80, 'prudent');
+  assert.ok(a.ratePerWeek > p.ratePerWeek, 'agressif fait perdre plus vite');
+  assert.ok(a.weeks < p.weeks, 'donc l’échéance arrive plus tôt : ' + a.weeks + ' < ' + p.weeks);
+  assert.equal(a.deficit, e.tdee - a.dailyTarget, 'le déficit reste cohérent avec la cible');
+
+  // Maintien : plus d'échéance de perte à annoncer plutôt qu'une date inventée.
+  const m = L.appliquerProgrammeNutrition(e, 80, 'maintien');
+  assert.equal(m.dailyTarget, e.tdee);
+  assert.equal(m.weeks, null, 'aucune échéance quand on ne perd rien');
+
+  // Entrées abîmées : on rend le plan tel quel plutôt que de fabriquer.
+  assert.equal(L.appliquerProgrammeNutrition(null, 80, 'agressif'), null);
+  assert.equal(L.appliquerProgrammeNutrition(e, 80, 'nawak').dailyTarget, e.dailyTarget,
+    'choix inconnu → on ne touche a rien');
+});
+
 test('programmesNutrition : le choix est ouvert, mais rien n’est caché', () => {
   const e = L.energyPlan({ weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
     sessionsPerWeek: 4, goal: 'perte', targetWeight: 74, todayKey: '2026-07-28' });
@@ -14236,7 +14289,8 @@ test('programmesNutrition : le choix est ouvert, mais rien n’est caché', () =
   /* Adrien : « la nutrition devrait pouvoir être choisie par moi […] autoriser d'être plus
      agressif sur la perte de poids […] mettre un avertissement si c'est trop peu ». Le déficit
      était imposé : `safeLossRate` dérivait un rythme de l'IMC et personne ne pouvait le discuter. */
-  assert.ok(liste.length >= 4, 'plusieurs programmes proposés');
+  assert.ok(liste.length >= 5, 'plusieurs programmes proposés, recommandation comprise');
+  assert.ok(liste[0].cle === 'auto', 'la recommandation de l app ouvre la liste');
   const par = c => liste.filter(x => x.cle === c)[0];
   assert.ok(par('prudent') && par('equilibre') && par('agressif') && par('maintien') && par('prise'));
 
@@ -14263,8 +14317,13 @@ test('programmesNutrition : le choix est ouvert, mais rien n’est caché', () =
 
   // Le choix : celui demandé, ou l'équilibré — un choix inconnu ne casse rien.
   assert.equal(L.programmeNutritionChoisi(e, 80, 'agressif').cle, 'agressif');
-  assert.equal(L.programmeNutritionChoisi(e, 80, 'nawak').cle, 'equilibre', 'repli sur l’équilibré');
-  assert.equal(L.programmeNutritionChoisi(e, 80, undefined).cle, 'equilibre');
+  /* Le repli est « auto » — la recommandation de l app — et NON « equilibre ». Appliquer un
+     -20 % fixe a qui n a rien choisi remplacerait le rythme personnalise que l app calcule
+     (safeLossRate, 0,5 a 0,9 %/sem selon l IMC). Un test existant l a vu tout de suite. */
+  assert.equal(L.programmeNutritionChoisi(e, 80, 'nawak').cle, 'auto', 'repli sur la recommandation');
+  assert.equal(L.programmeNutritionChoisi(e, 80, undefined).cle, 'auto');
+  assert.equal(L.appliquerProgrammeNutrition(e, 80, undefined).dailyTarget, e.dailyTarget,
+    'sans choix, la cible calculee par l app est INTACTE');
   assert.deepEqual(L.programmesNutrition(null, 80), [], 'sans plan énergétique : rien');
   assert.deepEqual(L.programmesNutrition({ tdee: 0, bmr: 0 }, 80), [], 'chiffres absents : rien');
 });

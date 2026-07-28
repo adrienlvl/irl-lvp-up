@@ -966,7 +966,7 @@ app.whenReady().then(async () => {
         objectiveProgram: typeof objectiveProgram === 'function' && Array.isArray(FITNESS_OBJECTIVES) && FITNESS_OBJECTIVES.length === 5 && !!document.getElementById('objectiveGenerate') && !!document.getElementById('objectiveSelect') && (() => { const p = objectiveProgram('athletique', exercises, { perSession: 5 }); const m = p.week.filter(s => s.kind === 'muscu'); const c = p.week.filter(s => s.kind === 'course'); return p.strength === 3 && p.runs === 3 && p.week.length === 6 && m.length === 3 && c.length === 3 && m.every(s => s.exercises.length >= 3 && s.exercises.every(e => e.sets > 0)) && objectiveProgram('zzz', exercises) === null; })(),
         objectiveProgression: typeof blockPhase === 'function' && typeof progressSets === 'function' && blockPhase(0).phase === 'Base' && blockPhase(3).deload === true && progressSets(3, 1) === 4 && progressSets(3, 3) === 2,
         currentBlock: typeof currentBlock === 'function' && !!document.getElementById('blockStatus') && (() => { const b = currentBlock('2026-07-06', '2026-07-15'); return b && b.week === 2 && b.phase.phase === 'Volume' && b.deloadInWeeks === 2 && currentBlock('2026-07-06', '2026-09-07').done === true && currentBlock('', 'x') === null; })(),
-        blockHeadsUp: typeof blockPhaseHeadsUp === 'function' && (() => { const s4 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-27')); const s3 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-20')); return s4 && s4.phase === 'deload' && s4.showNextAdvice === true && s3 && s3.phase === 'preload' && s3.showNextAdvice === false && blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-06')) === null && blockPhaseHeadsUp(null) === null; })(),
+        blockHeadsUp: typeof blockPhaseHeadsUp === 'function' && (() => { const s4 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-27')); const s3 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-20')); const s8 = blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-08-24')); return s4 && s4.phase === 'deload' && s3 && s3.phase === 'preload' && s3.showNextAdvice === false && s8 && s8.phase === 'deload' && s8.title.indexOf('Dernière semaine') !== -1 && s4.title.indexOf('Dernière semaine') === -1 && blockPhaseHeadsUp(currentBlock('2026-07-06', '2026-07-13')) === null; })(),
         nextBlockAdvice: typeof nextBlockAdvice === 'function' && nextBlockAdvice({ adherence: 30 }).action === 'ease' && nextBlockAdvice({ adherence: 85, loadStatus: 'push' }).action === 'progress' && nextBlockAdvice({}).action === 'keep',
         blockForecast: typeof bestStrengthForecast === 'function' && (() => { const wo = (date, name, load, reps) => ({ date, exercises: [{ name, setLogs: [{ completed: true, load, reps }] }] }); const workouts = [wo('2026-06-08', 'Squat', 90, 1), wo('2026-06-15', 'Squat', 92.5, 1), wo('2026-06-22', 'Squat', 95, 1), wo('2026-06-29', 'Squat', 97.5, 1)]; const f = bestStrengthForecast(workouts, { step: 5, todayKey: '2026-06-29' }); return f && f.exercise === 'Squat' && f.milestone === 100 && f.weeks === 1 && bestStrengthForecast([], {}) === null; })(),
         blockNeglect: typeof neglectedZoneReport === 'function' && (() => { const w = [{ date: '2026-07-10', exercises: [{ name: 'Fentes arrière', completedSets: 4 }, { name: 'Pont fessier', completedSets: 4 }] }, { date: '2026-07-06', exercises: [{ name: 'Chaise au mur', completedSets: 4 }] }]; const r = neglectedZoneReport(w, '2026-07-13', 28); return r && r.sets === 0 && r.neglected === true && r.bySets.legs > 0 && neglectedZoneReport([], '2026-07-13') === null; })(),
@@ -2172,7 +2172,8 @@ app.whenReady().then(async () => {
             const patch = onboardingSetup(onboardingInputs());
             const expProg = objectiveProgram(patch.fitnessObjective, exercises, { equipment: patch.profile.equipment, perSession: (typeof perSessionForLevel === 'function' ? perSessionForLevel(patch.profile.level) : 5) });
             expProg.week = assignProgramDays(expProg.week, patch.profile.availableDays);
-            const plafondSemaines = expProg.week.length * 4;
+            // Le programme couvre 8 semaines depuis la v2.9.0 : le plafond suit.
+            const plafondSemaines = expProg.week.length * 8;
             ok = ok && patch.fitnessObjective === 'muscle' && plafondSemaines > 0;
             // Agenda / quêtes / habitudes vierges et bloc à zéro pour compter précisément ce que
             // l'onboarding pose (sinon des créneaux ou quêtes préexistants fausseraient le décompte).
@@ -3213,6 +3214,14 @@ app.whenReady().then(async () => {
             const al = document.querySelector('.onc-alertes');
             alerte = !!al && getComputedStyle(al).display !== 'none' && (al.textContent || '').length > 20;
           }
+          /* LE point : le bandeau de pilotage, trois lignes plus haut dans le MEME panneau,
+             doit annoncer LA MEME cible que le bloc nutrition. Il annoncait 2463 kcal pendant
+             que le bloc disait 2217 : deux nombres pour la meme chose, a trois lignes d ecart. */
+          const pilote = document.querySelector('.op-pilot');
+          const txtPilote = pilote ? (pilote.textContent || '') : '';
+          const kcalChoisi = String(kcalAgr).split(' kcal')[0].trim();
+          const accord = !!kcalChoisi && txtPilote.indexOf(kcalChoisi) !== -1;
+          checks.__nutriAccord = 'choisi=' + kcalChoisi + ' pilote=' + txtPilote.slice(0, 70);
           checks.__nutri = 'eq=' + kcalEq.slice(0, 26) + ' | agr=' + kcalAgr.slice(0, 26) + ' | alerte=' + alerte;
 
           state.profile = sp; state.goals = sg; state.weights = sw;
@@ -3221,7 +3230,7 @@ app.whenReady().then(async () => {
           showPage('dashboard');
 
           // Le choix agressif doit VRAIMENT changer la cible, et s accompagner d un avertissement.
-          return vu && plusieurs && kcalEq.length > 0 && kcalAgr.length > 0 && kcalEq !== kcalAgr && alerte;
+          return vu && plusieurs && kcalEq.length > 0 && kcalAgr.length > 0 && kcalEq !== kcalAgr && alerte && accord;
         } catch (e) { checks.__errNutri = String(e && e.message); return false; }
       })();
 
@@ -3291,7 +3300,8 @@ app.whenReady().then(async () => {
               visible: !!lab && getComputedStyle(lab).display !== 'none',
               // Le champ doit RESTER dans le DOM : saveGuidedExercise lit sa valeur sans garde.
               present: !!inp,
-              placeholder: inp ? String(inp.placeholder || '') : '(pas de champ)'
+              placeholder: inp ? String(inp.placeholder || '') : '(pas de champ)',
+              libelle: lab ? String(lab.childNodes[0] && lab.childNodes[0].nodeValue || '').trim() : ''
             };
             const d = document.getElementById('guidedWorkoutDialog');
             try { if (d && d.open) d.close(); } catch (_) {}
@@ -3302,13 +3312,18 @@ app.whenReady().then(async () => {
           const pompes = lire('Pompes classiques');
           const kb = lire('Kettlebell swing');
           if (!pompes || !kb) return false;
-          checks.__charge = 'pompes visible=' + pompes.visible + ' ph="' + pompes.placeholder
+          checks.__charge = 'lib=' + pompes.libelle + '/' + kb.libelle + ' ' + 'pompes visible=' + pompes.visible + ' ph="' + pompes.placeholder
             + '" | kb visible=' + kb.visible;
 
           showPage('dashboard');
           // Le mot « Charge » ne doit plus jamais servir de placeholder, nulle part.
           const plusDeCharge = pompes.placeholder.indexOf('Charge') === -1 && kb.placeholder.indexOf('Charge') === -1;
-          return pompes.present && kb.present && plusDeCharge && !pompes.visible && kb.visible;
+          /* CONTRAT CORRIGE : le champ reste VISIBLE meme au poids du corps — la fonction
+             suit « ta meilleure serie lestee » sur tractions et pompes, le masquer rendait ce
+             suivi impossible a alimenter. Ce qui devait disparaitre, c est le mot « Charge »
+             qui reclamait une valeur ; le libelle dit maintenant « lest ». */
+          return pompes.present && kb.present && plusDeCharge && pompes.visible && kb.visible
+            && pompes.libelle === 'lest' && kb.libelle === 'kg';
         } catch (e) { checks.__errCharge = String(e && e.message); return false; }
       })();
 
@@ -3957,7 +3972,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
-    if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur');
+    if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur. Et le bandeau de pilotage, trois lignes plus haut, doit annoncer LA MÊME cible : deux nombres pour la même chose dans le même panneau, c’est le défaut que ce dépôt traque');
     if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer');
     if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
