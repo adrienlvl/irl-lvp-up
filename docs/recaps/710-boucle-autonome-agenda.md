@@ -624,3 +624,36 @@ derrière. Un test l'interrogeait sur hier — réécrit sur un jour à venir.
 ### Reste dû sur la demande d'Adrien
 - Fusion des zones de « Ma semaine » dans le plan unifié.
 - Conseils par objectif, dont : pour un corps athlétique il faut de la prise de muscle.
+
+## Itération 28 — fusion des zones, puis conseils par objectif
+
+### Fusion
+Les zones cochées dans « Ma semaine » deviennent une consigne mémorisée que le plan
+unifié respecte. Priorité composée : d'abord ce qu'Adrien demande, puis ce qui est
+reposé — la mémoire départage À L'INTÉRIEUR de son choix.
+
+**Défaut trouvé en construisant** : depuis que le plan calcule deux semaines, il y a DEUX
+appels à `objectiveProgram`, donc deux `prioriteZones`. Mon patch n'en a modifié qu'un —
+les zones n'agissaient que sur la semaine invisible. Factorisé en une variable.
+
+### Conseils : références VÉRIFIÉES, pas citées de mémoire
+Adrien : « tu te bases sur la littérature scientifique ». Ma règle interdisait déjà les
+références non vérifiées — j'ai donc cherché avant d'écrire :
+
+- **Schoenfeld, Ogborn & Krieger 2017**, J Sports Sci 35(11):1073-82 — au-delà de 10 séries
+  hebdomadaires par muscle, gains nettement supérieurs (~+9,8 % vs ~+5,4 % sous 5 séries).
+- **Morton et al. 2018**, Br J Sports Med 52(6):376-84 — les gains plafonnent vers 1,6 g/kg/j.
+- **Wilson et al. 2012**, J Strength Cond Res — l'interférence vient de la COURSE (pas du
+  vélo) et frappe spécifiquement le BAS du corps.
+
+Ce dernier confirme l'intuition d'Adrien : « athlétique » suppose de la prise de muscle, et
+c'est précisément là que la course gêne. Le conseil donne l'alternative concrète (vélo le
+jour des jambes, ou espacer de 6 h).
+
+Deux objectifs n'ont **aucune source** — endurance et remise en forme. Le conseil y reste,
+la fausse caution non.
+
+Et les conseils citent le contexte : « 3 courses et 2 séances sollicitant les jambes cette
+semaine : espace-les. » Un conseil générique est un article de blog.
+
+642 tests · SMOKE OK · 390 px propre.

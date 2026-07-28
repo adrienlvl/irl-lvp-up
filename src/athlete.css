@@ -226,3 +226,22 @@
 .cw-rythme[data-statut="rapide"]{background:color-mix(in srgb,var(--danger) 11%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger) 30%,transparent)}
 .cw-rythme[data-statut="bon"]{background:color-mix(in srgb,var(--ok) 11%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ok) 28%,transparent)}
 .cw-rythme[data-statut="inverse"]{background:color-mix(in srgb,var(--warn) 11%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 28%,transparent)}
+
+/* Conseil par objectif. Repliable : c'est du fond, pas une alerte — on le lit une fois puis
+   on veut voir sa semaine. Placé entre le pilotage et la semaine, il explique ce qu'on va lire. */
+.op-conseil{display:block;margin:0 0 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);overflow:hidden}
+.op-conseil[hidden]{display:none}
+.oc-sum{display:flex;align-items:center;gap:9px;padding:11px 13px;cursor:pointer;list-style:none;min-height:44px}
+.oc-sum::-webkit-details-marker{display:none}
+.oc-sum:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.oc-sum b{flex:1 1 auto;min-width:0;font-size:.86rem;font-weight:650;color:var(--text)}
+.oc-ico{flex:0 0 auto;font-size:1rem}
+.oc-chev{flex:0 0 auto;color:var(--muted);font-size:1.1rem;line-height:1;transition:transform .18s ease}
+.op-conseil[open] .oc-chev{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.oc-chev{transition:none}}
+.oc-corps{padding:0 13px 12px}
+.oc-corps p{margin:0 0 7px;font-size:.79rem;line-height:1.5;color:var(--muted)}
+.oc-action{color:var(--text)!important;font-weight:550}
+.oc-notes{margin:8px 0 0;padding-left:18px}
+.oc-notes li{font-size:.77rem;color:var(--text);margin-bottom:3px}
+.oc-src{display:block;margin-top:8px;font-size:.68rem;color:var(--muted);font-style:italic}

@@ -14770,3 +14770,55 @@ test('les zones choisies pilotent le plan, la mémoire départage', () => {
   assert.doesNotThrow(() => focus(['nawak', '', null]));
   assert.deepEqual(focus([]), sansConsigne, 'un tableau vide ne change rien');
 });
+
+test('conseils par objectif : du fond, avec des sources vérifiées', () => {
+  const cles = ['athletique', 'muscle', 'seche', 'endurance', 'forme'];
+  cles.forEach(k => {
+    const c = L.conseilObjectif(k, {});
+    assert.ok(c, `${k} doit avoir un conseil`);
+    assert.ok(c.titre && c.corps && c.action, `${k} : titre + explication + action`);
+    assert.ok(c.corps.length > 80, `${k} : une explication, pas un slogan`);
+    assert.ok(Array.isArray(c.notes));
+  });
+
+  /* L'observation d'Adrien, confirmée par la littérature : pour un corps athlétique il faut
+     de la prise de muscle — et c'est justement la COURSE À PIED (pas le vélo) qui dégrade
+     force et hypertrophie, spécifiquement sur le bas du corps.
+     Référence VÉRIFIÉE avant écriture, pas citée de mémoire. */
+  const ath = L.conseilObjectif('athletique', {});
+  assert.match(ath.corps, /prise de muscle/);
+  assert.match(ath.corps, /bas du corps|BAS du corps/);
+  assert.match(ath.action, /vélo/, 'l’alternative concrète est donnée');
+  assert.equal(ath.source, 'Wilson et al. 2012, J Strength Cond Res');
+
+  // Volume : le seuil cité doit être celui de la méta-analyse, pas un chiffre rond inventé.
+  const mus = L.conseilObjectif('muscle', {});
+  assert.match(mus.corps, /10 séries/);
+  assert.match(mus.source, /Schoenfeld/);
+  assert.match(mus.source, /Morton/);
+
+  /* Un conseil générique est un article de blog. Celui-ci cite ce qu'Adrien a RÉELLEMENT
+     fait — et ne prévient que si le cas se présente : avertir de l'interférence quand aucune
+     course n'est posée userait l'avertissement pour rien. */
+  assert.deepEqual(L.conseilObjectif('athletique', { courses: 0, focus: ['lower'] }).notes, [],
+    'aucune course posée : pas d’avertissement d’interférence');
+  const avecCourses = L.conseilObjectif('athletique', { courses: 3, focus: ['lower', 'fullbody'] });
+  assert.equal(avecCourses.notes.length, 1);
+  assert.match(avecCourses.notes[0], /3 courses et 2 séances/, 'les chiffres sont ceux de la semaine');
+
+  // Le seuil de 10 séries n'a de sens que MESURÉ : les deux côtés doivent être distingués.
+  assert.match(L.conseilObjectif('muscle', { serieMax: 7 }).notes[0], /commence vers 10/);
+  assert.match(L.conseilObjectif('muscle', { serieMax: 14 }).notes[0], /zone qui paie/);
+  assert.deepEqual(L.conseilObjectif('muscle', { serieMax: null }).notes, [],
+    'sans mesure, aucune note sur le volume');
+
+  // Aucune source inventée : soit une référence réelle, soit rien.
+  cles.forEach(k => {
+    const src = L.conseilObjectif(k, {}).source;
+    if (src) assert.match(src, /\b(19|20)\d{2}\b/, `${k} : une source doit porter une année`);
+  });
+
+  assert.equal(L.conseilObjectif('nawak', {}), null);
+  assert.doesNotThrow(() => L.conseilObjectif('muscle', null));
+  assert.doesNotThrow(() => L.conseilObjectif('muscle', { focus: 'pas-un-tableau' }));
+});
