@@ -14260,3 +14260,40 @@ test('recoveryFraiche : une seule notion de « ta forme du jour »', () => {
   assert.equal(f([{ sleep: 8 }], AUJ), null, 'un check-in sans date ne prouve pas sa fraîcheur');
   assert.doesNotThrow(() => f('nawak', AUJ));
 });
+
+test('planDuJour : un jour de repos PRÉVU n’est pas un retard', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const etat = {
+    fitnessObjective: 'seche',
+    profile: { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'perte', availableDays: [1, 3, 5], level: 'intermediaire' },
+    goals: { targetWeight: 73, progSessions: '', runs: 'auto' },
+    weights: [{ date: '2026-07-28', value: 82 }], recovery: [], workouts: []
+  };
+  const plan = L.trainingWeekPlan(L.trainingPlanInputs(etat, '2026-07-28'), exercises);
+
+  /* Le compagnon d'entraînement proposait une rotation figée, sans lien avec le plan : un mardi
+     de repos prévu, il annonçait « 0/4 séances · charge à lancer » comme si Adrien était en
+     retard. Un jour de repos PRÉVU n'est pas un retard — c'est le plan qui fonctionne. */
+  const lundi = L.planDuJour(plan, '2026-07-27');
+  assert.equal(lundi.repos, false);
+  assert.ok(lundi.seances.length > 0, 'lundi est un jour d’entraînement');
+  assert.ok(lundi.seances.every(s => s.title), 'chaque séance porte son nom');
+
+  const mardi = L.planDuJour(plan, '2026-07-28');
+  assert.equal(mardi.repos, true);
+  assert.deepEqual(mardi.seances, []);
+  assert.ok(mardi.prochaine, 'un jour de repos annonce la prochaine séance');
+  assert.equal(mardi.prochaine.dansJours, 1, 'mercredi');
+  assert.equal(mardi.prochaine.weekday, 3);
+  assert.ok(mardi.prochaine.seances.length > 0);
+
+  // Une semaine vide n'a pas de « prochaine » : on ne l'invente pas.
+  const vide = L.planDuJour({ week: [] }, '2026-07-28');
+  assert.equal(vide.repos, true);
+  assert.equal(vide.prochaine, null);
+
+  // Entrées abîmées : jamais d'exception, jamais d'invention.
+  assert.equal(L.planDuJour(null, '2026-07-28'), null);
+  assert.equal(L.planDuJour(plan, 'pas-une-date'), null);
+  assert.doesNotThrow(() => L.planDuJour({ week: 'nawak' }, '2026-07-28'));
+});
