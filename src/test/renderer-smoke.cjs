@@ -312,7 +312,27 @@ app.whenReady().then(async () => {
           return r.current === 3 && r.best === 3 && proteinStreak([], 120, '2026-07-15').current === 0 && proteinStreak([{ date: '2026-07-15', protein: 130 }], 0, '2026-07-15').best === 0 && ph.current === 1 && ph.best === 1;
         })(),
         waterWeek: typeof daysHittingTarget === 'function' && daysHittingTarget([{ date: '2026-07-06', water: 8 }, { date: '2026-07-07', water: 5 }], 'water', 8, '2026-07-06', '2026-07-10') === 1,
-        proteinTargetUnified: typeof proteinTarget === 'function' && (() => { const t = proteinTarget(state.profile.weight, state.profile.goal).gramsPerDay; const s = (document.getElementById('nutritionStatus') || {}).textContent || ''; return t === 145 && (s.includes(String(t)) || /\d/.test(s)); })(),
+        proteinTargetUnified: typeof proteinTarget === 'function' && (() => {
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          let ok = true, vus = 0;
+          [[80, 'perte'], [95, 'prise'], [62, 'maintien']].forEach(function (cas) {
+            state.profile = Object.assign({}, state.profile, { weight: cas[0], goal: cas[1] });
+            const attendu = proteinTarget(cas[0], cas[1]).gramsPerDay;
+            if (!(attendu > 0)) { ok = false; return; }
+            if (typeof renderSupplements === 'function') { try { renderSupplements(); } catch (_) {} }
+            if (typeof renderHydration === 'function') { try { renderHydration(); } catch (_) {} }
+            const cible = (document.getElementById('suppProteinTarget') || {}).textContent || '';
+            const jauge = (document.getElementById('proteinLabel') || {}).textContent || '';
+            // Les DEUX surfaces doivent citer la même cible : c'est ça, l'unification.
+            if (cible) { vus++; if (cible.indexOf(String(attendu)) === -1) ok = false; }
+            if (jauge) { vus++; if (jauge.indexOf(String(attendu)) === -1) ok = false; }
+          });
+          state.profile = sp;
+          if (typeof renderSupplements === 'function') { try { renderSupplements(); } catch (_) {} }
+          if (typeof renderHydration === 'function') { try { renderHydration(); } catch (_) {} }
+          // Exiger d'avoir VU au moins une surface : sinon le check passerait à vide.
+          return ok && vus >= 3;
+        })(),
         sleepDebt: typeof sleepDebtHours === 'function' && (r => r.debt === 3.5 && r.nights === 3)(sleepDebtHours([{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5.5 }], 7.5, '2026-07-06', '2026-07-10')) && (r => r.nights === 1 && r.debt === 1.5)(sleepDebtHours([{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-06', sleep: 0, bedtime: '23:00' }], 7.5, '2026-07-06', '2026-07-10')),
         weeklySleep: typeof weeklySleepStats === 'function' && !!document.getElementById('weeklySleep') && (() => { const r = weeklySleepStats([{ date: '2026-07-06', sleep: 6 }, { date: '2026-07-07', sleep: 8 }, { date: '2026-07-08', sleep: 5.5 }], '2026-07-06', '2026-07-10'); return r.nights === 3 && r.avg === 6.5 && r.min === 5.5 && r.status === 'court' && weeklySleepStats([], '2026-07-06', '2026-07-10') === null; })(),
         sleepSpark: typeof sleepSeries === 'function' && typeof sparkLineSvg === 'function' && !!document.getElementById('sleepSpark') && (() => {
@@ -3349,6 +3369,7 @@ app.whenReady().then(async () => {
     if (!checks.athleteNoBleed) errors.push('Fuite inter-pages (atab-hidden doit être retiré en quittant la page Athlète, sinon un panneau reste invisible sur sa propre page)');
     if (!checks.agendaCategories) errors.push('Catégories d’agenda KO (--cat-sport/life/study/focus doivent exister ET basculer entre thème clair et sombre)');
     if (!checks.exceptionRecurrente) errors.push('Occurrence récurrente non modifiable (#recOccDialog : le bouton « ✎ cette fois » doit ouvrir un dialogue prérempli, décaler CETTE occurrence à 14 h, l’afficher, et laisser la semaine suivante à son heure habituelle)');
+    if (!checks.proteinTargetUnified) errors.push('Cible protéines désunifiée (la valeur affichée dans #nutritionStatus doit suivre proteinTarget pour le poids courant, quel qu’il soit)');
     if (!checks.rythmePerte) errors.push('Coach Poids muet sur le rythme (perdre 1,3 kg/sem quand le rythme sûr est 0,64 doit déclencher une alerte citant LES DEUX chiffres et une action ; au bon rythme le verdict rassure ; avec une seule pesée il se tait)');
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');

@@ -657,3 +657,37 @@ Et les conseils citent le contexte : « 3 courses et 2 séances sollicitant les 
 semaine : espace-les. » Un conseil générique est un article de blog.
 
 642 tests · SMOKE OK · 390 px propre.
+
+## Itération 28 (suite) — un check faux depuis longtemps, en silence
+
+En vérifiant après commit, le smoke est passé rouge une fois. Trois runs suivants : vert.
+L'échec était transitoire (collision avec mes sondes). **Mais j'avais commité sans
+attendre le verdict** — ma chaîne de commandes n'était pas conditionnée. Faute de méthode :
+le commit doit suivre le `SMOKE OK`, pas le précéder.
+
+En cherchant, j'ai trouvé bien pire. Mesuré précisément sur un run réel :
+
+| | |
+|---|---|
+| checks booléens calculés | **394** |
+| gardés par un message d'erreur | **210** |
+| **jamais lus par personne** | **184** |
+| **faux en silence** | **1** — `proteinTargetUnified` |
+
+184 checks calculent un verdict que rien ne consomme. C'est le fil rouge appliqué au
+harnais lui-même : calculer sans utiliser.
+
+### Le check faux
+Il asseyait `proteinTarget(...) === 145` — la valeur à exactement 80 kg — avec un repli
+`|| /\d/.test(s)` qui passait sur n'importe quel chiffre. Il ne vérifiait donc **jamais**
+l'unification annoncée par son nom : seulement une constante, sur un élément
+(`#nutritionStatus`) qui affiche ce qu'on a MANGÉ, pas la cible.
+
+Réécrit sur son sujet : les deux surfaces qui portent la cible (`#suppProteinTarget` et
+`#proteinLabel`) doivent citer ce que `proteinTarget` calcule, à trois poids différents.
+Et il est maintenant **gardé** — une mutation qui décale la cible de 7 g le fait rougir.
+
+*Ma première réécriture visait le mauvais élément et échouait à juste titre. J'ai failli
+conclure à un défaut de l'app.*
+
+642 tests · SMOKE OK · 390 px propre.
