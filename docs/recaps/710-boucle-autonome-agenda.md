@@ -1234,3 +1234,36 @@ impossible à restaurer ensuite. Réparée à la main.
 3. Soupçons non vérifiés : garde par créneau qui perdrait une 2e séance de même type le même
    jour ; repos réglé à la main possiblement écrasé.
 4. Étape 11 (panneau « Ma semaine ») : décision d'Adrien.
+
+## Itération 43 — l'alerte qui s'éteignait quand on maigrit
+
+Point 2 de la liste annoncée à Adrien. L'avertissement « au-delà de 1 % de ton poids par
+semaine » se calculait sur `state.profile.weight` — saisi une fois, jamais mis à jour — alors
+que le plan part de la dernière PESÉE.
+
+Mesuré avant de corriger, sur un profil à 80 kg et une pesée réelle à 68 : même plan, mêmes
+calories, **1 alerte contre 2**. L'avertissement qui protège le muscle s'éteignait précisément
+parce qu'on avait maigri : le poids baisse, le seuil de 1 % baisse avec lui, et l'app
+continuait de juger sur l'ancien chiffre.
+
+Corrigé à la source — le poids réellement utilisé par le plan est désormais exposé, et les
+écrans cessent de relire le profil de leur côté.
+
+### Ce que cette itération a appris
+
+*Vérifier qu'un défaut a des CONSÉQUENCES avant de le corriger.* Mon premier jeu d'essai
+(sédentaire léger) donnait le même verdict avec les deux poids — le plancher calorique
+dominait. Un test écrit là-dessus n'aurait rien prouvé. Il a fallu chercher le profil où
+l'écart bascule le verdict : très actif, six séances, déficit marqué.
+
+*Un défaut « théorique » et un défaut qui mord ne se corrigent pas avec la même urgence* — mais
+on ne peut le savoir qu'en mesurant.
+
+656 tests · SMOKE OK · 390 px propre.
+
+### Reste de la liste annoncée à Adrien
+1. ~~La phase de course~~ — faite (itération 42).
+2. ~~L'alerte sur le poids périmé~~ — faite.
+3. Soupçons non vérifiés de la revue interrompue : garde par créneau qui perdrait une 2e séance
+   de même type le même jour ; repos réglé à la main possiblement écrasé par le repos auto.
+4. Étape 11 (panneau « Ma semaine ») : décision d'Adrien.
