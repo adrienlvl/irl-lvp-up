@@ -3185,6 +3185,45 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.nutritionUnSeulChiffre = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          /* Le programme le plus dur : c est celui qui ECARTE le plus la cible du plan de ce
+             que l ancienne source nutrition calculait. Sur « auto » les deux coincideraient
+             parfois et le test ne prouverait rien. */
+          state.fitnessObjective = 'seche';
+          state.profile = Object.assign({}, state.profile, { weight: 82, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [1, 3, 5] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73, sessions: 4, runs: 4,
+            progSessions: '', nutritionPlan: 'tres-agressif' });
+          state.weights = [{ date: localDate(), value: 82 }]; state.workouts = [];
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+
+          const bMacro = document.querySelector('#objectiveResult .op-macros b');
+          const kcalMacro = bMacro ? String(bMacro.textContent || '').trim() : '';
+          const val = document.querySelector('#objectiveResult .onc-val');
+          const vuVal = !!(val && getComputedStyle(val).display !== 'none');
+          const txtVal = vuVal ? String(val.textContent || '').trim() : '';
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__unChiffre = 'macro[' + kcalMacro + '] selecteur[' + txtVal.slice(0, 40) + ']';
+          /* Le bloc macros et le selecteur doivent annoncer LE MEME nombre. Avant : 2294 d un
+             cote, 2518 de l autre, dans le meme panneau. On exige au moins 4 chiffres pour
+             qu un rendu vide ne fasse pas passer le test. */
+          return kcalMacro.length >= 4 && txtVal.indexOf(kcalMacro) === 0;
+        } catch (e) { checks.__errChiffre = String(e && e.message); return false; }
+      })();
+
       checks.risqueConscient = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4368,6 +4407,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.nutritionUnSeulChiffre) errors.push('Plan de bataille : le bloc macros et le sélecteur de programme doivent annoncer LA MÊME cible calorique — la sonde a mesuré 2294 kcal dans les macros à côté de 2518 dans le sélecteur, parce que le bloc lisait objectiveNutrition, une source aveugle à la cible de poids et au programme choisi');
     if (!checks.risqueConscient) errors.push('Sécurité alimentaire : sur une cible de poids en insuffisance pondérale, l’app doit LAISSER les rythmes agressifs (décision d’Adrien) mais nommer le risque à l’écran — IMC visé, ce qui se dégrade, et vers qui se tourner — et afficher le principe « des idées, pas des règles » avec les repas');
     if (!checks.repasEtDepart) errors.push('Deux demandes d’Adrien : des REPAS calés sur la cible choisie (avec kcal et protéines par repas, pas une liste figée) et l’EXPLICATION de la date de départ quand la première séance n’est ni aujourd’hui ni demain — un comportement correct qu’on n’explique pas est indiscernable d’un défaut');
     if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur. Et le bandeau de pilotage, trois lignes plus haut, doit annoncer LA MÊME cible : deux nombres pour la même chose dans le même panneau, c’est le défaut que ce dépôt traque');

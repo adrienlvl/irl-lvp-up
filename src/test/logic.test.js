@@ -14369,6 +14369,45 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('nutrition du Plan de bataille : un seul chiffre, et des macros qui suivent', () => {
+  const base = { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+    sessionsPerWeek: 4, goal: 'perte', targetWeight: 73, todayKey: '2026-07-28' };
+  const e = L.energyPlan(base);
+  const somme = n => n.proteinG * 4 + n.carbG * 4 + n.fatG * 9;
+
+  /* DÉFAUT MESURÉ : changer de programme déplaçait la cible SANS toucher aux macros — elles
+     totalisaient encore l'ancienne. Qui mange ce qui est écrit mange l'ancienne cible.
+     Le scénario qui discrimine est le plus dur : près de « auto », l'écart serait invisible. */
+  const dur = L.appliquerProgrammeNutrition(e, 82, 'tres-agressif');
+  assert.ok(dur.dailyTarget < e.dailyTarget - 200, 'la cible baisse vraiment : ' + dur.dailyTarget);
+  assert.ok(Math.abs(somme(dur) - dur.dailyTarget) <= 15,
+    'et les macros somment à la NOUVELLE cible : ' + somme(dur) + ' vs ' + dur.dailyTarget);
+  assert.notEqual(dur.carbG, e.carbG, 'ce sont les glucides qui absorbent l’écart');
+  assert.equal(dur.proteinG, e.proteinG, 'les protéines restent adossées au poids, pas à la cible');
+  assert.equal(dur.fatG, e.fatG, 'les lipides aussi');
+  // Et dans l'autre sens : un programme plus généreux remonte les glucides.
+  const doux = L.appliquerProgrammeNutrition(e, 82, 'equilibre');
+  assert.ok(doux.carbG > dur.carbG, 'plus de glucides quand le déficit est plus doux');
+
+  /* Le bloc macros lisait objectiveNutrition — une 4e source nutrition, aveugle à la cible de
+     poids ET au programme choisi : 2294 kcal affichés à côté de 2518 dans le même panneau. */
+  const repli = { dailyTarget: 9999, proteinG: 1, carbG: 1, fatG: 1, dir: 'repli', adjustPct: 99, tip: 'conseil' };
+  const m = L.macrosDuPlan(dur, repli);
+  assert.equal(m.dailyTarget, dur.dailyTarget, 'le bloc affiche la cible du PLAN');
+  assert.notEqual(m.dailyTarget, repli.dailyTarget, 'et non celle de l’autre source');
+  assert.equal(m.carbG, dur.carbG, 'avec les macros du plan');
+  assert.equal(m.tip, 'conseil', 'le conseil de l’objectif est gardé : du texte, pas un chiffre concurrent');
+  assert.ok(m.adjustPct < -20, 'le pourcentage se dérive de la cible RETENUE : ' + m.adjustPct);
+  assert.equal(m.dir, 'déficit');
+
+  // Profil incomplet : repli intégral plutôt qu'un panneau vide.
+  assert.equal(L.macrosDuPlan(null, repli), repli, 'sans plan : repli');
+  assert.equal(L.macrosDuPlan({ dailyTarget: 0 }, repli), repli, 'cible nulle : repli aussi');
+  // Maintien : un micro-écart d'arrondi ne doit pas s'annoncer comme un déficit.
+  assert.equal(L.macrosDuPlan({ dailyTarget: 2000, tdee: 2000, proteinG: 1, carbG: 1, fatG: 1 }, repli).dir,
+    'maintien', 'ni déficit ni surplus à dépense égale');
+});
+
 test('cible risquée : on ne retire aucun choix, on nomme le risque', () => {
   const base = { weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', sessionsPerWeek: 4 };
   const plan = c => L.energyPlan(Object.assign({}, base, { goal: 'perte', targetWeight: c, todayKey: '2026-07-28' }));
