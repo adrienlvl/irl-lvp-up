@@ -3122,6 +3122,52 @@ app.whenReady().then(async () => {
           return taille && nat > 0 && huit && reflete && dit && deux && zeroCourse;
         } catch (e) { checks.__errVol = String(e && e.message); return false; }
       })();
+      checks.regulariteSommeil = (() => {
+        try {
+          if (typeof renderWeeklySleep !== 'function' || typeof coachRegulariteSommeil !== 'function') return false;
+          const sr = state.recovery;
+          const jn = function (n) {
+            const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+          };
+          const semer = function (fn) {
+            const r = [];
+            for (let i = 13; i >= 0; i--) r.push(Object.assign({ date: jn(i) }, fn(i)));
+            return r;
+          };
+          const lire = function () {
+            showPage('dashboard');
+            renderWeeklySleep();
+            const el = document.getElementById('sleepRegularite');
+            // Le RENDU, pas la propriete : l attribut hidden peut etre battu par une regle auteur.
+            if (!el || getComputedStyle(el).display === 'none') return '';
+            return (el.textContent || '');
+          };
+
+          /* Duree correcte mais coucher qui saute de 2 h 30 : le cas ou la REGULARITE est le
+             frein, et ou l app ne disait rien du tout avant. */
+          state.recovery = semer(function (i) { return { sleep: 7.5, fatigue: 2, soreness: 2, bedtime: i % 2 ? '23:00' : '01:30' }; });
+          const irregulier = lire();
+          /* Moins d'une semaine : le panneau doit se TAIRE. On sonde a SIX nuits et non a
+             deux : sleepRegularity rend deja null sous trois nuits, donc un jeu a deux
+             nuits passerait sans jamais toucher notre seuil. */
+          state.recovery = [];
+          for (let i = 5; i >= 0; i--) state.recovery.push({ date: jn(i), sleep: 7, fatigue: 2, soreness: 2, bedtime: i % 2 ? '22:00' : '02:00' });
+          const troisNuits = lire();
+
+          state.recovery = sr;
+          try { renderWeeklySleep(); } catch (_) {}
+
+          checks.__sommeilVu = irregulier.slice(0, 110);
+          const parle = irregulier.indexOf('coucher') !== -1;
+          // On EXIGE le chiffre : un conseil sans mesure est un article de blog.
+          const chiffre = irregulier.indexOf('min') !== -1;
+          // Et la SOURCE, la seule chose qui distingue un conseil fonde d'une phrase inventee.
+          const source = irregulier.indexOf('Windred') !== -1;
+          return parle && chiffre && source && troisNuits === '';
+        } catch (e) { checks.__errSommeil = String(e && e.message); return false; }
+      })();
+
       checks.rattrapageZone = (() => {
         try {
           if (typeof renderBlockStatus !== 'function' || typeof zoneRattrapage !== 'function') return false;
@@ -3668,6 +3714,7 @@ app.whenReady().then(async () => {
     if (!checks.formeCoherente) errors.push('Deux avis sur la forme du jour (avec un check-in de 20 jours, le compagnon dit « Récupération inconnue » : le panneau Récupération ne doit pas afficher un score « Forme du jour », mais dire depuis quand date le dernier check-in)');
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
+    if (!checks.regulariteSommeil) errors.push('Régularité du sommeil muette (#sleepRegularite) : un coucher qui saute de 2 h 30 doit être signalé, CHIFFRÉ et sourcé (Windred 2023) — et le panneau doit se taire sous une semaine de données au lieu de deviner');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
     if (!checks.analyseModerne) errors.push('Panneau « Force & endurance » aveugle aux séances modernes : il doit lire exercises[].setLogs[] (via workoutTonnage / bestE1rmByExercise) et non le format legacy w.exercise+w.load, afficher les maxima estimés et l’allure pondérée, et dire clairement quand il n’y a rien');
     if (!checks.precisionSeance) errors.push('Saisie de séance imprécise : il faut pouvoir taper 1 h 33 min 20 s et 5,143 km, et les retrouver À L’IDENTIQUE en rouvrant (champ secondes visible, step distance au mètre, aller-retour sans perte, pas de « 0 s » parasite)');

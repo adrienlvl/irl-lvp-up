@@ -944,6 +944,18 @@ function renderWeeklySleep(){const num=n=>String(n).replace('.',',');
   renderSleepPlan();
   // L'effet du coucher sur le lendemain (moteur de motivation) : la preuve chiffrée que se coucher tôt paie.
   const siEl=$('#sleepImpact');if(siEl&&typeof sleepImpactReport==='function'){const si=sleepImpactReport(state,localDate());if(!si){siEl.hidden=true;siEl.innerHTML='';}else{siEl.hidden=false;siEl.className='sleep-impact'+(si.confidence==='low'?' si-low':'');siEl.innerHTML=`<span>📊 <b>L’effet de ton coucher</b>${si.confidence==='low'?' <small>· tendance à confirmer</small>':''}</span><p>${escapeHtml(si.verdict)}</p>`;}}
+  {const rgEl=$('#sleepRegularite');
+   /* La regularite compte autant que la duree, et l app n en disait rien : trois mesures
+      calculees que personne ne lisait. On nomme UN seul frein, le plus limitant. */
+   const rg=(rgEl&&typeof coachRegulariteSommeil==='function')?coachRegulariteSommeil(state.recovery,localDate()):null;
+   if(rgEl){
+     if(rg){rgEl.hidden=false;rgEl.innerHTML=`<div class="sr-head"><span class="sr-ico" aria-hidden="true">🌙</span><b>${escapeHtml(rg.titre)}</b></div>`
+       +`<div class="sr-val">${escapeHtml(rg.valeur)}</div>`
+       +`<p class="sr-corps">${escapeHtml(rg.corps)}</p>`
+       +`<p class="sr-action">${escapeHtml(rg.action)}</p>`
+       +(rg.source?`<small class="sr-src">📚 ${escapeHtml(rg.source)}</small>`:'');}
+     else{rgEl.hidden=true;rgEl.innerHTML='';}
+   }}
   const scEl=$('#sleepCoach');if(!scEl||typeof sleepCoachInsight!=='function')return;const sc=sleepCoachInsight(state.recovery,localDate(),{planActive:!!(state.sleepPlan&&state.sleepPlan.active)});if(!sc){scEl.hidden=true;scEl.innerHTML='';return;}scEl.hidden=false;scEl.className='sleep-coach sc-'+sc.tone;const icon=sc.tone==='urgent'?'🚨':sc.tone==='attention'?'⚠️':'🌙';scEl.innerHTML=`<span>${icon} <b>Bilan sommeil</b></span><p>${escapeHtml(sc.verdict)}</p>`;}
 // Récup : coach de recalage du sommeil — heure de coucher CIBLE du soir, progression vers l'objectif
 // nocturne, adaptation aux écarts, arrivée estimée (+ conseils du soir et adhérence en étape 4).
