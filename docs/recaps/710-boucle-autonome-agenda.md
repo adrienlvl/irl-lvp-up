@@ -1392,3 +1392,31 @@ blessure.
 
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
+
+## Itération 48 — deux écrans, deux avis opposés sur la même journée
+
+Sondé le tableau de bord, jamais examiné jusqu'ici. Trouvaille mesurée, même journée :
+
+- **Plan de bataille** : « Bas du corps »
+- **Tableau de bord** : « Laisse la charge produire son effet — mobilité, marche ou endurance
+  très facile »
+- Le compagnon ne mentionnait **jamais** le plan.
+
+L'arbitrage est bon — la fatigue passe avant le programme. Ce qui manquait, c'est de le dire :
+un coach qui change le programme sans expliquer n'est pas prudent, il est incohérent.
+
+### Ce que cette itération a appris
+
+*Le défaut n'était ni dans un écran ni dans l'autre, mais ENTRE les deux.* Chaque surface était
+correcte isolément ; c'est leur juxtaposition qui produisait la contradiction. Aucun test
+portant sur un seul écran ne pouvait le voir — il fallait mesurer les deux avec le même état.
+
+*Le check exerce les deux cas.* Séance dure hier (le coach arbitre, il doit nommer ce qu'il
+décale) ET journée normale (le coach suit le plan, il ne doit pas se répéter). Une seule des
+deux branches aurait laissé passer soit le silence, soit le doublon — les deux mutations le
+prouvent.
+
+658 tests · SMOKE OK · 390 px propre.
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
