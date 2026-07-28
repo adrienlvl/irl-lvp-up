@@ -7147,11 +7147,18 @@ function macrosDuPlan(energie, repli) {
   /* Le pourcentage AFFICHÉ se dérive de la cible réellement retenue, jamais de l'intention :
      après un plancher au métabolisme de base, annoncer -35 % serait faux. */
   const pct = tdee > 0 ? Math.round((cible / tdee - 1) * 100) : 0;
+  /* ZÉRO N'EST PAS ABSENT. Première version : `Number(e.carbG) || repli.carbG`. Quand le plan
+     tombe légitimement à 0 g de glucides — déficit marqué sur un profil lourd, où protéines et
+     lipides dépassent déjà la cible — le bloc réaffichait les glucides de la source ABANDONNÉE.
+     On teste donc la PRÉSENCE d'un nombre, pas sa vérité. Trouvé en revue adversariale, sur ma
+     propre règle. */
+  function nb(v, defaut) { const n = Number(v); return Number.isFinite(n) ? n : defaut; }
+
   return {
     dailyTarget: cible,
-    proteinG: Math.round(Number(e.proteinG) || (r ? r.proteinG : 0)),
-    carbG: Math.round(Number(e.carbG) || (r ? r.carbG : 0)),
-    fatG: Math.round(Number(e.fatG) || (r ? r.fatG : 0)),
+    proteinG: Math.round(nb(e.proteinG, r ? r.proteinG : 0)),
+    carbG: Math.round(nb(e.carbG, r ? r.carbG : 0)),
+    fatG: Math.round(nb(e.fatG, r ? r.fatG : 0)),
     adjustPct: pct,
     // Au-delà de 1 % d'écart on nomme le sens ; en deçà c'est du maintien, pas un micro-déficit.
     dir: pct > 1 ? 'surplus' : pct < -1 ? 'déficit' : 'maintien',
@@ -7176,7 +7183,12 @@ function programmesNutrition(energie, poids, garde) {
      risque doit être CONSCIENT, pas deviné. Le drapeau ne filtre donc rien : il attache un
      avertissement nommé à chaque rythme en déficit, et un second, plus dur, aux rythmes
      agressifs. Retirer l'option n'apprend rien à personne ; la nommer, si. */
-  const cibleStop = !!(garde && garde.level === 'stop' && garde.direction === 'perte');
+  /* La garde regardait la DIRECTION de la cible (`=== 'perte'`), pas son IMC. Résultat mesuré
+     en revue adversariale : quelqu'un déjà à IMC 16 qui garde son poids comme cible — donc
+     direction « maintien » — et qui choisit « très agressif » n'était averti de RIEN. C'est
+     pourtant l'utilisateur le plus exposé de tous. Le risque tient à l'IMC visé, pas au sens
+     du trajet ; l'alerte ne se déclenche de toute façon que sur un programme en déficit. */
+  const cibleStop = !!(garde && garde.level === 'stop');
   const imcCible = cibleStop && Number(garde.targetBmi) > 0
     ? String(garde.targetBmi).replace('.', ',') : null;
 

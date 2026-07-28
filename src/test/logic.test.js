@@ -14403,6 +14403,16 @@ test('nutrition du Plan de bataille : un seul chiffre, et des macros qui suivent
   // Profil incomplet : repli intégral plutôt qu'un panneau vide.
   assert.equal(L.macrosDuPlan(null, repli), repli, 'sans plan : repli');
   assert.equal(L.macrosDuPlan({ dailyTarget: 0 }, repli), repli, 'cible nulle : repli aussi');
+  /* REVUE ADVERSARIALE — ZÉRO N'EST PAS ABSENT (ma propre règle, enfreinte dans la première
+     version). `Number(e.carbG) || repli.carbG` réaffichait les glucides de la source
+     ABANDONNÉE quand le plan tombe légitimement à 0 g : profil lourd en déficit marqué, où
+     protéines et lipides dépassent déjà la cible. */
+  const zero = L.macrosDuPlan({ dailyTarget: 1900, tdee: 2600, proteinG: 288, fatG: 108, carbG: 0 }, repli);
+  assert.equal(zero.carbG, 0, '0 g de glucides est une VALEUR du plan, pas une absence');
+  assert.notEqual(zero.carbG, repli.carbG, 'et surtout pas la valeur de l’ancienne source');
+  const absent = L.macrosDuPlan({ dailyTarget: 1900, tdee: 2600, proteinG: 288, fatG: 108 }, repli);
+  assert.equal(absent.carbG, repli.carbG, 'un champ VRAIMENT absent retombe bien sur le repli');
+
   // Maintien : un micro-écart d'arrondi ne doit pas s'annoncer comme un déficit.
   assert.equal(L.macrosDuPlan({ dailyTarget: 2000, tdee: 2000, proteinG: 1, carbG: 1, fatG: 1 }, repli).dir,
     'maintien', 'ni déficit ni surplus à dépense égale');
@@ -14452,6 +14462,19 @@ test('cible risquée : on ne retire aucun choix, on nomme le risque', () => {
   // Cible saine : aucun de ces avertissements ne doit polluer l'écran.
   assert.ok(ta(listeSaine).alertes.every(x => x.indexOf('insuffisance pondérale') === -1),
     'pas d’alarme sur une cible raisonnable');
+  /* REVUE ADVERSARIALE — LE CAS LE PLUS EXPOSÉ DE TOUS, et celui que la garde laissait passer :
+     déjà à IMC 16, cible = poids actuel (donc direction « maintien »), et il choisit un rythme
+     agressif. La première version filtrait sur `direction === 'perte'` et ne disait RIEN.
+     Le risque tient à l'IMC visé, pas au sens du trajet. */
+  const dejaBas = { weight: 52, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', sessionsPerWeek: 4 };
+  const gMaintien = L.weightTargetAdvice(Object.assign({}, dejaBas, { targetWeight: 52 }));
+  assert.equal(gMaintien.direction, 'maintien', 'cible = poids actuel : aucune perte demandée');
+  assert.equal(gMaintien.level, 'stop', 'et pourtant signalée, IMC ' + gMaintien.targetBmi);
+  const eMaintien = L.energyPlan(Object.assign({}, dejaBas, { goal: 'perte', targetWeight: 52, todayKey: '2026-07-28' }));
+  const taM = L.programmesNutrition(eMaintien, 52, gMaintien).filter(p => p.cle === 'tres-agressif')[0];
+  assert.ok(taM.alertes.some(x => x.indexOf('insuffisance pondérale') !== -1),
+    'il doit être averti : ' + taM.alertes.length + ' alerte(s)');
+
   // Sans garde-fou transmis : comportement d'avant, aucune régression.
   assert.equal(L.programmesNutrition(plan(52), 80).length, listeStop.length, 'appel sans garde : même liste');
   assert.ok(ta(L.programmesNutrition(plan(52), 80)).alertes.every(x => x.indexOf('insuffisance pondérale') === -1),
