@@ -14438,3 +14438,52 @@ test('rythmeVerdict : perdre plus vite n’est pas mieux', () => {
     assert.ok(Number.isFinite(v.ratio));
   });
 });
+
+test('affûtage : le coach passe au jour près quand la course approche', () => {
+  const AUJ = '2026-07-28';
+  const w = [];
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - i * 2);
+    w.push({ date: d.toISOString().slice(0, 10), type: 'course', km: 9, exercises: [{ name: 'Tractions', sets: 4 }] });
+  }
+  const course = j => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() + j); return { date: d.toISOString().slice(0, 10), type: 'marathon', km: 42 }; };
+  const coach = j => L.coachTraining({ workouts: w, raceGoal: course(j) }, AUJ);
+
+  /* L'app calculait déjà l'affûtage JOUR PAR JOUR (taperPlan) et ne l'affichait jamais : le
+     coach se contentait de la consigne de semaine (« réduis de 40-50 % »), floue quand la
+     course est dans 3 jours. Les deux ne se contredisent pas — vérifié : racePhase donne la
+     cible de la semaine, taperPlan la progression qui y mène et finit à ~49 %. */
+  const j5 = coach(5);
+  assert.equal(j5.type, 'affutage');
+  assert.match(j5.titre, /^J-5/);
+  assert.match(j5.constat, /34 %/, 'le pourcentage du JOUR, pas celui de la semaine');
+  // La coupe se creuse à mesure qu'on approche : sinon la granularité ne servirait à rien.
+  const pct = n => Number((/(\d+) %/.exec(coach(n).constat) || [])[1]);
+  assert.ok(pct(2) > pct(5) && pct(5) > pct(7), `J-7 ${pct(7)}% < J-5 ${pct(5)}% < J-2 ${pct(2)}%`);
+
+  /* Le jour J, « coupe 51 % de ton volume » n'a aucun sens : la course EST le volume.
+     taperPlan ne distingue pas ce cas, donc le coach le traite. */
+  const j0 = coach(0);
+  assert.match(j0.titre, /aujourd’hui/);
+  assert.ok(!/Coupe \d+ %/.test(j0.constat), 'aucune consigne de volume le jour de la course');
+  assert.match(j0.action, /testé à l’entraînement/, 'le conseil porte sur le déroulé');
+
+  /* La source était noyée en fin de phrase (« … (Bosquet 2007). »). Séparée, elle devient
+     lisible ET vérifiable. Bosquet 2007 est une vraie méta-analyse sur l'affûtage, déjà
+     présente dans le dépôt — on ne l'invente pas, on cesse de la cacher. */
+  assert.equal(j5.source, 'Bosquet 2007');
+  assert.ok(j5.action.indexOf('(Bosquet 2007)') === -1, 'la source n’est plus collée au texte');
+  assert.ok(!j0.source, 'pas de source sur un conseil qui n’en cite aucune');
+
+  // Hors fenêtre d'affûtage, la consigne de SEMAINE reprend la main — pas de silence.
+  const loin = coach(12);
+  assert.equal(loin.type, 'affutage');
+  assert.ok(!/^J-/.test(loin.titre), 'pas de compte à rebours au jour près à 12 jours');
+
+  // Très loin, l'affûtage ne doit plus rien dire : d'autres pistes passent devant.
+  assert.notEqual(coach(60).type, 'affutage');
+
+  // Entrées abîmées.
+  assert.doesNotThrow(() => L.coachTraining({ workouts: w, raceGoal: { date: 'nawak' } }, AUJ));
+  assert.doesNotThrow(() => L.coachTraining({ workouts: w, raceGoal: null }, AUJ));
+});

@@ -9645,8 +9645,37 @@ function coachTraining(state, todayKey, opts) {
   const course = s.raceGoal && isRealDateKey(s.raceGoal.date) ? s.raceGoal : null;
   if (course) {
     const sem = Math.floor((new Date(course.date + 'T12:00:00') - new Date(todayKey + 'T12:00:00')) / 6048e5);
+    const jours = Math.round((new Date(course.date + 'T12:00:00') - new Date(todayKey + 'T12:00:00')) / 864e5);
+    /* Dans la fenetre d affutage, on prefere le detail JOUR : « J-3, coupe 44 % » est
+       actionnable ce matin, « reduis de 40-50 % cette semaine » ne l est pas. */
+    const affut = (jours >= 0) ? garde(() => taperPlan(jours, course.type)) : null;
     const phase = garde(() => racePhase(sem));
-    if (phase && (phase.key === 'taper' || phase.key === 'specific')) {
+    if (affut) {
+      if (jours === 0) {
+        /* Jour de course : plus rien à couper, la course est la séance. Le seul conseil
+           utile porte sur le déroulé, pas sur le volume. */
+        pistes.push({
+          type: 'affutage', discipline: 'trail', urgence: 1,
+          titre: 'C’est aujourd’hui',
+          constat: 'Le travail est fait — l’affûtage des derniers jours a rechargé ce qu’il fallait.',
+          action: 'Échauffe-toi progressivement, pars plus lentement que ce que tes jambes réclament, et mange ce que tu as déjà testé à l’entraînement. Aucune nouveauté aujourd’hui.'
+        });
+      } else {
+        const quand = jours === 1 ? 'C’est demain' : 'J-' + jours;
+        /* On sépare la consigne de sa source : la note de taperPlan finit par « (Bosquet
+           2007) », une vraie méta-analyse sur l’affûtage. L’afficher comme SOURCE plutôt
+           qu’en fin de phrase la rend lisible — et vérifiable. */
+        const brut = String(affut.note || '');
+        const m = /\(([A-Z][A-Za-zÀ-ÿ-]+\s+(?:19|20)\d{2})\)\.?\s*$/.exec(brut);
+        pistes.push({
+          type: 'affutage', discipline: 'trail', urgence: 1,
+          titre: quand + ' : ' + affut.label.replace(/^Affûtage · /, ''),
+          constat: 'Coupe ' + affut.cutPct + ' % de ton volume habituel aujourd’hui, sans toucher au nombre de séances.',
+          action: m ? brut.slice(0, m.index).trim() : brut,
+          source: m ? m[1] : null
+        });
+      }
+    } else if (phase && (phase.key === 'taper' || phase.key === 'specific')) {
       pistes.push({
         type: 'affutage', discipline: 'trail', urgence: phase.key === 'taper' ? 1 : 5,
         titre: phase.key === 'taper' ? 'Affûtage : lève le pied' : `Phase ${phase.label.toLowerCase()}`,

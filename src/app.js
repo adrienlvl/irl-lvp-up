@@ -314,7 +314,7 @@ function renderCoachFocus(){const panel=$('#coachFocusPanel'),el=$('#coachFocus'
     if(_ct){_te.hidden=false;_te.dataset.type=_ct.type;_te.dataset.discipline=_ct.discipline;
       const emo={charge:'📈',fatigue:'🔋',affutage:'🏁',desequilibre:'⚖️',plateau:'🧱',zone:'🎯'}[_ct.type]||'💪';
       const reste=_ct.total>1?`<span class="ct-reste">+${_ct.total-1} autre${_ct.total>2?'s':''} point${_ct.total>2?'s':''} à surveiller</span>`:'';
-      _te.innerHTML=`<span class="ct-emo" aria-hidden="true">${emo}</span><span class="ct-body"><b>${escapeHtml(_ct.titre)}</b><span>${escapeHtml(_ct.constat)}</span><span class="ct-action">${escapeHtml(_ct.action)}</span>${reste}</span>`;}
+      _te.innerHTML=`<span class="ct-emo" aria-hidden="true">${emo}</span><span class="ct-body"><b>${escapeHtml(_ct.titre)}</b><span>${escapeHtml(_ct.constat)}</span><span class="ct-action">${escapeHtml(_ct.action)}</span>${_ct.source?`<span class="ct-src">📚 D’après ${escapeHtml(_ct.source)}</span>`:''}${reste}</span>`;}
     else{_te.hidden=true;_te.innerHTML='';}
   }
   /* Ce qui te bride (ou te porte) aujourd'hui. Le coach affichait un score de forme sans jamais

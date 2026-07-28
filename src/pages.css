@@ -456,3 +456,7 @@ body::before{
 .ca-item b{font-size:var(--fs-sm);font-weight:650;color:var(--text)}
 .ca-item>span{font-size:var(--fs-xs);color:var(--muted)}
 .ca-act{color:var(--text)!important;font-weight:550}
+/* Source d'un protocole cité par le coach d'entraînement. Même traitement discret que dans
+   le programme auto : une caution vérifiable, pas le message principal. */
+.ct-src{margin-top:3px;font-size:var(--fs-xs);color:var(--muted);opacity:.9;font-style:italic}
+.ct-src[hidden]{display:none}

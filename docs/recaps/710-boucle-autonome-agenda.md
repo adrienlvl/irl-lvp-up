@@ -531,3 +531,36 @@ déjà tenu ailleurs dans l'app avec une source réelle — protéines à 2,4 g/
 Longland 2016 AJCN, déjà citée dans `energyPlan`.
 
 634 tests · SMOKE OK · 390 px propre.
+
+## Itération 25 — l'affûtage au jour près
+
+`taperPlan` calculait la progression de l'affûtage jour par jour et n'était **jamais
+rendu** (`grep -c` = 0 dans app.js). Le coach se contentait de la consigne de semaine
+issue de `racePhase` : « réduis le volume de 40-50 % » — floue quand la course est
+dans trois jours.
+
+**Vérifié avant de brancher qu'il n'y avait pas contradiction** : `racePhase` donne la
+cible de la SEMAINE (40-50 %), `taperPlan` la progression qui y mène (15 % à J-7 →
+49 % à J-1). C'est la granularité qui manquait, pas un second avis.
+
+### Le jour J n'avait pas de sens
+`taperPlan(0)` sert la même note que le reste de la semaine : « réduis ton volume de
+51 % ». Le jour de la course, ça n'a aucun sens — la course EST le volume. Traité à
+part : le seul conseil utile porte sur le déroulé, pas sur le volume.
+
+### Une source réelle de plus, cachée en fin de phrase
+La note se terminait par « … (Bosquet 2007). » — vraie méta-analyse sur l'affûtage,
+déjà dans le dépôt, jamais mise en valeur. Séparée du texte, elle devient lisible et
+vérifiable. Le jour J, aucune source n'est affichée puisque le conseil n'en cite pas.
+
+### Ma sonde a menti, deuxième fois en deux jours
+Le texte mesuré revenait sans aucun « s » : « emaine de cour e ». J'ai failli croire à
+une corruption de fichier. En réalité, dans un **template literal**, `\s` s'écrit `s` —
+mon `replace(/\s+/g,' ')` était devenu `replace(/s+/g,' ')` et mangeait les « s » du
+texte MESURÉ. L'app allait bien.
+
+*Troisième forme du même piège cette semaine : harnais mort, agents en erreur, et
+maintenant une sonde qui abîme ce qu'elle mesure. Vérifier l'instrument avant d'accuser
+le code.*
+
+635 tests · SMOKE OK · 390 px propre.
