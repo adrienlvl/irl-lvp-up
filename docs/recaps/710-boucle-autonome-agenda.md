@@ -1123,3 +1123,40 @@ de bloc dataient la fin à 28 jours.
 de `return false;` a frappé un filtre géographique sans rapport et cassé 4 tests.
 
 653 tests · SMOKE OK · 390 px propre · **v2.9.0 publiée** (installeur + latest.yml en ligne).
+
+## Itération 40 — revue de la v2.9.0 : je livrais trop vite
+
+**La revue adversariale a échoué à mi-parcours** — 29 agents sur 34 se sont arrêtés sur la
+limite de session. Son `confirmees: []` ne prouve donc RIEN : c'est le cas exact que ma propre
+règle décrit (« un vide n'est pas un succès, recouper avec `agents_error` »). Restent
+29 trouvailles brutes, non réfutées, que je vérifie une par une moi-même.
+
+**Ce que j'ai confirmé et corrigé, tout venant de MOI, en livrant vite :**
+
+1. **Le sélecteur nutrition ne pilotait rien.** Mesuré en faisant tourner l'app : dans le même
+   panneau, à trois lignes d'écart, le bloc disait 2217 kcal et le bandeau 2463 — et le plan
+   gardait 2463 quel que soit le choix. Corrigé à la source.
+2. **Le passage à 8 semaines était à moitié fait.** Des boutons libellés « Programmer
+   8 semaines » en programmaient 4 (Coach Poids, plan de course, nouveau bloc, onboarding),
+   « Bloc de 4 semaines terminé » s'affichait après 8, la frise n'avait que 4 pastilles sous un
+   compteur allant à 8, et « Dernière semaine du bloc » tombait à la S4.
+3. **J'avais sur-corrigé le « Charge ».** En masquant le champ kg au poids du corps, j'ai cassé
+   une fonctionnalité documentée : `vestProgression` suit « ta meilleure série lestée » sur
+   tractions et pompes. Le champ redevient visible, libellé **« lest »** et mis en retrait — la
+   plainte d'Adrien portait sur le mot « Charge » qui réclamait une valeur, pas sur le champ.
+
+### Ce que cette itération a appris
+
+*Livrer six choses d'un coup coûte une itération entière de rattrapage.* Chaque changement était
+vérifié isolément ; c'est leur ASSEMBLAGE qui était faux. Le passage à 8 semaines touchait plus
+d'endroits que ceux que j'avais listés.
+
+*Ma méta-garde a de nouveau attrapé un check devenu faux sans message* (`blockHeadsUp`).
+
+*Sur-corriger est aussi un défaut.* La demande était « ne me réclame pas une charge sur des
+pompes », pas « enlève-moi la possibilité de noter mon gilet lesté ».
+
+*Cinquième récidive des backticks dans le harnais*, et quatrième regex mangée par le template
+literal. La vérification automatique les attrape désormais, mais je continue d'en écrire.
+
+654 tests · SMOKE OK · 390 px propre.
