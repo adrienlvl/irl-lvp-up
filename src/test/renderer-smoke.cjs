@@ -3179,6 +3179,41 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.chargeMasquee = (() => {
+        try {
+          if (typeof openGuidedWorkout !== 'function' || typeof exerciceSansCharge !== 'function') return false;
+          const lire = function (nom) {
+            openGuidedWorkout({ title: 'Test', exercises: [{ name: nom, sets: 3, reps: 10 }] });
+            const lig = document.querySelector('#guidedSetLog .guided-set-row');
+            if (!lig) return null;
+            const lab = lig.querySelector('.gs-load');
+            const inp = lig.querySelector('[data-set-load]');
+            const res = {
+              // Le RENDU, pas la propriete : c est display qui decide de ce qu Adrien voit.
+              visible: !!lab && getComputedStyle(lab).display !== 'none',
+              // Le champ doit RESTER dans le DOM : saveGuidedExercise lit sa valeur sans garde.
+              present: !!inp,
+              placeholder: inp ? String(inp.placeholder || '') : '(pas de champ)'
+            };
+            const d = document.getElementById('guidedWorkoutDialog');
+            try { if (d && d.open) d.close(); } catch (_) {}
+            return res;
+          };
+
+          // Pompes : aucune charge a saisir. Kettlebell : il en faut une.
+          const pompes = lire('Pompes classiques');
+          const kb = lire('Kettlebell swing');
+          if (!pompes || !kb) return false;
+          checks.__charge = 'pompes visible=' + pompes.visible + ' ph="' + pompes.placeholder
+            + '" | kb visible=' + kb.visible;
+
+          showPage('dashboard');
+          // Le mot « Charge » ne doit plus jamais servir de placeholder, nulle part.
+          const plusDeCharge = pompes.placeholder.indexOf('Charge') === -1 && kb.placeholder.indexOf('Charge') === -1;
+          return pompes.present && kb.present && plusDeCharge && !pompes.visible && kb.visible;
+        } catch (e) { checks.__errCharge = String(e && e.message); return false; }
+      })();
+
       checks.programmeCetteSemaine = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function' || typeof scheduleObjectiveProgram !== 'function') return false;
@@ -3824,6 +3859,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');

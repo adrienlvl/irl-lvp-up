@@ -14218,6 +14218,37 @@ test('aucun champ d’état fantôme : ce que app.js lit doit exister', () => {
     + fantomes.map(k => 'state.' + k + ' (l. ' + lues[k].join(', ') + ')').join(' | '));
 });
 
+test('exerciceSansCharge : plus de « Charge » à saisir sur des pompes', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const par = n => exercises.find(e => e.name === n);
+
+  /* Adrien : « j'ai toujours "Charge" dans les séances guidées ». Ce n'était pas un libellé mais
+     le placeholder de repli du champ kg, affiché dès que `progressionSuggestion` rend null — ce
+     qui est TOUJOURS le cas au poids du corps, puisqu'elle exige une charge > 0. L'app réclamait
+     donc une charge qui n'existe pas sur des pompes ou du gainage. */
+  assert.equal(L.exerciceSansCharge(par('Pompes classiques')), true, 'poids du corps');
+  assert.equal(L.exerciceSansCharge(par('Gainage planche')), true, 'gainage');
+  assert.equal(L.exerciceSansCharge(par('Tractions')), true, 'barre de traction : pas de charge non plus');
+  assert.equal(L.exerciceSansCharge(par('Pompes déficit')), true, 'poignées de pompes');
+
+  /* Le scénario qui DISCRIMINE : ces trois-là portent bien une charge, et le champ doit rester.
+     Sans eux, un prédicat qui rend toujours true passerait le test. */
+  assert.equal(L.exerciceSansCharge(par('Kettlebell swing')), false, 'kettlebell : charge réelle');
+  assert.equal(L.exerciceSansCharge(par('Goblet squat kettlebell')), false, 'kettlebell');
+  const leste = exercises.filter(e => e.kind === 'Gilet lesté')[0];
+  assert.ok(leste, 'la bibliothèque contient bien un exercice au gilet lesté');
+  assert.equal(L.exerciceSansCharge(leste), false, 'gilet lesté : la charge, c’est le gilet');
+
+  // Toute la bibliothèque doit se répartir : ni tout à true, ni tout à false.
+  const sans = exercises.filter(e => L.exerciceSansCharge(e)).length;
+  assert.ok(sans > 0 && sans < exercises.length, sans + '/' + exercises.length + ' sans charge');
+
+  // Équipement non renseigné : on ne suppose RIEN, on garde le champ.
+  assert.equal(L.exerciceSansCharge({ name: 'Inconnu' }), false, 'kind absent → on ne devine pas');
+  assert.equal(L.exerciceSansCharge({ name: 'X', kind: '' }), false, 'kind vide → idem');
+  assert.equal(L.exerciceSansCharge(null), false);
+});
+
 test('zoneRattrapage : un diagnostic qui dit enfin par quoi commencer', () => {
   const { exercises } = require('../lib/exercises-data.js');
 

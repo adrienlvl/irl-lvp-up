@@ -96,3 +96,10 @@
 /* Séance issue d'un programme non démarrable en guidée (course) : ligne d'info, pas un bouton. */
 .planned-session.planned-info{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--input-bg);border:1px dashed var(--line);border-radius:8px;padding:9px 11px;cursor:default}
 .planned-session.planned-info .planned-prog{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
+
+/* Champ de charge masqué quand l'exercice n'en porte pas (poids du corps, barre de traction,
+   poignées de pompes). Il RESTE dans le DOM — saveGuidedExercise lit sa valeur sans garde —
+   mais il ne prend plus de place et sort du parcours clavier. La ligne passe alors à trois
+   colonnes, sinon un trou reste à sa place. */
+.guided-set-row .gs-load.gs-off{display:none}
+.guided-set-row:has(.gs-load.gs-off){grid-template-columns:auto minmax(0,1fr) auto}
