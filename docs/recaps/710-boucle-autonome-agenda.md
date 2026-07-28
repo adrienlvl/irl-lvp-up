@@ -1931,3 +1931,57 @@ plus, et rien ne me l'a signalé. Il a fallu une revue pour le voir.
 
 ### Reste (roadmap 712)
 - Le coût annoncé des réglages, puis l'arbitrage sous budget de temps.
+
+---
+
+## Itération 59 — J'ai cru trouver un défaut ; la mesure dit non
+
+Roadmap 712, chantier « le coût annoncé des réglages ».
+
+### Ce que j'ai cru trouver
+
+Avec lundi et mardi cochés un mercredi, la phrase annonçait « 6 séances sur 5 jours disponibles :
+jusqu'à 2 par jour » pendant que je mesurais **3 séances le lundi et 3 le mardi**. Deux chiffres
+apparemment faux, au-dessus du plan qui les contredisait.
+
+### Ce qui était vrai
+
+Je comparais la phrase à **`semaineType`** — la semaine TYPE, un gabarit — au lieu de **`p.week`**,
+la semaine réellement programmée et rendue. Sur `p.week`, les six séances sont bien réparties sur
+cinq jours, à deux maximum. **La phrase était juste depuis le début.**
+
+### La mesure qui tranche
+
+J'ai exécuté l'ancienne formule et la nouvelle côte à côte sur **576 configurations** (18 jeux de
+jours × 4 dates × 8 réglages) : **zéro différence de chiffres**. Deux mutations sur trois
+survivent — et elles ont raison de survivre.
+
+### Ce qui reste, et qui est réel
+
+1. **La formulation.** « sur 5 jours DISPONIBLES » se lisait comme « tes jours cochés », alors
+   qu'il s'agit de ce qui reste de la semaine. On dit « réparties sur », qui décrit sans
+   prétendre, et « le même jour » plutôt que « par jour », qui se lisait comme une moyenne.
+2. **L'invariant.** Les nombres se dérivent de la semaine rendue par construction : ils ne
+   peuvent plus diverger d'elle. La mutation qui calcule sur le programme brut est détectée.
+
+### Ce que cette itération a appris
+
+*Un défaut apparent peut venir de ma sonde, pas du code.* J'ai mesuré la mauvaise structure. La
+règle « sonder avant de juger » ne suffit pas : il faut sonder **la structure que l'écran
+utilise**, pas celle qui lui ressemble.
+
+*Une mutation qui survit peut avoir raison.* J'ai d'abord voulu tailler un test qui la ferait
+tomber. C'était l'inverse du bon geste : la mutation disait que mon correctif ne corrigeait rien
+de numérique, et elle avait raison.
+
+*Le résultat d'une itération peut être « il n'y avait pas de bug ».* C'est un résultat, à
+condition de l'écrire.
+
+**Mutations.** 3 posées, 1 détectée, **2 assumées comme justifiées**.
+
+668 tests · SMOKE OK. Rien publié : dernière release v2.12.2.
+
+### Reste (roadmap 712)
+- Le coût annoncé des réglages reste à faire : le vrai manque n'est pas la phrase de
+  répartition, mais qu'aucun réglage ne dise ce qu'il change AVANT qu'on y touche.
+- Puis l'arbitrage sous budget de temps.
