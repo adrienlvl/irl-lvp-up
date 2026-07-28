@@ -1267,3 +1267,38 @@ on ne peut le savoir qu'en mesurant.
 3. Soupçons non vérifiés de la revue interrompue : garde par créneau qui perdrait une 2e séance
    de même type le même jour ; repos réglé à la main possiblement écrasé par le repos auto.
 4. Étape 11 (panneau « Ma semaine ») : décision d'Adrien.
+
+## Itération 44 — les deux derniers soupçons, tous deux réels
+
+Point 3 de la liste annoncée à Adrien : vérifier les soupçons laissés par la revue interrompue.
+**Les deux étaient fondés.**
+
+**1. Le repos réglé à la main n'a JAMAIS servi.** Mesuré en exécutant : repos prescrit 75 s,
+Adrien monte à 120 s, il valide une série… et le repos qui démarre dure **75 s**.
+`renderGuidedWorkout` remettait la valeur prescrite à chaque rendu, et ce rendu a lieu juste
+avant le départ du repos. Le défaut précède ma refonte ; mon `endGuidedRest` ne faisait que
+l'étendre. Le réglage est désormais retenu pour l'exercice en cours, et le suivant reprend sa
+valeur prescrite.
+
+**2. 18 séances sur 48 disparaissaient.** Avec deux jours cochés et six séances par semaine,
+plusieurs séances du même type tombent au même créneau : la garde renonçait. Le plan annonçait
+six séances par semaine, l'agenda en recevait moins de quatre. On décale de 90 min jusqu'à
+trouver un créneau libre. 45 posées sur 48 après correction — les trois manquantes sont le
+lundi déjà écoulé, sauté à dessein.
+
+### Ce que cette itération a appris
+
+*Un soupçon non vérifié n'est ni vrai ni faux — mais il coûte à ne pas être tranché.* Ces deux
+défauts touchaient directement ce qu'Adrien avait demandé (« le repos en fonction du temps que
+j'ai paramétré ») et ce qu'il avait signalé (« les séances ne sont pas dans mon agenda »). Les
+laisser en dette, c'était le laisser avec une app qui ne fait pas ce qu'elle annonce.
+
+*Les deux checks portent sur un scénario étroit et volontaire* : deux jours cochés pour six
+séances, et un réglage de repos qui change vraiment la valeur. Avec sept jours cochés ou un
+réglage égal au prescrit, les deux défauts seraient restés invisibles.
+
+656 tests · SMOKE OK · 390 px propre.
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**, la seule chose que je ne tranche
+  pas seul. Depuis l'itération 30 le masquer ne ferait plus perdre de fonctionnalité.
