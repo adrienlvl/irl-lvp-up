@@ -814,3 +814,37 @@ Promettre le mètre et l'effacer à l'affichage, c'était le fil rouge appliqué
 elle-même. Sondé : la liste affichait aussi « +undefined XP » sur une séance importée.
 
 645 tests · SMOKE OK · 390 px propre.
+
+## Itération 32 — v2.8.0 publiée, puis l'Analyse rendue voyante
+
+**Publication.** v2.8.0 taguée à la demande d'Adrien : installeur Windows, blockmap et
+`latest.yml` en ligne (electron-updater la prendra), PWA déployée. 41 commits depuis v2.7.0.
+
+**Sondage des quatre sous-onglets Athlète à 390 px.** Aucun débordement, aucun champ sous
+16 px, aucun panneau vide — la structure tient. Mais « Force & endurance » ne rendait que
+98 caractères malgré huit semaines d'historique.
+
+**La cause.** `state.workouts.filter(w => w.exercise && w.load)` ne lit que le format LEGACY à
+plat ; l'app écrit `exercises[].setLogs[]` depuis longtemps. Le volume sommait
+`load × sets × reps` — zéro sur toute séance moderne. Corrigé par `analysePerformance`, qui
+s'appuie sur les fonctions gérant déjà les deux formats, et qui affiche enfin
+`bestE1rmByExercise` (1RM estimé, Epley) — testé depuis toujours, rendu nulle part.
+
+### Ce que cette itération a appris
+
+*J'ai appelé la mauvaise fonction de rendu DEUX fois dans la même session.* `renderWorkouts`
+(inexistante) puis `renderAthlete` là où le panneau est peint par `renderGrowth`. La première
+fois le check a échoué franchement ; la seconde, il affichait l'état vide et j'ai failli
+conclure que ma correction ne marchait pas. **Une sonde qui ne re-rend pas mesure l'écran
+d'avant** — et mon « 98 caractères » initial était, en partie, cet artefact-là. Le défaut du
+filtre legacy, lui, était bien réel et reste confirmé par mutation.
+
+*Deux regex tués par le template literal, coup sur coup.* `\/` devient `/` et termine
+l'expression ; `\n` devient un VRAI saut de ligne et casse le littéral. Même famille que le
+`\s` devenu `s`. La parade n'est pas d'empiler les antislashs mais de ne pas utiliser de regex
+là-dedans : `indexOf` et `split(String.fromCharCode(10))` ne traversent aucun échappement.
+
+*Ne pas afficher un zéro faux.* `blockWindowStats().sets` compte le champ `sets` et jamais
+`setLogs` : il aurait affiché « 0 série » sur les séances modernes. Écarté sciemment.
+
+646 tests · SMOKE OK · 390 px propre.
