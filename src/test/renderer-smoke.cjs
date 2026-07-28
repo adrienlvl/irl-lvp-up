@@ -3400,6 +3400,57 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errCharge = String(e && e.message); return false; }
       })();
 
+      checks.aucuneSeancePerdue = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function' || typeof trainingWeekPlan !== 'function') return false;
+          const sa = state.agenda, sb = state.blockStart, sw = state.weights;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const so = state.fitnessObjective, swk = state.workouts;
+
+          /* DEUX jours coches pour SIX seances : c est le cas ou plusieurs seances du meme
+             type tombent le meme jour. Mesure d avant : 48 attendues sur 8 semaines,
+             30 posees — 18 perdues en silence, parce que la garde par creneau renoncait des
+             que l heure etait prise. Avec sept jours coches le defaut est invisible. */
+          state.fitnessObjective = 'athletique';
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'maintien', availableDays: [1, 3] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 79, sessions: 6, runs: 3, progSessions: 6 });
+          state.weights = [{ date: localDate(), value: 80 }];
+          state.workouts = []; state.agenda = []; state.blockStart = '';
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          const plan = trainingWeekPlan(trainingPlanInputs(state, localDate()), (typeof exercises !== 'undefined' ? exercises : []));
+          const type = (plan.semaineType && plan.semaineType.length) ? plan.semaineType : plan.week;
+          const bouton = document.getElementById('objectiveSchedule');
+          if (!bouton || !type.length) return false;
+          bouton.click();
+          const poses = state.agenda.length;
+
+          /* Deux seances au meme creneau : impossible. On verifie donc qu aucun creneau ne
+             porte deux blocs — le decalage doit avoir servi, pas se contenter d empiler. */
+          const parCreneau = {};
+          state.agenda.forEach(function (x) {
+            const k = String(x.date) + '|' + String(x.time || '');
+            parCreneau[k] = (parCreneau[k] || 0) + 1;
+          });
+          const doubles = Object.keys(parCreneau).filter(function (k) { return parCreneau[k] > 1; }).length;
+
+          state.agenda = sa; state.blockStart = sb; state.weights = sw;
+          state.profile = sp; state.goals = sg; state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          const attendu = type.length * 8;
+          checks.__perdues = poses + '/' + attendu + ' posees, ' + doubles + ' creneaux doubles';
+          /* On tolere l ecart de la PREMIERE semaine (jours deja ecoules, sautes a dessein),
+             soit au plus une semaine de seances. Au-dela, ce sont des pertes silencieuses. */
+          return doubles === 0 && poses >= attendu - type.length;
+        } catch (e) { checks.__errPerdues = String(e && e.message); return false; }
+      })();
+
       checks.programmeCetteSemaine = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function' || typeof scheduleObjectiveProgram !== 'function') return false;
@@ -4129,6 +4180,7 @@ app.whenReady().then(async () => {
     if (!checks.reposReglTenu) errors.push('Le repos réglé à la main (+15 s, préréglages) doit être CELUI qui tourne : il était écrasé par la valeur prescrite au rendu suivant, donc le réglage d’Adrien n’a jamais servi une seule fois. Et changer d’exercice doit reprendre le repos prescrit du nouveau mouvement');
     if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer. Elle doit AUSSI redemander « prêt ? » en changeant d’exercice, et ne pas lancer de repos après la dernière série');
     if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
+    if (!checks.aucuneSeancePerdue) errors.push('Des séances du programme disparaissent en silence : quand deux séances du même type tombent le même jour (plus de séances que de jours cochés), la garde par créneau renonçait au lieu de décaler — 18 séances sur 48 étaient perdues. Le plan annonce N séances, l’agenda doit en recevoir N');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');
     if (!checks.sommeilUneSeuleVoix) errors.push('Sommeil : il doit y avoir EXACTEMENT un panneau qui parle d’irrégularité (deux disaient la même chose avec le même chiffre, l’un sous l’autre), il doit citer Windred 2023, et l’impact sommeil ne doit pas affirmer « 0 min contre 0 min »');
     if (!checks.rattrapageZone) errors.push('Zone à rattraper : l’app nomme le problème sans dire par quoi commencer, ou propose des exercices que le matériel déclaré ne permet pas. Un diagnostic sans conduite à tenir ne sert à rien ; un conseil infaisable est pire');
