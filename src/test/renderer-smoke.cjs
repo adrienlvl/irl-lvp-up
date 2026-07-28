@@ -316,9 +316,13 @@ app.whenReady().then(async () => {
         waterWeek: typeof daysHittingTarget === 'function' && daysHittingTarget([{ date: '2026-07-06', water: 8 }, { date: '2026-07-07', water: 5 }], 'water', 8, '2026-07-06', '2026-07-10') === 1,
         proteinTargetUnified: typeof proteinTarget === 'function' && (() => {
           const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sw = state.weights;
           let ok = true, vus = 0;
           [[80, 'perte'], [95, 'prise'], [62, 'maintien']].forEach(function (cas) {
-            state.profile = Object.assign({}, state.profile, { weight: cas[0], goal: cas[1] });
+            /* Le profil garde un poids VOLONTAIREMENT différent : si un rendu revenait le
+               lire, la cible affichée ne correspondrait plus et le check tomberait. */
+            state.profile = Object.assign({}, state.profile, { weight: cas[0] + 11, goal: cas[1] });
+            state.weights = [{ date: localDate(), value: cas[0] }];
             const attendu = proteinTarget(cas[0], cas[1]).gramsPerDay;
             if (!(attendu > 0)) { ok = false; return; }
             if (typeof renderSupplements === 'function') { try { renderSupplements(); } catch (_) {} }
@@ -329,7 +333,7 @@ app.whenReady().then(async () => {
             if (cible) { vus++; if (cible.indexOf(String(attendu)) === -1) ok = false; }
             if (jauge) { vus++; if (jauge.indexOf(String(attendu)) === -1) ok = false; }
           });
-          state.profile = sp;
+          state.profile = sp; state.weights = sw;
           if (typeof renderSupplements === 'function') { try { renderSupplements(); } catch (_) {} }
           if (typeof renderHydration === 'function') { try { renderHydration(); } catch (_) {} }
           // Exiger d'avoir VU au moins une surface : sinon le check passerait à vide.
