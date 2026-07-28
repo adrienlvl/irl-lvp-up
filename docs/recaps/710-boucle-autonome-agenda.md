@@ -1453,3 +1453,66 @@ cible ; on l'affiche tel quel plutôt que d'ajuster un chiffre pour que la somme
 
 ### Reste
 - Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
+
+---
+
+## Itération 50 — Sécurité alimentaire : nommer le risque plutôt que retirer le choix
+
+**Déclencheur.** Adrien, en cours d'itération : « faut que tu donnes des idées de repas autre
+que ça, le but n'est pas non plus que j'aie des troubles du comportement alimentaire, et pareil
+si l'application est mise sur l'App Store ou autre ». Puis, après ma première version : **« Laisse
+les choix agressifs mais faut mettre des warnings, et que les gens soient conscients des
+risques. »**
+
+### Ce que la sonde a trouvé
+
+`weightTargetAdvice` rendait déjà le bon verdict pour une cible de 52 kg à 1m80 :
+`level: 'stop'`, « Cette cible te mettrait en insuffisance pondérale (IMC 16) […] parles-en à un
+professionnel de santé ».
+
+**`programmesNutrition` ne lisait pas ce drapeau.** Elle proposait « Très agressif » à 2001 kcal
+à ce même profil, et aucune de ses alertes ne parlait de la cible. L'app alertait d'un côté et
+offrait le contraire de l'autre — le fil rouge, dans sa version la plus coûteuse.
+
+Second défaut, trouvé en ouvrant l'itération : les repas lisaient `profile.goal` et non le
+programme **choisi**. Sélectionner « Prise de masse » avec un profil « perte » affichait
+3387 kcal de surplus sous la note « En déficit… ».
+
+### Ce qui a été fait
+
+Ma première version **filtrait** les deux rythmes les plus durs. Adrien a tranché l'inverse, et
+il a raison : le drapeau ne retire plus rien, il **attache un avertissement nommé** — l'IMC visé,
+ce qui se dégrade (muscle, densité osseuse, sommeil, hormones), et vers qui se tourner — à chaque
+rythme en déficit, plus un second aux rythmes agressifs. Sur cible risquée : **5 alertes au lieu
+de 3, même cible calorique, même liberté**.
+
+Le drapeau descend jusqu'à `programmeNutritionChoisi` : sans ça le programme **retenu** serait
+rendu sans ses alertes — averti dans la liste, muet une fois sélectionné.
+
+Repas : quatre idées par créneau (dont des pistes sans viande) qui tournent avec le jour,
+portions calées sur la cible, formulations débarrassées de tout ce qui se « mérite » ou se
+« rattrape », et un principe affiché avec chaque journée — *des idées, pas des règles ; aucun
+aliment interdit ; si compter devient une charge, arrête de compter*.
+
+### Ce que cette itération a appris
+
+*Le garde-fou existait, il n'était pas branché.* Ni `programmesNutrition` ni les repas ne
+lisaient un verdict que l'app calculait déjà correctement. Chercher ce qui n'est pas **relié**
+paie plus que chercher ce qui est faux.
+
+*Masquer n'est pas désactiver.* Ma version filtrante laissait `programmeNutritionChoisi`
+retrouver et **appliquer** un « très agressif » enregistré. Une option cachée mais active est
+pire que pas de garde-fou : elle ment sur l'état réel.
+
+*Retirer une option n'apprend rien ; la nommer, si.* La correction d'Adrien a produit un
+meilleur design que le mien — l'utilisateur garde la main ET sait ce qu'il fait.
+
+**Mutations.** 3 posées (alerte IMC neutralisée, rotation figée, principe vidé), 3 détectées.
+La 4e s'est validée en conditions réelles : le smoke **est tombé** tant que `gardeCible`
+n'atteignait pas le rendu, et n'est repassé qu'une fois la plomberie faite jusqu'à
+`trainingWeekPlan`.
+
+661 tests · SMOKE OK · 390 px propre · **publié en v2.10.0** (à la demande d'Adrien).
+
+### Reste
+- Étape 11 (panneau « Ma semaine ») : **décision d'Adrien**.
