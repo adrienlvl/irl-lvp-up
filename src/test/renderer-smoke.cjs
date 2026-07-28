@@ -3185,6 +3185,47 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.dplusStable = (() => {
+        try {
+          if (typeof renderAthlete !== 'function') return false;
+          const st = state.trail, sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const so = state.fitnessObjective;
+          // Profil trail, sinon showsEnduranceBase masque le panneau et le check serait vacant.
+          state.profile = Object.assign({}, state.profile, { goal: 'trail' });
+          state.fitnessObjective = 'endurance';
+          const hier = (() => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+          // Chaine VOLONTAIRE : state.trail n est pas normalise, une sauvegarde importee en porte.
+          state.trail = [{ date: hier, elevation: '450', longRun: 90 }];
+
+          showPage('athlete');
+          renderAthlete();
+          const champ = document.getElementById('elevationInput');
+          const bouton = document.getElementById('saveTrail');
+          const present = !!(champ && bouton && getComputedStyle(champ).display !== 'none'
+            && champ.getBoundingClientRect().height > 0);
+          const auRendu = champ ? String(champ.value) : '(absent)';
+          const somme = () => state.trail.reduce((x, y) => x + (Number(y.elevation) || 0), 0);
+          const avant = somme();
+          /* TROIS CLICS SANS RIEN TAPER. C est le scenario qui discriminait : le champ
+             reaffichait la SOMME de la semaine, que Enregistrer stockait comme la valeur DU
+             JOUR — 450 devenait 900, puis 1350, puis 1800. */
+          if (bouton) { bouton.click(); bouton.click(); bouton.click(); }
+          const apres = somme();
+          const insight = String((document.getElementById('trailInsight') || {}).textContent || '');
+
+          state.trail = st; state.profile = sp; state.fitnessObjective = so;
+          try { renderAthlete(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__dplus = 'present=' + present + ' auRendu[' + auRendu + '] avant=' + avant + ' apres=' + apres
+            + ' insight[' + insight.slice(0, 45) + ']';
+          /* Le champ ne doit PAS pre-remplir avec le cumul hebdo, et le total ne doit pas
+             bouger d un metre apres trois enregistrements a vide. */
+          return present && avant === 450 && apres === 450 && auRendu !== '450'
+            && insight.indexOf('Cette semaine : 450 m D+') !== -1;
+        } catch (e) { checks.__errDplus = String(e && e.message); return false; }
+      })();
+
       checks.coucherChiffre = (() => {
         try {
           const sr = state.recovery;
@@ -4644,6 +4685,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.dplusStable) errors.push('Panneau trail : le champ dénivelé doit montrer TA SAISIE DU JOUR, pas le cumul de la semaine — sinon « Enregistrer » réenregistre le total comme la valeur du jour et le chiffre enfle à chaque clic (mesuré : 450 → 900 → 1350 → 1800 sans rien taper). Trois enregistrements à vide ne doivent pas bouger le total hebdomadaire d’un mètre');
     if (!checks.coucherChiffre) errors.push('Coach sommeil : un coucher qui dérive le week-end (23:10 / 01:15, 56 min d’écart-type) et un coucher à heure fixe ne doivent PAS produire le même verdict à l’écran — le premier doit porter le chiffre mesuré et nommer le week-end, le second dire « heure fixe »');
     if (!checks.generateursMasques) errors.push('Les trois générateurs de semaine concurrents doivent être MASQUÉS AU RENDU (display calculé à none, hauteur nulle) mais TOUJOURS PRÉSENTS dans le DOM — et le Plan de bataille, seul générateur restant, doit rester peint et son bouton cliquable. Deux des cibles posent display: sans règle [hidden] : sans la règle CSS jumelle, l’attribut est ignoré');
     if (!checks.planTrail) errors.push('Intégration ultra-trail : avec un profil endurance et un D+ saisi, le Plan de bataille doit afficher le dénivelé réparti sur ses courses (somme EXACTEMENT égale au D+ saisi) et la sortie longue visée — et surtout ne JAMAIS écrire le D+ dans le titre d’une séance, où l’affûtage fait un remplacement ancré sur les km');
