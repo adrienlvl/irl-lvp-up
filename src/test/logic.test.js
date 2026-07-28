@@ -14546,3 +14546,83 @@ test('dureePlateau : le coach mesure depuis quand, au lieu de l’inventer', () 
   assert.match(avec.titre, /Plateau confirmé/);
   assert.match(avec.action, /plus une fluctuation/, 'le conseil change quand le plateau est confirmé');
 });
+
+test('le plan se souvient de la semaine précédente', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const base = {
+    fitnessObjective: 'muscle',
+    profile: { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'maintien', availableDays: [1, 3, 5], level: 'intermediaire' },
+    goals: {}, weights: [{ date: AUJ, value: 82 }], recovery: [], workouts: []
+  };
+  const plan = w => L.trainingWeekPlan(L.trainingPlanInputs({ ...base, workouts: w }, AUJ), exercises);
+  const focus = p => p.week.filter(s => s.kind === 'muscu').map(s => s.focus);
+
+  /* Le plan reproposait la même semaine indéfiniment : les focus tournaient sur un index
+     fixe, sans jamais regarder les séances enregistrées. Sauter trois fois les jambes ne
+     changeait rien. */
+  const sansRien = focus(plan([]));
+  assert.ok(sansRien.length > 0);
+
+  // NOMS RÉELS de la bibliothèque : un nom inventé rend des zones vides et le test devient
+  // vacant — c'est exactement l'erreur que j'ai commise en écrivant ce test la première fois.
+  const haut = ['Pompes classiques', 'Tractions supination', 'Développé militaire kettlebell'];
+  haut.forEach(n => assert.ok(L.exerciseZones(n).length > 0, `${n} doit exister dans la bibliothèque`));
+
+  const w = haut.map((n, i) => {
+    const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() - (6 - i * 2));
+    return { date: d.toISOString().slice(0, 10), exercises: [{ name: n, sets: 4, completedSets: 4 }] };
+  });
+  const p = plan(w);
+
+  // La priorité place le REPOSÉ devant : jamais travaillé d'abord, plus récent en dernier.
+  assert.ok(p.memoire && Array.isArray(p.memoire.priorite));
+  assert.ok(p.memoire.priorite.indexOf('legs') < p.memoire.priorite.indexOf('arms'),
+    `legs (jamais fait) doit passer avant arms (fait il y a 2 j) : ${p.memoire.priorite.join(' > ')}`);
+  assert.equal(p.memoire.seances7j, 3);
+
+  // Et le PLAN suit cette priorité : c'est tout l'objet de la mémoire.
+  const apres = focus(p);
+  assert.notDeepEqual(apres, sansRien, 'la semaine change quand la précédente est connue');
+  assert.equal(apres[0], 'legs', `après une semaine de haut du corps, on commence par les jambes (obtenu : ${apres.join(' > ')})`);
+
+  // Un historique vide ne doit pas fabriquer de priorité ni changer le programme.
+  const vierge = L.semaineMemoire({ workouts: [] }, AUJ);
+  assert.equal(vierge.vierge, true);
+  assert.deepEqual(vierge.priorite, []);
+});
+
+test('semaineEnCours : ce qui est déjà fait cette semaine ne doit pas bouger', () => {
+  /* Passer de 4 à 5 courses un mercredi régénérait la semaine ENTIÈRE : lundi et mardi,
+     déjà faits, se retrouvaient replanifiés. Il faut savoir ce qui est derrière soi. */
+  const MER = '2026-07-29';
+  const w = [
+    { date: '2026-07-27', exercises: [{ name: 'Pompes classiques', sets: 4 }] },
+    { date: '2026-07-28', km: 8, type: 'course' }
+  ];
+  const e = L.semaineEnCours({ workouts: w }, MER);
+  assert.equal(e.lundi, '2026-07-27', 'la semaine commence lundi, comme partout dans l’app');
+  assert.equal(e.faites.muscu, 1);
+  assert.equal(e.faites.course, 1);
+  assert.equal(e.faites.total, 2);
+  assert.equal(e.enCours, true, 'mercredi, on est bien au milieu');
+  assert.deepEqual(e.joursRestants, [3, 4, 5, 6, 0], 'mercredi → dimanche, aujourd’hui compris');
+
+  // Une séance MIXTE compte pour les deux : c'est ce qu'elle est.
+  const mixte = L.semaineEnCours({ workouts: [{ date: '2026-07-28', km: 5, exercises: [{ name: 'Pompes classiques', sets: 3 }] }] }, MER);
+  assert.equal(mixte.faites.muscu, 1);
+  assert.equal(mixte.faites.course, 1);
+  assert.equal(mixte.faites.total, 1, 'une seule séance, comptée dans deux familles');
+
+  // Un lundi, rien n'est derrière : la semaine entière est disponible.
+  const lundi = L.semaineEnCours({ workouts: [] }, '2026-07-27');
+  assert.equal(lundi.joursRestants.length, 7);
+  assert.equal(lundi.enCours, false);
+
+  // Les séances de la semaine PRÉCÉDENTE ne comptent pas.
+  const avant = L.semaineEnCours({ workouts: [{ date: '2026-07-25', km: 10, type: 'course' }] }, MER);
+  assert.equal(avant.faites.total, 0);
+
+  assert.equal(L.semaineEnCours(null, 'nawak'), null);
+  assert.doesNotThrow(() => L.semaineEnCours('nawak', MER));
+});
