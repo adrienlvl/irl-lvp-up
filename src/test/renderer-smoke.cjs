@@ -3180,6 +3180,51 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.nutritionAuChoix = (() => {
+        try {
+          if (typeof runObjectiveProgram !== 'function' || typeof programmesNutrition !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights, so = state.fitnessObjective, swk = state.workouts;
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte', availableDays: [1, 2, 3, 4, 5, 6, 0] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 74, sessions: 4, runs: 4, progSessions: '', nutritionPlan: 'equilibre' });
+          state.weights = [{ date: localDate(), value: 80 }];
+          state.workouts = []; state.fitnessObjective = 'athletique';
+
+          showPage('athlete');
+          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          runObjectiveProgram();
+          const sel = document.getElementById('nutriPlanSelect');
+          // Le RENDU, pas la propriete : un select present mais non peint ne se choisit pas.
+          const vu = !!sel && getComputedStyle(sel).display !== 'none';
+          const plusieurs = !!sel && sel.options.length >= 4;
+          const valEq = document.querySelector('.onc-val');
+          const kcalEq = valEq ? (valEq.textContent || '') : '';
+
+          /* On CHOISIT l agressif et on verifie que l ecran change : un selecteur qui ne
+             change rien serait pire que pas de selecteur. */
+          let kcalAgr = '', alerte = false;
+          if (sel) {
+            sel.value = 'agressif';
+            sel.dispatchEvent(new Event('change'));
+            const v2 = document.querySelector('.onc-val');
+            kcalAgr = v2 ? (v2.textContent || '') : '';
+            const al = document.querySelector('.onc-alertes');
+            alerte = !!al && getComputedStyle(al).display !== 'none' && (al.textContent || '').length > 20;
+          }
+          checks.__nutri = 'eq=' + kcalEq.slice(0, 26) + ' | agr=' + kcalAgr.slice(0, 26) + ' | alerte=' + alerte;
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          state.fitnessObjective = so; state.workouts = swk;
+          try { runObjectiveProgram(); } catch (_) {}
+          showPage('dashboard');
+
+          // Le choix agressif doit VRAIMENT changer la cible, et s accompagner d un avertissement.
+          return vu && plusieurs && kcalEq.length > 0 && kcalAgr.length > 0 && kcalEq !== kcalAgr && alerte;
+        } catch (e) { checks.__errNutri = String(e && e.message); return false; }
+      })();
+
       checks.seanceEtapeParEtape = (() => {
         try {
           if (typeof openGuidedWorkout !== 'function') return false;
@@ -3912,6 +3957,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.nutritionAuChoix) errors.push('Nutrition : le Plan de bataille doit proposer PLUSIEURS programmes (#nutriPlanSelect), et choisir « agressif » doit changer la cible affichée ET faire apparaître l’avertissement. Un sélecteur qui ne change rien serait pire que pas de sélecteur');
     if (!checks.seanceEtapeParEtape) errors.push('Séance guidée : elle doit demander « prêt ? » avant d’ouvrir la liste des séries, lancer un décompte de 5 s, puis mettre en avant UNE seule série à la fois — et passer à la suivante quand on valide. Sans ça on retombe sur une liste de champs à remplir, ce qu’Adrien a explicitement demandé de changer');
     if (!checks.chargeMasquee) errors.push('Séance guidée : le champ « kg » doit disparaître sur un exercice au poids du corps (et rester sur un kettlebell), et le mot « Charge » ne doit plus servir de placeholder nulle part — il réclamait une charge qui n’existe pas sur des pompes');
     if (!checks.programmeCetteSemaine) errors.push('« Programmer la semaine » ne pose rien dans la semaine EN COURS (ou pose des séances dans le passé) : le bouton dit « la semaine », l’Agenda s’ouvre sur la semaine courante — si tout part de lundi prochain, l’écran paraît vide et c’est exactement ce qu’Adrien a signalé');

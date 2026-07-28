@@ -14228,6 +14228,47 @@ test('aucun champ d’état fantôme : ce que app.js lit doit exister', () => {
     + fantomes.map(k => 'state.' + k + ' (l. ' + lues[k].join(', ') + ')').join(' | '));
 });
 
+test('programmesNutrition : le choix est ouvert, mais rien n’est caché', () => {
+  const e = L.energyPlan({ weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+    sessionsPerWeek: 4, goal: 'perte', targetWeight: 74, todayKey: '2026-07-28' });
+  const liste = L.programmesNutrition(e, 80);
+
+  /* Adrien : « la nutrition devrait pouvoir être choisie par moi […] autoriser d'être plus
+     agressif sur la perte de poids […] mettre un avertissement si c'est trop peu ». Le déficit
+     était imposé : `safeLossRate` dérivait un rythme de l'IMC et personne ne pouvait le discuter. */
+  assert.ok(liste.length >= 4, 'plusieurs programmes proposés');
+  const par = c => liste.filter(x => x.cle === c)[0];
+  assert.ok(par('prudent') && par('equilibre') && par('agressif') && par('maintien') && par('prise'));
+
+  // Le choix agressif existe VRAIMENT : il coupe plus que l'équilibré.
+  assert.ok(par('agressif').kcal < par('equilibre').kcal, 'agressif = moins de calories');
+  assert.ok(par('equilibre').kcal < par('prudent').kcal, 'et prudent en coupe le moins');
+  assert.ok(par('prise').kcal > par('maintien').kcal, 'la prise de masse est un surplus');
+  assert.equal(par('maintien').kcal, e.tdee, 'maintien = la dépense, sans écart');
+
+  // Il annonce son coût : c'est la condition pour le proposer.
+  assert.ok(par('agressif').alertes.length > 0, 'le programme agressif est accompagné d’un avertissement');
+  assert.equal(par('equilibre').alertes.length, 0, 'et l’équilibré n’alarme pas pour rien');
+
+  /* LE GARDE-FOU qui ne se négocie pas : le métabolisme de base est un plancher. On l'écrit sur
+     le profil où il MORD — un actif de 80 kg ne l'atteint jamais, une sédentaire légère si. */
+  const e2 = L.energyPlan({ weight: 58, height: 165, age: 45, sex: 'femme', activityLevel: 'sedentaire',
+    sessionsPerWeek: 1, goal: 'perte', targetWeight: 54, todayKey: '2026-07-28' });
+  const l2 = L.programmesNutrition(e2, 58);
+  const agr = l2.filter(x => x.cle === 'agressif')[0];
+  assert.equal(agr.kcal, e2.bmr, 'ramené AU plancher, jamais en dessous');
+  assert.equal(agr.plancherAtteint, true);
+  assert.ok(agr.alertes.some(x => /métabolisme de base/.test(x)), 'et on DIT qu’on l’a ramené');
+  assert.ok(liste.every(x => x.kcal >= e.bmr), 'aucun programme ne descend sous le plancher');
+
+  // Le choix : celui demandé, ou l'équilibré — un choix inconnu ne casse rien.
+  assert.equal(L.programmeNutritionChoisi(e, 80, 'agressif').cle, 'agressif');
+  assert.equal(L.programmeNutritionChoisi(e, 80, 'nawak').cle, 'equilibre', 'repli sur l’équilibré');
+  assert.equal(L.programmeNutritionChoisi(e, 80, undefined).cle, 'equilibre');
+  assert.deepEqual(L.programmesNutrition(null, 80), [], 'sans plan énergétique : rien');
+  assert.deepEqual(L.programmesNutrition({ tdee: 0, bmr: 0 }, 80), [], 'chiffres absents : rien');
+});
+
 test('exerciceSansCharge : plus de « Charge » à saisir sur des pompes', () => {
   const { exercises } = require('../lib/exercises-data.js');
   const par = n => exercises.find(e => e.name === n);

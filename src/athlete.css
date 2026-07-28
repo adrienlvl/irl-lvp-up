@@ -245,3 +245,21 @@
 .oc-notes{margin:8px 0 0;padding-left:18px}
 .oc-notes li{font-size:.77rem;color:var(--text);margin-bottom:3px}
 .oc-src{display:block;margin-top:8px;font-size:.68rem;color:var(--muted);font-style:italic}
+
+/* CHOIX DU PROGRAMME NUTRITIONNEL. Le sélecteur d'abord (c'est une décision), la cible en
+   évidence, le conseil ensuite, l'avertissement en dernier et visuellement distinct — il ne
+   doit ni se confondre avec le conseil ni passer inaperçu. */
+.op-nutri-choix{display:grid;gap:var(--sp-2);margin-top:var(--sp-3);padding-top:var(--sp-3);
+  border-top:1px solid var(--line)}
+.op-nutri-choix[hidden]{display:none}
+.onc-lab{display:grid;gap:5px;color:var(--muted);font-size:var(--fs-2xs);font-weight:650}
+.onc-lab select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:11px;font:inherit;font-size:16px;min-width:0;width:100%}
+.onc-val{font-size:var(--fs-md);font-weight:750;color:var(--accent);line-height:1.35;
+  font-variant-numeric:tabular-nums}
+.onc-conseil{margin:0;color:var(--muted);font-size:var(--fs-2xs);line-height:1.55}
+.onc-alertes{margin:0;padding-left:0;list-style:none;display:grid;gap:5px}
+.onc-alertes[hidden]{display:none}
+.onc-alertes li{color:var(--text);font-size:var(--fs-2xs);line-height:1.5;
+  background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.3);
+  border-radius:var(--r-sm);padding:7px 9px}
