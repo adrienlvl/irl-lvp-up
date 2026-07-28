@@ -14013,6 +14013,67 @@ test('calorieAdjustment ne réclame plus de cardio sur un déficit déjà creus�
   assert.match(sans.message, /ajoute du cardio/);
 });
 
+test('trainingWeekPlan : des kilomètres, et seulement si Adrien les a renseignés', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const AUJ = '2026-07-28';
+  const dans = n => { const d = new Date(AUJ + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const etat = (km, j) => ({
+    fitnessObjective: 'athletique',
+    profile: { weight: 75, height: 180, age: 29, sex: 'homme', activityLevel: 'actif', goal: 'maintien', level: 'intermediaire' },
+    goals: { targetWeight: 74, sessions: 4, progSessions: '', runs: 4, distance: km },
+    weights: [{ date: AUJ, value: 75 }], recovery: [], workouts: [],
+    raceGoal: j === null ? null : { type: 42, distanceKm: 42, date: dans(j) }
+  });
+  const plan = (km, j) => L.trainingWeekPlan(L.trainingPlanInputs(etat(km, j), AUJ), exercises);
+  const courses = p => p.week.filter(s => s.kind === 'course');
+  const totalKm = p => Math.round(courses(p).reduce((a, s) => a + (Number(s.km) || 0), 0) * 10) / 10;
+
+  /* `runDistances` répartit un volume hebdo depuis toujours, mais SEUL `buildTrainingWeek` —
+     le panneau « Ma semaine », celui qu'on envisage de masquer — l'appelait. Les trois coachs
+     unifiés ne prescrivaient que des minutes ; pour préparer une course, « 8 km » se pose sur
+     le terrain, « 35 min » beaucoup moins. */
+  const sans = plan(0, null);
+  assert.ok(courses(sans).length > 0, 'il y a bien des courses à examiner');
+  assert.ok(courses(sans).every(s => !s.km), 'volume non renseigné : AUCUNE distance inventée');
+  assert.ok(courses(sans).every(s => !/km/.test(s.title)), 'et aucun titre ne parle de km');
+
+  const avec = plan(40, null);
+  assert.ok(Math.abs(totalKm(avec) - 40) <= 2, 'volume renseigné : la semaine vise ce volume');
+  const longue = courses(avec).filter(s => s.type === 'longue')[0];
+  assert.ok(longue, 'la sortie longue est au programme');
+  assert.equal(longue.km, Math.max(...courses(avec).map(s => s.km)),
+    'la plus grosse distance va à la sortie longue');
+  /* Je n'affirme PAS ici que l'attribution se fait « par rôle et non par position » : dans les
+     quatre gabarits actuels, `longue` est toujours en dernier, donc les deux implémentations
+     sont indiscernables et une mutation par position survit au test. La recherche par rôle
+     reste défensive (elle protège d'un futur gabarit où la longue ne finirait pas la liste),
+     mais un test ne doit revendiquer que ce qu'il prouve. */
+
+  // Le gabarit « vitesse » à 3 courses ne contient AUCUNE sortie longue : branche à part.
+  const sansLongue = L.runPlanWeek(3, { emphasis: 'vitesse', weeklyKm: 30 });
+  assert.ok(sansLongue.sessions.every(s => !s.type || s.type !== 'longue'), 'ce gabarit n’a pas de longue');
+  assert.ok(sansLongue.sessions.every(s => Number(s.km) > 0), 'chaque sortie reçoit tout de même sa distance');
+  const somme = sansLongue.sessions.reduce((a, s) => a + s.km, 0);
+  assert.ok(Math.abs(somme - 30) <= 3, 'et le volume hebdo reste respecté sans sortie longue');
+
+  /* INVARIANT : le titre ne doit JAMAIS contredire la donnée. C'est le fil rouge de tous les
+     défauts de ce dépôt — une phrase écrite avant l'effet, ou conservée après qu'il a changé. */
+  const titreCoherent = p => courses(p).every(s => !s.km
+    || s.title.indexOf(String(s.km).replace('.', ',') + ' km') !== -1);
+  assert.ok(titreCoherent(avec), 'chaque titre porte la distance réellement prescrite');
+
+  /* L'affûtage rabotait les minutes SANS toucher aux km : le titre aurait annoncé « 14 km »
+     sur une semaine présentée comme allégée. */
+  const affute = plan(40, 10);
+  assert.ok(totalKm(affute) < totalKm(avec), 'à J-10 les kilomètres baissent aussi');
+  assert.ok(titreCoherent(affute), 'et les titres suivent la coupe — pas de distance périmée');
+
+  // Le message cite l'unité que l'écran AFFICHE : km quand il y en a, minutes sinon.
+  const msg = p => (p.ajustements || []).filter(x => /avant ta course/.test(x))[0] || '';
+  assert.ok(/km\)/.test(msg(affute)), 'distances prescrites → le message parle en km');
+  assert.ok(/min\)/.test(msg(plan(0, 10))), 'pas de distances → il retombe sur les minutes');
+});
+
 test('trainingWeekPlan : une course qui approche allège vraiment la semaine', () => {
   const { exercises } = require('../lib/exercises-data.js');
   const AUJ = '2026-07-28';

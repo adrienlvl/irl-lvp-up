@@ -4405,6 +4405,9 @@ function trainingPlanInputs(state, todayKey) {
      « Ma semaine », celui qu'on envisage de masquer, l'honorait.
      On dérive les jours EXACTEMENT comme le coach le fait déjà (même arrondi, même champ
      `type` en guise de distance) : deux calculs différents du même J-N finiraient par diverger. */
+  /* Le volume hebdo qu'Adrien a lui-meme fixe (page Athlete). Non renseigne = on ne
+     prescrit PAS de distance : mieux vaut une seance en minutes qu'un kilometrage invente. */
+  const _volHebdo = Number(g.distance) > 0 ? Number(g.distance) : null;
   let raceDaysLeft = null, raceKm = null;
   const _course = st.raceGoal && isRealDateKey(st.raceGoal.date) ? st.raceGoal : null;
   if (_course && isRealDateKey(todayKey)) {
@@ -4417,6 +4420,7 @@ function trainingPlanInputs(state, todayKey) {
     objectif: st.fitnessObjective || 'athletique',
     sessions: g.progSessions, runs: g.runs, manque: manque,
     raceDaysLeft: raceDaysLeft, raceKm: raceKm,
+    weeklyKm: _volHebdo,
     jours: Array.isArray(p.availableDays) ? p.availableDays : [],
     niveau: p.level, equipement: p.equipment, seed: st.objectiveSeed || 0,
     energie: energie, acwr: charge, readiness: forme, todayKey: todayKey,
@@ -4552,6 +4556,8 @@ function trainingWeekPlan(input, exercises) {
   const complet = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
     sessions: muscu + runs, runs: runs, seed: i.seed, equipment: i.equipement,
     perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
+    // Le volume hebdo, pour prescrire des KILOMETRES et pas seulement des minutes.
+    weeklyKm: i.weeklyKm,
     prioriteZones: prioriteComposee,
     semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
   });
@@ -4580,6 +4586,8 @@ function trainingWeekPlan(input, exercises) {
   const programme = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
     sessions: resteMuscu + resteRuns, runs: resteRuns, seed: i.seed, equipment: i.equipement,
     perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
+    // Le volume hebdo, pour prescrire des KILOMETRES et pas seulement des minutes.
+    weeklyKm: i.weeklyKm,
     /* La semaine suivante tient compte de la précédente : sans ça le plan reproposait
        éternellement la même chose, quoi qu'Adrien ait fait ou sauté. */
     prioriteZones: prioriteComposee,
@@ -4623,20 +4631,42 @@ function trainingWeekPlan(input, exercises) {
        `programme.week` (même tableau, mêmes objets), donc mesurer après la boucle rendrait
        zéro et le message disparaîtrait en silence. */
     const _av = _mn(semaine);
+    /* Les KILOMÈTRES doivent suivre la coupe, sinon le titre annonce « Sortie longue · 14 km »
+       sur une semaine qu'on présente comme allégée : l'écart entre ce qu'on dit et ce qu'on
+       fait, encore une fois. Le titre porte la distance, donc on le réécrit. */
+    const _kmAv = semaine.filter(function (s) { return s && s.kind === 'course'; })
+      .reduce(function (a, s) { return a + (Number(s.km) || 0); }, 0);
     semaine.forEach(function (s) {
       if (!s || s.kind !== 'course') return;
       const m = Number(s.minutes);
-      if (!Number.isFinite(m) || m <= 0) return;
-      s.minutes = Math.max(20, Math.round(m * _affutage.volumeMul));
+      if (Number.isFinite(m) && m > 0) s.minutes = Math.max(20, Math.round(m * _affutage.volumeMul));
+      const k = Number(s.km);
+      if (Number.isFinite(k) && k > 0) {
+        // Plancher à 3 km, comme `runDistances` : en dessous ce n'est plus une sortie.
+        const neuf = Math.max(3, Math.round(k * _affutage.volumeMul * 2) / 2);
+        if (typeof s.title === 'string') {
+          s.title = s.title.replace(/ · [0-9]+(,[0-9]+)? km$/, '') + ' · ' + String(neuf).replace('.', ',') + ' km';
+        }
+        s.km = neuf;
+      }
     });
+    const _kmAp = semaine.filter(function (s) { return s && s.kind === 'course'; })
+      .reduce(function (a, s) { return a + (Number(s.km) || 0); }, 0);
     /* Le message vient APRÈS la coupe et cite la coupe RÉELLEMENT appliquée, pas l'intention :
        le plancher à 20 min rend souvent la réduction effective plus faible que `cutPct`, et
        annoncer un chiffre qu'on n'a pas tenu est exactement le défaut qu'on traque partout. */
     const _ap = _mn(semaine);
     const _coupe = _av > 0 ? Math.round((1 - _ap / _av) * 100) : 0;
     if (_coupe > 0) {
+      /* On cite l'unité que l'écran AFFICHE. Quand les distances sont prescrites, le titre
+         des séances porte des km : parler en minutes obligerait Adrien à convertir pour
+         vérifier, et un conseil qu'on doit traduire n'est pas un conseil. */
+      const _chiffres = (_kmAv > 0 && _kmAp > 0)
+        ? (String(Math.round(_kmAv * 10) / 10).replace('.', ',') + ' → '
+           + String(Math.round(_kmAp * 10) / 10).replace('.', ',') + ' km')
+        : (_av + ' → ' + _ap + ' min');
       ajustements.push('J-' + _affutage.daysLeft + ' avant ta course : volume de course réduit de '
-        + _coupe + ' % (' + _av + ' → ' + _ap + ' min). Même nombre de sorties, même intensité — '
+        + _coupe + ' % (' + _chiffres + '). Même nombre de sorties, même intensité — '
         + 'la forme se révèle en réduisant la fatigue, pas en s’entraînant plus (Bosquet 2007).');
     }
   }
@@ -4724,7 +4754,7 @@ function objectiveProgram(key, exercises, opts) {
   }
   const focus = Array.from({ length: forme.muscu }, (_, i) => ordre[i % ordre.length]);
   const muscu = focus.map((f, fi) => ({ kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45, exercises: pickExercisesForZones(FOCUS_ZONES[f], pool, per, seed ? seed + fi : fi) }));
-  const runs = runPlanWeek(forme.runs, { emphasis: o.runEmphasis, duresMax: opts && opts.duresMax, semaine: opts && opts.semaine }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, why: s.why, source: s.source || null, protocole: s.protocole || null }));
+  const runs = runPlanWeek(forme.runs, { emphasis: o.runEmphasis, duresMax: opts && opts.duresMax, semaine: opts && opts.semaine, weeklyKm: opts && opts.weeklyKm }).sessions.map(s => ({ kind: 'course', type: s.type, title: s.label, minutes: s.minutes, km: s.km || null, why: s.why, source: s.source || null, protocole: s.protocole || null }));
   const ordered = []; let mi = 0, ri = 0;
   while (mi < muscu.length || ri < runs.length) { if (mi < muscu.length) ordered.push(muscu[mi++]); if (ri < runs.length) ordered.push(runs[ri++]); }
   const total = ordered.length;
@@ -10537,6 +10567,37 @@ function runPlanWeek(count, opts) {
     }
     return base;
   }).sort(function (a, b) { return order(a.weekday) - order(b.weekday); });
+
+  /* KILOMÈTRES. Pour quelqu'un qui prépare une course, « 8 km » se pose sur le terrain,
+     « 35 min » beaucoup moins. `runDistances` sait répartir un volume hebdo depuis toujours,
+     mais SEUL `buildTrainingWeek` — le panneau « Ma semaine », celui qu'on envisage de
+     masquer — l'appelait ; les trois coachs unifiés ne prescrivaient que des minutes.
+     On n'affiche des km QUE si le volume hebdo est renseigné : `runDistances` retombe sinon
+     sur un défaut (14/22/26 km) qu'Adrien n'a jamais saisi, et prescrire une distance qu'il
+     n'a pas choisie serait inventer une donnée, pas le conseiller. */
+  const _km = Number(o.weeklyKm);
+  if (Number.isFinite(_km) && _km > 0 && sessions.length && typeof runDistances === 'function') {
+    const d = runDistances(sessions.length, _km, o.emphasis);
+    /* `runDistances` rend [faciles…, longue] : la LONGUE est en dernier. On l'attribue par
+       RÔLE et non par position — le gabarit « vitesse » ne contient pas toujours de sortie
+       longue, et un appariement par index donnerait la plus grosse distance au fractionné. */
+    const iLongue = sessions.findIndex(function (s) { return s.type === 'longue'; });
+    const longue = d[d.length - 1];
+    const faciles = d.slice(0, -1);
+    let k = 0;
+    sessions.forEach(function (s, i) {
+      s.km = (i === iLongue) ? longue : (faciles[k++] !== undefined ? faciles[k - 1] : longue);
+      s.label = s.label + ' · ' + String(s.km).replace('.', ',') + ' km';
+    });
+    // Aucune sortie longue au programme : la plus grosse part revient à la dernière séance.
+    if (iLongue < 0 && sessions.length) {
+      const last = sessions[sessions.length - 1];
+      if (last.km !== longue) {
+        last.label = last.label.replace(/ · [0-9,]+ km$/, ' · ' + String(longue).replace('.', ',') + ' km');
+        last.km = longue;
+      }
+    }
+  }
   return { sessions, count: sessions.length, totalMinutes: sessions.reduce((a, s) => a + s.minutes, 0) };
 }
 
