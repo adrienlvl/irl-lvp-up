@@ -14281,10 +14281,22 @@ test('planDuJour : un jour de repos PRÉVU n’est pas un retard', () => {
   /* Le compagnon d'entraînement proposait une rotation figée, sans lien avec le plan : un mardi
      de repos prévu, il annonçait « 0/4 séances · charge à lancer » comme si Adrien était en
      retard. Un jour de repos PRÉVU n'est pas un retard — c'est le plan qui fonctionne. */
-  const lundi = L.planDuJour(plan, '2026-07-27');
-  assert.equal(lundi.repos, false);
-  assert.ok(lundi.seances.length > 0, 'lundi est un jour d’entraînement');
-  assert.ok(lundi.seances.every(s => s.title), 'chaque séance porte son nom');
+  /* CONTRAT CHANGÉ SCIEMMENT : depuis que le plan n'ajuste que les jours RESTANTS, il ne
+     décrit plus les jours passés. L'interroger sur hier n'a plus de sens — il ne prétend
+     rien sur ce qui est derrière. On teste donc sur un jour d'entraînement À VENIR. */
+  const jourAvecSeance = (plan.week.filter(s => s.kind === 'muscu')[0] || {}).weekday;
+  assert.ok(jourAvecSeance !== undefined, 'le plan pose au moins une séance de muscu');
+  const dateDuJour = (() => {
+    for (let d = 0; d < 7; d++) {
+      const x = new Date('2026-07-28T12:00:00'); x.setDate(x.getDate() + d);
+      if (x.getDay() === jourAvecSeance) return x.toISOString().slice(0, 10);
+    }
+    return null;
+  })();
+  const avecSeance = L.planDuJour(plan, dateDuJour);
+  assert.equal(avecSeance.repos, false);
+  assert.ok(avecSeance.seances.length > 0, 'ce jour-là est un jour d’entraînement');
+  assert.ok(avecSeance.seances.every(s => s.title), 'chaque séance porte son nom');
 
   const mardi = L.planDuJour(plan, '2026-07-28');
   assert.equal(mardi.repos, true);
@@ -14625,4 +14637,89 @@ test('semaineEnCours : ce qui est déjà fait cette semaine ne doit pas bouger',
 
   assert.equal(L.semaineEnCours(null, 'nawak'), null);
   assert.doesNotThrow(() => L.semaineEnCours('nawak', MER));
+});
+
+test('ajuster au milieu de la semaine ne touche pas à ce qui est déjà fait', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const LUN = '2026-07-27', MER = '2026-07-29';
+  const base = {
+    fitnessObjective: 'athletique',
+    profile: { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'maintien', availableDays: [1, 2, 3, 4, 5, 6], level: 'intermediaire' },
+    weights: [{ date: MER, value: 82 }], recovery: [], workouts: []
+  };
+  const plan = (goals, workouts, jour) =>
+    L.trainingWeekPlan(L.trainingPlanInputs({ ...base, goals, workouts }, jour), exercises);
+  const faits = [
+    { date: LUN, exercises: [{ name: 'Pompes classiques', sets: 4 }] },
+    { date: '2026-07-28', km: 8, type: 'course' }
+  ];
+
+  /* Passer de 4 à 5 courses un mercredi régénérait la semaine ENTIÈRE : le lundi et le mardi,
+     déjà faits, se retrouvaient replanifiés. Le passé n'est pas ajustable. */
+  const lundi = plan({ progSessions: 6, runs: 3 }, [], LUN);
+  assert.equal(lundi.week.length, 6, 'un lundi vierge, la semaine entière est posée');
+  assert.equal(lundi.dejaFait, null);
+
+  const mercredi = plan({ progSessions: 6, runs: 3 }, faits, MER);
+  assert.deepEqual(mercredi.dejaFait, { muscu: 1, course: 1 });
+  assert.equal(mercredi.week.length, 4, '6 voulues − 2 faites = 4 à placer');
+  assert.ok(mercredi.week.every(s => [3, 4, 5, 6, 0].includes(s.weekday)),
+    `aucune séance sur un jour passé, or : ${mercredi.week.map(s => s.weekday).join(',')}`);
+  assert.ok(mercredi.ajustements.some(a => /Déjà fait cette semaine/.test(a)),
+    'ce qui a été retiré est DIT, pas retiré en silence');
+
+  /* LE cas d'Adrien : il passe de 3 à 4 courses un mercredi. Une seule course s'ajoute aux
+     jours restants — la course du mardi reste comptée. */
+  const avant = mercredi.week.filter(s => s.kind === 'course').length;
+  const apres = plan({ progSessions: 7, runs: 4 }, faits, MER);
+  const apresCourses = apres.week.filter(s => s.kind === 'course').length;
+  assert.equal(apresCourses, avant + 1, `${avant} → ${apresCourses} : exactement une course de plus`);
+  assert.ok(apres.week.every(s => [3, 4, 5, 6, 0].includes(s.weekday)), 'toujours aucun jour passé');
+
+  // Semaine déjà complète : on le dit sans culpabiliser, et on ne pose rien de plus.
+  const complet = plan({ progSessions: 2, runs: 1 }, faits, MER);
+  assert.equal(complet.week.length, 0);
+  assert.ok(complet.ajustements.some(a => /bonus, pas du retard/.test(a)));
+
+  // Plus de séances faites que prévu : aucun nombre négatif ne doit sortir.
+  const trop = plan({ progSessions: 1, runs: 0 }, faits, MER);
+  assert.ok(trop.week.length >= 0 && Number.isFinite(trop.week.length));
+  assert.ok(trop.dejaFait.muscu >= 0 && trop.dejaFait.course >= 0);
+});
+
+test('deux semaines, deux usages : ce qui reste, et ce qu’on répète', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  const MER = '2026-07-29';
+  const base = {
+    fitnessObjective: 'athletique',
+    profile: { weight: 82, height: 180, age: 29, sex: 'homme', activityLevel: 'modere', goal: 'maintien', availableDays: [1, 2, 3, 4, 5, 6], level: 'intermediaire' },
+    weights: [{ date: MER, value: 82 }], recovery: [], workouts: []
+  };
+  const plan = (goals, workouts, jour) => L.trainingWeekPlan(L.trainingPlanInputs({ ...base, goals, workouts }, jour), exercises);
+  const faits = [
+    { date: '2026-07-27', exercises: [{ name: 'Pompes classiques', sets: 4 }] },
+    { date: '2026-07-28', km: 8, type: 'course' }
+  ];
+
+  /* `week` = ce qui RESTE à faire cette semaine, c'est ce qu'on affiche et ce qu'Adrien
+     ajuste. Mais programmer 4 semaines depuis là amputerait les semaines 2 à 4 de ce qui a
+     été fait CETTE semaine-ci — elles, elles sont entières. */
+  const p = plan({ progSessions: 6, runs: 3 }, faits, MER);
+  assert.equal(p.week.length, 4, 'il reste 4 séances cette semaine');
+  assert.equal(p.semaineType.length, 6, 'mais la semaine à répéter en compte 6');
+  assert.ok(p.semaineType.length > p.week.length, 'la semaine type n’est jamais amputée');
+
+  // La semaine type couvre TOUS les jours cochés, pas seulement ceux qui restent.
+  const joursType = new Set(p.semaineType.map(s => s.weekday));
+  assert.ok(joursType.has(1) || joursType.has(2), 'la semaine type utilise aussi le début de semaine');
+  assert.ok(p.week.every(s => [3, 4, 5, 6, 0].includes(s.weekday)), 'le reste, lui, ne touche que les jours restants');
+
+  // Semaine déjà complète : rien à faire aujourd'hui, mais les semaines suivantes existent.
+  const complet = plan({ progSessions: 2, runs: 1 }, faits, MER);
+  assert.equal(complet.week.length, 0);
+  assert.ok(complet.semaineType.length > 0, 'ce n’est pas parce qu’il ne reste rien que les semaines suivantes sont vides');
+
+  // Un lundi vierge : les deux coïncident, il n'y a rien derrière.
+  const lundi = plan({ progSessions: 6, runs: 3 }, [], '2026-07-27');
+  assert.equal(lundi.week.length, lundi.semaineType.length);
 });

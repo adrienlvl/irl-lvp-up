@@ -591,3 +591,36 @@ passe à « Plateau confirmé » au-delà de deux semaines — avec un conseil d
 perdu son « quelques jours ». Mieux vaut une phrase plus courte qu'une durée inventée.
 
 636 tests · SMOKE OK · 390 px propre.
+
+## Itération 27 — ajuster au milieu de la semaine
+
+Demande d'Adrien : « faut que je puisse ajuster au milieu, par exemple passer de 4 à
+5 running en cours de semaine ».
+
+Le plan régénérait la semaine ENTIÈRE à chaque changement : lundi et mardi, déjà faits,
+se retrouvaient replanifiés. Désormais il compte ce qui est enregistré depuis lundi et
+ne dispose que le RESTE, sur les jours qui restent. Mesuré : mercredi avec 1 muscu et
+1 course faites, 4 séances posées au lieu de 6, aucune sur lundi ni mardi.
+
+### Trois défauts trouvés en construisant
+1. **Zéro restant donnait une séance.** `objectiveWeekShape` borne le total à 1 minimum —
+   correct pour une semaine entière, faux pour un reste vide. Court-circuit posé.
+2. **L'avertissement d'empilement comptait sur un seuil FIXE de 6 jours.** En cours de
+   semaine il ne reste parfois que deux jours cochés : six séances dessus font trois par
+   jour, et l'app n'en disait rien. Il compte maintenant les jours réellement disponibles.
+3. **Le bouton « Programmer (4 sem.) » aurait amputé les semaines 2 à 4.** Il répétait la
+   semaine réduite. Le plan porte donc DEUX semaines : `week` (ce qui reste, qu'on affiche
+   et qu'Adrien ajuste) et `semaineType` (la semaine entière, qu'on répète).
+
+Le troisième n'a été trouvé que parce qu'un check bloquant est passé au rouge. Sans lui,
+le défaut serait parti en production silencieusement.
+
+### Un contrat changé sciemment
+`planDuJour` ne décrit plus les jours PASSÉS : le plan ne prétend rien sur ce qui est
+derrière. Un test l'interrogeait sur hier — réécrit sur un jour à venir.
+
+639 tests · SMOKE OK · 390 px propre.
+
+### Reste dû sur la demande d'Adrien
+- Fusion des zones de « Ma semaine » dans le plan unifié.
+- Conseils par objectif, dont : pour un corps athlétique il faut de la prise de muscle.

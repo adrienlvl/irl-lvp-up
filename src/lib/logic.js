@@ -4418,8 +4418,56 @@ function trainingWeekPlan(input, exercises) {
      Plancher à 3 exercices : en dessous ce n'est plus une séance. */
   const perBase = (typeof perSessionForLevel === 'function') ? perSessionForLevel(i.niveau) : 5;
   const perReel = Math.max(3, Math.round(perBase * politique.volumeFactor));
-  const programme = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
+  /* Ce qui est DÉJÀ FAIT cette semaine se retire du programme à poser. Sinon, augmenter
+     ses courses un mercredi replanifierait le lundi — le passé n'est pas ajustable. */
+  const ec = i.enCours && i.enCours.enCours ? i.enCours : null;
+  const dejaMuscu = ec ? Math.min(muscu, Number(ec.faites.muscu) || 0) : 0;
+  const dejaCourse = ec ? Math.min(runs, Number(ec.faites.course) || 0) : 0;
+  const resteMuscu = muscu - dejaMuscu;
+  const resteRuns = runs - dejaCourse;
+  if (ec && (dejaMuscu || dejaCourse) && (resteMuscu + resteRuns) > 0) {
+    const faits = [];
+    if (dejaMuscu) faits.push(dejaMuscu + ' muscu');
+    if (dejaCourse) faits.push(dejaCourse + ' course' + (dejaCourse > 1 ? 's' : ''));
+    ajustements.push('Déjà fait cette semaine : ' + faits.join(' et ') + '. Il reste '
+      + (resteMuscu + resteRuns) + ' séance' + ((resteMuscu + resteRuns) > 1 ? 's' : '') + ' à placer.');
+  }
+  if (ec && resteMuscu + resteRuns === 0) {
+    ajustements.push('Ta semaine est complète — le reste est du bonus, pas du retard.');
+  }
+  /* La semaine TYPE (complète) sert à programmer les semaines suivantes : elles ne sont pas
+     amputées de ce qui a été fait CETTE semaine. On la calcule toujours, même hors milieu
+     de semaine, pour que les appelants aient un contrat stable. */
+  const complet = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
     sessions: muscu + runs, runs: runs, seed: i.seed, equipment: i.equipement,
+    perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
+    prioriteZones: (i.memoire && Array.isArray(i.memoire.priorite)) ? i.memoire.priorite : null,
+    semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
+  });
+  /* Zéro séance restante doit donner zéro séance. objectiveWeekShape borne le total à 1
+     minimum — correct pour une semaine entière, faux pour un reste vide — donc on sort
+     avant de l'appeler plutôt que de le laisser inventer une séance. */
+  if (ec && resteMuscu + resteRuns === 0) {
+    return Object.assign({}, voulue, {
+      key: i.objectif, week: [], politique: politique, energie: i.energie || null,
+      ajustements: ajustements, memoire: i.memoire || null, enCours: i.enCours || null,
+      dejaFait: { muscu: dejaMuscu, course: dejaCourse },
+      /* Même semaine complète que d'habitude : ce n'est pas parce qu'il ne reste rien
+         aujourd'hui que les semaines suivantes sont vides. */
+      semaineType: (complet && Array.isArray(complet.week))
+        ? ((i.jours && i.jours.length && typeof assignProgramDays === 'function')
+          ? assignProgramDays(complet.week, i.jours) : complet.week)
+        : [],
+      pilotage: {
+        niveau: politique.niveau, resume: politique.resume,
+        objectifPoids: e.goal || null, cible: e.dailyTarget || null,
+        deficitPart: politique.deficitPart || 0,
+        manque: Array.isArray(i.manque) ? i.manque : []
+      }
+    });
+  }
+  const programme = objectiveProgram(i.objectif, Array.isArray(exercises) ? exercises : [], {
+    sessions: resteMuscu + resteRuns, runs: resteRuns, seed: i.seed, equipment: i.equipement,
     perSession: perReel, duresMax: regleALaMain ? null : politique.duresMax,
     /* La semaine suivante tient compte de la précédente : sans ça le plan reproposait
        éternellement la même chose, quoi qu'Adrien ait fait ou sauté. */
@@ -4432,16 +4480,41 @@ function trainingWeekPlan(input, exercises) {
   const _mv = _messageVolume(perBase, perReel);
   if (_mv) ajustements.push(_mv);
 
-  // Les jours réellement cochés priment sur la table par défaut du programme.
-  const semaine = (i.jours && i.jours.length && typeof assignProgramDays === 'function')
-    ? assignProgramDays(programme.week, i.jours) : programme.week;
+  /* Les jours réellement cochés priment sur la table par défaut. En cours de semaine, on
+     restreint encore aux jours QUI RESTENT : poser une séance un lundi passé n'a aucun
+     sens. Si plus aucun jour coché ne reste, on garde les jours restants tels quels
+     plutôt que de tout empiler sur aujourd'hui. */
+  let joursUtiles = Array.isArray(i.jours) ? i.jours.slice() : [];
+  if (ec && Array.isArray(ec.joursRestants)) {
+    const croises = joursUtiles.filter(function (j) { return ec.joursRestants.indexOf(j) !== -1; });
+    joursUtiles = croises.length ? croises : ec.joursRestants.slice();
+  }
+  const semaine = (joursUtiles.length && typeof assignProgramDays === 'function')
+    ? assignProgramDays(programme.week, joursUtiles) : programme.week;
 
-  const total = muscu + runs;
-  if (total > 6) ajustements.push(total + ' séances sur 7 jours : certains jours en porteront deux.');
+  /* L'avertissement se basait sur un seuil fixe de 6 jours. En cours de semaine il ne reste
+     parfois que deux jours cochés : six séances dessus font TROIS par jour, et l'app n'en
+     disait rien. On compte sur les jours réellement disponibles. */
+  const total = programme.week.length;
+  const nbJours = joursUtiles.length || 7;
+  const parJour = Math.ceil(total / nbJours);
+  if (parJour > 1) {
+    ajustements.push(total + ' séance' + (total > 1 ? 's' : '') + ' sur ' + nbJours + ' jour'
+      + (nbJours > 1 ? 's' : '') + ' disponible' + (nbJours > 1 ? 's' : '') + ' : jusqu’à '
+      + parJour + ' par jour.');
+  }
 
   return Object.assign({}, programme, {
     week: semaine, politique: politique, energie: i.energie || null, ajustements: ajustements,
     memoire: i.memoire || null, enCours: i.enCours || null,
+    /* semaineType = la semaine entière, à répéter. week = ce qui reste aujourd'hui.
+       Programmer 4 semaines depuis `week` amputerait les 3 suivantes. */
+    semaineType: (complet && Array.isArray(complet.week))
+      ? ((i.jours && i.jours.length && typeof assignProgramDays === 'function')
+        ? assignProgramDays(complet.week, i.jours) : complet.week)
+      : [],
+    // Ce qui a été retiré du programme parce que déjà fait : le rendu doit pouvoir le dire.
+    dejaFait: ec ? { muscu: dejaMuscu, course: dejaCourse } : null,
     /* De quoi EXPLIQUER le plan à l'écran sans le recalculer. Sans ça l'unification reste
        invisible : Adrien verrait le même programme sans savoir qu'il tient compte du reste. */
     pilotage: {
