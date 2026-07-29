@@ -3203,6 +3203,44 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.parkingRetrouvable = (() => {
+        try {
+          if (typeof renderFocusParking !== 'function') return false;
+          const sp = state.focusParkings;
+          const auj = localDate();
+          const j = n => { const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+          /* Huit pensees : trois des jours precedents, cinq du jour. Le scenario qui
+             DISCRIMINE — avec quatre ou moins, l ancien rendu ne perdait rien. */
+          state.focusParkings = [
+            { id: 1, date: j(3), text: 'Relancer le cabinet' },
+            { id: 2, date: j(1), text: 'Mail du tuteur' }, { id: 3, date: j(1), text: 'Livre de gestion' },
+            { id: 4, date: auj, text: 'Date du partiel' }, { id: 5, date: auj, text: 'Cahiers' },
+            { id: 6, date: auj, text: 'Mutuelle' }, { id: 7, date: auj, text: 'Photos' },
+            { id: 8, date: auj, text: 'Question prof' }];
+          showPage('focus');
+          renderFocusParking();
+
+          const liste = document.getElementById('focusParkingList');
+          const enAvant = liste ? liste.querySelectorAll('span').length : 0;
+          const statut = String((document.getElementById('focusParkingStatus') || {}).textContent || '');
+          const more = document.getElementById('focusParkingMore');
+          const morePeint = !!(more && getComputedStyle(more).display !== 'none' && more.getBoundingClientRect().height > 0);
+          const enAttente = more ? more.querySelectorAll('.fpm-list li').length : 0;
+          const textes = more ? String(more.textContent || '') : '';
+
+          state.focusParkings = sp;
+          try { renderFocusParking(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__parking = 'avant=' + enAvant + ' attente=' + enAttente + ' peint=' + morePeint + ' statut[' + statut.slice(0, 40) + ']';
+          /* Le statut doit annoncer les HUIT, le tiroir doit etre peint et contenir les quatre
+             autres — dont « Date du partiel », du jour mais hors des quatre affichees. */
+          return enAvant === 4 && morePeint && enAttente === 4
+            && statut.indexOf('8 pensées déposées') !== -1
+            && textes.indexOf('Date du partiel') !== -1;
+        } catch (e) { checks.__errParking = String(e && e.message); return false; }
+      })();
+
       checks.tendanceFocus = (() => {
         try {
           if (typeof renderFocusRitual !== 'function') return false;
@@ -4983,6 +5021,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
+    if (!checks.parkingRetrouvable) errors.push('Parking de concentration : le statut promet « tu peux y revenir après ton bloc » — il doit donc compter TOUTES les pensées ouvertes, pas les quatre affichées, et les autres doivent rester atteignables dans le tiroir. Mesuré avant correctif : 8 stockées, 4 visibles, statut annonçant « 4 pensées déposées »');
     if (!checks.tendanceFocus) errors.push('Page Focus : la tendance hebdomadaire de concentration doit être AFFICHÉE (focusMinutesTrend était calculée depuis des mois sans un seul appel au rendu), avec l’écart ET la semaine de référence citée — mais rester MUETTE la première semaine, où la fonction rend prev:null tout en annonçant dir:flat');
     if (!checks.journeeSaturee) errors.push('Tableau de bord : une journée qui ne tient pas doit être signalée dans « À rattraper » avec le dépassement réel et l’heure de fin estimée — l’app calculait déjà 183 % de capacité sans le dire ailleurs que dans l’Agenda. MAIS elle doit se taire quand la journée n’est faite que de cours importés : rien n’est déplaçable, et une alerte quotidienne cesse d’être lue');
     if (!checks.coutDuReglage) errors.push('Plan de bataille : changer un réglage doit AFFICHER ce que ça coûte — le temps gagné ou perdu, et surtout la disparition d’une discipline entière (mesuré : passer de 3 à 5 courses garde 4 séances mais efface la musculation, invisible sur un écran qui n’affiche que le résultat). Et rien ne doit s’afficher au premier rendu ni à réglage inchangé, sinon la phrase devient du bruit');

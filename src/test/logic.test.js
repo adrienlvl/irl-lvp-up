@@ -14376,6 +14376,53 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('parkingAReprendre : le parking tient sa promesse « tu peux y revenir »', () => {
+  /* Le bloc « pensée parquée » existe pour sortir une distraction de la tête pendant un bloc,
+     et son statut PROMET qu'on pourra y revenir. MESURÉ avant correctif : le rendu filtrait
+     `p.date === localDate()` puis `slice(-4)`. Sur huit pensées stockées, quatre s'affichaient
+     — trois des jours précédents ET une d'aujourd'hui disparaissaient sans un mot — et le
+     statut annonçait « 4 pensées déposées », un compte TRONQUÉ présenté comme le total. */
+  const auj = '2026-07-30';
+  const j = n => { const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const p = [
+    { id: 1, date: j(3), text: 'Relancer le cabinet' },
+    { id: 2, date: j(1), text: 'Mail du tuteur' }, { id: 3, date: j(1), text: 'Livre de gestion' },
+    { id: 4, date: auj, text: 'Date du partiel' }, { id: 5, date: auj, text: 'Cahiers' },
+    { id: 6, date: auj, text: 'Mutuelle' }, { id: 7, date: auj, text: 'Photos' },
+    { id: 8, date: auj, text: 'Question prof' }];
+  const r = L.parkingAReprendre(p, auj);
+
+  assert.equal(r.total, 8, 'le compte porte sur ce qui EXISTE, pas sur ce qui tient à l’écran');
+  assert.equal(r.duJour.length, 4, 'quatre en avant, comme avant : la place est limitée');
+  assert.equal(r.duJour[0].text, 'Question prof', 'la plus RÉCENTE en tête : c’est celle qu’on vient de déposer');
+  /* LE CŒUR DU CORRECTIF : rien ne disparaît. « Date du partiel » est du JOUR mais déborde des
+     quatre — avant, elle s'évaporait ; elle doit maintenant rejoindre la liste d'attente. */
+  assert.equal(r.plusAnciennes.length, 4, 'les quatre autres restent atteignables');
+  assert.ok(r.plusAnciennes.some(x => x.text === 'Date du partiel'),
+    'y compris celle du jour qui débordait de l’affichage');
+  assert.equal(r.duJour.length + r.plusAnciennes.length, r.total, 'aucune pensée perdue en route');
+  assert.match(r.resume, /4 autres en attente/, r.resume);
+
+  // Rien à replier : pas de résumé creux (« 0 autre en attente » serait une promesse vide).
+  assert.equal(L.parkingAReprendre([{ id: 1, date: auj, text: 'seule' }], auj).resume, '');
+  assert.equal(L.parkingAReprendre([], auj).total, 0);
+
+  /* Fenêtre bornée : un parking qui remonte à trois mois n'est plus un parking. Et le pluriel
+     doit suivre — « 1 autre en attente », sans s. */
+  assert.equal(L.parkingAReprendre([{ id: 1, date: j(20), text: 'vieux' }], auj).total, 0,
+    'hors fenêtre de 14 jours : écarté');
+  assert.equal(L.parkingAReprendre([{ id: 1, date: j(20), text: 'vieux' }], auj, 4, 30).total, 1,
+    'mais la fenêtre est réglable');
+  const cinq = p.slice(3).concat([{ id: 9, date: j(1), text: 'une seule vieille' }]);
+  assert.match(L.parkingAReprendre(cinq.slice(0, 5), auj).resume, /^1 autre en attente$/, 'singulier');
+
+  // Entrées abîmées : rien d'inventé, aucune exception.
+  assert.equal(L.parkingAReprendre([{ id: 1, date: auj, text: '   ' }], auj).total, 0, 'texte vide ignoré');
+  assert.equal(L.parkingAReprendre([{ id: 1, date: 'nawak', text: 'a' }], auj).total, 0, 'date abîmée ignorée');
+  assert.equal(L.parkingAReprendre(p, 'nawak'), null, 'sans jour de référence : rien');
+  assert.equal(L.parkingAReprendre(null, auj).total, 0);
+});
+
 test('focusHeatmapJours : la concentration se lit en minutes, pas en nombre de blocs', () => {
   /* La page Focus affichait déjà une heatmap, mais via `trainingHeatmap`, qui compte les
      ENTRÉES par jour. Sur du sport c'est correct ; sur de la concentration, ça récompense
