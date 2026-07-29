@@ -5349,9 +5349,10 @@ app.whenReady().then(async () => {
           progSessions: '', weeklyKm: 40 });
         state.fitnessObjective = 'endurance';
         try { if (typeof runObjectiveProgram === 'function') runObjectiveProgram(); } catch (_) {}
-        const pages = ['athlete', 'nutrition', 'alternance', 'poids', 'focus'];
+        const pages = ['athlete', 'nutrition', 'alternance', 'poids', 'focus', 'library', 'settings'];
         for (const p of pages) {
           showPage(p);
+          document.querySelectorAll('.panel.collapsed').forEach(x => x.classList.remove('collapsed'));
           // La page Athlète cache 3 de ses 4 sous-onglets : sans les parcourir, la passe ne
           // voyait qu'un quart de ses panneaux — et laissait passer un débordement réel.
           const sousOnglets = (p === 'athlete') ? ['aujourdhui', 'programme', 'progres', 'corps'] : [null];
