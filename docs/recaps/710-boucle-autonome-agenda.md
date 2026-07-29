@@ -2626,3 +2626,52 @@ decoche=false` avec l'XP qui reste ; `demain=true` sur une ligne faite ; `xp …
 le libellé promet −15 et que l'app ne rend rien.
 
 676 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 75 — Focus : l'heure était enregistrée depuis toujours, jamais lue
+
+`finishFocusBlock` (app.js) horodate chaque bloc avec `Date.now()`. Sondé à 390×844 sur un jeu
+réaliste : **46 blocs sur 46** portaient un horodatage exploitable, et **rien ne le lisait**.
+
+| Ce que l'app savait déjà | Fonction |
+|---|---|
+| Combien de minutes | `focusWeekGoal` |
+| Sur quoi | `focusByTask` |
+| Quels jours | `focusHeatmapJours` |
+| Dans quel sens ça va | `focusMinutesTrend` |
+| **À quelle heure** | *personne* |
+
+`creneauDeConcentration` (pur) répond : frise de 24 colonnes, meilleure plage de 3 h, et une
+phrase qui cite ses propres chiffres. Quand rien ne se détache, elle le dit au lieu de forcer un
+créneau.
+
+**Trois refus assumés.** Un `id` n'est une horloge que s'il retombe sur la date de sa session —
+une entrée d'un ancien format est écartée, jamais placée à une heure inventée. Sous 8 blocs ou
+4 jours distincts : silence. Et la plage ne commence jamais sur une heure vide (`8 h–11 h` et
+`9 h–12 h` portaient les mêmes blocs ; annoncer « 8 h » est du remplissage). La fenêtre est
+**circulaire** : un couche-tard à 22 h / 23 h / 0 h a bien un créneau.
+
+### Ce que cette itération a appris
+
+**Trois mutations ont survécu, et chacune disait quelque chose de différent.** C'est le vrai
+apport de l'itération :
+
+1. *Redondance qui masque la couverture.* Mon scénario « id qui ne colle pas à sa date » mettait
+   toutes les sessions au même jour — elles tombaient donc sous le seuil `minJours`, et le seuil
+   couvrait le garde-fou à sa place. Réécrit pour **discriminer** : 14 blocs, 6 jours, seul le
+   désaccord id/date peut encore rejeter, avec un témoin qui passe juste à côté.
+2. *Check tautologique.* Comparer la plage mise en avant à la sortie de la fonction ne vaut que
+   contre une divergence rendu/mesure. Si la fonction se trompe de plage, les deux se trompent
+   ensemble. La plage attendue est maintenant **épinglée en dur** en plus.
+3. *La mesure ne mesurait pas ce qu'elle prétendait.* « La frise tient en 390 px » était vérifié
+   dans une fenêtre de bureau. Pire : en largeur fixe, la frise **ne déborde de rien** — son
+   panneau grandit avec elle. Elle mesurait **1006 px dans une fenêtre de 390** et se faisait
+   rogner en silence, les dernières heures de la journée disparaissant sans un mot. La passe
+   mobile la sème désormais et la mesure **face à la fenêtre**, pas face à son conteneur.
+
+Et une rechute connue : `/\s+/` écrit dans le gabarit du harnais devient `/s+/` — la regex a
+effacé tous les « s » du texte mesuré. Même famille que la règle des backticks : *dans un
+gabarit, une séquence d'échappement inconnue retombe sur sa lettre.*
+
+677 tests · SMOKE OK · frise à 298 px pour 390 de large. Rien publié : dernière release v2.13.0.
