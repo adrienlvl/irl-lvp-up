@@ -2577,3 +2577,52 @@ chaque étape.
 coché.
 
 675 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 74 — Revue : la capacité livrée hier n'avait aucun chemin depuis l'écran
+
+Revue adversariale due. Cible : **la consolidation de l'itération 73**. J'y avais écrit que
+`setRecurringDone` « sait maintenant décocher ». Sondé à 390×844 : vrai de la fonction, faux de
+l'app — aucun bouton n'y menait.
+
+### La mesure, ligne par ligne
+
+| Écran | Ligne terminée |
+|---|---|
+| Ma journée | **zéro bouton** |
+| Vue Jour, bloc d'agenda | `↪️` · `→ demain` · `✏️` — et rien pour annuler |
+| Vue Jour, occurrence récurrente | **zéro bouton** |
+
+Autrement dit : on pouvait **repousser à demain quelque chose de déjà fait**, mais pas défaire un
+clic de travers — les 15 XP restaient acquis. Partout ailleurs (quêtes, habitudes, tâches) une
+coche est un **interrupteur**, avec le même retrait d'XP recopié en clair quatre fois. L'agenda
+était la seule exception.
+
+### Ce que ça devient
+
+- **`gestesDuBloc(item)`** (pur) dit ce qu'une ligne permet encore. Les deux rendus le lisent —
+  ils ne disaient déjà pas la même chose.
+- Un bloc terminé propose `↩︎ Annuler · −15 XP` et **ne propose plus `→ demain`**. Il reste
+  modifiable : corriger un titre garde du sens, le repousser non.
+- `xpForAgendaItem` et `setAgendaCompleted`, écrits pour ça et **jamais branchés**, le sont enfin.
+  Le « 15 » n'est plus recopié en dur : les deux libellés lisent le même chiffre.
+- CSS : l'opacité était posée sur le `<li>` entier. **L'opacité d'un parent ne se rattrape pas sur
+  l'enfant** — le seul geste encore possible aurait été le moins lisible de l'écran. On estompe le
+  contenu, pas les commandes.
+
+### Ce que cette itération a appris
+
+*Une fonction qui sait faire quelque chose n'est pas une capacité tant qu'aucun clic n'y mène.*
+J'ai écrit « elle sait décocher » en toute bonne foi : c'était vrai du code et faux de l'app. La
+revue ne doit pas relire le diff, elle doit **rouvrir l'écran**.
+
+Corollaire de méthode : **un check qui mord n'a pas forcément raison.** Le mien réclamait « −15 »
+là où un retour au point de départ donne 0. C'était mon arithmétique. L'exigence est maintenant
+écrite comme ce qu'elle est — `xp 10485→10500→10485`, ni fantôme ni double retrait.
+
+**Mutations.** 5 posées, 5 détectées, chacune rejouant exactement le défaut mesuré : `bouton=false
+decoche=false` avec l'XP qui reste ; `demain=true` sur une ligne faite ; `xp …→10725→10725` quand
+le libellé promet −15 et que l'app ne rend rien.
+
+676 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
