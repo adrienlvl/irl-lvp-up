@@ -119,9 +119,13 @@ Peu de risque, valeur immédiate, et ça nettoie le terrain.
    trancher : finir ou retirer. Un sous-système inerte est une dette qui grossit.
 2. **Rééquilibrer les pages pauvres** — Poids, Nutrition, Focus, Alternance ont un seul angle
    chacun là où Athlète en a vingt-deux.
-3. **L'Agenda dans la navigation**, et sondé en 390 px (jamais fait).
-4. **Le backlog Agenda de 705**, jamais traité : glisser-déposer, saisie en langage naturel avec
-   aperçu, prévu vs réel, bilan du soir.
+3. ~~L'Agenda dans la navigation, et sondé en 390 px~~ — **FAIT.** Il y était déjà (cf. constat
+   n°2, erreur d'audit), et la sonde 390 px de l'itération 61 l'a trouvé sain : aucun
+   débordement, aucun champ sous 16 px, trois vues, des filtres.
+4. **Le backlog Agenda de 705**, à réexaminer : la sonde a démenti l'hypothèse de manques
+   d'interface. Restent les vrais sujets — prévu vs réel, glisser-déposer, saisie en langage
+   naturel avec aperçu. *(Le bilan du soir existe déjà côté Focus, en version qualitative :
+   ne pas le dupliquer.)*
 
 ## 8. Horizon 2 — L'app qui décide avec toi *(mois)*
 
