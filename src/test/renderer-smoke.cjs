@@ -4002,8 +4002,41 @@ app.whenReady().then(async () => {
               fantomes.push(ou + '/' + cle + ' ' + Math.round(r.width) + 'x' + Math.round(r.height));
             });
           };
-          const pages = ['dashboard', 'agenda', 'athlete', 'poids', 'library', 'nutrition', 'focus', 'settings'];
-          pages.forEach(p => { showPage(p); releve(p); });
+          /* LA COUVERTURE SE DERIVE, ELLE NE SE DECLARE PAS (revue 97). Ma premiere version listait
+             les pages a la main : « agenda » n existait pas — l Agenda est un OVERLAY ouvert par
+             #openWeekPage, pas une page de showPage() — et « alternance » manquait. showPage() sur
+             un nom inconnu ne fait rien : le check remesurait donc le tableau de bord et annoncait
+             quand meme « aucun fantome sur 8 pages ». Une redondance qui masque la couverture.
+             Desormais la liste vient du DOM, et chaque visite est PROUVEE par aria-current : un nom
+             sans effet fait tomber le check au lieu de passer inapercu. */
+          const pages = [];
+          document.querySelectorAll('[data-page]').forEach(b => {
+            if (pages.indexOf(b.dataset.page) === -1) pages.push(b.dataset.page);
+          });
+          const nonConfirmees = [];
+          pages.forEach(p => {
+            showPage(p);
+            const b = document.querySelector('[data-page=' + p + ']');
+            if (!b || b.getAttribute('aria-current') !== 'page') nonConfirmees.push(p);
+            releve(p);
+          });
+
+          /* L AGENDA est un overlay : sans ce passage, la page la plus dense de l app n etait pas
+             mesuree du tout — et c est precisement la que vit #weekGrid, les 746x380 px de grille
+             fantome trouves a l iteration 96. */
+          let agendaVu = false;
+          const ouvre = document.getElementById('openWeekPage');
+          const ferme = document.getElementById('closeWeekPage');
+          if (ouvre && ferme) {
+            ouvre.click();
+            const wp = document.getElementById('weekPage');
+            agendaVu = !!wp && wp.getBoundingClientRect().height > 100;
+            releve('agenda');
+            const mois = document.getElementById('openCalendarPage');
+            if (mois) { mois.click(); releve('agenda:mois'); }
+            ferme.click();
+          }
+
           // Les quatre sous-onglets d Athlete cachent chacun un jeu different de panneaux.
           showPage('athlete');
           const sous = [];
@@ -4012,10 +4045,15 @@ app.whenReady().then(async () => {
           });
           sous.forEach(b => { b.click(); releve('athlete:' + b.dataset.atab); });
           showPage('dashboard');
-          checks.__hiddenFantomes = fantomes.length
+          checks.__hiddenFantomes = (fantomes.length
             ? fantomes.length + ' fantomes : ' + fantomes.slice(0, 6).join(' | ')
-            : 'aucun fantome sur ' + pages.length + ' pages + ' + sous.length + ' sous-onglets';
-          return fantomes.length === 0 && sous.length >= 4;
+            : 'aucun fantome')
+            + ' | pages=' + pages.length + ' non confirmees[' + nonConfirmees.join(',') + ']'
+            + ' agenda=' + agendaVu + ' sousOnglets=' + sous.length;
+          /* pages.length >= 8 : sans ce plancher, supprimer un bouton de navigation reduirait la
+             couverture en silence tout en gardant le check vert. */
+          return fantomes.length === 0 && nonConfirmees.length === 0 && pages.length >= 8
+            && agendaVu && sous.length >= 4;
         } catch (e) {
           try { showPage('dashboard'); } catch (_) {}
           checks.__errHiddenFantomes = String(e && e.message); return false;
