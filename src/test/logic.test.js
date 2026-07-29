@@ -12854,6 +12854,20 @@ test('memoireForceParCadence : le gain de force rattaché au rythme qui l’a pr
   assert.ok(large && large.cadences.length === 1,
     'témoin : c’est bien la DURÉE qui rejetait, pas autre chose');
 
+  /* CADENCES À ÉGALITÉ — branche « tes cadences se valent », atteignable et non gardée
+     (revue 91). Deux cadences différentes au MÊME gain moyen : on ne doit désigner aucune
+     gagnante, et surtout pas nommer un exercice « qui y a pris le plus » puisqu'il n'y a pas
+     de « y ». Charges +2 kg par bloc, quelle que soit la fréquence. */
+  const egal = L.memoireForceParCadence([A, B, C],
+    seances(120, 93, 2, 100).concat(seances(86, 59, 7, 102)).concat(seances(52, 25, 2, 104)));
+  assert.ok(egal && egal.comparable);
+  assert.equal(egal.cadences.length, 2);
+  assert.equal(egal.cadences[0].gainMoyen, egal.cadences[1].gainMoyen, 'témoin : gains ÉGAUX');
+  assert.match(egal.phrase, /cadences se valent/);
+  assert.match(egal.phrase, /Rien ne se détache/);
+  assert.ok(!/progresse le plus|y a pris le plus|y a le plus reculé/.test(egal.phrase),
+    'ni gagnante désignée, ni exercice rattaché à une cadence qui n’existe pas');
+
   /* Un bloc SANS séance n'a pas de cadence : sa transition est ignorée plutôt que rattachée
      à une cadence de 0, qui n'existe pas. */
   const trou = seances(120, 93, 2, 100).concat(seances(52, 25, 2, 120));
@@ -13879,6 +13893,37 @@ test('energieEtFocus : ce que l’énergie du matin annonce, sans inventer de ca
   assert.equal(impair.ceMatin, 2);
   assert.match(impair.conseil, /vise un bloc court/);
   assert.ok(!/pile ta moyenne/.test(impair.conseil));
+
+  /* TROISIÈME PARTAGE — `hautInclus`, atteignable et jusqu'ici NON GARDÉ (revue 91). Il se
+     déclenche quand la médiane est la valeur HAUTE : avec 20 jours à 2/5 et 21 à 4/5 la médiane
+     vaut 4, et les deux premiers partages laissent le groupe haut VIDE (aucun e > 4). Sans ce
+     repli, une corrélation nette redevenait `null` — le défaut corrigé à l'itération 90, dans
+     l'autre sens. */
+  const versHaut = { morningRituals: [], focusSessions: [] };
+  for (let n = 1; n <= 41; n++) {
+    const e = n <= 20 ? 2 : 4;
+    versHaut.morningRituals.push({ date: j(n), energy: e });
+    for (let k = 0; k < (e === 4 ? 4 : 1); k++) versHaut.focusSessions.push({ id: 1, date: j(n), minutes: 25 });
+  }
+  const hi = L.energieEtFocus(versHaut, today);
+  assert.ok(hi, 'une médiane égale à la valeur HAUTE ne doit pas faire disparaître la mesure');
+  assert.equal(hi.mediane, 4, 'témoin : la médiane est bien la valeur haute');
+  assert.equal(hi.partage, 'hautInclus', 'les deux premiers partages laissent le haut vide');
+  assert.equal(hi.bas.jours, 20);
+  assert.equal(hi.haut.jours, 21);
+  assert.equal(hi.lien, 'positif');
+
+  /* ÉNERGIE DU MATIN PILE À LA MÉDIANE sous un partage STRICT : elle n'appartient à aucun des
+     deux groupes, et le conseil doit le dire au lieu de trancher au hasard. Branche atteignable
+     et non gardée jusqu'ici. */
+  const stMed = etat(n => (n % 2 ? [2, 1] : [4, 4]));
+  stMed.morningRituals.push({ date: today, energy: 3 });
+  const med = L.energieEtFocus(stMed, today);
+  assert.equal(med.partage, 'strict');
+  assert.equal(med.ceMatin, 3);
+  assert.match(med.conseil, /entre tes deux profils/);
+  assert.ok(!/bloc court|longs blocs/.test(med.conseil),
+    'aucun des deux conseils tranchés ne doit sortir sur une énergie médiane');
 
   // Et un matin HAUT reçoit le conseil inverse : le couple prouve que le conseil discrimine.
   const st2 = etat(n => (n % 2 ? [2, 1] : [4, 4]));
