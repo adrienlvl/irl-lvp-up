@@ -14376,6 +14376,36 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('apercuCible : un aperçu doit dire qu’il en est un', () => {
+  /* MESURÉ sur le Coach Poids : l'en-tête se recalcule sur le CHAMP DE SAISIE pour suivre ce
+     qu'on tape, tandis que la durée, la date estimée, la jauge et les calories restent sur la
+     cible ENREGISTRÉE. Tant qu'on n'a pas validé, le même écran affiche « Perdre 9 kg ·
+     ~15 sem. » en tête et « Perdre 4,9 kg · ≈ 9 semaines · 🎯 76 kg » juste dessous.
+     Vérifié au passage : à cible ÉGALE les deux calculs concordent exactement — il n'y a pas
+     de bug de calcul, seulement deux cibles qui coexistent sans être nommées. */
+  const ap = L.apercuCible(72, 76);
+  assert.ok(ap, 'deux cibles différentes : on le dit');
+  assert.equal(ap.saisi, 72); assert.equal(ap.enregistre, 76);
+  assert.match(ap.texte, /Aperçu pour 72 kg/, ap.texte);
+  assert.match(ap.texte, /cible enregistrée reste 76 kg/, 'les DEUX chiffres, sinon on ne sait pas quoi corriger');
+  assert.match(ap.texte, /tant que tu n’as pas validé/, 'et ce qui débloque la situation');
+
+  /* SILENCE quand les deux coïncident : c'est le cas NORMAL — le champ est rempli depuis
+     l'état à chaque rendu. Une bannière permanente ne se lirait plus. */
+  assert.equal(L.apercuCible(76, 76), null, 'même cible : rien à signaler');
+  assert.equal(L.apercuCible(76.04, 76), null, 'écart sous 100 g : même objectif à l’arrondi près');
+  assert.ok(L.apercuCible(76.2, 76), 'au-delà de 100 g en revanche, ce sont deux cibles');
+
+  // Champ vide, zéro ou abîmé : pas d'aperçu inventé. (Number('') vaut 0, Number('nawak') NaN.)
+  assert.equal(L.apercuCible(0, 76), null, 'champ vide : le rendu retombe déjà sur l’enregistrée');
+  assert.equal(L.apercuCible('', 76), null);
+  assert.equal(L.apercuCible('nawak', 76), null);
+  assert.equal(L.apercuCible(72, 0), null, 'aucune cible enregistrée : rien à comparer');
+  assert.equal(L.apercuCible(null, null), null);
+  // Le sens ne change rien : viser plus haut est aussi un aperçu.
+  assert.ok(L.apercuCible(80, 76), 'une cible plus haute compte autant');
+});
+
 test('parkingAReprendre : le parking tient sa promesse « tu peux y revenir »', () => {
   /* Le bloc « pensée parquée » existe pour sortir une distraction de la tête pendant un bloc,
      et son statut PROMET qu'on pourra y revenir. MESURÉ avant correctif : le rendu filtrait

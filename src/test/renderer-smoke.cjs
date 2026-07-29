@@ -3203,6 +3203,51 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.apercuNomme = (() => {
+        try {
+          if (typeof renderTargetAdvice !== 'function') return false;
+          const sp = JSON.parse(JSON.stringify(state.profile || {}));
+          const sg = JSON.parse(JSON.stringify(state.goals || {}));
+          const sw = state.weights;
+          state.profile = Object.assign({}, state.profile, { weight: 81, height: 180, age: 29,
+            sex: 'homme', activityLevel: 'actif', goal: 'perte' });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 76, sessions: 4 });
+          state.weights = [{ date: localDate(), value: 81 }];
+          showPage('poids');
+          document.querySelectorAll('.panel.collapsed').forEach(p => p.classList.remove('collapsed'));
+
+          const champs = ['targetWeight', 'coachTarget'].map(id => document.getElementById(id)).filter(Boolean);
+          const champ = champs[0];
+          const poser = v => champs.forEach(c => { c.value = v; });
+          const lire = () => {
+            const e = document.querySelector('.ta-apercu');
+            if (!e || getComputedStyle(e).display === 'none' || e.getBoundingClientRect().height === 0) return '';
+            return String(e.textContent || '');
+          };
+          if (!champ) { checks.__apercu = 'champ de cible introuvable'; return false; }
+
+          // 1. Cible tapee = cible enregistree : aucune banniere, sinon c est du bruit permanent.
+          poser('76');
+          renderTargetAdvice();
+          const identique = lire();
+
+          /* 2. On tape une AUTRE cible sans valider : c est le seul etat ou le panneau porte
+             deux cibles a la fois, et le seul ou la banniere doit parler. */
+          poser('72');
+          renderTargetAdvice();
+          const different = lire();
+
+          state.profile = sp; state.goals = sg; state.weights = sw;
+          try { renderTargetAdvice(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__apercu = 'identique[' + identique.slice(0, 30) + '] different[' + different.slice(0, 70) + ']';
+          return identique === ''
+            && different.indexOf('Aperçu pour 72 kg') !== -1
+            && different.indexOf('76 kg') !== -1;
+        } catch (e) { checks.__errApercu = String(e && e.message); return false; }
+      })();
+
       checks.parkingRetrouvable = (() => {
         try {
           if (typeof renderFocusParking !== 'function') return false;
@@ -5035,6 +5080,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
+    if (!checks.apercuNomme) errors.push('Coach Poids : quand la cible TAPÉE diffère de la cible ENREGISTRÉE, l’écran porte deux cibles à la fois — l’en-tête suit la saisie, la durée et la jauge suivent l’enregistrée. Une bannière doit nommer l’aperçu et rappeler les deux chiffres, et rester muette quand les deux coïncident');
     if (!checks.parkingRetrouvable) errors.push('Parking de concentration : le statut promet « tu peux y revenir après ton bloc » — il doit donc compter TOUTES les pensées ouvertes, pas les quatre affichées, et les autres doivent rester atteignables dans le tiroir. Mesuré avant correctif : 8 stockées, 4 visibles, statut annonçant « 4 pensées déposées »');
     if (!checks.tendanceFocus) errors.push('Page Focus : la tendance hebdomadaire de concentration doit être AFFICHÉE (focusMinutesTrend était calculée depuis des mois sans un seul appel au rendu), avec l’écart ET la semaine de référence citée — mais rester MUETTE la première semaine, où la fonction rend prev:null tout en annonçant dir:flat');
     if (!checks.journeeSaturee) errors.push('Tableau de bord : une journée qui ne tient pas doit être signalée dans « À rattraper » avec le dépassement réel et l’heure de fin estimée — l’app calculait déjà 183 % de capacité sans le dire ailleurs que dans l’Agenda. MAIS elle doit se taire quand la journée n’est faite que de cours importés : rien n’est déplaçable, et une alerte quotidienne cesse d’être lue');

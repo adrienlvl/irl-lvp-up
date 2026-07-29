@@ -479,7 +479,7 @@ function renderTargetAdvice(source){const blocs=[$('#targetAdvice'),$('#coachTar
   const num=n=>String(n).replace('.',',');
   const icone={ok:'✅',warn:'⚠️',stop:'⛔'};
   const entete=a.direction==='maintien'?`Recomposition — poids quasi stable`:`${a.direction==='perte'?'Perdre':'Prendre'} ${num(Math.abs(a.deltaKg))} kg · IMC cible ${num(a.targetBmi)} · ~${a.weeks} sem. à ${num(a.ratePerWeek)} kg/sem.`;
-  peindre(`<div class="ta-head">${icone[a.level]} <b>${escapeHtml(entete)}</b></div>`
+  peindre(`<div class="ta-head">${icone[a.level]} <b>${escapeHtml(entete)}</b></div>`+((()=>{const _ap=(typeof apercuCible==='function')?apercuCible(target,state.goals.targetWeight):null;return _ap?`<p class="ta-apercu">👀 ${escapeHtml(_ap.texte)}</p>`:'';})())
     +a.notes.map(n=>`<div class="ta-note ta-${n.tone}">${escapeHtml(n.text)}</div>`).join('')
     +`<small class="ta-range">Fourchette de référence pour ta taille : <b>${num(a.suggested.minKg)}–${num(a.suggested.maxKg)} kg</b> (IMC 20–24,5). Repères généraux de suivi, pas un avis médical.</small>`
     ,'target-advice ta-'+a.level);}
