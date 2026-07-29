@@ -2992,3 +2992,43 @@ rechute.*
 **Mutations.** 3 posées, 3 détectées, chacune rejouant un état réellement mesuré.
 
 682 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 83 — Le Plan de bataille se compare enfin à lui-même
+
+Adrien : « faut qu'il soit plus complet ». Sondé bloc par bloc avant d'ajouter quoi que ce soit.
+
+### Ce que la sonde a corrigé dans mon propre jugement
+
+Premier passage : **cinq blocs sur quinze paraissaient vides** alors que j'avais semé six
+semaines de séances. J'allais l'écrire comme un défaut. En forçant une repeinture complète, deux
+d'entre eux se remplissent (`training-weekday` 136 px, `week-balance` 84 px) : *semer l'état ne
+suffit pas — sans repeinture, on mesure l'écran d'avant et on croit à tort qu'un bloc est muet.*
+Les trois restants attendent des blocs terminés, ce qui est légitime.
+
+### Le vrai trou
+
+Quinze blocs, 4305 px, et **tous parlent du passé** : tonnage 8 semaines, régularité 28 jours,
+jour fort, équilibre. L'écran affichait côte à côte « Très régulier · 9 séances », « cette sem.
+−100 % » et « 0/40 km » — trois chiffres pour « où j'en suis », aucun verdict. **Un plan qui ne
+se relit jamais.**
+
+> 📋 Ta semaine, face au plan — **1/6**
+> ⚠️ 1/4 muscu · 0/2 courses. Il te reste 5 séances pour 3 jours d'entraînement d'ici dimanche :
+> le compte n'y est pas. Double une journée, ou accepte de finir à 4/6.
+
+**L'arbitrage porte sur le budget de temps**, pas sur le retard : « il te reste 2 séances » ne
+veut rien dire sans « et 1 jour d'entraînement ». Sans jours renseignés, `tenable` vaut `null` —
+et null n'est pas false : trancher sans connaître le budget serait inventé.
+
+### Ce que cette itération a appris
+
+**Un check qui peint lui-même ce qu'il mesure ne peut pas voir que l'app ne le peint pas.** La
+mutation qui retirait `renderAvancementSemaine()` de la chaîne de rendu a SURVÉCU : mon check
+appelait le renderer à la main. Il repasse désormais par `render()`, la chaîne de l'app.
+*Mesurer l'effet d'un rendu suppose de laisser l'app le déclencher.*
+
+**Mutations.** 6 posées, 6 détectées après cette correction.
+
+683 tests · SMOKE OK. Rien publié depuis v2.14.0.
