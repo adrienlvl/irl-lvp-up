@@ -11,6 +11,7 @@
 /* ===== general-plus.css (fusionné 2026-07-06, ordre préservé) ===== */
 .daily-life-step{display:grid;gap:8px;margin-top:15px;padding-top:14px;border-top:1px solid var(--line)}
 .life-step-stats{display:grid;gap:5px;margin-top:6px;padding:9px 12px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px}
+.life-step-stats[hidden]{display:none}
 .life-step-stats.lss-low{border-left-color:var(--line)}
 .life-step-stats.lss-high{border-left-color:#4ade80}
 .life-step-stats .lss-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:.82rem;color:var(--text)}
@@ -112,11 +113,13 @@
 .app-toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:2000;background:var(--surface);color:var(--text);border:1px solid var(--accent);border-radius:12px;padding:12px 18px;font-size:.86rem;font-weight:700;box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100vw - 32px);text-align:center}
 .app-toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;cursor:pointer}
 .upcoming-deadlines{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.upcoming-deadlines[hidden]{display:none}
 .deadline-chip{font-size:.74rem;font-weight:700;border-radius:999px;padding:4px 10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text)}
 .deadline-chip.exam{border-left:3px solid #a855f7}.deadline-chip.race{border-left:3px solid #38bdf8}.deadline-chip.prio{border-left:3px solid #ef4444}
 .next-study{border-left-color:#a78bfa!important;margin-top:8px}
 .next-study b{color:#a78bfa}
 .my-day-tomorrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:8px 0 2px;padding:8px 11px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid #f59e0b;border-radius:9px}
+.my-day-tomorrow[hidden]{display:none}
 .my-day-tomorrow .mdt-label{font-size:.72rem;font-weight:750;color:var(--text);white-space:nowrap}
 .my-day-tomorrow .mdt-body{font-size:.76rem;color:var(--muted);line-height:1.4}
 .my-day-tomorrow .mdt-body b{color:var(--text);font-weight:700}
@@ -234,6 +237,7 @@ html[data-density=compact] .app-foot{margin-top:16px}
 /* C1 — barre de recherche collante sur Exercices */
 .exercise-library .exercise-controls{position:sticky;top:0;z-index:6;background:var(--card,var(--surface-2));padding-top:12px;padding-bottom:12px;box-shadow:0 10px 14px -12px rgba(0,0,0,.55)}
 .exercise-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 10px}
+.exercise-filter-bar[hidden]{display:none}
 .exercise-filter-bar .efb-label{font-size:.74rem;color:var(--muted);font-weight:650}
 .exercise-filter-bar .efb-chip{font-size:.74rem;font-weight:700;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .efb-reset{font-size:.74rem;font-weight:700;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:999px;padding:4px 11px;cursor:pointer;transition:background .15s}
@@ -250,6 +254,7 @@ details.calendar-setting[open]{padding-bottom:14px}
 .exam-countdown{margin:8px 0 4px;font-size:.85rem;font-weight:800;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;padding:9px 12px}
 .exam-countdown.exam-soon{border-left-color:#f59e0b;color:#f59e0b}
 .exam-list{margin:2px 0 8px;display:flex;flex-direction:column;gap:5px}
+.exam-list[hidden]{display:none}
 .exam-list .exam-list-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .exam-list .exam-row{display:flex;align-items:center;gap:9px;font-size:.82rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
 .exam-list .exam-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -263,6 +268,7 @@ details.calendar-setting[open]{padding-bottom:14px}
 .study-progress{margin:2px 0 6px;font-size:.78rem;color:var(--muted);font-weight:650}
 .study-pacing{margin:2px 0 8px;font-size:.8rem;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--blue,#60a5fa);border-radius:9px;padding:8px 12px;line-height:1.4}
 .overdue-study{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:2px 0 8px;padding:9px 12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-left:3px solid #f87171;border-radius:9px}
+.overdue-study[hidden]{display:none}
 .overdue-study .od-label{font-size:.79rem;font-weight:700;color:var(--text)}
 .overdue-study .od-chip{font-size:.75rem;font-weight:650;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
 .overdue-study .od-chip b{color:#f87171;font-weight:800}
@@ -290,13 +296,18 @@ details.calendar-setting[open]{padding-bottom:14px}
 .habit-name{flex:1;font-size:.86rem}
 .habit-item.done .habit-name{color:var(--muted)}
 .habits-at-risk{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:10px 0 2px;padding:9px 11px;background:rgba(229,132,58,.1);border:1px solid rgba(229,132,58,.32);border-left:3px solid #e5843a;border-radius:10px}
+/* Gardes [hidden] : ces trois blocs occupaient 18 a 20 px en etant « caches ». */
+.habits-at-risk[hidden]{display:none}
 .habits-at-risk .har-label{font-size:.78rem;font-weight:700;color:var(--text)}
 .habits-at-risk .har-chip{font-size:.76rem;font-weight:650;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
 .habits-at-risk .har-chip b{color:#e5843a;font-weight:800}
 .habits-at-risk small{flex-basis:100%;color:var(--muted);font-size:.72rem}
 .habit-streak{font-size:.78rem;font-weight:700;color:#e5843a;white-space:nowrap}
-.morning-streak{display:inline-block;font-size:.74rem;font-weight:700;color:#e5843a;background:rgba(229,132,58,.12);border:1px solid rgba(229,132,58,.32);border-radius:999px;padding:3px 10px;white-space:nowrap;margin-left:4px}.habit-record{font-size:.74rem;font-weight:700;color:#eab308;white-space:nowrap;margin-left:6px}.hydration-quick{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:12px 0}.hydra-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}.hydra-top b{font-size:.9rem}.hydra-top span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}.hydra-bar{height:10px;background:var(--input-bg);border:1px solid var(--line);border-radius:999px;overflow:hidden}.hydra-fill{height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#22d3ee);border-radius:999px;transition:width .25s}.hydra-fill.done{background:linear-gradient(90deg,#22c55e,#4ade80)}.protein-quick{margin-top:10px}.protein-fill{background:linear-gradient(90deg,#a78bfa,#c084fc)}.protein-fill.done{background:linear-gradient(90deg,#22c55e,#4ade80)}.protein-snack{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:10px 0 2px;font-size:.82rem;color:var(--text);background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.32);border-left:3px solid #a78bfa;border-radius:9px;padding:8px 11px}.protein-snack b{color:#a78bfa}.protein-snack small{color:var(--muted);font-size:.72rem}.birthday-row.rec-paused{opacity:.6}.rec-paused-tag{font-style:normal;font-size:.68rem;color:#f59e0b;background:rgba(245,158,11,.14);padding:2px 6px;border-radius:5px;margin-left:4px}.rec-pause-btn{padding:5px 9px;font-size:.85rem;line-height:1}.hydra-ctrl{display:flex;align-items:center;gap:10px;margin-top:10px}.hydra-ctrl #waterMinus{padding:8px 15px;font-size:1rem;line-height:1}
+.morning-streak{display:inline-block;font-size:.74rem;font-weight:700;color:#e5843a;background:rgba(229,132,58,.12);border:1px solid rgba(229,132,58,.32);border-radius:999px;padding:3px 10px;white-space:nowrap;margin-left:4px}
+.morning-streak[hidden]{display:none}.habit-record{font-size:.74rem;font-weight:700;color:#eab308;white-space:nowrap;margin-left:6px}.hydration-quick{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:12px 0}.hydra-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}.hydra-top b{font-size:.9rem}.hydra-top span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}.hydra-bar{height:10px;background:var(--input-bg);border:1px solid var(--line);border-radius:999px;overflow:hidden}.hydra-fill{height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#22d3ee);border-radius:999px;transition:width .25s}.hydra-fill.done{background:linear-gradient(90deg,#22c55e,#4ade80)}.protein-quick{margin-top:10px}.protein-fill{background:linear-gradient(90deg,#a78bfa,#c084fc)}.protein-fill.done{background:linear-gradient(90deg,#22c55e,#4ade80)}.protein-snack{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:10px 0 2px;font-size:.82rem;color:var(--text);background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.32);border-left:3px solid #a78bfa;border-radius:9px;padding:8px 11px}
+.protein-snack[hidden]{display:none}.protein-snack b{color:#a78bfa}.protein-snack small{color:var(--muted);font-size:.72rem}.birthday-row.rec-paused{opacity:.6}.rec-paused-tag{font-style:normal;font-size:.68rem;color:#f59e0b;background:rgba(245,158,11,.14);padding:2px 6px;border-radius:5px;margin-left:4px}.rec-pause-btn{padding:5px 9px;font-size:.85rem;line-height:1}.hydra-ctrl{display:flex;align-items:center;gap:10px;margin-top:10px}.hydra-ctrl #waterMinus{padding:8px 15px;font-size:1rem;line-height:1}
 .hydra-pace{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 11px;border-radius:9px;font-size:.78rem;line-height:1.4;border:1px solid var(--line);background:var(--surface-2)}
+.hydra-pace[hidden]{display:none}
 .hydra-pace .hp-icon{flex:none;font-size:.95rem}
 .hydra-pace.hp-behind{border-color:rgba(56,189,248,.4);background:rgba(56,189,248,.1);color:var(--text)}
 .hydra-pace.hp-ontrack{color:var(--muted)}.exercise-detail-notes .ex-pr{background:rgba(94,234,212,.12);border-radius:9px;padding:8px 11px}.exercise-detail-notes .ex-pr b{color:var(--accent)}.exercise-detail-notes .ex-hist{display:grid;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}.ex-hist-line{font-size:.82rem;color:var(--text)}.ex-hist-line b{color:var(--text)}.ex-hist-line small{color:var(--muted)}.ex-hist-next{font-size:.82rem;font-weight:650;color:var(--text);background:rgba(129,140,248,.14);border-left:3px solid #818cf8;border-radius:8px;padding:7px 10px}.ex-hist-spark{margin-top:2px}.ex-hist-spark-label{display:block;color:var(--muted);font-size:.66rem;margin-bottom:3px}.ex-hist-spark .bar-chart{height:42px}.ex-done{font-size:.6rem;font-weight:700;color:var(--accent);background:rgba(94,234,212,.13);padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;white-space:nowrap}.exercise-card.ex-card-done{border-color:color-mix(in srgb,var(--accent) 28%,var(--line))}.exercise-card{position:relative}.ex-fav-badge{position:absolute;top:7px;right:9px;color:#facc15;font-size:.95rem;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.4);pointer-events:none}.exercise-card.ex-card-fav{border-color:rgba(250,204,21,.45)}.exercise-detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.exercise-detail-actions .primary-button{flex:1;min-width:150px}#toggleFavExercise.is-fav{color:#facc15;border-color:rgba(250,204,21,.5)}.lib-filter-toggle.active{border-color:var(--accent);color:var(--accent)}.body-goals{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 2px}.body-goals .bg-label{font-size:.78rem;color:var(--muted);font-weight:600;flex-basis:100%}.body-goals button{flex:1 1 auto;min-width:96px;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:border-color .15s,transform .1s}.body-goals button:hover{border-color:var(--accent);color:var(--accent)}.body-goals button:active{transform:scale(.97)}#quickSessionBar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:10px 0 2px}#quickSessionBar label{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}#quickSessionBar select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 9px}#quickSessionBar small{color:var(--muted);font-size:.7rem;flex-basis:100%}#quickSessionResult:empty{display:none}#quickSessionResult{margin:10px 0 2px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}.qs-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:7px}.qs-head b{color:var(--accent);font-size:.92rem}.qs-list{margin:0;padding-left:20px;display:grid;gap:4px}.qs-list li{font-size:.82rem;color:var(--text)}.qs-list small{color:var(--muted);font-size:.72rem}.qs-empty{color:var(--muted);font-size:.85rem}
@@ -326,6 +337,7 @@ details.calendar-setting[open]{padding-bottom:14px}
 
 /* Révisions par matière : voir d'un coup d'œil laquelle est en retard (BTS = plusieurs matières). */
 .study-subjects{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.study-subjects[hidden]{display:none}
 .study-subjects .ss-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .study-subjects .ss-prio{font-size:.86rem;color:var(--text)}
 .study-subjects .ss-chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -398,6 +410,7 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-sync-actions .primary-button{padding:8px 13px;font-size:.82rem}
 .alt-sync #altSheetStatus{color:var(--muted)}
 .alt-relances{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 4px;padding:9px 11px;background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.3);border-left:3px solid #818cf8;border-radius:10px}
+.alt-relances[hidden]{display:none}
 .alt-rel-label{font-size:.76rem;font-weight:650;color:var(--text)}
 .alt-rel-chip{font-size:.74rem;font-weight:600;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;font-family:inherit;cursor:pointer}
 .alt-rel-chip:hover{border-color:#818cf8;background:rgba(129,140,248,.14)}

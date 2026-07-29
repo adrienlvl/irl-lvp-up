@@ -3720,7 +3720,18 @@ app.whenReady().then(async () => {
           const resume = pli.querySelector("summary");
           const tactile = !!resume && Math.round(resume.getBoundingClientRect().height) >= 44;
 
-          /* 4) DEPLIER REVELE TOUT — sinon le pli serait une trappe. */
+          /* 4) DEPLIER REVELE TOUT — sinon le pli serait une trappe.
+             CORRIGE A L ITERATION 96 : cette assertion exigeait 6 visibles sur 6, et elle passait
+             GRACE A UN BUG. Une analyse vide porte l attribut hidden ; comme sa classe posait
+             display:grid sans regle [hidden]{display:none}, elle occupait quand meme 24 px et
+             checkVisibility() la donnait visible. La garde posee, elle est enfin vraiment cachee —
+             et le compte est tombe a 5/6. On attend donc les analyses NON cachees, ce qui est le
+             sujet reel (« deplier ne dissimule rien »), avec un plancher a 4 pour que le check ne
+             devienne pas vacant si tout se trouvait cache. */
+          const attendus = ids.filter(function (id) {
+            const e = document.getElementById(id);
+            return !!e && !e.hasAttribute("hidden");
+          });
           pli.open = true;
           const hautOuvert = Math.round(pli.getBoundingClientRect().height);
           const visiblesOuvert = ids.filter(function (id) {
@@ -3736,10 +3747,10 @@ app.whenReady().then(async () => {
           checks.__focusPli = "trouves=" + trouves.length + "/6 dansLePli=" + dedans.length
             + "/6 ferme=" + ferme + " invisibles=" + invisibles + "/6 tactile=" + tactile
             + " hFerme=" + hautFerme + " hOuvert=" + hautOuvert + " gagne=" + gagne
-            + " visiblesOuvert=" + visiblesOuvert + "/6";
+            + " visiblesOuvert=" + visiblesOuvert + "/" + attendus.length + " (6 au total)";
           if (typeof showPage === "function") showPage(_pageAvant);
           return trouves.length === 6 && dedans.length === 6 && ferme && invisibles === 6
-            && tactile && visiblesOuvert === 6 && gagne > 300;
+            && tactile && attendus.length >= 4 && visiblesOuvert === attendus.length && gagne > 300;
         } catch (e) {
           try { if (typeof showPage === "function") showPage(_pageAvant); } catch (_) {}
           checks.__errFocusPli = String(e && e.message); return false;
@@ -3970,6 +3981,47 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* L ATTRIBUT hidden DOIT CACHER — sur TOUTES les pages (BLOQUANT).
+         Mesure de l iteration 96 : 14 classes posaient display:flex ou grid sans leur regle
+         [hidden]{display:none}. L attribut hidden n est qu un display:none de la feuille de l agent
+         utilisateur : n importe quelle regle d auteur le bat. Resultat, ~300 px de bandes vides
+         reparties sur les sept pages — 118 px au milieu du Plan de bataille, 50 px de carte
+         d installation sur CHAQUE page, 24 px de reprise de seance guidee. Un test sur el.hidden
+         aurait repondu « cache » pendant que l ecran affichait du vide : on mesure donc la RECT.
+         Le lint statique (css-lint.test.js) attrape les nouveaux cas a l ecriture ; ce check-ci
+         voit ce que le statique ne peut pas trancher, les guerres de specificite. */
+      checks.hiddenCacheVraiment = (() => {
+        try {
+          if (typeof showPage !== 'function') return false;
+          const fantomes = [];
+          const releve = ou => {
+            document.querySelectorAll('[hidden]').forEach(el => {
+              const r = el.getBoundingClientRect();
+              if (r.height < 1 && r.width < 1) return;
+              const cle = el.id || (typeof el.className === 'string' ? el.className.split(' ')[0] : '') || el.tagName;
+              fantomes.push(ou + '/' + cle + ' ' + Math.round(r.width) + 'x' + Math.round(r.height));
+            });
+          };
+          const pages = ['dashboard', 'agenda', 'athlete', 'poids', 'library', 'nutrition', 'focus', 'settings'];
+          pages.forEach(p => { showPage(p); releve(p); });
+          // Les quatre sous-onglets d Athlete cachent chacun un jeu different de panneaux.
+          showPage('athlete');
+          const sous = [];
+          document.querySelectorAll('button[data-atab]').forEach(b => {
+            if (!b.classList.contains('panel') && !b.classList.contains('card')) sous.push(b);
+          });
+          sous.forEach(b => { b.click(); releve('athlete:' + b.dataset.atab); });
+          showPage('dashboard');
+          checks.__hiddenFantomes = fantomes.length
+            ? fantomes.length + ' fantomes : ' + fantomes.slice(0, 6).join(' | ')
+            : 'aucun fantome sur ' + pages.length + ' pages + ' + sous.length + ' sous-onglets';
+          return fantomes.length === 0 && sous.length >= 4;
+        } catch (e) {
+          try { showPage('dashboard'); } catch (_) {}
+          checks.__errHiddenFantomes = String(e && e.message); return false;
+        }
+      })();
+
       /* LA SEANCE GUIDEE : hierarchie, lisibilite, et un temps qui BOUGE. Mesure en 390 px avant
          l iteration 95 : le nom de l exercice — ce qu on fait a l instant — sortait a 18 px, sous
          le titre de seance (24 px) et sous l horloge de repos (31 px) ; les labels « kg »/« reps »
@@ -6298,6 +6350,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.hiddenCacheVraiment) errors.push('L’attribut hidden ne cache pas : un élément marqué hidden occupe encore de la place à l’écran. 14 classes posaient display:flex ou grid sans leur règle [hidden]{display:none}, qui bat l’attribut — mesuré, ~300 px de bandes vides sur les sept pages, dont 118 px au milieu du Plan de bataille et 50 px sur chaque page pour la carte d’installation. Ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle fautive (voir __hiddenFantomes pour le coupable)');
     if (!checks.hierarchieGuidee) errors.push('Séance guidée : la hiérarchie était inversée — mesuré en 390 px, le nom de l’exercice sortait à 18 px, SOUS le titre de séance (24 px) et sous l’horloge de repos (31 px), et les labels « kg »/« reps » à 9,3 px. Le nom doit dominer son écran (≥ 26 px et plus gros que le titre), les labels rester lisibles (≥ 12 px), les boutons −/+ faire 44 px. Et l’en-tête doit MESURER : « ≈ 28 min » était calculé sur tous les exercices, donc figé du début à la fin, et la barre valait (index+1)/total, soit 25 % avant la première série. Valider des séries doit faire baisser le temps et avancer la barre. La carte de la séance doit lister les étapes, marquer celle en cours, et y sauter au clic');
     if (!checks.revisionPossessif) errors.push('Rattrapage des révisions : la phrase affichait « Son épreuve (X) » même quand aucun libellé ne correspondait — un possessif qui affirme un lien que le champ `appariee` niait dans le même objet. Le repli sur l’épreuve la plus proche est légitime, il doit juste se dire pour ce qu’il est (« Ta prochaine épreuve »). Et un libellé vide ou d’une lettre ne doit apparier aucune matière : une chaîne vide est sous-chaîne de tout, et « compta » contient « a »');
     if (!checks.revisionArbitre) errors.push('Révisions en retard : l’écran affichait la liste puis « Reprogramme-les dans le calendrier » — une consigne sans mécanisme, l’état d’avant l’itération 76 pour les séances. C’est l’ÉPREUVE qui doit arbitrer, pas la fraîcheur : une révision de 12 jours passe devant une révision d’hier si son épreuve est dans 5 jours. Le créneau proposé doit DÉPLACER la révision d’un clic, et quand tout est périmé aucun bouton ne doit subsister');

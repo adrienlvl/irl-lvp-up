@@ -143,3 +143,49 @@ test('CSS : la première piste des en-têtes de semaine = gouttière + écart du
   }
   assert.deepEqual(rates, [], "en-têtes de semaine désalignés du corps");
 });
+
+/* L'ATTRIBUT `hidden` DOIT CACHER — règle générale, pas liste de cas.
+   Défaut mesuré à l'itération 96 : 14 classes posaient `display:flex` ou `display:grid` sans leur
+   règle `[hidden]{display:none}`. L'attribut `hidden` (qui n'est qu'un `display:none` de la
+   feuille de l'agent utilisateur) était donc écrasé par la règle d'auteur, et chaque élément
+   « caché » gardait sa hauteur : ~300 px de bandes vides réparties sur les sept pages, dont 118 px
+   au milieu du Plan de bataille et 50 px de carte d'installation sur CHAQUE page.
+   Ce test ne connaît aucun nom : il lit les éléments porteurs de `hidden` dans index.html et exige
+   une garde dès qu'un `display:` d'auteur les vise. Tout nouveau bloc caché est donc couvert
+   d'office. Le pendant au RENDU vit dans le smoke (`hiddenCacheVraiment`) : lui seul voit les
+   guerres de spécificité, que l'analyse statique ne peut pas trancher. */
+test('CSS : un élément hidden ne doit pas garder un display d’auteur', () => {
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const css = cssFiles.map(f => fs.readFileSync(path.join(dir, f), 'utf8'))
+    .join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // Une règle vise-t-elle ce sélecteur avec un display autre que none ?
+  const poseUnDisplay = sel => {
+    let i = -1;
+    while ((i = css.indexOf(sel, i + 1)) >= 0) {
+      const suivant = css.charAt(i + sel.length);
+      if (suivant !== '{' && suivant !== ',') continue;
+      const fin = css.indexOf('}', i);
+      if (fin < 0) break;
+      const corps = css.slice(css.indexOf('{', i) + 1, fin);
+      const d = /display\s*:\s*([a-z-]+)/.exec(corps);
+      if (d && d[1] !== 'none') return true;
+    }
+    return false;
+  };
+
+  const fautifs = [];
+  (html.match(/<[a-z][a-z0-9]*\s[^>]*\bhidden\b[^>]*>/g) || []).forEach(balise => {
+    const id = (/\sid="([^"]+)"/.exec(balise) || [])[1];
+    const classes = ((/\sclass="([^"]+)"/.exec(balise) || [])[1] || '').split(/\s+/).filter(Boolean);
+    const selecteurs = (id ? ['#' + id] : []).concat(classes.map(c => '.' + c));
+    if (!selecteurs.length) return;
+    if (!selecteurs.some(poseUnDisplay)) return;
+    // Une garde sur N'IMPORTE lequel de ses sélecteurs suffit : c'est le même élément.
+    if (selecteurs.some(sel => css.indexOf(sel + '[hidden]') !== -1)) return;
+    fautifs.push((id ? '#' + id : classes.join('.')) + ' → ' + selecteurs.filter(poseUnDisplay).join(' '));
+  });
+
+  assert.deepEqual(fautifs, [],
+    'ces éléments portent hidden mais une règle d’auteur leur impose un display : ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle');
+});

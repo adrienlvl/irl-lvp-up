@@ -26,3 +26,6 @@
   .print-empty{color:#aaa}
   .print-foot{margin-top:14px;color:#777;font-size:10px}
 }
+
+/* Garde [hidden] de #printReport : sa regle display vit dans un @media, la garde doit valoir partout. */
+#printReport[hidden]{display:none}

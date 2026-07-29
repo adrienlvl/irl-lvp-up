@@ -5,6 +5,7 @@
 .race-goal-form label{display:grid;gap:6px;color:var(--muted);font-size:.8rem}
 .race-goal-form input,.race-goal-form select{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}
 .race-goal-phase{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.race-goal-phase[hidden]{display:none}
 .race-goal-phase>div{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
 .race-goal-phase span{display:block;color:var(--muted);font-size:.7rem}
 .race-goal-phase b{display:block;font-size:1.1rem;color:var(--accent);margin-top:4px}
@@ -25,6 +26,7 @@
 .volume-form label{display:grid;gap:6px;color:var(--muted);font-size:.8rem}
 .volume-form input{background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px}
 .volume-thisweek{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.volume-thisweek[hidden]{display:none}
 .volume-thisweek>div{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
 .volume-thisweek span{display:block;color:var(--muted);font-size:.7rem}
 .volume-thisweek b{display:block;font-size:1.3rem;color:var(--accent);margin-top:4px}

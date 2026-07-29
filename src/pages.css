@@ -109,6 +109,12 @@ p.eyebrow,.eyebrow{font-size:var(--fs-3xs);font-weight:var(--fw-black);letter-sp
    ni les trous, ni les chevauchements. La grille reprend la géométrie de la vue
    jour, avec une gouttière d'heures partagée par les sept colonnes. */
 #weekGrid{display:block}
+/* Garde [hidden] : #weekGrid est cache par app.js A L EXECUTION, donc le lint statique
+   (qui ne lit que les hidden ecrits dans index.html) ne pouvait pas le voir — c est le check
+   au rendu qui l a trouve, 746x380 px de grille fantome sur les sept pages. La specificite
+   compte ici : #weekGrid[hidden] (1,1,0) doit battre .week-page #weekGrid (1,1,0) par l ORDRE,
+   donc cette regle vient bien apres. */
+#weekGrid[hidden]{display:none}
 /* Les en-têtes doivent reproduire EXACTEMENT la géométrie de .wt-cols : 44px de gouttière
    + son gap replié en une piste, le même gap de 1px, et la place que la barre de défilement
    prend au corps sans la prendre aux en-têtes. Sinon les jours glissent de plusieurs pixels. */
