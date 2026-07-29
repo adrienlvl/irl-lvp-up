@@ -3111,3 +3111,41 @@ cible se déplaçait pendant qu'on visait. Il teste maintenant la bascule de ton
 **Mutations.** 4 posées, 4 détectées.
 
 683 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 86 — La mémoire des blocs va jusqu'au conseil
+
+Chantier n°9 de la roadmap. Sondé d'abord : les trois blocs « muets » du Plan de bataille
+(`blockCompare`, `blocksByObjective`, `limitationsNote`) **parlent dès qu'il y a des blocs
+terminés** — pas de défaut, ils attendent légitimement des données.
+
+Le vrai manque était ailleurs, et la roadmap l'avait nommé : *« la comparaison n'est jamais
+tirée jusqu'à la recommandation »*. L'écran affichait « +40 % de tonnage » et s'arrêtait.
+
+`memoireDesBlocs` regroupe les blocs terminés par leur **cadence réellement tenue** et compare
+le tonnage par semaine :
+
+> 🧠 À 3,5 séances/semaine tu produis 11,2 t par semaine, soit 100 % de plus qu'à 2. C'est une
+> observation sur 2 blocs à toi, **pas une règle** — mais si tu hésites pour le prochain, elle
+> penche de ce côté.
+
+**Ce qu'on refuse de dire** : avec une seule cadence dans l'historique, deux blocs au même
+rythme ne disent rien *sur* le rythme. On décrit et on l'assume plutôt que de fabriquer une
+causalité.
+
+### Ce que cette itération a appris
+
+**Un facteur constant ne se teste pas.** La mutation qui retirait la normalisation par semaine a
+survécu : tous mes blocs faisaient 4 semaines, donc diviser par la durée ne changeait aucun
+classement. Il a fallu **deux blocs de longueurs différentes, à tonnage total égal**, pour que
+la normalisation devienne observable. *Une opération qui s'applique identiquement à tous les
+éléments du jeu d'essai est invisible — il faut faire varier ce par quoi elle divise.*
+
+Et une regex trop stricte a fait tomber un test juste : j'exigeais « séances/semaine » au pluriel
+là où la phrase disait correctement « 1 séance/semaine ». *Un test doit viser son sujet, pas une
+forme grammaticale qui dépend de la valeur.*
+
+**Mutations.** 5 posées, 5 détectées après élargissement du jeu d'essai.
+
+684 tests · SMOKE OK. Rien publié depuis v2.14.0.
