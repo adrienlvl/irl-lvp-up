@@ -12769,36 +12769,62 @@ test('cadenceDePesee : la consigne confrontée à la réalité', () => {
   assert.equal(vieilles.trous, 4, 'les 4 semaines de la fenêtre sont vides');
   assert.match(vieilles.phrase, /Aucune pesée depuis 4 semaines/);
 
-  // CADENCE TENUE : 10 pesées sur 28 jours = 2,5/semaine, au-dessus du minimum de 2.
-  const bonne = L.cadenceDePesee(pesees([0, 2, 4, 6, 8, 10, 13, 16, 20, 24]), today, 'perte');
+  /* CADENCE TENUE, fenêtre COMPLÈTE : la première pesée date de 27 jours, le suivi couvre donc
+     bien les 28 jours et 10 pesées font 2,5/semaine.
+     CONTRAT ÉLARGI SCIEMMENT (revue de l'itération 80) : la cadence se divise par la période
+     RÉELLEMENT SUIVIE, plus par la fenêtre nominale. Le jeu d'essai précédent démarrait à
+     24 jours et attendait 2,5 — il attendrait 2,8 aujourd'hui, et 2,8 est le bon chiffre pour
+     25 jours de suivi. On le décale à 27 pour que ce cas-ci teste bien la fenêtre PLEINE, et
+     le cas court est couvert juste en dessous. */
+  const bonne = L.cadenceDePesee(pesees([0, 2, 4, 6, 8, 10, 13, 16, 20, 27]), today, 'perte');
   assert.equal(bonne.pesees, 10);
+  assert.equal(bonne.complet, true, 'témoin : la fenêtre est bien pleine');
   assert.equal(bonne.parSemaine, 2.5);
   assert.equal(bonne.verdict, 'bonne');
-  assert.equal(bonne.fiabilite, 'solide');
   assert.equal(bonne.trous, 0);
-  assert.match(bonne.phrase, /2,5 pesées\/semaine/);
+  assert.match(bonne.phrase, /2,5 pesées\/semaine sur 4 semaines/);
+
+  /* LE CAS QUI DISCRIMINE — LE DÉBUTANT. Il commence son suivi il y a 10 jours et s'y tient :
+     5 pesées, soit 3,5/semaine sur sa période réelle. Avant le correctif, il s'entendait dire
+     « 1,3 pesées/semaine sur 4 semaines — dont 2 semaines sans aucune pesée », des semaines
+     ANTÉRIEURES à sa première pesée. On ne reproche pas un passé qui n'existe pas. */
+  const debutant = L.cadenceDePesee(pesees([9, 7, 5, 3, 1]), today, 'perte');
+  assert.equal(debutant.pesees, 5);
+  assert.equal(debutant.complet, false);
+  assert.equal(debutant.joursSuivi, 10, 'la fenêtre s’arrête au début réel du suivi');
+  assert.equal(debutant.parSemaine, 3.5, 'et l’effort n’est plus divisé par du vide');
+  assert.equal(debutant.verdict, 'bonne');
+  assert.equal(debutant.trous, 0, 'aucune semaine vide : il n’y en avait pas à avoir');
+  assert.match(debutant.phrase, /sur tes 10 jours de suivi/);
+  assert.ok(!/sur 4 semaines/.test(debutant.phrase), 'et surtout pas « sur 4 semaines »');
+  assert.ok(!/sans aucune pesée/.test(debutant.phrase), 'ni de reproche sur des semaines inexistantes');
   assert.match(bonne.phrase, /2 à 3×\/semaine/, 'la consigne est rappelée avec la mesure');
 
   /* LE CAS QUI DISCRIMINE : cadence faible ET semaines vides. La phrase doit citer le TAUX
      affiché par l'écran voisin, pas un synonyme — c'est ce qui fait un seul avis. */
-  const faible = L.cadenceDePesee(pesees([1, 20]), today, 'perte', { ratePerWeek: -0.42 });
+  // Fenêtre PLEINE (première pesée à 27 j) : les deux semaines vides sont ici de vrais trous
+  // dans un suivi installé, pas des semaines antérieures au début — le reproche est mérité.
+  const faible = L.cadenceDePesee(pesees([1, 27]), today, 'perte', { ratePerWeek: -0.42 });
   assert.equal(faible.pesees, 2);
   assert.equal(faible.parSemaine, 0.5);
   assert.equal(faible.verdict, 'faible');
-  assert.equal(faible.fiabilite, 'fragile');
+  /* `fiabilite` a été RETIRÉ (revue de l'itération 80) : calculé, exporté, lu par PERSONNE —
+     exactement le défaut « helper orphelin » corrigé aux itérations 71-74, que je venais de
+     reproduire. Ce qu'il exprimait, `verdict` le dit déjà et la phrase le formule. */
+  assert.equal(faible.fiabilite, undefined, 'aucun champ mort ne doit ressortir de la fonction');
   assert.equal(faible.trous, 2, 'deux des quatre semaines n’ont aucun point');
   assert.match(faible.phrase, /2 semaines sans aucune pesée/);
   assert.match(faible.phrase, /−0,42 kg\/sem\./, 'le chiffre cité est CELUI de l’écran voisin');
   assert.match(faible.phrase, /relie deux points éloignés/);
 
   // Sans taux fourni, la phrase reste correcte : on ne fabrique pas un chiffre.
-  const sansTaux = L.cadenceDePesee(pesees([1, 20]), today, 'perte');
+  const sansTaux = L.cadenceDePesee(pesees([1, 27]), today, 'perte');
   assert.match(sansTaux.phrase, /la tendance affichée/);
   assert.ok(!/kg\/sem/.test(sansTaux.phrase), 'aucun chiffre inventé quand on n’en a pas');
 
   /* EN MAINTIEN la consigne est plus légère (1×/semaine) : la MÊME cadence doit donc changer
      de verdict. Sans ce cas, la cible ne serait pas testée du tout. */
-  const memeCadence = pesees([1, 8, 15, 22]);
+  const memeCadence = pesees([1, 8, 15, 27]);   // exactement 1 pesée/semaine sur 4 semaines pleines
   assert.equal(L.cadenceDePesee(memeCadence, today, 'perte').verdict, 'faible');
   assert.equal(L.cadenceDePesee(memeCadence, today, 'maintien').verdict, 'bonne',
     'un rythme d’une pesée par semaine tient la consigne de maintien');
@@ -13461,6 +13487,18 @@ test('creneauDeConcentration : le temps du verbe suit la fraîcheur de la mesure
   assert.ok(vieux, 'on ne se tait pas : l’info reste utile le jour où on s’y remet');
   assert.equal(vieux.frais, false);
   assert.equal(vieux.joursDepuis, 35);
+
+  /* L'ÂGE SE LIT SUR TOUS LES BLOCS, pas seulement sur ceux dont l'`id` est un horodatage
+     (revue de l'itération 80). Mesuré : un bloc d'hier au format d'id ancien laissait annoncer
+     « Plus aucun bloc depuis 40 jours » alors qu'il y en avait eu la veille. Le filtre des ids
+     sert à placer une HEURE ; il n'a rien à dire sur le fait qu'on soit encore actif. */
+  const avecAncienFormat = paquet(35, 45).concat([{ id: 7, date: '2026-07-28', minutes: 25, task: 'Compta' }]);
+  const cf = L.creneauDeConcentration(avecAncienFormat, today);
+  assert.equal(cf.blocs, 22, 'le bloc non horodaté ne rentre PAS dans le profil horaire…');
+  assert.equal(cf.joursDepuis, 1, '…mais il compte pour dire depuis quand tu es actif');
+  assert.equal(cf.frais, true);
+  assert.match(cf.phrase, /Ton créneau, c’est/, 'donc la phrase repasse au présent');
+  assert.ok(!/Plus aucun bloc depuis/.test(cf.phrase), 'et n’affirme plus le contraire de la réalité');
   assert.equal(vieux.fenetre.libelle, '9 h–12 h', 'la mesure elle-même est inchangée');
   assert.equal(vieux.domine, true);
   assert.match(vieux.phrase, /Plus aucun bloc depuis 35 jours/);

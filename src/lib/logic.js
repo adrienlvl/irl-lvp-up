@@ -12207,8 +12207,19 @@ function cadenceDePesee(weights, todayKey, direction, opts) {
     .filter(w => { const a = daysUntil(w.date, todayKey); return a != null && a >= 0 && a < jours; })
     .map(w => w.date)));
   const pesees = dansFenetre.length;
-  const nbSemaines = Math.max(1, Math.round(jours / 7));
-  const parSemaine = Math.round((pesees / (jours / 7)) * 10) / 10;
+
+  /* LA FENÊTRE NE COMMENCE PAS AVANT LA PREMIÈRE PESÉE (revue de l'itération 80).
+     Mesuré : quelqu'un qui commence son suivi il y a 10 jours et s'y tient (5 pesées, soit
+     3,5/semaine sur sa période réelle) s'entendait dire « 1,3 pesées/semaine sur 4 semaines —
+     dont 2 semaines sans aucune pesée ». Ces deux semaines-là sont ANTÉRIEURES à sa première
+     pesée : on lui reprochait un passé qui n'existe pas, et on divisait son effort par le vide.
+     La fenêtre s'arrête donc au début réel du suivi. */
+  const premiere = toutes.reduce((min, w) => (!min || w.date < min ? w.date : min), '');
+  const agePremiere = daysUntil(premiere, todayKey);
+  const joursSuivi = agePremiere == null ? jours : Math.min(jours, agePremiere + 1);
+  const complet = joursSuivi >= jours;
+  const nbSemaines = Math.max(1, Math.round(joursSuivi / 7));
+  const parSemaine = Math.round((pesees / (joursSuivi / 7)) * 10) / 10;
 
   /* Semaines glissantes en partant d'AUJOURD'HUI, la plus récente en tête : découper sur le
      calendrier ferait dépendre le résultat du jour de la semaine où on regarde. */
@@ -12225,12 +12236,12 @@ function cadenceDePesee(weights, todayKey, direction, opts) {
   const verdict = pesees === 0 ? 'aucune'
     : parSemaine >= cible.min ? 'bonne'
       : parSemaine >= cible.min - 0.5 ? 'juste' : 'faible';
-  /* Fiabilité de la TENDANCE, pas de la pesée : à moins d'une pesée par semaine en moyenne,
-     certaines semaines n'ont aucun point et la pente y est interpolée. */
-  const fiabilite = parSemaine >= cible.min ? 'solide' : parSemaine >= 1 ? 'indicative' : 'fragile';
 
   const nb = n => String(n).replace('.', ',');
   const cibleTxt = cible.min === cible.max ? cible.min + '×/semaine' : cible.min + ' à ' + cible.max + '×/semaine';
+  // Sur un suivi plus court que la fenêtre, on compte en JOURS : « sur 1 semaines » serait faux
+  // autant que malpoli, et « sur 4 semaines » mentirait sur la période réellement observée.
+  const surTxt = complet ? 'sur ' + nbSemaines + ' semaines' : 'sur tes ' + joursSuivi + ' jours de suivi';
   const trouTxt = trous > 0
     ? ' — dont ' + trous + ' semaine' + (trous > 1 ? 's' : '') + ' sans aucune pesée'
     : '';
@@ -12245,15 +12256,15 @@ function cadenceDePesee(weights, todayKey, direction, opts) {
       + 'lire, seulement un ancien chiffre — une pesée suffit à la relancer.';
   } else if (verdict === 'bonne') {
     phrase = '⚖️ Cadence tenue : ' + nb(parSemaine) + ' pesée' + (parSemaine > 1 ? 's' : '')
-      + '/semaine sur ' + nbSemaines + ' semaines, pour ' + cibleTxt + ' demandé' + trouTxt
+      + '/semaine ' + surTxt + ', pour ' + cibleTxt + ' demandé' + trouTxt
       + '. Ta tendance repose sur assez de points pour être lue telle quelle.';
   } else {
-    phrase = '⚖️ ' + nb(parSemaine) + ' pesée' + (parSemaine > 1 ? 's' : '') + '/semaine sur '
-      + nbSemaines + ' semaines, là où ton plan en demande ' + cibleTxt + trouTxt + '. À ce rythme,'
+    phrase = '⚖️ ' + nb(parSemaine) + ' pesée' + (parSemaine > 1 ? 's' : '') + '/semaine '
+      + surTxt + ', là où ton plan en demande ' + cibleTxt + trouTxt + '. À ce rythme,'
       + tauxTxt + ' relie deux points éloignés plutôt qu’elle ne moyenne des semaines.';
   }
 
-  return { jours, pesees, parSemaine, cible, semaines, trous, verdict, fiabilite, phrase };
+  return { jours, joursSuivi, complet, pesees, parSemaine, cible, semaines, trous, verdict, phrase };
 }
 
 // Enregistre une pesée en garantissant UNE pesée par jour : remplace celle du jour si elle existe,
@@ -12970,10 +12981,20 @@ function creneauDeConcentration(sessions, todayKey, opts) {
   const hh = n => n + ' h';
   const fenetreTxt = hh(best.debut) + '–' + hh(best.fin);
 
-  /* DEPUIS QUAND CE CONSTAT TIENT-IL ENCORE ? Le bloc le plus récent parmi ceux retenus donne
-     l'âge de la mesure. Au-delà de `fraisJours`, le comportement décrit appartient au passé :
-     le dire au présent serait une affirmation fausse sur aujourd'hui. */
-  const dernier = retenus.reduce((max, s) => (s.date > max ? s.date : max), '');
+  /* DEPUIS QUAND CE CONSTAT TIENT-IL ENCORE ? Au-delà de `fraisJours`, le comportement décrit
+     appartient au passé : le dire au présent serait une affirmation fausse sur aujourd'hui.
+
+     L'âge se lit sur TOUTES les sessions de la fenêtre, pas seulement sur celles dont l'`id`
+     est un horodatage (revue de l'itération 80). Mesuré : un bloc d'hier au format d'id ancien
+     faisait annoncer « Plus aucun bloc depuis 40 jours » alors qu'il y en avait eu la veille.
+     Le filtre des ids sert à placer une HEURE ; il n'a rien à dire sur le fait qu'on est encore
+     actif — et une phrase fausse est pire qu'une phrase absente. */
+  const dernier = (Array.isArray(sessions) ? sessions : []).reduce((max, s) => {
+    if (!s || !isKey(s.date) || s.date > todayKey) return max;
+    const age = daysUntil(s.date, todayKey);
+    if (age == null || age > jours) return max;
+    return s.date > max ? s.date : max;
+  }, '');
   const joursDepuis = daysUntil(dernier, todayKey);
   const frais = joursDepuis != null && joursDepuis <= fraisJours;
 
