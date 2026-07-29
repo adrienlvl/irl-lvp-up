@@ -2449,3 +2449,55 @@ parlant — « identique[👀 Aperçu pour 76 kg…] », soit une bannière anno
 aujourd'hui.*
 
 674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 71 — « Trancher les helpers d'agenda » : la réponse est non, et voici pourquoi
+
+Chantier de la roadmap : décider quoi faire des quatre helpers d'agenda orphelins
+(`nextTrainingSession`, `setAgendaCompleted`, `setRecurringDone`, `xpForAgendaItem`).
+
+### Ce que la mesure a montré
+
+Il existe **deux implémentations du même geste** : `completeRecurringOn` dans `app.js`
+(utilisée) et `setRecurringDone` dans `logic.js` (orpheline, mais testée). Réflexe naturel :
+brancher l'app sur la fonction pure, une seule implémentation, déjà couverte.
+
+**Ce serait une régression.** Les deux ne font pas la même chose :
+
+| | `completeRecurringOn` (app.js) | `setRecurringDone` (logic.js) |
+|---|---|---|
+| Occurrence déplacée | valide sur la date d'**ORIGINE** via `recurringOccurrence` | prend la date **telle quelle** |
+| Décocher | non | oui |
+| XP révision | oui | non |
+
+La résolution de la date d'origine est un **correctif documenté** : « cocher le mardi un cours
+venu du lundi devait écrire lundi, sinon la coche ne tient pas ». La fonction pure est une
+version **antérieure et plus faible**, laissée derrière — pas la pièce manquante.
+
+**Décision : ne pas consolider en l'état.** Il faudrait d'abord porter la résolution de date
+d'origine dans la fonction pure. Ce n'est pas une ligne, et ça touche un bug déjà corrigé.
+
+### Ce que j'ai tenté, et pourquoi je ne l'ai pas livré
+
+J'ai voulu épingler le comportement par un check bloquant avant toute consolidation future.
+Le check ne reproduit pas le scénario : `recurringOccurrence` ne rend rien sur la date cible,
+donc la coche retombe sur le mardi et le check ne teste pas son sujet.
+
+**Retiré, pas commité.** Un check rouge ne se livre pas ; un check qui prétend garder un
+comportement sans le reproduire est pire — il donne une fausse sécurité.
+
+### Deux erreurs de ma part, instructives
+
+*`setRecurringOverride` rend `{ recurring, changed }`, pas un tableau.* Je l'ai affecté tel quel
+à `state.recurring`, qui n'était donc plus un tableau.
+
+*Ma restauration d'état vivait APRÈS le corps du `try`* : l'exception la sautait, `state.recurring`
+restait cassé, et **un check voisin est tombé** — accusant le planificateur d'un défaut qui
+n'était pas le sien. Un check qui abîme l'état commun est pire qu'un check absent.
+
+674 tests · SMOKE OK, dépôt propre. Rien publié : dernière release v2.13.0.
+
+### Reste à faire sur ce chantier
+Porter la résolution de date d'origine dans `setRecurringDone`, l'épingler par un check qui
+reproduit vraiment le déplacement, puis consolider. Dans cet ordre.
