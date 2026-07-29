@@ -2501,3 +2501,44 @@ n'était pas le sien. Un check qui abîme l'état commun est pire qu'un check ab
 ### Reste à faire sur ce chantier
 Porter la résolution de date d'origine dans `setRecurringDone`, l'épingler par un check qui
 reproduit vraiment le déplacement, puis consolider. Dans cet ordre.
+
+---
+
+## Itération 72 — Le champ s'appelait `moveTo`, pas `date`
+
+Suite directe de l'itération 71, qui s'était arrêtée sur un check incapable de reproduire son
+scénario. Question laissée ouverte : pourquoi `recurringOccurrence` ne rend-il rien sur la date
+cible après un déplacement ?
+
+### La réponse
+
+`setRecurringOverride` rendait `changed: false` et `overrides: {}` : **l'override n'était jamais
+appliqué**. Le champ de déplacement s'appelle **`moveTo`**, pas `date` — et
+`sanitizeRecurringOverrides` rejette silencieusement tout champ inconnu.
+
+**Aucun défaut dans l'app.** Le déplacement fonctionne, `recurringOccurrence` rend bien
+`{ date: mardi, sourceDate: lundi, deplacee: true }`, et `completeRecurringOn` coche le lundi.
+
+*Quatrième forme de données inventée de la session*, après les règles de récurrence, les
+sessions de focus et les séries de muscu. À chaque fois, le même remède aurait suffi : lire le
+consommateur avant d'écrire le jeu d'essai.
+
+### Ce qui est livré
+
+Le comportement documenté est **enfin gardé** : déplacer l'occurrence du lundi au mardi, la
+cocher sur sa nouvelle date, exiger que `doneLog` contienne le lundi et jamais le mardi.
+
+C'est le filet qui manquait pour rendre sûre la consolidation refusée à l'itération 71.
+
+**Mutations.** 2 posées, 2 détectées, avec des diagnostics parlants :
+- sans la résolution de date d'origine → `log[2026-08-04]` au lieu de `log[2026-08-03]`
+- sans `moveTo` → `deplace=false`
+
+La sauvegarde d'état vit désormais hors du `try`, et le `catch` la restaure — hier, une exception
+avait laissé `state.recurring` cassé et fait tomber un check voisin.
+
+674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+### Reste sur ce chantier
+Porter la résolution de date d'origine dans `setRecurringDone`, puis consolider. Le filet est
+posé, l'opération est maintenant sûre.
