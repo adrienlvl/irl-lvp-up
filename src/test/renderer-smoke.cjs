@@ -3246,6 +3246,64 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.memoireBlocsVue = (() => {
+        const _hS = state.blockHistory, _wS = state.workouts;
+        const _rendre = () => { state.blockHistory = _hS; state.workouts = _wS;
+          try { renderMemoireBlocs(); } catch (_) {} };
+        try {
+          if (typeof renderMemoireBlocs !== "function" || typeof memoireDesBlocs !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#memoireBlocs");
+          if (!el) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const j = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          const seances = function (deb, fin, pas) { const w = [];
+            for (let d = deb; d >= fin; d -= pas) w.push({ id: d, date: j(d), type: "Musculation",
+              duration: 60, effort: 7, exercises: [{ name: "Squat", sets: 4, reps: 8, load: 100 }] });
+            return w; };
+          const hist = [{ objective: "muscle", start: j(90), end: j(63), weeks: 4 },
+            { objective: "muscle", start: j(56), end: j(29), weeks: 4 }];
+
+          /* 1) SOUS DEUX BLOCS TERMINES : le bloc doit rester ETEINT. L ecran dit deja
+             « 1 bloc termine » juste au-dessus — un second avis vide serait du bruit. */
+          state.blockHistory = [hist[0]]; state.workouts = seances(90, 63, 3);
+          renderMemoireBlocs();
+          const muet = getComputedStyle(el).display === "none";
+
+          /* 2) DEUX CADENCES REELLEMENT DIFFERENTES : meme duree, meme charge, seule la
+             frequence change. Le conseil doit sortir ET citer la meme cadence que la mesure. */
+          state.blockHistory = hist;
+          state.workouts = seances(90, 63, 7).concat(seances(56, 29, 2));
+          const attendu = memoireDesBlocs(state.blockHistory, state.workouts);
+          renderMemoireBlocs();
+          const vu = getComputedStyle(el).display !== "none";
+          const t2 = String(el.textContent || "");
+          const compare = el.classList.contains("mb-compare");
+          const memeCadence = !!attendu && t2.indexOf(String(attendu.meilleur.cadence).replace(".", ",") + "/sem.") !== -1;
+          const memePhrase = !!attendu && t2.indexOf(attendu.phrase) !== -1;
+          const lignes = el.querySelectorAll(".mb-row").length;
+
+          /* 3) UNE SEULE CADENCE : le bloc parle encore, mais REFUSE de comparer. Sans ce
+             troisieme cas, une phrase figee sur le conseil passerait pour un succes. */
+          state.workouts = seances(90, 63, 3).concat(seances(56, 29, 3));
+          renderMemoireBlocs();
+          const t3 = String(el.textContent || "");
+          const prudent = !el.classList.contains("mb-compare")
+            && t3.indexOf("Pas encore de quoi comparer") !== -1
+            && t3.indexOf("de plus qu") === -1;
+
+          checks.__memoireBlocs = "muet=" + muet + " vu=" + vu + " compare=" + compare
+            + " lignes=" + lignes + " memeCadence=" + memeCadence + " memePhrase=" + memePhrase
+            + " prudent=" + prudent + " t2[" + t2.slice(0, 85) + "]";
+          _rendre();
+          return muet && vu && compare && lignes === 2 && memeCadence && memePhrase && prudent;
+        } catch (e) {
+          _rendre();
+          checks.__errMemoireBlocs = String(e && e.message); return false;
+        }
+      })();
+
       checks.planUnSeulCompte = (() => {
         const _gS = JSON.parse(JSON.stringify(state.goals || {}));
         const _pS = JSON.parse(JSON.stringify(state.profile || {}));
@@ -5727,6 +5785,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.memoireBlocsVue) errors.push('Mémoire des blocs : la comparaison doit aller jusqu’au CONSEIL — à quel rythme tu produis le plus — et se taire sous deux blocs terminés. Avec une seule cadence dans l’historique, elle doit REFUSER de comparer (deux blocs au même rythme ne disent rien sur le rythme) au lieu d’inventer une causalité, et la cadence citée doit être celle qui a été mesurée');
     if (!checks.planUnSeulCompte) errors.push('Plan de bataille : UN SEUL compte de séances à l’écran. « Ta semaine, face au plan » doit citer ce que le plan POSE, pas le réglage brut — la forme de l’objectif l’emporte sur le réglage (mesuré : 7 configurations sur 8 en désaccord, le bloc annonçait « 6 muscu » au-dessus d’un plan qui en affichait 4)');
     if (!checks.guideeOrdre) errors.push('Séance guidée : l’exercice EN COURS doit venir avant l’échauffement et la prépa — mesuré, son nom n’apparaissait qu’à 563 px, hors du premier écran, alors que l’échauffement se consulte une fois et le bloc exercice toutes les 90 secondes. Les deux accordéons doivent RESTER dans le dialogue (on les descend, on ne les supprime pas), aucun bouton ne doit passer sous 44 px (« Remplacer » mesurait 32 px) et rien ne doit déborder latéralement');
     if (!checks.avancementVu) errors.push('Plan de bataille : ses quinze blocs parlent tous du passé (tonnage 8 semaines, régularité 28 j, jour fort) et aucun ne répondait à la seule question que pose un plan — est-il TENU cette semaine ? Le bloc « Ta semaine, face au plan » doit OUVRIR le panneau, citer exactement les chiffres mesurés, et changer de ton quand la semaine est bouclée au lieu de réclamer encore');

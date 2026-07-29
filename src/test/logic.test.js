@@ -12743,6 +12743,84 @@ test('weightGoalProgress : progression globale départ → cible', () => {
   assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 75 }], 75, 75), null);
 });
 
+test('memoireDesBlocs : la comparaison va jusqu’au conseil, sans inventer de causalité', () => {
+  /* Chantier n°9 de la roadmap. `blockComparison` comparait le premier bloc au dernier et
+     s'arrêtait au constat (« +40 % de tonnage »). Personne ne répondait à ce qui décide du
+     bloc suivant : À QUEL RYTHME on produit le plus. */
+  const today = '2026-07-29';
+  const p = x => String(x).padStart(2, '0');
+  const j = n => { const d = new Date(2026, 6, 29 - n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  // `pas` = un jour sur N → c'est lui qui fixe la CADENCE réellement tenue.
+  const seances = (deb, fin, pas, charge) => { const w = [];
+    for (let d = deb; d >= fin; d -= pas) w.push({ id: d, date: j(d), type: 'Musculation',
+      duration: 60, effort: 7, exercises: [{ name: 'Squat', sets: 4, reps: 8, load: charge }] });
+    return w; };
+  const blocA = { objective: 'muscle', start: j(90), end: j(63), weeks: 4 };
+  const blocB = { objective: 'muscle', start: j(56), end: j(29), weeks: 4 };
+
+  // Sous deux blocs terminés : null. L'écran dit déjà « 1 bloc terminé ».
+  assert.equal(L.memoireDesBlocs([], []), null);
+  assert.equal(L.memoireDesBlocs([blocA], seances(90, 63, 3, 100)), null);
+  // Un bloc sans AUCUNE séance dedans ne compte pas : on ne compare pas du vide.
+  assert.equal(L.memoireDesBlocs([blocA, blocB], seances(90, 63, 3, 100)), null,
+    'le second bloc est vide : il reste un seul bloc mesurable');
+
+  /* UNE SEULE CADENCE : on décrit, et on REFUSE de comparer. C'est le garde-fou contre la
+     causalité inventée — deux blocs au même rythme ne disent rien sur le rythme. */
+  const memeRythme = L.memoireDesBlocs([blocA, blocB],
+    seances(90, 63, 3, 100).concat(seances(56, 29, 3, 112)));
+  assert.ok(memeRythme);
+  assert.equal(memeRythme.blocs, 2);
+  assert.equal(memeRythme.rythmes.length, 1, 'une seule cadence distincte');
+  assert.equal(memeRythme.comparable, false);
+  assert.match(memeRythme.phrase, /Pas encore de quoi comparer deux rythmes/);
+  assert.ok(!/de plus qu/.test(memeRythme.phrase), 'aucune comparaison quand il n’y a qu’un rythme');
+
+  /* LE CAS QUI DISCRIMINE : deux cadences RÉELLEMENT différentes. Même durée de bloc, même
+     charge — seule la fréquence change. Ce qui bascule doit donc venir d'elle, et d'elle seule. */
+  const deuxRythmes = L.memoireDesBlocs([blocA, blocB],
+    seances(90, 63, 7, 100).concat(seances(56, 29, 2, 100)));
+  assert.ok(deuxRythmes);
+  assert.equal(deuxRythmes.comparable, true);
+  assert.equal(deuxRythmes.rythmes.length, 2);
+  assert.ok(deuxRythmes.meilleur.cadence > deuxRythmes.autre.cadence,
+    'à charge égale, la cadence la plus élevée produit plus de tonnage par semaine');
+  assert.ok(deuxRythmes.ecartPct > 0);
+  assert.match(deuxRythmes.phrase, /Ce que tes blocs disent/);
+  /* La cadence COMPARÉE porte son unité — sans elle, la phrase finissait par « … de plus qu’à
+     1. », un nombre nu. Et l'accord suit : à 1, « séances » serait fautif, donc une regex qui
+     exige le pluriel raterait justement le cas correct. */
+  assert.match(deuxRythmes.phrase, /qu’à 1 séance\/semaine/, 'la cadence comparée porte son unité');
+  // La prudence est DITE, pas sous-entendue : c'est une observation, pas une règle.
+  assert.match(deuxRythmes.phrase, /pas une règle/);
+  assert.match(deuxRythmes.phrase, /2 blocs à toi/, 'la taille de l’échantillon est citée');
+
+  // La cadence est celle TENUE, pas celle promise : elle se lit dans les séances enregistrées.
+  assert.equal(deuxRythmes.rythmes[0].cadence, 1, '4 séances sur 4 semaines');
+  assert.equal(deuxRythmes.rythmes[1].cadence, 3.5, '14 séances sur 4 semaines');
+
+  /* LE TONNAGE SE RAMÈNE À LA SEMAINE — et il faut deux blocs de LONGUEURS DIFFÉRENTES pour
+     que ça se voie. À durée égale, diviser par la durée est un facteur constant qui ne change
+     aucun classement : la mutation qui retirait la normalisation survivait (mesuré).
+     Ici : un bloc de 8 semaines et un de 4 totalisent le MÊME tonnage. Sans normalisation ils
+     seraient à égalité ; par semaine, le court produit deux fois plus. */
+  const longA = { objective: 'muscle', start: j(120), end: j(65), weeks: 8 };
+  const courtB = { objective: 'muscle', start: j(56), end: j(29), weeks: 4 };
+  const wLong = seances(120, 65, 4, 100), wCourt = seances(56, 29, 2, 100);
+  assert.equal(wLong.length, wCourt.length, 'témoin : le MÊME nombre de séances des deux côtés');
+  const parSemaine = L.memoireDesBlocs([longA, courtB], wLong.concat(wCourt));
+  assert.ok(parSemaine && parSemaine.comparable);
+  // `rythmes` est trié par cadence croissante : le bloc long tient la plus basse.
+  assert.equal(parSemaine.rythmes.length, 2, 'témoin : deux cadences distinctes');
+  const cLong = parSemaine.rythmes[0], cCourt = parSemaine.rythmes[1];
+  assert.ok(cLong.cadence < cCourt.cadence, 'témoin : le bloc long tient la cadence la plus basse');
+  assert.equal(cCourt.tonnageParSemaine, cLong.tonnageParSemaine * 2,
+    'à tonnage total égal, un bloc deux fois plus court produit deux fois plus par semaine');
+  assert.equal(parSemaine.meilleur.cadence, cCourt.cadence,
+    'c’est le rythme, pas la durée du bloc, qui doit ressortir');
+});
+
 test('avancementSemaine : le plan se compare enfin à lui-même', () => {
   /* Sondé à l'itération 83 : le Plan de bataille fait 4305 px et quinze blocs qui parlent tous
      du PASSÉ. Aucun ne répondait à « le plan est-il tenu cette semaine ? ». */

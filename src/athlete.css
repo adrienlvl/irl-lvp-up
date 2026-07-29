@@ -393,3 +393,20 @@
 .avancement-semaine.av-fini{border-left-color:#4ade80;background:rgba(74,222,128,.08)}
 .avancement-semaine.av-fini .av-barre i{background:#4ade80}
 .avancement-semaine.av-neutre{border-left-color:var(--line)}
+
+/* CE QUE TES BLOCS T'ONT APPRIS. Une ligne par cadence réellement tenue, la meilleure mise en
+   avant — et la phrase en dessous, qui est ce qu'on vient chercher : le conseil pour le bloc
+   suivant. Teinte neutre quand il n'y a qu'une cadence : il n'y a alors rien à recommander. */
+.memoire-blocs{display:grid;gap:var(--sp-2);margin:var(--sp-4) 0;padding:var(--sp-4) var(--sp-5);
+  border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r-md);
+  background:var(--surface-2)}
+.memoire-blocs[hidden]{display:none}
+.memoire-blocs.mb-compare{border-left-color:var(--accent-ring)}
+.mb-head b{font-size:var(--fs-md)}
+.mb-row{display:grid;grid-template-columns:minmax(0,4rem) minmax(0,1fr) minmax(0,7rem);
+  align-items:baseline;gap:var(--sp-3);font-size:var(--fs-xs)}
+.mb-cad{color:var(--muted);font-variant-numeric:tabular-nums}
+.mb-row b{font-variant-numeric:tabular-nums}
+.mb-row small{color:var(--muted);font-size:var(--fs-3xs);text-align:right}
+.mb-row.mb-fort b{color:var(--accent)}
+.mb-phrase{margin:var(--sp-2) 0 0;color:var(--text);font-size:var(--fs-xs);line-height:1.45}
