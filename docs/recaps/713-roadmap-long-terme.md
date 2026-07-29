@@ -158,6 +158,14 @@ Peu de risque, valeur immédiate, et ça nettoie le terrain.
    > personnelle tirée de données déjà collectées : `finishFocusBlock` horodatait chaque bloc
    > depuis le premier jour, et personne ne lisait l'heure. *À chercher en priorité pour les
    > pages restantes : ce que l'app ENREGISTRE déjà sans jamais le relire.*
+   >
+   > **Poids, avancement (79).** Deuxième angle : la **cadence de pesée mesurée**, posée sous la
+   > consigne qui la prescrit. Nouvelle question, aussi productive que la précédente et à poser
+   > aux écrans restants : *qu'est-ce que l'app RECOMMANDE sans jamais vérifier que c'est suivi ?*
+   > (Nutrition prescrit des protéines et de l'eau, Athlète des jours d'entraînement, Focus une
+   > cible hebdomadaire — `coachAdherence` couvre déjà une partie, à sonder avant de conclure.)
+   > *Démenti utile au passage :* la fraîcheur des pesées, elle, était **déjà** traitée
+   > (« il y a 45 j · pense à te repeser »). Sonder d'abord évite de corriger l'inexistant.
 3. ~~L'Agenda dans la navigation, et sondé en 390 px~~ — **FAIT.** Il y était déjà (cf. constat
    n°2, erreur d'audit), et la sonde 390 px de l'itération 61 l'a trouvé sain : aucun
    débordement, aucun champ sous 16 px, trois vues, des filtres.
