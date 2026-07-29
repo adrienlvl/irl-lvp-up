@@ -2856,3 +2856,51 @@ maintien, invisible sans un scénario où **le même rythme change de verdict** 
 l'objectif.
 
 681 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 80 — Revue : trois défauts, tous de mon fait
+
+Revue adversariale due. Cible : `cadenceDePesee` (79) et `creneauDeConcentration` (78).
+Trois trouvailles, toutes vérifiées à la mesure.
+
+### 1. On reprochait un passé qui n'existe pas
+
+Quelqu'un qui commence son suivi il y a 10 jours et s'y tient — 5 pesées, soit **3,5/semaine sur
+sa période réelle** — s'entendait dire :
+
+> ⚖️ 1,3 pesées/semaine sur 4 semaines — **dont 2 semaines sans aucune pesée**.
+
+Ces deux semaines sont **antérieures à sa première pesée**. On divisait son effort par du vide,
+puis on lui reprochait ce vide. C'est le défaut de l'itération 65 sous un autre visage : *une
+mesure honnête devient un reproche dès qu'on la calcule sur une période où l'utilisateur
+n'existait pas.* La fenêtre s'arrête maintenant au début réel du suivi.
+
+### 2. Un champ que personne ne lit
+
+`fiabilite` : calculé, exporté, **zéro occurrence dans app.js**. Je venais de reproduire le
+défaut « helper orphelin » que les itérations 71 à 74 ont passé quatre tours à corriger. Retiré.
+*Écrire une valeur « au cas où » est le premier pas vers deux vérités qui divergent.*
+
+### 3. Une phrase fausse sur le Focus
+
+Un bloc de concentration **d'hier**, mais dont l'`id` vient d'un ancien format, laissait annoncer
+« Plus aucun bloc depuis 40 jours ». Le filtre des ids sert à placer une **heure** ; il n'avait
+rien à dire sur le fait qu'on soit encore actif. Corrigé à l'itération 78, ce garde-fou s'était
+lui-même transformé en source d'erreur — *un filtre légitime pour un usage devient un mensonge
+quand on le réutilise pour un autre.*
+
+### Ce que cette itération a appris
+
+**Les trois défauts sont nés du même geste : réutiliser une borne au-delà de ce qu'elle mesure.**
+La fenêtre de 28 jours servait à cadrer *et* à diviser ; le filtre des ids servait à placer une
+heure *et* à juger l'activité. La question à se poser en écrivant : *cette borne répond à quelle
+question exactement, et à combien d'autres est-ce que je la fais répondre ?*
+
+Un test est tombé, **et c'était voulu** : décision écrite sur place, jeu d'essai décalé pour que
+le cas historique teste bien la fenêtre pleine, cas court ajouté juste en dessous.
+
+**Mutations.** 5 posées, 5 détectées — dont celle qui recompte les trous sur la fenêtre nominale,
+invisible sans le scénario du débutant.
+
+681 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
