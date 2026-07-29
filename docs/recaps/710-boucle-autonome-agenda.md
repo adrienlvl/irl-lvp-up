@@ -2954,3 +2954,41 @@ Mon heuristique de reciblage a sur-matché et cassé le panneau trail.
 itérations.* Le chantier est réel, il est mesuré, et il mérite son propre tour.
 
 682 tests · SMOKE OK · v2.14.0 publiée.
+
+---
+
+## Itération 82 — Le Plan de bataille ouvre l'onglet Athlète
+
+Reprise du chantier sorti du lot à l'itération 81, cette fois menée à bout.
+
+### Avant / après, mesuré à 390×844
+
+| | Avant | Après |
+|---|---|---|
+| 1ᵉʳ panneau | carte « Nouveautés » — **3021 px, 39 %** | **Plan de bataille — 3492 px, 43 %** |
+| Plan de bataille | **absent** (sous-onglet « Programme ») | 1ᵉʳ, à 684 px du haut |
+| Cartes transverses sur Athlète | 3 | 0 |
+
+Il n'était pas « peu visible » : il **n'était pas là** en arrivant.
+
+### Ce que l'échec de la veille a appris
+
+Les deux mécaniques retenues viennent directement du plantage de l'itération 81 :
+
+- **Les cartes passent par l'étiquette `hors-athlete`**, idiome déjà présent dans le fichier,
+  et non par `pageGroups`. Les y inscrire faisait gérer leur visibilité par **deux mécanismes à
+  la fois** (leur propre `hidden` et `app-page-hidden`) — c'est ce qui avait cassé la fermeture
+  des Nouveautés. *Quand un objet a déjà un mécanisme de visibilité, en ajouter un second ne
+  s'additionne pas : il entre en conflit.*
+- **Le nœud est déplacé au démarrage**, pas réordonné en CSS : les panneaux ne sont pas des
+  enfants flex, `order` y est inerte — vérifié à la mesure avant d'y renoncer.
+
+Et surtout, sur les 20 checks accrochés à l'ancien sous-onglet : **je n'ai plus deviné.** Le
+smoke en a nommé cinq, seuls ces cinq-là ont été repointés, les quatorze autres restant où leurs
+panneaux vivent toujours. La veille, une heuristique de contexte avait sur-matché et cassé le
+panneau trail. *Laisser le harnais nommer ce qui est cassé coûte un aller-retour et évite une
+rechute.*
+
+**Mutations.** 3 posées, 3 détectées, chacune rejouant un état réellement mesuré.
+
+682 tests · SMOKE OK. Rien publié depuis v2.14.0.
