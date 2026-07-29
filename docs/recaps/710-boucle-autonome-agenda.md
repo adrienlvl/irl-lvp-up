@@ -3578,3 +3578,71 @@ La sonde a aussi trouvé, sur l'onglet Athlète lui-même : **une trentaine de p
 visuel** (titre 18 px / 700, rayon 20, eyebrow) — la page se lit comme une liste de blocs
 équivalents, sans rien qui dise ce qui compte. Et le **Plan de bataille fait 3 664 px de haut pour
 5 189 caractères**, soit 4,3 écrans de scroll pour un seul panneau. C'est la prochaine cible.
+
+## Itération 96 — l'attribut `hidden` cachait à moitié, sur toute l'app
+
+Parti pour replier le Plan de bataille (mesuré 3 664 px à l'itération 95, soit 4,3 écrans pour un
+seul panneau). La sonde de son intérieur a donné la structure — un seul enfant, `#objectiveResult`,
+pèse **2 618 px et 3 977 caractères sur 5 189** — mais elle a aussi trouvé cinq conteneurs à
+**22-24 px et ZÉRO caractère**. Vérification : ils portaient tous `hidden`.
+
+```
+blockCompare        hidden=true  display=flex  22 px   <- l attribut est ECRASE
+blocksByObjective   hidden=true  display=flex  24 px
+tonnageTrend        hidden=true  display=flex  24 px
+trainingConsistency hidden=true  display=flex  24 px
+trainingByWeekday   hidden=true  display=flex  24 px
+weekBalance         hidden=true  display=none   0 px   <- celui-la a sa garde
+```
+
+**C'est le défaut que mon propre protocole nomme mot pour mot** : « toute classe qui pose
+`display:` doit avoir sa règle `[hidden]{display:none}` juste en dessous ». `hidden` n'est qu'un
+`display:none` de la feuille de l'agent utilisateur ; la moindre règle d'auteur le bat.
+
+L'audit global sur les 7 pages a montré que le sujet n'était pas local :
+
+```
+installCard   332x50   sur les SEPT pages       zonePlanBar   282x84
+#weekGrid     746x380  sur les sept pages       guidedResume  282x24
++ habitsAtRisk, lifeStepStats, wellnessNudge, wellnessZone, hydraPace,
+  focusOutcomes, recentLessons…
+```
+
+**51 gardes posées**, chacune sous sa règle. Le lint statique a révélé **30 cas latents de plus** —
+`#overdueStudy`, `#loadAdvice`, `#recoveryScore`, `#blockStatus`, `#guidedLastSession`… invisibles à
+l'audit parce qu'ils avaient du contenu au moment de la sonde, mais qui deviennent des bandes dès
+qu'ils sont vides.
+
+### Ce que cette itération a appris
+
+**Deux garde-fous de portées différentes valent mieux qu'un.** Le lint statique lit les `hidden`
+écrits dans `index.html` : règle générale, aucun nom en dur, tout nouveau bloc couvert d'office. Le
+check au rendu parcourt 8 pages + 4 sous-onglets et mesure la **rect**. La mutation le démontre :
+retirer `#weekGrid[hidden]` laisse le **lint vert** et fait **tomber le smoke** — parce que ce
+`hidden` est posé par `app.js` à l'exécution, hors de portée du statique. *Un garde-fou dont on ne
+connaît pas la portée n'en est pas un.*
+
+**Ma sonde 390 px avait manqué le plus gros.** `#weekGrid` fait 746×380 px de grille fantôme — mais
+seulement en largeur bureau, où sa règle mord. J'ai mesuré à une seule largeur et j'ai cru avoir
+tout vu ; c'est le check, lancé dans la fenêtre du smoke (800 px), qui l'a trouvé. *Le pendant, côté
+largeur, de « un check ne doit pas dépendre de l'heure à laquelle il tourne » (itération 93).*
+
+**Un de mes checks passait GRÂCE au bug.** `pliAnalyseFocus` (itération 91) exigeait 6 analyses
+visibles sur 6 après dépliage. Une analyse vide porte `hidden` ; sa bande fantôme de 24 px la
+rendait `checkVisibility() === true`. La garde posée, le compte est tombé à **5/6** et le check a
+sauté. Contrat corrigé sciemment : il attend désormais les analyses **non cachées**, avec un
+plancher à 4 pour ne pas devenir vacant. *Un test vert n'atteste pas que le sujet est sain — il peut
+attester qu'un bug le maintient debout.*
+
+**Mutations.** 4 posées, 4 détectées, chaque harnais précédé de son témoin non muté.
+
+691 tests · SMOKE OK. Rien publié depuis v2.15.0.
+
+### Ce qui reste sur le Plan de bataille
+
+Le repli lui-même n'est PAS fait — l'itération a basculé sur le défaut systémique, plus large et
+plus rentable. Mesures à reprendre telles quelles : `#objectiveResult` = 2 618 px dont `op-week`
+1 009 px (l'action, avec ses trois « ▶️ Démarrer cette séance »), `op-nutri` 464 px et `op-ramp`
+347 px (de l'analyse). Le premier bouton d'action est à **1 772 px du haut**, soit le troisième
+écran, derrière 1 371 px de préambule. C'est la prochaine cible : remonter l'action, replier
+l'analyse.
