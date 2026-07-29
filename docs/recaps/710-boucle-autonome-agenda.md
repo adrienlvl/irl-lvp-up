@@ -2416,3 +2416,36 @@ La formule juste : **aucune donnée ne sort de l'appareil sans que tu l'aies dem
 
 674 tests · SMOKE OK. Aucune ligne de code applicatif touchée : cette itération corrige le
 document qui pilote les suivantes.
+
+---
+
+## Itération 70 — Une revue qui ne trouve rien doit quand même laisser quelque chose
+
+Revue adversariale due. Cible : mon code des itérations 67 à 69.
+
+### Aucun défaut trouvé
+
+Et c'est un résultat qu'il faut savoir écrire plutôt que d'en fabriquer un.
+
+Vérifié **au rendu**, pas sur le code : la bannière d'aperçu apparaît à la saisie d'une cible
+différente, **disparaît après enregistrement**, et reste muette ensuite.
+
+Vérifié aussi : `state.goals.targetWeight` devient une **chaîne** après saisie (`'72'`) et ne
+redevient un nombre qu'au rechargement. J'ai cherché toutes les additions et concaténations sur
+ce champ sans `Number()` autour — **aucune**. Le risque existe, il n'est pas réalisé ; noté pour
+la prochaine fois.
+
+### Ce que la revue laisse derrière elle
+
+Le check `apercuNomme` ne testait que **deux** états : cibles identiques (silence) et cibles
+différentes (bannière). Il prouvait que la bannière sait **parler**, jamais qu'elle sait
+**s'arrêter**. Troisième état ajouté.
+
+Mutation sur la seule ligne qui fait taire la bannière : **détectée**, avec un diagnostic
+parlant — « identique[👀 Aperçu pour 76 kg…] », soit une bannière annonçant un écart entre 76 et
+76.
+
+*Une garantie non testée n'est pas une garantie, même quand le comportement est correct
+aujourd'hui.*
+
+674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
