@@ -8138,9 +8138,18 @@ function attentionDigest(state, todayKey, opts) {
        l'alerte se déclencherait en permanence et cesserait d'être lue — c'est exactement le
        piège que la v2.6.0 a corrigé sur la jauge du même sujet. Et surtout, « décale ou
        raccourcis » n'a aucun sens face à un emploi du temps qu'on ne choisit pas. */
+    /* CORRIGÉ EN REVUE (itération 62) : cette garde ne lisait que `state.agenda` brut, alors que
+       `dayLoad` compte AUSSI les récurrences. Mesuré : une journée faite de deux cours
+       hebdomadaires récurrents rendait `{ plannedMin: 330, pct: 183, status: 'sature' }` — et
+       l'alerte restait muette, parce qu'aucune entrée ne portait cette date dans `agenda`.
+       Autrement dit, la fonctionnalité ne se déclenchait pas dans le cas le PLUS courant : des
+       cours posés une fois pour toutes en récurrence.
+       Une récurrence créée dans l'app est déplaçable par définition — elle se met en pause, se
+       saute ou se modifie pour une occurrence. Seul l'import de calendrier ne se négocie pas. */
     const deplacable = (Array.isArray(s.agenda) ? s.agenda : []).some(function (x) {
       return x && x.date === todayKey && String(x.source || '') !== 'imported';
-    });
+    }) || (typeof recurringOccurs === 'function' && (Array.isArray(s.recurring) ? s.recurring : [])
+      .some(function (r) { return r && recurringOccurs(r, todayKey); }));
     if (deplacable && dl && dl.status === 'sature' && dl.overflowMin > 0 && dl.blocks > 0) {
       const h = Math.floor(dl.overflowMin / 60), m = dl.overflowMin % 60;
       const trop = h > 0 ? (h + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '')) : (m + ' min');

@@ -14423,6 +14423,31 @@ test('attentionDigest : une journée qui ne tient pas se dit, sauf si rien n’e
   assert.match(p.text, /20 min de trop/, 'en minutes sous l’heure : ' + p.text);
   assert.equal(p.sev, 'med', 'et la sévérité reste modérée sous 150 % : ' + p.text);
 
+  /* LE CAS RÉEL D'ADRIEN, trouvé en revue adversariale (itération 62) et que la première
+     version RATAIT : ses cours sont posés une fois pour toutes en récurrence hebdomadaire,
+     pas réécrits chaque semaine dans `agenda`. Or `dayLoad` compte les récurrences, tandis que
+     la garde « au moins un bloc déplaçable » ne lisait que `state.agenda` brut. Mesuré :
+     330 min, 183 %, statut saturé — et l'alerte muette. La fonctionnalité ne se déclenchait
+     pas dans le cas le plus courant. */
+  const hebdo = (titre, h, min, kind) => L.normalizeRecurring({ title: titre, time: h,
+    durationMin: min, kind: kind,
+    rule: { freq: 'weekly', interval: 1, weekdays: [3], startDate: '2026-01-01', until: '' } });
+  const surRecurrence = Object.assign({}, st([]), {
+    recurring: [hebdo('Cours — Compta', '08:00', 240, 'study'), hebdo('Muscu club', '18:00', 90, 'sport')] });
+  assert.ok(L.recurringOccurs(surRecurrence.recurring[0], auj), 'jeu d’essai : la récurrence tombe bien ce jour');
+  assert.equal(surRecurrence.agenda.length, 0, 'et RIEN n’est posé en dur dans l’agenda — c’est tout le sujet');
+  const dlRec = L.dayLoad(surRecurrence, auj);
+  assert.equal(dlRec.status, 'sature', 'dayLoad compte les récurrences : ' + dlRec.plannedMin + ' min');
+  const aRec = charge(surRecurrence)[0];
+  assert.ok(aRec, 'une journée saturée par des récurrences doit être signalée');
+  assert.match(aRec.text, /2 h 30 de trop/, aRec.text);
+
+  /* Et l'inverse tient toujours : une récurrence LÉGÈRE ne déclenche rien, sinon la garde
+     ne discriminerait plus que la présence d'une récurrence. */
+  const legere = Object.assign({}, st([]), { recurring: [hebdo('Muscu club', '18:00', 60, 'sport')] });
+  assert.equal(L.dayLoad(legere, auj).status, 'ok', 'une heure ne sature pas');
+  assert.equal(charge(legere).length, 0, 'donc aucune alerte');
+
   // Date abîmée : aucune exception, aucune invention.
   assert.deepEqual(L.attentionDigest(st(cours.concat(aMoi)), 'pas-une-date'), []);
 });
