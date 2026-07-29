@@ -83,7 +83,7 @@ laissées en plan.
 |---|---|---|
 | ~~Temps de trajet~~ | ~~5 fonctions~~ | **ENTIER** — implémenté dans `electron-main.cjs`, déclenché par bouton |
 | **Code-barres alimentaire** | `barcodeLookup`, `learnBarcode` | aucun scanner, aucune saisie : chantier réellement ouvert |
-| **Agenda** | `nextTrainingSession`, `setAgendaCompleted`, `setRecurringDone`, `xpForAgendaItem` | helpers écrits pour un agenda plus riche que celui qui existe |
+| ~~**Agenda**~~ | ~~`setAgendaCompleted`, `setRecurringDone`, `xpForAgendaItem`~~ · reste `nextTrainingSession` | **branchés** aux itérations 73–74 : mis à parité, puis câblés par « annuler une validation » |
 | Candidatures | `compareApplications` | tri jamais branché |
 
 **Le reste de la logique est très bien exploité** : sur 458 fonctions, **7 seulement** ne sont
@@ -145,6 +145,11 @@ Peu de risque, valeur immédiate, et ça nettoie le terrain.
    trajet, lui, est entier (cf. constat n°3 corrigé)*. Pour chacun, trancher : finir ou retirer.
    Un sous-système inerte est une dette qui grossit ; un sous-système qu'on croit inerte **à
    tort** est pire — il envoie refaire ce qui existe déjà.
+   > **Helpers d'agenda : TRANCHÉ (itérations 71 → 74).** 71 a refusé de consolider et dit
+   > pourquoi, 72 a posé le filet, 73 a mis la fonction pure à parité, 74 a trouvé le geste qui
+   > manquait — *annuler une validation* — et câblé les trois helpers d'un coup. Leçon à garder :
+   > ces fonctions n'étaient pas « de la logique dormante », c'était **une fonctionnalité absente
+   > dont la logique était déjà écrite**. Reste `nextTrainingSession`, puis le code-barres.
 2. **Rééquilibrer les pages pauvres** — Poids, Nutrition, Focus, Alternance ont un seul angle
    chacun là où Athlète en a vingt-deux.
 3. ~~L'Agenda dans la navigation, et sondé en 390 px~~ — **FAIT.** Il y était déjà (cf. constat
