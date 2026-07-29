@@ -3185,6 +3185,48 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.journeeSaturee = (() => {
+        try {
+          const sa = state.agenda, sb = state.lastBackup;
+          const auj = localDate();
+          const lire = () => {
+            const e = document.getElementById('attentionDigest');
+            if (!e || getComputedStyle(e).display === 'none' || e.getBoundingClientRect().height === 0) return '';
+            return String(e.textContent || '');
+          };
+          state.lastBackup = auj;   // sinon le rappel de sauvegarde parasite la lecture
+
+          /* 1. Journee faite UNIQUEMENT de cours importes : saturee, mais rien de deplacable.
+             C est le scenario qui evite l alerte permanente — un jour d ecole normal. */
+          state.agenda = [
+            { id: 9201, date: auj, time: '08:00', durationMin: 180, title: 'Cours compta', kind: 'study', source: 'imported' },
+            { id: 9202, date: auj, time: '13:30', durationMin: 180, title: 'Cours droit', kind: 'study', source: 'imported' }
+          ].map(normalizeAgendaItem);
+          showPage('dashboard');
+          if (typeof renderAttention === 'function') renderAttention();
+          const queCours = lire();
+
+          // 2. On ajoute DEUX blocs a soi : le conseil devient actionnable.
+          state.agenda = state.agenda.concat([
+            { id: 9203, date: auj, time: '18:00', durationMin: 60, title: 'Muscu', kind: 'sport', source: 'training' },
+            { id: 9204, date: auj, time: '20:00', durationMin: 90, title: 'Révision', kind: 'study', source: 'study-glc' }
+          ].map(normalizeAgendaItem));
+          if (typeof renderAttention === 'function') renderAttention();
+          const avecMoi = lire();
+
+          state.agenda = sa; state.lastBackup = sb;
+          try { if (typeof renderAttention === 'function') renderAttention(); } catch (_) {}
+
+          checks.__journee = 'queCours[' + queCours.slice(0, 60) + '] avecMoi[' + avecMoi.slice(0, 80) + ']';
+          /* Le RENDU doit rester muet dans le premier cas et porter le depassement REEL dans
+             le second — sinon l alerte devient permanente et cesse d etre lue. */
+          return queCours.indexOf('trop chargée') === -1
+            && avecMoi.indexOf('Journée trop chargée') !== -1
+            && avecMoi.indexOf('de trop') !== -1
+            && avecMoi.indexOf('fin vers') !== -1;
+        } catch (e) { checks.__errJournee = String(e && e.message); return false; }
+      })();
+
       checks.coutDuReglage = (() => {
         try {
           if (typeof runObjectiveProgram !== 'function') return false;
@@ -4007,7 +4049,7 @@ app.whenReady().then(async () => {
              qui reclamait une valeur ; le libelle dit maintenant « lest ». */
           return pompes.present && kb.present && plusDeCharge && pompes.visible && kb.visible
             && pompes.libelle === 'lest' && kb.libelle === 'kg';
-        } catch (e) { checks.__errCharge = String(e && e.message); return false; }
+        } catch (e) { checks.__errJournee = String(e && e.message); return false; }
       })();
 
       checks.aucuneSeancePerdue = (() => {
@@ -4886,6 +4928,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.journeeSaturee) errors.push('Tableau de bord : une journée qui ne tient pas doit être signalée dans « À rattraper » avec le dépassement réel et l’heure de fin estimée — l’app calculait déjà 183 % de capacité sans le dire ailleurs que dans l’Agenda. MAIS elle doit se taire quand la journée n’est faite que de cours importés : rien n’est déplaçable, et une alerte quotidienne cesse d’être lue');
     if (!checks.coutDuReglage) errors.push('Plan de bataille : changer un réglage doit AFFICHER ce que ça coûte — le temps gagné ou perdu, et surtout la disparition d’une discipline entière (mesuré : passer de 3 à 5 courses garde 4 séances mais efface la musculation, invisible sur un écran qui n’affiche que le résultat). Et rien ne doit s’afficher au premier rendu ni à réglage inchangé, sinon la phrase devient du bruit');
     if (!checks.repartitionDite) errors.push('Plan de bataille : la phrase de répartition doit concorder avec les blocs de séance affichés juste à côté — nombre de séances, nombre de jours OCCUPÉS et VRAI maximum d’un jour. Mesurée avant correctif : « 6 séances sur 5 jours disponibles : jusqu’à 2 par jour » au-dessus d’une semaine qui contredisait les deux chiffres');
     if (!checks.dplusUneSeuleSource) errors.push('Dénivelé : le panneau trail et le Plan de bataille doivent annoncer LE MÊME chiffre quand aucun réglage n’est posé — mesuré avant correctif : « Cette semaine : 600 m D+ » d’un côté, 1 200 m répartis de l’autre, et une saisie trail qui ne pilotait rien. Le plan doit aussi NOMMER l’origine du chiffre (mesure ou réglage)');

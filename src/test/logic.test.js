@@ -14376,6 +14376,57 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('attentionDigest : une journée qui ne tient pas se dit, sauf si rien n’est déplaçable', () => {
+  /* MESURÉ : sur une journée type d'Adrien, dayLoad rendait déjà
+     { plannedMin: 330, capacityMin: 180, pct: 183, overflowMin: 150, endEstimate: '21:30' }
+     pendant que « À rattraper » ne parlait que de sauvegarde. L'app SAVAIT que la journée
+     débordait de deux heures et demie et ne le disait qu'à qui allait le chercher dans
+     l'Agenda. Même logique que l'anniversaire déjà remonté : un pointeur, pas un second avis. */
+  const auj = '2026-07-29';
+  const st = a => ({ agenda: a.map(L.normalizeAgendaItem), recovery: [], workouts: [],
+    weights: [], habits: [], birthdays: [], examGoals: [], lastBackup: auj });
+  const charge = s => L.attentionDigest(s, auj).filter(x => x.key === 'charge');
+
+  const cours = [
+    { id: 1, date: auj, time: '08:00', durationMin: 180, title: 'Cours compta', kind: 'study', source: 'imported' },
+    { id: 2, date: auj, time: '13:30', durationMin: 180, title: 'Cours droit', kind: 'study', source: 'imported' }];
+  const aMoi = [
+    { id: 3, date: auj, time: '18:00', durationMin: 60, title: 'Muscu', kind: 'sport', source: 'training' },
+    { id: 4, date: auj, time: '20:00', durationMin: 90, title: 'Révision', kind: 'study', source: 'study-glc' }];
+
+  /* LE CAS QUI DISCRIMINE, et le piège que la v2.6.0 a déjà corrigé sur la jauge du même sujet :
+     une journée entièrement faite de cours importés dépasse la capacité par défaut presque tous
+     les jours d'école. L'alerte se déclencherait en permanence — et « décale ou raccourcis » n'a
+     aucun sens face à un emploi du temps qu'on ne choisit pas. */
+  const queDesCours = st(cours);
+  assert.equal(L.dayLoad(queDesCours, auj).status, 'sature', 'la journée EST bien saturée (200 %)');
+  assert.equal(charge(queDesCours).length, 0, 'et pourtant on se tait : rien n’est déplaçable');
+
+  // Dès qu'un bloc est à toi, le conseil devient actionnable — donc on parle.
+  const melange = st(cours.concat(aMoi));
+  const a = charge(melange)[0];
+  assert.ok(a, 'journée saturée avec des blocs déplaçables : on le dit');
+  assert.equal(a.sev, 'high', 'au-delà de 150 %, ce n’est plus une journée chargée');
+  assert.equal(a.page, 'agenda', 'et on pointe vers l’écran qui porte le sujet');
+  assert.match(a.text, /5 h 30 de trop/, 'le dépassement RÉEL, en heures : ' + a.text);
+  assert.match(a.text, /fin vers 21:30/, 'et l’heure de fin estimée');
+
+  // Journée légère : aucun bruit.
+  assert.equal(charge(st([aMoi[0]])).length, 0, 'une heure de muscu ne sature rien');
+  assert.equal(charge(st([])).length, 0, 'journée vide : rien à dire');
+
+  /* Un dépassement sous l'heure s'annonce en minutes : « 0 h 40 de trop » se lit mal.
+     Capacité mercredi = 180 min, donc 200 min de blocs = 20 min de trop. */
+  const petit = st([{ id: 5, date: auj, time: '09:00', durationMin: 200, title: 'Gros bloc', kind: 'focus', source: 'manual' }]);
+  const p = charge(petit)[0];
+  assert.ok(p, 'un dépassement modeste compte aussi');
+  assert.match(p.text, /20 min de trop/, 'en minutes sous l’heure : ' + p.text);
+  assert.equal(p.sev, 'med', 'et la sévérité reste modérée sous 150 % : ' + p.text);
+
+  // Date abîmée : aucune exception, aucune invention.
+  assert.deepEqual(L.attentionDigest(st(cours.concat(aMoi)), 'pas-une-date'), []);
+});
+
 test('deltaPlan : ce qu’un réglage vient de coûter, y compris ce qu’il supprime', () => {
   /* Les réglages du Plan de bataille s'appliquent en silence : on voit le nouvel état, jamais
      l'écart. MESURÉ : passer de 3 à 5 courses avec 4 séances ne change PAS le nombre de séances

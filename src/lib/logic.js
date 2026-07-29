@@ -8122,6 +8122,36 @@ function attentionDigest(state, todayKey, opts) {
   // Anniversaire imminent (≤ 2 j) : à ne pas oublier. Il vit sinon enfoui dans l'overlay Agenda.
   const bd = (typeof upcomingBirthdays === 'function') ? upcomingBirthdays(s.birthdays, todayKey, { withinDays: 2, max: 1 })[0] : null;
   if (bd) { const w = bd.daysUntil === 0 ? "aujourd'hui" : bd.daysUntil === 1 ? 'demain' : `dans ${bd.daysUntil} j`; items.push({ key: 'birthday', emoji: '🎂', text: `Anniversaire de ${bd.name} ${w}`, page: 'agenda', sev: bd.daysUntil <= 1 ? 'high' : 'med' }); }
+  /* JOURNÉE QUI NE TIENT PAS. `dayLoad` calcule déjà tout — minutes prévues, capacité réglée,
+     dépassement, heure de fin estimée — et personne ne le remonte hors de l'Agenda. Mesuré sur
+     une journée type d'Adrien (3 h de cours, 2 h de cours, 1 h de muscu, 1 h 30 de révision) :
+     `{ plannedMin: 330, capacityMin: 180, pct: 183, overflowMin: 150, endEstimate: '21:30' }`,
+     pendant que « À rattraper » ne parlait que de sauvegarde. L'app SAVAIT que la journée
+     débordait de deux heures et demie, et le disait uniquement à qui allait le chercher.
+     Même raison que l'anniversaire ci-dessus : ce n'est pas un second avis, c'est un pointeur
+     vers l'écran qui porte le sujet. Sévérité haute au-delà de 150 % : à ce niveau, ce n'est
+     plus une journée chargée, c'est une journée qui ne rentre pas. */
+  if (typeof dayLoad === 'function') {
+    const dl = dayLoad(s, todayKey);
+    /* AU MOINS UN BLOC DÉPLAÇABLE, sinon on ne dit rien. Une journée entièrement faite de cours
+       importés d'un calendrier dépasse la capacité par défaut presque tous les jours d'école :
+       l'alerte se déclencherait en permanence et cesserait d'être lue — c'est exactement le
+       piège que la v2.6.0 a corrigé sur la jauge du même sujet. Et surtout, « décale ou
+       raccourcis » n'a aucun sens face à un emploi du temps qu'on ne choisit pas. */
+    const deplacable = (Array.isArray(s.agenda) ? s.agenda : []).some(function (x) {
+      return x && x.date === todayKey && String(x.source || '') !== 'imported';
+    });
+    if (deplacable && dl && dl.status === 'sature' && dl.overflowMin > 0 && dl.blocks > 0) {
+      const h = Math.floor(dl.overflowMin / 60), m = dl.overflowMin % 60;
+      const trop = h > 0 ? (h + ' h' + (m ? ' ' + String(m).padStart(2, '0') : '')) : (m + ' min');
+      items.push({
+        key: 'charge', emoji: '⏳',
+        text: 'Journée trop chargée : ' + trop + ' de trop'
+          + (dl.endEstimate ? ', fin vers ' + dl.endEstimate : '') + ' — décale ou raccourcis',
+        page: 'agenda', sev: dl.pct >= 150 ? 'high' : 'med'
+      });
+    }
+  }
   // Rappel de sauvegarde : la sauvegarde est manuelle et le localStorage peut être évincé (iOS). On
   // nudge si l'utilisateur a des données à protéger ET n'a pas sauvegardé depuis ≥ 14 jours (ou jamais).
   const hasData = (Array.isArray(s.weights) && s.weights.length) || (Array.isArray(s.workouts) && s.workouts.length >= 3) || (Array.isArray(s.habits) && s.habits.length >= 1) || (Array.isArray(s.agenda) && s.agenda.length >= 3);
