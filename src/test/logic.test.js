@@ -12807,6 +12807,43 @@ test('avancementSemaine : le plan se compare enfin à lui-même', () => {
   assert.match(sansProfil.phrase, /renseigne tes jours/);
   assert.ok(!/jouable|le compte n’y est pas/.test(sansProfil.phrase), 'aucun verdict sans budget');
 
+  /* CE QUE LE PLAN DEMANDE SE LIT DANS LE PLAN (revue de l'itération 85). Mesuré sur huit
+     configurations, SEPT en désaccord : la forme de l'objectif l'emporte sur le réglage brut
+     — « prise de muscle » pose 4 séances quoi qu'on ait réglé. Le bloc annonçait donc
+     « 6 muscu » juste au-dessus d'un plan qui en affichait 4. Deux vérités, un seul écran.
+     Jeu d'essai RÉEL : le plan est généré par le chemin qu'emprunte l'app. */
+  const catalogue = require('../lib/exercises-data.js');
+  const exos = Array.isArray(catalogue) ? catalogue : (catalogue.exercises || Object.values(catalogue)[0]);
+  const etat = { profile: { weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+      goal: 'perte', availableDays: [1, 3, 5, 6], level: 'intermediaire' },
+    goals: { targetWeight: 75, sessions: 6, runs: 2, weeklyKm: 25 },
+    fitnessObjective: 'muscle', workouts: [], recovery: [], weights: [], nutrition: [], trail: {} };
+  const planReel = L.trainingWeekPlan(L.trainingPlanInputs(etat, mercredi), exos);
+  assert.ok(planReel && Array.isArray(planReel.week) && planReel.week.length, 'témoin : un vrai plan est généré');
+  const mPlan = planReel.week.filter(x => x && x.kind === 'muscu').length;
+  const cPlan = planReel.week.filter(x => x && x.kind === 'course').length;
+  assert.notEqual(mPlan, etat.goals.sessions,
+    'témoin du DÉSACCORD : le plan ne suit pas le réglage brut, sinon ce test ne discrimine rien');
+
+  const avecPlan = L.avancementSemaine(etat, mercredi, { plan: planReel });
+  assert.equal(avecPlan.source, 'plan');
+  assert.equal(avecPlan.prevu.seances, mPlan, 'le bloc annonce ce que le plan pose, pas le réglage');
+  assert.equal(avecPlan.prevu.courses, cPlan);
+
+  // Sans plan généré, on retombe sur le réglage — et on le DIT dans `source`.
+  const sansPlan = L.avancementSemaine(etat, mercredi);
+  assert.equal(sansPlan.source, 'reglage');
+  assert.equal(sansPlan.prevu.seances, 6);
+
+  /* DEUX ABSENCES QUI NE VEULENT PAS DIRE LA MÊME CHOSE — tranché ici, à l'écriture du test :
+     - pas de plan du tout (objet sans `week`) : on n'en sait rien, donc repli sur le réglage ;
+     - un plan dont la semaine est VIDE : le plan prescrit réellement zéro séance (repos,
+       décharge). Retomber sur le réglage annoncerait « 6 muscu » là où le plan n'en pose
+       aucune — le défaut qu'on vient de corriger, dans l'autre sens. On se tait. */
+  assert.equal(L.avancementSemaine(etat, mercredi, { plan: {} }).source, 'reglage');
+  assert.equal(L.avancementSemaine(etat, mercredi, { plan: { week: [] } }), null,
+    'une semaine générée VIDE prescrit zéro : on se tait au lieu de réciter le réglage');
+
   // Une séance de la semaine PRÉCÉDENTE ne compte pas pour celle-ci.
   const avant = L.avancementSemaine({ ...base, workouts: [muscu('2026-07-26')] }, mercredi);
   assert.equal(avant.fait.total, 0, 'le dimanche 26 appartient à la semaine d’avant');

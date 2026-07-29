@@ -3246,6 +3246,48 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.planUnSeulCompte = (() => {
+        const _gS = JSON.parse(JSON.stringify(state.goals || {}));
+        const _pS = JSON.parse(JSON.stringify(state.profile || {}));
+        const _oS = state.fitnessObjective, _wS = state.workouts;
+        const _rendre = () => { state.goals = _gS; state.profile = _pS; state.fitnessObjective = _oS;
+          state.workouts = _wS; try { render(); } catch (_) {} };
+        try {
+          if (typeof trainingWeekPlan !== "function" || typeof trainingPlanInputs !== "function"
+            || typeof avancementSemaine !== "function") { _rendre(); return false; }
+          /* LE REGLAGE EST VOLONTAIREMENT EN DESACCORD avec ce que la forme de l objectif pose :
+             6 seances demandees, 4 posees. Sans ce desaccord le check ne discriminerait RIEN —
+             c est exactement pour ca que le defaut a vecu (mesure : 7 cas sur 8). */
+          state.goals = Object.assign({}, state.goals, { sessions: 6, runs: 2 });
+          state.profile = Object.assign({}, state.profile, { availableDays: [1, 3, 5, 6],
+            level: "intermediaire", weight: 80, height: 180, age: 29, sex: "homme", activityLevel: "actif" });
+          state.fitnessObjective = "muscle";
+          state.workouts = [];
+          const plan = trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises);
+          const semaine = (plan && Array.isArray(plan.week)) ? plan.week : [];
+          const mPlan = semaine.filter(function (x) { return x && x.kind === "muscu"; }).length;
+          const cPlan = semaine.filter(function (x) { return x && x.kind === "course"; }).length;
+          const desaccordSeme = mPlan !== state.goals.sessions;
+
+          render();
+          const el = document.querySelector("#avancementSemaine");
+          const txt = el ? String(el.textContent || "") : "";
+          // Le bloc doit citer le compte du PLAN, pas celui du reglage.
+          const ditPlan = txt.indexOf("/" + mPlan + " muscu") !== -1
+            && txt.indexOf("/" + cPlan + " course") !== -1;
+          const ditReglage = txt.indexOf("/" + state.goals.sessions + " muscu") !== -1;
+
+          checks.__unSeulCompte = "plan=" + mPlan + "m+" + cPlan + "c reglage=" + state.goals.sessions
+            + "m desaccordSeme=" + desaccordSeme + " ditPlan=" + ditPlan + " ditReglage=" + ditReglage
+            + " txt[" + txt.slice(0, 80) + "]";
+          _rendre();
+          return desaccordSeme && ditPlan && !ditReglage;
+        } catch (e) {
+          _rendre();
+          checks.__errUnSeulCompte = String(e && e.message); return false;
+        }
+      })();
+
       checks.guideeOrdre = (() => {
         try {
           if (typeof openGuidedWorkout !== "function") return false;
@@ -3319,7 +3361,12 @@ app.whenReady().then(async () => {
           state.goals = Object.assign({}, state.goals, { sessions: 4, runs: 2 });
           state.profile = Object.assign({}, state.profile, { availableDays: [1, 3, 5, 6] });
           state.workouts = [muscu(lundi)];
-          const attendu = avancementSemaine(state, localDate());
+          /* L attendu se calcule par le MEME chemin que l app : depuis la revue 85, ce que le
+             plan demande se lit dans le PLAN GENERE et non dans le reglage brut. Le recalculer
+             sans lui rendrait ce check faux — et c est bien lui qui a signale le changement. */
+          const _planAtt = (typeof trainingWeekPlan === "function" && typeof trainingPlanInputs === "function")
+            ? trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises) : null;
+          const attendu = avancementSemaine(state, localDate(), { plan: _planAtt });
           /* On repeint par la CHAINE DE RENDU DE L APP, pas en appelant le renderer a la main :
              sinon le check peint lui-meme le bloc et ne peut PAS voir que l app, elle, ne le
              peint jamais. Mutation survivante mesuree — check creux, corrige ici. */
@@ -3337,17 +3384,24 @@ app.whenReady().then(async () => {
           const avant = !!plan && !!statut
             && (el.compareDocumentPosition(statut) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
-          /* 2) SEMAINE BOUCLEE : le ton doit basculer et cesser de reclamer. Sans ce second
-             cas, un bloc fige sur « serre » passerait pour un succes. */
-          state.workouts = [muscu(lundi), muscu(lundi), muscu(lundi), muscu(lundi),
-            { id: 9, date: lundi, type: "run", duration: 40, effort: 6 },
-            { id: 10, date: lundi, type: "run", duration: 40, effort: 6 }];
+          /* 2) SEMAINE BOUCLEE : le ton doit basculer et CESSER DE RECLAMER. Sans ce second cas,
+             un bloc fige sur « serre » passerait pour un succes.
+             On seme LARGEMENT au-dessus de toute prescription plausible, et on n epingle AUCUN
+             total : mesure a l appui, le plan s ADAPTE aux seances deja faites, donc semer
+             « exactement ce qu il demande » deplace la cible pendant qu on vise. Le sujet de ce
+             check est la BASCULE DE TON, pas un compte mouvant. */
+          const _bou = [];
+          for (let i = 0; i < 8; i++) _bou.push(muscu(lundi));
+          for (let i = 0; i < 6; i++) _bou.push({ id: 900 + i, date: lundi, type: "run", duration: 40, effort: 6 });
+          state.workouts = _bou;
           renderAvancementSemaine();
           const t2 = String(el.textContent || "");
           const boucle = el.classList.contains("av-fini") && t2.indexOf("Semaine boucl\u00e9e") !== -1
-            && t2.indexOf("6/6") !== -1;
+            && t2.indexOf("Il te reste") === -1;
 
-          checks.__avancement = "vu=" + vu + " memeCompte=" + memeCompte + " memePhrase=" + memePhrase
+          checks.__avancement = "attendu=" + (attendu ? attendu.prevu.seances + "m+" + attendu.prevu.courses + "c src=" + attendu.source : "null")
+            + " semees=" + _bou.length + " t2[" + t2.slice(0, 70) + "] classe=" + el.className
+            + " | vu=" + vu + " memeCompte=" + memeCompte + " memePhrase=" + memePhrase
             + " ouvreLePanneau=" + avant + " boucle=" + boucle + " ton=" + (attendu ? attendu.ton : "null")
             + " t1[" + t1.slice(0, 95) + "]";
           _rendre();
@@ -5673,6 +5727,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.planUnSeulCompte) errors.push('Plan de bataille : UN SEUL compte de séances à l’écran. « Ta semaine, face au plan » doit citer ce que le plan POSE, pas le réglage brut — la forme de l’objectif l’emporte sur le réglage (mesuré : 7 configurations sur 8 en désaccord, le bloc annonçait « 6 muscu » au-dessus d’un plan qui en affichait 4)');
     if (!checks.guideeOrdre) errors.push('Séance guidée : l’exercice EN COURS doit venir avant l’échauffement et la prépa — mesuré, son nom n’apparaissait qu’à 563 px, hors du premier écran, alors que l’échauffement se consulte une fois et le bloc exercice toutes les 90 secondes. Les deux accordéons doivent RESTER dans le dialogue (on les descend, on ne les supprime pas), aucun bouton ne doit passer sous 44 px (« Remplacer » mesurait 32 px) et rien ne doit déborder latéralement');
     if (!checks.avancementVu) errors.push('Plan de bataille : ses quinze blocs parlent tous du passé (tonnage 8 semaines, régularité 28 j, jour fort) et aucun ne répondait à la seule question que pose un plan — est-il TENU cette semaine ? Le bloc « Ta semaine, face au plan » doit OUVRIR le panneau, citer exactement les chiffres mesurés, et changer de ton quand la semaine est bouclée au lieu de réclamer encore');
     if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');

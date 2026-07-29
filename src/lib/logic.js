@@ -5863,13 +5863,28 @@ function trainingByWeekday(workouts, todayKey, windowDays) {
    L'arbitrage utile n'est pas « il te reste 2 séances » mais « il te reste 2 séances et 1 jour
    d'entraînement » : c'est le budget de temps qui décide. Les jours disponibles viennent du
    profil ; sans eux, on ne conclut pas — on décrit.
-   opts : { jours = 7 }. `null` si le plan ne prescrit rien. Pur + testé. */
+
+   CE QUE LE PLAN DEMANDE SE LIT DANS LE PLAN, pas dans le réglage (revue de l'itération 85).
+   Mesuré sur 8 configurations, 7 en désaccord : la forme de l'objectif l'emporte sur le réglage
+   brut — « prise de muscle » pose 4 séances de muscu quoi qu'on ait réglé, tandis que les
+   courses, elles, suivent le réglage. Comparer à `goals.sessions` faisait donc annoncer
+   « 6 muscu » sur un écran qui en affichait 4, juste au-dessus. Deux vérités, un seul écran.
+   Le repli sur `goals` ne sert que quand aucun plan n'a encore été généré.
+   opts : { jours = 7, plan } — `plan` = sortie de `trainingWeekPlan`.
+   `null` si rien n'est prescrit. Pur + testé. */
 function avancementSemaine(state, todayKey, opts) {
   const s = state && typeof state === 'object' ? state : {};
   if (!isRealDateKey(todayKey)) return null;
+  const o0 = opts && typeof opts === 'object' ? opts : {};
   const g = s.goals && typeof s.goals === 'object' ? s.goals : {};
-  const prevuSeances = Math.max(0, Math.round(Number(g.sessions) || 0));
-  const prevuCourses = Math.max(0, Math.round(Number(g.runs) || 0));
+  const semainePlan = (o0.plan && Array.isArray(o0.plan.week)) ? o0.plan.week : null;
+  const source = semainePlan ? 'plan' : 'reglage';
+  const prevuSeances = semainePlan
+    ? semainePlan.filter(x => x && x.kind === 'muscu').length
+    : Math.max(0, Math.round(Number(g.sessions) || 0));
+  const prevuCourses = semainePlan
+    ? semainePlan.filter(x => x && x.kind === 'course').length
+    : Math.max(0, Math.round(Number(g.runs) || 0));
   if (prevuSeances + prevuCourses <= 0) return null;
 
   const lundi = dateKey(mondayOf(new Date(todayKey + 'T12:00:00')));
@@ -5935,7 +5950,7 @@ function avancementSemaine(state, todayKey, opts) {
     prevu: { seances: prevuSeances, courses: prevuCourses, total },
     fait: { seances: faitSeances, courses: faitCourses, total: fait },
     reste: { seances: resteSeances, courses: resteCourses, total: reste },
-    joursRestants, joursDispoRestants, budgetConnu, pct, fini, tenable, ton, phrase
+    source, joursRestants, joursDispoRestants, budgetConnu, pct, fini, tenable, ton, phrase
   };
 }
 

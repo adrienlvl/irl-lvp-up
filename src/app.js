@@ -1134,7 +1134,11 @@ function renderWeekBalance(){const el=$('#weekBalance');if(!el||typeof weekTrain
    comparait le plan à lui-même. Ce bloc ouvre le panneau parce que c'est ce qu'on vient y
    chercher, et il porte un VERDICT, pas un troisième chiffre à interpréter. */
 function renderAvancementSemaine(){const el=$('#avancementSemaine');if(!el)return;
-  const a=(typeof avancementSemaine==='function')?avancementSemaine(state,localDate()):null;
+  /* On passe le PLAN GÉNÉRÉ, pas le réglage : c'est lui que l'écran affiche juste en dessous.
+     Sans ça, le bloc annonçait « 6 muscu » au-dessus d'un plan qui en pose 4 (revue 85). */
+  const _plan=(typeof trainingWeekPlan==='function'&&typeof trainingPlanInputs==='function')
+    ?trainingWeekPlan(trainingPlanInputs(state,localDate()),exercises):null;
+  const a=(typeof avancementSemaine==='function')?avancementSemaine(state,localDate(),{plan:_plan}):null;
   if(!a){el.hidden=true;el.innerHTML='';return;}
   el.hidden=false;el.className='avancement-semaine av-'+a.ton;
   const barre='<div class="av-barre"><i style="width:'+a.pct+'%"></i></div>';
