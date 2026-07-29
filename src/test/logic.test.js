@@ -13362,6 +13362,43 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('gestesDuBloc : un bloc terminé s’annule, et ne se repousse plus', () => {
+  /* MESURÉ à l'itération 74 dans la vue Jour : une ligne terminée gardait « ↪️ » et
+     « → demain » — repousser à demain quelque chose de déjà fait — mais n'offrait AUCUN
+     moyen d'annuler la coche. Ces deux moitiés sont la même règle, elle vit ici. */
+  const fait = L.gestesDuBloc({ type: 'study', completed: true });
+  assert.equal(fait.annuler, true, 'un bloc fait doit pouvoir être dé-validé');
+  assert.equal(fait.valider, false, 'et ne propose plus de le valider');
+  assert.equal(fait.deplacer, false, 'repousser ce qui est fait n’a pas de sens');
+  assert.equal(fait.modifier, true, 'le corriger en garde un : faute de frappe, note oubliée');
+
+  const aFaire = L.gestesDuBloc({ type: 'sport', completed: false });
+  assert.deepEqual([aFaire.valider, aFaire.annuler, aFaire.deplacer, aFaire.modifier], [true, false, true, true]);
+
+  // Une occurrence récurrente se coche et se décoche, mais ne se déplace pas par ce chemin-là
+  // (elle a ses propres gestes : « ✎ cette fois » et « ⤫ sauter »).
+  const recFait = L.gestesDuBloc({ type: 'recurring', completed: true });
+  assert.equal(recFait.annuler, true, 'c’est le cas qui n’avait plus AUCUN bouton');
+  assert.equal(recFait.deplacer, false);
+  assert.equal(recFait.modifier, false);
+  assert.equal(L.gestesDuBloc({ type: 'recurring', completed: false }).valider, true);
+
+  /* LE CAS QUI DISCRIMINE : une séance planifiée terminée ne s'annule PAS. Sa complétion vient
+     d'une séance enregistrée, pas d'un drapeau — l'annuler voudrait dire supprimer la séance. */
+  const plan = L.gestesDuBloc({ type: 'plan', completed: true });
+  assert.equal(plan.annuler, false, 'annuler une séance planifiée serait un tout autre geste');
+  assert.equal(plan.valider, false);
+  assert.equal(L.gestesDuBloc({ type: 'plan', completed: false }).demarrer, true);
+
+  // Un anniversaire ne se valide ni ne s'annule : rien à faire dessus.
+  const anniv = L.gestesDuBloc({ type: 'birthday', completed: false });
+  assert.deepEqual([anniv.valider, anniv.annuler, anniv.deplacer, anniv.modifier, anniv.demarrer],
+    [false, false, false, false, false]);
+
+  // Entrée absente : aucun geste plutôt qu'une exception (les rendus l'appellent sur chaque ligne).
+  assert.equal(L.gestesDuBloc(null).valider, false);
+});
+
 test('xpForAgendaItem / setAgendaCompleted / setRecurringDone : cocher et décocher', () => {
   // L'XP se lit au même endroit dans les deux sens, sinon annuler laisse de l'XP fantôme.
   assert.deepEqual(L.xpForAgendaItem({ kind: 'study' }), { xp: 15, category: 'focus' });

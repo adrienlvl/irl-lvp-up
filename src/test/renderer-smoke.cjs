@@ -3246,6 +3246,67 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.blocAnnulable = (() => {
+        // Sauvegardes HORS du try : une exception doit pouvoir tout rendre (lecon de l iteration 61).
+        const _agS = state.agenda, _recS = state.recurring, _xpS = state.xp, _foS = state.focus;
+        const _rendre = () => { state.agenda = _agS; state.recurring = _recS; state.xp = _xpS; state.focus = _foS;
+          try { renderMyDay(); renderDayView(); } catch (_) {} };
+        try {
+          if (typeof renderMyDay !== "function" || typeof renderDayView !== "function") { _rendre(); return false; }
+          const jour = localDate();
+          dayCursor = new Date(jour + "T12:00:00");
+          state.recurring = [];
+          state.agenda = [{ id: 92001, date: jour, time: "09:00", durationMin: 60, title: "Reviser compta",
+            kind: "study", type: "study", completed: false, priority: "normal", source: "manual" }];
+          const xp0 = state.xp, fo0 = state.focus;
+
+          /* 1) VALIDER PAR LE CHEMIN REEL : on clique le bouton rendu, on ne pose pas le drapeau
+             a la main — sinon le check ne dirait rien du cablage, qui est justement le sujet. */
+          renderMyDay();
+          const bOk = document.querySelector("#myDayList [data-myday-done]");
+          const lblOk = bOk ? String(bOk.textContent || "") : "";
+          if (bOk) bOk.click();
+          const coche = !!(state.agenda[0] && state.agenda[0].completed === true);
+          const xpDonne = state.xp - xp0, foDonne = state.focus - fo0;
+
+          /* 2) ANNULER : le bouton doit EXISTER, etre visible, et rendre exactement ce qui a ete
+             donne. L app etait la seule liste ou une coche ne se reprenait pas (mesure 74). */
+          renderMyDay();
+          const bKo = document.querySelector("#myDayList [data-myday-undone]");
+          const visible = !!bKo && getComputedStyle(bKo).display !== "none";
+          const lblKo = bKo ? String(bKo.textContent || "") : "";
+          if (bKo) bKo.click();
+          const decoche = !!(state.agenda[0] && state.agenda[0].completed === false);
+          /* L exigence est un RETOUR AU POINT DE DEPART, pas « un retrait de 15 » : dit comme ca,
+             le check attrape aussi bien l XP fantome (rien rendu) que le double retrait. */
+          const xpFin = state.xp, foFin = state.focus;
+          const neutre = xpFin === xp0 && foFin === fo0;
+
+          /* 3) VUE JOUR : meme geste offert, et « → demain » disparait — repousser a demain
+             quelque chose de deja fait etait l autre moitie du meme defaut. */
+          state.agenda[0].completed = true;
+          renderDayView();
+          const ligneJour = !!document.querySelector("[data-day-undone]");
+          const repousseFait = Array.prototype.slice.call(document.querySelectorAll("[data-day-postpone]"))
+            .some(function (b) { return !!b.closest(".day-slot.completed"); });
+
+          // Le libelle doit annoncer le MEME chiffre que celui reellement donne puis rendu.
+          const accord = lblOk.indexOf("15") !== -1 && lblKo.indexOf("15") !== -1;
+
+          checks.__annulation = "coche=" + coche + " +" + xpDonne + "xp/+" + foDonne
+            + " | bouton=" + visible + " decoche=" + decoche
+            + " xp " + xp0 + "->" + (xp0 + xpDonne) + "->" + xpFin + " focus " + fo0 + "->" + foFin
+            + " | jour=" + ligneJour + " demain=" + repousseFait + " libelles[" + lblOk + "/" + lblKo + "]";
+          _rendre();
+          return coche && xpDonne === 15 && foDonne === 1
+            && visible && decoche && neutre
+            && ligneJour && !repousseFait && accord;
+        } catch (e) {
+          _rendre();
+          checks.__errAnnulation = String(e && e.message); return false;
+        }
+      })();
+
       checks.apercuNomme = (() => {
         try {
           if (typeof renderTargetAdvice !== 'function') return false;
@@ -5133,6 +5194,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.blocAnnulable) errors.push('Agenda : une coche doit être un INTERRUPTEUR, comme partout ailleurs dans l’app (quêtes, habitudes, tâches). Un bloc terminé doit offrir « ↩︎ Annuler », rendre EXACTEMENT l’XP donnée (compteur de catégorie compris), annoncer le même chiffre dans les deux libellés — et ne plus proposer « → demain », qui revenait à repousser quelque chose de déjà fait');
     if (!checks.apercuNomme) errors.push('Coach Poids : quand la cible TAPÉE diffère de la cible ENREGISTRÉE, l’écran porte deux cibles à la fois — l’en-tête suit la saisie, la durée et la jauge suivent l’enregistrée. Une bannière doit nommer l’aperçu et rappeler les deux chiffres, et rester muette quand les deux coïncident');
     if (!checks.parkingRetrouvable) errors.push('Parking de concentration : le statut promet « tu peux y revenir après ton bloc » — il doit donc compter TOUTES les pensées ouvertes, pas les quatre affichées, et les autres doivent rester atteignables dans le tiroir. Mesuré avant correctif : 8 stockées, 4 visibles, statut annonçant « 4 pensées déposées »');
     if (!checks.tendanceFocus) errors.push('Page Focus : la tendance hebdomadaire de concentration doit être AFFICHÉE (focusMinutesTrend était calculée depuis des mois sans un seul appel au rendu), avec l’écart ET la semaine de référence citée — mais rester MUETTE la première semaine, où la fonction rend prev:null tout en annonçant dir:flat');

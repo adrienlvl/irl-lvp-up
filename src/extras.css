@@ -191,8 +191,16 @@ html[data-density=compact] .app-foot{margin-top:16px}
 .day-slot.study{border-left-color:var(--cat-study-line)}
 .day-slot.focus{border-left-color:var(--cat-focus-line)}
 .day-slot.prio-high{box-shadow:inset 3px 0 0 var(--danger)}
-.day-slot.completed{opacity:.55}
+/* On estompe le CONTENU d'une ligne terminée, pas ses commandes. L'opacité posée sur le <li>
+   éteignait aussi ses boutons — et l'opacité d'un parent ne se rattrape pas sur l'enfant : le
+   seul geste encore possible sur un bloc fait (l'annuler) aurait été le moins lisible de l'écran. */
+.day-slot.completed .day-time,.day-slot.completed .day-slot-body{opacity:.55}
 .day-slot.completed .day-slot-body b{text-decoration:line-through}
+/* Annuler doit être trouvable sans jamais concurrencer « Valider » : on ne pousse pas à défaire. */
+.block-undo{background:transparent;border:1px solid var(--line);color:var(--muted);
+  font-size:var(--fs-2xs);font-weight:var(--fw-med);border-radius:var(--r-pill);
+  padding:var(--sp-2) var(--sp-4);white-space:nowrap;cursor:pointer}
+.block-undo:hover,.block-undo:focus-visible{color:var(--text);border-color:var(--muted)}
 .day-time{flex:0 0 66px;font-weight:800;font-size:1rem;color:var(--accent)}
 .day-slot-body{flex:1;display:flex;flex-direction:column;gap:2px}
 .day-slot-body b{font-size:.95rem}
