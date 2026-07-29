@@ -5817,6 +5817,11 @@ function memoireForceParCadence(history, workouts, opts) {
   const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
   const o = opts && typeof opts === 'object' ? opts : {};
   const minGain = Number.isFinite(Number(o.minGain)) ? Number(o.minGain) : 0.5;
+  /* DURÉE DE VALIDITÉ DE LA RÉFÉRENCE. Enjamber un bloc vide est légitime — il met la
+     progression en pause, il ne la coupe pas. Enjamber DES ANNÉES ne l'est pas : mesuré,
+     un bloc de 2024 servait de référence à un bloc de 2026 et l'app attribuait +76 kg à
+     une cadence tenue quatre semaines. Au-delà, la chaîne repart. */
+  const refMaxJours = Math.max(28, Math.round(Number(o.refMaxJours) || 180));
   if (typeof bestE1rmByExercise !== 'function' || typeof blockWindowStats !== 'function') return null;
 
   const wins = (Array.isArray(history) ? history : [])
@@ -5846,6 +5851,10 @@ function memoireForceParCadence(history, workouts, opts) {
     const apres = bestE1rmByExercise(workouts, wins[i].start, wins[i].end);
     const exploitable = Object.keys(apres).length > 0;
     const cad = cadenceDe(wins[i]);
+    /* La référence expire : trop vieille, elle ne dit plus rien du bloc courant. On repart
+       plutôt que d'attribuer à une cadence un écart accumulé ailleurs. */
+    const ecart = ref ? daysUntil(wins[ref.i].end, wins[i].start) : null;
+    if (ref && (ecart == null || ecart > refMaxJours)) ref = null;
     const avant = ref ? ref.e1rm : null;
     /* Pas de garde sur la cadence : une cadence nulle signifie zéro séance dans la fenêtre,
        donc `apres` est vide et cette boucle ne tourne pas. La tester en plus serait une
@@ -5893,11 +5902,21 @@ function memoireForceParCadence(history, workouts, opts) {
      celui de CETTE cadence, pas le cumul toutes cadences confondues. La donnée existait
      déjà dans `parCadence` de l'exercice ; elle n'était simplement pas lue. */
   const gainPhareIci = phare ? Math.round((Number(phare.parCadence[String(meilleur.cadence)]) || 0) * 2) / 2 : 0;
+  /* LE VERBE SUIT LE SIGNE. « Y a pris le plus » sur un gain négatif félicitait une perte. */
   const phareTxt = (phare && Math.abs(gainPhareIci) >= minGain)
-    ? ' ' + phare.nom + ' y a pris le plus (' + signe(gainPhareIci) + ' kg).' : '';
+    ? ' ' + phare.nom + (gainPhareIci > 0 ? ' y a pris le plus (' : ' y a le plus reculé (')
+      + signe(gainPhareIci) + ' kg).' : '';
+  /* AUCUNE CADENCE N'A FAIT PROGRESSER : on ne désigne pas de gagnant parmi des reculs.
+     Un recul se lit autant qu'un gain, mais il se NOMME recul. */
+  const aucuneProgression = !(meilleur.gainMoyen > 0);
 
   let phrase;
-  if (!comparable) {
+  if (aucuneProgression) {
+    phrase = '🏋️ Ta force a RECULÉ sur tes derniers blocs : '
+      + cadences.map(c => sea(c.cadence) + ' → ' + signe(c.gainMoyen) + ' kg').join(', ')
+      + ' de 1RM estimé en moyenne par exercice suivi.' + phareTxt
+      + ' Décharge, blessure ou charges mal dosées : un recul se lit autant qu’un gain.';
+  } else if (!comparable) {
     phrase = '🏋️ Sur tes blocs à ' + sea(meilleur.cadence) + ', ta force a gagné '
       + signe(meilleur.gainMoyen) + ' kg de 1RM estimé en moyenne par exercice suivi.' + phareTxt
       + ' Il faudra un bloc à une autre cadence pour savoir si c’est le rythme qui fait la différence.';

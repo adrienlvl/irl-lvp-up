@@ -12818,6 +12818,42 @@ test('memoireForceParCadence : le gain de force rattaché au rythme qui l’a pr
     'le gain annoncé est une MOYENNE par exercice, pas la somme des gains');
   assert.equal(mm.cadences[0].gainMoyen, Math.round((somme / 2) * 2) / 2);
 
+  /* REVUE 88 — L'APP NE DOIT PAS FÉLICITER UN RECUL. Mesuré : avec des charges décroissantes,
+     la phrase disait « Ta force PROGRESSE le plus à 1 séance/semaine : −12,5 kg … Squat y A PRIS
+     le plus ». Trois mots faux — « progresse » quand tout recule, « le plus » pour la moins
+     mauvaise, « a pris » pour une perte. */
+  const enBaisse = L.memoireForceParCadence([A, B, C],
+    seances(120, 93, 2, 120).concat(seances(86, 59, 7, 110)).concat(seances(52, 25, 2, 100)));
+  assert.ok(enBaisse, 'un recul se lit : on ne se tait pas');
+  assert.ok(enBaisse.cadences.every(c => c.gainMoyen < 0), 'témoin : TOUTES les cadences reculent');
+  assert.match(enBaisse.phrase, /a RECULÉ/);
+  assert.ok(!/progresse le plus/.test(enBaisse.phrase), 'aucune progression annoncée sur des reculs');
+  assert.ok(!/y a pris le plus/.test(enBaisse.phrase), 'et l’exercice « a reculé », il n’a rien pris');
+  assert.match(enBaisse.phrase, /y a le plus reculé/);
+
+  /* Le TÉMOIN qui discrimine : le même jeu avec des charges CROISSANTES doit, lui, parler de
+     progression. Sans ce couple, une phrase figée sur « reculé » passerait pour un succès. */
+  const enHausse = L.memoireForceParCadence([A, B, C],
+    seances(120, 93, 2, 100).concat(seances(86, 59, 7, 102)).concat(seances(52, 25, 2, 120)));
+  assert.match(enHausse.phrase, /progresse le plus/);
+  assert.ok(!/RECULÉ/.test(enHausse.phrase));
+
+  /* REVUE 88 — LA RÉFÉRENCE A UNE DURÉE DE VALIDITÉ. Enjamber un bloc vide est légitime ;
+     enjamber DES ANNÉES ne l'est pas. Mesuré : un bloc de 2024 servait de référence à un bloc
+     de 2026 et l'app annonçait « +76 kg » sur une cadence tenue quatre semaines. */
+  const tresVieux = { objective: 'muscle', start: '2024-01-01', end: '2024-01-28', weeks: 4 };
+  const wVieux = [];
+  for (let d = 0; d < 14; d++) wVieux.push({ id: 900 + d,
+    date: '2024-01-' + String(1 + d * 2).padStart(2, '0'), type: 'Musculation', duration: 60,
+    effort: 7, exercises: [{ name: 'Squat', sets: 4, reps: 8, load: 60 }] });
+  const trop = L.memoireForceParCadence([tresVieux, C], wVieux.concat(seances(52, 25, 2, 120)));
+  assert.equal(trop, null, 'une référence périmée ne sert plus de point de comparaison');
+  // Et le seuil est réglable : avec une fenêtre assez large, la comparaison redevient possible.
+  const large = L.memoireForceParCadence([tresVieux, C], wVieux.concat(seances(52, 25, 2, 120)),
+    { refMaxJours: 3650 });
+  assert.ok(large && large.cadences.length === 1,
+    'témoin : c’est bien la DURÉE qui rejetait, pas autre chose');
+
   /* Un bloc SANS séance n'a pas de cadence : sa transition est ignorée plutôt que rattachée
      à une cadence de 0, qui n'existe pas. */
   const trou = seances(120, 93, 2, 100).concat(seances(52, 25, 2, 120));
