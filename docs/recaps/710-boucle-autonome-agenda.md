@@ -2214,3 +2214,42 @@ plancher utilisait une journée de 60 min, qui dépasse le seuil dans les deux c
 **petite** journée avec une cible minuscule.
 
 672 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 65 — Le parking promettait « tu peux y revenir » et ne le permettait pas
+
+### Mon journal se trompait
+
+Il disait « les parkings et revues accumulent sans ressortir ». **Faux** : les deux ressortent
+(`renderFocusParking`, `recentFocusOutcomes`). *Cinquième hypothèse initiale démentie par la
+mesure en cinq itérations — la vérification est devenue le geste le plus rentable de la boucle.*
+
+### Le vrai défaut — le fil rouge à l'état pur
+
+Le statut du parking promet en toutes lettres : **« tu peux y revenir après ton bloc »**.
+Le rendu, lui, filtrait `p.date === localDate()` puis gardait `slice(-4)`.
+
+| Stockées | Affichées | Statut annoncé |
+|---|---|---|
+| **8** | **4** | « **4 pensées déposées** » |
+
+Trois pensées des jours précédents **et une du jour même** disparaissaient sans un mot, et le
+compte tronqué était présenté comme le total. Rien n'était perdu en mémoire — c'était
+**injoignable**, ce qui est pire, parce qu'on avait promis l'inverse.
+
+### Ce qui a été fait
+
+Les quatre plus récentes du jour restent en avant (la place à l'écran est limitée), le statut
+compte ce qui **existe**, et le reste vit dans un tiroir replié avec les dates. Fenêtre bornée à
+14 jours : *un parking qui remonte à trois mois n'est plus un parking, c'est une décharge.*
+
+### Ce que cette itération a appris
+
+*Une promesse écrite dans l'interface est un contrat testable.* « Tu peux y revenir » se vérifie :
+il suffit de compter ce qui est atteignable. C'est le test le plus simple à écrire et celui qui
+manquait.
+
+**Mutations.** 5 posées, 5 détectées — dont celle qui remet le compte tronqué dans le statut.
+
+673 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
