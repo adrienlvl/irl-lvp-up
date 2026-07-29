@@ -3066,3 +3066,48 @@ plus.
 révélait.
 
 683 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 85 — Revue : deux vérités sur ce que le plan demande
+
+Revue adversariale des itérations 82-84. **Trois hypothèses, trois démentis par la mesure**,
+puis un vrai défaut — de mon fait, à l'itération 83.
+
+### Ce que la mesure a démenti
+
+| Soupçon | Verdict |
+|---|---|
+| La garde d'idempotence de `descendreEchauffement` ferait alterner l'ordre | **Faux** — stable sur 4 ouvertures |
+| Le plan généré ne suivrait pas les réglages | **Ma sonde passait la mauvaise forme d'entrée** |
+| Le plan produirait 0 course | **Le champ s'appelle `kind`, pas `type`** |
+
+*Deux « écarts » que j'ai failli rapporter n'étaient que mes propres sondes mal formées.*
+
+### Le défaut, lui, est réel
+
+Mesuré sur **8 configurations, 7 en désaccord** : « Ta semaine, face au plan » comparait à
+`goals.sessions`, le **réglage brut**. Or la forme de l'objectif l'emporte — « prise de muscle »
+pose 4 séances quoi qu'on règle, tandis que les courses suivent le réglage. Le bloc annonçait
+donc **« 6 muscu » juste au-dessus d'un plan qui en affichait 4**. La faute (B) exacte que je
+passe mon temps à corriger ailleurs, commise sur mon propre ajout de la veille.
+
+Ce que le plan demande se lit désormais **dans le plan généré**. 7 écarts sur 8 → 0.
+
+### Ce que cette itération a appris
+
+**Deux absences qui ne veulent pas dire la même chose**, tranché en écrivant le test : pas de
+plan → repli sur le réglage ; plan dont la semaine est **vide** → il prescrit réellement zéro
+(repos, décharge), donc on se tait. Réciter le réglage là serait le même défaut dans l'autre sens.
+
+**Un test doit prouver que son scénario DISCRIMINE.** Le nouveau test vérifie d'abord que le
+réglage et le plan sont bien en désaccord — sans ce témoin, il passerait aussi sur un cas où les
+deux coïncident, et c'est précisément pour ça que le défaut a vécu.
+
+**Ne pas épingler un nombre qui bouge.** Le check « semaine bouclée » de l'itération 83 semait
+« exactement ce que le plan demande » — or le plan **s'adapte aux séances déjà faites** : la
+cible se déplaçait pendant qu'on visait. Il teste maintenant la bascule de ton, pas un compte.
+
+**Mutations.** 4 posées, 4 détectées.
+
+683 tests · SMOKE OK. Rien publié depuis v2.14.0.
