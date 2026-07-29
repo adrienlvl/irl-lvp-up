@@ -479,3 +479,23 @@ details.calendar-setting[open]{padding-bottom:14px}
 .fct-phrase{margin:0;color:var(--text);font-size:var(--fs-xs);line-height:1.45}
 .focus-cible-tenue.fct-habitude{border-left-color:var(--accent-ring)}
 .focus-cible-tenue.fct-jamais{border-left-color:var(--danger)}
+
+/* ===== Ce que ton énergie annonce pour ta concentration (itération 90) =====
+   Sous la tendance d'énergie, dans le rituel du MATIN : c'est la seule mesure disponible au
+   moment où l'on décide de sa journée. Deux colonnes en minmax(0,1fr) — le contraste se voit
+   avant de se lire — puis l'observation, puis le conseil du jour s'il y en a un. */
+.energie-focus{display:grid;gap:var(--sp-2);margin-top:var(--sp-3);padding:var(--sp-3) var(--sp-4);
+  border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface-2)}
+.energie-focus[hidden]{display:none}
+.ef-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3)}
+.ef-col{display:grid;gap:2px;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-xs);
+  background:var(--input-bg);text-align:center}
+.ef-col small{color:var(--muted);font-size:var(--fs-3xs)}
+.ef-col b{font-size:var(--fs-lg);font-variant-numeric:tabular-nums}
+.ef-phrase{margin:0;color:var(--text);font-size:var(--fs-xs);line-height:1.45}
+/* Le conseil du jour se détache : c'est la seule ligne qui demande une décision maintenant. */
+.ef-conseil{margin:0;color:var(--accent);font-size:var(--fs-xs);font-weight:var(--fw-med);line-height:1.45}
+.energie-focus.ef-positif{border-left-color:var(--accent-ring)}
+.energie-focus.ef-positif .ef-duo .ef-col:last-child b{color:var(--accent)}
+.energie-focus.ef-aucun{border-left-color:var(--line)}

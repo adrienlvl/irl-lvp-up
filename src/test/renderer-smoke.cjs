@@ -3666,6 +3666,70 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.energieFocusVue = (() => {
+        const _mrS = state.morningRituals, _fsS = state.focusSessions;
+        const _rendre = () => { state.morningRituals = _mrS; state.focusSessions = _fsS;
+          try { renderFocusRitual(); } catch (_) {} };
+        try {
+          if (typeof renderFocusRitual !== "function" || typeof energieEtFocus !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#energieFocus");
+          const tendance = document.querySelector("#morningEnergyTrend");
+          if (!el || !tendance) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const jour = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          // f(n) -> [energie, blocs de 25 min]. On seme 40 jours.
+          const semer = function (f) { state.morningRituals = []; state.focusSessions = [];
+            for (let n = 1; n <= 40; n++) { const v = f(n);
+              if (v[0]) state.morningRituals.push({ date: jour(n), energy: v[0] });
+              for (let k = 0; k < v[1]; k++) state.focusSessions.push({ id: 1, date: jour(n), minutes: 25 }); } };
+
+          /* 1) LIEN NET : le bloc doit apparaitre APRES la tendance d energie (la moyenne, puis
+             ce qu elle change) et citer les memes chiffres que la mesure. */
+          semer(function (n) { return (n % 2) ? [2, 1] : [4, 4]; });
+          const attendu = energieEtFocus(state, localDate());
+          renderFocusRitual();
+          const vu = getComputedStyle(el).display !== "none";
+          const t1 = String(el.textContent || "");
+          const memePhrase = !!attendu && t1.indexOf(attendu.phrase) !== -1;
+          const memesChiffres = !!attendu && t1.indexOf(attendu.haut.minutes + " min") !== -1
+            && t1.indexOf(attendu.bas.minutes + " min") !== -1;
+          const apres = (tendance.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          const colonnes = el.querySelectorAll(".ef-col").length;
+          // Sans check-in AUJOURD HUI, aucun conseil du jour ne doit etre invente.
+          const sansConseil = el.querySelectorAll(".ef-conseil").length === 0;
+
+          /* 2) LE CONSEIL DU JOUR apparait des qu une energie est notee ce matin, et il suit le
+             GROUPE ou elle tombe. Sans ce second cas, un bloc muet passerait pour un succes. */
+          state.morningRituals = state.morningRituals.concat([{ date: localDate(), energy: 2 }]);
+          renderFocusRitual();
+          const t2 = String(el.textContent || "");
+          const conseilVu = el.querySelectorAll(".ef-conseil").length === 1
+            && t2.indexOf("vise un bloc court") !== -1;
+
+          /* 3) AUCUN LIEN : le verdict bascule et renvoie vers ce que l app sait deja mesurer.
+             Sans ce cas, une phrase figee sur « te donnent plus » passerait pour un succes. */
+          semer(function (n) { return (n % 2) ? [2, 2] : [4, 2]; });
+          renderFocusRitual();
+          const t3 = String(el.textContent || "");
+          const neutre = el.classList.contains("ef-aucun")
+            && t3.indexOf("ne prédit pas ta concentration") !== -1
+            && t3.indexOf("ton créneau et ton sommeil") !== -1;
+
+          checks.__energieFocus = "vu=" + vu + " apresTendance=" + apres + " colonnes=" + colonnes
+            + " memePhrase=" + memePhrase + " memesChiffres=" + memesChiffres
+            + " sansConseil=" + sansConseil + " conseilVu=" + conseilVu + " neutre=" + neutre
+            + " t1[" + t1.slice(0, 80) + "]";
+          _rendre();
+          return vu && apres && colonnes === 2 && memePhrase && memesChiffres
+            && sansConseil && conseilVu && neutre;
+        } catch (e) {
+          _rendre();
+          checks.__errEnergieFocus = String(e && e.message); return false;
+        }
+      })();
+
       checks.cibleFocusVue = (() => {
         const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
         try {
@@ -5908,6 +5972,7 @@ app.whenReady().then(async () => {
     if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
+    if (!checks.energieFocusVue) errors.push('Focus : l’énergie du matin servait au check-in du jour et de RÉSULTAT dans le bilan sommeil — jamais de prédicteur, alors que c’est la seule mesure disponible au moment où l’on décide de sa journée. Le bloc doit venir APRÈS la tendance d’énergie, comparer deux colonnes avec les chiffres mesurés, n’afficher un conseil du jour QUE si une énergie est notée ce matin (et suivre le groupe où elle tombe), et basculer sur « ne prédit pas » quand l’écart est nul en renvoyant vers le créneau et le sommeil');
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');

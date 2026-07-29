@@ -811,6 +811,20 @@ function renderFocusRitual() {
   $('#focusStats').textContent=(todaySessions.length?`Aujourd’hui : ${todaySessions.length} bloc${todaySessions.length>1?'s':''} · ${todaySessions.reduce((sum,s)=>sum+s.minutes,0)} min. Cette semaine : ${weekMinutes} min.${lastReview?.next?` Prochain geste noté : ${lastReview.next}`:''}`:`Aucun bloc terminé aujourd’hui. Cette semaine : ${weekMinutes} min.`)+streakTxt;
   $('#morningEnergy').value=morning?.energy||'3';$('#morningIntention').value=morning?.intention||'';$('#morningFirstStep').value=morning?.firstStep||'';$('#morningStatus').textContent=morning?`Cap posé : énergie ${morning.energy}/5. Commence petit, puis laisse la journée répondre.`:'En deux minutes : énergie, intention, premier geste.';{const mstEl=$('#morningStreak');if(mstEl){const ms=(typeof morningStreak==='function')?morningStreak(state.morningRituals,localDate()):0;if(ms>=2){mstEl.hidden=false;mstEl.textContent=`🔥 ${ms} jours de check-in d’affilée`;}else{mstEl.hidden=true;mstEl.textContent='';}}}
   const etEl=$('#morningEnergyTrend');if(etEl&&typeof morningEnergyTrend==='function'){const et=morningEnergyTrend(state.morningRituals,today,7);if(!et){etEl.hidden=true;etEl.innerHTML='';}else{etEl.hidden=false;etEl.className='energy-trend et-'+et.level;const num=n=>String(n).replace('.',',');const arrow=et.dir==='up'?'↗':et.dir==='down'?'↘':'→';const cmp=et.prevAvg==null?'pas encore de comparaison':`${arrow} ${et.delta>0?'+':''}${num(et.delta)} vs les 7 j d’avant`;etEl.innerHTML=`<span>⚡ Énergie moyenne <b>${num(et.avg)}/5</b> sur ${et.count} matin${et.count>1?'s':''}</span><small class="et-${et.dir}">${cmp}</small>`;}}
+  /* CE QUE TON ÉNERGIE ANNONCE POUR TA CONCENTRATION. Juste au-dessus, l'app dit la moyenne et
+     sa tendance ; elle ne disait jamais ce que cette énergie CHANGE. C'est la seule mesure
+     disponible au moment où l'on décide de sa journée — d'où sa place ici, dans le rituel du
+     matin, et non dans un bilan du soir. */
+  {const efEl=$('#energieFocus');
+   const ef=(typeof energieEtFocus==='function')?energieEtFocus(state,today):null;
+   if(efEl){if(!ef){efEl.hidden=true;efEl.innerHTML='';}
+    else{efEl.hidden=false;efEl.className='energie-focus ef-'+ef.lien;
+     // Deux colonnes comparées : le contraste doit se voir avant de se lire.
+     const col=(t,g)=>'<div class="ef-col"><small>'+t+'</small><b>'+g.minutes+' min</b>'
+       +'<small>'+String(g.energie).replace('.',',')+'/5 · '+g.jours+' j</small></div>';
+     efEl.innerHTML='<div class="ef-duo">'+col('Jours bas',ef.bas)+col('Jours hauts',ef.haut)+'</div>'
+       +'<p class="ef-phrase">'+escapeHtml(ef.phrase)+'</p>'
+       +(ef.conseil?'<p class="ef-conseil">'+escapeHtml(ef.conseil)+'</p>':'');}}}
   $('#morningBridge').textContent=yesterdayReflection?.tomorrow?`Hier soir, tu avais préparé ce premier pas : « ${yesterdayReflection.tomorrow} »`:lastReview?.next?`Après ton dernier focus : « ${lastReview.next} »`:'Le matin, le but est seulement de rendre le démarrage plus léger.';
   $('#reflectionWin').value=reflection?.win||''; $('#reflectionLesson').value=reflection?.lesson||''; $('#reflectionTomorrow').value=reflection?.tomorrow||'';
   $('#reflectionStatus').textContent=reflection?'Rituel enregistré sur cet appareil.':'Trois lignes suffisent : garder une trace, pas se juger.';$('#reflectionMemory').textContent=morning?.firstStep?`Ce matin, tu avais choisi : « ${morning.firstStep} ». Même un petit progrès mérite d’être vu.`:'Le soir ne sert pas à te noter : il sert à laisser un indice utile à ton futur toi.';

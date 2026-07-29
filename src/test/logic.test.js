@@ -13809,6 +13809,83 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('energieEtFocus : ce que l’énergie du matin annonce, sans inventer de causalité', () => {
+  /* Chantier n°10. Vérifié dans le code à l'itération 90 : l'énergie du matin sert au check-in
+     du jour et de RÉSULTAT dans `sleepImpactReport` — jamais de prédicteur. Or c'est la seule
+     mesure disponible au moment où l'on décide de sa journée. */
+  const today = '2026-07-29';
+  const p = x => String(x).padStart(2, '0');
+  const j = n => { const d = new Date(2026, 6, 29 - n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  // f(n) -> [énergie du jour, nombre de blocs de 25 min]. Énergie 0 = pas de check-in ce jour.
+  const etat = f => { const st = { morningRituals: [], focusSessions: [] };
+    for (let n = 1; n <= 40; n++) { const [e, blocs] = f(n);
+      if (e) st.morningRituals.push({ date: j(n), energy: e });
+      for (let k = 0; k < blocs; k++) st.focusSessions.push({ id: 1, date: j(n), minutes: 25 }); }
+    return st; };
+
+  assert.equal(L.energieEtFocus({}, today), null);
+  assert.equal(L.energieEtFocus(etat(n => [2, 1]), 'pas-une-date'), null);
+  // Énergie CONSTANTE : aucun contraste à comparer, on se tait.
+  assert.equal(L.energieEtFocus(etat(() => [3, 2]), today), null,
+    'deux paquets identiques ne se comparent pas');
+  // Trop peu de jours notés de chaque côté.
+  assert.equal(L.energieEtFocus(etat(n => (n <= 3 ? [n % 2 ? 2 : 4, 1] : [0, 0])), today), null);
+
+  /* LIEN POSITIF — le cas nominal. Énergie 2 → 1 bloc, énergie 4 → 4 blocs. */
+  const pos = L.energieEtFocus(etat(n => (n % 2 ? [2, 1] : [4, 4])), today);
+  assert.ok(pos);
+  assert.equal(pos.lien, 'positif');
+  assert.equal(pos.bas.minutes, 25);
+  assert.equal(pos.haut.minutes, 100);
+  assert.equal(pos.ecart, 75);
+  assert.match(pos.phrase, /100 min de concentration, contre 25 min/);
+  assert.match(pos.phrase, /40 jours à toi/, 'l’échantillon est cité');
+  assert.equal(pos.conseil, '', 'sans check-in AUJOURD’HUI, aucun conseil du jour inventé');
+
+  /* ZÉRO N'EST PAS ABSENT : un jour à énergie notée SANS aucun bloc vaut 0 minute, et c'est
+     justement l'information utile. Sans ça, les jours creux disparaîtraient du calcul. */
+  const avecZeros = L.energieEtFocus(etat(n => (n % 2 ? [2, 0] : [4, 4])), today);
+  assert.equal(avecZeros.bas.minutes, 0, 'les jours sans bloc comptent pour 0, pas pour rien');
+  assert.equal(avecZeros.bas.jours, 20);
+
+  /* AUCUN LIEN : le témoin qui discrimine. Sans lui, une phrase figée sur « te donnent plus »
+     passerait pour un succès. Et on redirige vers ce que l'app sait déjà mesurer. */
+  const nul = L.energieEtFocus(etat(n => (n % 2 ? [2, 2] : [4, 2])), today);
+  assert.equal(nul.lien, 'aucun');
+  assert.equal(nul.ecart, 0);
+  assert.match(nul.phrase, /ne prédit pas ta concentration/);
+  assert.match(nul.phrase, /ton créneau et ton sommeil/, 'on renvoie vers les autres mesures');
+
+  // LIEN INVERSE : il existe, et on le nomme au lieu de le taire.
+  const inv = L.energieEtFocus(etat(n => (n % 2 ? [2, 4] : [4, 1])), today);
+  assert.equal(inv.lien, 'inverse');
+  assert.match(inv.phrase, /Contre-intuitif/);
+
+  /* LE PARTAGE DOIT RÉSISTER À UNE MÉDIANE ÉGALE À UNE VALEUR NOTÉE. Mesuré dès le premier
+     essai : 21 jours à 2/5 et 20 à 4/5 donnent une médiane de 2 — le partage strict vidait le
+     groupe bas et la fonction renvoyait null, alors que l'écart était de 25 min contre 100. */
+  const st = etat(n => (n % 2 ? [2, 1] : [4, 4]));
+  st.morningRituals.push({ date: today, energy: 2 });
+  const impair = L.energieEtFocus(st, today);
+  assert.ok(impair, 'un jour de plus ne doit pas faire disparaître une corrélation nette');
+  assert.equal(impair.mediane, 2, 'témoin : la médiane vaut bien une valeur RÉELLEMENT notée');
+  assert.equal(impair.partage, 'basInclus', 'le partage strict aurait vidé un groupe');
+  assert.ok(impair.bas.jours >= 3 && impair.haut.jours >= 3);
+
+  /* Et le CONSEIL DU JOUR suit le groupe où ce matin tombe réellement, pas une comparaison
+     brute à la médiane — sinon un 2/5 rangé dans les jours bas s'entendait dire « pile ta
+     moyenne » au lieu du conseil qui lui correspond. */
+  assert.equal(impair.ceMatin, 2);
+  assert.match(impair.conseil, /vise un bloc court/);
+  assert.ok(!/pile ta moyenne/.test(impair.conseil));
+
+  // Et un matin HAUT reçoit le conseil inverse : le couple prouve que le conseil discrimine.
+  const st2 = etat(n => (n % 2 ? [2, 1] : [4, 4]));
+  st2.morningRituals.push({ date: today, energy: 4 });
+  assert.match(L.energieEtFocus(st2, today).conseil, /tes longs blocs passent/);
+});
+
 test('cibleFocusTenue : la cible hebdo confrontée à son historique', () => {
   /* Mesuré à l'itération 89 : l'app fixe 120 min/semaine, rapporte la semaine EN COURS et la
      compare à la précédente — mais ne dit JAMAIS combien de fois la cible est tenue. Une cible
