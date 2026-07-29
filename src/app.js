@@ -1076,8 +1076,13 @@ function renderMemoireBlocs(){const el=$('#memoireBlocs');if(!el)return;
     return '<div class="mb-row'+(fort?' mb-fort':'')+'"><span class="mb-cad">'
       +String(r.cadence).replace('.',',')+'/sem.</span><b>'+kg+'</b><small>'
       +r.blocs+' bloc'+(r.blocs>1?'s':'')+' · '+r.seances+' séances</small></div>';}).join('');
+  /* LA FORCE VIT DANS LE MÊME PANNEAU. Tonnage et 1RM répondent à la même question — « ce que
+     mes blocs m'ont appris » — et deux encadrés au titre jumeau seraient exactement le double
+     avis qu'on passe son temps à supprimer ailleurs. Une seule voix, deux phrases. */
+  const f=(typeof memoireForceParCadence==='function')?memoireForceParCadence(state.blockHistory,state.workouts):null;
+  const force=f?'<p class="mb-phrase mb-force">'+escapeHtml(f.phrase)+'</p>':'';
   el.innerHTML='<div class="mb-head"><b>🧠 Ce que tes blocs t’ont appris</b></div>'
-    +lignes+'<p class="mb-phrase">'+escapeHtml(m.phrase)+'</p>';}
+    +lignes+'<p class="mb-phrase">'+escapeHtml(m.phrase)+'</p>'+force;}
 function renderBlocksByObjective(){const el=$('#blocksByObjective');if(!el||typeof blocksByObjective!=='function')return;const rows=blocksByObjective(state.blockHistory,state.workouts);if(rows.length<2){el.hidden=true;el.innerHTML='';return;}el.hidden=false;const meta={athletique:{e:'🏃',l:'Athlétique'},muscle:{e:'💪',l:'Muscle'},seche:{e:'🔥',l:'Sèche'},endurance:{e:'🏔️',l:'Endurance'},forme:{e:'⚖️',l:'Forme'}},kg=n=>Math.round(n).toLocaleString('fr-FR');el.innerHTML=`<div class="bbo-head"><b>📚 Mes blocs par objectif</b></div>`+rows.map(r=>{const m=meta[r.objective]||{e:'•',l:r.objective};return `<div class="bbo-row"><span class="bbo-name">${m.e} ${escapeHtml(m.l)}</span><b>×${r.blocks}</b><small>${r.sessions} séances · ${kg(r.tonnage)} kg</small></div>`;}).join('');}
 // Récup : bilan de sommeil des 7 derniers jours (moyenne + statut) sous la tendance de forme.
 function renderWeeklySleep(){const num=n=>String(n).replace('.',',');

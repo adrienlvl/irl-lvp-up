@@ -3246,6 +3246,64 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.forceParCadence = (() => {
+        const _hS = state.blockHistory, _wS = state.workouts;
+        const _rendre = () => { state.blockHistory = _hS; state.workouts = _wS;
+          try { renderMemoireBlocs(); } catch (_) {} };
+        try {
+          if (typeof renderMemoireBlocs !== "function" || typeof memoireForceParCadence !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#memoireBlocs");
+          if (!el) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const j = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          const seances = function (deb, fin, pas, charge) { const w = [];
+            for (let d = deb; d >= fin; d -= pas) w.push({ id: d, date: j(d), type: "Musculation",
+              duration: 60, effort: 7, exercises: [{ name: "Squat", sets: 4, reps: 8, load: charge }] });
+            return w; };
+          const A = { objective: "muscle", start: j(120), end: j(93), weeks: 4 };
+          const B = { objective: "muscle", start: j(86), end: j(59), weeks: 4 };
+          const C = { objective: "muscle", start: j(52), end: j(25), weeks: 4 };
+
+          /* 1) TROIS BLOCS, DEUX CADENCES D ARRIVEE DIFFERENTES : le conseil de force doit
+             sortir, DANS LE MEME PANNEAU que celui du tonnage — deux encadres au titre jumeau
+             seraient exactement le double avis qu on supprime ailleurs. */
+          state.blockHistory = [A, B, C];
+          state.workouts = seances(120, 93, 2, 100)
+            .concat(seances(86, 59, 7, 102))
+            .concat(seances(52, 25, 2, 120));
+          const attendu = memoireForceParCadence(state.blockHistory, state.workouts);
+          render();
+          const vu = getComputedStyle(el).display !== "none";
+          const force = el.querySelector(".mb-force");
+          const dansLeMemePanneau = !!force && el.contains(force);
+          const t1 = force ? String(force.textContent || "") : "";
+          const memePhrase = !!attendu && t1.indexOf(attendu.phrase) !== -1;
+          const compare = !!attendu && attendu.comparable === true;
+          // Un seul titre dans le panneau : la force ne doit PAS en introduire un second.
+          const titres = el.querySelectorAll(".mb-head").length;
+
+          /* 2) UNE SEULE CADENCE : la phrase doit REFUSER d attribuer. Sans ce second cas, une
+             phrase figee sur le conseil passerait pour un succes. */
+          state.workouts = seances(120, 93, 2, 100).concat(seances(86, 59, 2, 110));
+          state.blockHistory = [A, B];
+          render();
+          const f2 = el.querySelector(".mb-force");
+          const t2 = f2 ? String(f2.textContent || "") : "";
+          const prudent = !!f2 && t2.indexOf("une autre cadence") !== -1 && t2.indexOf("contre ") === -1;
+
+          checks.__forceCadence = "vu=" + vu + " memePanneau=" + dansLeMemePanneau + " titres=" + titres
+            + " compare=" + compare + " memePhrase=" + memePhrase + " prudent=" + prudent
+            + " t1[" + t1.slice(0, 90) + "]";
+          _rendre();
+          return vu && dansLeMemePanneau && titres === 1 && compare && memePhrase && prudent;
+        } catch (e) {
+          _rendre();
+          checks.__errForceCadence = String(e && e.message); return false;
+        }
+      })();
+
       checks.memoireBlocsVue = (() => {
         const _hS = state.blockHistory, _wS = state.workouts;
         const _rendre = () => { state.blockHistory = _hS; state.workouts = _wS;
@@ -5785,6 +5843,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.forceParCadence) errors.push('Mémoire des blocs, volet FORCE : le gain de 1RM doit être rattaché à la cadence qui l’a produit (blockExerciseProgress ne compare que le premier et le dernier bloc, sans jamais relier un gain à un rythme). La phrase vit DANS le panneau du tonnage — un second encadré au titre jumeau serait le double avis qu’on supprime ailleurs — et avec une seule cadence elle doit REFUSER d’attribuer');
     if (!checks.memoireBlocsVue) errors.push('Mémoire des blocs : la comparaison doit aller jusqu’au CONSEIL — à quel rythme tu produis le plus — et se taire sous deux blocs terminés. Avec une seule cadence dans l’historique, elle doit REFUSER de comparer (deux blocs au même rythme ne disent rien sur le rythme) au lieu d’inventer une causalité, et la cadence citée doit être celle qui a été mesurée');
     if (!checks.planUnSeulCompte) errors.push('Plan de bataille : UN SEUL compte de séances à l’écran. « Ta semaine, face au plan » doit citer ce que le plan POSE, pas le réglage brut — la forme de l’objectif l’emporte sur le réglage (mesuré : 7 configurations sur 8 en désaccord, le bloc annonçait « 6 muscu » au-dessus d’un plan qui en affichait 4)');
     if (!checks.guideeOrdre) errors.push('Séance guidée : l’exercice EN COURS doit venir avant l’échauffement et la prépa — mesuré, son nom n’apparaissait qu’à 563 px, hors du premier écran, alors que l’échauffement se consulte une fois et le bloc exercice toutes les 90 secondes. Les deux accordéons doivent RESTER dans le dialogue (on les descend, on ne les supprime pas), aucun bouton ne doit passer sous 44 px (« Remplacer » mesurait 32 px) et rien ne doit déborder latéralement');

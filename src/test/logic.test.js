@@ -12743,6 +12743,89 @@ test('weightGoalProgress : progression globale départ → cible', () => {
   assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 75 }], 75, 75), null);
 });
 
+test('memoireForceParCadence : le gain de force rattaché au rythme qui l’a produit', () => {
+  /* Suite du chantier n°9. `blockExerciseProgress` existait mais ne compare que le PREMIER et
+     le DERNIER bloc : aucun gain n'était rattaché à la cadence qui l'a produit, donc rien ne
+     pouvait être recommandé. On procède par PAIRES de blocs consécutifs. */
+  const p = x => String(x).padStart(2, '0');
+  const j = n => { const d = new Date(2026, 6, 29 - n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  // `pas` fixe la cadence tenue ; `charge` fixe le 1RM estimé atteint dans le bloc.
+  const seances = (deb, fin, pas, charge, nom) => { const w = [];
+    for (let d = deb; d >= fin; d -= pas) w.push({ id: d, date: j(d), type: 'Musculation',
+      duration: 60, effort: 7, exercises: [{ name: nom || 'Squat', sets: 4, reps: 8, load: charge }] });
+    return w; };
+  const A = { objective: 'muscle', start: j(120), end: j(93), weeks: 4 };
+  const B = { objective: 'muscle', start: j(86), end: j(59), weeks: 4 };
+  const C = { objective: 'muscle', start: j(52), end: j(25), weeks: 4 };
+
+  // Sous deux blocs terminés : rien à attribuer.
+  assert.equal(L.memoireForceParCadence([], []), null);
+  assert.equal(L.memoireForceParCadence([A], seances(120, 93, 3, 100)), null);
+
+  /* AUCUN EXERCICE COMMUN aux deux blocs : on ne compare pas ce qui n'a pas été fait. */
+  const disjoint = seances(120, 93, 3, 100, 'Squat').concat(seances(86, 59, 3, 100, 'Tractions'));
+  assert.equal(L.memoireForceParCadence([A, B], disjoint), null,
+    'un exercice présent d’un seul côté ne fournit aucun gain comparable');
+
+  /* UNE SEULE CADENCE : on décrit sans attribuer — même refus qu'à l'itération 86. */
+  const memeRythme = L.memoireForceParCadence([A, B],
+    seances(120, 93, 2, 100).concat(seances(86, 59, 2, 110)));
+  assert.ok(memeRythme);
+  assert.equal(memeRythme.comparable, false);
+  assert.equal(memeRythme.cadences.length, 1);
+  assert.match(memeRythme.phrase, /Il faudra un bloc à une autre cadence/);
+  assert.ok(!/contre /.test(memeRythme.phrase), 'aucune comparaison quand il n’y a qu’un rythme');
+
+  /* LE CAS QUI DISCRIMINE : trois blocs, et les deux TRANSITIONS tombent sur des cadences
+     différentes (le gain d'une paire est attribué au bloc où il a été réalisé). Même exercice,
+     même durée de bloc — seule la fréquence du bloc d'arrivée change. */
+  const trois = seances(120, 93, 2, 100)      // A : référence
+    .concat(seances(86, 59, 7, 102))          // B : cadence 1  → gain +2
+    .concat(seances(52, 25, 2, 120));         // C : cadence 3,5 → gain +18
+  const r = L.memoireForceParCadence([A, B, C], trois);
+  assert.ok(r && r.comparable, 'deux cadences distinctes doivent être comparées');
+  assert.equal(r.cadences.length, 2);
+  assert.ok(r.meilleur.cadence > r.autre.cadence,
+    'ici c’est la cadence la plus élevée qui a produit le plus gros gain');
+  assert.ok(r.meilleur.gainMoyen > r.autre.gainMoyen);
+  assert.equal(r.phare.nom, 'Squat', 'l’exercice qui a le plus gagné est nommé');
+  assert.match(r.phrase, /Ta force progresse le plus à/);
+  assert.match(r.phrase, /contre /, 'la cadence perdante est citée, pas seulement la gagnante');
+  assert.match(r.phrase, /pas une règle/, 'la prudence est DITE, pas sous-entendue');
+  assert.match(r.phrase, /3 blocs à toi/, 'la taille de l’échantillon est citée');
+
+  /* LA MOYENNE EST UNE MOYENNE — et il faut une cadence portant PLUSIEURS mesures pour que ça
+     se voie. Avec un seul exercice, chaque cadence n'a qu'une mesure et diviser par 1 ne change
+     rien : la mutation qui retirait la division survivait (mesuré). Ici DEUX exercices présents
+     dans les deux blocs ⇒ deux mesures sur la même cadence. */
+  const deuxExos = (deb, fin, pas, sq, dc) => { const w = [];
+    for (let d = deb; d >= fin; d -= pas) w.push({ id: d, date: j(d), type: 'Musculation',
+      duration: 60, effort: 7, exercises: [{ name: 'Squat', sets: 4, reps: 8, load: sq },
+        { name: 'Développé couché', sets: 4, reps: 8, load: dc }] });
+    return w; };
+  const mm = L.memoireForceParCadence([A, B],
+    deuxExos(120, 93, 2, 100, 70).concat(deuxExos(86, 59, 2, 120, 77)));
+  assert.ok(mm && mm.cadences.length === 1, 'témoin : une seule cadence, deux exercices');
+  assert.equal(mm.cadences[0].mesures, 2, 'deux exercices comparés ⇒ deux mesures');
+  const gSq = mm.exercices.filter(e => e.nom === 'Squat')[0];
+  const gDc = mm.exercices.filter(e => e.nom === 'Développé couché')[0];
+  assert.ok(gSq && gDc, 'témoin : les deux exercices ont bien un gain');
+  assert.ok(gSq.gainTotal !== gDc.gainTotal, 'témoin : les deux gains DIFFÈRENT, sinon la moyenne',
+    'ne se distinguerait pas de la somme');
+  const somme = gSq.gainTotal + gDc.gainTotal;
+  assert.ok(mm.cadences[0].gainMoyen < somme,
+    'le gain annoncé est une MOYENNE par exercice, pas la somme des gains');
+  assert.equal(mm.cadences[0].gainMoyen, Math.round((somme / 2) * 2) / 2);
+
+  /* Un bloc SANS séance n'a pas de cadence : sa transition est ignorée plutôt que rattachée
+     à une cadence de 0, qui n'existe pas. */
+  const trou = seances(120, 93, 2, 100).concat(seances(52, 25, 2, 120));
+  const rt = L.memoireForceParCadence([A, B, C], trou);
+  assert.ok(rt, 'la transition A→C reste exploitable');
+  assert.ok(rt.cadences.every(c => c.cadence > 0), 'aucune cadence nulle dans le résultat');
+});
+
 test('memoireDesBlocs : la comparaison va jusqu’au conseil, sans inventer de causalité', () => {
   /* Chantier n°9 de la roadmap. `blockComparison` comparait le premier bloc au dernier et
      s'arrêtait au constat (« +40 % de tonnage »). Personne ne répondait à ce qui décide du

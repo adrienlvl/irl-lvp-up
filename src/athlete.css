@@ -410,3 +410,6 @@
 .mb-row small{color:var(--muted);font-size:var(--fs-3xs);text-align:right}
 .mb-row.mb-fort b{color:var(--accent)}
 .mb-phrase{margin:var(--sp-2) 0 0;color:var(--text);font-size:var(--fs-xs);line-height:1.45}
+/* La phrase « force » suit celle du tonnage dans le même panneau : un filet la sépare sans
+   la détacher — c'est la suite du même raisonnement, pas un second avis. */
+.mb-phrase.mb-force{margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--line)}
