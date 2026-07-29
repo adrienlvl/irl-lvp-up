@@ -38,6 +38,11 @@ Panneaux de contenu par page, hors cartes globales :
 | **Alternance** | **1** | |
 | Réglages | 2 | |
 
+> **⚠️ Nuance ajoutée le 2026-07-30 (itération 68) : compter les panneaux mesure la mise en
+> page, pas la profondeur.** La page Exercices, classée « friche » sur son unique panneau, s est
+> révélée riche : la fiche exercice rend l historique personnel, la meilleure série, l e1RM et le
+> prochain pas. Le nombre de panneaux oriente, il ne conclut pas — sonder reste obligatoire.
+
 **Athlète pèse autant que tout le reste réuni.** Ce n'est pas un défaut en soi — c'est là que le
 mandat portait — mais ça dit où sont les gisements : Focus, Agenda, Nutrition et Poids ont reçu
 une fraction de l'attention.

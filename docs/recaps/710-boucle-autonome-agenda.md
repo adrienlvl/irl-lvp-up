@@ -2336,3 +2336,44 @@ hauteur nulle — et surtout **le mauvais peintre** (`renderTargetAdvice`, pas
 **Mutations.** 4 posées, 4 détectées.
 
 674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 68 — Exercices n'était pas une friche, et ma métrique était trompeuse
+
+### Le verdict, contraire à l'attente
+
+Ma roadmap classait Exercices en friche sur un seul chiffre : « 1 panneau ». La richesse est
+**derrière la fiche**. Mesuré, avec le bon jeu d'essai :
+
+| Fonction | Ce qu'elle rend | Où |
+|---|---|---|
+| `exerciseHistoryStats` | 29 séances, 87 séries, meilleure série 101 kg × 5, e1RM 118 | fiche exercice |
+| `progressionSuggestion` | prochain pas : 101 kg × 6 | fiche exercice |
+| `loggedExerciseNames` | marque les exercices déjà faits | liste |
+| `bestE1rmByExercise` | **jamais rendue** — mais ferait DOUBLON avec la meilleure série | — |
+
+*Compter les panneaux mesure la mise en page, pas la profondeur.* Nuance ajoutée à la roadmap.
+
+### Ce qui a été fait
+
+La passe mobile 390 px ne parcourait que **5 pages sur 8** : `library` — la plus haute de l'app,
+21 779 px — et `settings` en étaient absentes. Elles y sont. Et les panneaux repliés sont
+dépliés avant mesure : une hauteur nulle les faisait ignorer, donc la passe **comptait des pages
+sans les regarder**.
+
+### Ce que je ne prétends pas
+
+J'ai voulu prouver que l'extension mord, en injectant un débordement dans `#exerciseCards` : il
+n'a pas été attrapé. Vérification faite, **mon injection n'était pas un test valide** — la passe
+cherche les éléments qui débordent d'*eux-mêmes* (`scrollWidth > clientWidth`), or `min-width`
+élargit l'élément sans créer ce cas. Ce n'est pas une preuve que la passe est édentée ; ce n'est
+pas non plus une preuve qu'elle mord sur ces deux pages.
+
+### Ce que cette itération a appris
+
+*Troisième jeu d'essai mal formé de la session.* J'ai écrit `sets: [{reps, weight}]` là où l'app
+lit `setLogs: [{load, reps}]` — d'où un `bestSet: null` et 0 série sur 29 séances, qui m'a fait
+croire un instant à un défaut. **Lire le consommateur avant d'inventer la forme.**
+
+674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
