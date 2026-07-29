@@ -3704,3 +3704,56 @@ tomber le check sur `non confirmees[agenda]`.
 
 *(Le repli du Plan de bataille reste la prochaine cible, mesures inchangées : l'action `op-week`
 à 1 772 px du haut, derrière 1 371 px de préambule.)*
+
+## Itération 98 — le Plan de bataille ouvre sur l'action
+
+La cible annoncée depuis deux itérations. Mesures d'avant, en 390 px : **3 664 px** de panneau
+(4,3 écrans), premier « ▶️ Démarrer cette séance » à **1 772 px** du haut — le troisième écran —
+derrière 1 371 px de préambule et cinq séances dépliées d'un bloc (1 009 px).
+
+Trois gestes, chacun mesuré après coup :
+
+| geste | effet |
+|---|---|
+| une seule séance dépliée (celle du jour) | 3 664 → 3 098 px |
+| l'explication dans un pli (899 px) + l'action remontée | → 2 136 px |
+| les réglages sous le résultat | bouton 1 772 → **1 127 px** |
+
+`seanceAMettreEnAvant` choisit : la séance d'aujourd'hui, sinon la **prochaine** en tournant sur la
+semaine. Le pli reprend l'idiome du donjon du Focus (91) et la réorganisation celui du DOM déplacé
+après rendu (82, 84, 91) — le gabarit d'`#objectiveResult` est un littéral d'un seul tenant, y
+découper cinq blocs aurait été bien plus risqué que déplacer trois nœuds.
+
+Détail qui compte : le sélecteur d'objectif ne descend **que lorsqu'un programme existe**, puisque
+la réorganisation ne tourne qu'après un rendu réussi. Tant qu'on n'a rien choisi, le chooser reste
+en tête — ce n'est pas un compromis, c'est le bon comportement.
+
+### Ce que cette itération a appris
+
+**Un contrat de garde-fou peut récompenser le défaut.** `planEnTete` (itération 82) exigeait que le
+plan soit le panneau **le plus haut** de l'onglet — un proxy de la proéminence qui, littéralement,
+payait le mur de 4,3 écrans. En ramenant le panneau à 2 136 px, la clause a sauté. Remplacée par une
+borne basse sur sa taille propre (≥ 600 px) ; la proéminence est gardée par ce qui compte : premier
+panneau, aucune carte transverse devant, action avant explications. *C'est la deuxième fois en trois
+itérations qu'un de mes checks défendait le problème plutôt que la solution (cf. 96, `pliAnalyseFocus`
+maintenu vert par un bug).*
+
+**Mon check mesurait la visibilité sur une page masquée.** `checkVisibility()` rendait `false` pour
+tout et les hauteurs valaient 0 : l'erreur de lieu de l'itération 92, refaite. Le placement correct
+est celui que `planEnTete` employait déjà à trois lignes de là — *lire les checks voisins qui
+touchent le même écran*.
+
+**Un test peut être vacant sans en avoir l'air, deuxième fois.** Mon cas « weekday hors bornes »
+plaçait une séance AUJOURD'HUI à côté du jour aberrant : celui-ci ne concourait donc jamais, et la
+mutation qui acceptait n'importe quel entier survivait. Corrigé avec un jour aberrant à écart
+cyclique ÉGAL au bon jour, où il gagnerait par ordre de liste s'il était accepté.
+
+**Mutations.** 8 posées (5 logique, 3 rendu), 8 détectées, chaque harnais précédé de son témoin.
+
+692 tests · SMOKE OK.
+
+### À instruire plus tard
+
+Le panneau qui dépasse maintenant le Plan de bataille est **`program-panel` (« Ta prochaine
+séance », 2 174 px)** — et il parle du MÊME sujet que la semaine du plan. Deux voix sur une seule
+question : c'est le chantier (B) « un seul avis par sujet », sur le plus gros panneau restant.
