@@ -6680,7 +6680,12 @@ test('compareVersions / whatsNewSince : écran Nouveautés après mise à jour',
   // le CHANGELOG intégré est cohérent : trié décroissant, [0].v est la version courante
   assert.ok(Array.isArray(L.CHANGELOG) && L.CHANGELOG.length >= 3);
   for (let i = 1; i < L.CHANGELOG.length; i++) assert.equal(L.compareVersions(L.CHANGELOG[i - 1].v, L.CHANGELOG[i].v), 1);
-  assert.equal(L.CHANGELOG[0].v, '2.13.0');
+  /* La tête du CHANGELOG doit être LA VERSION LIVRÉE. Épinglée en dur, cette assertion était
+     une corvée à chaque release et ne vérifiait rien d'autre que sa propre valeur ; branchée sur
+     package.json, elle attrape le vrai défaut — publier une version dont l'écran « Nouveautés »
+     ne parle pas. */
+  assert.equal(L.CHANGELOG[0].v, require('../package.json').version,
+    'la première entrée du CHANGELOG doit être la version de package.json');
 });
 
 test('compareApplications : meilleures cibles en tête, activité récente d’abord ailleurs', () => {
