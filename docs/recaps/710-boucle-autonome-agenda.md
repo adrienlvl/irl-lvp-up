@@ -3232,3 +3232,45 @@ toucher** — vérifier l'unicité avant, ou remplacer par position.
 figée sur « reculé » passerait pour un succès.
 
 685 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 89 — Focus : la cible hebdo confrontée à son historique
+
+Retour sur Focus après six itérations d'Athlète, avec la question la plus productive de la
+boucle : *qu'est-ce que l'app PRESCRIT sans jamais vérifier que c'est suivi ?*
+
+**Mesuré** sur huit semaines dont trois au-dessus de la cible : l'app fixe 120 min/semaine,
+rapporte la semaine **en cours** et la compare à la **précédente** — et ne dit jamais combien de
+fois cette cible est tenue. *Une cible qu'on ne confronte pas à son passé n'est qu'un chiffre
+affiché.* Exactement la faute de la cadence de pesée (itération 79).
+
+Une pastille par semaine — la régularité se **voit** avant de se lire — et trois verdicts :
+
+| Cas | Ce qui est dit |
+|---|---|
+| Irrégulier | « 3 semaines sur 8, soit 38 %. Pleines : 150 min, autres : 50 — **ce n'est pas la cible qui coince, c'est la régularité.** » |
+| Habitude (≥70 %) | « 7 sur 8. Une habitude installée, plus un effort — et 7 d'affilée. » |
+| Jamais atteinte | « Ton maximum est 75 min pour 120 visées. **À 75 min, tu la tiendrais.** » |
+
+Le dernier cas est le plus utile : proposer une cible **atteignable**, calculée sur son propre
+maximum, plutôt que répéter celle qu'il n'atteint pas.
+
+**Deux périodes refusées**, toutes deux apprises à la revue 80 : la semaine en cours (pas finie) et
+les semaines antérieures au premier bloc (rien à tenir).
+
+### Ce que cette itération a appris
+
+**Deux rechutes sur des pièges déjà documentés, dans le même tour :**
+- une **regex dans un gabarit** de sonde — `\/` y ferme la regex trop tôt et le script meurt sans
+  message utile. Les sondes n'utilisent plus de regex, seulement `indexOf` ;
+- des **backticks dans un commentaire** du harnais, qui tuent le fichier au chargement.
+
+*Connaître une règle ne suffit pas : ces deux-là sont invisibles à la relecture et ne se voient
+qu'à l'exécution. L'audit des backticks doit tourner à CHAQUE retouche du harnais, pas quand on y
+pense.*
+
+**Mutations.** 6 posées, 6 détectées, dont celle qui allume toutes les pastilles (`frise=false`) —
+la frise redevenait décorative.
+
+686 tests · SMOKE OK. Rien publié depuis v2.14.0.
