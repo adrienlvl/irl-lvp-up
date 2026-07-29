@@ -3185,6 +3185,42 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.tendanceFocus = (() => {
+        try {
+          if (typeof renderFocusRitual !== 'function') return false;
+          const sf = state.focusSessions;
+          const j = n => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+          const mk = (n, min) => ({ date: j(n), minutes: min, task: 'Révisions BTS', completed: true });
+          const lire = () => {
+            const e = document.getElementById('focusTrend');
+            if (!e || getComputedStyle(e).display === 'none' || e.getBoundingClientRect().height === 0) return '';
+            return String(e.textContent || '');
+          };
+          showPage('focus');
+
+          /* 1. PREMIERE SEMAINE : focusMinutesTrend rend prev:null mais dir:'flat'. Le bloc
+             doit rester MUET — sinon on annonce une comparaison jamais faite. */
+          state.focusSessions = [mk(1, 60), mk(2, 60)];
+          renderFocusRitual();
+          const premiere = lire();
+
+          // 2. Deux semaines de donnees : le sens ET les deux valeurs doivent s afficher.
+          state.focusSessions = [mk(1, 60), mk(2, 60), mk(3, 60), mk(9, 40), mk(10, 40)];
+          renderFocusRitual();
+          const hausse = lire();
+
+          state.focusSessions = sf;
+          try { renderFocusRitual(); } catch (_) {}
+          showPage('dashboard');
+
+          checks.__tendanceFocus = 'premiere[' + premiere.slice(0, 40) + '] hausse[' + hausse.slice(0, 75) + ']';
+          return premiere === ''
+            && hausse.indexOf('cette semaine') !== -1
+            && hausse.indexOf('+1 h 40') !== -1
+            && hausse.indexOf('1 h 20') !== -1;
+        } catch (e) { checks.__errTendanceFocus = String(e && e.message); return false; }
+      })();
+
       checks.journeeSaturee = (() => {
         try {
           const sa = state.agenda, sb = state.lastBackup;
@@ -4928,6 +4964,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.tendanceFocus) errors.push('Page Focus : la tendance hebdomadaire de concentration doit être AFFICHÉE (focusMinutesTrend était calculée depuis des mois sans un seul appel au rendu), avec l’écart ET la semaine de référence citée — mais rester MUETTE la première semaine, où la fonction rend prev:null tout en annonçant dir:flat');
     if (!checks.journeeSaturee) errors.push('Tableau de bord : une journée qui ne tient pas doit être signalée dans « À rattraper » avec le dépassement réel et l’heure de fin estimée — l’app calculait déjà 183 % de capacité sans le dire ailleurs que dans l’Agenda. MAIS elle doit se taire quand la journée n’est faite que de cours importés : rien n’est déplaçable, et une alerte quotidienne cesse d’être lue');
     if (!checks.coutDuReglage) errors.push('Plan de bataille : changer un réglage doit AFFICHER ce que ça coûte — le temps gagné ou perdu, et surtout la disparition d’une discipline entière (mesuré : passer de 3 à 5 courses garde 4 séances mais efface la musculation, invisible sur un écran qui n’affiche que le résultat). Et rien ne doit s’afficher au premier rendu ni à réglage inchangé, sinon la phrase devient du bruit');
     if (!checks.repartitionDite) errors.push('Plan de bataille : la phrase de répartition doit concorder avec les blocs de séance affichés juste à côté — nombre de séances, nombre de jours OCCUPÉS et VRAI maximum d’un jour. Mesurée avant correctif : « 6 séances sur 5 jours disponibles : jusqu’à 2 par jour » au-dessus d’une semaine qui contredisait les deux chiffres');

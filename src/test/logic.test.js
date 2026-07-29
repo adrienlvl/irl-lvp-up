@@ -14376,6 +14376,45 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('focusTendanceTexte : le sens de ta concentration, et le silence sans référence', () => {
+  /* `focusMinutesTrend` calculait l'écart semaine/semaine depuis des mois sans jamais être
+     appelée par le rendu (0 appel, mesuré). La page Focus disait OÙ va l'attention
+     (focusByTask) et si l'objectif hebdo est tenu (focusWeekGoal) — jamais dans quel SENS. */
+  const auj = '2026-07-30';
+  const j = n => { const d = new Date(auj + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const mk = (n, min) => ({ date: j(n), minutes: min, task: 'Révisions BTS', completed: true });
+  const phrase = sessions => L.focusTendanceTexte(L.focusMinutesTrend(sessions, auj, 7));
+
+  const hausse = phrase([mk(1, 60), mk(2, 60), mk(3, 60), mk(9, 40), mk(10, 40)]);
+  assert.equal(hausse.ton, 'up');
+  assert.match(hausse.texte, /3 h cette semaine/, hausse.texte);
+  assert.match(hausse.texte, /\+1 h 40/, 'l’écart en heures : ' + hausse.texte);
+  assert.match(hausse.texte, /\(1 h 20\)/, 'et la semaine de référence CITÉE : ' + hausse.texte);
+
+  const baisse = phrase([mk(1, 30), mk(9, 90), mk(10, 90)]);
+  assert.equal(baisse.ton, 'down');
+  assert.match(baisse.texte, /−2 h 30/, 'le signe moins, pas une valeur absolue : ' + baisse.texte);
+
+  const stable = phrase([mk(1, 60), mk(9, 60)]);
+  assert.equal(stable.ton, 'flat');
+  assert.match(stable.texte, /Autant de concentration/, stable.texte);
+
+  /* LE PIÈGE, ET LE SCÉNARIO QUI DISCRIMINE : la première semaine d'usage,
+     focusMinutesTrend rend `prev: null` AVEC `dir: 'flat'` et `delta: 0`. Rendre « stable »
+     là-dessus annoncerait une comparaison jamais faite — le zéro est une ABSENCE de
+     référence, pas une égalité. */
+  const premiere = L.focusMinutesTrend([mk(1, 60), mk(2, 60)], auj, 7);
+  assert.equal(premiere.prev, null, 'jeu d’essai : aucune semaine précédente');
+  assert.equal(premiere.dir, 'flat', 'et la fonction dit pourtant « flat » — c’est le piège');
+  assert.equal(premiere.delta, 0, 'avec un delta de 0');
+  assert.equal(phrase([mk(1, 60), mk(2, 60)]), null, 'on se TAIT : rien à comparer');
+
+  // Rien du tout, ou entrée abîmée : aucun texte inventé, aucune exception.
+  assert.equal(phrase([]), null, 'aucune session');
+  assert.equal(L.focusTendanceTexte(null), null);
+  assert.equal(L.focusTendanceTexte({}), null, 'objet sans prev : silence');
+});
+
 test('attentionDigest : une journée qui ne tient pas se dit, sauf si rien n’est déplaçable', () => {
   /* MESURÉ : sur une journée type d'Adrien, dayLoad rendait déjà
      { plannedMin: 330, capacityMin: 180, pct: 183, overflowMin: 150, endEstimate: '21:30' }
