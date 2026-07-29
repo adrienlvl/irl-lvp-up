@@ -3241,10 +3241,19 @@ app.whenReady().then(async () => {
           try { renderTargetAdvice(); } catch (_) {}
           showPage('dashboard');
 
-          checks.__apercu = 'identique[' + identique.slice(0, 30) + '] different[' + different.slice(0, 70) + ']';
+          /* 3. ENREGISTRE : l etat rejoint la saisie, la banniere DOIT se taire. Sans ce
+             troisieme etat, le check prouvait qu elle sait parler, jamais qu elle sait
+             s arreter — et c est le silence qui garantit qu on ne ment pas. */
+          state.goals = Object.assign({}, state.goals, { targetWeight: 72 });
+          renderTargetAdvice();
+          const apresEnregistrement = lire();
+
+          checks.__apercu = 'identique[' + identique.slice(0, 26) + '] different[' + different.slice(0, 46)
+            + '] apresEnr[' + apresEnregistrement.slice(0, 26) + ']';
           return identique === ''
             && different.indexOf('Aperçu pour 72 kg') !== -1
-            && different.indexOf('76 kg') !== -1;
+            && different.indexOf('76 kg') !== -1
+            && apresEnregistrement === '';
         } catch (e) { checks.__errApercu = String(e && e.message); return false; }
       })();
 
