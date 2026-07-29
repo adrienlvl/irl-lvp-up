@@ -3203,6 +3203,49 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errAdherence = String(e && e.message); return false; }
       })();
 
+      checks.recurrenceDeplaceeCochee = (() => {
+        const _srSauve = state.recurring;   // hors du try : le catch doit pouvoir restaurer
+        try {
+          if (typeof completeRecurringOn !== 'function' || typeof setRecurringOverride !== 'function') return false;
+          /* Une occurrence DEPLACEE se valide sur sa date d ORIGINE : c est la que la regle la
+             place et la que la lecture va la chercher. Correctif documente dans app.js, garde
+             par AUCUN check jusqu ici — et impossible a couvrir cote node, la fonction vivant
+             dans app.js. Sans ce filet, consolider sur setRecurringDone (qui prend la date
+             telle quelle) reintroduirait le bug en silence. */
+          const lundi = (() => {
+            const d = new Date(localDate() + 'T12:00:00');
+            d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
+            return d.toISOString().slice(0, 10);
+          })();
+          const mardi = (() => {
+            const d = new Date(lundi + 'T12:00:00'); d.setDate(d.getDate() + 1);
+            return d.toISOString().slice(0, 10);
+          })();
+
+          state.recurring = [normalizeRecurring({ id: 91001, title: 'Cours de compta',
+            time: '08:00', durationMin: 120, kind: 'study',
+            rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-01-01', until: '' } })];
+          // Le champ de deplacement s appelle moveTo, pas date : verifie a la mesure.
+          const dep = setRecurringOverride(state.recurring, 91001, lundi, { moveTo: mardi });
+          state.recurring = dep.recurring;
+          const occ = recurringOccurrence(state.recurring[0], mardi);
+          const source = occ ? occ.sourceDate : '(aucune occurrence le mardi)';
+
+          completeRecurringOn(91001, mardi);
+          const log = (state.recurring[0] && state.recurring[0].doneLog) || [];
+
+          state.recurring = _srSauve;
+          checks.__recDeplacee = 'deplace=' + dep.changed + ' source[' + source + '] log[' + log.join(',') + ']';
+          /* La coche doit atterrir sur le LUNDI (origine), jamais sur le mardi : sinon elle ne
+             tient pas et le bloc ressort « a faire » au rendu suivant. */
+          return dep.changed === true && source === lundi
+            && log.indexOf(lundi) !== -1 && log.indexOf(mardi) === -1;
+        } catch (e) {
+          try { state.recurring = _srSauve; } catch (_) {}
+          checks.__errRecDeplacee = String(e && e.message); return false;
+        }
+      })();
+
       checks.apercuNomme = (() => {
         try {
           if (typeof renderTargetAdvice !== 'function') return false;
@@ -5089,6 +5132,7 @@ app.whenReady().then(async () => {
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
+    if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
     if (!checks.apercuNomme) errors.push('Coach Poids : quand la cible TAPÉE diffère de la cible ENREGISTRÉE, l’écran porte deux cibles à la fois — l’en-tête suit la saisie, la durée et la jauge suivent l’enregistrée. Une bannière doit nommer l’aperçu et rappeler les deux chiffres, et rester muette quand les deux coïncident');
     if (!checks.parkingRetrouvable) errors.push('Parking de concentration : le statut promet « tu peux y revenir après ton bloc » — il doit donc compter TOUTES les pensées ouvertes, pas les quatre affichées, et les autres doivent rester atteignables dans le tiroir. Mesuré avant correctif : 8 stockées, 4 visibles, statut annonçant « 4 pensées déposées »');
     if (!checks.tendanceFocus) errors.push('Page Focus : la tendance hebdomadaire de concentration doit être AFFICHÉE (focusMinutesTrend était calculée depuis des mois sans un seul appel au rendu), avec l’écart ET la semaine de référence citée — mais rester MUETTE la première semaine, où la fonction rend prev:null tout en annonçant dir:flat');
