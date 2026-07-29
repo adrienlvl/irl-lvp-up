@@ -3246,6 +3246,48 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.memeNombreDeuxEcrans = (() => {
+        // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
+        const _agS = state.agenda, _wkS = state.workouts, _recS = state.recurring, _plS = state.plans;
+        const _rendre = () => { state.agenda = _agS; state.workouts = _wkS; state.recurring = _recS;
+          state.plans = _plS; try { renderRoadmapFeatures(); renderAttention(); } catch (_) {} };
+        try {
+          if (typeof renderAttention !== "function" || typeof renderRoadmapFeatures !== "function") { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const jour = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          state.recurring = []; state.plans = []; state.workouts = [];
+          /* SEPT seances manquees : il FAUT depasser le plafond d affichage (5), sinon la
+             troncature ne change rien et le check serait vacant — c est exactement pour ca
+             que le defaut avait survecu. */
+          state.agenda = [1, 2, 4, 6, 8, 10, 12].map(function (n, i) {
+            return { id: 97700 + i, date: jour(n), time: "18:00", durationMin: 60,
+              title: "Seance " + i, kind: "sport", completed: false, priority: "normal", source: "manual" };
+          });
+          renderRoadmapFeatures();
+          renderAttention();
+
+          // Le nombre annonce par CHAQUE ecran, lu dans le rendu — pas dans la logique.
+          const pan = document.querySelector("#missedSessions");
+          const dig = document.querySelector("#attentionDigest");
+          const txtPan = pan ? String(pan.textContent || "") : "";
+          const txtDig = dig ? String(dig.textContent || "") : "";
+          const nPan = (txtPan.match(/(\\d+) s\u00e9ance/) || [])[1] || "?";
+          const nDig = (txtDig.match(/(\\d+) s\u00e9ance/) || [])[1] || "?";
+          const visible = !!pan && getComputedStyle(pan).display !== "none";
+
+          checks.__deuxEcrans = "reelles=7 panneau=" + nPan + " digest=" + nDig
+            + " visible=" + visible + " dig[" + txtDig.slice(0, 70) + "]";
+          _rendre();
+          // Le meme fait, le meme nombre, sur les deux ecrans — et le VRAI.
+          return visible && nPan === "7" && nDig === "7";
+        } catch (e) {
+          _rendre();
+          checks.__errDeuxEcrans = String(e && e.message); return false;
+        }
+      })();
+
       checks.rattrapageArbitre = (() => {
         // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
         const _agS = state.agenda, _wkS = state.workouts, _recS = state.recurring, _plS = state.plans;
@@ -5326,6 +5368,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');
     if (!checks.creneauFocus) errors.push('Focus : l’app horodate chaque bloc de concentration (id = Date.now()) et ne l’a jamais lu. La frise « Quand ta concentration se pose » doit rester ÉTEINTE sous le seuil d’échantillon, puis montrer 24 colonnes dont la plage mise en avant est CELLE que la mesure désigne, avec une phrase qui cite les mêmes chiffres — et tenir dans 390 px sans défilement');
     if (!checks.blocAnnulable) errors.push('Agenda : une coche doit être un INTERRUPTEUR, comme partout ailleurs dans l’app (quêtes, habitudes, tâches). Un bloc terminé doit offrir « ↩︎ Annuler », rendre EXACTEMENT l’XP donnée (compteur de catégorie compris), annoncer le même chiffre dans les deux libellés — et ne plus proposer « → demain », qui revenait à repousser quelque chose de déjà fait');

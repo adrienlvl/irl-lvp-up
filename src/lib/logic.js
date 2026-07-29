@@ -8374,6 +8374,16 @@ function showsEnduranceBase(opts) {
 // de chaque domaine (déclarations hoistées → appelables ici). Renvoie [{key, emoji, text, page,
 // sev}] trié par gravité ('high' avant 'med'), tronqué à opts.cap (défaut 4). Vide si rien n'urge.
 // Pur + testé.
+/* COMPTER N'EST PAS AFFICHER.
+   `missedSessions` et `overdueStudy` tronquent leur liste à 5 par défaut : c'est un plafond
+   d'AFFICHAGE, pour ne pas dérouler quinze lignes. « À rattraper » n'affiche pourtant aucune
+   liste — il ne veut qu'un NOMBRE — et lisait `.length` sur la liste tronquée.
+   Mesuré à l'itération 77, sur 7 séances réellement manquées : le panneau Athlète annonçait
+   « 7 séances prévues non faites », et « À rattraper » « 5 séances non faites récemment ».
+   Deux nombres pour un même fait, et le plus visible des deux était FAUX.
+   Ici on demande explicitement tout : un plafond ne doit jamais fuir dans un comptage. */
+const SANS_PLAFOND = { cap: Number.MAX_SAFE_INTEGER };
+
 function attentionDigest(state, todayKey, opts) {
   const s = state && typeof state === 'object' ? state : {};
   const o = opts || {};
@@ -8406,9 +8416,9 @@ function attentionDigest(state, todayKey, opts) {
   const exams = Array.isArray(s.examGoals) && s.examGoals.length ? s.examGoals : s.examGoal;
   const er = examReminderDue(exams, todayKey);
   if (er) items.push({ key: 'exam', emoji: '📚', text: er.replace(/^📚\s*/, ''), page: 'calendar', sev: 'high' });
-  const od = overdueStudy(s.agenda, todayKey);
+  const od = overdueStudy(s.agenda, todayKey, SANS_PLAFOND);
   if (od.length) items.push({ key: 'study', emoji: '📕', text: `${od.length} révision${od.length > 1 ? 's' : ''} en retard`, page: 'calendar', sev: 'med' });
-  const ms = missedSessions(s.agenda, s.workouts, todayKey);
+  const ms = missedSessions(s.agenda, s.workouts, todayKey, SANS_PLAFOND);
   if (ms.length) items.push({ key: 'sport', emoji: '🏋️', text: `${ms.length} séance${ms.length > 1 ? 's' : ''} non faite${ms.length > 1 ? 's' : ''} récemment`, page: 'athlete', sev: 'med' });
   const hr = habitsAtRisk(s.habits, todayKey);
   if (hr.length) items.push({ key: 'habits', emoji: '🔥', text: `${hr.length} habitude${hr.length > 1 ? 's' : ''} à relancer avant de perdre la série`, page: 'dashboard', sev: 'med' });

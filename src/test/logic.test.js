@@ -13362,6 +13362,47 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTAGE', () => {
+  /* Mesuré à l'itération 77 sur 7 séances réellement manquées : le panneau Athlète annonçait
+     « 7 séances prévues non faites », « À rattraper » « 5 séances non faites récemment ».
+     `missedSessions` et `overdueStudy` tronquent leur liste à 5 par défaut — un plafond
+     d'affichage — et le digest lisait `.length` sur la liste tronquée. Deux nombres pour un
+     même fait, et le plus visible des deux était faux. */
+  const today = '2026-07-29';
+  const jour = n => { const d = new Date(2026, 6, 29 - n); const p = x => String(x).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+
+  /* LE SCÉNARIO QUI DISCRIMINE : il FAUT dépasser 5 des deux côtés. À 5 ou moins, la troncature
+     ne change rien et le test serait vacant — c'est précisément pour ça que le défaut a vécu. */
+  const agenda = [];
+  [1, 2, 4, 6, 8, 10, 12].forEach((n, i) => agenda.push({ id: 100 + i, date: jour(n), time: '18:00',
+    durationMin: 60, title: 'Séance ' + i, kind: 'sport', completed: false }));
+  [1, 3, 5, 7, 9, 11].forEach((n, i) => agenda.push({ id: 200 + i, date: jour(n), time: '09:00',
+    durationMin: 60, title: 'Révision ' + i, kind: 'study', completed: false }));
+  const state = { agenda, workouts: [], habits: [], recovery: [], quests: [], plans: [], recurring: [],
+    todos: [], birthdays: [], examGoals: [], applications: [] };
+
+  // Témoins : les listes SONT bien tronquées (le plafond d'affichage existe et fonctionne)…
+  assert.equal(L.missedSessions(state.agenda, state.workouts, today).length, 5);
+  assert.equal(L.overdueStudy(state.agenda, today).length, 5);
+  // …et la réalité est ailleurs.
+  assert.equal(L.missedSessions(state.agenda, state.workouts, today, { cap: 99 }).length, 7);
+  assert.equal(L.overdueStudy(state.agenda, today, { cap: 99 }).length, 6);
+
+  // On demande assez d'items pour voir les deux : le digest a son PROPRE plafond (4), légitime,
+  // celui-là — il limite ce qu'on affiche, pas ce qu'on compte.
+  const d = L.attentionDigest(state, today, { cap: 12 });
+  const sport = d.filter(i => i.key === 'sport')[0];
+  const study = d.filter(i => i.key === 'study')[0];
+  assert.ok(sport, 'témoin : l’item sport est bien émis');
+  assert.ok(study, 'témoin : l’item révisions est bien émis');
+  assert.match(sport.text, /^7 séances/, 'le digest doit dire 7, pas le plafond d’affichage');
+  assert.match(study.text, /^6 révisions/, 'idem pour les révisions en retard');
+
+  /* Et le digest garde son propre plafond : il tronque la LISTE des sujets, ce qui est son rôle. */
+  assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
+});
+
 test('rattrapageSeances : arbitre au lieu d’énumérer', () => {
   /* Le panneau disait « reprends le fil quand tu veux » sans offrir de fil. La fonction doit
      TRANCHER : la charge d'abord, la fraîcheur ensuite, et un créneau seulement s'il existe. */
