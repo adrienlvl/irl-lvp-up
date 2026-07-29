@@ -3505,3 +3505,76 @@ possessif dans les **deux** sens : « toujours son » *et* « toujours ta procha
 n'interdit qu'un sens laisse passer l'autre) + 2 sur le check de rendu. 8/8 détectées.
 
 688 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+## Itération 95 — la séance guidée : ce qu'on fait maintenant domine l'écran
+
+**Recadrage d'Adrien en cours d'itération.** J'avais commencé le chantier n°5 (l'arbitrage sous
+budget de temps, côté Agenda) en suivant l'ordre du prompt de boucle. Adrien a arrêté : « reprends
+uniquement sur l'ONGLET ATHLETE, poids si tu veux, mais c'est tout », puis « pousse vraiment
+l'onglet Athlète à fond et aussi que les séances guidées soit optimisé à fond ». Rien n'était encore
+écrit dans le code pour l'Agenda — j'en étais à la sonde — donc rien à annuler. **L'ordre inscrit
+dans le prompt de boucle est périmé** : Athlète et Poids seulement.
+
+### Sondé avant de juger — et la mesure était accablante
+
+Sonde Electron 390×844, styles calculés (la capture d'écran ne marche pas sur cette machine) :
+
+```
+titre de séance « Haut du corps »   24 px   y=48
+« 1 / 4 » (où tu en es)             12 px   y=96
+« Squat » — l'exercice EN COURS     18 px   y=463   <- le plus petit texte de l'écran
+chrono de repos                     31 px   y=1366
+labels « kg » / « reps »             9 px   y=745
+boutons − / +                    42×44 px           (norme maison : 44)
+```
+
+**L'information la plus utile était le texte le plus petit.** Et ce qui dit *quoi taper* faisait
+9,3 px, sur un écran qu'on regarde essoufflé entre deux séries.
+
+Deux chiffres mentaient en plus, du même défaut que la révision de l'itération 78 :
+
+- `sessionMinutes(TOUS les exercices)` → « ≈ 28 min » **identique de la première à la dernière
+  série**, alors que la forme de la phrase annonce un temps restant.
+- barre = `(index+1)/total` → **25 % sur quatre exercices avant la première série**.
+
+### Ce qui a été fait
+
+`avancementSeanceGuidee` et `etapesDeLaSeance` (pures, injection des minutes parce que
+`exercisePrescription` a besoin du catalogue et vit dans app.js). Le temps restant se déduit au
+prorata des séries qui restent (mesuré au rendu : **19 min → 13 min** après un exercice bouclé), la
+barre part de 0, et la **carte de la séance** liste les étapes avec leur état réel, leurs minutes,
+et un clic pour y sauter. Hiérarchie refondue : nouveau cran `--fs-3xl` pour le nom de l'exercice,
+titre de séance ramené au rang de contexte, labels à 12,5 px, cibles tactiles à 44 px.
+
+### Ce que cette itération a appris
+
+**Un contrat de garde-fou peut être faux.** Le check `typeHierarchy` exigeait `t > n` — « un titre
+de modale doit dominer ce qu'il coiffe ». C'est précisément ce contrat qui protégeait le défaut
+qu'Adrien signalait. La règle générale ne tient pas sur un écran d'**action** : le titre de séance y
+est du contexte, déjà nommé par l'eyebrow juste au-dessus. Inversé **sciemment**, avec la raison
+écrite sur place, et la contrainte garde **deux bornes** (le nom domine ET le titre reste lisible à
+14 px) — un check relâché d'un côté n'est plus un check.
+
+**Un état ne se déduit pas d'une position.** `statut: k < i ? 'fait' : …` était le raccourci
+évident pour la carte de la séance — et il est faux : on peut sauter un exercice, y revenir, ou
+passer à la suite sans avoir tout validé. L'état vient des séries. C'est le cousin exact de la leçon
+de l'itération 93 (« un fait se constate, il ne se déduit pas »).
+
+**Valider une série REPEINT tout l'écran guidé.** Mon propre check a d'abord échoué là-dessus : une
+`NodeList` capturée avant le premier clic ne désigne plus que des nœuds détachés, donc les clics
+suivants ne faisaient rien — la barre montait à 10 %, soit **une** série sur dix, et le saut d'étape
+ne partait pas. Diagnostic lu dans `__hierGuidee`, pas deviné. *Après un effet, on re-interroge le
+DOM ; on ne réutilise pas une référence.*
+
+**Mutations.** 9 posées (5 sur la logique, 4 sur le rendu : token de taille, labels, cibles
+tactiles, carte jamais peinte), 9 détectées — chaque famille précédée d'un **témoin non muté**,
+comme la revue 94 l'a imposé.
+
+690 tests · SMOKE OK. **Publié en v2.15.0** à la demande d'Adrien (14 itérations depuis v2.14.0).
+
+### Ce qui attend, mesuré et pas encore fait
+
+La sonde a aussi trouvé, sur l'onglet Athlète lui-même : **une trentaine de panneaux au MÊME poids
+visuel** (titre 18 px / 700, rayon 20, eyebrow) — la page se lit comme une liste de blocs
+équivalents, sans rien qui dise ce qui compte. Et le **Plan de bataille fait 3 664 px de haut pour
+5 189 caractères**, soit 4,3 écrans de scroll pour un seul panneau. C'est la prochaine cible.
