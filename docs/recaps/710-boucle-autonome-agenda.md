@@ -2809,3 +2809,50 @@ Deux détails qui font la différence entre un test et un vrai test :
 inchangée alors que la phrase, elle, était bien au passé).
 
 680 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 79 — La consigne de pesée, confrontée à la réalité
+
+### La sonde a démenti ma piste, et c'est le meilleur résultat de l'itération
+
+Je venais vérifier une fraîcheur douteuse sur la page Poids, dans la foulée de la 78. Mesuré :
+l'écran dit **déjà** « Dernière pesée : 81,3 kg · il y a 45 j. ⏰ Pense à te repeser. » Rien à
+corriger. *Sonder avant de juger a économisé une itération entière consacrée à un défaut qui
+n'existait pas.*
+
+### Ce qu'elle a montré à la place
+
+L'app écrit « Pèse-toi 2 à 3×/semaine, regarde la **moyenne** de la semaine » — et ne regarde
+jamais si c'est fait. Elle a pourtant toutes les dates. Pire : elle affiche « −0,42 kg/sem. »
+avec la même assurance qu'on se pèse trois fois par semaine ou deux fois par mois.
+
+`cadenceDePesee` met la **consigne et la mesure dans le même bloc** :
+
+> ⚖️ Pèse-toi 2 à 3×/semaine, regarde la MOYENNE de la semaine…
+> ⚖️ **0,5 pesée/semaine sur 4 semaines**, là où ton plan en demande 2 à 3×/semaine — dont
+> **2 semaines sans aucune pesée**. À ce rythme, « −0,42 kg/sem. » relie deux points éloignés
+> plutôt qu'elle ne moyenne des semaines.
+
+Le taux cité est **celui que l'écran voisin calcule**, pas un synonyme.
+
+### Ce que cette itération a appris
+
+**Un conseil qui ne se relit jamais n'est pas un conseil.** L'app en prescrivait un depuis
+toujours, avec les données pour le vérifier sous la main. La question à poser aux autres écrans :
+*qu'est-ce que je recommande sans jamais vérifier que c'est suivi ?*
+
+**Deux copies d'un même nombre finissent par diverger.** « 2 à 3 » ne vivait que dans la prose ;
+il vit maintenant dans `CADENCE_PESEE`, et un test exige que la phrase prescrite contienne ces
+bornes-là. La mutation qui les fait diverger tombe immédiatement.
+
+Et une justification tenue au minimum : le lien cadence → fiabilité est de l'**arithmétique**
+(sur une semaine vide il n'y a rien à moyenner), pas de la physiologie. Aucune règle invoquée
+qu'on ne pourrait pas défendre.
+
+**Mutations.** 7 posées, 7 détectées du premier coup — dont celle qui sort la mesure du bloc de
+la consigne (`memeBloc=false` : les deux voix se séparent) et celle qui ignore la cible de
+maintien, invisible sans un scénario où **le même rythme change de verdict** selon le sens de
+l'objectif.
+
+681 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
