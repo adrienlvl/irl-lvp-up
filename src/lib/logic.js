@@ -12810,7 +12810,15 @@ function focusWeekGoal(focusSessions, todayKey, targetMin) {
 
    Le silence est un résultat : sous `minBlocs` blocs ou `minJours` jours distincts, on ne dit
    RIEN. Un « créneau » tiré de trois blocs serait une affirmation, pas une mesure.
-   opts : { jours = 60, minBlocs = 8, minJours = 4, fenetre = 3 }. Pur + testé. */
+
+   LE TEMPS DU VERBE EST UNE AFFIRMATION (correctif de l'itération 78, défaut trouvé par ma
+   propre revue). La fenêtre fait 60 jours et n'exigeait aucune activité RÉCENTE : vérifié, avec
+   zéro bloc depuis 35 jours l'app annonçait toujours « Ton créneau, c'est 9 h–12 h — mets là ce
+   qui demande le plus de tête. » Un constat au présent sur un comportement abandonné.
+   On ne se tait pas pour autant : le créneau reste une information utile le jour où on s'y
+   remet. On change de TEMPS et on dit depuis quand — exactement ce que l'app fait déjà pour la
+   forme du jour (« dernier check-in il y a N jours » plutôt qu'un score périmé).
+   opts : { jours = 60, minBlocs = 8, minJours = 4, fenetre = 3, fraisJours = 14 }. Pur + testé. */
 function creneauDeConcentration(sessions, todayKey, opts) {
   const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
   if (!isKey(todayKey)) return null;
@@ -12819,6 +12827,7 @@ function creneauDeConcentration(sessions, todayKey, opts) {
   const minBlocs = Math.max(1, Math.round(Number(o.minBlocs) || 8));
   const minJours = Math.max(1, Math.round(Number(o.minJours) || 4));
   const larg = Math.min(8, Math.max(1, Math.round(Number(o.fenetre) || 3)));
+  const fraisJours = Math.max(1, Math.round(Number(o.fraisJours) || 14));
 
   const retenus = (Array.isArray(sessions) ? sessions : []).filter(s => {
     if (!s || !isKey(s.date) || s.date > todayKey) return false;
@@ -12875,16 +12884,36 @@ function creneauDeConcentration(sessions, todayKey, opts) {
   const hh = n => n + ' h';
   const fenetreTxt = hh(best.debut) + '–' + hh(best.fin);
 
+  /* DEPUIS QUAND CE CONSTAT TIENT-IL ENCORE ? Le bloc le plus récent parmi ceux retenus donne
+     l'âge de la mesure. Au-delà de `fraisJours`, le comportement décrit appartient au passé :
+     le dire au présent serait une affirmation fausse sur aujourd'hui. */
+  const dernier = retenus.reduce((max, s) => (s.date > max ? s.date : max), '');
+  const joursDepuis = daysUntil(dernier, todayKey);
+  const frais = joursDepuis != null && joursDepuis <= fraisJours;
+
   /* La phrase vit ici, avec les nombres qu'elle cite : c'est ce qui empêche le libellé et la
      mesure de diverger. Aucune promesse sur ce que ça « prouve » — on décrit, l'arbitrage
      reste à Adrien. */
-  const phrase = domine
-    ? '🕘 Ton créneau, c’est ' + fenetreTxt + ' : ' + best.blocs + ' de tes ' + retenus.length
+  let phrase;
+  if (frais && domine) {
+    phrase = '🕘 Ton créneau, c’est ' + fenetreTxt + ' : ' + best.blocs + ' de tes ' + retenus.length
       + ' blocs et ' + part + ' % de tes minutes de concentration, sur ' + best.jours + ' des '
-      + joursDistincts.size + ' jours où tu en as lancé. Mets là ce qui demande le plus de tête.'
-    : '🕘 Aucun créneau ne se détache : ' + fenetreTxt + ' est ta meilleure plage et n’en porte que '
+      + joursDistincts.size + ' jours où tu en as lancé. Mets là ce qui demande le plus de tête.';
+  } else if (frais) {
+    phrase = '🕘 Aucun créneau ne se détache : ' + fenetreTxt + ' est ta meilleure plage et n’en porte que '
       + part + ' % (' + best.blocs + ' blocs sur ' + retenus.length + '). Tes blocs sont éparpillés '
       + 'sur la journée — en fixer un te donnerait un point de comparaison.';
+  } else if (domine) {
+    /* On ne se tait pas : le créneau reste l'information la plus utile le jour où on s'y remet.
+       On le met simplement au passé, et on dit depuis quand. */
+    phrase = '🕘 Plus aucun bloc depuis ' + joursDepuis + ' jours. Quand tu en lançais, c’était '
+      + fenetreTxt + ' : ' + best.blocs + ' de tes ' + retenus.length + ' blocs et ' + part
+      + ' % de tes minutes. Si tu t’y remets, c’est là que ça avait le mieux tenu.';
+  } else {
+    phrase = '🕘 Plus aucun bloc depuis ' + joursDepuis + ' jours — et quand tu en lançais, aucun '
+      + 'créneau ne se détachait (ta meilleure plage, ' + fenetreTxt + ', n’en portait que ' + part
+      + ' %). En fixer un te donnerait un point de comparaison.';
+  }
 
   return {
     blocs: retenus.length,
@@ -12894,6 +12923,9 @@ function creneauDeConcentration(sessions, todayKey, opts) {
     fenetre: { debut: best.debut, fin: best.fin, blocs: best.blocs, minutes: best.minutes, part, jours: best.jours, libelle: fenetreTxt },
     ailleurs: { blocs: retenus.length - best.blocs, minutes: minutesTotal - best.minutes },
     domine,
+    dernier,
+    joursDepuis,
+    frais,
     phrase
   };
 }

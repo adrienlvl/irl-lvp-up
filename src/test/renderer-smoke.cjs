@@ -3246,6 +3246,61 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.creneauPerime = (() => {
+        const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
+        try {
+          if (typeof renderFocusRitual !== "function" || typeof creneauDeConcentration !== "function") { state.focusSessions = _fsS; return false; }
+          const el = document.querySelector("#focusCreneau");
+          if (!el) { state.focusSessions = _fsS; return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const base = new Date(localDate() + "T12:00:00");
+          const poser = function (jAvant, h) {
+            const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - jAvant, h, 20, 0);
+            return { id: d.getTime(), date: d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()),
+              minutes: 25, task: "Compta" };
+          };
+          const paquet = function (de, a) { const out = [];
+            for (let j = de; j <= a; j++) { out.push(poser(j, 9)); out.push(poser(j, 10)); } return out; };
+
+          /* 1) MESURE PERIMEE : meme profil horaire, seulement plus vieux. Tout ce qui doit
+             changer, c est le TEMPS DU VERBE et l aveu de l age. */
+          state.focusSessions = paquet(35, 45);
+          renderFocusRitual();
+           const vieuxVu = getComputedStyle(el).display !== "none";
+          const tVieux = String(el.textContent || "");
+          const classeAncien = el.classList.contains("fc-ancien");
+          const auPasse = tVieux.indexOf("Plus aucun bloc depuis 35 jours") !== -1
+            && tVieux.indexOf("se posait") !== -1
+            && tVieux.indexOf("Ton cr\u00e9neau, c\u2019est") === -1
+            && tVieux.indexOf("Mets l\u00e0 ce qui demande") === -1;
+          const barreVieille = el.querySelector(".fc-bar.fc-in");
+          const teinteVieille = barreVieille ? getComputedStyle(barreVieille).backgroundColor : "";
+
+          // 2) MESURE FRAICHE : le present revient, et le conseil d action avec.
+          state.focusSessions = paquet(1, 7);
+          renderFocusRitual();
+          const tFrais = String(el.textContent || "");
+          const auPresent = tFrais.indexOf("Ton cr\u00e9neau, c\u2019est") !== -1
+            && tFrais.indexOf("se pose ") !== -1
+            && tFrais.indexOf("Plus aucun bloc depuis") === -1;
+          const pasAncien = !el.classList.contains("fc-ancien");
+          const barreFraiche = el.querySelector(".fc-bar.fc-in");
+          const teinteFraiche = barreFraiche ? getComputedStyle(barreFraiche).backgroundColor : "";
+          // La couleur doit VRAIMENT changer : sinon la regle CSS ne sert a rien.
+          const teinteDifferente = !!teinteVieille && !!teinteFraiche && teinteVieille !== teinteFraiche;
+
+          checks.__perime = "vieux: vu=" + vieuxVu + " classe=" + classeAncien + " passe=" + auPasse
+            + " teinte[" + teinteVieille + "] | frais: present=" + auPresent + " pasAncien=" + pasAncien
+            + " teinte[" + teinteFraiche + "] | txtVieux[" + tVieux.slice(60, 175) + "]";
+          state.focusSessions = _fsS;
+          try { renderFocusRitual(); } catch (_) {}
+          return vieuxVu && classeAncien && auPasse && auPresent && pasAncien && teinteDifferente;
+        } catch (e) {
+          state.focusSessions = _fsS;
+          checks.__errPerime = String(e && e.message); return false;
+        }
+      })();
+
       checks.memeNombreDeuxEcrans = (() => {
         // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
         const _agS = state.agenda, _wkS = state.workouts, _recS = state.recurring, _plS = state.plans;
@@ -5368,6 +5423,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');
     if (!checks.creneauFocus) errors.push('Focus : l’app horodate chaque bloc de concentration (id = Date.now()) et ne l’a jamais lu. La frise « Quand ta concentration se pose » doit rester ÉTEINTE sous le seuil d’échantillon, puis montrer 24 colonnes dont la plage mise en avant est CELLE que la mesure désigne, avec une phrase qui cite les mêmes chiffres — et tenir dans 390 px sans défilement');

@@ -755,7 +755,10 @@ function renderFocusRitual() {
     const _barres=_cr.heures.map(x=>'<i class="fc-bar'+(_dedans(x.h)?' fc-in':'')+(x.blocs?'':' fc-vide')
       +'" style="--fc-h:'+Math.round((x.minutes/_max)*100)+'%" title="'+x.h+' h : '+x.blocs+' bloc'+(x.blocs>1?'s':'')
       +' · '+_fmt(x.minutes)+'"></i>').join('');
-    fcEl.innerHTML='<span class="fc-label">🕘 Quand ta concentration se pose <b>('+_cr.blocs+' blocs sur '+_cr.jours+' jours)</b></span>'
+    // Le TEMPS DU VERBE suit la fraîcheur de la mesure : décrire au présent un créneau
+    // abandonné depuis un mois serait une affirmation fausse sur aujourd'hui (revue 77).
+    fcEl.className='focus-creneau'+(_cr.frais?'':' fc-ancien');
+    fcEl.innerHTML='<span class="fc-label">🕘 Quand ta concentration se '+(_cr.frais?'pose':'posait')+' <b>('+_cr.blocs+' blocs sur '+_cr.jours+' jours)</b></span>'
       +'<div class="fc-strip" role="img" aria-label="Répartition de tes blocs de concentration par heure de la journée. Meilleure plage : '
       +escapeHtml(_cr.fenetre.libelle)+', '+_cr.fenetre.part+' pour cent de tes minutes.">'+_barres+'</div>'
       +'<div class="fc-axis"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>23 h</span></div>'

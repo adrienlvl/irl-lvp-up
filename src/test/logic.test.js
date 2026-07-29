@@ -13362,6 +13362,59 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('creneauDeConcentration : le temps du verbe suit la fraîcheur de la mesure', () => {
+  /* Défaut trouvé par la revue de l'itération 77 : la fenêtre fait 60 jours et n'exigeait
+     aucune activité RÉCENTE. Avec zéro bloc depuis 35 jours, l'app annonçait toujours
+     « Ton créneau, c'est 9 h–12 h — mets là ce qui demande le plus de tête. » Un constat au
+     PRÉSENT sur un comportement abandonné. On ne se tait pas : on change de temps. */
+  const today = '2026-07-29';
+  const p = x => String(x).padStart(2, '0');
+  const poser = (jAvant, h) => {
+    const d = new Date(2026, 6, 29 - jAvant, h, 20, 0);
+    return { id: d.getTime(), date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()),
+      minutes: 25, task: 'Compta' };
+  };
+  const paquet = (de, a) => { const out = []; for (let j = de; j <= a; j++) out.push(poser(j, 9), poser(j, 10)); return out; };
+
+  // FRAIS : des blocs jusqu'à avant-hier → présent, et le conseil d'action.
+  const frais = L.creneauDeConcentration(paquet(2, 8), today);
+  assert.ok(frais);
+  assert.equal(frais.frais, true);
+  assert.equal(frais.joursDepuis, 2, 'l’âge se lit sur le bloc le PLUS RÉCENT, pas le plus vieux');
+  assert.equal(frais.dernier, '2026-07-27');
+  assert.match(frais.phrase, /Ton créneau, c’est 9 h–12 h/);
+  assert.match(frais.phrase, /Mets là ce qui demande le plus de tête/);
+
+  /* LE CAS QUI DISCRIMINE : mêmes blocs, mêmes heures, même profil — seulement plus vieux.
+     Tout ce qui change doit être le TEMPS et l'aveu de l'âge. */
+  const vieux = L.creneauDeConcentration(paquet(35, 45), today);
+  assert.ok(vieux, 'on ne se tait pas : l’info reste utile le jour où on s’y remet');
+  assert.equal(vieux.frais, false);
+  assert.equal(vieux.joursDepuis, 35);
+  assert.equal(vieux.fenetre.libelle, '9 h–12 h', 'la mesure elle-même est inchangée');
+  assert.equal(vieux.domine, true);
+  assert.match(vieux.phrase, /Plus aucun bloc depuis 35 jours/);
+  assert.match(vieux.phrase, /Quand tu en lançais, c’était 9 h–12 h/);
+  assert.ok(!/Ton créneau, c’est/.test(vieux.phrase), 'plus aucune affirmation au présent');
+  assert.ok(!/Mets là ce qui demande/.test(vieux.phrase), 'ni conseil d’action sur un créneau abandonné');
+
+  // La FRONTIÈRE est nette : 14 jours reste frais, 15 bascule. Un seuil qu'on ne teste pas
+  // à sa limite n'est pas testé.
+  assert.equal(L.creneauDeConcentration(paquet(14, 20), today).frais, true, '14 j : encore frais');
+  assert.equal(L.creneauDeConcentration(paquet(15, 21), today).frais, false, '15 j : périmé');
+  assert.equal(L.creneauDeConcentration(paquet(15, 21), today, { fraisJours: 30 }).frais, true,
+    'et le seuil est réglable');
+
+  // Cas éparpillé ET périmé : les deux dimensions se combinent sans se contredire.
+  const partout = [];
+  for (let j = 30; j <= 40; j++) partout.push(poser(j, (j * 3) % 24), poser(j, (j * 3 + 12) % 24));
+  const pv = L.creneauDeConcentration(partout, today);
+  assert.equal(pv.frais, false);
+  assert.equal(pv.domine, false);
+  assert.match(pv.phrase, /Plus aucun bloc depuis/);
+  assert.match(pv.phrase, /aucun créneau ne se détachait/, 'passé là aussi');
+});
+
 test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTAGE', () => {
   /* Mesuré à l'itération 77 sur 7 séances réellement manquées : le panneau Athlète annonçait
      « 7 séances prévues non faites », « À rattraper » « 5 séances non faites récemment ».

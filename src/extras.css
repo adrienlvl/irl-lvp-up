@@ -453,3 +453,9 @@ details.calendar-setting[open]{padding-bottom:14px}
 .fc-axis{display:flex;justify-content:space-between;color:var(--muted);font-size:var(--fs-3xs)}
 .fc-phrase{color:var(--muted);font-size:var(--fs-xs);line-height:1.45;margin:var(--sp-1) 0 0}
 .fc-phrase.fc-net{color:var(--text)}
+
+/* Une mesure PÉRIMÉE ne doit pas avoir l'air d'un constat du jour : la plage passe en teinte
+   neutre, parce qu'elle décrit ce qui a été et non ce qui est. L'information reste — c'est
+   elle qu'on veut retrouver le jour où on s'y remet. */
+.focus-creneau.fc-ancien .fc-bar.fc-in{background:var(--muted)}
+.focus-creneau.fc-ancien .fc-phrase{color:var(--muted)}
