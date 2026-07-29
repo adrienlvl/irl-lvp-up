@@ -2904,3 +2904,53 @@ le cas historique teste bien la fenêtre pleine, cas court ajouté juste en dess
 invisible sans le scénario du débutant.
 
 681 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 81 — v2.14.0 publiée, la charge corrigée, et une restructuration sortie du lot
+
+Adrien reprend la main en cours de route : « Publie déjà ce que t'as fait avant, et fais ça ! »,
+avec quatre demandes sur l'onglet Athlète — et un reproche : *« à chaque fois je te dis ça et tu
+rajoutes que des petites choses »*. Il redit aussi qu'il ne veut RIEN sur Alternance.
+
+### Ce qui est livré
+
+**v2.14.0 publiée** (45 commits, release GitHub non-draft, l'auto-update la voit). Au passage,
+deux garde-fous cessaient d'être des corvées de release : la tête du CHANGELOG était **épinglée
+en dur** dans un test — elle ne vérifiait donc que sa propre valeur. Elle se compare maintenant à
+`package.json`, ce qui attrape le vrai défaut : publier une version dont l'écran « Nouveautés »
+ne parle pas.
+
+**Plus de kilos réclamés sur des pompes.** Deux causes, mesurées :
+- `exerciceSansCharge` exigeait un objet portant son `kind`. Or une séance enregistrée ne
+  transporte que `{name, sets, reps, load}`. `kind` vide retombait sur « garde le champ ». Il
+  accepte désormais un nom seul et demande l'équipement **au catalogue**.
+- Il n'était branché **qu'à un seul endroit** (la séance guidée). Le formulaire « Construis ta
+  séance » affichait un libellé **statique** « Charge (kg) », exemple « 80 », quoi qu'on tape.
+
+### La mesure qui donne raison à Adrien sur le Plan de bataille
+
+Sondé à 390×844, onglet Athlète, sous-onglet d'arrivée :
+
+| Position | Panneau | Hauteur |
+|---|---|---|
+| 1 | **carte « Nouveautés »** | **3021 px** (39 % de l'onglet) |
+| 3 | Au programme aujourd'hui | 542 px |
+| 6 | *Plan de bataille* | **absent — il vit dans un autre sous-onglet** |
+
+Le Plan de bataille n'était pas « peu visible » : il n'était **pas là**. Et 3021 px d'annonces
+occupaient le haut de l'écran d'entraînement, parce que les cartes transverses n'appartiennent à
+aucun groupe de page et ne sont donc jamais masquées.
+
+### Ce que cette itération a appris
+
+**La restructuration a été SORTIE du lot, et c'est la décision qui compte.** Déplacer le panneau
+marchait — mesuré : le plan passait 1ᵉʳ, 3492 px, 43 % de l'onglet — mais il est référencé par
+**20 checks** pinglés sur l'ancien sous-onglet, et déplacer la carte « Nouveautés » touche le
+mécanisme `pageGroups` (elle appartient à Réglages, pas au tableau de bord — erreur de ma part).
+Mon heuristique de reciblage a sur-matché et cassé le panneau trail.
+
+*Livrer ça à moitié vérifié aurait cassé le filet qui a attrapé chaque régression depuis 20
+itérations.* Le chantier est réel, il est mesuré, et il mérite son propre tour.
+
+682 tests · SMOKE OK · v2.14.0 publiée.
