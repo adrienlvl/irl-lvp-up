@@ -2717,3 +2717,55 @@ Mon propre jeu d'essai s'est aussi contredit une fois : j'avais logué une séan
 la « manquée » — auquel cas rien n'a été manqué. Le code avait raison, le test avait tort.
 
 678 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 77 — Revue : un plafond d'affichage fuyait dans un comptage
+
+Revue adversariale due. Cible : **mon code des itérations 75 et 76**.
+
+### Le défaut, mesuré
+
+Sur **7 séances réellement manquées** :
+
+| Écran | Ce qu'il annonçait |
+|---|---|
+| Panneau Athlète | « **7** séances prévues non faites (14 j) » |
+| « À rattraper » (tableau de bord) | « **5** séances non faites récemment » |
+
+Deux nombres pour un même fait, et le plus visible des deux était **faux**.
+
+**La cause.** `missedSessions` et `overdueStudy` tronquent leur liste à 5 par défaut — un plafond
+d'**affichage**. Le digest n'affiche aucune liste, il ne veut qu'un nombre, et lisait `.length`
+sur la liste tronquée. Les écrans, eux, demandaient déjà `{cap: 60}` : chacun contournait le
+piège dans son coin, le digest l'avait oublié.
+
+**Deux fois le même défaut** : les révisions en retard étaient touchées à l'identique (« 5
+révisions en retard » sur 6). Trouvé en lisant les fonctions voisines, comme la règle le demande.
+
+### Ce que cette itération a appris
+
+*C'est mon correctif de la veille qui a rendu le défaut visible.* Tant que les deux écrans se
+taisaient de la même façon, personne ne pouvait voir qu'ils ne disaient pas la même chose. **Un
+écran qui devient précis met en évidence l'imprécision de son voisin** — d'où l'intérêt de faire
+la revue juste après avoir enrichi un sujet, pas avant.
+
+Et une règle à garder : **un plafond ne doit jamais fuir dans un comptage.** `cap` répond à « que
+montrer », jamais à « combien y en a-t-il ». Le digest garde d'ailleurs son propre plafond de 4
+items, parfaitement légitime — il limite ce qu'on affiche.
+
+Le test devait **dépasser 5 des deux côtés** pour discriminer : à 5 ou moins, la troncature ne
+change rien et le test aurait été vacant. C'est précisément pour ça que le défaut avait survécu.
+
+**Mutations.** 4 posées, 4 détectées, chacune rejouant la divergence dans un sens ou dans
+l'autre : `panneau=7 digest=5`, puis `panneau=5 digest=7`.
+
+### Trouvé aussi, non corrigé ici — prochain sujet
+
+`creneauDeConcentration` (itération 75) **affirme au présent sur des données périmées**. Vérifié :
+avec zéro bloc de concentration depuis 35 jours, il annonce toujours « Ton créneau, c'est
+9 h–12 h … Mets là ce qui demande le plus de tête. » La fenêtre de 60 jours n'exige aucune
+activité récente. L'app sait pourtant déjà faire ça ailleurs — la forme du jour affiche « dernier
+check-in il y a N jours » plutôt qu'un score périmé. *Un commit = un sujet : c'est l'itération 78.*
+
+679 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
