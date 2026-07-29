@@ -3391,3 +3391,51 @@ Pas de fonction pure ici : c'est une hiérarchie d'affichage, gardée par le che
 déplacer (`trouves=0/6`).
 
 687 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 93 — Les révisions en retard s'arbitrent par l'échéance
+
+### Deux pistes écartées par la mesure, avant d'en trouver une vraie
+
+- **Le rituel du matin** est déjà bien ordonné : action de 4894 à 5148 px, analyse de 5190 à 5818.
+  L'action précède l'analyse — ce n'est pas le défaut du donjon. *Je n'ai pas appliqué le pli par
+  réflexe.*
+- **`fruit`** (nutrition) est bien relu par `fruitDays` : pas d'orphelin là.
+
+### Le vrai manque, nommé par ma propre roadmap
+
+Côté études, l'écran affichait la liste puis « Reprogramme-les dans le calendrier plutôt que de
+les oublier » — **une consigne sans mécanisme**, l'état d'avant l'itération 76 pour les séances.
+Et `overdueStudy` ne rend pas d'`id`, donc rien ne pouvait bouger.
+
+**Ce qui arbitre ici n'est pas la charge mais l'ÉCHÉANCE** — la différence de fond avec le jumeau
+sportif :
+
+> 📕 À reprendre en premier : Révision Compta, sautée **il y a 12 jours**. Son épreuve (Compta) est
+> dans **5 jours**. 3 créneaux libres — pose-la là. L'autre est vieille et sans épreuve proche :
+> laisse-la.
+
+Le tri est l'**inverse** de celui du sport : une épreuve proche rend rattrapable une révision
+pourtant vieille.
+
+### Ce que cette itération a appris
+
+**Trois défauts de ma part, tous attrapés par les garde-fous :**
+
+1. **`appariee` se déduisait** en comparant l'épreuve retenue au repli — faux dès que l'épreuve
+   appariée se trouvait *être* la plus proche, soit le cas le plus fréquent. *Un fait se constate,
+   il ne se déduit pas d'une comparaison à son propre repli.*
+2. « Les **1** autres sont vieilles » — accord au singulier manquant.
+3. **Un check ne doit pas dépendre de l'heure à laquelle il tourne.** Mon agenda « plein » ne
+   bloquait que 08:00-22:00 ; le smoke tournant à 00:29, `rescheduleOptions` proposait
+   « Aujourd'hui 00:44 » et le verdict basculait. *Le pendant, côté horloge, de « un test doit
+   asserter son sujet, pas une valeur vraie ce jour-là ».*
+
+Et l'audit des backticks corrigé à l'itération 92 **a attrapé une faute avant le smoke** — premier
+bénéfice concret de l'avoir réparé.
+
+**Mutations.** 6 posées, 6 détectées. La dernière a d'abord survécu par **manque de scénario** (et
+non par check creux) : la branche « agenda plein » n'était pas rendue.
+
+688 tests · SMOKE OK. Rien publié depuis v2.14.0.
