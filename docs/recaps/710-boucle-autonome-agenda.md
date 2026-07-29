@@ -2675,3 +2675,45 @@ effacé tous les « s » du texte mesuré. Même famille que la règle des backt
 gabarit, une séquence d'échappement inconnue retombe sur sa lettre.*
 
 677 tests · SMOKE OK · frise à 298 px pour 390 de large. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 76 — Le panneau des séances manquées arbitre au lieu d'énumérer
+
+Chantier n°6 de la roadmap (« la replanification automatique »), ouvert.
+
+**Mesuré.** Le panneau listait, puis concluait : « Pas de culpabilité — reprends le fil quand tu
+veux. » Il invitait à reprendre un fil qu'il n'offrait pas — aucun geste, aucune date, aucun
+créneau. Les pièces existaient toutes : `rescheduleOptions` sait trouver un trou réel,
+`moveAgendaItem` sait poser le bloc, `acuteChronicRatio` sait si la semaine est déjà lourde.
+
+**Le vrai sujet n'était pas le bouton manquant.** Proposer de rattraper trois séances par-dessus
+la semaine en cours serait un mauvais conseil. `rattrapageSeances` tranche, dans cet ordre :
+
+| Priorité | Ce qui est dit |
+|---|---|
+| 1. La charge | « Ne rattrape rien : ta charge est à **3,89×** ta moyenne » — et **zéro bouton**, il contredirait la phrase |
+| 2. La fraîcheur | Au-delà de 3 jours, la séance est **lâchée explicitement** |
+| 3. La cible | **Une seule**, la plus récente, avec des créneaux réellement libres |
+| 4. L'agenda plein | « aucun trou de 60 min dans tes 7 prochains jours » — on l'avoue |
+
+Le clic déplace vraiment le bloc. Aucune règle physiologique nouvelle : mêmes seuils que
+`loadAdvice`, qui pilotait déjà cet écran.
+
+### Ce que cette itération a appris
+
+**Une deuxième fois le même piège de couverture, sous un autre visage.** Le tri des séances
+manquées (la plus récente d'abord) était invérifiable : le filtre de fraîcheur ne laissait passer
+qu'une seule séance, qui gagnait donc quel que soit l'ordre. Il a fallu **deux séances toutes deux
+fraîches** pour que l'ordre décide vraiment. *Un garde-fou en aval peut rendre un garde-fou en
+amont indétectable — c'est exactement ce qui s'était produit à l'itération 75 avec `minJours`.*
+
+Et un mutant **équivalent**, signalé comme tel plutôt que maquillé : rendre les boutons quel que
+soit le verdict ne change rien, `cible` valant déjà `null` dans la branche « charge ». La garde
+documente l'intention ; elle n'est pas observable. Mieux vaut le dire que fabriquer un check
+autour.
+
+Mon propre jeu d'essai s'est aussi contredit une fois : j'avais logué une séance le jour même de
+la « manquée » — auquel cas rien n'a été manqué. Le code avait raison, le test avait tort.
+
+678 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
