@@ -3350,3 +3350,44 @@ réapparaît branche par branche — le corriger une fois ne le corrige pas part
 **Mutations.** 4 posées, 4 détectées.
 
 687 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 92 — Le donjon du focus sépare agir de comprendre
+
+**J'allais ajouter un 9ᵉ angle à Focus. La sonde m'en a dissuadé.** Entre « prépare ta tâche » et
+le parking à pensées, **six blocs d'analyse** s'étaient empilés (657 px) — dont **trois de mes
+propres itérations** (75, 89, 90). J'avais accumulé dans le panneau dont le rôle est d'*exécuter*.
+
+| | Avant | Après |
+|---|---|---|
+| `.focus-task` | 1024 px | **369 px** |
+| Parking à pensées | enfoui sous 657 px d'analyses | remonte de **655 px** |
+| Analyses | 6 blocs empilés | 6 blocs dans un pli, à un clic |
+
+Motif déjà employé pour l'échauffement guidé (84) et les nouveautés (57). Rien n'est supprimé.
+
+### Ce que cette itération a appris — quatre erreurs de méthode
+
+**1. `getComputedStyle().display` ne suffit pas sur un `<details>` fermé.** Mesuré : le display
+reste `block`, `offsetParent` reste présent, la hauteur de la boîte reste 92 px. **Seul
+`checkVisibility()` distingue les deux états.** La règle maison mérite cette nuance.
+
+**2. Un check qui mesure des hauteurs doit le faire là où la chose est visible.** La passe tourne
+sur le tableau de bord, où le donjon est masqué et tout vaut 0 — même erreur qu'à l'itération 75
+(frise mesurée dans une fenêtre de bureau).
+
+**3. Trois backticks dans des commentaires du harnais, en trois patchs.** Et mon audit était
+**filtré** sur les lignes de mon propre bloc, donc aveugle aux voisines. *Un audit filtré n'est
+pas un audit.*
+
+**4. Cet audit était faux depuis le début.** La ligne qui referme un gabarit ne *commence* pas par
+un backtick : mon test ne la voyait jamais, l'audit croyait rester « dans le gabarit » jusqu'à la
+fin du fichier et noyait le vrai signal dans dix faux positifs. Réécrit en comptant la **parité**
+des backticks. *Un garde-fou qui n'a jamais rien attrapé mérite qu'on vérifie qu'il fonctionne.*
+
+Pas de fonction pure ici : c'est une hiérarchie d'affichage, gardée par le check seul.
+**Mutations.** 5 posées, 5 détectées, dont celle qui **supprime** les blocs au lieu de les
+déplacer (`trouves=0/6`).
+
+687 tests · SMOKE OK. Rien publié depuis v2.14.0.
