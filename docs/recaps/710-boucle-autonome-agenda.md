@@ -2542,3 +2542,38 @@ avait laissé `state.recurring` cassé et fait tomber un check voisin.
 ### Reste sur ce chantier
 Porter la résolution de date d'origine dans `setRecurringDone`, puis consolider. Le filet est
 posé, l'opération est maintenant sûre.
+
+---
+
+## Itération 73 — Deux implémentations deviennent une, dans l'ordre sûr
+
+Aboutissement du chantier ouvert à l'itération 71 (refusé faute de filet) et débloqué à la 72
+(check qui reproduit enfin le déplacement).
+
+### L'ordre qui rend l'opération sûre
+
+| Étape | Itération |
+|---|---|
+| Constater la divergence, **refuser** de consolider | 71 |
+| Poser le filet qui reproduit le déplacement | 72 |
+| Mettre la fonction pure **à parité**, puis déléguer | 73 |
+
+1. `setRecurringDone` résout désormais la date d'origine via `recurringOccurrence`. Sans
+   déplacement, `sourceDate` vaut `dateKey` — le cas courant est intact.
+2. `completeRecurringOn` **délègue**. Il garde ce qui lui appartient (trouver la récurrence,
+   l'XP, la sauvegarde, le rendu) et n'implémente plus la règle. La mutation directe
+   `r.doneLog.push` disparaît : l'état devient immuable.
+
+**Bénéfice au passage** : la version pure sait **décocher**, ce que celle de l'app ne savait pas.
+
+### Ce que cette séquence a appris
+
+*Refuser une consolidation n'est pas y renoncer — c'est la mettre dans le bon ordre.* Faite à
+l'itération 71, elle réintroduisait un bug corrigé. Faite après le filet, elle est vérifiable à
+chaque étape.
+
+**Mutations.** 3 posées, 3 détectées, avec des diagnostics parlants : sans la résolution,
+`log[2026-08-04]` au lieu de `log[2026-08-03]` ; sans la délégation, `log[]` — plus rien n'est
+coché.
+
+675 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
