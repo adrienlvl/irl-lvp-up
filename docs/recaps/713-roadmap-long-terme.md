@@ -204,6 +204,13 @@ Ce qu'aucune app générique ne peut faire : apprendre de **tes** données.
 9. **La mémoire causale des blocs.** « Les trois blocs à 4 séances/semaine t'ont donné +8 kg au
    squat ; celui à 3, +2. » Les briques existent (`blocksByObjective`, `bilanDeBloc`,
    `blockComparison`) — la comparaison n'est jamais tirée jusqu'à la recommandation.
+   > **OUVERT (itération 86) : `memoireDesBlocs`.** Les blocs terminés sont regroupés par leur
+   > cadence RÉELLEMENT tenue, et le tonnage par semaine de chaque cadence est comparé, jusqu'au
+   > conseil pour le bloc suivant. **Garde-fou de méthode à conserver pour la suite du chantier :**
+   > avec une seule cadence dans l'historique, on REFUSE de comparer — deux blocs au même rythme
+   > ne disent rien *sur* le rythme — et même à deux cadences, la phrase dit qu'il s'agit d'une
+   > observation sur ses propres blocs, échantillon cité. *Reste :* la même mémoire par EXERCICE
+   > (le « +8 kg au squat » de l'énoncé), qui demande de relier `blockExProgress` aux cadences.
 10. **Les corrélations personnelles.** `sleepImpactReport` le fait déjà pour le sommeil.
     Étendre : nutrition → énergie, charge → sommeil, focus → journée.
 11. **La détection d'anomalie.** « Ton sommeil a perdu 1 h de moyenne depuis dix jours » sans
