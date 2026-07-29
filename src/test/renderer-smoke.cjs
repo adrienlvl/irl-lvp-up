@@ -3246,6 +3246,73 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.rattrapageArbitre = (() => {
+        // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
+        const _agS = state.agenda, _wkS = state.workouts, _recS = state.recurring, _plS = state.plans;
+        const _rendre = () => { state.agenda = _agS; state.workouts = _wkS; state.recurring = _recS;
+          state.plans = _plS; try { renderRoadmapFeatures(); } catch (_) {} };
+        try {
+          if (typeof renderRoadmapFeatures !== "function" || typeof rattrapageSeances !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#missedSessions");
+          if (!el) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const jour = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          // Agenda et recurrences vides : les creneaux proposes doivent etre deterministes.
+          state.recurring = []; state.plans = [];
+
+          /* 1) UNE SEANCE FRAICHE, CHARGE NORMALE : le panneau doit ARBITRER et proposer des
+             creneaux CLIQUABLES. C est ce qui manquait — il invitait a « reprendre le fil »
+             sans offrir de fil. */
+          state.agenda = [{ id: 92601, date: jour(2), time: "18:00", durationMin: 60,
+            title: "Full body", kind: "sport", completed: false, priority: "normal", source: "manual" }];
+          state.workouts = [{ id: 1, date: jour(20), type: "Musculation", duration: 30, effort: 3 }];
+          renderRoadmapFeatures();
+          const vu = getComputedStyle(el).display !== "none";
+          const txt1 = String(el.textContent || "");
+          const slots = el.querySelectorAll(".ms-slot");
+          const arbitre = txt1.indexOf("Une seule vaut le coup") !== -1;
+          const plusDeVague = txt1.indexOf("reprends le fil quand tu veux") === -1;
+
+          /* 2) LE CLIC DOIT DEPLACER POUR DE VRAI. On mesure APRES l effet : un bouton qui ne
+             bouge rien serait exactement le defaut qu on corrige. */
+          const cible = slots[0];
+          const versD = cible ? cible.dataset.date : "";
+          const versH = cible ? cible.dataset.time : "";
+          if (cible) cible.click();
+          const apres = (state.agenda || []).filter(function (a) { return a && a.id === 92601; })[0];
+          const deplacee = !!apres && apres.date === versD && apres.time === versH && versD >= localDate();
+
+          /* 3) CHARGE HAUTE : le verdict bascule, et AUCUN bouton ne doit subsister — proposer
+             un creneau contredirait la phrase qu on vient d ecrire juste au-dessus. */
+          state.agenda = [{ id: 92602, date: jour(2), time: "18:00", durationMin: 60,
+            title: "Full body", kind: "sport", completed: false, priority: "normal", source: "manual" }];
+          state.workouts = [{ id: 1, date: jour(1), duration: 90, effort: 9 },
+            { id: 2, date: jour(3), duration: 90, effort: 9 }, { id: 3, date: jour(4), duration: 90, effort: 9 },
+            { id: 4, date: jour(5), duration: 90, effort: 9 }, { id: 5, date: jour(20), duration: 30, effort: 3 }];
+          const attendu = rattrapageSeances(state, localDate(), { now: "09:00" });
+          renderRoadmapFeatures();
+          const txt2 = String(el.textContent || "");
+          const rouge = el.classList.contains("ms-charge");
+          const zeroSlot = el.querySelectorAll(".ms-slot").length === 0;
+          // Le ratio annonce doit etre CELUI qui a ete mesure, pas un chiffre voisin.
+          const chiffreJuste = !!(attendu && attendu.acwr)
+            && txt2.indexOf(String(attendu.acwr.ratio).replace(".", ",") + "\u00d7") !== -1;
+
+          checks.__rattrapage = "vu=" + vu + " slots=" + slots.length + " arbitre=" + arbitre
+            + " plusDeVague=" + plusDeVague + " deplacee=" + deplacee + " vers[" + versD + " " + versH + "]"
+            + " | charge: rouge=" + rouge + " zeroSlot=" + zeroSlot + " ratio=" + (attendu && attendu.acwr ? attendu.acwr.ratio : "null")
+            + " verdict=" + (attendu ? attendu.verdict : "null") + " txt[" + txt2.slice(0, 90) + "]";
+          _rendre();
+          return vu && arbitre && plusDeVague && slots.length > 0 && deplacee
+            && rouge && zeroSlot && chiffreJuste;
+        } catch (e) {
+          _rendre();
+          checks.__errRattrapage = String(e && e.message); return false;
+        }
+      })();
+
       checks.creneauFocus = (() => {
         const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
         try {
@@ -5259,6 +5326,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');
     if (!checks.creneauFocus) errors.push('Focus : l’app horodate chaque bloc de concentration (id = Date.now()) et ne l’a jamais lu. La frise « Quand ta concentration se pose » doit rester ÉTEINTE sous le seuil d’échantillon, puis montrer 24 colonnes dont la plage mise en avant est CELLE que la mesure désigne, avec une phrase qui cite les mêmes chiffres — et tenir dans 390 px sans défilement');
     if (!checks.blocAnnulable) errors.push('Agenda : une coche doit être un INTERRUPTEUR, comme partout ailleurs dans l’app (quêtes, habitudes, tâches). Un bloc terminé doit offrir « ↩︎ Annuler », rendre EXACTEMENT l’XP donnée (compteur de catégorie compris), annoncer le même chiffre dans les deux libellés — et ne plus proposer « → demain », qui revenait à repousser quelque chose de déjà fait');
     if (!checks.apercuNomme) errors.push('Coach Poids : quand la cible TAPÉE diffère de la cible ENREGISTRÉE, l’écran porte deux cibles à la fois — l’en-tête suit la saisie, la durée et la jauge suivent l’enregistrée. Une bannière doit nommer l’aperçu et rappeler les deux chiffres, et rester muette quand les deux coïncident');

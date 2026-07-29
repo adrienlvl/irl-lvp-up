@@ -13362,6 +13362,104 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('rattrapageSeances : arbitre au lieu d’énumérer', () => {
+  /* Le panneau disait « reprends le fil quand tu veux » sans offrir de fil. La fonction doit
+     TRANCHER : la charge d'abord, la fraîcheur ensuite, et un créneau seulement s'il existe. */
+  const today = '2026-07-29';
+  const jour = n => { const d = new Date(2026, 6, 29 - n); const p = x => String(x).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  const seance = (n, id, titre) => ({ id, date: jour(n), time: '18:00', durationMin: 60,
+    title: titre || 'Full body', kind: 'sport', completed: false });
+
+  // Rien de manqué : null, pas un objet vide. NULL N'EST PAS ZÉRO.
+  assert.equal(L.rattrapageSeances({ agenda: [], workouts: [] }, today), null);
+  assert.equal(L.rattrapageSeances({ agenda: [seance(2, 1)], workouts: [] }, 'pas-une-date'), null);
+
+  // CAS NOMINAL : une séance sautée il y a 2 jours, agenda vide par ailleurs → un créneau réel.
+  const base = { agenda: [seance(2, 101)], workouts: [], plans: [], recurring: [] };
+  const r = L.rattrapageSeances(base, today, { now: '09:00' });
+  assert.ok(r);
+  assert.equal(r.verdict, 'rattrape');
+  assert.equal(r.cible.id, 101, 'la cible porte l’id — sans lui, aucun déplacement possible');
+  assert.ok(r.creneaux.length > 0, 'des créneaux réellement libres, pas une invitation vague');
+  assert.ok(r.creneaux.every(c => c.date >= today), 'jamais un créneau dans le passé');
+  assert.match(r.phrase, /Une seule vaut le coup/);
+  assert.match(r.phrase, /sautée il y a 2 jours/);
+
+  /* AGENDA PLEIN : la séance mérite un rattrapage, mais il n'existe aucun trou. Promettre un
+     créneau ici serait exactement le défaut qu'on corrige — donc verdict distinct, zéro
+     créneau, et on l'avoue. On sature 08:00→22:00 sur tout l'horizon. */
+  const plein = { agenda: [seance(2, 101)], workouts: [], plans: [], recurring: [] };
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(2026, 6, 29 + i); const p = x => String(x).padStart(2, '0');
+    plein.agenda.push({ id: 900 + i, date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()),
+      time: '08:00', durationMin: 840, title: 'Journée bloquée', kind: 'life', completed: false });
+  }
+  const rp = L.rattrapageSeances(plein, today, { now: '09:00' });
+  assert.equal(rp.verdict, 'complet', 'aucun trou : on ne promet pas un créneau qui n’existe pas');
+  assert.deepEqual(rp.creneaux, []);
+  assert.ok(rp.cible, 'la cible reste nommée — c’est l’agenda qui bloque, pas elle');
+  assert.match(rp.phrase, /aucun trou de 60 min/);
+
+  /* PREMIER CAS QUI DISCRIMINE — LA FRAÎCHEUR. Trois séances : une de 2 jours, deux de plus de
+     3 jours. On propose UNE cible, et on annonce explicitement qu'on lâche les autres. */
+  const melange = { agenda: [seance(2, 101), seance(6, 102, 'Course facile'), seance(9, 103, 'Gainage')],
+    workouts: [], plans: [], recurring: [] };
+  const rm = L.rattrapageSeances(melange, today, { now: '09:00' });
+  assert.equal(rm.manquees.length, 3);
+  assert.equal(rm.vives.length, 1, 'une seule est encore fraîche');
+  assert.equal(rm.perimees.length, 2);
+  assert.equal(rm.cible.id, 101, 'la plus récente, pas la plus ancienne');
+  assert.match(rm.phrase, /Les 2 autres datent de plus de 3 jours/, 'ce qu’on lâche est DIT');
+
+  /* Le scénario ci-dessus ne DISCRIMINE PAS le tri : une seule séance passe la fenêtre de
+     fraîcheur, donc elle serait choisie quel que soit l'ordre (mutation survivante, mesurée).
+     Il faut DEUX séances toutes deux fraîches pour que l'ordre décide vraiment. */
+  const deuxFraiches = { agenda: [seance(3, 105, 'Gainage'), seance(1, 104, 'Cardio')],
+    workouts: [], plans: [], recurring: [] };
+  const rf = L.rattrapageSeances(deuxFraiches, today, { now: '09:00' });
+  assert.equal(rf.vives.length, 2, 'jeu d’essai : les deux sont bien dans la fenêtre');
+  assert.equal(rf.cible.id, 104, 'entre deux séances fraîches, on rattrape la PLUS RÉCENTE');
+  assert.match(rf.phrase, /Cardio, sautée hier/);
+
+  // Toutes périmées : on ne propose rien et on l’assume.
+  const vieilles = { agenda: [seance(6, 102), seance(9, 103)], workouts: [], plans: [], recurring: [] };
+  const rv = L.rattrapageSeances(vieilles, today, { now: '09:00' });
+  assert.equal(rv.verdict, 'laisse');
+  assert.equal(rv.cible, null);
+  assert.deepEqual(rv.creneaux, []);
+  assert.match(rv.phrase, /ne se rattrapent plus/);
+
+  /* DEUXIÈME CAS QUI DISCRIMINE — LA CHARGE PRIME. Même séance fraîche, mais une semaine très
+     lourde derrière : le verdict doit basculer de « rattrape » à « ne rattrape rien », et citer
+     le ratio. Sans base chronique (jours 7-27), acuteChronicRatio rend null : il FAUT donc
+     des séances anciennes, sinon le scénario ne discrimine rien. */
+  const dur = { agenda: [seance(2, 101)], plans: [], recurring: [],
+    /* AUCUNE séance loguée le jour(2) : en poser une ferait disparaître la « manquée »
+       elle-même — une séance faite ce jour-là n'a rien été manquée. Le scénario ne testerait
+       plus l'arbitrage mais la détection. Piège tombé une fois, ici même. */
+    workouts: [ { date: jour(1), duration: 90, effort: 9 }, { date: jour(3), duration: 90, effort: 9 },
+      { date: jour(4), duration: 90, effort: 9 }, { date: jour(5), duration: 90, effort: 9 },
+      { date: jour(20), duration: 30, effort: 3 } ] };
+  const acwr = L.acuteChronicRatio(dur.workouts, today);
+  assert.ok(acwr && acwr.zone === 'high', 'témoin : la charge est bien en zone haute (' + (acwr && acwr.ratio) + ')');
+  const rd = L.rattrapageSeances(dur, today, { now: '09:00' });
+  assert.equal(rd.verdict, 'charge', 'la charge passe avant la fraîcheur');
+  assert.equal(rd.cible, null, 'et aucun créneau n’est proposé, sinon on contredit le verdict');
+  assert.match(rd.phrase, new RegExp(String(acwr.ratio).replace('.', ',') + '×'),
+    'le ratio cité est CELUI qui a été mesuré');
+
+  /* Témoin de la discrimination : le MÊME agenda, sans la semaine lourde, repart en « rattrape ».
+     C'est ce qui prouve que c'est bien la charge qui a fait basculer, et pas autre chose. */
+  assert.equal(L.rattrapageSeances({ ...dur, workouts: [dur.workouts[4]] }, today, { now: '09:00' }).verdict,
+    'rattrape');
+
+  // Une séance déjà validée, ou un jour où une séance a été loguée, ne compte pas comme manquée.
+  assert.equal(L.rattrapageSeances({ agenda: [{ ...seance(2, 101), completed: true }], workouts: [] }, today), null);
+  assert.equal(L.rattrapageSeances({ agenda: [seance(2, 101)], workouts: [{ date: jour(2), duration: 60, effort: 6 }] }, today),
+    null, 'séance loguée ce jour-là : rien n’a été manqué');
+});
+
 test('creneauDeConcentration : l’heure des blocs, ou le silence', () => {
   /* L'app horodate chaque bloc (`id` = Date.now(), app.js `finishFocusBlock`) et ne l'a jamais
      lu. On fabrique le jeu d'essai comme l'app le fabrique : un id qui EST une horloge. */
