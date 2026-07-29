@@ -286,6 +286,12 @@ elles sont écartées **volontairement** :
 garde-fou testé par mutation après, revue adversariale toutes les trois itérations. C'est ce qui
 a produit plus de quarante défauts réels — dont la moitié dans du code que je venais d'écrire.
 
+> **Ce que les revues apprennent sur les revues (94).** Deux fois de suite, une mutation « survivante »
+> ne disait rien du check : le **harnais** ne démarrait pas. Depuis, tout script de mutation commence
+> par un **témoin non muté** et refuse de conclure si le témoin ne rend pas `SMOKE OK`. Et deux cas de
+> test se sont révélés **vacants** — une valeur qui échoue pour une autre raison que celle testée, une
+> garde qu'aucun jeu d'essai n'exerçait. *Un garde-fou non tombé n'est pas un garde-fou vérifié.*
+
 ---
 
 ## 14. Dates fixes déjà prises
