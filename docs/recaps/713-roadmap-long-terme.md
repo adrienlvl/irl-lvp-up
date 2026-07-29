@@ -71,15 +71,36 @@ l'itération 61 l'a trouvé sain — mais c'est une singularité à connaître a
 d'entre elles forment des ensembles cohérents, c'est-à-dire des fonctionnalités commencées puis
 laissées en plan.
 
-| Sous-système | Fonctions inertes | État réel |
-|---|---|---|
-| **Temps de trajet** | `buildGeocodeUrl`, `buildRouteUrl`, `haversineKm`, `travelModes`, `isAllowedTravelUrl` | les canaux `travel:estimate` / `travel:config` existent côté système et sont câblés — la logique de calcul, non |
-| **Code-barres alimentaire** | `barcodeLookup`, `learnBarcode` | aucun scanner, aucune saisie |
-| **Agenda** | `nextTrainingSession`, `setAgendaCompleted`, `setRecurringDone`, `xpForAgendaItem` | des helpers écrits pour un agenda plus riche que celui qui existe |
+> **⚠️ CORRIGÉ le 2026-07-30 (itération 69) : ce constat comptait 15 orphelines, il y en a 7.**
+> Ma mesure ne scannait que `app.js` et `logic.js` — elle ignorait `electron-main.cjs`, où vit
+> tout le processus principal. **Le sous-système « temps de trajet » n'est pas à moitié
+> construit : il est ENTIER** (géocodage, itinéraire, repli haversine, adresse chiffrée via
+> `safeStorage`). Troisième erreur de méthode de cet audit, après la navigation lue par
+> `[data-page]` et les panneaux pris pour de la profondeur.
+> *Une mesure qui n'ouvre pas tous les fichiers ne mesure pas ce qu'elle prétend.*
 
-**Le reste de la logique, lui, est bien exploité** : sur 458 fonctions, 371 sont rendues
-directement à l'écran et 69 consommées par une autre fonction rendue. Le problème n'est pas un
-stock de logique dormante — c'est que trois chantiers ont été ouverts sans être finis.
+| Sous-système | Fonctions réellement inertes | État réel |
+|---|---|---|
+| ~~Temps de trajet~~ | ~~5 fonctions~~ | **ENTIER** — implémenté dans `electron-main.cjs`, déclenché par bouton |
+| **Code-barres alimentaire** | `barcodeLookup`, `learnBarcode` | aucun scanner, aucune saisie : chantier réellement ouvert |
+| **Agenda** | `nextTrainingSession`, `setAgendaCompleted`, `setRecurringDone`, `xpForAgendaItem` | helpers écrits pour un agenda plus riche que celui qui existe |
+| Candidatures | `compareApplications` | tri jamais branché |
+
+**Le reste de la logique est très bien exploité** : sur 458 fonctions, **7 seulement** ne sont
+appelées par personne. Il n'y a pas de stock de logique dormante — deux chantiers ont été
+ouverts sans être finis, et c'est tout.
+
+### Précision sur le « 100 % local »
+
+À écrire correctement, puisque je l'ai répété comme un absolu : l'app ne fait **aucun appel
+réseau automatique**, et rien ne part sans action. Mais trois fonctions en font sur **clic
+explicite** — l'estimation de temps de trajet (géocodage + itinéraire), l'import de calendrier
+ICS, et la synchronisation d'une feuille de calcul. L'adresse de départ est stockée **chiffrée**
+via `safeStorage`, et l'app affiche « Trajet indisponible (réseau) » quand ça échoue : elle est
+honnête sur sa dépendance.
+
+La formule juste est donc : **aucune donnée ne sort de l'appareil sans que tu l'aies demandé**,
+pas « zéro réseau ».
 
 ## 5. Constat n°4 — Ce qui est solide
 
@@ -120,8 +141,10 @@ prioritaire, tout ce qui en fait un carnet de plus est secondaire.**
 
 Peu de risque, valeur immédiate, et ça nettoie le terrain.
 
-1. **Les trois chantiers à moitié faits** : trajet, code-barres, helpers d'agenda. Pour chacun,
-   trancher : finir ou retirer. Un sous-système inerte est une dette qui grossit.
+1. **Les DEUX chantiers à moitié faits** : code-barres alimentaire et helpers d'agenda — *le
+   trajet, lui, est entier (cf. constat n°3 corrigé)*. Pour chacun, trancher : finir ou retirer.
+   Un sous-système inerte est une dette qui grossit ; un sous-système qu'on croit inerte **à
+   tort** est pire — il envoie refaire ce qui existe déjà.
 2. **Rééquilibrer les pages pauvres** — Poids, Nutrition, Focus, Alternance ont un seul angle
    chacun là où Athlète en a vingt-deux.
 3. ~~L'Agenda dans la navigation, et sondé en 390 px~~ — **FAIT.** Il y était déjà (cf. constat
@@ -199,7 +222,9 @@ elles sont écartées **volontairement** :
   honnête avec soi ; un public change ce qu'on y écrit.
 - **Le cloud et les comptes.** Tout est local, et c'est ce qui rend la politique de
   confidentialité tenable en trois lignes.
-- **Les intégrations en direct** (Strava, Garmin, Apple Santé par API). Fichier oui, réseau non.
+- **Les intégrations en direct** (Strava, Garmin, Apple Santé par API) et tout appel réseau
+  AUTOMATIQUE. Les trois appels sur clic qui existent déjà — trajet, import ICS, feuille de
+  calcul — restent l’exception assumée : déclenchés par toi, jamais en fond.
 - **Un modèle de langage embarqué.** Le coût, la taille et l'imprévisibilité tueraient le « zéro
   dépendance » — et l'app n'en a pas besoin : sa valeur vient de règles explicables.
 - **La gamification qui pousse à la surenchère.** Les séries et trophées existent ; ils ne

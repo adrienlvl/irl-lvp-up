@@ -2377,3 +2377,42 @@ lit `setLogs: [{load, reps}]` — d'où un `bestSet: null` et 0 série sur 29 s�
 croire un instant à un défaut. **Lire le consommateur avant d'inventer la forme.**
 
 674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 69 — Mon audit envoyait refaire un sous-système déjà fini
+
+Chantier n°1 de la roadmap : « trancher les trois sous-systèmes à moitié faits ». En allant
+mesurer le premier — le temps de trajet — j'ai trouvé qu'il n'y avait rien à trancher.
+
+### La troisième erreur de méthode de cet audit
+
+Mon détecteur d'orphelines ne scannait que `app.js` et `logic.js`. Il ignorait
+**`electron-main.cjs`**, où vit tout le processus principal.
+
+| | Avant | Après correction |
+|---|---|---|
+| Fonctions orphelines | 15 | **7** |
+| Temps de trajet | « à moitié construit » | **entier** — géocodage, itinéraire, repli haversine, adresse chiffrée via `safeStorage` |
+
+Restent deux chantiers réellement ouverts (code-barres, helpers d'agenda) et une fonction isolée
+(`compareApplications`).
+
+*Une mesure qui n'ouvre pas tous les fichiers ne mesure pas ce qu'elle prétend.* Troisième fois
+dans cet audit, après la navigation lue par `[data-page]` et les panneaux pris pour de la
+profondeur. Le point commun : à chaque fois, j'ai mesuré ce qui était **facile à compter** plutôt
+que ce que je voulais savoir.
+
+### Une précision que je devais à Adrien
+
+Je répète « 100 % locale, zéro dépendance » depuis des dizaines d'itérations. C'est vrai pour
+l'essentiel, mais **trois fonctions font du réseau sur clic explicite** : estimation de temps de
+trajet (géocodage + itinéraire), import de calendrier ICS, synchronisation d'une feuille de
+calcul. Rien ne part automatiquement, l'adresse est stockée chiffrée, et l'app affiche « Trajet
+indisponible (réseau) » quand ça échoue.
+
+La formule juste : **aucune donnée ne sort de l'appareil sans que tu l'aies demandé** — pas
+« zéro réseau ». Le non-but de la roadmap a été précisé en conséquence.
+
+674 tests · SMOKE OK. Aucune ligne de code applicatif touchée : cette itération corrige le
+document qui pilote les suivantes.
