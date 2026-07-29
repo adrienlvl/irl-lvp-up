@@ -12738,6 +12738,76 @@ test('weightGoalProgress : progression globale départ → cible', () => {
   assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 75 }], 75, 75), null);
 });
 
+test('cadenceDePesee : la consigne confrontée à la réalité', () => {
+  /* Mesuré à l'itération 79 : l'app écrit « Pèse-toi 2 à 3×/semaine, regarde la MOYENNE de la
+     semaine » et ne regarde jamais si c'est fait — alors qu'elle a toutes les dates. */
+  const today = '2026-07-29';
+  const p = x => String(x).padStart(2, '0');
+  const jour = n => { const d = new Date(2026, 6, 29 - n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  const pesees = ns => ns.map((n, i) => ({ date: jour(n), value: 80 - i * 0.1 }));
+
+  /* LA CONSIGNE ET LA CONSTANTE NE DOIVENT PAS DIVERGER. Le nombre vivait uniquement dans la
+     prose ; il vit maintenant aussi dans CADENCE_PESEE, donc la phrase doit le contenir. */
+  assert.equal(L.CADENCE_PESEE.active.min, 2);
+  assert.equal(L.CADENCE_PESEE.active.max, 3);
+  assert.ok(L.trackingCadenceAdvice('perte').weighIn.indexOf(
+    L.CADENCE_PESEE.active.min + ' à ' + L.CADENCE_PESEE.active.max + '×/semaine') !== -1,
+    'la phrase prescrite doit citer les bornes de CADENCE_PESEE, sinon les deux dériveront');
+
+  // AUCUNE pesée du tout : null — l'écran a déjà sa phrase pour ce cas.
+  assert.equal(L.cadenceDePesee([], today, 'perte'), null);
+  assert.equal(L.cadenceDePesee(null, today, 'perte'), null);
+  assert.equal(L.cadenceDePesee(pesees([2]), 'pas-une-date', 'perte'), null);
+
+  /* ZÉRO N'EST PAS ABSENT : des pesées existent, mais aucune dans la fenêtre. C'est un
+     RÉSULTAT, il se dit — pas un null. */
+  const vieilles = L.cadenceDePesee(pesees([40, 43, 46]), today, 'perte');
+  assert.ok(vieilles, 'des pesées existent : on ne renvoie pas null');
+  assert.equal(vieilles.pesees, 0);
+  assert.equal(vieilles.verdict, 'aucune');
+  assert.equal(vieilles.trous, 4, 'les 4 semaines de la fenêtre sont vides');
+  assert.match(vieilles.phrase, /Aucune pesée depuis 4 semaines/);
+
+  // CADENCE TENUE : 10 pesées sur 28 jours = 2,5/semaine, au-dessus du minimum de 2.
+  const bonne = L.cadenceDePesee(pesees([0, 2, 4, 6, 8, 10, 13, 16, 20, 24]), today, 'perte');
+  assert.equal(bonne.pesees, 10);
+  assert.equal(bonne.parSemaine, 2.5);
+  assert.equal(bonne.verdict, 'bonne');
+  assert.equal(bonne.fiabilite, 'solide');
+  assert.equal(bonne.trous, 0);
+  assert.match(bonne.phrase, /2,5 pesées\/semaine/);
+  assert.match(bonne.phrase, /2 à 3×\/semaine/, 'la consigne est rappelée avec la mesure');
+
+  /* LE CAS QUI DISCRIMINE : cadence faible ET semaines vides. La phrase doit citer le TAUX
+     affiché par l'écran voisin, pas un synonyme — c'est ce qui fait un seul avis. */
+  const faible = L.cadenceDePesee(pesees([1, 20]), today, 'perte', { ratePerWeek: -0.42 });
+  assert.equal(faible.pesees, 2);
+  assert.equal(faible.parSemaine, 0.5);
+  assert.equal(faible.verdict, 'faible');
+  assert.equal(faible.fiabilite, 'fragile');
+  assert.equal(faible.trous, 2, 'deux des quatre semaines n’ont aucun point');
+  assert.match(faible.phrase, /2 semaines sans aucune pesée/);
+  assert.match(faible.phrase, /−0,42 kg\/sem\./, 'le chiffre cité est CELUI de l’écran voisin');
+  assert.match(faible.phrase, /relie deux points éloignés/);
+
+  // Sans taux fourni, la phrase reste correcte : on ne fabrique pas un chiffre.
+  const sansTaux = L.cadenceDePesee(pesees([1, 20]), today, 'perte');
+  assert.match(sansTaux.phrase, /la tendance affichée/);
+  assert.ok(!/kg\/sem/.test(sansTaux.phrase), 'aucun chiffre inventé quand on n’en a pas');
+
+  /* EN MAINTIEN la consigne est plus légère (1×/semaine) : la MÊME cadence doit donc changer
+     de verdict. Sans ce cas, la cible ne serait pas testée du tout. */
+  const memeCadence = pesees([1, 8, 15, 22]);
+  assert.equal(L.cadenceDePesee(memeCadence, today, 'perte').verdict, 'faible');
+  assert.equal(L.cadenceDePesee(memeCadence, today, 'maintien').verdict, 'bonne',
+    'un rythme d’une pesée par semaine tient la consigne de maintien');
+
+  // Deux pesées le MÊME jour ne comptent qu'une fois : un import ne doit pas gonfler la cadence.
+  const doublons = [{ date: jour(1), value: 80 }, { date: jour(1), value: 80.2 }, { date: jour(3), value: 80 }];
+  assert.equal(L.cadenceDePesee(doublons, today, 'perte').pesees, 2);
+});
+
 test('trackingCadenceAdvice : conseils de fréquence selon le sens', () => {
   const perte = L.trackingCadenceAdvice('perte');
   assert.ok(/2 à 3/.test(perte.weighIn) && /2 semaines/.test(perte.measure));

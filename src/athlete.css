@@ -359,3 +359,13 @@
 .or-principe{margin:var(--sp-3) 0 0;padding:var(--sp-2) var(--sp-3);border-left:3px solid var(--accent-line);
   border-radius:0 var(--r-sm) var(--r-sm) 0;background:var(--surface-2);color:var(--text);
   font-size:var(--fs-3xs);line-height:1.6}
+
+/* La cadence RÉELLE, sous la consigne : c'est la confrontation qui porte l'information, donc
+   les deux vivent dans le même bloc. Une bordure à gauche marque la bascule consigne → mesure. */
+.cw-cadence-reelle{margin-top:var(--sp-3);padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);
+  border-left:3px solid var(--line);background:var(--surface-2);color:var(--text);
+  font-size:var(--fs-xs);line-height:1.45}
+.cw-cadence-reelle[hidden]{display:none}
+/* La couleur suit le VERDICT, pas le nombre : « tenue » n'a pas à crier, « aucune » si. */
+.cw-cadence-reelle.cwr-bonne{border-left-color:var(--accent-ring)}
+.cw-cadence-reelle.cwr-faible,.cw-cadence-reelle.cwr-aucune{border-left-color:var(--danger)}

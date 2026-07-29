@@ -3246,6 +3246,63 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.cadenceMesuree = (() => {
+        // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
+        const _wS = state.weights, _pS = JSON.parse(JSON.stringify(state.profile || {}));
+        const _rendre = () => { state.weights = _wS; state.profile = _pS;
+          try { renderCoachWeight(); } catch (_) {} };
+        try {
+          if (typeof renderCoachWeight !== "function" || typeof cadenceDePesee !== "function") { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const base = new Date(localDate() + "T12:00:00");
+          const jour = function (n) { const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 180, age: 29,
+            sex: "homme", activityLevel: "actif", goal: "perte" });
+
+          /* 1) CADENCE FAIBLE : deux pesees en quatre semaines. La mesure doit apparaitre SOUS
+             la consigne, dans le MEME bloc — c est la confrontation qui informe. */
+          state.weights = [{ date: jour(20), value: 81.2 }, { date: jour(1), value: 80.1 }];
+          renderCoachWeight();
+          const bloc1 = document.querySelector(".cw-cadence");
+          const mes1 = document.querySelector(".cw-cadence-reelle");
+          const vu = !!mes1 && getComputedStyle(mes1).display !== "none";
+          const memeBloc = !!bloc1 && !!mes1 && bloc1.contains(mes1);
+          // La consigne se lit dans SON div, la mesure dans le sien : ne jamais chercher une
+          // chaine dans un conteneur qui porte deja les deux.
+          const consigne = bloc1 ? String((bloc1.firstElementChild || {}).textContent || "") : "";
+          const t1 = mes1 ? String(mes1.textContent || "") : "";
+          const classeFaible = !!mes1 && mes1.classList.contains("cwr-faible");
+          const consigneChiffree = consigne.indexOf("2 \u00e0 3\u00d7/semaine") !== -1;
+          // Le taux cite doit etre CELUI que l ecran voisin calcule, pas un synonyme.
+          const tend = (typeof weightTrend === "function") ? weightTrend(state.weights) : null;
+          const attendu = tend && tend.ratePerWeek ? String(Math.abs(Math.round(tend.ratePerWeek * 100) / 100)).replace(".", ",") : "";
+          const memeTaux = !!attendu && t1.indexOf(attendu + " kg/sem.") !== -1;
+
+          /* 2) CADENCE TENUE : le verdict et la teinte doivent basculer, sur les MEMES
+             fonctions et le meme rendu. Sans ce second cas, la classe ne serait pas testee. */
+          const bonnes = [];
+          [0, 2, 4, 6, 8, 10, 13, 16, 20, 24].forEach(function (n, i) { bonnes.push({ date: jour(n), value: 81 - i * 0.1 }); });
+          state.weights = bonnes;
+          renderCoachWeight();
+          const mes2 = document.querySelector(".cw-cadence-reelle");
+          const t2 = mes2 ? String(mes2.textContent || "") : "";
+          const classeBonne = !!mes2 && mes2.classList.contains("cwr-bonne");
+          const ditTenue = t2.indexOf("Cadence tenue") !== -1;
+
+          checks.__cadence = "vu=" + vu + " memeBloc=" + memeBloc + " consigneChiffree=" + consigneChiffree
+            + " faible[classe=" + classeFaible + " taux=" + memeTaux + " attendu=" + attendu + "]"
+            + " bonne[classe=" + classeBonne + " tenue=" + ditTenue + "]"
+            + " t1[" + t1.slice(0, 105) + "]";
+          _rendre();
+          return vu && memeBloc && consigneChiffree && classeFaible && memeTaux
+            && classeBonne && ditTenue;
+        } catch (e) {
+          _rendre();
+          checks.__errCadence = String(e && e.message); return false;
+        }
+      })();
+
       checks.creneauPerime = (() => {
         const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
         try {
@@ -5423,6 +5480,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');
