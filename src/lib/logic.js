@@ -8501,6 +8501,10 @@ function rattrapageSeances(state, todayKey, opts) {
    la pression réelle.
    opts : { jours = 21, fenetreVive = 7, urgence = 14, horizonDays = 7, now }.
    `null` si rien n'est en retard. Pur + testé. */
+/* Longueur minimale d'un libellé pour servir de clé d'appariement révision ↔ épreuve. En
+   dessous, la comparaison par sous-chaîne est vraie par accident (une chaîne vide est
+   sous-chaîne de tout ; « compta » contient « a »). Trois caractères gardent « éco ». */
+const MIN_APPARIEMENT = 3;
 function rattrapageRevisions(state, todayKey, opts) {
   const s = state && typeof state === 'object' ? state : {};
   if (!isRealDateKey(todayKey)) return null;
@@ -8533,11 +8537,21 @@ function rattrapageRevisions(state, todayKey, opts) {
        l'épreuve la plus proche tout court : c'est elle qui fixe la pression du moment. */
     /* L'appariement se CONSTATE, il ne se déduit pas. Le déduire en comparant l'épreuve
        retenue au repli était faux dès que l'épreuve appariée se trouvait ÊTRE la plus proche —
-       le cas le plus fréquent, justement (test tombé au premier essai). */
-    const trouvee = epreuves.filter(x => {
+       le cas le plus fréquent, justement (test tombé au premier essai).
+
+       LONGUEUR MINIMALE DES DEUX CÔTÉS (revue 94). La comparaison par sous-chaîne est vraie
+       trop souvent sur des libellés courts : mesuré, un titre VIDE donnait « appariée » sur la
+       première épreuve (une chaîne vide est sous-chaîne de tout), et un titre d'UNE LETTRE
+       aussi (« compta » contient « a »). L'app affirmait alors un lien inexistant — et surtout
+       l'arbitrage se trompait de priorité, puisque l'épreuve dicte l'ordre.
+       Trois caractères laissent passer les matières réellement courtes (« éco ») et rejettent
+       le bruit. Une matière de deux lettres retombe sur l'épreuve la plus proche avec
+       `appariee: false` : sous-affirmer vaut mieux que sur-affirmer. */
+    const trouvee = titre.length < MIN_APPARIEMENT ? null : (epreuves.filter(x => {
       const m = plier(x.g.subject || x.g.title);
-      return m && (titre.indexOf(m) !== -1 || m.indexOf(titre) !== -1);
-    })[0] || null;
+      if (m.length < MIN_APPARIEMENT) return false;
+      return titre.indexOf(m) !== -1 || m.indexOf(titre) !== -1;
+    })[0] || null);
     const liee = trouvee || plusProche;
     return {
       id: a.id, title: String(a.title || 'Révision').slice(0, 60), date: a.date,
@@ -8588,8 +8602,14 @@ function rattrapageRevisions(state, todayKey, opts) {
       ? rescheduleOptions(s, { id: cible.id, durationMin: cible.durationMin, allDay: false }, todayKey,
         { now: o.now, today: todayKey, horizonDays: Math.max(1, Math.round(Number(o.horizonDays) || 7)) })
       : [];
+    /* LE POSSESSIF EST UNE AFFIRMATION. « Son épreuve » ne se dit que si la révision a été
+       réellement appariée par le libellé. Dans le cas de repli, l'épreuve citée n'est PAS la
+       sienne — c'est seulement la plus proche : la phrase affirmait alors un lien que le champ
+       `appariee` niait dans le même objet (revue 94). Le repli reste utile — l'échéance fixe la
+       pression réelle — il faut juste le dire pour ce qu'il est. */
     const parEpreuve = cible.epreuveDans != null && cible.epreuveDans <= urgence
-      ? ' Son épreuve (' + cible.epreuve + ') est dans ' + pl(cible.epreuveDans, 'jour') + '.'
+      ? (cible.appariee ? ' Son épreuve (' : ' Ta prochaine épreuve (') + cible.epreuve
+        + ') est dans ' + pl(cible.epreuveDans, 'jour') + '.'
       : '';
     if (creneaux.length) {
       verdict = 'rattrape';

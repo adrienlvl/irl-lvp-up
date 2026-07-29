@@ -14189,6 +14189,60 @@ test('rattrapageRevisions : c’est l’ÉPREUVE qui arbitre, pas la fraîcheur'
   assert.ok(rc.cible, 'la cible reste nommée — c’est l’agenda qui bloque');
   assert.match(rc.phrase, /aucun trou de 45 min/);
 
+  /* LIBELLÉS DÉGÉNÉRÉS — défaut trouvé par la revue 94. La comparaison par sous-chaîne est vraie
+     trop souvent sur des libellés courts : un titre VIDE donnait « appariée » sur la première
+     épreuve (une chaîne vide est sous-chaîne de tout), et un titre d'UNE LETTRE aussi
+     (« compta » contient « a »). L'app affirmait un lien inexistant — et l'arbitrage se trompait
+     de priorité, puisque c'est l'épreuve qui dicte l'ordre. Trois caractères sont exigés DES DEUX
+     CÔTÉS. On teste chaque longueur car c'est la frontière qui compte, pas un cas moyen. */
+  const avecTitre = titre => ({ ...vide,
+    agenda: [{ id: 9, date: j(2), time: '17:30', durationMin: 45, title: titre,
+      kind: 'study', completed: false }],
+    examGoals: [{ id: 'a', title: 'Compta', subject: 'Compta', date: dans(5) },
+      { id: 'b', title: 'Droit', subject: 'Droit', date: dans(40) }] });
+  /* « a » et « co » sont choisis parce qu'ils SONT sous-chaînes de « compta ». Un titre comme
+     « ab » ne l'est d'aucune matière : il ne s'apparierait pas même sans seuil, le test serait
+     vacant, et un seuil descendu à 2 passerait inaperçu (mutation survivante au premier essai). */
+  ['', ' ', 'a', 'co', undefined].forEach(titre => {
+    const rd = L.rattrapageRevisions(avecTitre(titre), today, { now: '09:00' });
+    assert.ok(rd && rd.cible, 'la révision reste traitée : seul l’APPARIEMENT est refusé');
+    assert.equal(rd.cible.appariee, false,
+      'un libellé de moins de 3 caractères ne doit apparier aucune épreuve (ici '
+      + JSON.stringify(titre) + ')');
+    /* Et la phrase doit suivre : le possessif « son » affirmerait le lien que `appariee` nie. */
+    assert.ok(!/Son épreuve/.test(rd.phrase), 'pas de possessif sans appariement réel');
+    assert.match(rd.phrase, /Ta prochaine épreuve \(Compta\) est dans 5 jours/,
+      'le repli se dit pour ce qu’il est, en citant quand même la vraie échéance');
+  });
+
+  /* TÉMOIN de la frontière HAUTE : « éco » fait exactement 3 caractères et doit s'apparier, sinon
+     le seuil aurait cassé les matières réellement courtes. Il prouve aussi que le possessif revient
+     quand l'appariement est réel — sans ce témoin, un code écrivant « Ta prochaine épreuve »
+     partout passerait toutes les assertions ci-dessus. */
+  const courte = { ...vide,
+    agenda: [{ id: 10, date: j(2), time: '17:30', durationMin: 45, title: 'Révision Éco',
+      kind: 'study', completed: false }],
+    examGoals: [{ id: 'b', title: 'Éco', subject: 'Éco', date: dans(6) }] };
+  const rc3 = L.rattrapageRevisions(courte, today, { now: '09:00' });
+  assert.equal(rc3.cible.appariee, true, '« éco » fait 3 caractères : la frontière doit passer');
+  assert.match(rc3.phrase, /Son épreuve \(Éco\) est dans 6 jours/);
+
+  /* LE SEUIL VAUT DES DEUX CÔTÉS, et ce cas-ci est le seul qui l'exerce : une MATIÈRE de deux
+     lettres. « SI » se trouve dans « révision » (« revi-SI-on ») — donc sans seuil côté matière,
+     « Révision Droit » s'apparierait à SI, et comme SI est l'épreuve la plus proche elle prendrait
+     la tête de l'arbitrage. La révision serait rangée sous la mauvaise matière ET la mauvaise
+     échéance. Toutes mes autres matières font trois lettres ou plus : la garde n'était donc jamais
+     exercée, et la mutation qui la retirait survivait. */
+  const deuxLettres = { ...vide,
+    agenda: [{ id: 11, date: j(2), time: '17:30', durationMin: 45, title: 'Révision Droit',
+      kind: 'study', completed: false }],
+    examGoals: [{ id: 'c', title: 'SI', subject: 'SI', date: dans(3) },
+      { id: 'a', title: 'Droit', subject: 'Droit', date: dans(9) }] };
+  const r2l = L.rattrapageRevisions(deuxLettres, today, { now: '09:00' });
+  assert.equal(r2l.cible.epreuve, 'Droit', '« SI » ne doit pas capter « révision » par accident');
+  assert.equal(r2l.cible.epreuveDans, 9, 'et l’échéance suivie est celle de la BONNE matière');
+  assert.equal(r2l.cible.appariee, true);
+
   /* Sans correspondance de libellé, la révision hérite de l'épreuve la PLUS PROCHE : c'est elle
      qui fixe la pression réelle. Et `appariee` dit honnêtement que ce n'est qu'un repli. */
   const repli = { ...vide, agenda: [rev(2, 1, 'Relire mes fiches')],

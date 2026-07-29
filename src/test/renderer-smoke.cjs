@@ -3954,6 +3954,62 @@ app.whenReady().then(async () => {
         }
       })();
 
+      /* LE POSSESSIF SE MESURE A L ECRAN. La revue 94 a trouve deux affirmations fausses dans
+         cette phrase : un libelle vide ou d une lettre se declarait « apparie » (une chaine vide
+         est sous-chaine de tout, et « compta » contient « a »), et surtout la phrase disait
+         « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
+         seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
+         cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      checks.revisionPossessif = (() => {
+        const _agS = state.agenda, _exS = state.examGoals, _plS = state.plans, _recS = state.recurring;
+        const _rendre = () => { state.agenda = _agS; state.examGoals = _exS; state.plans = _plS;
+          state.recurring = _recS; try { renderExamCountdown(); } catch (_) {} };
+        try {
+          if (typeof renderExamCountdown !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#overdueStudy");
+          if (!el) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const j = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          const dans = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() + n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          state.plans = []; state.recurring = [];
+          state.examGoals = [{ id: "a", title: "Compta", subject: "Compta", date: dans(5) }];
+          const lire = function (titre) {
+            state.agenda = [{ id: 94001, date: j(2), time: "17:30", durationMin: 45,
+              title: titre, kind: "study", completed: false }];
+            renderExamCountdown();
+            return String(el.textContent || "");
+          };
+
+          // APPARIE par le libelle : le possessif est merite.
+          const tApp = lire("Révision Compta");
+          const apparie = tApp.indexOf("Son épreuve (Compta) est dans 5 jours") !== -1;
+
+          /* REPLI : aucune correspondance de libelle. L echeance reste vraie et doit rester dite,
+             mais sans possessif — le champ appariee valait false pendant que la phrase
+             affirmait le contraire. */
+          const tRep = lire("Relire mes fiches");
+          const repli = tRep.indexOf("Ta prochaine épreuve (Compta) est dans 5 jours") !== -1
+            && tRep.indexOf("Son épreuve") === -1;
+
+          /* LIBELLE D UNE LETTRE : « compta » contient « a ». Il ne doit rien apparier, donc pas
+             de possessif non plus. C est le cas qui a revele le defaut. */
+          const tLettre = lire("a");
+          const lettre = tLettre.indexOf("Son épreuve") === -1
+            && tLettre.indexOf("Ta prochaine épreuve (Compta)") !== -1;
+
+          checks.__revPossessif = "apparie=" + apparie + " repli=" + repli + " lettre=" + lettre
+            + " app[" + tApp.slice(0, 70) + "] rep[" + tRep.slice(0, 70) + "]";
+          _rendre();
+          return apparie && repli && lettre;
+        } catch (e) {
+          _rendre();
+          checks.__errRevPossessif = String(e && e.message); return false;
+        }
+      })();
+
       checks.revisionArbitre = (() => {
         const _agS = state.agenda, _exS = state.examGoals, _plS = state.plans, _recS = state.recurring;
         const _rendre = () => { state.agenda = _agS; state.examGoals = _exS; state.plans = _plS;
@@ -6149,6 +6205,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.revisionPossessif) errors.push('Rattrapage des révisions : la phrase affichait « Son épreuve (X) » même quand aucun libellé ne correspondait — un possessif qui affirme un lien que le champ `appariee` niait dans le même objet. Le repli sur l’épreuve la plus proche est légitime, il doit juste se dire pour ce qu’il est (« Ta prochaine épreuve »). Et un libellé vide ou d’une lettre ne doit apparier aucune matière : une chaîne vide est sous-chaîne de tout, et « compta » contient « a »');
     if (!checks.revisionArbitre) errors.push('Révisions en retard : l’écran affichait la liste puis « Reprogramme-les dans le calendrier » — une consigne sans mécanisme, l’état d’avant l’itération 76 pour les séances. C’est l’ÉPREUVE qui doit arbitrer, pas la fraîcheur : une révision de 12 jours passe devant une révision d’hier si son épreuve est dans 5 jours. Le créneau proposé doit DÉPLACER la révision d’un clic, et quand tout est périmé aucun bouton ne doit subsister');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');
     if (!checks.creneauFocus) errors.push('Focus : l’app horodate chaque bloc de concentration (id = Date.now()) et ne l’a jamais lu. La frise « Quand ta concentration se pose » doit rester ÉTEINTE sous le seuil d’échantillon, puis montrer 24 colonnes dont la plage mise en avant est CELLE que la mesure désigne, avec une phrase qui cite les mêmes chiffres — et tenir dans 390 px sans défilement');
