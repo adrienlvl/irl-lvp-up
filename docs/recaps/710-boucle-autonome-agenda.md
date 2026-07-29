@@ -2253,3 +2253,44 @@ manquait.
 **Mutations.** 5 posées, 5 détectées — dont celle qui remet le compte tronqué dans le statut.
 
 673 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 66 — Revue : j'avais transformé une promesse en liste de culpabilité
+
+Revue adversariale due. Cible : mon code des itérations 63 à 65, dont celui de la veille.
+
+### Le défaut
+
+Hier, j'ai rendu les pensées parquées **atteignables** — sans permettre de les **clore**.
+
+| Usage normal (2 pensées/jour, 14 jours) | Résultat |
+|---|---|
+| Stockées dans la fenêtre | 28 |
+| Affichées en avant | 2 |
+| **Dans le tiroir** | **26 « autres en attente »** |
+
+Presque toutes déjà traitées, et le nombre ne pouvait que grossir. J'avais transformé une
+promesse tenue en **liste de culpabilité** — exactement la décharge que mon propre commentaire
+disait vouloir éviter, écrit la veille.
+
+### Ce qui a été fait
+
+Un bouton de clôture par pensée (44 px). L'entrée n'est pas effacée : elle prend un drapeau
+`done` et sort du décompte. Mesuré : 8 ouvertes → clic → 7, tiroir de 4 à 3.
+
+### Ce que cette itération a appris
+
+*Une fonctionnalité qui n'a pas de sortie devient une dette pour l'utilisateur.* Ajouter la
+visibilité sans l'action, c'est déplacer le problème, pas le résoudre.
+
+*Le diagnostic d'un check vaut autant que son verdict.* J'avais inséré le bloc de clic APRÈS la
+restauration de l'état : le tiroir était revidé, le bouton introuvable. Le check a affiché
+`bouton=0px` au lieu de simplement échouer — et c'est ce chiffre qui m'a dit où regarder.
+
+**Mutations.** 4 posées, 4 détectées, dont celle qui recâble le bouton avant l'`innerHTML`.
+
+673 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+### Suite (roadmap 713)
+- Poids, Exercices et Alternance : un seul panneau chacun.
