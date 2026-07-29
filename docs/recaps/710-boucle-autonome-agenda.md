@@ -3189,3 +3189,46 @@ glissante** enjambe désormais les vides. Contrat décidé sur place, pas assoup
   est invisible ; il faut faire varier ce sur quoi elle porte.*
 
 685 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 88 — Revue : l'app félicitait un recul
+
+Revue adversariale des itérations 85-87, sur la cible annoncée : la **référence glissante** de la
+veille, la mécanique la plus fraîche et la plus subtile. Deux défauts, tous deux de mon fait.
+
+### 1. « Ta force progresse le plus… −12,5 kg »
+
+Avec des charges décroissantes — blessure, décharge, reprise — la phrase disait :
+
+> 🏋️ Ta force **progresse le plus** à 1 séance/semaine : **−12,5 kg** … Squat y **a pris** le plus
+> (−12,5 kg).
+
+Trois mots faux dans une phrase : « progresse » quand tout recule, « le plus » pour désigner la
+**moins mauvaise**, « a pris » pour une perte. *L'app félicitait un recul.* Un recul se nomme
+désormais recul, sans désigner de gagnant parmi des pertes.
+
+### 2. La référence glissante enjambait le temps
+
+Introduite la veille pour franchir un bloc **vide** — légitime : un bloc sans séance met la
+progression en pause, il ne la coupe pas — elle n'avait **aucune limite d'âge**. Mesuré : un bloc
+de janvier 2024 servait de référence à un bloc de juin 2026, et l'app annonçait « +76 kg à
+3,5 séances/semaine ». **Deux ans et demi attribués à quatre semaines de cadence.** La référence
+expire maintenant à 180 jours.
+
+*Un correctif qui lève une contrainte en crée souvent une autre : en autorisant à enjamber un
+bloc, j'ai autorisé à enjamber des années. La question à se poser après chaque assouplissement :
+qu'est-ce que je viens de rendre possible en plus de ce que je voulais ?*
+
+### Un accident de patch, à retenir
+
+Mon ancre `let phrase; if (!comparable) {` existait dans **deux** fonctions, et le `split/join` a
+injecté la branche « recul » dans `memoireDesBlocs` aussi — qui parle de tonnage et n'a pas cette
+variable. Les tests l'ont attrapé sur le coup (`aucuneProgression is not defined`).
+**Un `split/join` sur une ancre non unique modifie du code qu'on n'avait pas l'intention de
+toucher** — vérifier l'unicité avant, ou remplacer par position.
+
+**Mutations.** 5 posées, 5 détectées, dont le témoin en charges croissantes : sans lui, une phrase
+figée sur « reculé » passerait pour un succès.
+
+685 tests · SMOKE OK. Rien publié depuis v2.14.0.
