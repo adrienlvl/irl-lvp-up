@@ -2084,3 +2084,44 @@ montré — une fois de plus.
 ### Suite (roadmap 713)
 - Agenda dans la navigation, puis le reste du backlog 705.
 - Puis Focus, en friche (5 panneaux contre 22 pour Athlète).
+
+---
+
+## Itération 62 — Revue : l'alerte livrée hier ratait le cas réel d'Adrien
+
+Revue adversariale due. Cible : **mon code de l'itération 61**, livré la veille.
+
+### Le défaut
+
+La garde « au moins un bloc déplaçable » ne lisait que `state.agenda` brut, alors que `dayLoad`
+compte **aussi les récurrences**. Or les cours d'Adrien sont posés une fois pour toutes en
+récurrence hebdomadaire, pas réécrits chaque semaine.
+
+| Journée | `dayLoad` | Alerte |
+|---|---|---|
+| Deux cours récurrents un mercredi | 330 min, 183 %, **saturé** | **AUCUNE** |
+
+La fonctionnalité livrée la veille ne se déclenchait donc pas dans le cas **le plus courant**.
+
+Une récurrence créée dans l'app est déplaçable par définition — elle se met en pause, se saute,
+se modifie pour une occurrence. Seul l'import de calendrier ne se négocie pas : la distinction
+tenait, c'est la lecture qui était trop étroite.
+
+### Ce que cette itération a appris
+
+*Vérifier la forme du jeu d'essai AVANT de conclure au défaut.* Ma première tentative mettait
+`freq` et `weekdays` à plat, alors que `normalizeRecurring` les attend dans un objet `rule` :
+`recurringOccurs` rendait `false` et la journée paraissait vide. J'ai failli conclure que
+`dayLoad` ignorait les récurrences — c'est-à-dire diagnostiquer un défaut qui n'existait pas, et
+peut-être « corriger » du code sain.
+
+*Une garde neuve doit être éprouvée sur les données réelles, pas sur celles qu'on a sous la
+main.* J'avais testé avec des entrées d'agenda parce que c'est ce que j'avais écrit la veille ;
+Adrien, lui, utilise des récurrences.
+
+**Mutations.** 2 posées, 2 détectées.
+
+670 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+### Suite (roadmap 713)
+- **Focus**, la plus grosse friche (5 panneaux contre 22 pour Athlète).
