@@ -7175,8 +7175,16 @@ function parkingAReprendre(parkings, todayKey, visibles, jours) {
   d.setDate(d.getDate() - (fenetre - 1));
   const depuis = dateKey(d);
 
+  /* ON NE COMPTE QUE CE QUI EST ENCORE OUVERT. Trouvé en revue, le lendemain de la livraison :
+     rendre les pensées atteignables sans permettre de les CLORE transforme la promesse en
+     liste de culpabilité. Mesuré sur un usage normal — deux pensées parquées par jour pendant
+     deux semaines — le tiroir annonçait « 26 autres en attente », dont la quasi-totalité déjà
+     traitées, et le nombre ne pouvait que grossir. C'est exactement la décharge que le
+     commentaire ci-dessus prétendait éviter.
+     Une pensée close garde son entrée — rien n'est effacé, l'historique reste — mais sort du
+     décompte. `done` porte la décision. */
   const list = (Array.isArray(parkings) ? parkings : []).filter(function (p) {
-    return p && isRealDateKey(p.date) && p.date >= depuis && p.date <= todayKey
+    return p && !p.done && isRealDateKey(p.date) && p.date >= depuis && p.date <= todayKey
       && String(p.text || '').trim() !== '';
   });
 

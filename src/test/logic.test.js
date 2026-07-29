@@ -14421,6 +14421,29 @@ test('parkingAReprendre : le parking tient sa promesse « tu peux y revenir »',
   assert.equal(L.parkingAReprendre([{ id: 1, date: 'nawak', text: 'a' }], auj).total, 0, 'date abîmée ignorée');
   assert.equal(L.parkingAReprendre(p, 'nawak'), null, 'sans jour de référence : rien');
   assert.equal(L.parkingAReprendre(null, auj).total, 0);
+
+  /* TROUVÉ EN REVUE, le lendemain de la livraison : rendre les pensées atteignables sans
+     permettre de les CLORE transforme la promesse en liste de culpabilité. Mesuré sur un usage
+     normal — deux pensées par jour pendant deux semaines — le tiroir annonçait « 26 autres en
+     attente », dont la quasi-totalité déjà traitées, et le nombre ne pouvait que grossir. */
+  const deuxSemaines = [];
+  for (let d = 13, id = 1; d >= 0; d--) {
+    deuxSemaines.push({ id: id++, date: j(d), text: 'A du ' + j(d) });
+    deuxSemaines.push({ id: id++, date: j(d), text: 'B du ' + j(d) });
+  }
+  assert.equal(L.parkingAReprendre(deuxSemaines, auj).total, 28, 'sans clôture : tout s’empile');
+
+  // Une pensée close garde son entrée mais sort du décompte ET des deux listes.
+  const closes = deuxSemaines.map((p, i) => (i < 26 ? Object.assign({}, p, { done: true }) : p));
+  const apres = L.parkingAReprendre(closes, auj);
+  assert.equal(apres.total, 2, 'seules les ouvertes comptent : ' + apres.total);
+  assert.equal(apres.plusAnciennes.length, 0, 'le tiroir se vide quand on traite');
+  assert.equal(apres.resume, '', 'et le résumé se tait plutôt que d’annoncer « 0 autre »');
+  assert.equal(closes.length, 28, 'RIEN n’est effacé : l’historique reste entier');
+  // Le drapeau porte la décision, quelle que soit sa forme véridique.
+  assert.equal(L.parkingAReprendre([{ id: 1, date: auj, text: 'a', done: true }], auj).total, 0);
+  assert.equal(L.parkingAReprendre([{ id: 1, date: auj, text: 'a', done: false }], auj).total, 1,
+    'done:false reste ouverte — false n’est pas « traitée »');
 });
 
 test('focusHeatmapJours : la concentration se lit en minutes, pas en nombre de blocs', () => {

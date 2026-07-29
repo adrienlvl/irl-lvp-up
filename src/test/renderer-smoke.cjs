@@ -3228,16 +3228,30 @@ app.whenReady().then(async () => {
           const enAttente = more ? more.querySelectorAll('.fpm-list li').length : 0;
           const textes = more ? String(more.textContent || '') : '';
 
+          /* LE CLIC DOIT FERMER. Sans ca le tiroir ne peut que grossir : on peut y revenir,
+             mais jamais en sortir — la promesse devient une liste de culpabilite. */
+          const bouton = more ? more.querySelector('.fpm-done') : null;
+          const boutonHaut = bouton ? Math.round(bouton.getBoundingClientRect().height) : 0;
+          let restantApresClic = -1, statutApresClic = '';
+          if (bouton) {
+            bouton.click();
+            restantApresClic = document.querySelectorAll('#focusParkingMore .fpm-list li').length;
+            statutApresClic = String((document.getElementById('focusParkingStatus') || {}).textContent || '');
+          }
+
+
           state.focusParkings = sp;
           try { renderFocusParking(); } catch (_) {}
           showPage('dashboard');
 
-          checks.__parking = 'avant=' + enAvant + ' attente=' + enAttente + ' peint=' + morePeint + ' statut[' + statut.slice(0, 40) + ']';
+          checks.__parking = 'avant=' + enAvant + ' attente=' + enAttente + ' peint=' + morePeint + ' apresClic=' + restantApresClic + ' bouton=' + boutonHaut + 'px statut[' + statut.slice(0, 24) + '] puis[' + statutApresClic.slice(0, 24) + ']';
           /* Le statut doit annoncer les HUIT, le tiroir doit etre peint et contenir les quatre
              autres — dont « Date du partiel », du jour mais hors des quatre affichees. */
           return enAvant === 4 && morePeint && enAttente === 4
             && statut.indexOf('8 pensées déposées') !== -1
-            && textes.indexOf('Date du partiel') !== -1;
+            && textes.indexOf('Date du partiel') !== -1
+            && boutonHaut >= 40 && restantApresClic === 3
+            && statutApresClic.indexOf('7 pensées déposées') !== -1;
         } catch (e) { checks.__errParking = String(e && e.message); return false; }
       })();
 
