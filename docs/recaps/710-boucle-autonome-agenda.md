@@ -3274,3 +3274,47 @@ pense.*
 la frise redevenait décorative.
 
 686 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 90 — Focus : ce que l'énergie du matin annonce
+
+Chantier n°10, volet « focus → journée ». Vérifié **dans le code** (et pas par mot-clé — voir
+ci-dessous) : l'énergie du matin sert au check-in du jour, à pré-remplir un champ, et de
+**résultat** dans `sleepImpactReport`. Jamais de **prédicteur** — alors que c'est la seule mesure
+disponible au moment où l'on décide de sa journée.
+
+> ⚡ Tes journées à énergie haute (4/5) te donnent **100 min** de concentration, contre **25 min**
+> les jours bas (2/5). Sur 40 jours à toi.
+> **Ce matin tu es à 2/5 : vise un bloc court plutôt qu'une longue session.**
+
+Le conseil du jour n'apparaît **que** si une énergie est notée ce matin. Écart nul → l'app le dit
+et renvoie vers ce qu'elle sait déjà mesurer (créneau, sommeil). Le lien inverse existe aussi et
+se nomme.
+
+### Ce que cette itération a appris
+
+**Un faux positif de mon propre test.** Ma sonde concluait « déjà couvert » parce que la page
+contient « énergie » *et* parle de focus ailleurs. C'est exactement le piège que je m'étais écrit
+— *ne jamais asserter une chaîne sur un conteneur qui la contient déjà.* La vérification au niveau
+du code a tranché en trente secondes. *Une heuristique par mot-clé répond à « les deux mots
+existent-ils ? », pas à « sont-ils reliés ? ».*
+
+**La médiane d'une échelle ordinale est une valeur observée.** Avec 21 jours à 2/5 et 20 à 4/5,
+elle vaut 2 — le partage strict vidait le groupe bas et la fonction se taisait, alors que l'écart
+mesuré était de 25 min contre 100. *Sur une échelle à cinq crans, un partage strict autour de la
+médiane peut supprimer un groupe entier.* Trois partages sont essayés, du plus contrasté au plus
+permissif.
+
+**Le conseil doit lire le groupe, pas le seuil.** Il comparait à la médiane alors que le partage
+retenu pouvait être inclusif : un 2/5 rangé dans les jours bas s'entendait dire « pile ta
+moyenne ».
+
+**Troisième garde IMPLIQUÉE par construction.** Après l'itération 84 (hauteur tactile en double) et
+la 87 (`cad > 0` impliqué par l'absence d'exercices), voici `moyE(haut) > moyE(bas)` — vrai par
+construction des prédicats. *Une garde qu'aucune entrée ne peut mettre en défaut n'est pas une
+sécurité : c'est du bruit qui masque la couverture. On la retire, on ne la teste pas.*
+
+**Mutations.** 6 posées, 6 détectées après retrait de cette garde.
+
+687 tests · SMOKE OK. Rien publié depuis v2.14.0.
