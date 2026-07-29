@@ -1518,13 +1518,9 @@ function retablirHabitudeRecurrente(){
   if(res.changed){state.recurring=res.recurring;save();renderAgenda();renderMyDay();renderCommandCenter();renderMonthCalendar();renderCoachFocus();}
   fermerExceptionRecurrente();
 }
-function completeRecurringOn(recId,date){const r=state.recurring.find(x=>x.id===Number(recId));if(!r)return false;r.doneLog=Array.isArray(r.doneLog)?r.doneLog:[];
-  /* Une occurrence déplacée se valide sur sa date d'ORIGINE : c'est là que la règle la place et
-     c'est là que la lecture va la chercher. Cocher le mardi un cours venu du lundi devait écrire
-     lundi, sinon la coche ne tenait pas et le bloc ressortait « à faire » au rendu suivant. */
-  const occ=(typeof recurringOccurrence==='function')?recurringOccurrence(r,date):null;
-  const cible=occ?occ.sourceDate:date;
-  if(r.doneLog.includes(cible))return false;r.doneLog.push(cible);if(r.kind==='study'){award(15,'focus');}else{save();renderDashboardCore();}return true;}
+function completeRecurringOn(recId,date){const id=Number(recId);const r=state.recurring.find(x=>x.id===id);if(!r)return false;if(typeof setRecurringDone!=='function'){  /* Repli : si la logique pure manque, on ne coche rien plutot que de reimplementer
+     une regle qui divergerait a nouveau. */
+  return false;}const res=setRecurringDone(state.recurring,id,date,true);if(!res.changed)return false;state.recurring=res.recurring;if(r.kind==='study'){award(15,'focus');}else{save();renderDashboardCore();}return true;}
 function skipRecurringOn(recId,date){const r=state.recurring.find(x=>x.id===Number(recId));if(!r)return false;r.skipLog=Array.isArray(r.skipLog)?r.skipLog:[];
   /* Comme la validation, un saut se pose sur la date d'ORIGINE. Sans ça, sauter un cours déplacé
      au mardi écrivait « mardi » alors que la règle le place le lundi : recurringOccurs voyait

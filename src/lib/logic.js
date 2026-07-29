@@ -7994,11 +7994,22 @@ function setRecurringDone(recurring, recId, dateKey, done) {
   let changed = false;
   const out = list.map(rec => {
     if (!rec || rec.id !== recId) return rec;
+    /* UNE OCCURRENCE DÉPLACÉE SE VALIDE SUR SA DATE D'ORIGINE : c'est là que la règle la place
+       et là que la lecture va la chercher. Cocher le mardi un cours venu du lundi doit écrire
+       LUNDI, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant.
+       Cette résolution n'existait que dans `completeRecurringOn` (app.js) : cette fonction-ci,
+       pure et testée, était donc une version PLUS FAIBLE que celle réellement utilisée, et la
+       brancher aurait réintroduit le bug (constat de l'itération 71). Elle est maintenant à
+       parité — c'est ce qui permet de n'avoir qu'une seule implémentation.
+       Sans déplacement, `sourceDate` vaut `dateKey` : le comportement d'avant est intact. */
+    const occ = (typeof recurringOccurrence === 'function') ? recurringOccurrence(rec, dateKey) : null;
+    const cible = (occ && isRealDateKey(occ.sourceDate)) ? occ.sourceDate : dateKey;
+
     const log = Array.isArray(rec.doneLog) ? rec.doneLog : [];
-    const dedans = log.includes(dateKey);
+    const dedans = log.includes(cible);
     if (dedans === veut) return rec;
     changed = true;
-    return { ...rec, doneLog: veut ? log.concat(dateKey) : log.filter(d => d !== dateKey) };
+    return { ...rec, doneLog: veut ? log.concat(cible) : log.filter(d => d !== cible) };
   });
   return { recurring: changed ? out : list, changed };
 }

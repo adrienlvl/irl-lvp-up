@@ -13327,6 +13327,41 @@ test('busyBlocksForDay : ce qui occupe VRAIMENT un jour (agenda + récurrents)',
   assert.equal(L.conflictLabel(null, null), '');
 });
 
+test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORIGINE', () => {
+  /* CONTRAT ÉLARGI SCIEMMENT (itération 73). Cette fonction prenait la date TELLE QUELLE,
+     alors que `completeRecurringOn` (app.js) résolvait la date d'origine via
+     `recurringOccurrence`. Deux implémentations du même geste, dont la pure était la PLUS
+     FAIBLE : la brancher aurait réintroduit un bug corrigé (constat de l'itération 71).
+     Elle est mise à parité ici, ce qui permet de n'en garder qu'une seule. */
+  const lundi = '2026-08-03', mardi = '2026-08-04';
+  const rec = L.normalizeRecurring({ id: 1, title: 'Cours de compta', time: '08:00',
+    durationMin: 120, kind: 'study',
+    rule: { freq: 'weekly', interval: 1, weekdays: [1], startDate: '2026-01-01', until: '' } });
+  // Le champ de déplacement s'appelle moveTo — `date` serait rejeté en silence (itération 72).
+  const dep = L.setRecurringOverride([rec], 1, lundi, { moveTo: mardi });
+  assert.equal(dep.changed, true, 'jeu d’essai : le déplacement prend bien');
+  assert.equal(L.recurringOccurrence(dep.recurring[0], mardi).sourceDate, lundi,
+    'et l’occurrence du mardi vient bien du lundi');
+
+  // LE CAS QUI DISCRIMINE : on coche sur la NOUVELLE date, l’écriture doit tomber sur l’ANCIENNE.
+  const coche = L.setRecurringDone(dep.recurring, 1, mardi, true);
+  assert.equal(coche.changed, true);
+  assert.deepEqual(coche.recurring[0].doneLog, [lundi],
+    'la coche atterrit sur la date d’origine, pas sur la date affichée');
+  assert.equal(coche.recurring[0].doneLog.indexOf(mardi), -1, 'et surtout pas sur les deux');
+
+  // Décocher depuis la date affichée doit retirer la bonne entrée — sinon la coche serait piégée.
+  const decoche = L.setRecurringDone(coche.recurring, 1, mardi, false);
+  assert.deepEqual(decoche.recurring[0].doneLog, [], 'décocher le mardi retire bien le lundi');
+
+  /* SANS déplacement, le comportement d'avant est intact : c'est ce qui garantit que
+     l'élargissement du contrat n'a rien cassé pour le cas courant. */
+  const simple = L.setRecurringDone([rec], 1, lundi, true);
+  assert.deepEqual(simple.recurring[0].doneLog, [lundi]);
+  assert.deepEqual(rec.doneLog, [], 'immuable : la source n’est pas touchée');
+  assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
+});
+
 test('xpForAgendaItem / setAgendaCompleted / setRecurringDone : cocher et décocher', () => {
   // L'XP se lit au même endroit dans les deux sens, sinon annuler laisse de l'XP fantôme.
   assert.deepEqual(L.xpForAgendaItem({ kind: 'study' }), { xp: 15, category: 'focus' });
