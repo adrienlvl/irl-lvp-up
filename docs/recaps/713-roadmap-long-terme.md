@@ -42,15 +42,23 @@ Panneaux de contenu par page, hors cartes globales :
 mandat portait — mais ça dit où sont les gisements : Focus, Agenda, Nutrition et Poids ont reçu
 une fraction de l'attention.
 
-## 3. Constat n°2 — L'Agenda n'est pas dans la navigation
+## 3. Constat n°2 — ~~L'Agenda n'est pas dans la navigation~~ **ERREUR D'AUDIT, corrigée le 2026-07-29**
 
-La barre de navigation contient huit entrées, et **l'Agenda n'en fait pas partie** : on y accède
-par un bouton (`openWeekPage`) depuis le tableau de bord. C'est pourtant la surface qui porte
-53 entrées dans l'état de test, la planification des séances, les récurrences, les révisions BTS
-et les rappels.
+**Ce constat était faux.** L'Agenda **est** dans la barre de navigation, en deuxième position,
+avec son icône 🗓️ et son libellé « Agenda ».
 
-Une app dont le cœur est « ce que je fais de ma journée » range son agenda derrière un bouton.
-C'est un choix à réexaminer.
+Pourquoi je m'étais trompé : j'ai inventorié la navigation en listant les éléments porteurs de
+`[data-page]`. Or le bouton Agenda est le seul à s'identifier par un `id` (`#openWeekPage`),
+parce que `#weekPage` est une `<section>` basculée par `hidden` et non une page du système
+`showPage`/`pageGroups`. Ma mesure excluait donc structurellement la seule entrée qui ne suit
+pas la convention — et je n'ai pas recoupé avec le markup.
+
+*C'est le fil rouge appliqué à moi : un écart entre ce que ma méthode dit et ce que l'app fait.
+Une mesure qui exclut un cas par construction ne mesure pas ce qu'elle prétend.*
+
+**Ce qui reste vrai, en revanche** : l'Agenda repose sur un mécanisme d'affichage différent de
+toutes les autres pages. Ce n'est pas un défaut visible aujourd'hui — la sonde 390×844 de
+l'itération 61 l'a trouvé sain — mais c'est une singularité à connaître avant d'y toucher.
 
 ## 4. Constat n°3 — Des sous-systèmes à moitié construits
 
@@ -196,7 +204,7 @@ elles sont écartées **volontairement** :
 
 | Rang | Chantier | Pourquoi ce rang |
 |---|---|---|
-| 1 | Agenda dans la navigation + sonde 390 px | surface centrale jamais auditée |
+| ~~1~~ | ~~Agenda dans la navigation + sonde 390 px~~ | **FAIT** — il y était déjà (erreur d audit), et la sonde 390 px de l itération 61 l a trouvé sain |
 | 2 | Backlog Agenda 705 (prévu vs réel, bilan du soir) | valeur quotidienne immédiate |
 | 3 | Trancher les 3 sous-systèmes inertes | la dette grossit tant qu'on ne décide pas |
 | 4 | Rééquilibrer Focus et Poids | une page à un seul angle est une page en friche |
