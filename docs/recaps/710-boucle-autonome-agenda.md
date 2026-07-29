@@ -2032,3 +2032,55 @@ servait de référence. Il a fallu effacer explicitement cette référence.
 ### Boucle arrêtée à la demande d'Adrien
 Roadmap 712 à jour. Reste, dans l'ordre : l'arbitrage sous budget de temps (le plus gros saut
 qualitatif), la mémoire des blocs, puis la distribution si elle a lieu.
+
+---
+
+## Itération 61 — L'app savait que la journée ne tenait pas, et ne le disait qu'à l'Agenda
+
+Premier chantier de la roadmap long terme (713) : l'**Agenda**, jamais audité.
+
+### La sonde a démenti le backlog
+
+L'Agenda est **sain en 390 px** : aucun débordement, aucun champ sous 16 px, trois vues
+(Jour/Semaine/Mois), des filtres, un compteur fait/prévu par jour. Le backlog de 705 supposait
+des manques d'interface ; ils ne sont pas là.
+
+### Ce qui manquait vraiment
+
+Sur une journée type — 3 h de cours, 2 h de cours, 1 h de muscu, 1 h 30 de révision :
+
+```
+dayLoad → { plannedMin: 330, capacityMin: 180, pct: 183, overflowMin: 150, endEstimate: '21:30' }
+```
+
+…pendant que « À rattraper » sur le tableau de bord ne parlait que de **sauvegarde**. L'app
+savait que la journée débordait de deux heures et demie et ne le disait qu'à qui allait le
+chercher.
+
+### Le piège évité — déjà documenté dans le dépôt
+
+Une journée entièrement faite de **cours importés** dépasse la capacité par défaut presque tous
+les jours d'école. L'alerte se serait déclenchée en permanence et aurait cessé d'être lue :
+c'est mot pour mot ce que la v2.6.0 a corrigé sur la jauge du même sujet. Et « décale ou
+raccourcis » n'a aucun sens face à un emploi du temps qu'on ne choisit pas.
+
+L'alerte exige donc **au moins un bloc déplaçable**. Mesuré : 200 % de cours seuls → silence ;
+283 % avec deux blocs à soi → alerte haute.
+
+### Deux erreurs de ma part, corrigées
+
+*Ma clé de diagnostic écrasait celle d'un check existant* (`__charge`) — je lisais le diagnostic
+d'un autre test en croyant lire le mien.
+
+*Je pilotais le mauvais peintre.* `renderCommandCenter` ne rend pas ce bloc ; c'est
+`renderAttention`. La logique était juste depuis le début, et seule la sonde du **rendu** l'a
+montré — une fois de plus.
+
+**Mutations.** 5 posées, 5 détectées, dont celle qui retire la garde et fait apparaître
+« 3 h de trop » sur une journée de cours seuls.
+
+670 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+### Suite (roadmap 713)
+- Agenda dans la navigation, puis le reste du backlog 705.
+- Puis Focus, en friche (5 panneaux contre 22 pour Athlète).
