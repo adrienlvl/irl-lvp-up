@@ -717,7 +717,24 @@ function releaseGuidedWakeLock(){try{guidedWakeLock&&guidedWakeLock.release&&gui
 document.addEventListener('visibilitychange',()=>{try{const dlg=document.getElementById('guidedWorkoutDialog');if(!guidedWakeLock&&typeof shouldReacquireWakeLock==='function'&&shouldReacquireWakeLock(dlg&&dlg.open,document.visibilityState))requestGuidedWakeLock();}catch(_){}});
 let guidedRecapShown=false;
 function showGuidedRecap(){if(!guidedWorkout)return;saveGuidedExercise();const prior=personalRecords(state.workouts),sum=sessionSummary(guidedWorkout.exercises,prior),el=$('#guidedRecap');if(!el)return;const prLine=sum.prs.length?`<div class="gr-prs">🏆 ${sum.prs.length} record${sum.prs.length>1?'s':''} en vue : ${sum.prs.map(p=>`${escapeHtml(p.name)} (${p.loadPr&&p.load>0?p.load+' kg':p.reps+' reps'})`).join(' · ')}</div>`:'';el.innerHTML=`<div class="gr-title">Bilan de ta séance</div><div class="gr-stats"><div><b>${sum.exercises}</b><small>exercices</small></div><div><b>${sum.sets}</b><small>séries</small></div><div><b>${sum.tonnage}</b><small>kg soulevés</small></div></div>${prLine}`;el.hidden=false;el.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function openGuidedWorkout(workout) { guidedWorkout={...workout,exercises:workout.exercises.map(x=>{const recommendation=exerciseRecommendation(x);return completeExercise({...x,...recommendation,setLogs:[]});})};guidedIndex=0;guidedRecapShown=false;guidedPret=false;guidedReposRegle=null;stopGuidedCompte();const rc=$('#guidedRecap');if(rc){rc.hidden=true;rc.innerHTML='';}renderGuidedWorkout();$('#guidedWorkoutDialog').showModal();requestGuidedWakeLock(); }
+/* CE QU'ON FAIT MAINTENANT PASSE AVANT CE QU'ON A FAIT AU DÉBUT.
+   Mesuré à 390×844 : l'échauffement et la prépa ouvraient le dialogue, et le nom de l'exercice
+   en cours n'apparaissait qu'à 563 px — hors du premier écran. Or l'échauffement se consulte UNE
+   fois, en début de séance ; le bloc « exercice + valider mes séries », lui, se relit toutes les
+   90 secondes pendant toute la séance. Ils descendent donc au-dessus du retour au calme, où on
+   les retrouve quand on en a besoin. Déplacement de NŒUD, idempotent — même procédé que
+   `placerPlanEnTete`, les renderers continuent d'écrire aux mêmes identifiants. */
+function descendreEchauffement(){
+  const repere=document.querySelector('#guidedWorkoutDialog .guided-cooldown');
+  if(!repere)return;
+  ['#guidedWarmup','#guidedPrehab'].forEach(function(sel){
+    const bloc=document.querySelector('#guidedWorkoutDialog '+sel);
+    if(!bloc||bloc.nextElementSibling===repere)return;
+    repere.parentNode.insertBefore(bloc,repere);
+  });
+}
+function openGuidedWorkout(workout) {
+  descendreEchauffement(); guidedWorkout={...workout,exercises:workout.exercises.map(x=>{const recommendation=exerciseRecommendation(x);return completeExercise({...x,...recommendation,setLogs:[]});})};guidedIndex=0;guidedRecapShown=false;guidedPret=false;guidedReposRegle=null;stopGuidedCompte();const rc=$('#guidedRecap');if(rc){rc.hidden=true;rc.innerHTML='';}renderGuidedWorkout();$('#guidedWorkoutDialog').showModal();requestGuidedWakeLock(); }
 let restAudioCtx=null;
 function restSoundEnabled(){try{return localStorage.getItem('irl-rest-sound')!=='off';}catch(_){return true;}}
 // Retour haptique mobile centralisé : vibre selon l'événement si l'appareil le supporte. No-op sinon.

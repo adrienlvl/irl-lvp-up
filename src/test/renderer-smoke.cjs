@@ -3246,6 +3246,57 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.guideeOrdre = (() => {
+        try {
+          if (typeof openGuidedWorkout !== "function") return false;
+          const dlg = document.querySelector("#guidedWorkoutDialog");
+          if (!dlg) return false;
+          openGuidedWorkout({ id: 84001, title: "Haut du corps", exercises: [
+            { name: "Pompes classiques", sets: 3, reps: 15 },
+            { name: "Tractions", sets: 4, reps: 8 } ] });
+
+          /* CE QU ON FAIT MAINTENANT PASSE AVANT CE QU ON A FAIT AU DEBUT. Mesure : le nom de
+             l exercice n apparaissait qu a 563 px, derriere l echauffement et la prepa — hors
+             du premier ecran d un telephone. */
+          const nom = dlg.querySelector("#guidedExerciseName");
+          const chauffe = dlg.querySelector("#guidedWarmup");
+          const prepa = dlg.querySelector("#guidedPrehab");
+          const avantChauffe = !!nom && !!chauffe
+            && (nom.compareDocumentPosition(chauffe) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          const avantPrepa = !!nom && !!prepa
+            && (nom.compareDocumentPosition(prepa) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          const yNom = nom ? Math.round(nom.getBoundingClientRect().top) : -1;
+
+          // L echauffement doit RESTER dans le dialogue : on le descend, on ne le supprime pas.
+          const chauffePresent = !!chauffe && !!prepa && dlg.contains(chauffe) && dlg.contains(prepa);
+
+          /* CIBLES TACTILES : mesure 32 px sur « Remplacer », sous le seuil de la maison — et
+             c est un bouton qu on vise en pleine seance, entre deux series. */
+          const petits = [];
+          dlg.querySelectorAll("button").forEach(function (b) {
+            if (b.offsetParent === null) return;
+            const h = b.getBoundingClientRect().height;
+            if (h > 0 && h < 44) petits.push((b.id || b.className || b.tagName) + "=" + Math.round(h));
+          });
+
+          // Et rien ne doit deborder lateralement dans le dialogue.
+          const deborde = [];
+          dlg.querySelectorAll("*").forEach(function (e) {
+            if (e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 4 && getComputedStyle(e).overflowX === "visible")
+              deborde.push(String(e.id || e.className || e.tagName).split(" ")[0]);
+          });
+
+          try { dlg.close(); } catch (_) {}
+          checks.__guideeOrdre = "nomAvantChauffe=" + avantChauffe + " nomAvantPrepa=" + avantPrepa
+            + " yNom=" + yNom + " present=" + chauffePresent
+            + " petits[" + petits.join(",") + "] deborde[" + deborde.slice(0, 3).join(",") + "]";
+          return avantChauffe && avantPrepa && chauffePresent && petits.length === 0 && deborde.length === 0;
+        } catch (e) {
+          try { document.querySelector("#guidedWorkoutDialog").close(); } catch (_) {}
+          checks.__errGuideeOrdre = String(e && e.message); return false;
+        }
+      })();
+
       checks.avancementVu = (() => {
         const _wS = state.workouts, _gS = JSON.parse(JSON.stringify(state.goals || {}));
         const _pS = JSON.parse(JSON.stringify(state.profile || {}));
@@ -5622,6 +5673,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.guideeOrdre) errors.push('Séance guidée : l’exercice EN COURS doit venir avant l’échauffement et la prépa — mesuré, son nom n’apparaissait qu’à 563 px, hors du premier écran, alors que l’échauffement se consulte une fois et le bloc exercice toutes les 90 secondes. Les deux accordéons doivent RESTER dans le dialogue (on les descend, on ne les supprime pas), aucun bouton ne doit passer sous 44 px (« Remplacer » mesurait 32 px) et rien ne doit déborder latéralement');
     if (!checks.avancementVu) errors.push('Plan de bataille : ses quinze blocs parlent tous du passé (tonnage 8 semaines, régularité 28 j, jour fort) et aucun ne répondait à la seule question que pose un plan — est-il TENU cette semaine ? Le bloc « Ta semaine, face au plan » doit OUVRIR le panneau, citer exactement les chiffres mesurés, et changer de ton quand la semaine est bouclée au lieu de réclamer encore');
     if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');

@@ -37,7 +37,11 @@
 @media(max-width:700px){.guided-resume .gr-acts{width:100%;margin-left:0}.guided-resume .gr-acts button{flex:1;min-height:44px}}
 .guided-ex-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .guided-ex-head h3{margin:16px 0 4px!important}
-.guided-ex-head #guidedSwap{flex:0 0 auto;padding:7px 11px;font-size:.76rem;white-space:nowrap}
+/* Hauteur tactile : garantie une seule fois, en bas de ce fichier, pour TOUS les boutons du
+   dialogue. La poser aussi ici ferait deux règles pour la même promesse — et une mutation sur
+   l'une survivait, masquée par l'autre (mesuré). */
+.guided-ex-head #guidedSwap{flex:0 0 auto;padding:var(--sp-2) var(--sp-5);
+  font-size:.76rem;white-space:nowrap}
 .guided-swap-list{display:grid;gap:6px;margin:8px 0 2px;padding:9px 11px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px}
 .guided-swap-list .gsw-label{color:var(--muted);font-size:.72rem}
 .guided-swap-list .gsw-item{display:grid;gap:2px;text-align:left;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:9px 11px;cursor:pointer;font-family:inherit}
@@ -375,3 +379,11 @@
 .bb-progres li em{font-style:normal;color:var(--text);font-weight:700;white-space:nowrap;
   font-variant-numeric:tabular-nums}
 .bb-verdict{margin:0;color:var(--text);font-size:var(--fs-2xs);line-height:1.55;font-weight:650}
+
+/* CIBLES TACTILES DE LA SÉANCE GUIDÉE — garantie unique plutôt qu'une règle par bouton.
+   Mesuré à 390×844, dialogue ouvert : « Remplacer » 32 px, les ± du repos 32 px, les cinq
+   « Valider » de séries 37 px, la fermeture 42 px. C'est l'écran qu'on manipule EN SÉANCE,
+   entre deux séries, main moite — chaque bouton doit se viser au pouce.
+   `align-items:center` sur les lignes concernées évite qu'un bouton plus haut étire sa rangée. */
+#guidedWorkoutDialog button{min-height:44px}
+#guidedWorkoutDialog .guided-rest,#guidedWorkoutDialog .guided-ex-head{align-items:center}
