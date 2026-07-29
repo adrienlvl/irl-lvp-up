@@ -3666,6 +3666,76 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.pliAnalyseFocus = (() => {
+        /* ON MESURE LA OU LA CHOSE EST VISIBLE. Cette passe tourne sur le tableau de bord, ou le
+           donjon du focus est masque : toutes les hauteurs y valent 0, y compris celle du resume,
+           et les assertions de taille ne veulent plus rien dire (mesure a l appui). Meme lecon que
+           la frise horaire mesuree dans une fenetre de bureau a l iteration 75. */
+        const _pageAvant = (function () {
+          // Valeur d attribut NON QUOTEE : dans un gabarit, des guillemets imbriques echappes
+          // ferment la chaine et tuent le script. En CSS, page est un identifiant valide.
+          const b = document.querySelector(".app-nav [data-page][aria-current=page]");
+          return b ? b.dataset.page : "dashboard";
+        })();
+        try {
+          if (typeof showPage === "function") showPage("focus");
+          const pli = document.querySelector("#focusAnalyse");
+          const tache = document.querySelector(".focus-task");
+          const parking = document.querySelector(".focus-parking");
+          if (!pli || !tache || !parking) return false;
+          const ids = ["focusWeekGoal", "focusCibleTenue", "focusTrend", "focusHeatmap",
+            "focusCreneau", "focusOutcomes"];
+
+          /* 1) RIEN N EST PERDU. Les six analyses doivent TOUTES etre encore dans le DOM, et
+             toutes DANS le pli : replier n est pas supprimer. */
+          const trouves = ids.filter(function (id) { return !!document.getElementById(id); });
+          const dedans = ids.filter(function (id) {
+            const e = document.getElementById(id); return !!e && pli.contains(e);
+          });
+
+          /* 2) REPLIE PAR DEFAUT, et reellement invisible.
+             MESURE A L APPUI : sur un <details> ferme, ni le display calcule (reste block), ni
+             offsetParent (reste present), ni la hauteur de la boite (reste 92 px)
+             ne changent. Le seul signal fiable est checkVisibility() — false ferme, true
+             ouvert. La regle maison « tester le display calcule » ne suffit donc PAS ici.
+             On garde en plus la hauteur du PLI lui-meme, qui se replie bel et bien (46 vs 767). */
+          const ferme = pli.open === false;
+          const hautFerme = Math.round(pli.getBoundingClientRect().height);
+          const invisibles = ids.filter(function (id) {
+            const e = document.getElementById(id);
+            return !!e && typeof e.checkVisibility === "function" && e.checkVisibility() === false;
+          }).length;
+
+          /* 3) LE RESUME EST UN BOUTON : cible tactile pleine, comme tout ce qu on vise au pouce. */
+          const resume = pli.querySelector("summary");
+          const tactile = !!resume && Math.round(resume.getBoundingClientRect().height) >= 44;
+
+          /* 4) DEPLIER REVELE TOUT — sinon le pli serait une trappe. */
+          pli.open = true;
+          const hautOuvert = Math.round(pli.getBoundingClientRect().height);
+          const visiblesOuvert = ids.filter(function (id) {
+            const e = document.getElementById(id);
+            return !!e && typeof e.checkVisibility === "function" && e.checkVisibility() === true;
+          }).length;
+          pli.open = false;
+
+          /* 5) LE PARKING REMONTE : c est l effet cherche. Il doit se trouver au-dessus de ce que
+             mesurait le mur d analyses — on compare a la hauteur du pli OUVERT. */
+          const gagne = hautOuvert - hautFerme;
+
+          checks.__focusPli = "trouves=" + trouves.length + "/6 dansLePli=" + dedans.length
+            + "/6 ferme=" + ferme + " invisibles=" + invisibles + "/6 tactile=" + tactile
+            + " hFerme=" + hautFerme + " hOuvert=" + hautOuvert + " gagne=" + gagne
+            + " visiblesOuvert=" + visiblesOuvert + "/6";
+          if (typeof showPage === "function") showPage(_pageAvant);
+          return trouves.length === 6 && dedans.length === 6 && ferme && invisibles === 6
+            && tactile && visiblesOuvert === 6 && gagne > 300;
+        } catch (e) {
+          try { if (typeof showPage === "function") showPage(_pageAvant); } catch (_) {}
+          checks.__errFocusPli = String(e && e.message); return false;
+        }
+      })();
+
       checks.energieFocusVue = (() => {
         const _mrS = state.morningRituals, _fsS = state.focusSessions;
         const _rendre = () => { state.morningRituals = _mrS; state.focusSessions = _fsS;
@@ -5972,6 +6042,7 @@ app.whenReady().then(async () => {
     if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
+    if (!checks.pliAnalyseFocus) errors.push('Le donjon du focus sert à LANCER un bloc, pas à lire des statistiques : six analyses s’y étaient empilées entre la tâche et le parking (657 px mesurés). Elles doivent TOUTES rester dans le DOM, toutes dans le pli « Comprendre mes semaines », replié par défaut et réellement invisible (hauteur nulle, pas seulement un attribut), avec un résumé à 44 px — et déplier doit tout révéler, sinon le pli est une trappe');
     if (!checks.energieFocusVue) errors.push('Focus : l’énergie du matin servait au check-in du jour et de RÉSULTAT dans le bilan sommeil — jamais de prédicteur, alors que c’est la seule mesure disponible au moment où l’on décide de sa journée. Le bloc doit venir APRÈS la tendance d’énergie, comparer deux colonnes avec les chiffres mesurés, n’afficher un conseil du jour QUE si une énergie est notée ce matin (et suivre le groupe où elle tombe), et basculer sur « ne prédit pas » quand l’écart est nul en renvoyant vers le créneau et le sommeil');
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');

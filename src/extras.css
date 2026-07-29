@@ -499,3 +499,20 @@ details.calendar-setting[open]{padding-bottom:14px}
 .energie-focus.ef-positif{border-left-color:var(--accent-ring)}
 .energie-focus.ef-positif .ef-duo .ef-col:last-child b{color:var(--accent)}
 .energie-focus.ef-aucun{border-left-color:var(--line)}
+
+/* ===== Comprendre mes semaines : le pli d'analyse du donjon (itération 92) =====
+   Le donjon sert à LANCER un bloc de concentration. Six analyses s'y étaient empilées entre la
+   tâche et le parking (657 px mesurés) : elles restent, à un clic. Le résumé porte une cible
+   tactile pleine — c'est un bouton, pas une décoration. */
+.focus-analyse{margin:var(--sp-3) 0;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface-2)}
+.focus-analyse[hidden]{display:none}
+.focus-analyse>summary{min-height:44px;display:flex;align-items:center;gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-4);color:var(--muted);font-size:var(--fs-2xs);
+  font-weight:var(--fw-med);cursor:pointer;list-style:none}
+.focus-analyse>summary::-webkit-details-marker{display:none}
+.focus-analyse>summary::after{content:'▾';margin-left:auto;font-size:var(--fs-xs)}
+.focus-analyse[open]>summary::after{content:'▴'}
+.focus-analyse>summary:hover{color:var(--text)}
+/* Les blocs dépliés retrouvent leur respiration, sans coller aux bords du pli. */
+.focus-analyse[open]{padding:0 var(--sp-4) var(--sp-4)}

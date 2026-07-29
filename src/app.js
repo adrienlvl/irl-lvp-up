@@ -2041,7 +2041,27 @@ function placerPlanEnTete(){
   if(!plan||!repere||plan.nextElementSibling===repere)return;
   repere.parentNode.insertBefore(plan,repere);
 }
-buildProgressionHub();try{showProgressionView(localStorage.getItem('irl-progression-view')||'records');}catch(_){showProgressionView('records');}assignAthleteTabs();organizeAthleteZones();placerPlanEnTete();showAthleteTab(athleteTab);
+buildProgressionHub();try{showProgressionView(localStorage.getItem('irl-progression-view')||'records');}catch(_){showProgressionView('records');}assignAthleteTabs();/* SÉPARER AGIR DE COMPRENDRE, dans le donjon du focus. Déplacement de NŒUDS au démarrage —
+   même procédé que `placerPlanEnTete` et `descendreEchauffement` : les renderers continuent
+   d'écrire aux mêmes identifiants, sans savoir qu'ils vivent désormais dans un pli.
+   Idempotent : si le pli existe déjà, on ne refait rien. */
+const FOCUS_ANALYSES=['focusWeekGoal','focusCibleTenue','focusTrend','focusHeatmap','focusCreneau','focusOutcomes'];
+function replierAnalysesFocus(){
+  const hote=document.querySelector('.focus-task');
+  if(!hote||document.getElementById('focusAnalyse'))return;
+  const blocs=FOCUS_ANALYSES.map(id=>document.getElementById(id)).filter(Boolean);
+  if(!blocs.length)return;
+  const pli=document.createElement('details');
+  pli.id='focusAnalyse';pli.className='focus-analyse';
+  const titre=document.createElement('summary');
+  titre.textContent='📊 Comprendre mes semaines';
+  pli.appendChild(titre);
+  /* On insère le pli LÀ OÙ ÉTAIT le premier bloc d'analyse : l'ordre de lecture reste celui
+     qu'on connaît, seule la profondeur change. */
+  blocs[0].parentNode.insertBefore(pli,blocs[0]);
+  blocs.forEach(b=>pli.appendChild(b));
+}
+organizeAthleteZones();placerPlanEnTete();replierAnalysesFocus();showAthleteTab(athleteTab);
 // Écouteurs attachés UNE SEULE FOIS (les mettre dans une fonction de rendu les empilerait).
 // Depuis « Objectifs hebdomadaires », un renvoi mène au foyer unique de la cible de poids.
 $('#goToPlanFromGoals')?.addEventListener('click',()=>{showPage('poids');setTimeout(()=>{$('#coachTarget')?.focus();},60);});
