@@ -12743,6 +12743,49 @@ test('weightGoalProgress : progression globale départ → cible', () => {
   assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 75 }], 75, 75), null);
 });
 
+test('exerciceSansCharge : un nom suffit, le catalogue tranche', () => {
+  /* Signalé par Adrien : « y'a encore la charge qui est mise sur des exercices au poids du
+     corps ». Mesuré : le détecteur exigeait un objet PORTANT son `kind`, alors qu'une séance
+     enregistrée ne transporte que {name, sets, reps, load} et que le formulaire de saisie ne
+     connaît qu'un champ texte. `kind` vide retombait sur « garde le champ » — donc des kilos
+     réclamés sur des pompes. Jeu d'essai RÉEL : le catalogue de l'app. */
+  const cat = require('../lib/exercises-data.js');
+  const ex = Array.isArray(cat) ? cat : (cat.exercises || Object.values(cat)[0]);
+  assert.ok(Array.isArray(ex) && ex.length > 20, 'témoin : le vrai catalogue est bien chargé');
+  const nom = n => ex.find(e => e.name === n);
+  assert.ok(nom('Pompes classiques') && nom('Tractions') && nom('Gainage planche'),
+    'témoin : ces exercices existent bien sous ces noms');
+
+  // LE CAS QUI DISCRIMINE : un nom SEUL, sans `kind` — exactement ce que reçoit le formulaire.
+  assert.equal(L.exerciceSansCharge('Pompes classiques', ex), true);
+  assert.equal(L.exerciceSansCharge({ name: 'Tractions' }, ex), true, 'barre de traction : lest facultatif');
+  assert.equal(L.exerciceSansCharge({ name: 'Gainage planche' }, ex), true);
+  // Sans le catalogue, le même appel ne peut RIEN savoir : le repli est bien ce qui tranche.
+  assert.equal(L.exerciceSansCharge({ name: 'Pompes classiques' }), false,
+    'sans catalogue, aucune supposition — c’est le repli par nom qui apporte la réponse');
+
+  // Ce qui porte VRAIMENT une charge n'est pas requalifié au passage.
+  assert.equal(L.exerciceSansCharge({ name: 'Pompes gilet lesté' }, ex), false, 'le gilet lesté est une charge');
+  const kb = ex.find(e => e.kind === 'Kettlebell');
+  assert.ok(kb, 'témoin : le catalogue a bien des kettlebells');
+  assert.equal(L.exerciceSansCharge({ name: kb.name }, ex), false);
+
+  // Le `kind` porté par l'objet reste prioritaire : il décrit CE qu'on a fait, pas le catalogue.
+  assert.equal(L.exerciceSansCharge({ name: 'Pompes classiques', kind: 'Kettlebell' }, ex), false);
+
+  // Entrées dégradées : aucune exception, et jamais de « sans charge » deviné au hasard.
+  assert.equal(L.exerciceSansCharge(undefined, ex), false);
+  assert.equal(L.exerciceSansCharge('', ex), false);
+  assert.equal(L.exerciceSansCharge({ name: 'Exercice que personne ne connaît' }, ex), false);
+
+  /* TOUT le catalogue au poids du corps doit être reconnu par son seul NOM : c'est ce qui
+     garantit que le formulaire ne réclamera plus de kilos, exercice par exercice. */
+  const auPoids = ex.filter(e => ['Poids du corps', 'Barre de traction', 'Poignées de pompes'].indexOf(e.kind) !== -1);
+  assert.ok(auPoids.length >= 25, 'témoin : ils sont nombreux (' + auPoids.length + ')');
+  const rates = auPoids.filter(e => !L.exerciceSansCharge(e.name, ex)).map(e => e.name);
+  assert.deepEqual(rates, [], 'aucun exercice au poids du corps ne doit échapper au détecteur');
+});
+
 test('cadenceDePesee : la consigne confrontée à la réalité', () => {
   /* Mesuré à l'itération 79 : l'app écrit « Pèse-toi 2 à 3×/semaine, regarde la MOYENNE de la
      semaine » et ne regarde jamais si c'est fait — alors qu'elle a toutes les dates. */

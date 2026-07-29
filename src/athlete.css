@@ -369,3 +369,8 @@
 /* La couleur suit le VERDICT, pas le nombre : « tenue » n'a pas à crier, « aucune » si. */
 .cw-cadence-reelle.cwr-bonne{border-left-color:var(--accent-ring)}
 .cw-cadence-reelle.cwr-faible,.cw-cadence-reelle.cwr-aucune{border-left-color:var(--danger)}
+
+/* L'indice sous le champ de charge n'apparaît QUE sur un exercice au poids du corps : il
+   explique pourquoi le champ vient de changer de nom, au lieu de laisser deviner. */
+.load-hint{display:block;margin-top:var(--sp-1);color:var(--muted);font-size:var(--fs-3xs);line-height:1.35}
+.load-hint[hidden]{display:none}

@@ -3246,6 +3246,52 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.chargeSaisie = (() => {
+        try {
+          const nomEl = document.querySelector("#exerciseName");
+          const labEl = document.querySelector("#exerciseLoadLabel");
+          const inpEl = document.querySelector("#exerciseLoad");
+          const hintEl = document.querySelector("#exerciseLoadHint");
+          if (!nomEl || !labEl || !inpEl || !hintEl) return false;
+          const taper = function (v) {
+            nomEl.value = v;
+            nomEl.dispatchEvent(new Event("input", { bubbles: true }));
+            return { lab: String(labEl.textContent || ""), ph: String(inpEl.placeholder || ""),
+              hint: getComputedStyle(hintEl).display !== "none", htxt: String(hintEl.textContent || "") };
+          };
+
+          /* AU POIDS DU CORPS : le champ doit cesser de reclamer des kilos. C est le defaut
+             signale par Adrien — le libelle etait STATIQUE et disait « Charge (kg) » sur des
+             pompes, avec « 80 » en exemple. */
+          const pompes = taper("Pompes classiques");
+          const okPompes = pompes.lab.indexOf("Lest") !== -1 && pompes.lab.indexOf("facultatif") !== -1
+            && pompes.ph === "0" && pompes.hint === true && pompes.htxt.length > 10;
+
+          const tractions = taper("Tractions");
+          const okTractions = tractions.lab.indexOf("Lest") !== -1 && tractions.ph === "0";
+
+          /* CE QUI PORTE UNE CHARGE N EST PAS REQUALIFIE, et le champ REVIENT en arriere :
+             sans ce second cas, un libelle bloque sur « Lest » passerait pour un succes. */
+          const kb = (typeof exercises !== "undefined" && Array.isArray(exercises))
+            ? exercises.filter(function (e) { return e && e.kind === "Kettlebell"; })[0] : null;
+          const charge = kb ? taper(kb.name) : { lab: "", ph: "", hint: true };
+          const okCharge = !!kb && charge.lab.indexOf("Charge (kg)") !== -1 && charge.ph === "80"
+            && charge.hint === false;
+
+          // Et le gilet leste, qui EST une charge, ne doit pas basculer non plus.
+          const gilet = taper("Pompes gilet lest\u00e9");
+          const okGilet = gilet.lab.indexOf("Charge (kg)") !== -1;
+
+          taper("");
+          checks.__chargeSaisie = "pompes[" + pompes.lab + " ph=" + pompes.ph + " hint=" + pompes.hint
+            + "] tractions[" + tractions.lab + "] " + (kb ? kb.name : "(pas de kb)") + "[" + charge.lab
+            + " ph=" + charge.ph + "] gilet[" + gilet.lab + "]";
+          return okPompes && okTractions && okCharge && okGilet;
+        } catch (e) {
+          checks.__errChargeSaisie = String(e && e.message); return false;
+        }
+      })();
+
       checks.cadenceMesuree = (() => {
         // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
         const _wS = state.weights, _pS = JSON.parse(JSON.stringify(state.profile || {}));
@@ -5480,6 +5526,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');

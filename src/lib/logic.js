@@ -3141,11 +3141,24 @@ function toggleFavorite(favorites, name) {
    saisissable — sinon `vestProgression`, qui suit la meilleure serie lestee, n aurait plus
    rien a lire — mais il s annonce comme un lest et ne reclame plus rien. */
 const KINDS_LEST_FACULTATIF = ['Poids du corps', 'Barre de traction', 'Poignées de pompes'];
-function exerciceSansCharge(exercice) {
-  const e = exercice && typeof exercice === 'object' ? exercice : null;
+function exerciceSansCharge(exercice, catalogue) {
+  // Un nom seul est une entrée légitime : la fiche de séance et le formulaire de saisie ne
+  // manipulent souvent qu'une chaîne.
+  const e = typeof exercice === 'string' ? { name: exercice }
+    : (exercice && typeof exercice === 'object' ? exercice : null);
   if (!e) return false;
-  const k = typeof e.kind === 'string' ? e.kind.trim() : '';
-  // Pas d'équipement renseigné = on ne suppose RIEN : on garde le champ, quitte à ce qu'il serve.
+  let k = typeof e.kind === 'string' ? e.kind.trim() : '';
+  /* REPLI PAR LE NOM. Un exercice n'arrive presque jamais avec son équipement : une séance
+     enregistrée ne porte que {name, sets, reps, load}, et le formulaire de saisie ne connaît
+     qu'un champ texte. `kind` était donc vide, on retombait sur « on ne suppose rien, garde le
+     champ » — c'est-à-dire une charge en kilos réclamée sur des pompes ou du gainage.
+     Le catalogue sait, lui : on lui demande. */
+  if (!k && e.name && Array.isArray(catalogue)) {
+    const ref = catalogue.find(x => x && x.name === e.name);
+    if (ref && typeof ref.kind === 'string') k = ref.kind.trim();
+  }
+  // Toujours rien : exercice inconnu du catalogue et sans équipement déclaré. On garde le champ
+  // plutôt que de deviner — mais ce cas ne concerne plus les exercices de l'app.
   if (!k) return false;
   return KINDS_LEST_FACULTATIF.indexOf(k) !== -1;
 }
