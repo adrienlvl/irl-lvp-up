@@ -2171,3 +2171,46 @@ que la semaine dernière » sans semaine dernière.
 
 ### Suite (roadmap 713)
 - Focus : `focusHeatmap` reste sans appel ; les parkings et revues hebdo accumulent sans ressortir.
+
+---
+
+## Itération 64 — La carte de concentration récompensait l'émiettement
+
+### Mon audit était faux, et le harnais me l'a dit
+
+Je croyais `#focusHeatmap` mort : markup présent, aucune fonction `focusHeatmap` (`typeof`
+vaut `undefined`), zéro appel. J'ai donc écrit « la fonction manquante » et masqué le bloc vide.
+
+**Le méta-garde du smoke a signalé un check `focusHeatmap` devenu faux** — il exigeait
+56 cellules. La heatmap était donc déjà rendue : le code réutilisait `trainingHeatmap` sur les
+sessions de focus, et mon grep cherchait un nom de fonction qui n'a jamais existé. Masquage
+retiré immédiatement.
+
+*Sans ce garde-fou, j'aurais livré une régression en croyant combler un trou.*
+
+### Le vrai défaut, une fois la bonne piste trouvée
+
+`trainingHeatmap` compte les **entrées** par jour. Sur du sport c'est correct ; sur de la
+concentration, ça récompense l'émiettement. À temps total **identique** :
+
+| Journée | Ancienne règle | Lecture |
+|---|---|---|
+| 4 blocs de 15 min | count 4 | case **foncée** |
+| 1 bloc de 60 min | count 1 | case claire |
+
+La journée fragmentée paraissait meilleure que la journée concentrée — l'inverse exact de ce
+qu'une app de concentration devrait encourager.
+
+`focusHeatmapJours` mesure les **minutes**, avec un seuil dérivé de l'objectif hebdomadaire (un
+tiers de la cible tenu en un jour) plutôt qu'un chiffre inventé.
+
+### Le check existant est devenu discriminant
+
+Il comptait 56 cellules — vrai avant comme après le correctif, donc **incapable de voir
+l'inversion**. Il rejoue désormais les deux journées à temps égal et exige la même case.
+
+**Mutations.** 4 posées, 4 détectées. La troisième a d'abord survécu : mon assertion sur le
+plancher utilisait une journée de 60 min, qui dépasse le seuil dans les deux cas. Il fallait une
+**petite** journée avec une cible minuscule.
+
+672 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
