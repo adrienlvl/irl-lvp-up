@@ -1858,13 +1858,27 @@ function applyUpdateStatus(s){
   if(checkBtn&&s.state!=='checking')checkBtn.disabled=false;
 }
 const ATHLETE_TABS={
+  /* LE PLAN DE BATAILLE OUVRE L'ONGLET. Mesuré à 390×844 : il vivait dans « Programme », donc
+     en arrivant sur Athlète on ne le voyait pas — il n'était pas « peu visible », il n'était
+     PAS LÀ. Or c'est lui qui porte la semaine (séances, courses, dénivelé, coût de chaque
+     réglage) et tout le reste s'y rapporte. Adrien : « le plan de bataille devrait sûrement
+     être la chose qu'on voit le plus sur l'onglet Athlète, c'est pas le cas actuellement. » */
+  'objective-program-panel':'aujourdhui',
   'athlete-companion':'aujourdhui','recovery-panel':'aujourdhui','program-panel':'aujourdhui','workout-panel':'aujourdhui','warmup-panel':'aujourdhui',
-  'objective-program-panel':'programme','weekly-program-panel':'programme','planning-panel':'programme','wellness-panel':'programme','goal-panel':'programme','profile-panel':'programme','trail-panel':'programme','history-panel':'programme',
+  'weekly-program-panel':'programme','planning-panel':'programme','wellness-panel':'programme','goal-panel':'programme','profile-panel':'programme','trail-panel':'programme','history-panel':'programme',
   'progression-hub':'progres','progression-panel':'progres','week-panel':'progres','analysis-panel':'progres',
   'weight-panel':'corps','measurements-panel':'corps','photo-panel':'corps','personal-trends':'corps','charts-panel':'corps','weekly-review-panel':'corps','coach-week-panel':'corps',
   // Ce panneau appartient au tableau de bord : l'étiqueter avec une valeur qui n'est aucun
   // onglet le retire de la page Athlète sans toucher aux listes de showPage().
-  'coach-today-panel':'hors-athlete'
+  'coach-today-panel':'hors-athlete',
+  /* MÊME REMÈDE POUR LES CARTES TRANSVERSES. Elles annoncent l'app, pas l'entraînement, et
+     n'appartiennent à aucun groupe de page : jamais masquées, elles s'affichaient donc en TÊTE
+     de l'onglet Athlète. Mesuré : la carte « Nouveautés » y occupait 3021 px — 39 % de la
+     surface — au-dessus de tout le contenu d'entraînement.
+     On passe par cette étiquette-ci et NON par `pageGroups` : les y inscrire ferait gérer leur
+     visibilité par deux mécanismes à la fois (`app-page-hidden` et leur propre attribut
+     `hidden`), et c'est exactement ce qui a cassé la fermeture des Nouveautés au premier essai. */
+  'whatsnew-card':'hors-athlete','install-card':'hors-athlete','starter-card':'hors-athlete'
 };
 let athleteTab='seance';try{athleteTab=localStorage.getItem('irl-athlete-tab')||'seance';}catch(_){}if(!['aujourdhui','programme','progres','corps'].includes(athleteTab))athleteTab='aujourdhui';
 /* Fusionne les cinq cartes de progression en un seul panneau à pastilles. On déplace le
@@ -1933,7 +1947,17 @@ function organizeAthleteZones(){return;/* Remplacé par les 4 sous-onglets (2.3.
   secs.forEach(sec=>{const zi=classe(sec);if(zi>=0)buckets[zi].push(sec);});
   let anchor=subnav;
   zones.forEach((z,zi)=>{if(!buckets[zi].length)return;const h=document.createElement('section');h.className='atab-zone';h.dataset.atab='seance';h.innerHTML=`<span class="azh-em" aria-hidden="true">${z.e}</span><span class="azh-t">${escapeHtml(z.t)}</span>`;anchor.after(h);anchor=h;buckets[zi].forEach(sec=>{anchor.after(sec);anchor=sec;});});}
-buildProgressionHub();try{showProgressionView(localStorage.getItem('irl-progression-view')||'records');}catch(_){showProgressionView('records');}assignAthleteTabs();organizeAthleteZones();showAthleteTab(athleteTab);
+/* LE PLAN DE BATAILLE EN TÊTE DU DOM. Les panneaux ne sont pas des enfants flex : `order` en
+   CSS n'a aucun effet sur eux. On déplace donc le NŒUD une fois au démarrage — même procédé que
+   `buildProgressionHub`, qui déplace du contenu sans toucher aux données. Les renderers
+   continuent d'écrire aux mêmes identifiants. Idempotent : rejouable sans rien casser. */
+function placerPlanEnTete(){
+  const plan=document.querySelector('main.app-shell .objective-program-panel');
+  const repere=document.querySelector('main.app-shell .athlete-companion');
+  if(!plan||!repere||plan.nextElementSibling===repere)return;
+  repere.parentNode.insertBefore(plan,repere);
+}
+buildProgressionHub();try{showProgressionView(localStorage.getItem('irl-progression-view')||'records');}catch(_){showProgressionView('records');}assignAthleteTabs();organizeAthleteZones();placerPlanEnTete();showAthleteTab(athleteTab);
 // Écouteurs attachés UNE SEULE FOIS (les mettre dans une fonction de rendu les empilerait).
 // Depuis « Objectifs hebdomadaires », un renvoi mène au foyer unique de la cible de poids.
 $('#goToPlanFromGoals')?.addEventListener('click',()=>{showPage('poids');setTimeout(()=>{$('#coachTarget')?.focus();},60);});

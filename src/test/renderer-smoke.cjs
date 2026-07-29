@@ -3246,6 +3246,41 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.planEnTete = (() => {
+        const _pageAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        try {
+          if (typeof showPage !== "function" || typeof showAthleteTab !== "function") return false;
+          showPage("athlete"); showAthleteTab("aujourdhui");
+          const visibles = Array.prototype.slice.call(
+            document.querySelectorAll("main.app-shell section.panel, main.app-shell article.panel"))
+            .filter(function (e) { return e.offsetParent !== null; });
+          if (!visibles.length) return false;
+          const premier = String(visibles[0].className || "");
+          const planPremier = premier.indexOf("objective-program-panel") !== -1;
+
+          /* Les cartes transverses (nouveautes, installation, demarrage) n appartenaient a aucun
+             groupe de page : jamais masquees, elles s empilaient en tete de TOUS les onglets.
+             Mesure : 3021 px de « Nouveautes » au-dessus du contenu d entrainement. */
+          const intruses = ["whatsnew-card", "install-card", "starter-card"].filter(function (c) {
+            const el = document.querySelector("main.app-shell ." + c);
+            return !!el && el.offsetParent !== null;
+          });
+
+          // Le plan doit aussi etre le plus GROS : premier mais riquiqui ne vaudrait rien.
+          const hauteurs = visibles.map(function (e) { return Math.round(e.getBoundingClientRect().height); });
+          const hPlan = hauteurs[0];
+          const plusGros = hPlan >= Math.max.apply(null, hauteurs);
+
+          checks.__planTete = "premier[" + premier.split(" ").slice(0, 2).join(" ") + "] h=" + hPlan
+            + " plusGros=" + plusGros + " intruses[" + intruses.join(",") + "] n=" + visibles.length;
+          showAthleteTab(_pageAvant);
+          return planPremier && plusGros && intruses.length === 0;
+        } catch (e) {
+          try { showAthleteTab(_pageAvant); } catch (_) {}
+          checks.__errPlanTete = String(e && e.message); return false;
+        }
+      })();
+
       checks.chargeSaisie = (() => {
         try {
           const nomEl = document.querySelector("#exerciseName");
@@ -3840,7 +3875,7 @@ app.whenReady().then(async () => {
             return String(e.textContent || '');
           };
           showPage('athlete');
-          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
 
           /* 1er rendu : on EFFACE la reference, sinon un plan calcule plus tot dans le
              harnais servirait de point de comparaison et le check ne testerait pas son sujet. */
@@ -4108,7 +4143,7 @@ app.whenReady().then(async () => {
       checks.generateursMasques = (() => {
         try {
           showPage('athlete');
-          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
           /* On mesure le RENDU CALCULE, jamais l attribut : hidden est purement decoratif
              sur une classe qui pose display:. Ce depot s est fait avoir DEUX fois
              (whatsnew-card, puis coach-agenda) — et ici DEUX des trois cibles posaient
@@ -4117,7 +4152,7 @@ app.whenReady().then(async () => {
           const _wpp=document.querySelector('.weekly-program-panel');
           const _wppVu=!!(_wpp&&(getComputedStyle(_wpp).display!=='none'||_wpp.getBoundingClientRect().height>0));
           showPage('athlete');
-          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
           const cibles = [
             ['.weekly-planner', document.querySelector('.weekly-planner')],
             ['#runPlanBar', document.getElementById('runPlanBar')],
@@ -4162,7 +4197,7 @@ app.whenReady().then(async () => {
           state.weights = [{ date: localDate(), value: 75 }]; state.workouts = [];
 
           showPage('athlete');
-          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
           runObjectiveProgram();
 
           const ligne = document.querySelector('#objectiveResult .op-trail');
@@ -4211,7 +4246,7 @@ app.whenReady().then(async () => {
           state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
 
           showPage('athlete');
-          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
           runObjectiveProgram();
 
           const det = document.querySelector('.op-reglages');
@@ -4352,7 +4387,7 @@ app.whenReady().then(async () => {
           state.weights = [{ date: localDate(), value: 80 }]; state.workouts = [];
 
           showPage('athlete');
-          if (typeof showAthleteTab === 'function') showAthleteTab('programme');
+          if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
           runObjectiveProgram();
 
           const sel = document.querySelector('#nutriPlanSelect');
@@ -5526,6 +5561,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
