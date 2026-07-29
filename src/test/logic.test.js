@@ -12743,6 +12743,75 @@ test('weightGoalProgress : progression globale départ → cible', () => {
   assert.equal(L.weightGoalProgress([{ date: '2026-06-01', value: 75 }], 75, 75), null);
 });
 
+test('avancementSemaine : le plan se compare enfin à lui-même', () => {
+  /* Sondé à l'itération 83 : le Plan de bataille fait 4305 px et quinze blocs qui parlent tous
+     du PASSÉ. Aucun ne répondait à « le plan est-il tenu cette semaine ? ». */
+  // 2026-07-29 est un MERCREDI : il reste mer/jeu/ven/sam/dim, soit 5 jours.
+  const mercredi = '2026-07-29';
+  assert.equal(new Date(mercredi + 'T12:00:00').getDay(), 3, 'témoin : c’est bien un mercredi');
+  const muscu = d => ({ id: 1, date: d, type: 'Musculation', duration: 60, effort: 7,
+    exercises: [{ name: 'Squat', sets: 4, reps: 8, load: 100 }] });
+  const course = d => ({ id: 2, date: d, type: 'run', duration: 40, effort: 6, distance: 8 });
+  const base = { goals: { sessions: 4, runs: 2 }, profile: { availableDays: [1, 3, 5, 6] }, workouts: [] };
+
+  // Sans rien de prescrit, il n'y a rien à comparer : null, pas un objet vide.
+  assert.equal(L.avancementSemaine({ goals: {}, workouts: [] }, mercredi), null);
+  assert.equal(L.avancementSemaine(base, 'pas-une-date'), null);
+
+  // DÉBUT DE SEMAINE : lundi fait, il reste 5 séances pour 3 jours dispos (mer, ven, sam).
+  const a = L.avancementSemaine({ ...base, workouts: [muscu('2026-07-27')] }, mercredi);
+  assert.equal(a.fait.seances, 1);
+  assert.equal(a.fait.courses, 0);
+  assert.equal(a.reste.total, 5);
+  assert.equal(a.joursRestants, 5, 'aujourd’hui COMPRIS : la journée n’est pas finie');
+  assert.equal(a.joursDispoRestants, 3, 'mer, ven, sam parmi [1,3,5,6]');
+  assert.equal(a.tenable, false, '5 séances pour 3 jours : le compte n’y est pas');
+  assert.equal(a.ton, 'serre');
+  assert.match(a.phrase, /1\/4 muscu · 0\/2 courses/);
+  assert.match(a.phrase, /le compte n’y est pas/);
+
+  /* LE CAS QUI DISCRIMINE — LE BUDGET DE TEMPS. Mêmes séances restantes, mais assez de jours
+     dispos : le verdict doit basculer. Sans ce couple, « tenable » ne testerait rien. */
+  const large = { ...base, profile: { availableDays: [0, 1, 2, 3, 4, 5, 6] }, workouts: [muscu('2026-07-27')] };
+  const b = L.avancementSemaine(large, mercredi);
+  assert.equal(b.reste.total, 5, 'témoin : exactement le même reste');
+  assert.equal(b.joursDispoRestants, 5);
+  assert.equal(b.tenable, true, 'c’est le budget de JOURS qui fait basculer, rien d’autre');
+  assert.equal(b.ton, 'ok');
+  assert.match(b.phrase, /c’est jouable/);
+
+  // SEMAINE BOUCLÉE : plus rien à faire, et on le dit sans réclamer davantage.
+  const fini = L.avancementSemaine({ ...base, workouts: [
+    muscu('2026-07-27'), muscu('2026-07-28'), muscu('2026-07-29'), muscu('2026-07-29'),
+    course('2026-07-28'), course('2026-07-29')] }, mercredi);
+  assert.equal(fini.fini, true);
+  assert.equal(fini.reste.total, 0);
+  assert.equal(fini.pct, 100);
+  assert.equal(fini.ton, 'fini');
+  assert.match(fini.phrase, /Semaine bouclée/);
+  assert.match(fini.phrase, /du bonus/, 'on ne réclame pas une 5e séance à qui a fini');
+
+  // DÉPASSEMENT : 5 muscu pour 4 prévues ne donne ni 125 % ni un reste négatif.
+  const trop = L.avancementSemaine({ ...base, goals: { sessions: 2, runs: 0 },
+    workouts: [muscu('2026-07-27'), muscu('2026-07-28'), muscu('2026-07-29')] }, mercredi);
+  assert.equal(trop.pct, 100);
+  assert.equal(trop.reste.total, 0);
+
+  /* SANS JOURS D'ENTRAÎNEMENT RENSEIGNÉS on ne tranche pas : `tenable` vaut null, et null
+     n'est pas false — dire « le compte n’y est pas » sans connaître le budget serait inventé. */
+  const sansProfil = L.avancementSemaine({ goals: { sessions: 4, runs: 2 }, profile: {},
+    workouts: [muscu('2026-07-27')] }, mercredi);
+  assert.equal(sansProfil.tenable, null);
+  assert.equal(sansProfil.budgetConnu, false);
+  assert.equal(sansProfil.ton, 'neutre');
+  assert.match(sansProfil.phrase, /renseigne tes jours/);
+  assert.ok(!/jouable|le compte n’y est pas/.test(sansProfil.phrase), 'aucun verdict sans budget');
+
+  // Une séance de la semaine PRÉCÉDENTE ne compte pas pour celle-ci.
+  const avant = L.avancementSemaine({ ...base, workouts: [muscu('2026-07-26')] }, mercredi);
+  assert.equal(avant.fait.total, 0, 'le dimanche 26 appartient à la semaine d’avant');
+});
+
 test('exerciceSansCharge : un nom suffit, le catalogue tranche', () => {
   /* Signalé par Adrien : « y'a encore la charge qui est mise sur des exercices au poids du
      corps ». Mesuré : le détecteur exigeait un objet PORTANT son `kind`, alors qu'une séance

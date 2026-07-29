@@ -374,3 +374,22 @@
    explique pourquoi le champ vient de changer de nom, au lieu de laisser deviner. */
 .load-hint{display:block;margin-top:var(--sp-1);color:var(--muted);font-size:var(--fs-3xs);line-height:1.35}
 .load-hint[hidden]{display:none}
+
+/* TA SEMAINE FACE AU PLAN — en tête du Plan de bataille. Le verdict prime sur la jauge : la
+   barre situe d'un coup d'œil, la phrase décide. La teinte suit le VERDICT (jouable, serré,
+   bouclé), jamais le pourcentage : 2/4 un mardi et 2/4 un samedi ne se valent pas. */
+.avancement-semaine{display:grid;gap:var(--sp-2);margin:var(--sp-4) 0;padding:var(--sp-4) var(--sp-5);
+  border:1px solid var(--line);border-left:3px solid var(--accent-ring);border-radius:var(--r-md);
+  background:var(--surface-2)}
+.avancement-semaine[hidden]{display:none}
+.av-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3)}
+.av-head b{font-size:var(--fs-md)}
+.av-pct{color:var(--muted);font-size:var(--fs-sm);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums}
+.av-barre{height:6px;border-radius:var(--r-pill);background:var(--input-bg);overflow:hidden}
+.av-barre i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill)}
+.av-phrase{margin:0;color:var(--text);font-size:var(--fs-xs);line-height:1.45}
+.avancement-semaine.av-serre{border-left-color:var(--danger);background:rgba(251,113,133,.08)}
+.avancement-semaine.av-serre .av-barre i{background:var(--danger)}
+.avancement-semaine.av-fini{border-left-color:#4ade80;background:rgba(74,222,128,.08)}
+.avancement-semaine.av-fini .av-barre i{background:#4ade80}
+.avancement-semaine.av-neutre{border-left-color:var(--line)}

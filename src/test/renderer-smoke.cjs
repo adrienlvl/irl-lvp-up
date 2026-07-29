@@ -3246,6 +3246,67 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.avancementVu = (() => {
+        const _wS = state.workouts, _gS = JSON.parse(JSON.stringify(state.goals || {}));
+        const _pS = JSON.parse(JSON.stringify(state.profile || {}));
+        const _rendre = () => { state.workouts = _wS; state.goals = _gS; state.profile = _pS;
+          try { renderAvancementSemaine(); } catch (_) {} };
+        try {
+          if (typeof renderAvancementSemaine !== "function" || typeof avancementSemaine !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#avancementSemaine");
+          if (!el) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const lundiDe = function (k) { const d = new Date(k + "T12:00:00");
+            d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          const lundi = lundiDe(localDate());
+          const muscu = function (d) { return { id: 1, date: d, type: "Musculation", duration: 60,
+            effort: 7, exercises: [{ name: "Squat", sets: 4, reps: 8, load: 100 }] }; };
+
+          /* 1) SEMAINE INCOMPLETE : le bloc doit etre VISIBLE, ouvrir le panneau, et citer les
+             memes chiffres que la mesure — pas des chiffres voisins. */
+          state.goals = Object.assign({}, state.goals, { sessions: 4, runs: 2 });
+          state.profile = Object.assign({}, state.profile, { availableDays: [1, 3, 5, 6] });
+          state.workouts = [muscu(lundi)];
+          const attendu = avancementSemaine(state, localDate());
+          /* On repeint par la CHAINE DE RENDU DE L APP, pas en appelant le renderer a la main :
+             sinon le check peint lui-meme le bloc et ne peut PAS voir que l app, elle, ne le
+             peint jamais. Mutation survivante mesuree — check creux, corrige ici. */
+          if (typeof render === "function") render(); else renderAvancementSemaine();
+          const peintParLApp = String(el.innerHTML || "").length > 0;
+          const vu = peintParLApp && getComputedStyle(el).display !== "none";
+          const t1 = String(el.textContent || "");
+          const memeCompte = !!attendu && t1.indexOf(attendu.fait.total + "/" + attendu.prevu.total) !== -1;
+          const memePhrase = !!attendu && t1.indexOf(attendu.phrase) !== -1;
+
+          /* IL OUVRE LE PANNEAU : c est la question qu on vient y chercher. On le compare au
+             bloc de bloc-status, qui etait jusqu ici le premier contenu du plan. */
+          const plan = document.querySelector(".objective-program-panel");
+          const statut = plan ? plan.querySelector(".block-status") : null;
+          const avant = !!plan && !!statut
+            && (el.compareDocumentPosition(statut) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+          /* 2) SEMAINE BOUCLEE : le ton doit basculer et cesser de reclamer. Sans ce second
+             cas, un bloc fige sur « serre » passerait pour un succes. */
+          state.workouts = [muscu(lundi), muscu(lundi), muscu(lundi), muscu(lundi),
+            { id: 9, date: lundi, type: "run", duration: 40, effort: 6 },
+            { id: 10, date: lundi, type: "run", duration: 40, effort: 6 }];
+          renderAvancementSemaine();
+          const t2 = String(el.textContent || "");
+          const boucle = el.classList.contains("av-fini") && t2.indexOf("Semaine boucl\u00e9e") !== -1
+            && t2.indexOf("6/6") !== -1;
+
+          checks.__avancement = "vu=" + vu + " memeCompte=" + memeCompte + " memePhrase=" + memePhrase
+            + " ouvreLePanneau=" + avant + " boucle=" + boucle + " ton=" + (attendu ? attendu.ton : "null")
+            + " t1[" + t1.slice(0, 95) + "]";
+          _rendre();
+          return vu && memeCompte && memePhrase && avant && boucle;
+        } catch (e) {
+          _rendre();
+          checks.__errAvancement = String(e && e.message); return false;
+        }
+      })();
+
       checks.planEnTete = (() => {
         const _pageAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
         try {
@@ -5561,6 +5622,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.avancementVu) errors.push('Plan de bataille : ses quinze blocs parlent tous du passé (tonnage 8 semaines, régularité 28 j, jour fort) et aucun ne répondait à la seule question que pose un plan — est-il TENU cette semaine ? Le bloc « Ta semaine, face au plan » doit OUVRIR le panneau, citer exactement les chiffres mesurés, et changer de ton quand la semaine est bouclée au lieu de réclamer encore');
     if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
