@@ -3439,3 +3439,69 @@ bénéfice concret de l'avoir réparé.
 non par check creux) : la branche « agenda plein » n'était pas rendue.
 
 688 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+## Itération 94 — revue adversariale : un appariement se constate, un possessif s'assume
+
+Revue des itérations 91-93 (la troisième depuis la 91), visée annoncée d'avance : **l'appariement
+révision ↔ épreuve par libellé**, posé à l'itération 93. Une correspondance approximative est
+l'endroit où les faux positifs se cachent.
+
+**Sondé avant de juger.** Six libellés dégénérés contre deux épreuves (Compta dans 5 jours, Droit
+dans 40) :
+
+```
+titre vide ""              -> epreuve=Compta appariee=true   <- faux
+titre absent (undefined)   -> epreuve=Compta appariee=true   <- faux
+titre = un espace          -> epreuve=Compta appariee=true   <- faux
+titre = "a"                -> epreuve=Compta appariee=true   <- faux
+« Relire mes fiches »      -> epreuve=Compta appariee=false  <- temoin correct
+« Droit des sociétés »     -> epreuve=Droit  appariee=true   <- temoin correct
+```
+
+Les témoins normaux se comportaient bien : le jeu d'essai **discriminait**.
+
+### Deux affirmations fausses, toutes deux de moi
+
+1. **Une chaîne vide est sous-chaîne de tout**, et « compta » contient « a ». La direction inverse
+   du test (`m.indexOf(titre)`) rendait donc *n'importe quelle* épreuve « appariée » à un libellé
+   vide ou d'une lettre. Ce n'est pas qu'un booléen faux : comme **l'épreuve dicte l'ordre** du
+   rattrapage (itération 93), la révision passait sous la mauvaise matière *et* la mauvaise
+   échéance. Seuil de trois caractères **des deux côtés**.
+
+2. **Le possessif est une affirmation.** La phrase disait « **Son** épreuve (Compta) est dans 5
+   jours » même quand aucun libellé ne correspondait — alors que `appariee: false` disait le
+   contraire *dans le même objet*. Le repli sur l'épreuve la plus proche reste utile (l'échéance fixe
+   la pression réelle) ; il se dit maintenant « **Ta prochaine** épreuve ».
+
+Le second défaut a été trouvé en **écrivant le test du premier** : mon assertion « pas de "Son
+épreuve" pour un libellé dégénéré » allait tomber, et la raison n'était pas le test.
+
+### Ce que cette itération a appris
+
+**Deux mutations ont survécu au premier essai, et chacune disait quelque chose de vrai :**
+
+- **Un cas de test peut être vacant sans en avoir l'air.** « ab » n'est sous-chaîne d'aucune de mes
+  matières : il ne s'apparie pas *même sans seuil*. Il ne testait donc rien, et un seuil descendu à
+  2 passait inaperçu. Remplacé par « co », qui **est** dans « compta ». *Un seuil se teste sur une
+  valeur qui le franchit, pas sur une valeur qui échoue pour une autre raison.*
+- **Une garde jamais exercée est une garde non testée.** Toutes mes matières faisaient trois lettres
+  ou plus, donc le seuil *côté matière* ne servait jamais. Le cas qui l'exerce : une matière « SI »
+  — que « révision » contient (« revi-**SI**-on »). Sans la garde, « Révision Droit » s'apparie à SI,
+  et comme SI est l'épreuve la plus proche elle prend la tête de l'arbitrage.
+
+**Un harnais de mutation se prouve avant de juger quoi que ce soit.** Mes deux premières tentatives
+de muter le *check de rendu* ont rendu « SURVIVANTE » alors que le smoke ne démarrait même pas :
+d'abord lancé sous `node` (le smoke tourne sous **Electron**), puis via `electron.cmd` sans shell
+(code `null`, sortie vide). Le troisième lanceur commence par un **témoin non muté** et refuse de
+conclure si le témoin ne rend pas `SMOKE OK`. *« Une mutation qui survit = check creux, harnais
+mort, ou redondance » — c'était le cas du milieu, deux fois de suite, et je l'ai d'abord lu comme le
+premier.*
+
+Et **l'audit des backticks a servi une fois de plus** : mes propres `` `appariee` `` dans un
+commentaire du gabarit, attrapés avant le smoke. Septième fois — la parade, elle, tient.
+
+**Mutations.** 6 sur la logique (dont le seuil à ses **deux** frontières, 3→2 et 3→4, et le
+possessif dans les **deux** sens : « toujours son » *et* « toujours ta prochaine » — un test qui
+n'interdit qu'un sens laisse passer l'autre) + 2 sur le check de rendu. 8/8 détectées.
+
+688 tests · SMOKE OK. Rien publié depuis v2.14.0.
