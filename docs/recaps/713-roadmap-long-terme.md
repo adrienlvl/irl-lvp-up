@@ -175,6 +175,14 @@ C'est le cœur de la thèse, et le plus gros saut qualitatif.
    creuse pas le déficit. » Toutes les pièces existent ; rien ne les fait dialoguer.
 6. **La replanification automatique.** Une séance ratée aujourd'hui déclenche une proposition
    concrète, pas un simple constat. `planDuJour` sait ce qui était prévu ; personne ne rattrape.
+   > **OUVERT (itération 76) : `rattrapageSeances`.** Le panneau des séances manquées ne liste
+   > plus, il tranche — la charge d'abord (zone haute → on ne rattrape rien, chiffre à l'appui),
+   > la fraîcheur ensuite (au-delà de 3 jours, on lâche et on le dit), une seule cible avec des
+   > créneaux réellement libres, et l'aveu quand l'agenda est plein. Le clic déplace le bloc.
+   > **Leçon transposable au reste du chantier :** l'ajout utile n'était pas le bouton manquant
+   > mais **l'arbitrage** — proposer de rattraper trois séances aurait été un mauvais conseil.
+   > *Reste :* la révision sautée (`overdueStudy`) n'a toujours pas son pendant, et rien ne
+   > propose de rattraper à l'échelle de la SEMAINE (chantier n°5).
 7. **Le coût annoncé, étendu.** Le modèle est posé (nutrition, puis réglages du plan) : chaque
    réglage dit ce qu'il change. Reste l'objectif physique, les jours, les zones.
 8. **Le conflit nommé.** Quand deux objectifs se contredisent — prise de muscle et déficit,
