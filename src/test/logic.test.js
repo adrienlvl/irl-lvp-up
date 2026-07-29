@@ -13362,6 +13362,88 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('creneauDeConcentration : l’heure des blocs, ou le silence', () => {
+  /* L'app horodate chaque bloc (`id` = Date.now(), app.js `finishFocusBlock`) et ne l'a jamais
+     lu. On fabrique le jeu d'essai comme l'app le fabrique : un id qui EST une horloge. */
+  const today = '2026-07-29';
+  const poser = (jAvant, h, min) => {
+    const d = new Date(2026, 6, 29 - jAvant, h, 20, 0);          // heure LOCALE, comme Date.now()
+    const p = n => String(n).padStart(2, '0');
+    return { id: d.getTime(), date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()),
+      minutes: min, task: 'Compta' };
+  };
+
+  // SILENCE : 4 blocs, 2 jours — sous le seuil, on n'invente pas un créneau.
+  assert.equal(L.creneauDeConcentration([poser(1, 9, 25), poser(1, 10, 25), poser(2, 9, 25), poser(2, 10, 25)], today),
+    null, 'trois ou quatre blocs ne font pas une habitude');
+  assert.equal(L.creneauDeConcentration([], today), null);
+  assert.equal(L.creneauDeConcentration(null, today), null);
+  assert.equal(L.creneauDeConcentration([poser(1, 9, 25)], 'pas-une-date'), null, 'sans date du jour, rien');
+
+  // PROFIL NET : 12 blocs matin sur 6 jours + 2 le soir.
+  const matin = [];
+  for (let j = 1; j <= 6; j++) { matin.push(poser(j, 9, 25), poser(j, 10, 25)); }
+  const avecSoir = matin.concat([poser(2, 21, 25), poser(4, 21, 25)]);
+  const cr = L.creneauDeConcentration(avecSoir, today);
+  assert.ok(cr, 'échantillon suffisant : la mesure doit sortir');
+  assert.equal(cr.blocs, 14);
+  assert.equal(cr.jours, 6);
+  assert.equal(cr.fenetre.debut, 9, 'la plage démarre à l’heure la plus chargée');
+  assert.equal(cr.fenetre.blocs, 12);
+  assert.equal(cr.fenetre.jours, 6, 'et couvre bien les 6 jours, pas seulement quelques-uns');
+  assert.equal(cr.ailleurs.blocs, 2);
+  assert.equal(cr.domine, true);
+  assert.equal(cr.fenetre.part, 86, '12 blocs sur 14 à durée égale');
+  assert.equal(cr.heures.length, 24, 'la frise a toujours 24 colonnes, y compris les heures vides');
+  assert.equal(cr.heures[9].blocs, 6);
+  assert.equal(cr.heures[3].blocs, 0, 'zéro n’est pas absent : l’heure creuse existe et vaut 0');
+  // La phrase CITE la mesure : c'est ce qui empêche le texte et le chiffre de diverger.
+  assert.match(cr.phrase, /9 h–12 h/);
+  assert.match(cr.phrase, /86 %/);
+  assert.match(cr.phrase, /12 de tes 14 blocs/);
+
+  /* PREMIER CAS QUI DISCRIMINE : un id qui n'est PAS une horloge (ancien format, import) ne doit
+     pas placer le bloc à une heure inventée — l'entrée est écartée, quitte à retomber au silence. */
+  const faux = avecSoir.map((s, i) => (i % 2 === 0 ? { ...s, id: i + 1 } : s));
+  const crFaux = L.creneauDeConcentration(faux, today);
+  assert.equal(crFaux, null, '7 blocs horodatés sur 14 : sous le seuil, donc silence');
+  /* Un id plausible mais qui retombe sur un AUTRE jour que sa session est écarté lui aussi.
+     Le scénario doit DISCRIMINER : mettre toutes les sessions au même jour les faisait déjà
+     tomber sous `minJours`, et le seuil masquait le garde-fou (mutation survivante, mesurée).
+     Ici on décale chaque date d'un jour : 14 blocs, 6 jours distincts — les seuils sont
+     FRANCHIS, et seul le désaccord id/date peut encore rejeter. */
+  const veille = k => {
+    const d = new Date(k + 'T12:00:00'); d.setDate(d.getDate() - 1);
+    const p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  };
+  const decale = avecSoir.map(s => ({ ...s, date: veille(s.date) }));
+  assert.equal(new Set(decale.map(s => s.date)).size, 6, 'jeu d’essai : les 6 jours sont bien là');
+  assert.equal(L.creneauDeConcentration(decale, today), null,
+    'un horodatage qui ne retombe pas sur la date de la session n’est pas une horloge fiable');
+  assert.ok(L.creneauDeConcentration(avecSoir, today),
+    'témoin : le même jeu, id et date d’accord, passe — c’est bien le désaccord qui rejette');
+
+  /* DEUXIÈME CAS QUI DISCRIMINE : la fenêtre est CIRCULAIRE. Un couche-tard à 22 h / 23 h / 0 h
+     a bien un créneau, même s'il enjambe minuit — une fenêtre non circulaire le couperait en deux. */
+  const nuit = [];
+  for (let j = 1; j <= 5; j++) { nuit.push(poser(j, 22, 25), poser(j, 23, 25)); }
+  for (let j = 1; j <= 5; j++) { nuit.push(poser(j, 0, 25)); }
+  const crNuit = L.creneauDeConcentration(nuit, today);
+  assert.ok(crNuit);
+  assert.equal(crNuit.fenetre.debut, 22, 'la plage démarre à 22 h…');
+  assert.equal(crNuit.fenetre.fin, 1, '…et se termine après minuit');
+  assert.equal(crNuit.fenetre.blocs, 15, 'les trois heures sont comptées ensemble');
+
+  // ÉPARPILLÉ : la fonction le dit au lieu de forcer un créneau.
+  const partout = [];
+  for (let j = 1; j <= 8; j++) { partout.push(poser(j, (j * 3) % 24, 25), poser(j, (j * 3 + 12) % 24, 25)); }
+  const crPlat = L.creneauDeConcentration(partout, today);
+  assert.ok(crPlat);
+  assert.equal(crPlat.domine, false, 'aucune plage ne porte la moitié des minutes');
+  assert.match(crPlat.phrase, /Aucun créneau ne se détache/);
+});
+
 test('gestesDuBloc : un bloc terminé s’annule, et ne se repousse plus', () => {
   /* MESURÉ à l'itération 74 dans la vue Jour : une ligne terminée gardait « ↪️ » et
      « → demain » — repousser à demain quelque chose de déjà fait — mais n'offrait AUCUN

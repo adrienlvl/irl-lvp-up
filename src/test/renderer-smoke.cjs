@@ -3246,6 +3246,71 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.creneauFocus = (() => {
+        const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
+        try {
+          if (typeof renderFocusRitual !== "function" || typeof creneauDeConcentration !== "function") { state.focusSessions = _fsS; return false; }
+          const el = document.querySelector("#focusCreneau");
+          if (!el) { state.focusSessions = _fsS; return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const base = new Date(localDate() + "T12:00:00");
+          const poser = function (jAvant, h) {
+            const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - jAvant, h, 20, 0);
+            return { id: d.getTime(), date: d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()),
+              minutes: 25, task: "Compta" };
+          };
+
+          /* 1) ECHANTILLON TROP MINCE : le panneau doit rester ETEINT. Un vide n est pas un
+             succes — on mesure le display CALCULE, pas l attribut hidden. */
+          state.focusSessions = [poser(1, 9), poser(1, 10), poser(2, 9), poser(2, 10)];
+          renderFocusRitual();
+          const muet = getComputedStyle(el).display === "none";
+
+          // 2) PROFIL NET : 12 blocs le matin sur 6 jours, 2 le soir.
+          const sess = [];
+          for (let j = 1; j <= 6; j++) { sess.push(poser(j, 9), poser(j, 10)); }
+          sess.push(poser(2, 21), poser(4, 21));
+          state.focusSessions = sess;
+          const attendu = creneauDeConcentration(sess, localDate());
+          renderFocusRitual();
+          const visible = getComputedStyle(el).display !== "none";
+          const barres = el.querySelectorAll(".fc-bar");
+          const dedans = Array.prototype.slice.call(barres).map(function (b, i) { return b.classList.contains("fc-in") ? i : -1; })
+            .filter(function (i) { return i >= 0; });
+          /* PAS de normalisation par regex ici : ce code vit dans un GABARIT, ou une sequence
+             inconnue comme \\s retombe sur "s" — /\\s+/ devenait /s+/ et effacait tous les « s »
+             du texte mesure. Le textContent d un panneau est deja continu : rien a normaliser. */
+          const txt = String(el.textContent || "");
+
+          /* La MISE EN AVANT doit designer la meme plage que la mesure — sinon la frise montre
+             une chose et la phrase en dit une autre. On epingle EN PLUS la plage attendue en
+             DUR (9 h : toutes les sessions semees y tombent). Se comparer a la seule sortie de
+             la fonction serait une tautologie : si elle se trompe de plage, le rendu se trompe
+             avec elle et l accord reste vrai. Le chiffre en dur, lui, ne bouge pas. */
+          const accordFrise = !!attendu && dedans.length === 3 && dedans[0] === 9
+            && dedans[0] === attendu.fenetre.debut;
+          // Et la phrase doit CITER les chiffres mesures, pas des chiffres proches.
+          const accordTexte = !!attendu && txt.indexOf(attendu.fenetre.libelle) !== -1
+            && txt.indexOf(attendu.fenetre.part + " %") !== -1
+            && txt.indexOf(attendu.blocs + " blocs sur " + attendu.jours + " jours") !== -1;
+
+          /* Largeur : mesure INDICATIVE seulement, cette passe tourne dans une fenetre de bureau.
+             La garantie « ca tient en 390 px » appartient a la passe mobile, qui seme desormais
+             des blocs de focus pour que la frise y soit reellement rendue et balayee. */
+          const strip = el.querySelector(".fc-strip");
+          const tient = !!strip && strip.scrollWidth <= strip.clientWidth + 1;
+
+          checks.__creneau = "muet=" + muet + " visible=" + visible + " barres=" + barres.length
+            + " misesEnAvant[" + dedans.join(",") + "] attendu=" + (attendu ? attendu.fenetre.debut + "-" + attendu.fenetre.fin : "null")
+            + " tient=" + tient + " texte[" + txt.slice(0, 120) + "]";
+          state.focusSessions = _fsS;
+          return muet && visible && barres.length === 24 && accordFrise && accordTexte;
+        } catch (e) {
+          state.focusSessions = _fsS;
+          checks.__errCreneau = String(e && e.message); return false;
+        }
+      })();
+
       checks.blocAnnulable = (() => {
         // Sauvegardes HORS du try : une exception doit pouvoir tout rendre (lecon de l iteration 61).
         const _agS = state.agenda, _recS = state.recurring, _xpS = state.xp, _foS = state.focus;
@@ -5194,6 +5259,7 @@ app.whenReady().then(async () => {
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
     if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.recurrenceDeplaceeCochee) errors.push('Une occurrence récurrente DÉPLACÉE doit se valider sur sa date d’ORIGINE : cocher le mardi un cours venu du lundi doit écrire lundi dans doneLog, sinon la coche ne tient pas et le bloc ressort « à faire » au rendu suivant. Correctif documenté dans app.js, gardé par aucun check jusqu’ici — c’est ce qui rendait risquée toute consolidation sur setRecurringDone, qui prend la date telle quelle');
+    if (!checks.creneauFocus) errors.push('Focus : l’app horodate chaque bloc de concentration (id = Date.now()) et ne l’a jamais lu. La frise « Quand ta concentration se pose » doit rester ÉTEINTE sous le seuil d’échantillon, puis montrer 24 colonnes dont la plage mise en avant est CELLE que la mesure désigne, avec une phrase qui cite les mêmes chiffres — et tenir dans 390 px sans défilement');
     if (!checks.blocAnnulable) errors.push('Agenda : une coche doit être un INTERRUPTEUR, comme partout ailleurs dans l’app (quêtes, habitudes, tâches). Un bloc terminé doit offrir « ↩︎ Annuler », rendre EXACTEMENT l’XP donnée (compteur de catégorie compris), annoncer le même chiffre dans les deux libellés — et ne plus proposer « → demain », qui revenait à repousser quelque chose de déjà fait');
     if (!checks.apercuNomme) errors.push('Coach Poids : quand la cible TAPÉE diffère de la cible ENREGISTRÉE, l’écran porte deux cibles à la fois — l’en-tête suit la saisie, la durée et la jauge suivent l’enregistrée. Une bannière doit nommer l’aperçu et rappeler les deux chiffres, et rester muette quand les deux coïncident');
     if (!checks.parkingRetrouvable) errors.push('Parking de concentration : le statut promet « tu peux y revenir après ton bloc » — il doit donc compter TOUTES les pensées ouvertes, pas les quatre affichées, et les autres doivent rester atteignables dans le tiroir. Mesuré avant correctif : 8 stockées, 4 visibles, statut annonçant « 4 pensées déposées »');
@@ -5463,6 +5529,26 @@ app.whenReady().then(async () => {
         state.goals = Object.assign({}, state.goals, { targetWeight: 72, sessions: 3, runs: 4,
           progSessions: '', weeklyKm: 40 });
         state.fitnessObjective = 'endurance';
+        /* Même raison pour la frise horaire du Focus : elle reste ETEINTE sous le seuil
+           d échantillon, donc sans blocs semés la passe mobile ne voit AUCUNE de ses 24
+           colonnes — et une mutation qui les figerait en largeur fixe passerait au travers
+           (mesuré : la mutation « repeat(24,40px) » survivait). */
+        const _fsAvant = state.focusSessions;
+        {
+          const _p = function (n) { return String(n).padStart(2, '0'); };
+          const _b = new Date(localDate() + 'T12:00:00');
+          const _s = [];
+          for (let j = 1; j <= 6; j++) {
+            [9, 10].forEach(function (h) {
+              const d = new Date(_b.getFullYear(), _b.getMonth(), _b.getDate() - j, h, 20, 0);
+              _s.push({ id: d.getTime(), date: d.getFullYear() + '-' + _p(d.getMonth() + 1) + '-' + _p(d.getDate()),
+                minutes: 25, task: 'Compta' });
+            });
+          }
+          state.focusSessions = _s;
+          // Semer ne suffit pas : sans repeinture, le panneau reste celui d avant (vide).
+          try { if (typeof renderFocusRitual === 'function') renderFocusRitual(); } catch (_) {}
+        }
         try { if (typeof runObjectiveProgram === 'function') runObjectiveProgram(); } catch (_) {}
         const pages = ['athlete', 'nutrition', 'alternance', 'poids', 'focus', 'library', 'settings'];
         for (const p of pages) {
@@ -5486,8 +5572,24 @@ app.whenReady().then(async () => {
           });
           }
         }
+        /* LA FRISE HORAIRE DU FOCUS ne « déborde » pas au sens de la boucle ci-dessus : ses 24
+           colonnes font GRANDIR sa propre boîte (clientWidth suit scrollWidth), et l'excédent se
+           fait rogner plus haut, en silence. Mesuré : en largeur fixe, la frise mesurait
+           1006 px dans un panneau de 350 — et AUCUN élément ne se signalait en débordement.
+           La bonne question n'est donc pas « déborde-t-elle ? » mais « tient-elle dans son
+           panneau ? », et à 390 px, pas dans une fenêtre de bureau. */
+        showPage('focus');
+        {
+          const _fr = document.querySelector('.fc-strip');
+          /* Référence = la LARGEUR DE FENÊTRE, pas le panneau conteneur : mesuré, en largeur
+             fixe le panneau GRANDIT avec la frise (1006 px tous les deux), donc « tient dans son
+             panneau » restait vrai pendant que l'écran, lui, ne suivait plus. */
+          out.friseFocus = _fr
+            ? { largeur: Math.round(_fr.scrollWidth), fenetre: Math.round(window.innerWidth) }
+            : null;
+        }
         // On rend l'état comme on l'a trouvé : les mesures suivantes ne doivent rien hériter.
-        state.ultraPlan = _ultraAvant; state.fitnessObjective = _objAvant;
+        state.ultraPlan = _ultraAvant; state.fitnessObjective = _objAvant; state.focusSessions = _fsAvant;
         state.profile = _profAvant; state.goals = _goalsAvant;
         try { if (typeof runObjectiveProgram === 'function') runObjectiveProgram(); } catch (_) {}
         // 3 bis. Les DIALOGUES : la passe ne regardait que les panneaux, alors que c'est dans
@@ -5542,6 +5644,11 @@ app.whenReady().then(async () => {
     if (m.champsSous16 && m.champsSous16.length) errors.push('Passe mobile : champs sous 16 px — iOS zoomera au focus et ne dézoomera pas : ' + m.champsSous16.join(', '));
     if (m.dialoguesMobile && m.dialoguesMobile.length) errors.push('Passe mobile : dialogues — ' + m.dialoguesMobile.join(', '));
     if (m.deborde.length) errors.push('Passe mobile : éléments qui débordent de leur boîte — ' + m.deborde.map(d => d.el + ' (' + d.page + ', +' + d.de + 'px)').join(', '));
+    /* La frise horaire du Focus s'ÉLARGIT au lieu de déborder : la boucle générique ne la voit
+       pas, il faut comparer sa largeur à celle de son panneau. `null` = pas rendue du tout,
+       ce qui est aussi un échec : la passe sème des blocs pour qu'elle le soit. */
+    if (!m.friseFocus) errors.push('Passe mobile : la frise horaire du Focus (.fc-strip) n’est pas rendue — sans elle, rien ne garantit que ses 24 colonnes tiennent en 390 px (la passe sème pourtant des blocs de concentration)');
+    else if (m.friseFocus.largeur > m.friseFocus.fenetre) errors.push('Passe mobile : la frise horaire du Focus mesure ' + m.friseFocus.largeur + ' px pour une fenêtre de ' + m.friseFocus.fenetre + ' px. Ses 24 colonnes doivent rester en minmax(0,1fr) : en largeur fixe elle ne « déborde » de rien — son panneau grandit avec elle — mais l’écran ne suit plus et les dernières heures de la journée disparaissent');
     mob.destroy();
   } catch (e) {
     errors.push('Passe mobile : ' + e.message);

@@ -434,3 +434,22 @@ details.calendar-setting[open]{padding-bottom:14px}
 .alt-item.alt-s-entretien{border-left-color:#f59e0b}
 .alt-item.alt-s-accepte{border-left-color:#4ade80}
 .alt-item.alt-s-refus{border-left-color:#fb7185;opacity:.7}
+
+/* ===== Quand ta concentration se pose (itération 75) =====
+   La frise du dessus (`.training-heatmap`) dit QUELS JOURS ; celle-ci dit À QUELLE HEURE.
+   24 colonnes en minmax(0,1fr) : à 390 px chaque barre fait ~13 px, lisible sans défilement
+   horizontal. Les heures de la meilleure plage sont mises en avant, le reste reste présent —
+   c'est le CONTRASTE qui porte l'information, pas la seule barre haute. */
+.focus-creneau{display:grid;gap:var(--sp-2);margin-top:var(--sp-5)}
+.focus-creneau[hidden]{display:none}
+.fc-label{color:var(--muted);font-size:var(--fs-2xs);font-weight:var(--fw-med)}
+.fc-label b{color:var(--text);font-weight:var(--fw-med)}
+.fc-strip{display:grid;grid-template-columns:repeat(24,minmax(0,1fr));gap:2px;align-items:end;height:52px}
+/* Hauteur minimale de 3 px : une heure à 1 seul bloc doit rester VISIBLE, sinon la frise
+   raconte « rien ici » là où il s'est passé quelque chose. */
+.fc-bar{height:max(3px,var(--fc-h,0%));background:var(--line);border-radius:var(--r-xs) var(--r-xs) 0 0;min-width:0}
+.fc-bar.fc-in{background:var(--accent)}
+.fc-bar.fc-vide{height:2px;background:var(--line);opacity:.5}
+.fc-axis{display:flex;justify-content:space-between;color:var(--muted);font-size:var(--fs-3xs)}
+.fc-phrase{color:var(--muted);font-size:var(--fs-xs);line-height:1.45;margin:var(--sp-1) 0 0}
+.fc-phrase.fc-net{color:var(--text)}
