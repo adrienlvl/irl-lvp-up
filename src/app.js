@@ -766,6 +766,22 @@ function renderFocusRitual() {
   const today=localDate(),yesterday=dateKey(new Date(Date.now()-864e5)),todaySessions=state.focusSessions.filter(s=>s.date===today),weekKey=dateKey(weekStart()),weekMinutes=state.focusSessions.filter(s=>s.date>=weekKey).reduce((sum,s)=>sum+s.minutes,0),morning=state.morningRituals.find(r=>r.date===today),reflection=state.reflections.find(r=>r.date===today),yesterdayReflection=state.reflections.find(r=>r.date===yesterday),lastReview=state.focusReviews.filter(r=>r.date===today).at(-1);
   const fhm=trainingHeatmap(state.focusSessions,today,8),fhmEl=$('#focusHeatmap');if(fhmEl)fhmEl.innerHTML=`<span class="hm-label">Régularité du focus · 8 dernières semaines</span><div class="hm-grid">${fhm.map(c=>`<i class="hm-cell${c.count>=2?' hm-2':c.count?' hm-1':''}${c.future?' hm-future':''}" title="${c.date.split('-').reverse().join('/')} : ${c.count} bloc${c.count>1?'s':''}"></i>`).join('')}</div>`;
   const fwgEl=$('#focusWeekGoal');if(fwgEl&&typeof focusWeekGoal==='function'){const g=focusWeekGoal(state.focusSessions,today);if(!g){fwgEl.hidden=true;fwgEl.innerHTML='';}else{fwgEl.hidden=false;fwgEl.className='focus-week-goal fwg-'+g.status;const label=g.status==='done'?'objectif atteint ✓':g.status==='onTrack'?'en bonne voie':`encore ${g.remaining} min`;fwgEl.innerHTML=`<div class="fwg-top"><b>🧠 Concentration cette semaine</b><span>${g.done} / ${g.target} min</span></div><div class="fwg-bar"><i style="width:${g.pct}%"></i></div><small>${label}${g.sessions?` · ${g.sessions} bloc${g.sessions>1?'s':''}`:''}</small>`;}}
+  /* LA CIBLE, CONFRONTÉE À SON HISTORIQUE. Juste au-dessus, l'app dit où en est la semaine EN
+     COURS ; elle ne disait jamais combien de fois cette cible est réellement tenue. Une cible
+     qu'on ne confronte pas à son passé n'est qu'un chiffre affiché — même faute que la cadence
+     de pesée, prescrite sans être regardée (itération 79). Les deux vivent côte à côte : la
+     semaine en cours, puis la régularité. */
+  {const ctEl=$('#focusCibleTenue');
+   const ct=(typeof cibleFocusTenue==='function')?cibleFocusTenue(state.focusSessions,today):null;
+   if(ctEl){if(!ct){ctEl.hidden=true;ctEl.innerHTML='';}
+    else{ctEl.hidden=false;ctEl.className='focus-cible-tenue fct-'+ct.verdict;
+     // Une pastille par semaine, de la plus ancienne à la plus récente : la régularité se VOIT
+     // avant de se lire, et le détail reste dans l'infobulle.
+     const pastilles=ct.semaines.map(w=>'<i class="fct-dot'+(w.tenue?' fct-ok':'')
+       +'" title="Semaine du '+w.debut.split('-').reverse().join('/')+' · '+w.minutes+' min"></i>').join('');
+     ctEl.innerHTML='<div class="fct-top"><b>🎯 Ta cible, semaine après semaine</b><span>'
+       +ct.tenues+'/'+ct.semaines.length+'</span></div><div class="fct-dots">'+pastilles+'</div>'
+       +'<p class="fct-phrase">'+escapeHtml(ct.phrase)+'</p>';}}}
   {const fhEl=$('#focusHeatmap');if(fhEl&&typeof focusHeatmapJours==='function'){const _hm=focusHeatmapJours(state.focusSessions,today,8);const _fort=Math.max(20,Math.round((typeof FOCUS_WEEK_TARGET_MIN!=='undefined'?FOCUS_WEEK_TARGET_MIN:120)/3));fhEl.innerHTML='<span class="hm-label">Concentration · 8 dernières semaines <b>('+_fort+' min = journée pleine)</b></span>'+'<div class="hm-grid">'+_hm.map(c=>'<i class="hm-cell'+(c.niveau===2?' hm-2':c.niveau===1?' hm-1':'')+(c.future?' hm-future':'')+'" title="'+c.date.split('-').reverse().join('/')+' : '+c.minutes+' min"></i>').join('')+'</div>';}}/* QUAND ta concentration se pose. La frise du dessus dit QUELS JOURS, celle-ci dit À QUELLE
    HEURE — l'app enregistrait l'horodatage de chaque bloc depuis toujours sans jamais le lire.
    Muet tant que l'échantillon ne le permet pas : `creneauDeConcentration` renvoie null, et un

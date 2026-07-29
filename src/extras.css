@@ -459,3 +459,23 @@ details.calendar-setting[open]{padding-bottom:14px}
    elle qu'on veut retrouver le jour où on s'y remet. */
 .focus-creneau.fc-ancien .fc-bar.fc-in{background:var(--muted)}
 .focus-creneau.fc-ancien .fc-phrase{color:var(--muted)}
+
+/* ===== Ta cible, semaine après semaine (itération 89) =====
+   Sous l'objectif de la semaine EN COURS : la régularité. Une pastille par semaine, de la plus
+   ancienne à la plus récente — on voit le motif avant de lire la phrase. La teinte suit le
+   VERDICT (habitude / irrégulier / jamais atteinte), jamais le pourcentage brut. */
+.focus-cible-tenue{display:grid;gap:var(--sp-2);margin-top:var(--sp-3);padding:var(--sp-3) var(--sp-4);
+  border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface-2)}
+.focus-cible-tenue[hidden]{display:none}
+.fct-top{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3)}
+.fct-top b{font-size:var(--fs-2xs);color:var(--muted);font-weight:var(--fw-med)}
+.fct-top span{font-size:var(--fs-sm);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums}
+.fct-dots{display:flex;flex-wrap:wrap;gap:var(--sp-1)}
+/* 10 px de côté : assez pour distinguer le motif à 390 px sans faire une frise de plus. */
+.fct-dot{width:10px;height:10px;border-radius:var(--r-xs);background:var(--input-bg);
+  border:1px solid var(--line);box-sizing:border-box}
+.fct-dot.fct-ok{background:var(--accent);border-color:var(--accent)}
+.fct-phrase{margin:0;color:var(--text);font-size:var(--fs-xs);line-height:1.45}
+.focus-cible-tenue.fct-habitude{border-left-color:var(--accent-ring)}
+.focus-cible-tenue.fct-jamais{border-left-color:var(--danger)}

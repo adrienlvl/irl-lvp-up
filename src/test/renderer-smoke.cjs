@@ -3666,6 +3666,63 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.cibleFocusVue = (() => {
+        const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
+        try {
+          if (typeof renderFocusRitual !== "function" || typeof cibleFocusTenue !== "function") { state.focusSessions = _fsS; return false; }
+          const el = document.querySelector("#focusCibleTenue");
+          const semaineEl = document.querySelector("#focusWeekGoal");
+          if (!el || !semaineEl) { state.focusSessions = _fsS; return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const base = new Date(localDate() + "T12:00:00");
+          const jour = function (n) { const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          /* patron[i] = blocs de 25 min pour la i-eme semaine TERMINEE en remontant. On part de
+             j-7 pour ne jamais mordre sur la semaine en cours, quel que soit le jour du test. */
+          const jeu = function (patron) { const s = [];
+            patron.forEach(function (blocs, i) { for (let k = 0; k < blocs; k++)
+              s.push({ id: 1, date: jour(7 + i * 7 + k), minutes: 25, task: "Compta" }); });
+            return s; };
+
+          /* 1) IRREGULIER : le bloc doit apparaitre SOUS l objectif de la semaine en cours — la
+             semaine, puis la regularite — et citer les memes chiffres que la mesure. */
+          state.focusSessions = jeu([6, 2, 2, 6, 2, 2, 6, 2]);
+          const attendu = cibleFocusTenue(state.focusSessions, localDate());
+          renderFocusRitual();
+          const vu = getComputedStyle(el).display !== "none";
+          const t1 = String(el.textContent || "");
+          const memeCompte = !!attendu && t1.indexOf(attendu.tenues + "/" + attendu.semaines.length) !== -1;
+          const memePhrase = !!attendu && t1.indexOf(attendu.phrase) !== -1;
+          const pastilles = el.querySelectorAll(".fct-dot").length;
+          const allumees = el.querySelectorAll(".fct-dot.fct-ok").length;
+          // Une pastille par semaine mesuree, allumee exactement pour les semaines tenues.
+          const frisJuste = !!attendu && pastilles === attendu.semaines.length && allumees === attendu.tenues;
+          // APRES l objectif de la semaine : la semaine en cours d abord, la regularite ensuite.
+          const apres = (semaineEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+          /* 2) JAMAIS ATTEINTE : le verdict doit basculer et PROPOSER une cible atteignable au
+             lieu de repeter celle qu il n atteint pas. Sans ce second cas, un bloc fige sur
+             « c est la regularite qui coince » passerait pour un succes. */
+          state.focusSessions = jeu([3, 2, 2, 3, 2, 2, 3, 2]);
+          renderFocusRitual();
+          const t2 = String(el.textContent || "");
+          const jamais = el.classList.contains("fct-jamais")
+            && t2.indexOf("Cible jamais atteinte") !== -1
+            && t2.indexOf("tu la tiendrais") !== -1
+            && el.querySelectorAll(".fct-dot.fct-ok").length === 0;
+
+          checks.__cibleFocus = "vu=" + vu + " apresSemaine=" + apres + " memeCompte=" + memeCompte
+            + " memePhrase=" + memePhrase + " pastilles=" + pastilles + "/" + allumees
+            + " frise=" + frisJuste + " jamais=" + jamais + " t1[" + t1.slice(0, 80) + "]";
+          state.focusSessions = _fsS;
+          try { renderFocusRitual(); } catch (_) {}
+          return vu && apres && memeCompte && memePhrase && frisJuste && jamais;
+        } catch (e) {
+          state.focusSessions = _fsS;
+          checks.__errCibleFocus = String(e && e.message); return false;
+        }
+      })();
+
       checks.creneauPerime = (() => {
         const _fsS = state.focusSessions;   // hors du try : le catch doit pouvoir restaurer
         try {
@@ -5851,6 +5908,7 @@ app.whenReady().then(async () => {
     if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
+    if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');

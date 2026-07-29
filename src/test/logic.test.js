@@ -13809,6 +13809,77 @@ test('setRecurringDone : une occurrence déplacée se valide sur sa date d’ORI
   assert.equal(L.setRecurringDone(simple.recurring, 1, lundi, true).changed, false, 'no-op si déjà coché');
 });
 
+test('cibleFocusTenue : la cible hebdo confrontée à son historique', () => {
+  /* Mesuré à l'itération 89 : l'app fixe 120 min/semaine, rapporte la semaine EN COURS et la
+     compare à la précédente — mais ne dit JAMAIS combien de fois la cible est tenue. Une cible
+     qu'on ne confronte pas à son passé n'est qu'un chiffre affiché. */
+  const today = '2026-07-29';
+  assert.equal(new Date(today + 'T12:00:00').getDay(), 3, 'témoin : un mercredi, semaine EN COURS');
+  const p = x => String(x).padStart(2, '0');
+  const j = n => { const d = new Date(2026, 6, 29 - n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  /* `patron[i]` = nombre de blocs de 25 min pour la i-ème semaine TERMINÉE en remontant.
+     On démarre à j-3 pour tomber dans la semaine précédente, jamais dans celle en cours. */
+  const jeu = patron => { const s = [];
+    patron.forEach((blocs, i) => { for (let k = 0; k < blocs; k++)
+      s.push({ id: 1, date: j(3 + i * 7 + k), minutes: 25, task: 'Compta' }); });
+    return s; };
+
+  // Rien à dire sur la régularité avec moins de deux semaines de suivi.
+  assert.equal(L.cibleFocusTenue([], today), null);
+  assert.equal(L.cibleFocusTenue(jeu([4]), today), null, 'une seule semaine ne fait pas une régularité');
+  assert.equal(L.cibleFocusTenue(jeu([4, 4]), 'pas-une-date'), null);
+
+  /* LA SEMAINE EN COURS EST EXCLUE. Des blocs posés AUJOURD'HUI ne doivent ni compter comme
+     une semaine tenue, ni comme une semaine manquée : elle n'est pas finie. */
+  const avecAujourdhui = jeu([6, 6]).concat([{ id: 9, date: today, minutes: 25 }]);
+  const ex = L.cibleFocusTenue(avecAujourdhui, today);
+  assert.equal(ex.semaines.length, 2, 'seules les semaines TERMINÉES sont comptées');
+  assert.ok(ex.semaines.every(w => w.fin < today), 'aucune semaine ne mord sur aujourd’hui');
+
+  /* IRRÉGULIER — LE CAS QUI DISCRIMINE : la cible est tenue une semaine sur trois, et la phrase
+     doit pointer la RÉGULARITÉ, pas la hauteur de la cible (les semaines pleines la dépassent). */
+  const irr = L.cibleFocusTenue(jeu([6, 2, 2, 6, 2, 2, 6, 2]), today);
+  assert.equal(irr.semaines.length, 8);
+  assert.equal(irr.tenues, 3);
+  assert.equal(irr.taux, 38);
+  assert.equal(irr.verdict, 'irregulier');
+  assert.equal(irr.moyTenues, 150, 'les semaines pleines DÉPASSENT la cible…');
+  assert.equal(irr.moyRates, 50, '…et les autres sont loin en dessous');
+  assert.match(irr.phrase, /3 semaines sur 8/);
+  assert.match(irr.phrase, /c’est la régularité/);
+
+  /* HABITUDE : au-delà de 70 %, on cesse de parler d'effort. Sans ce second cas, une phrase
+     figée sur « c'est la régularité qui coince » passerait pour un succès. */
+  const hab = L.cibleFocusTenue(jeu([6, 6, 6, 6, 6, 6, 6, 2]), today);
+  assert.equal(hab.tenues, 7);
+  assert.equal(hab.verdict, 'habitude');
+  assert.equal(hab.serie, 7, 'la série en cours part de la semaine la plus RÉCENTE terminée');
+  assert.match(hab.phrase, /habitude installée/);
+  assert.ok(!/c’est la régularité/.test(hab.phrase));
+
+  /* JAMAIS ATTEINTE : on propose une cible ATTEIGNABLE au lieu de répéter celle qu'il n'atteint
+     pas. Le chiffre proposé est son propre maximum, arrondi — pas une valeur inventée. */
+  const jam = L.cibleFocusTenue(jeu([3, 2, 2, 3, 2, 2, 3, 2]), today);
+  assert.equal(jam.tenues, 0);
+  assert.equal(jam.verdict, 'jamais');
+  assert.equal(jam.maxi, 75);
+  assert.match(jam.phrase, /ton maximum est 75 min pour 120 visées/);
+  assert.match(jam.phrase, /à 75 min, tu la tiendrais/);
+  assert.ok(!/habitude|régularité/.test(jam.phrase), 'ni félicitation ni sermon sur la régularité');
+
+  /* Les semaines ANTÉRIEURES au premier bloc ne comptent pas : on ne reproche pas un passé qui
+     n'existe pas (leçon de la revue 80). Trois semaines de suivi, pas huit. */
+  const jeune = L.cibleFocusTenue(jeu([6, 6, 2]), today);
+  assert.equal(jeune.semaines.length, 3, 'la fenêtre s’arrête au premier bloc');
+  assert.equal(jeune.tenues, 2);
+
+  // La cible est réglable, et c'est bien elle qui décide du verdict.
+  const bas = L.cibleFocusTenue(jeu([3, 2, 2, 3, 2, 2, 3, 2]), today, { cible: 50 });
+  assert.ok(bas.tenues > 0, 'à cible plus basse, les mêmes semaines deviennent tenues');
+  assert.notEqual(bas.verdict, 'jamais');
+});
+
 test('creneauDeConcentration : le temps du verbe suit la fraîcheur de la mesure', () => {
   /* Défaut trouvé par la revue de l'itération 77 : la fenêtre fait 60 jours et n'exigeait
      aucune activité RÉCENTE. Avec zéro bloc depuis 35 jours, l'app annonçait toujours
