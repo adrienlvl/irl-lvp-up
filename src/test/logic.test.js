@@ -14376,6 +14376,52 @@ test('appliquerProgrammeNutrition : le choix change le PLAN, pas seulement un te
     'choix inconnu → on ne touche a rien');
 });
 
+test('focusHeatmapJours : la concentration se lit en minutes, pas en nombre de blocs', () => {
+  /* La page Focus affichait déjà une heatmap, mais via `trainingHeatmap`, qui compte les
+     ENTRÉES par jour. Sur du sport c'est correct ; sur de la concentration, ça récompense
+     l'émiettement. */
+  const auj = '2026-07-30', hier = '2026-07-29';
+  const frag = [{ date: hier, minutes: 15 }, { date: hier, minutes: 15 },
+    { date: hier, minutes: 15 }, { date: hier, minutes: 15 }];
+  const plein = [{ date: hier, minutes: 60 }];
+  const jourDe = (fn, s) => fn(s, auj, 1).filter(c => c.date === hier)[0];
+
+  /* LE SCÉNARIO QUI DISCRIMINE : temps total IDENTIQUE, lecture opposée. On assert d'abord
+     que l'ancienne règle se trompe — sinon rien ne prouve que la nouvelle sert à quelque chose. */
+  assert.equal(jourDe(L.trainingHeatmap, frag).count, 4, 'ancienne règle : 4 entrées');
+  assert.equal(jourDe(L.trainingHeatmap, plein).count, 1, 'contre 1 seule pour le même temps');
+  assert.ok(jourDe(L.trainingHeatmap, frag).count > jourDe(L.trainingHeatmap, plein).count,
+    'la journée FRAGMENTÉE paraissait meilleure — c’est le défaut');
+
+  const nFrag = jourDe(L.focusHeatmapJours, frag), nPlein = jourDe(L.focusHeatmapJours, plein);
+  assert.equal(nFrag.minutes, 60); assert.equal(nPlein.minutes, 60);
+  assert.equal(nFrag.niveau, nPlein.niveau, 'à temps égal, même intensité');
+  assert.equal(nPlein.niveau, 2, '60 min dépasse le tiers de la cible hebdo (40 min)');
+
+  // Le seuil SUIT la cible : ce n'est pas un chiffre en dur.
+  assert.equal(jourDe((s, a, w) => L.focusHeatmapJours(s, a, w, 300), plein).niveau, 1,
+    'avec 300 min visées, le seuil monte à 100 et 60 min ne suffit plus');
+  assert.equal(jourDe((s, a, w) => L.focusHeatmapJours(s, a, w, 30), plein).niveau, 2,
+    'plancher à 20 min : une cible minuscule ne rend pas tout « fort »');
+  /* LE CAS QUI DISCRIMINE LE PLANCHER : une PETITE journée avec une cible minuscule.
+     Sans le plancher, cible 30 donnerait un seuil de 10 min et 15 min passerait « fort » —
+     une case foncée pour un quart d heure. L assertion precedente (60 min) ne le voyait pas :
+     60 depasse le seuil dans les deux cas, et la mutation SURVIVAIT. */
+  const court = [{ date: hier, minutes: 15 }];
+  assert.equal(jourDe((s, a, w) => L.focusHeatmapJours(s, a, w, 30), court).niveau, 1,
+    '15 min reste une journée modeste, même avec une cible hebdo de 30 min');
+
+  // Forme : 8 semaines = 56 cellules, comme la heatmap d'entraînement que le rendu partage.
+  assert.equal(L.focusHeatmapJours([], auj, 8).length, 56, 'même grille que trainingHeatmap');
+  assert.ok(L.focusHeatmapJours([], auj, 8).every(c => c.niveau === 0), 'sans données : tout à zéro');
+  assert.ok(L.focusHeatmapJours([], auj, 1).some(c => c.future === true), 'les jours à venir sont marqués');
+  // Bornes : rien d'inventé, aucune exception.
+  assert.deepEqual(L.focusHeatmapJours(plein, 'nawak', 8), [], 'date abîmée → grille vide');
+  assert.equal(L.focusHeatmapJours(null, auj, 1).length, 7, 'pas de sessions : la grille existe quand même');
+  assert.equal(jourDe(L.focusHeatmapJours, [{ date: hier }]).minutes, 0, 'session sans durée : zéro, pas NaN');
+  assert.equal(jourDe(L.focusHeatmapJours, [{ date: hier, minutes: -50 }]).minutes, 0, 'une durée négative ne retire rien');
+});
+
 test('focusTendanceTexte : le sens de ta concentration, et le silence sans référence', () => {
   /* `focusMinutesTrend` calculait l'écart semaine/semaine depuis des mois sans jamais être
      appelée par le rendu (0 appel, mesuré). La page Focus disait OÙ va l'attention

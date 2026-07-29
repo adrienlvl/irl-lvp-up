@@ -293,7 +293,25 @@ app.whenReady().then(async () => {
           const foldOk = folded.tasks.length === 2 && folded.tasks[0].task === 'Deep work' && folded.tasks[0].minutes === 50 && folded.tasks[0].sessions === 2;
           return r.total === 120 && r.tasks.length === 2 && r.tasks[0].task === 'Compta' && r.tasks[0].minutes === 80 && r.tasks[0].pct === 67 && foldOk && focusByTask([], 'nope').total === 0;
         })(),
-        focusHeatmap: !!document.getElementById('focusHeatmap') && document.querySelectorAll('#focusHeatmap .hm-cell').length === 56,
+        focusHeatmap: (() => {
+          if (!document.getElementById('focusHeatmap')) return false;
+          if (document.querySelectorAll('#focusHeatmap .hm-cell').length !== 56) return false;
+          /* Le compte de cellules etait vrai AVANT comme APRES le correctif : il ne voyait pas
+             que l intensite comptait les blocs. On rejoue les deux journees a temps egal. */
+          if (typeof focusHeatmapJours !== 'function') return false;
+          const sf = state.focusSessions;
+          const h = (() => { const d = new Date(localDate() + 'T12:00:00'); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+          state.focusSessions = [{ date: h, minutes: 15 }, { date: h, minutes: 15 }, { date: h, minutes: 15 }, { date: h, minutes: 15 }];
+          renderFocusRitual();
+          const frag = document.querySelectorAll('#focusHeatmap .hm-cell.hm-2').length;
+          state.focusSessions = [{ date: h, minutes: 60 }];
+          renderFocusRitual();
+          const plein = document.querySelectorAll('#focusHeatmap .hm-cell.hm-2').length;
+          state.focusSessions = sf;
+          try { renderFocusRitual(); } catch (_) {}
+          // A temps total egal, la journee concentree ne doit PAS paraitre plus faible.
+          return frag === 1 && plein === 1;
+        })(),
         supplements: !!document.getElementById('suppHeat') && typeof hydrationPlan === 'function' && !!(document.getElementById('suppProteinTarget') || {}).textContent,
         nutritionPlus: typeof supplementTiming === 'function' && typeof searchFoods === 'function' && !!document.getElementById('foodResults') && (document.querySelectorAll('#suppTimingGrid .supp-phase').length >= 3),
         foodLogProt: typeof bumpProtein === 'function' && typeof searchFoods === 'function' && searchFoods('', 12).some(x => x.p > 0),
@@ -4964,6 +4982,7 @@ app.whenReady().then(async () => {
     if (!checks.boutonLancePlan) errors.push('« Démarrer cette séance » lance autre chose (le bouton du compagnon doit ouvrir EXACTEMENT la séance du plan nommée au-dessus, mêmes exercices dans le même ordre)');
     if (!checks.agendaSansDoublon) errors.push('Agenda dédoublé (les deux boutons « Programmer » écrivent la même semaine : le second clic ne doit RIEN ajouter et aucun créneau ne doit porter deux blocs)');
     if (!checks.tendanceAdherence) errors.push('Tendance d’adhérence muette (#adherenceTendance) : passer de 7/7 à 0/7 sur les protéines doit être signalé en citant LES DEUX semaines et la source — et le panneau doit se taire quand il n’y a qu’une semaine à comparer');
+    if (!checks.focusHeatmap) errors.push('Carte de concentration : 56 cellules (8 semaines), et surtout une intensité qui se lit en MINUTES — quatre blocs de 15 min et une heure pleine doivent produire la même case. L’ancienne règle comptait les entrées et affichait la journée fragmentée plus foncée que la journée concentrée');
     if (!checks.tendanceFocus) errors.push('Page Focus : la tendance hebdomadaire de concentration doit être AFFICHÉE (focusMinutesTrend était calculée depuis des mois sans un seul appel au rendu), avec l’écart ET la semaine de référence citée — mais rester MUETTE la première semaine, où la fonction rend prev:null tout en annonçant dir:flat');
     if (!checks.journeeSaturee) errors.push('Tableau de bord : une journée qui ne tient pas doit être signalée dans « À rattraper » avec le dépassement réel et l’heure de fin estimée — l’app calculait déjà 183 % de capacité sans le dire ailleurs que dans l’Agenda. MAIS elle doit se taire quand la journée n’est faite que de cours importés : rien n’est déplaçable, et une alerte quotidienne cesse d’être lue');
     if (!checks.coutDuReglage) errors.push('Plan de bataille : changer un réglage doit AFFICHER ce que ça coûte — le temps gagné ou perdu, et surtout la disparition d’une discipline entière (mesuré : passer de 3 à 5 courses garde 4 séances mais efface la musculation, invisible sur un écran qui n’affiche que le résultat). Et rien ne doit s’afficher au premier rendu ni à réglage inchangé, sinon la phrase devient du bruit');
