@@ -152,6 +152,12 @@ Peu de risque, valeur immédiate, et ça nettoie le terrain.
    > dont la logique était déjà écrite**. Reste `nextTrainingSession`, puis le code-barres.
 2. **Rééquilibrer les pages pauvres** — Poids, Nutrition, Focus, Alternance ont un seul angle
    chacun là où Athlète en a vingt-deux.
+   > **Focus, avancement.** Quatre angles ajoutés depuis : le sens de la tendance (63), la carte
+   > de régularité (64), le parking réellement reprenable (65), et **l'heure à laquelle la
+   > concentration se pose** (75). Ce dernier relève en fait du chantier n°10 — une corrélation
+   > personnelle tirée de données déjà collectées : `finishFocusBlock` horodatait chaque bloc
+   > depuis le premier jour, et personne ne lisait l'heure. *À chercher en priorité pour les
+   > pages restantes : ce que l'app ENREGISTRE déjà sans jamais le relire.*
 3. ~~L'Agenda dans la navigation, et sondé en 390 px~~ — **FAIT.** Il y était déjà (cf. constat
    n°2, erreur d'audit), et la sonde 390 px de l'itération 61 l'a trouvé sain : aucun
    débordement, aucun champ sous 16 px, trois vues, des filtres.
