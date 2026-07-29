@@ -3646,3 +3646,61 @@ plus rentable. Mesures à reprendre telles quelles : `#objectiveResult` = 2 618 
 347 px (de l'analyse). Le premier bouton d'action est à **1 772 px du haut**, soit le troisième
 écran, derrière 1 371 px de préambule. C'est la prochaine cible : remonter l'action, replier
 l'analyse.
+
+## Itération 97 — revue adversariale : un check qui déclarait sa couverture
+
+Revue des itérations 95-96. Visée **annoncée avant de mesurer** : le check `hiddenCacheVraiment`
+que je venais d'écrire, parce que sa liste de pages était écrite à la main — et une liste en dur ne
+prouve rien.
+
+### Le défaut : 8 pages déclarées, 7 visitées, 2 trous
+
+```
+pages reelles (8) : dashboard athlete poids library nutrition focus alternance settings
+liste du check (8) : dashboard agenda athlete poids library nutrition focus settings
+NON COUVERTES   : alternance
+NOMS SANS EFFET : agenda
+```
+
+« agenda » **n'existe pas** comme page : l'Agenda est un *overlay* ouvert par `#openWeekPage`, pas
+une page de `showPage()`. Et `showPage()` sur un nom inconnu ne fait rien — silencieusement. Le
+check remesurait donc le tableau de bord, n'a jamais regardé Alternance ni l'Agenda, et annonçait
+quand même « aucun fantôme sur **8 pages** ».
+
+C'est le troisième cas de la leçon « une mutation qui survit = check creux, harnais mort, ou
+**redondance qui masque la couverture** » — sauf qu'ici aucune mutation ne le révélait : le check
+passait, et son propre message de diagnostic mentait.
+
+### Corrigé
+
+La liste vient du DOM (`[data-page]`), chaque visite est **prouvée par `aria-current`** (un nom sans
+effet fait tomber le check), l'Agenda est visité comme l'overlay qu'il est — vue semaine **et** vue
+mois — et un plancher à 8 pages empêche une réduction silencieuse de la couverture.
+
+### Vérifié sans défaut trouvé
+
+- **Les 51 gardes `[hidden]` mordent.** 43 forcées à `hidden` une par une, après les avoir rendues
+  mesurables : rect à zéro pour toutes. Aucune ne perd sa guerre de spécificité. (85 sélecteurs
+  n'étaient jamais visibles dans cet état — dit tel quel plutôt que compté comme vérifié.)
+- **Le saut d'étape de la séance guidée conserve l'état.** Le check ne testait que le saut *avant* ;
+  le cas qui discrimine est le **retour arrière** sur un exercice déjà validé. Mesuré : Squat 4/4 →
+  saut vers Gainage → retour → Squat **4/4 toujours là**, carte à jour, un seul `aria-current`.
+
+### Ce que cette itération a appris
+
+**Un message de diagnostic est une affirmation comme une autre.** « aucun fantôme sur 8 pages »
+était faux sur le nombre *et* sur les pages, et je l'ai lu trois fois sans le vérifier parce qu'il
+disait ce que je voulais entendre. La règle « une phrase est une affirmation : vérifier la
+fraîcheur » vaut aussi pour les phrases que mes propres garde-fous m'écrivent.
+
+**Ce qui énumère doit dériver, pas déclarer.** Toute liste écrite à la main dans un check est une
+occasion de divergence avec l'app. Quand la liste vient du DOM et que chaque élément prouve son
+effet, le check ne peut plus se tromper sur son propre périmètre.
+
+**Mutations.** 3 posées, 3 détectées — dont celle qui remet ma liste en dur et fait maintenant
+tomber le check sur `non confirmees[agenda]`.
+
+691 tests · SMOKE OK. Rien publié depuis v2.15.0.
+
+*(Le repli du Plan de bataille reste la prochaine cible, mesures inchangées : l'action `op-week`
+à 1 772 px du haut, derrière 1 371 px de préambule.)*
