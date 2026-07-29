@@ -3149,3 +3149,43 @@ forme grammaticale qui dépend de la valeur.*
 **Mutations.** 5 posées, 5 détectées après élargissement du jeu d'essai.
 
 684 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 87 — La force rattachée au rythme, et trois libellés faux trouvés en relisant
+
+Fin du chantier n°9. `memoireForceParCadence` attribue le gain de 1RM estimé à la cadence du bloc
+où il a été réalisé, et sa phrase vit **dans le panneau du tonnage** — deux encadrés au titre
+jumeau seraient le double avis qu'on supprime ailleurs.
+
+### Une panne d'outillage devenue relecture
+
+L'exécution et l'édition ont été indisponibles plusieurs tours. Faute de pouvoir muter, j'ai
+relu — et trouvé **trois libellés faux**, tous de la même famille : *un libellé qui promet un
+périmètre que le chiffre ne couvre pas.*
+
+| Défaut | Ce que le chiffre couvrait vraiment |
+|---|---|
+| « en moyenne par bloc » | une moyenne **par exercice** (le compteur tourne par exercice × transition) |
+| « Squat **y** a pris le plus » | son gain **toutes cadences confondues** |
+| « observation sur N blocs » | des blocs **archivés**, dont certains écartés |
+
+*Une panne n'est pas forcément du temps perdu : la relecture attrape une classe de défauts que
+la mutation ne cible pas — celle où le code est juste et la phrase fausse.*
+
+### Un test est tombé, et il avait raison
+
+Avec trois blocs dont le deuxième est vide, la comparaison mécanique « i−1 → i » perdait **tout**.
+Or un bloc sans séance ne coupe pas la progression, il la met en pause : une **référence
+glissante** enjambe désormais les vides. Contrat décidé sur place, pas assoupli.
+
+### Deux mutations survivantes, deux causes à ne pas confondre
+
+- **Redondance** : la garde `cad > 0` était impliquée par l'absence d'exercices. Doublon retiré —
+  pas de test fabriqué autour.
+- **Jeu d'essai non discriminant** : un seul exercice par cadence ⇒ diviser par 1 ne change rien.
+  Il faut **deux exercices sur la même cadence**. Exactement la leçon de l'itération 86 (tous les
+  blocs faisaient 4 semaines), sous un autre visage : *une opération uniforme sur le jeu d'essai
+  est invisible ; il faut faire varier ce sur quoi elle porte.*
+
+685 tests · SMOKE OK. Rien publié depuis v2.14.0.
