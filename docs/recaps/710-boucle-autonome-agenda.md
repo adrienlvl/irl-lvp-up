@@ -3032,3 +3032,37 @@ appelait le renderer à la main. Il repasse désormais par `render()`, la chaîn
 **Mutations.** 6 posées, 6 détectées après cette correction.
 
 683 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 84 — Séance guidée : l'écran qu'on manipule en séance
+
+Dernier point de la liste d'Adrien. Sondée à 390×844, dialogue réellement ouvert.
+
+### Deux défauts, mesurés
+
+**L'exercice en cours était en bas.** L'échauffement et la prépa ouvraient le dialogue ; le nom
+de l'exercice n'apparaissait qu'à **563 px**, hors du premier écran. Or l'échauffement se
+consulte *une fois* ; le bloc « exercice + valider mes séries » se relit toutes les 90 secondes.
+Les accordéons descendent au-dessus du retour au calme → le nom remonte à **463 px**.
+
+**Tout l'écran était sous le seuil tactile** : « Remplacer » 32 px, les ± du repos 32 px, les
+cinq « Valider » de séries 37 px, la fermeture 42 px. Sur l'écran qu'on manipule entre deux
+séries, main moite.
+
+### Ce que cette itération a appris
+
+**C'est le CHECK qui a trouvé le vrai périmètre, pas la sonde.** Ma sonde n'avait vu qu'un bouton
+sous 44 px ; le check, qui ouvre la séance dans un contexte plus complet, en a listé huit.
+*Un garde-fou n'est pas seulement une protection après coup : c'est souvent une meilleure sonde
+que la sonde, parce qu'il tourne dans l'état réel de l'app.*
+
+**Une promesse, un seul endroit.** La 4ᵉ mutation a survécu : j'avais posé la hauteur tactile
+DEUX fois — une règle spécifique sur « Remplacer » et une garantie globale. Chacune couvrait
+l'autre, donc aucune n'était testable. Le doublon a été retiré, pas contourné par un test de
+plus.
+
+**Mutations.** 4 posées, 3 détectées, la 4ᵉ ayant servi à supprimer la redondance qu'elle
+révélait.
+
+683 tests · SMOKE OK. Rien publié depuis v2.14.0.
