@@ -2530,7 +2530,17 @@ app.whenReady().then(async () => {
         if (!tModal || !nomEx) return false;
         const t = parseFloat(getComputedStyle(tModal).fontSize) || 0;
         const n = parseFloat(getComputedStyle(nomEx).fontSize) || 0;
-        return t > n;
+        /* CONTRAT INVERSE SCIEMMENT (iteration 95). Ce check exigeait t > n : le titre de la
+           modale devait dominer le nom de l exercice. Mesure sur l app en 390 px, ca produisait
+           exactement le defaut qu Adrien signalait : le nom de l exercice — ce qu on fait a
+           l instant — sortait a 18 px, le plus PETIT texte de l ecran, sous le titre de seance
+           (24 px) et meme sous l horloge de repos (31 px). La regle generale « un titre coiffe son
+           contenu » ne tient pas sur un ecran d ACTION : le titre de seance y est du contexte,
+           deja nomme par l eyebrow « SEANCE GUIDEE » juste au-dessus.
+           La contrainte garde DEUX bornes, elle n est pas relachee : le nom domine (n > t) et le
+           titre reste lisible comme contexte (t >= 14) — le reduire a un murmure serait l autre
+           facon de se tromper. */
+        return n > t && t >= 14;
       })();
       // Tenues isométriques (BLOQUANT) : une tenue enregistrée doit sortir avec ses secondes,
       // son palier et un conseil de volume — et une tenue jamais faite ne doit PAS apparaître.
@@ -3960,6 +3970,89 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* LA SEANCE GUIDEE : hierarchie, lisibilite, et un temps qui BOUGE. Mesure en 390 px avant
+         l iteration 95 : le nom de l exercice — ce qu on fait a l instant — sortait a 18 px, sous
+         le titre de seance (24 px) et sous l horloge de repos (31 px) ; les labels « kg »/« reps »
+         a 9,3 px ; les boutons -/+ a 42 px de large ; « ≈ 28 min » calcule sur TOUS les exercices,
+         donc identique de la premiere a la derniere serie ; et la barre a 25 % avant la premiere
+         serie. On mesure le RENDU, et on mesure APRES l effet. */
+      checks.hierarchieGuidee = (() => {
+        try {
+          if (typeof openGuidedWorkout !== 'function') return false;
+          const px = v => Math.round(parseFloat(v) || 0);
+          const fs = el => (el ? px(getComputedStyle(el).fontSize) : 0);
+          openGuidedWorkout({ title: 'Haut du corps', exercises: [
+            { name: 'Squat', sets: 4, reps: 8, weight: 80 },
+            { name: 'Tractions', sets: 4, reps: 8 },
+            { name: 'Gainage', sets: 2, reps: 45 }
+          ] });
+          const go = document.getElementById('guidedReadyGo'); if (go) go.click();
+          const sk = document.getElementById('guidedCountdownSkip'); if (sk) sk.click();
+
+          const nom = document.getElementById('guidedExerciseName');
+          const titre = document.getElementById('guidedWorkoutTitle');
+          const fsNom = fs(nom), fsTitre = fs(titre);
+          // Ce qu on FAIT doit primer sur le contexte : c est tout l objet de la refonte.
+          const hierarchie = fsNom >= 26 && fsNom > fsTitre;
+          const fsEtape = fs(document.getElementById('guidedWorkoutStep'));
+
+          const lab = document.querySelector('.guided-set-row label');
+          const fsLab = fs(lab);
+          const lisible = fsLab >= 12;
+
+          const plus = document.querySelector('.guided-set-head .gs-adjust button');
+          const rp = plus ? plus.getBoundingClientRect() : { width: 0, height: 0 };
+          const tactile = Math.round(rp.width) >= 44 && Math.round(rp.height) >= 44;
+
+          /* LA CARTE DE LA SEANCE : trois etapes, celle du milieu marquee, et un clic qui deplace
+             vraiment — un bouton qui ne bougerait rien serait le defaut qu on corrige. */
+          const puces = document.querySelectorAll('#guidedSteps [data-guided-step]');
+          const carteVue = getComputedStyle(document.getElementById('guidedSteps')).display !== 'none';
+          const courante = document.querySelectorAll('#guidedSteps [aria-current=step]').length === 1;
+
+          // Temps restant AVANT toute serie validee.
+          const lireTemps = () => {
+            const t = String((document.getElementById('guidedSessionTime') || {}).textContent || '');
+            const bout = t.split(' ')[1];
+            return { txt: t, min: Number(bout) };
+          };
+          const lireBarre = () => px((document.getElementById('guidedWorkoutProgress') || {}).style.width);
+          const t0 = lireTemps(), b0 = lireBarre();
+
+          /* On valide TOUTES les series de l exercice courant, puis on remesure. Valider REPEINT
+             tout l ecran guide : une NodeList capturee avant le premier clic ne designe plus que
+             des noeuds detaches, et les clics suivants ne font rien (mesure : la barre montait a
+             10 %, soit une seule serie sur dix). On re-interroge donc le DOM a chaque tour. */
+          for (let k = 0; k < 8; k++) {
+            const b = document.querySelector('#guidedSetLog .guided-set-row:not(.done) [data-complete-guided-set]');
+            if (!b) break;
+            b.click();
+          }
+          const t1 = lireTemps(), b1 = lireBarre();
+          const tempsBouge = Number.isFinite(t0.min) && Number.isFinite(t1.min) && t1.min < t0.min;
+          const barreBouge = b0 === 0 && b1 > 0;
+
+          /* Le clic sur une puce doit changer d exercice pour de vrai. On RE-INTERROGE : les puces
+             lues plus haut ont ete detruites par le repaint des validations. */
+          const avant = String((document.getElementById('guidedExerciseName') || {}).textContent || '');
+          const puces2 = document.querySelectorAll('#guidedSteps [data-guided-step]');
+          if (puces2[2]) puces2[2].click();
+          const apres = String((document.getElementById('guidedExerciseName') || {}).textContent || '');
+          const saut = puces2.length === 3 && apres !== avant && apres.indexOf('Gainage') !== -1;
+
+          checks.__hierGuidee = 'nom=' + fsNom + ' titre=' + fsTitre + ' etape=' + fsEtape
+            + ' label=' + fsLab + ' plus=' + Math.round(rp.width) + 'x' + Math.round(rp.height)
+            + ' puces=' + puces.length + ' carte=' + carteVue + ' courante=' + courante
+            + ' temps[' + t0.txt + ' -> ' + t1.txt + '] barre[' + b0 + ' -> ' + b1 + ']'
+            + ' saut=' + saut + ' apres[' + apres + ']';
+          const fermer = document.getElementById('closeGuidedWorkout'); if (fermer) fermer.click();
+          return hierarchie && lisible && tactile && carteVue && courante
+            && puces.length === 3 && tempsBouge && barreBouge && saut;
+        } catch (e) {
+          checks.__errHierGuidee = String(e && e.message); return false;
+        }
+      })();
+
       checks.revisionPossessif = (() => {
         const _agS = state.agenda, _exS = state.examGoals, _plS = state.plans, _recS = state.recurring;
         const _rendre = () => { state.agenda = _agS; state.examGoals = _exS; state.plans = _plS;
@@ -6176,7 +6269,7 @@ app.whenReady().then(async () => {
     if (!checks.webpArt) errors.push('Illustrations KO (strength.css doit pointer des .webp chargeables, plus aucun .png — planches 1 et 24 vérifiées)');
     if (!checks.themeTimeMode) errors.push('Mode thème « selon l’heure » KO (themeModeStored doit rendre \'time\' et non \'dark\' — sinon flash au lancement)');
     if (!checks.designTokens) errors.push('Couche de tokens KO (design-tokens.css : --accent-soft doit basculer clair/sombre, et --surface-1/--blue/--gold/--fs-xl/--sp-4/--r-md doivent être définis)');
-    if (!checks.typeHierarchy) errors.push('Hiérarchie typographique KO (le titre de page doit dépasser le titre de carte d’au moins 6 px)');
+    if (!checks.typeHierarchy) errors.push('Hiérarchie typographique KO : le titre de page doit dépasser le titre de carte d’au moins 6 px, et en séance guidée le nom de l’exercice doit dominer le titre de séance (contrat inversé sciemment à l’itération 95 — sur un écran d’action, ce qu’on FAIT primait sur son contexte) tout en le laissant lisible à 14 px au moins');
     if (!checks.isoHoldsUi) errors.push('Tenues isométriques KO (isometricProgress / #isoHolds : 70 s de gainage → palier Intermédiaire + conseil de volume, et aucune tenue jamais enregistrée)');
     if (!checks.skillRoadmapUi) errors.push('Feuille de route KO (skillRoadmap / #skillRoadmapPick / #skillRoadmap : sélecteur peuplé, clic sur une marche → compteur ET état persistés)');
     if (!checks.athleteTabs) errors.push('Sous-onglets Athlète KO (4 boutons ; chaque onglet entre 2 et 14 panneaux ; le panneau de progression doit avoir avalé les 5 cartes sans perdre un identifiant)');
@@ -6205,6 +6298,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.hierarchieGuidee) errors.push('Séance guidée : la hiérarchie était inversée — mesuré en 390 px, le nom de l’exercice sortait à 18 px, SOUS le titre de séance (24 px) et sous l’horloge de repos (31 px), et les labels « kg »/« reps » à 9,3 px. Le nom doit dominer son écran (≥ 26 px et plus gros que le titre), les labels rester lisibles (≥ 12 px), les boutons −/+ faire 44 px. Et l’en-tête doit MESURER : « ≈ 28 min » était calculé sur tous les exercices, donc figé du début à la fin, et la barre valait (index+1)/total, soit 25 % avant la première série. Valider des séries doit faire baisser le temps et avancer la barre. La carte de la séance doit lister les étapes, marquer celle en cours, et y sauter au clic');
     if (!checks.revisionPossessif) errors.push('Rattrapage des révisions : la phrase affichait « Son épreuve (X) » même quand aucun libellé ne correspondait — un possessif qui affirme un lien que le champ `appariee` niait dans le même objet. Le repli sur l’épreuve la plus proche est légitime, il doit juste se dire pour ce qu’il est (« Ta prochaine épreuve »). Et un libellé vide ou d’une lettre ne doit apparier aucune matière : une chaîne vide est sous-chaîne de tout, et « compta » contient « a »');
     if (!checks.revisionArbitre) errors.push('Révisions en retard : l’écran affichait la liste puis « Reprogramme-les dans le calendrier » — une consigne sans mécanisme, l’état d’avant l’itération 76 pour les séances. C’est l’ÉPREUVE qui doit arbitrer, pas la fraîcheur : une révision de 12 jours passe devant une révision d’hier si son épreuve est dans 5 jours. Le créneau proposé doit DÉPLACER la révision d’un clic, et quand tout est périmé aucun bouton ne doit subsister');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');

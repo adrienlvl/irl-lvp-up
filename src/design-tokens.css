@@ -110,6 +110,10 @@
   --fs-base: 1rem;      /* champs de formulaire */
   --fs-xl: 1.15rem;     /* titres de section */
   --fs-2xl: 1.5rem;     /* gros chiffres, en-têtes de page */
+  /* Le cran qui manquait à l'échelle : entre 24 px et le hero, rien. Un écran d'ACTION (la série
+     en cours pendant une séance) a besoin de dominer son contexte, et 24 px ne suffisait pas —
+     mesuré, le nom de l'exercice tombait à 18 px sous le titre de séance à 24 px. */
+  --fs-3xl: 1.75rem;    /* ce qu'on FAIT maintenant, quand ça doit primer sur tout */
   --fs-hero: clamp(2.5rem, 6vw, 4.5rem);
 
   /* Graisses : 650 et 750 retombaient déjà sur 600/700 sur la pile système. */

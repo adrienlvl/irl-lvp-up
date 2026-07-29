@@ -1,15 +1,20 @@
 .ritual-memory{margin:13px 0 0!important;padding:10px 12px;border-left:3px solid var(--accent-ring);border-radius:0 9px 9px 0;background:var(--accent-soft);font-size:.78rem!important;line-height:1.45}.personal-trends{margin-top:16px}.trend-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.trend-card{display:grid;gap:5px;min-height:116px;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}.trend-card b{color:var(--accent);font-size:.78rem}.trend-card span{font-size:.86rem;font-weight:750}.trend-card small{color:var(--muted);font-size:.72rem;line-height:1.42}.guided-set-log{display:grid;gap:8px;margin:16px 0}.guided-set-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:.75rem}
 .guided-set-head .gs-adjust{display:flex;gap:5px;margin-left:auto}
-.guided-set-head .gs-adjust button{width:32px;height:32px;display:grid;place-items:center;padding:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;font-size:1.15rem;font-weight:800;line-height:1;cursor:pointer}
+/* 44 px DÈS LA BASE. Ces deux boutons (retirer/ajouter une série) faisaient 32 px, portés à 42 px
+   seulement sous 700 px — donc toujours sous la norme maison, et sur l'écran où on les touche le
+   plus. Mesuré 42x44 en 390 px : c'est la largeur qui manquait. */
+.guided-set-head .gs-adjust button{width:44px;height:44px;display:grid;place-items:center;padding:0;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;font-size:1.15rem;font-weight:800;line-height:1;cursor:pointer}
 .guided-set-head .gs-adjust button:hover{border-color:var(--accent);color:var(--accent)}
 .guided-set-head .gs-adjust button:active{transform:scale(.94)}
-@media(max-width:700px){.guided-set-head .gs-adjust button{width:42px;height:42px;font-size:1.3rem}}.guided-set-head b{color:var(--text);font-size:.85rem}
+@media(max-width:700px){.guided-set-head .gs-adjust button{width:44px;height:44px;font-size:1.3rem}}.guided-set-head b{color:var(--text);font-size:.85rem}
 /* Séries du jour — cartes soignées : badge circulaire, état « validé » satisfaisant, chiffres centrés. */
 .guided-set-row{display:grid;grid-template-columns:auto 1fr 1fr auto;align-items:end;gap:10px;padding:11px 12px;border:1px solid var(--line);border-left:3px solid var(--line);border-radius:12px;background:var(--surface-2);transition:border-color .15s ease,background .15s ease}
 .guided-set-row.done{border-left-color:var(--accent);background:linear-gradient(90deg,var(--accent-soft),var(--surface-2) 55%)}
 .guided-set-row>b{align-self:center;width:27px;height:27px;display:grid;place-items:center;border-radius:50%;background:var(--input-bg);border:1px solid var(--line);color:var(--muted);font-size:.7rem;font-weight:800;letter-spacing:-.02em}
 .guided-set-row.done>b{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-veil)}
-.guided-set-row label{display:grid;gap:3px;color:var(--muted);font-size:.58rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+/* Les labels « kg » et « reps » — ce qui dit QUOI taper — sortaient à 9,3 px (.58rem). C'est en
+   dessous de tout seuil de lecture, sur un écran qu'on regarde entre deux séries, essoufflé. */
+.guided-set-row label{display:grid;gap:3px;color:var(--muted);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
 .guided-set-row input{min-width:0;width:100%;padding:9px 8px;background:var(--input-bg);color:var(--text);border:1px solid var(--line);border-radius:8px;text-align:center;font-weight:800;font-size:.95rem;font-variant-numeric:tabular-nums;transition:border-color .12s ease}
 .guided-set-row input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-veil)}
 .guided-set-row [data-complete-guided-set]{align-self:center;padding:9px 13px;font-size:.78rem;font-weight:750;white-space:nowrap;border-radius:9px}

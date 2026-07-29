@@ -14108,6 +14108,102 @@ test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTA
   assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
 });
 
+test('avancementSeanceGuidee : le temps restant BAISSE, la barre suit les séries', () => {
+  /* Défaut mesuré sur l'app : l'en-tête affichait « ≈ 28 min » calculé sur TOUS les exercices, donc
+     le même chiffre à la première et à la dernière série — alors qu'il a la forme d'un temps
+     restant. Et la barre valait (index+1)/total : 25 % sur quatre exercices avant la première
+     série. Les deux cas ci-dessous sont ceux qui DISCRIMINENT : ils échouent tous les deux avec
+     l'ancien calcul et passent avec le nouveau. */
+  const ex = (sets, faites) => ({ name: 'Ex', sets,
+    setLogs: Array.from({ length: sets }, (_, i) => ({ completed: i < faites, load: 50, reps: 10 })) });
+  const mins = [10, 10, 10];
+
+  const debut = L.avancementSeanceGuidee([ex(4, 0), ex(4, 0), ex(2, 0)], 0, { minutesParExercice: mins });
+  const milieu = L.avancementSeanceGuidee([ex(4, 4), ex(4, 0), ex(2, 0)], 1, { minutesParExercice: mins });
+  assert.ok(milieu.minutesRestantes < debut.minutesRestantes,
+    'valider un exercice entier doit faire BAISSER le temps restant');
+  assert.equal(debut.minutesRestantes, 30);
+  assert.equal(milieu.minutesRestantes, 20, 'le premier exercice fini retire ses 10 min, au prorata');
+
+  // Prorata à l'intérieur d'un exercice : 2 séries sur 4 en retirent la moitié.
+  const moitie = L.avancementSeanceGuidee([ex(4, 2), ex(4, 0), ex(2, 0)], 0, { minutesParExercice: mins });
+  assert.equal(moitie.minutesRestantes, 25);
+
+  /* LA BARRE. Arriver sur le troisième exercice sans avoir validé une seule série ne vaut aucune
+     progression : l'ancien calcul annonçait 100 %, ce qui est le défaut exact. */
+  const arrive = L.avancementSeanceGuidee([ex(4, 0), ex(4, 0), ex(2, 0)], 2, { minutesParExercice: mins });
+  assert.equal(arrive.pct, 0, 'arriver sur un exercice n’est pas l’avoir fait');
+  assert.equal(arrive.seriesFaites, 0);
+  assert.equal(arrive.seriesTotal, 10);
+  assert.equal(milieu.pct, 40, '4 séries validées sur 10 = 40 %');
+
+  // Repli quand AUCUNE série n'est connue : la position reprend la main, mais sur i/total.
+  const sansSeries = L.avancementSeanceGuidee(
+    [{ name: 'a' }, { name: 'b' }, { name: 'c' }, { name: 'd' }], 2, {});
+  assert.equal(sansSeries.seriesTotal, 0);
+  assert.equal(sansSeries.pct, 50, '2 exercices passés sur 4, pas 3');
+
+  // NULL n'est pas ZÉRO : sans minutes fournies, on ne prétend pas connaître le temps restant.
+  const sansMinutes = L.avancementSeanceGuidee([ex(4, 1)], 0, {});
+  assert.equal(sansMinutes.minutesRestantes, null);
+  assert.ok(!/min restantes/.test(sansMinutes.phrase));
+  // …et 0 minute restante se DIT, au lieu de disparaître comme une donnée manquante.
+  const fini = L.avancementSeanceGuidee([ex(4, 4)], 0, { minutesParExercice: [10] });
+  assert.equal(fini.minutesRestantes, 0);
+  assert.match(fini.phrase, /tout est validé/);
+
+  // Une série de rab ne doit pas faire dépasser les 100 %.
+  const rab = { name: 'Ex', sets: 2,
+    setLogs: [{ completed: true }, { completed: true }, { completed: true }] };
+  assert.equal(L.avancementSeanceGuidee([rab], 0, {}).pct, 100);
+  assert.equal(L.avancementSeanceGuidee([rab], 0, {}).seriesFaites, 2);
+
+  assert.equal(L.avancementSeanceGuidee([], 0, {}), null);
+  assert.equal(L.avancementSeanceGuidee('pas une liste', 0, {}), null);
+  // Un index hors bornes se borne au lieu de rendre un « Exercice 9 sur 2 ».
+  assert.equal(L.avancementSeanceGuidee([ex(2, 0), ex(2, 0)], 99, {}).exoCourant, 2);
+  assert.match(debut.phrase, /Exercice 1\/3 · 0\/10 séries · ≈ 30 min restantes/);
+});
+
+test('etapesDeLaSeance : l’état vient des séries, pas de la position', () => {
+  /* Le cas qui DISCRIMINE : on est arrivé au troisième exercice mais le PREMIER a été sauté (0
+     série validée). Déduire « fait » de « k < index » — le raccourci évident — le marquerait
+     terminé et la carte de la séance mentirait. */
+  const ex = (nom, sets, faites) => ({ name: nom, sets,
+    setLogs: Array.from({ length: sets }, (_, i) => ({ completed: i < faites })) });
+  const liste = [ex('Squat', 4, 0), ex('Développé', 4, 4), ex('Tractions', 3, 1)];
+  const r = L.etapesDeLaSeance(liste, 2, { minutesParExercice: [6, 6, 5] });
+  assert.equal(r.etapes[0].statut, 'avenir', 'sauté n’est pas fait, même en étant derrière nous');
+  assert.equal(r.etapes[1].statut, 'fait');
+  assert.equal(r.etapes[2].statut, 'encours');
+  assert.equal(r.etapes[0].seriesFaites, 0);
+  assert.equal(r.etapes[1].seriesFaites, 4);
+
+  // « en cours » l'emporte sur « fait » : être là où on est reste l'information utile.
+  const surUnFini = L.etapesDeLaSeance([ex('Squat', 2, 2), ex('Dips', 2, 0)], 0, {});
+  assert.equal(surUnFini.etapes[0].statut, 'encours');
+
+  /* La suite ne compte QUE ce qui vient après l'exercice courant, et pas ce qui est déjà bouclé :
+     annoncer un exercice fini dans « ensuite » serait le même mensonge à l'envers. */
+  const s = L.etapesDeLaSeance([ex('A', 2, 2), ex('B', 2, 0), ex('C', 2, 2), ex('D', 2, 0)], 1,
+    { minutesParExercice: [5, 5, 5, 7] });
+  assert.equal(s.restants, 1, 'C est fini : il ne reste que D');
+  assert.equal(s.minutesApres, 7);
+  assert.match(s.phrase, /Ensuite : D · ≈ 7 min/);
+
+  const dernier = L.etapesDeLaSeance([ex('A', 2, 2), ex('B', 2, 0)], 1, { minutesParExercice: [5, 5] });
+  assert.match(dernier.phrase, /Dernier exercice/);
+  assert.equal(dernier.minutesApres, 0);
+
+  // Au-delà de deux exercices à venir, on compte au lieu d'énumérer.
+  const beaucoup = L.etapesDeLaSeance(
+    [ex('A', 2, 0), ex('B', 2, 0), ex('C', 2, 0), ex('D', 2, 0), ex('E', 2, 0)], 0, {});
+  assert.match(beaucoup.phrase, /Ensuite : B, C \+2/);
+
+  assert.equal(L.etapesDeLaSeance([], 0, {}), null);
+  assert.equal(L.etapesDeLaSeance(null, 0, {}), null);
+});
+
 test('rattrapageRevisions : c’est l’ÉPREUVE qui arbitre, pas la fraîcheur', () => {
   /* Moitié du chantier n°6 laissée ouverte à l'itération 76. Côté études, l'écran affichait
      « N révisions en retard » puis « Reprogramme-les dans le calendrier » — une consigne sans
