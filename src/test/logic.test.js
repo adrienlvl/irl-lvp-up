@@ -14108,6 +14108,66 @@ test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTA
   assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
 });
 
+test('seanceAMettreEnAvant : celle du jour, sinon la PROCHAINE', () => {
+  /* Le Plan de bataille dépliait ses cinq séances d'un bloc (1 009 px) et repoussait le premier
+     « ▶️ Démarrer » à 1 772 px du haut. On n'en déplie qu'une — encore faut-il choisir la bonne.
+     `weekday` suit la convention de Date.getDay() (dimanche = 0), comme le rendu. */
+  const s = (weekday, title) => ({ kind: 'muscu', weekday, title });
+  // 2026-07-30 est un JEUDI (getDay = 4). Toutes les dates ci-dessous sont vérifiées par ce repère.
+  const jeudi = '2026-07-30';
+
+  const auj = L.seanceAMettreEnAvant([s(2, 'Mardi'), s(4, 'Jeudi'), s(6, 'Samedi')], jeudi);
+  assert.equal(auj.quand, 'aujourdhui');
+  assert.equal(auj.index, 1, 'la séance du jour, pas la première de la liste');
+  assert.equal(auj.joursDans, 0);
+  assert.equal(auj.libelle, 'Aujourd’hui');
+
+  /* LE CAS QUI DISCRIMINE : rien aujourd'hui, et la séance la plus proche n'est PAS la première de
+     la liste. Prendre `week[0]` — le raccourci évident — désignerait le mardi, à 5 jours, au lieu
+     du samedi à 2 jours. Sans ce désaccord semé, le tri ne serait pas testé du tout. */
+  const prochaine = L.seanceAMettreEnAvant([s(2, 'Mardi'), s(6, 'Samedi')], jeudi);
+  assert.equal(prochaine.quand, 'prochaine');
+  assert.equal(prochaine.index, 1, 'le samedi (2 jours) passe devant le mardi (5 jours)');
+  assert.equal(prochaine.joursDans, 2);
+  assert.equal(prochaine.libelle, 'Samedi');
+
+  // La semaine TOURNE : un samedi, la séance du lundi est à 2 jours, pas à moins cinq.
+  const samedi = '2026-08-01';
+  const boucle = L.seanceAMettreEnAvant([s(1, 'Lundi'), s(3, 'Mercredi')], samedi);
+  assert.equal(boucle.index, 0);
+  assert.equal(boucle.joursDans, 2, 'le passage par dimanche ne doit pas donner un écart négatif');
+  assert.equal(boucle.libelle, 'Lundi');
+
+  // Demain se dit « Demain », pas « Vendredi » : c'est ce qu'on lit sur une pastille.
+  const demain = L.seanceAMettreEnAvant([s(5, 'Vendredi')], jeudi);
+  assert.equal(demain.joursDans, 1);
+  assert.equal(demain.libelle, 'Demain');
+
+  // Plusieurs séances le même jour — le plan le prévoit lui-même : on retient la PREMIÈRE, et on
+  // le dit, parce que déplier la deuxième sans prévenir serait un choix invisible.
+  const deux = L.seanceAMettreEnAvant([s(4, 'Muscu'), s(4, 'Course'), s(6, 'Long')], jeudi);
+  assert.equal(deux.index, 0);
+  assert.match(deux.libelle, /Aujourd’hui · 2 séances/);
+
+  // Jour absent ou invalide : on ne prétend pas situer la séance dans la semaine.
+  const sansJour = L.seanceAMettreEnAvant([{ kind: 'muscu', title: 'X' }], jeudi);
+  assert.equal(sansJour.quand, 'indatee');
+  assert.equal(sansJour.index, 0);
+  assert.equal(sansJour.joursDans, null, 'null, pas 0 : on ne sait pas, ce n’est pas « aujourd’hui »');
+  /* Un `weekday` hors 0-6 doit être écarté — et ce cas-ci est le seul qui l'exerce. Avec une
+     séance AUJOURD'HUI à côté, le jour aberrant ne concourt pas : le test serait vacant (mesuré,
+     la mutation survivait). Ici rien n'est prévu aujourd'hui, et 9 donne le MÊME écart cyclique
+     que le mardi — (9−4+7)%7 = 5 = (2−4+7)%7 — donc s'il était accepté il gagnerait par égalité,
+     étant premier dans la liste. */
+  const jourFaux = L.seanceAMettreEnAvant([s(9, 'Hors bornes'), s(2, 'Mardi')], jeudi);
+  assert.equal(jourFaux.index, 1, 'un weekday hors 0-6 ne doit pas être retenu');
+  assert.equal(jourFaux.joursDans, 5, 'et l’écart annoncé est celui du mardi, pas du jour aberrant');
+
+  assert.equal(L.seanceAMettreEnAvant([], jeudi), null);
+  assert.equal(L.seanceAMettreEnAvant(null, jeudi), null);
+  assert.equal(L.seanceAMettreEnAvant([s(4, 'Jeudi')], 'pas-une-date'), null);
+});
+
 test('avancementSeanceGuidee : le temps restant BAISSE, la barre suit les séries', () => {
   /* Défaut mesuré sur l'app : l'en-tête affichait « ≈ 28 min » calculé sur TOUS les exercices, donc
      le même chiffre à la première et à la dernière série — alors qu'il a la forme d'un temps

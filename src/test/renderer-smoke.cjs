@@ -3558,15 +3558,28 @@ app.whenReady().then(async () => {
             return !!el && el.offsetParent !== null;
           });
 
-          // Le plan doit aussi etre le plus GROS : premier mais riquiqui ne vaudrait rien.
+          /* « LE PLUS GROS » A ETE RETIRE SCIEMMENT (iteration 98). Cette clause exigeait que le
+             Plan de bataille soit le panneau le plus HAUT de l onglet. C etait un mauvais proxy de
+             la proeminence : elle RECOMPENSAIT le mur. Mesure a l appui — le panneau faisait
+             3 664 px en 390 px, soit 4,3 ecrans, et son premier « Demarrer cette seance » tombait
+             au troisieme ecran. En le ramenant a 2 136 px avec l action en tete, la clause a sauté.
+             La proeminence est desormais gardee par ce qui compte vraiment : le plan reste PREMIER,
+             aucune carte transverse ne passe devant, et planActionDabord exige que son action
+             precede ses explications. On garde quand meme une borne basse — un plan riquiqui ne
+             vaudrait rien — mais elle porte sur sa taille propre, pas sur une comparaison qui
+             pousse a grossir.
+             A NOTER pour plus tard : le panneau qui le depasse maintenant est program-panel
+             (« Ta prochaine seance », 2 174 px). Il parle du MEME sujet que la semaine du plan —
+             deux voix sur une seule question, a instruire. */
           const hauteurs = visibles.map(function (e) { return Math.round(e.getBoundingClientRect().height); });
           const hPlan = hauteurs[0];
-          const plusGros = hPlan >= Math.max.apply(null, hauteurs);
+          const assezGros = hPlan >= 600;
 
           checks.__planTete = "premier[" + premier.split(" ").slice(0, 2).join(" ") + "] h=" + hPlan
-            + " plusGros=" + plusGros + " intruses[" + intruses.join(",") + "] n=" + visibles.length;
+            + " assezGros=" + assezGros + " maxAutre=" + Math.max.apply(null, hauteurs.slice(1))
+            + " intruses[" + intruses.join(",") + "] n=" + visibles.length;
           showAthleteTab(_pageAvant);
-          return planPremier && plusGros && intruses.length === 0;
+          return planPremier && assezGros && intruses.length === 0;
         } catch (e) {
           try { showAthleteTab(_pageAvant); } catch (_) {}
           checks.__errPlanTete = String(e && e.message); return false;
@@ -3981,6 +3994,95 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* LE PLAN DE BATAILLE OUVRE SUR L ACTION (BLOQUANT).
+         Mesure avant l iteration 98, en 390 px : le panneau faisait 3 664 px (4,3 ecrans) et son
+         premier « Demarrer cette seance » tombait a 1 772 px du haut — le troisieme ecran — parce
+         que les cinq seances etaient depliees d un bloc (1 009 px) sous 1 371 px de preambule.
+         Apres : 2 136 px et 1 127 px. On asserte l ORDRE du DOM plutot que des pixels, parce que
+         la grille des jours passe en plusieurs colonnes en largeur bureau : une assertion en pixels
+         mesurerait la largeur de la fenetre autant que la structure. La position, elle, est
+         mesuree dans la passe mobile. */
+      checks.planActionDabord = (() => {
+        const _tabAvant = (typeof athleteTab === 'string') ? athleteTab : 'aujourdhui';
+        try {
+          /* SUR LA PAGE OU LE PANNEAU VIT. Sans ce placement, checkVisibility() rendait false pour
+             TOUT et les hauteurs valaient 0 : le check mesurait un panneau range dans une page
+             masquee — exactement l erreur de lieu de l iteration 92. */
+          if (typeof showPage !== 'function' || typeof showAthleteTab !== 'function') return false;
+          showPage('athlete'); showAthleteTab('aujourdhui');
+          const res = document.getElementById('objectiveResult');
+          const panneau = document.querySelector('.objective-program-panel');
+          if (!res || !panneau) return false;
+          const avant = (a, b) => !!a && !!b
+            && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+          const semaine = res.querySelector('.op-week');
+          const pli = res.querySelector('.op-analyse');
+          const barre = panneau.querySelector('.op-bar');
+          const jours = Array.prototype.slice.call(res.querySelectorAll('.op-day'));
+
+          /* 1. Les jours sont des <details> et UN SEUL est ouvert — celui mis en avant. Ouvrir les
+                cinq reviendrait a l etat d avant. */
+          const tousDetails = jours.length >= 3 && jours.every(d => d.tagName === 'DETAILS');
+          const ouverts = jours.filter(d => d.open === true).length;
+          const cibles = jours.filter(d => d.classList.contains('op-jour-cible')).length;
+
+          /* 2. Un jour REPLIE cache vraiment ses exercices. Sur un <details> ferme, ni le display
+                calcule ni la hauteur ne bougent : seul checkVisibility() le dit (leçon 91). */
+          const replies = jours.filter(d => !d.open);
+          const exCaches = replies.filter(d => {
+            const ul = d.querySelector('.op-ex');
+            return !ul || (typeof ul.checkVisibility === 'function' && ul.checkVisibility() === false);
+          }).length === replies.length;
+          const ouvert = jours.filter(d => d.open)[0];
+          const exOuvertVu = !!ouvert && (() => {
+            const ul = ouvert.querySelector('.op-ex');
+            // Un jour de COURSE n a pas de liste d exercices : son absence n est pas un echec.
+            return !ul || (typeof ul.checkVisibility === 'function' && ul.checkVisibility() === true);
+          })();
+
+          /* 3. L ORDRE : l action avant l analyse, les reglages apres le resultat. C est tout
+                l objet de l iteration, et c est independant de la largeur. */
+          const actionAvantAnalyse = avant(semaine, pli);
+          const reglagesEnBas = avant(res, barre);
+
+          /* 4. Le pli est ferme et contient bien les cinq blocs d explication ; le deplier doit
+                TOUT reveler, sinon c est une trappe. */
+          const dedans = pli
+            ? ['.op-equip', '.op-why', '.op-trail', '.op-ramp', '.op-nutri']
+              .filter(s => !!pli.querySelector(s)).length
+            : 0;
+          const pliFerme = !!pli && pli.open === false;
+          const tete = pli ? pli.querySelector('summary') : null;
+          const tactile = !!tete && Math.round(tete.getBoundingClientRect().height) >= 44;
+          let revele = 0, attendus = 0;
+          if (pli) {
+            const blocs = Array.prototype.slice.call(pli.children).filter(n => n.tagName !== 'SUMMARY');
+            attendus = blocs.filter(n => !n.hasAttribute('hidden')).length;
+            pli.open = true;
+            revele = blocs.filter(n => !n.hasAttribute('hidden')
+              && typeof n.checkVisibility === 'function' && n.checkVisibility() === true).length;
+            pli.open = false;
+          }
+          // Cible tactile des jours : on les ouvre au pouce.
+          const s0 = res.querySelector('.op-day>summary');
+          const tactileJour = !!s0 && Math.round(s0.getBoundingClientRect().height) >= 44;
+
+          checks.__planAction = 'jours=' + jours.length + ' details=' + tousDetails
+            + ' ouverts=' + ouverts + ' cibles=' + cibles + ' exCaches=' + exCaches
+            + ' exOuvertVu=' + exOuvertVu + ' actionAvantAnalyse=' + actionAvantAnalyse
+            + ' reglagesEnBas=' + reglagesEnBas + ' pliFerme=' + pliFerme + ' dedans=' + dedans
+            + ' revele=' + revele + '/' + attendus + ' tactile=' + tactile + '/' + tactileJour;
+          showAthleteTab(_tabAvant);
+          return tousDetails && ouverts === 1 && cibles === 1 && exCaches && exOuvertVu
+            && actionAvantAnalyse && reglagesEnBas && pliFerme && dedans === 5
+            && attendus >= 3 && revele === attendus && tactile && tactileJour;
+        } catch (e) {
+          try { showAthleteTab(_tabAvant); } catch (_) {}
+          checks.__errPlanAction = String(e && e.message); return false;
+        }
+      })();
+
       /* L ATTRIBUT hidden DOIT CACHER — sur TOUTES les pages (BLOQUANT).
          Mesure de l iteration 96 : 14 classes posaient display:flex ou grid sans leur regle
          [hidden]{display:none}. L attribut hidden n est qu un display:none de la feuille de l agent
@@ -6380,7 +6482,7 @@ app.whenReady().then(async () => {
     if (!checks.planUnSeulCompte) errors.push('Plan de bataille : UN SEUL compte de séances à l’écran. « Ta semaine, face au plan » doit citer ce que le plan POSE, pas le réglage brut — la forme de l’objectif l’emporte sur le réglage (mesuré : 7 configurations sur 8 en désaccord, le bloc annonçait « 6 muscu » au-dessus d’un plan qui en affichait 4)');
     if (!checks.guideeOrdre) errors.push('Séance guidée : l’exercice EN COURS doit venir avant l’échauffement et la prépa — mesuré, son nom n’apparaissait qu’à 563 px, hors du premier écran, alors que l’échauffement se consulte une fois et le bloc exercice toutes les 90 secondes. Les deux accordéons doivent RESTER dans le dialogue (on les descend, on ne les supprime pas), aucun bouton ne doit passer sous 44 px (« Remplacer » mesurait 32 px) et rien ne doit déborder latéralement');
     if (!checks.avancementVu) errors.push('Plan de bataille : ses quinze blocs parlent tous du passé (tonnage 8 semaines, régularité 28 j, jour fort) et aucun ne répondait à la seule question que pose un plan — est-il TENU cette semaine ? Le bloc « Ta semaine, face au plan » doit OUVRIR le panneau, citer exactement les chiffres mesurés, et changer de ton quand la semaine est bouclée au lieu de réclamer encore');
-    if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER et le plus GRAND panneau de l’onglet Athlète « Aujourd’hui » — c’est lui qui porte la semaine, tout le reste s’y rapporte. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
+    if (!checks.planEnTete) errors.push('Le Plan de bataille doit être le PREMIER panneau de l’onglet Athlète « Aujourd’hui » et peser au moins 600 px — c’est lui qui porte la semaine, tout le reste s’y rapporte. La clause « le plus GRAND » a été retirée sciemment à l’itération 98 : elle récompensait le mur de 4,3 écrans qu’Adrien signalait, et la proéminence est désormais gardée par planActionDabord. Et aucune carte transverse (nouveautés, installation, démarrage) ne doit s’afficher sur Athlète : sans groupe de page, elles n’étaient jamais masquées et empilaient 3021 px au-dessus du contenu d’entraînement');
     if (!checks.chargeSaisie) errors.push('Le champ de charge du formulaire de séance doit S’ADAPTER à l’exercice tapé : sur un exercice au poids du corps (pompes, tractions, gainage) il devient « Lest (kg) — facultatif » avec un exemple à 0 et un indice qui explique pourquoi ; sur un kettlebell ou un gilet lesté il redevient « Charge (kg) ». Signalé par Adrien : le libellé était statique et réclamait des kilos sur des pompes');
     if (!checks.cadenceMesuree) errors.push('Coach Poids : l’app prescrit « Pèse-toi 2 à 3×/semaine » et doit dire si c’est fait — elle a toutes les dates. La cadence MESURÉE vit dans le même bloc que la consigne, sa teinte suit le verdict, et quand la cadence est faible elle cite LE taux affiché par l’écran voisin (pas un synonyme) pour expliquer que la tendance relie deux points au lieu de moyenner des semaines');
     if (!checks.pliAnalyseFocus) errors.push('Le donjon du focus sert à LANCER un bloc, pas à lire des statistiques : six analyses s’y étaient empilées entre la tâche et le parking (657 px mesurés). Elles doivent TOUTES rester dans le DOM, toutes dans le pli « Comprendre mes semaines », replié par défaut et réellement invisible (hauteur nulle, pas seulement un attribut), avec un résumé à 44 px — et déplier doit tout révéler, sinon le pli est une trappe');
@@ -6388,6 +6490,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout (voir __planAction)');
     if (!checks.hiddenCacheVraiment) errors.push('L’attribut hidden ne cache pas : un élément marqué hidden occupe encore de la place à l’écran. 14 classes posaient display:flex ou grid sans leur règle [hidden]{display:none}, qui bat l’attribut — mesuré, ~300 px de bandes vides sur les sept pages, dont 118 px au milieu du Plan de bataille et 50 px sur chaque page pour la carte d’installation. Ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle fautive (voir __hiddenFantomes pour le coupable)');
     if (!checks.hierarchieGuidee) errors.push('Séance guidée : la hiérarchie était inversée — mesuré en 390 px, le nom de l’exercice sortait à 18 px, SOUS le titre de séance (24 px) et sous l’horloge de repos (31 px), et les labels « kg »/« reps » à 9,3 px. Le nom doit dominer son écran (≥ 26 px et plus gros que le titre), les labels rester lisibles (≥ 12 px), les boutons −/+ faire 44 px. Et l’en-tête doit MESURER : « ≈ 28 min » était calculé sur tous les exercices, donc figé du début à la fin, et la barre valait (index+1)/total, soit 25 % avant la première série. Valider des séries doit faire baisser le temps et avancer la barre. La carte de la séance doit lister les étapes, marquer celle en cours, et y sauter au clic');
     if (!checks.revisionPossessif) errors.push('Rattrapage des révisions : la phrase affichait « Son épreuve (X) » même quand aucun libellé ne correspondait — un possessif qui affirme un lien que le champ `appariee` niait dans le même objet. Le repli sur l’épreuve la plus proche est légitime, il doit juste se dire pour ce qu’il est (« Ta prochaine épreuve »). Et un libellé vide ou d’une lettre ne doit apparier aucune matière : une chaîne vide est sous-chaîne de tout, et « compta » contient « a »');
