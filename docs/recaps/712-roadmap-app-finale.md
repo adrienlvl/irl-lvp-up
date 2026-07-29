@@ -1,3 +1,7 @@
+> **⚠️ REMPLACÉE le 2026-07-29 par [713-roadmap-long-terme.md](713-roadmap-long-terme.md).**
+> Ce document reste comme trace du bilan de mi-parcours (55 itérations) : il visait une app
+> « finie à court terme ». Adrien a demandé une vision long terme — c est le 713 qui fait foi.
+
 # Roadmap vers l'application finale
 
 *Écrite le 2026-07-29, après 55 itérations de boucle autonome et la release v2.12.1.*
