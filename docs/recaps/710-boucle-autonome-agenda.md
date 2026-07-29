@@ -3318,3 +3318,35 @@ sécurité : c'est du bruit qui masque la couverture. On la retire, on ne la tes
 **Mutations.** 6 posées, 6 détectées après retrait de cette garde.
 
 687 tests · SMOKE OK. Rien publié depuis v2.14.0.
+
+---
+
+## Itération 91 — Revue : trois branches atteignables que rien ne gardait
+
+Revue adversariale des itérations 88-90, sur la cible annoncée : le partage à trois niveaux de
+`energieEtFocus`, *« le genre de mécanique à cas multiples où un chemin reste non testé »*.
+C'était exact — et il y en avait **trois**.
+
+**Aucun défaut.** Les trois branches se comportent correctement, vérifié à la mesure. Mais aucune
+n'était gardée : un changement futur les cassait en silence.
+
+| Branche | Quand elle sert | Ce qu'elle évite |
+|---|---|---|
+| `hautInclus` | la médiane est la valeur **haute** (20 j à 2/5, 21 à 4/5 → médiane 4) | une corrélation nette qui redevient `null` |
+| « entre tes deux profils » | énergie du matin **pile** à la médiane, hors des deux groupes | trancher au hasard |
+| « tes cadences se valent » | deux cadences au **même** gain moyen | désigner une gagnante inexistante |
+
+### Ce que cette itération a appris
+
+**Une fonction à cas multiples se teste par ses CAS, pas par son cas nominal.** Trois branches
+écrites, une seule couverte — et les trois étaient *justes*, ce qui rendait le trou invisible
+autrement qu'en les énumérant une par une. *La question à poser après avoir écrit un `else if` :
+quelle entrée exactement l'atteint, et est-ce que je l'ai fabriquée ?*
+
+Et la mutation la plus parlante rebranche l'exercice phare sur la branche d'égalité : c'est le
+**« y » sans référent** que la revue 88 avait déjà corrigé ailleurs. *Un même défaut de langage
+réapparaît branche par branche — le corriger une fois ne le corrige pas partout.*
+
+**Mutations.** 4 posées, 4 détectées.
+
+687 tests · SMOKE OK. Rien publié depuis v2.14.0.
