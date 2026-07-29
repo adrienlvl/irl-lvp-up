@@ -113,6 +113,13 @@ pas « zéro réseau ».
   dit plus « rythme régulier », il dit « coucher stable à ~25 min près ».
 - **Les garde-fous tiennent.** 253 checks bloquants qui testent le rendu, pas la propriété, et
   une discipline de mutation qui a rattrapé une dizaine de checks creux.
+  > **Nuance apportée par l'itération 96.** « Tester le rendu » ne suffit pas si on ne connaît pas
+  > la **portée** de chaque garde-fou. Le lint statique ne voit que ce qui est écrit dans le
+  > markup ; le check au rendu ne voit que la largeur et l'état où il tourne. Les deux ensemble ont
+  > trouvé 51 bandes fantômes (`hidden` écrasé par un `display` d'auteur) que 253 checks avaient
+  > laissées passer — dont 746×380 px sur les sept pages, visible seulement en largeur bureau. Et
+  > un check de l'itération 91 était **maintenu vert par le bug lui-même**. *Un test vert n'atteste
+  > pas que le sujet est sain ; il peut attester qu'un bug le maintient debout.*
 - **Sécurité alimentaire traitée.** Le point le plus sensible d'une app de suivi du poids.
 
 ---
