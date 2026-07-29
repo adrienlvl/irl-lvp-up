@@ -2769,3 +2769,43 @@ activité récente. L'app sait pourtant déjà faire ça ailleurs — la forme d
 check-in il y a N jours » plutôt qu'un score périmé. *Un commit = un sujet : c'est l'itération 78.*
 
 679 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+---
+
+## Itération 78 — Le créneau parle au passé quand il décrit le passé
+
+Sujet nommé par la revue de l'itération 77, et vérifié : `creneauDeConcentration` raisonne sur
+60 jours **sans exiger la moindre activité récente**. Avec zéro bloc depuis 35 jours, l'app
+annonçait toujours « Ton créneau, c'est 9 h–12 h — mets là ce qui demande le plus de tête. »
+Un constat au présent, **et un conseil d'action**, sur un comportement abandonné.
+
+### Se taire aurait été pire
+
+Ce créneau est justement l'information la plus utile le jour où on s'y remet. On change de
+**temps**, pas de sujet :
+
+> 🕘 Plus aucun bloc depuis 35 jours. Quand tu en lançais, c'était 9 h–12 h : 22 de tes 22 blocs
+> et 100 % de tes minutes. Si tu t'y remets, c'est là que ça avait le mieux tenu.
+
+Le conseil d'action disparaît — on ne recommande pas un créneau qu'on ne tient plus. Le titre
+suit (« se pose » → « se posait ») et les barres passent du vert accent au gris : **la teinte dit
+la même chose que la phrase.** C'est le modèle que l'app applique déjà à la forme du jour
+(« dernier check-in il y a N jours » plutôt qu'un score périmé).
+
+### Ce que cette itération a appris
+
+*Une donnée peut être exacte et l'affirmation fausse quand même.* Les 22 blocs à 9 h–12 h étaient
+parfaitement réels ; c'est le **temps du verbe** qui mentait. La règle « une phrase est une
+affirmation : vérifier la fraîcheur » ne portait jusqu'ici que sur la valeur — elle porte aussi
+sur la **conjugaison** et sur le **conseil** qui l'accompagne.
+
+Deux détails qui font la différence entre un test et un vrai test :
+- La paire qui discrimine, ce sont **les mêmes blocs aux mêmes heures, seulement plus vieux** :
+  tout ce qui change doit être le temps et l'aveu de l'âge, jamais la mesure.
+- **Un seuil qu'on ne teste pas à sa limite n'est pas testé** : 14 j frais, 15 j périmé.
+
+**Mutations.** 5 posées, 5 détectées — dont celle qui remet tout au présent (le défaut d'origine,
+`classe=false passe=false`) et celle qui retire la classe sans toucher au texte (`teinte`
+inchangée alors que la phrase, elle, était bien au passé).
+
+680 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
