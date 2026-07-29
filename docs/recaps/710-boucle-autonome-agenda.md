@@ -2125,3 +2125,49 @@ Adrien, lui, utilise des récurrences.
 
 ### Suite (roadmap 713)
 - **Focus**, la plus grosse friche (5 panneaux contre 22 pour Athlète).
+
+---
+
+## Itération 63 — Focus : la page savait où va l'attention, jamais dans quel sens
+
+Premier chantier **Focus** de la roadmap 713 — la page la plus en friche (5 panneaux contre 22
+pour Athlète). Sondée avec six semaines de sessions réalistes.
+
+### Ce qu'elle disait déjà, et ce qu'elle taisait
+
+| Fonction | Ce qu'elle calcule | Rendue ? |
+|---|---|---|
+| `focusByTask` | Révisions BTS 70 %, Candidatures 23 %, Lecture 7 % | oui |
+| `focusWeekGoal` | 215 / 120 min cette semaine | oui |
+| **`focusMinutesTrend`** | **recent 430, prev 350, +80, dir up** | **0 appel** |
+| `focusHeatmap` | — | **0 appel** |
+
+La page disait **où** va l'attention et **si** l'objectif est tenu, jamais dans quel **sens** ça
+va. La phrase existe maintenant : *« 3 h cette semaine, +1 h 40 par rapport à la précédente
+(1 h 20). »* — les deux semaines citées, parce qu'un écart sans son point de départ ne se juge
+pas.
+
+### Le piège, et il était tendu
+
+La première semaine d'usage, `focusMinutesTrend` rend `prev: null` **avec** `dir: 'flat'` et
+`delta: 0`. Afficher « stable » là-dessus annoncerait une comparaison jamais faite. Le test
+l'assert explicitement : *la fonction dit pourtant « flat » — c'est le piège*.
+
+### Deux fausses pistes écartées en vérifiant
+
+*Le panneau Trophées affichait « 0 min de focus »* sur mes données. J'ai mesuré `lifetimeStats`
+avant de conclure : elle rend 2250 min correctement — c'était **ma sonde** qui ne repeignait pas.
+
+*`focusByTask` semblait absent de l'écran.* Il est bien rendu, avec une garde qui le masque sous
+deux tâches distinctes.
+
+**Trois itérations de suite (61, 62, 63) où vérifier avant d'affirmer m'a évité de « corriger »
+du code sain.** C'est devenu le geste le plus rentable de la boucle.
+
+**Mutations.** 4 posées, 4 détectées, dont celle qui fait réapparaître « Autant de concentration
+que la semaine dernière » sans semaine dernière.
+
+671 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
+
+### Suite (roadmap 713)
+- Focus : `focusHeatmap` reste sans appel ; les parkings et revues hebdo accumulent sans ressortir.
