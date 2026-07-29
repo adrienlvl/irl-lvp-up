@@ -3954,6 +3954,108 @@ app.whenReady().then(async () => {
         }
       })();
 
+      checks.revisionArbitre = (() => {
+        const _agS = state.agenda, _exS = state.examGoals, _plS = state.plans, _recS = state.recurring;
+        const _rendre = () => { state.agenda = _agS; state.examGoals = _exS; state.plans = _plS;
+          state.recurring = _recS; try { renderExamCountdown(); } catch (_) {} };
+        try {
+          if (typeof renderExamCountdown !== "function" || typeof rattrapageRevisions !== "function") { _rendre(); return false; }
+          const el = document.querySelector("#overdueStudy");
+          if (!el) { _rendre(); return false; }
+          const p = function (n) { return String(n).padStart(2, "0"); };
+          const b = new Date(localDate() + "T12:00:00");
+          const j = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() - n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          const dans = function (n) { const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() + n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          state.plans = []; state.recurring = [];
+
+          /* L EPREUVE ARBITRE : une revision de compta de 12 jours doit passer devant une revision
+             d eco d HIER, parce que l epreuve de compta est dans 5 jours. Le desaccord est SEME
+             volontairement — sans lui, le tri ne serait pas mis en defaut. */
+          state.agenda = [
+            { id: 93001, date: j(1), time: "17:30", durationMin: 45, title: "Revision Eco", kind: "study", completed: false },
+            { id: 93002, date: j(12), time: "17:30", durationMin: 45, title: "Revision Compta", kind: "study", completed: false }
+          ];
+          state.examGoals = [{ id: "a", title: "Compta", subject: "Compta", date: dans(5) },
+            { id: "b", title: "Eco", subject: "Eco", date: dans(60) }];
+          const attendu = rattrapageRevisions(state, localDate(), { now: "09:00" });
+          renderExamCountdown();
+          const vu = getComputedStyle(el).display !== "none";
+          const txt = String(el.textContent || "");
+          const arbitre = !!attendu && attendu.cible && attendu.cible.id === 93002
+            && txt.indexOf(attendu.phrase) !== -1;
+          // La consigne sans mecanisme ne doit plus etre la.
+          const plusDeConsigne = txt.indexOf("Reprogramme-les dans le calendrier") === -1;
+          const slots = el.querySelectorAll(".od-slot");
+
+          /* LE CLIC DOIT DEPLACER POUR DE VRAI. On mesure APRES l effet : un bouton qui ne bouge
+             rien serait exactement le defaut qu on corrige. */
+          const cible = slots[0];
+          const versD = cible ? cible.dataset.date : "";
+          const versH = cible ? cible.dataset.time : "";
+          if (cible) cible.click();
+          const apres = (state.agenda || []).filter(function (a) { return a && a.id === 93002; })[0];
+          const deplacee = !!apres && apres.date === versD && apres.time === versH && versD >= localDate();
+
+          /* TOUT PERIME : on lache, et AUCUN bouton ne doit subsister — il contredirait la phrase. */
+          state.agenda = [
+            { id: 93003, date: j(15), time: "17:30", durationMin: 45, title: "Revision Eco", kind: "study", completed: false },
+            { id: 93004, date: j(18), time: "17:30", durationMin: 45, title: "Revision Droit", kind: "study", completed: false }];
+          state.examGoals = [{ id: "b", title: "Eco", subject: "Eco", date: dans(90) }];
+          renderExamCountdown();
+          const txt2 = String(el.textContent || "");
+          const lache = el.classList.contains("od-laisse")
+            && txt2.indexOf("ne se rattrapent plus une par une") !== -1
+            && el.querySelectorAll(".od-slot").length === 0
+            /* Pas de CONTENEUR vide non plus : une liste de creneaux sans bouton ajoute sa marge pour
+               rien, et rend la garde intestable (mutant equivalent mesure). */
+            && el.querySelectorAll(".od-slots").length === 0;
+
+          /* AGENDA PLEIN (verdict « complet ») : la cible existe mais il n y a aucun trou. Aucun
+             bouton, et surtout AUCUN conteneur vide — il ajouterait sa marge pour rien. Sans ce
+             troisieme scenario, la garde etait intestable : dans le cas « laisse » la cible est
+             nulle, donc la retirer ne changeait rien (mutant survivant mesure). */
+          state.examGoals = [{ id: "a", title: "Compta", subject: "Compta", date: dans(5) }];
+          state.agenda = [{ id: 93005, date: j(2), time: "17:30", durationMin: 45,
+            title: "Revision Compta", kind: "study", completed: false }];
+          for (let i = 0; i < 8; i++) {
+            const d = new Date(b.getFullYear(), b.getMonth(), b.getDate() + i);
+            state.agenda.push({ id: 93100 + i,
+              date: d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()),
+              /* JOURNEE ENTIERE, pas les heures de bureau. Un bloc 08:00-22:00 laisse la NUIT
+                 libre : lance a 00:29, le smoke voyait « Aujourd hui 00:44 » et le verdict
+                 passait de « complet » a « rattrape ». Un check ne doit pas dependre de l heure
+                 a laquelle il tourne. */
+              time: "00:00", durationMin: 1439, title: "Journee bloquee", kind: "life", completed: false });
+          }
+          const attComplet = rattrapageRevisions(state, localDate(), { now: "09:00" });
+          renderExamCountdown();
+          const txt3 = String(el.textContent || "");
+          const complet = !!attComplet && attComplet.verdict === "complet"
+            && !!attComplet.cible
+            && el.querySelectorAll(".od-slot").length === 0
+            && el.querySelectorAll(".od-slots").length === 0
+            && txt3.indexOf("aucun trou de 45 min") !== -1;
+
+          checks.__revRattrapage = "vu=" + vu + " arbitre=" + arbitre + " plusDeConsigne=" + plusDeConsigne
+            + " slots=" + slots.length + " deplacee=" + deplacee + " vers[" + versD + " " + versH + "]"
+            + " lache=" + lache + " complet=" + complet
+            + " [verdict=" + (attComplet ? attComplet.verdict : "null")
+              + " creneaux=" + (attComplet ? attComplet.creneaux.length : "-")
+              + " slots=" + el.querySelectorAll(".od-slot").length
+              + " conteneurs=" + el.querySelectorAll(".od-slots").length
+              + " txt3=" + txt3.slice(-70) + "]"
+            + " cible=" + (attendu && attendu.cible ? attendu.cible.id : "null")
+            + " txt[" + txt.slice(0, 80) + "]";
+          _rendre();
+          return vu && arbitre && plusDeConsigne && slots.length > 0 && deplacee && lache && complet;
+        } catch (e) {
+          _rendre();
+          checks.__errRevRattrapage = String(e && e.message); return false;
+        }
+      })();
+
       checks.rattrapageArbitre = (() => {
         // Sauvegardes HORS du try : une exception doit pouvoir tout rendre.
         const _agS = state.agenda, _wkS = state.workouts, _recS = state.recurring, _plS = state.plans;
@@ -6047,6 +6149,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.revisionArbitre) errors.push('Révisions en retard : l’écran affichait la liste puis « Reprogramme-les dans le calendrier » — une consigne sans mécanisme, l’état d’avant l’itération 76 pour les séances. C’est l’ÉPREUVE qui doit arbitrer, pas la fraîcheur : une révision de 12 jours passe devant une révision d’hier si son épreuve est dans 5 jours. Le créneau proposé doit DÉPLACER la révision d’un clic, et quand tout est périmé aucun bouton ne doit subsister');
     if (!checks.rattrapageArbitre) errors.push('Séances manquées : le panneau doit ARBITRER, pas énumérer. Une séance fraîche et une charge normale → des créneaux réellement libres, cliquables, qui DÉPLACENT le bloc. Une charge en zone haute → verdict rouge, aucun bouton (il contredirait la phrase) et le ratio cité doit être celui qui a été mesuré. Et plus jamais « reprends le fil quand tu veux » sans offrir de fil');
     if (!checks.creneauFocus) errors.push('Focus : l’app horodate chaque bloc de concentration (id = Date.now()) et ne l’a jamais lu. La frise « Quand ta concentration se pose » doit rester ÉTEINTE sous le seuil d’échantillon, puis montrer 24 colonnes dont la plage mise en avant est CELLE que la mesure désigne, avec une phrase qui cite les mêmes chiffres — et tenir dans 390 px sans défilement');
     if (!checks.blocAnnulable) errors.push('Agenda : une coche doit être un INTERRUPTEUR, comme partout ailleurs dans l’app (quêtes, habitudes, tâches). Un bloc terminé doit offrir « ↩︎ Annuler », rendre EXACTEMENT l’XP donnée (compteur de catégorie compris), annoncer le même chiffre dans les deux libellés — et ne plus proposer « → demain », qui revenait à repousser quelque chose de déjà fait');

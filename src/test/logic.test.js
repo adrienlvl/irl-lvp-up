@@ -14108,6 +14108,96 @@ test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTA
   assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
 });
 
+test('rattrapageRevisions : c’est l’ÉPREUVE qui arbitre, pas la fraîcheur', () => {
+  /* Moitié du chantier n°6 laissée ouverte à l'itération 76. Côté études, l'écran affichait
+     « N révisions en retard » puis « Reprogramme-les dans le calendrier » — une consigne sans
+     mécanisme. Et `overdueStudy` ne rend pas d'`id`, donc rien ne pouvait être déplacé. */
+  const today = '2026-07-29';
+  const p = x => String(x).padStart(2, '0');
+  const j = n => { const d = new Date(2026, 6, 29 - n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  const dans = n => { const d = new Date(2026, 6, 29 + n);
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); };
+  const rev = (jAvant, id, titre) => ({ id, date: j(jAvant), time: '17:30', durationMin: 45,
+    title: titre, kind: 'study', completed: false });
+  const vide = { workouts: [], plans: [], recurring: [] };
+
+  // Rien en retard : null, pas un objet vide.
+  assert.equal(L.rattrapageRevisions({ ...vide, agenda: [], examGoals: [] }, today), null);
+  assert.equal(L.rattrapageRevisions({ ...vide, agenda: [rev(2, 1, 'Compta')] }, 'pas-une-date'), null);
+  // Une révision VALIDÉE n'est pas en retard.
+  assert.equal(L.rattrapageRevisions({ ...vide, agenda: [{ ...rev(2, 1, 'Compta'), completed: true }],
+    examGoals: [] }, today), null);
+  // Une séance de SPORT en retard ne concerne pas ce coach-ci.
+  assert.equal(L.rattrapageRevisions({ ...vide, agenda: [{ ...rev(2, 1, 'Muscu'), kind: 'sport' }],
+    examGoals: [] }, today), null);
+
+  /* LE CAS QUI DISCRIMINE — L'ÉPREUVE L'EMPORTE SUR LA FRAÎCHEUR. Une révision de compta sautée
+     il y a 12 jours doit passer devant une révision d'éco sautée HIER, parce que l'épreuve de
+     compta est dans 5 jours et celle d'éco dans 60. C'est l'inverse du tri sport, où seule la
+     fraîcheur compte — sans ce cas, le tri ne serait pas testé du tout. */
+  const arbitre = { ...vide,
+    agenda: [rev(1, 1, 'Révision Éco'), rev(12, 2, 'Révision Compta')],
+    examGoals: [{ id: 'a', title: 'Compta', subject: 'Compta', date: dans(5) },
+      { id: 'b', title: 'Éco', subject: 'Éco', date: dans(60) }] };
+  const r = L.rattrapageRevisions(arbitre, today, { now: '09:00' });
+  assert.ok(r);
+  assert.equal(r.verdict, 'rattrape');
+  assert.equal(r.cible.id, 2, 'la compta passe devant, malgré ses 12 jours');
+  assert.equal(r.cible.epreuveDans, 5, 'l’épreuve appariée est bien celle de compta');
+  assert.equal(r.cible.appariee, true, 'appariement par le LIBELLÉ, pas par défaut');
+  assert.match(r.phrase, /Son épreuve \(Compta\) est dans 5 jours/);
+  assert.ok(r.creneaux.length > 0, 'des créneaux réellement libres');
+  assert.ok(r.creneaux.every(c => c.date >= today), 'jamais un créneau dans le passé');
+
+  /* TÉMOIN de la discrimination : le MÊME agenda sans épreuves repart sur la fraîcheur, donc
+     sur l'éco d'hier. C'est ce qui prouve que c'est bien l'épreuve qui faisait basculer. */
+  const sansExam = L.rattrapageRevisions({ ...arbitre, examGoals: [] }, today, { now: '09:00' });
+  assert.equal(sansExam.cible.id, 1, 'sans épreuve, la plus récente reprend la main');
+  assert.equal(sansExam.cible.epreuveDans, null);
+  assert.match(sansExam.phrase, /L’autre est vieille/, 'accord au singulier pour une seule lâchée');
+
+  /* Une épreuve PROCHE rend rattrapable une révision pourtant vieille : c'est la règle qui
+     distingue ce coach de son jumeau sportif. */
+  const vieilleMaisUrgente = { ...vide, agenda: [rev(18, 3, 'Révision Compta')],
+    examGoals: [{ id: 'a', title: 'Compta', subject: 'Compta', date: dans(4) }] };
+  const vu = L.rattrapageRevisions(vieilleMaisUrgente, today, { now: '09:00' });
+  assert.equal(vu.verdict, 'rattrape', '18 jours mais épreuve dans 4 : on y revient');
+  assert.equal(vu.perimees.length, 0);
+
+  // TOUT périmé : vieilles ET sans épreuve proche → on lâche, et on le dit.
+  const perime = { ...vide, agenda: [rev(15, 1, 'Révision Éco'), rev(18, 2, 'Révision Droit')],
+    examGoals: [{ id: 'b', title: 'Éco', subject: 'Éco', date: dans(90) }] };
+  const rp = L.rattrapageRevisions(perime, today, { now: '09:00' });
+  assert.equal(rp.verdict, 'laisse');
+  assert.equal(rp.cible, null);
+  assert.deepEqual(rp.creneaux, []);
+  assert.match(rp.phrase, /ne se rattrapent plus une par une/);
+
+  /* AGENDA PLEIN : la révision mérite un rattrapage mais aucun trou n'existe. Promettre un
+     créneau serait exactement le défaut qu'on corrige. */
+  const plein = { ...vide, agenda: [rev(2, 1, 'Révision Compta')],
+    examGoals: [{ id: 'a', title: 'Compta', subject: 'Compta', date: dans(5) }] };
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(2026, 6, 29 + i);
+    plein.agenda.push({ id: 800 + i, date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()),
+      time: '08:00', durationMin: 840, title: 'Journée bloquée', kind: 'life', completed: false });
+  }
+  const rc = L.rattrapageRevisions(plein, today, { now: '09:00' });
+  assert.equal(rc.verdict, 'complet');
+  assert.deepEqual(rc.creneaux, []);
+  assert.ok(rc.cible, 'la cible reste nommée — c’est l’agenda qui bloque');
+  assert.match(rc.phrase, /aucun trou de 45 min/);
+
+  /* Sans correspondance de libellé, la révision hérite de l'épreuve la PLUS PROCHE : c'est elle
+     qui fixe la pression réelle. Et `appariee` dit honnêtement que ce n'est qu'un repli. */
+  const repli = { ...vide, agenda: [rev(2, 1, 'Relire mes fiches')],
+    examGoals: [{ id: 'a', title: 'Compta', subject: 'Compta', date: dans(6) }] };
+  const rr = L.rattrapageRevisions(repli, today, { now: '09:00' });
+  assert.equal(rr.cible.epreuveDans, 6);
+  assert.equal(rr.cible.appariee, false, 'aucun appariement réel : c’est un repli, et il est nommé');
+});
+
 test('rattrapageSeances : arbitre au lieu d’énumérer', () => {
   /* Le panneau disait « reprends le fil quand tu veux » sans offrir de fil. La fonction doit
      TRANCHER : la charge d'abord, la fraîcheur ensuite, et un créneau seulement s'il existe. */

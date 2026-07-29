@@ -516,3 +516,19 @@ details.calendar-setting[open]{padding-bottom:14px}
 .focus-analyse>summary:hover{color:var(--text)}
 /* Les blocs dépliés retrouvent leur respiration, sans coller aux bords du pli. */
 .focus-analyse[open]{padding:0 var(--sp-4) var(--sp-4)}
+
+/* ===== Rattrapage des révisions (itération 93) =====
+   La consigne « Reprogramme-les dans le calendrier » n'offrait aucun mécanisme. Le verdict prime
+   sur la liste : c'est lui qui décide, la liste n'est que le contexte. La teinte suit la
+   DÉCISION (rattraper / lâcher), jamais le nombre de révisions. */
+/* Le conteneur est en flex-wrap (ligne de chips) : sans `flex:1 0 100%`, le verdict et les
+   boutons s'inséreraient DANS la ligne des chips au lieu de la suivre. */
+.overdue-study .od-verdict{flex:1 0 100%;margin:var(--sp-3) 0 0;color:var(--text);
+  font-size:var(--fs-sm);line-height:1.45}
+.overdue-study.od-laisse .od-verdict{color:var(--muted)}
+.od-slots{flex:1 0 100%;display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3)}
+/* 44 px : ces boutons DÉPLACENT une révision, on les vise au pouce. */
+.od-slot{min-height:44px;padding:var(--sp-2) var(--sp-5);border:1px solid var(--accent-ring);
+  border-radius:var(--r-pill);background:var(--accent-soft);color:var(--text);
+  font-size:var(--fs-2xs);font-weight:var(--fw-med);cursor:pointer;white-space:nowrap}
+.od-slot:hover,.od-slot:focus-visible{background:var(--accent);color:#0b1020}
