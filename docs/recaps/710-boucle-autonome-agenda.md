@@ -2294,3 +2294,45 @@ restauration de l'état : le tiroir était revidé, le bouton introuvable. Le ch
 
 ### Suite (roadmap 713)
 - Poids, Exercices et Alternance : un seul panneau chacun.
+
+---
+
+## Itération 67 — Coach Poids : deux cibles sur le même écran, aucune nommée
+
+Premier chantier **Poids** (page à un seul panneau). Sondée sur le scénario le plus courant
+d'une sèche : trois mois de pesées, perte franche puis **plateau** sur le dernier mois.
+
+### Ce que le panneau fait déjà bien — à dire aussi
+
+Mon hypothèse de départ était que l'app promettrait une date en ignorant le plateau. **Faux.**
+Elle annonce « Plateau confirmé — moins de 100 g par semaine depuis 36 jours » et propose une
+pause diète chiffrée (≈ +625 kcal/jour). `dureePlateau`, `dietBreakRecommendation`,
+`rythmeVerdict` sont tous rendus.
+
+### Le vrai défaut
+
+L'en-tête se recalcule sur le **champ de saisie** ; la durée, la date estimée, la jauge et les
+calories restent sur la cible **enregistrée**. Tant qu'on n'a pas validé :
+
+| Dans l'en-tête | Juste dessous |
+|---|---|
+| « Perdre 9 kg · ~15 sem. » | « Perdre 4,9 kg · ≈ 9 semaines · 🎯 76 kg » |
+
+Vérifié avant de conclure : **à cible égale, les deux calculs concordent exactement**
+(4,9 kg / 9 semaines / 0,57 kg/sem.). Pas de bug de calcul — deux cibles qui coexistent sans
+être nommées. Une bannière le dit, et se tait dès qu'elles coïncident.
+
+### Ce que cette itération a appris
+
+*Trois erreurs de ma part dans le check, toutes de la même famille* : mauvais id de champ, un
+seul des deux champs renseigné alors que le rendu lit l'autre en premier, panneau replié donc
+hauteur nulle — et surtout **le mauvais peintre** (`renderTargetAdvice`, pas
+`renderCoachWeight`). **Troisième fois** que je me trompe de peintre en sept itérations.
+
+*Ce qui m'a sauvé à chaque étape : le diagnostic du check affiche ce qu'il lit.* Un check qui
+échoue en silence m'aurait laissé deviner ; celui-ci disait « champ de cible introuvable », puis
+« identique[] different[] ».
+
+**Mutations.** 4 posées, 4 détectées.
+
+674 tests · SMOKE OK. Rien publié : dernière release v2.13.0.
