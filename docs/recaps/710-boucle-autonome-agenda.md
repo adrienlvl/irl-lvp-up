@@ -5345,3 +5345,56 @@ lirait « ruban à jour » alors qu'on n'en sait rien.
 
 **Mutations.** 4 posées, 4 détectées après traitement des deux survivantes. 709 tests · SMOKE OK.
 Rien publié depuis v2.18.0.
+
+## Itération 127 — C3 : « jusqu'à 5 séances le même jour » sans dire que c'est jeudi
+
+C3 demandait d'étendre le coût annoncé à l'objectif, aux jours et aux zones. Mesuré d'abord :
+l'objectif est **déjà** servi (« −1 séance, −45 min par semaine » quand on passe à endurance).
+Restaient les jours et les zones. Et en sondant les jours, j'ai trouvé mieux que ce que la ligne
+demandait.
+
+Le plan ne remplit que les jours **restants** de la semaine — c'est juste, on ne s'entraîne pas
+un lundi déjà passé. Même état, quatre jours de calcul :
+
+| calculé le | jours du plan | ce que l'écran dit |
+|---|---|---|
+| lundi | lun, lun, mer, mer, ven | « réparties sur 3 jours » |
+| mercredi | mer, mer, mer, ven, ven | « réparties sur 2 jours » |
+| **jeudi** | **ven ×5** | « réparties sur **1 jour** : jusqu'à **5 le même jour** » |
+| samedi | sam, sam, sam, dim, dim | (aucun jour coché ne reste) |
+
+Chaque phrase est vraie. Mais lue un jeudi, avec lundi/mercredi/vendredi cochés, elle donne
+l'impression que l'app est cassée : cinq séances le même jour alors qu'on en a demandé trois.
+**La cause est le calendrier, et personne ne le disait.**
+
+La phrase la porte maintenant dans les deux cas où le calendrier la produit, et **se tait** quand
+tous les jours cochés sont encore devant : l'empilement vient alors du nombre de séances.
+
+### Ce que cette itération a appris
+
+**Trois artefacts de sonde en une itération, tous par clé ou comparaison fausse.** Les zones
+vivent dans `profile.zonesVoulues` et j'écrivais `objectiveZones` ; ma comparaison « le plan
+a-t-il changé ? » ignorait `weekday`. J'ai donc cru successivement que le réglage des zones
+était inerte, puis celui des jours. *Une sonde qui rend « aucun changement » doit d'abord être
+soupçonnée elle-même.*
+
+**Le même piège, deux itérations de suite.** `runObjectiveProgram` lit le `<select>` et écrase
+l'état : découvert à la 125, retendu à la 127. Mon check ne trouvait aucun élément et le
+diagnostic disait `t[]`. *Une leçon écrite dans un journal n'est pas une leçon apprise tant
+qu'elle n'est pas dans le harnais* — le commentaire est maintenant sur place, dans le check.
+
+**Vérifier avant d'accuser, deuxième fois payante.** Les zones ne changent rien sur
+« athlétique » et « forme », mais **4 exercices sur 20** sur « muscle ». Le réglage n'est donc pas
+inerte : il ne mord que sur certains objectifs. C'est peut-être voulu, peut-être pas — noté pour
+plus tard, pas affirmé aujourd'hui.
+
+**Pas d'effet, pas de message — troisième application.** Un lundi, tous les jours cochés sont
+devant : la cause serait fausse, donc on se tait. C'est la même règle qu'à la 125 (rien sous 10 %
+de déficit) et qu'à la 122 (le bloc muet quand le budget ne mord pas).
+
+**Un jeu d'essai relatif au jour ne discrimine pas tous les jours.** Les passes B et C du check
+exigent qu'une partie de la semaine soit passée : un lundi, impossible. Le diagnostic le dit
+(`mord=false`) et les tests node, sur dates fixes, portent la couverture. *Comme à la 126 : dire
+un trou vaut mieux que le taire, mais il faut aussi le boucher là où c'est possible.*
+
+**Mutations.** 5 posées, 5 détectées. 711 tests · SMOKE OK. Rien publié depuis v2.18.0.

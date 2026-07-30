@@ -158,6 +158,16 @@ mesuré 4,5 h libres sur une semaine de démonstration. ~~**Rien n'agrège encor
   rien sur une sèche, où la coupe va dans le sens visé. Aucune physiologie affirmée — on ne dit que
   ce que l'app fait.
 - C3. **Le coût annoncé étendu** — objectif physique, jours, zones. (7)
+  - **objectif : déjà servi** (constaté à la 127) — passer à « endurance » annonce « −1 séance,
+    −45 min par semaine ».
+  - **jours : FAIT (127)**, et autrement que prévu. Le vrai défaut n'était pas un coût manquant
+    mais une cause tue : le plan ne remplit que les jours restants de la semaine, si bien qu'un
+    jeudi avec lundi/mercredi/vendredi cochés il annonçait « 5 séances réparties sur 1 jour :
+    jusqu'à 5 le même jour ». `joursDentrainementRestants` fait porter la cause à la phrase, et
+    la tait quand tous les jours cochés sont encore devant.
+  - **zones : reste à faire.** Mesuré à la 127 : le réglage change 4 exercices sur 20 sur
+    l'objectif « muscle », et **rien du tout** sur « athlétique » et « forme » — à examiner avant
+    d'annoncer un coût qui pourrait être nul.
 - C4. **La replanification à l'échelle de la SEMAINE** — le rattrapage sport (76) et études (93)
   existent à l'échelle de la séance ; il manque l'étage au-dessus. (6)
 
