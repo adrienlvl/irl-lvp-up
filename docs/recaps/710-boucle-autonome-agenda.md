@@ -4569,3 +4569,71 @@ gabarit — l'erreur remontée était « status is not defined ». L'audit les a
 
 **Mutations.** 4 posées, 4 détectées. La troisième reproduit l'état d'avant : plan 2 062 px, analyse
 595 px, 5 fautifs. 698 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 112 — revue : mon déménagement avait cassé deux choses en silence
+
+Revue adversariale (les précédentes aux 94, 97, 100, 103, 106, 109), visant **mon code des 110-111**.
+Trois angles délégués en parallèle, chacun avec obligation de PROUVER par mutation ; puis tout
+re-mesuré à la main. Quinze trouvailles, dont deux régressions utilisateur que les 698 tests
+laissaient passer.
+
+### Les deux régressions
+
+**1. Le panneau replié avale maintenant toute l'analyse.** `setupCollapsibles` mémorise l'état
+replié sous une clé dérivée de l'eyebrow (`c:ANALYSE`), et `polish.css` applique
+`panel.collapsed > *:not(.panel-heading){display:none!important}`. **La clé a survécu au changement
+de sens du panneau** : avant la 111, replier « ANALYSE » cachait trois lignes ; après, cela fait
+disparaître 1 800 px d'analyse d'un coup. Qui l'avait replié *parce qu'il ne montrait rien* perdait
+tout, sans signal. Mesuré : 97 px, cinq blocs invisibles-mais-non-vides. Corrigé en changeant
+l'eyebrow — **un panneau qui change de sens change de clé**.
+
+**2. « 🔄 Générer un nouveau bloc » était devenu un bouton mort.** Sans objectif choisi, son
+gestionnaire faisait `showPage('athlete')` et s'arrêtait là — geste qui supposait la **proximité** du
+sélecteur d'objectif, vraie tant que le bouton vivait dans le même panneau. Depuis la 111 il vit sur
+« Progrès », donc `showPage` rappelait le sous-onglet courant : le clic ne produisait **rien**.
+
+### Mes chiffres de la 111 étaient faux
+
+J'avais mesuré le Plan **sans appeler `runObjectiveProgram`** — un panneau amputé de son contenu
+principal. Re-mesuré, plan généré : **3 020 → 1 919 px** (et non 1 784 → 724), Analyse **630 → 1 728**.
+Et le chiffre qui compte n'avait pas été mesuré : le premier « ▶️ Démarrer cette séance » remonte de
+**2 258 à 1 157 px**, de 2,7 écrans à 1,4. Corrigé aux trois endroits qui le citaient.
+
+### Ce que cette itération a appris
+
+**Déplacer du markup, c'est déplacer des HYPOTHÈSES.** Les deux régressions viennent de la même
+cause : du code qui supposait *où* l'élément vivait. Le bouton supposait la proximité de son
+sélecteur ; la clé de repli supposait que le panneau garderait son sens. Aucune des deux hypothèses
+n'était écrite nulle part. *Avant de déplacer un élément, chercher qui suppose sa position — pas
+seulement qui le nomme.* Mon contrôle d'avant-déplacement (CSS parent, `reorganiserPlanDeBataille`)
+cherchait les références DIRECTES, et elles étaient bien absentes ; les hypothèses, elles, sont
+indirectes par nature.
+
+**Un chiffre faux dans un recap est une affirmation fausse.** Même règle que pour l'app. Je l'avais
+publiée dans un commit, un journal et une roadmap.
+
+### Ce que la revue a trouvé et que je n'ai PAS encore corrigé
+
+- **Mes deux checks promettent plus qu'ils ne vérifient**, prouvé par mutations qui restent vertes :
+  (a) `analyseHorsEcranDaction` exempte `#objectiveResult` — or c'est là que le plan est rendu, donc
+  y ajouter du rétrospectif passe (vérifié moi-même : ce nœud contient déjà « semaines », l'exemption
+  est nécessaire telle quelle) ; (b) les quatre blocs d'historique (727 px mesurés) ne contiennent
+  **aucun** des trois marqueurs et pourraient revenir dans l'écran d'action sans alerte, d'autant que
+  le check ne sème jamais `blockHistory` ; (c) le seuil `accueillis >= 3` autorise à **supprimer
+  479 px de l'Analyse** en silence, alors que le message promet « rien supprimé » ; (d) `op-reglages`
+  est ignoré par classe, donc on peut y cacher le tonnage.
+- **`deuxEcransDeuxElements` compare le TEXTE, jamais la géométrie** : `hidden` ne change pas
+  `textContent`, donc la conséquence n°3 d'origine (bloc à 0 px) repasserait. Et le geste réellement
+  fautif — `renderAgenda` en vue jour — n'est jamais joué : le check appelle `renderWeekPage()`.
+- **Fuite d'état dans le harnais** : le check `weekScheduleCurrent` écrit `state.blockStart=''` et
+  `state.workouts=[]` et ne restaure que `state.agenda`. De cette ligne jusqu'au check de la 111,
+  tous les checks de rendu mesurent une app **sans bloc** (analysis-panel 310 → 194 px mesuré).
+  *Et mon commentaire de la 109 accusait le mauvais coupable* : il disait « un check remplace l'état
+  par une version normalisée », alors que `normalizeState` conserve `blockStart` et qu'aucun check ne
+  remplace `state`. Un lecteur serait allé durcir un endroit sain.
+- **Sur bureau, les blocs déplacés perdent 48 % de largeur** (952 → 492 px) : le panneau d'arrivée
+  vit dans une grille `1.1fr .9fr` dont la colonne voisine est vide sur ce sous-onglet. Relève de B4.
+- Cosmétique : en densité compacte, l'`<article>` garde 24 px de padding là où la `<section>` passait
+  à 15 (`extras.css` ne traite que `section.panel`).
+
+**Mutations.** 3 posées, 3 détectées. 699 tests · SMOKE OK. Rien publié depuis v2.17.0.
