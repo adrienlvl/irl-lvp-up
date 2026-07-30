@@ -4142,3 +4142,60 @@ avant de conclure.*
 contradiction, mais ils devront suivre. Et A3 n'a PAS fusionné les panneaux — `week-panel` reste sur
 *Progrès*, `weekly-review-panel` sur *Corps* : la fusion de surface est à faire, probablement en
 déplaçant la revue hebdo vers *Progrès*, ce qui servirait aussi B1.
+
+## Itération 105 — le compte de la semaine avait deux bouts, un seul était borné
+
+Suite de A3. L'itération 104 avait unifié la **cible** ; le **numérateur** restait éclaté. Le balayage
+de toute l'app (13 voix relevées, hors Athlète comprises) a rendu trois constats actionnables —
+**les trois vérifiés à la main, les trois confirmés**.
+
+Mesuré avec 2 muscu + 1 course + 1 vélo cette semaine, **et une séance datée lundi prochain** :
+
+| affiché | valeur |
+|---|---|
+| `#weekSessions` (Progrès, grand chiffre) | **5** |
+| `#weekInsight`, 3 cm en dessous | « il reste **1** séance » (cible 3) |
+| `#sessionsProgressText` (Programme) | « **5 / 4** séances » |
+| réellement dans lundi→dimanche | **4** |
+
+**`thisWeekWorkouts()` ne bornait que le début** : `date >= weekStart()`, sans borne haute. Une
+séance datée après dimanche entrait dans « cette semaine » et gonflait le grand chiffre, la charge en
+points, la barre d'objectifs et le mode du tableau de bord. *Une semaine a deux bouts ; un seul était
+posé.*
+
+La barre du goal-panel divisait un compte permissif par l'ancien réglage — « 5 / 4 », soit plus de
+100 % — pendant que le Plan disait 3/3.
+
+**Et un choix explicite :** le grand chiffre compte **toute activité** (vélo, mobilité), ce qui est le
+sujet légitime du panneau « Ton volume ». Je ne l'ai donc pas aligné : son libellé dit « séances,
+toute activité » quand les deux comptes divergent, et reste sobre quand ils coïncident. *Deux nombres
+différents sont honnêtes s'ils annoncent chacun leur règle* — même raisonnement qu'en A2 (« fusionner
+le sujet, pas les panneaux »).
+
+### Ce que cette itération a appris
+
+**Deux fois de suite, mon garde-fou ne voyait que ce que j'avais pensé à lui montrer :**
+
+1. ma liste de panneaux à relever était **écrite à la main** — quatre sélecteurs, et le sous-onglet
+   *Programme* n'y figurait pas. **La voix que je venais de corriger échappait à son propre
+   garde-fou** (mutation survivante). Le relevé balaie désormais tous les panneaux visibles des quatre
+   sous-onglets : une voix ajoutée demain est surveillée d'office.
+2. puis mon analyseur exigeait des chiffres **collés** au slash, alors que la barre écrit « 2 / 2
+   séances » avec des espaces.
+
+*« Ce qui énumère doit dériver sa liste » ne s'arrête pas à la liste : le motif qu'on cherche est lui
+aussi une déclaration, et il peut manquer la forme qu'on n'a pas prévue.*
+
+**Un balayage large paie, même quand il arrive tard.** Le rapport est tombé après la clôture de A3 et
+a montré que l'étape était incomplète. Sans lui, « une seule voix hebdo » aurait été cochée avec un
+numérateur faux et une barre à 125 %.
+
+**Mutations.** 3 posées, 3 détectées après les deux corrections du check.
+
+695 tests · SMOKE OK. Rien publié depuis v2.16.0.
+
+**Reste du balayage, non traité et noté :** `trailReadiness` et `weeklyKmRamp` comptent les km sur une
+fenêtre **glissante de 7 jours** alors que `#weekDistance` et `runWeekGoal` comptent **depuis lundi** —
+« X km cette semaine » diverge donc tous les jours sauf le dimanche. Et la charge en points est
+calculée **deux fois par la même formule recopiée** (`#weekLoad` et le chip du Compagnon), sans
+fonction partagée.
