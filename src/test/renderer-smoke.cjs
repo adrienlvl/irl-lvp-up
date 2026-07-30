@@ -3999,6 +3999,96 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* UNE SEULE CIBLE HEBDO (BLOQUANT, iteration 104 — etape A3).
+         Mesure avant : sur une meme semaine (2 muscu + 1 course), cinq voix annoncaient un compte
+         hebdo et QUATRE le comparaient au reglage manuel state.goals.sessions tandis que
+         « Ta semaine, face au plan » le comparait au PLAN. Resultat, sur le seul sous-onglet
+         « Aujourd hui » : « 3/3 … c est jouable » et « 3/4 seances » a quelques centaines de
+         pixels. Pas une redite — une contradiction : l un disait termine, l autre pas.
+         On seme une semaine reelle, on releve toutes les cibles annoncees, et on exige une seule
+         valeur. Sans le semis, une semaine vide donnerait 0 partout et le check serait vacant. */
+      checks.uneSeuleCibleHebdo = (() => {
+        const _wk = state.workouts;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.workouts = _wk; try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof showPage !== "function" || typeof showAthleteTab !== "function") return false;
+          const p = n => String(n).padStart(2, "0");
+          const lun = (function () { const d = new Date(localDate() + "T12:00:00");
+            d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); })();
+          const j = function (n) { const d = new Date(lun + "T12:00:00"); d.setDate(d.getDate() + n);
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          state.workouts = [
+            { id: 104001, date: j(0), type: "strength", duration: 50, effort: 2,
+              exercises: [{ name: "Squat", sets: 4, reps: 8, load: 80, completedSets: 4 }] },
+            { id: 104002, date: j(1), type: "run", duration: 45, distance: 8, effort: 2 },
+            /* QUATRE seances, pas trois : la phrase « Objectif de N seances atteint » ne sort que
+               lorsque la cible est ATTEINTE. Avec trois, remettre la cible a 4 ne produisait aucune
+               affirmation contradictoire a capturer — la mutation survivait faute de scenario, pas
+               faute de check. */
+            { id: 104004, date: j(3), type: "strength", duration: 35, effort: 2,
+              exercises: [{ name: "Pompes classiques", sets: 3, reps: 12, completedSets: 3 }] },
+            { id: 104003, date: j(2), type: "strength", duration: 40, effort: 3,
+              exercises: [{ name: "Tractions", sets: 3, reps: 8, completedSets: 3 }] }
+          ];
+          showPage("athlete");
+          render();
+
+          /* On DERIVE les cibles du texte rendu : tout motif « N/M seance ». Une liste ecrite a la
+             main manquerait la voix qu on ajoutera demain. */
+          const cibles = [], details = [];
+          const releve = function (sel, ou) {
+            const el = document.querySelector(sel);
+            if (!el || el.getBoundingClientRect().height < 8) return;
+            const txt = String(el.textContent || "");
+            /* Deuxieme forme de cible : « Objectif de N seances ». Sans elle, une voix qui annonce
+               sa cible ainsi echappait au releve — mutation survivante au premier essai. */
+            {
+              const marque = 'Objectif de ';
+              let k = -1;
+              while ((k = txt.indexOf(marque, k + 1)) >= 0) {
+                let b = k + marque.length;
+                let n = '';
+                while (b < txt.length && txt.charAt(b) >= '0' && txt.charAt(b) <= '9') { n += txt.charAt(b); b++; }
+                if (n.length && txt.slice(b, b + 10).indexOf('séance') !== -1) {
+                  cibles.push(Number(n)); details.push(ou + ':objectif=' + n);
+                }
+              }
+            }
+            let i = -1;
+            while ((i = txt.indexOf("/", i + 1)) > 0) {
+              // On lit les chiffres de part et d autre du slash, puis on exige le mot « séance ».
+              let a = i - 1, b = i + 1;
+              while (a >= 0 && txt.charAt(a) >= "0" && txt.charAt(a) <= "9") a--;
+              while (b < txt.length && txt.charAt(b) >= "0" && txt.charAt(b) <= "9") b++;
+              const gauche = txt.slice(a + 1, i), droite = txt.slice(i + 1, b);
+              if (!gauche.length || !droite.length) continue;
+              if (txt.slice(b, b + 12).indexOf("séance") === -1) continue;
+              cibles.push(Number(droite));
+              details.push(ou + ":" + gauche + "/" + droite);
+            }
+          };
+          showAthleteTab("aujourdhui");
+          releve("#avancementSemaine", "plan");
+          releve("#todayCoachSignals", "compagnon");
+          showAthleteTab("progres"); releve(".week-panel", "volume");
+          showAthleteTab("corps"); releve(".weekly-review-panel", "revue");
+
+          const distinctes = [];
+          cibles.forEach(function (c) { if (distinctes.indexOf(c) === -1) distinctes.push(c); });
+          checks.__voixHebdo = "voix=" + cibles.length + " cibles distinctes=" + distinctes.length
+            + " [" + distinctes.join(",") + "] detail[" + details.join(" ") + "]";
+          _rendre();
+          /* Au moins DEUX voix relevees, sinon le check ne compare rien — et une seule cible. */
+          return cibles.length >= 2 && distinctes.length === 1;
+        } catch (e) {
+          _rendre();
+          checks.__errVoixHebdo = String(e && e.message); return false;
+        }
+      })();
+
       /* UN SEUL CHECK-IN (BLOQUANT, iteration 102 — etape A2).
          Mesure avant, en 390 px et sans check-in du jour : le Compagnon (462 px, ZERO champ)
          disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton « Faire mon
@@ -6854,6 +6944,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible (voir __voixHebdo)');
     if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
     if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister. Et le pourquoi doit DIRE VRAI : il est dérivé des zones réelles des exercices depuis la revue 100, parce qu’une table figée affirmait « tirage et poussée équilibrés » et « peu coûteux pour les jambes » sur une séance que muscleBalance classait push-heavy et qui contenait un hip-hinge (voir __uniteGestes)');

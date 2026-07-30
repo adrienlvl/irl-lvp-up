@@ -2906,7 +2906,12 @@ function shareableMonth(recap) {
 // Bilan hebdo intelligent : compare la semaine (weeklySummary) aux objectifs et à la semaine
 // précédente (+ ACWR, sommeil) et renvoie des insights personnalisés { emoji, tone, text }
 // (tone: good|warn|info), 1 à 5. Pur + testé.
-function weeklyInsights(state, mondayKey, todayKey) {
+/* `opts.cibleSeances` permet à l appelant d imposer la cible hebdo. Sans lui, on garde la
+   dérivation historique sur `goals.sessions` — donc aucun changement pour qui ne la passe pas.
+   Le besoin : trois panneaux annonçaient « X / cible séances » avec DEUX cibles différentes (le
+   plan d un côté, le réglage manuel de l autre), et la même semaine sortait « 3/3 c est jouable »
+   sur un sous-onglet et « 3/4, il t en reste une » sur un autre (mesuré, itération 104). */
+function weeklyInsights(state, mondayKey, todayKey, opts) {
   const s = state || {};
   const cur = weeklySummary(s, mondayKey);
   const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(mondayKey || ''));
@@ -2914,7 +2919,10 @@ function weeklyInsights(state, mondayKey, todayKey) {
   if (t) { const d = new Date(+t[1], +t[2] - 1, +t[3]); d.setDate(d.getDate() - 7); const p = n => String(n).padStart(2, '0'); prev = weeklySummary(s, `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`); }
   const goals = s.goals && typeof s.goals === 'object' ? s.goals : {};
   const out = [];
-  const goalSessions = Math.round(Number(goals.sessions) || 0);
+  const /* NULL N EST PAS ZERO : Number('') vaut 0 et Number.isFinite(0) est vrai, donc une chaine
+     vide, null ou false devenaient une cible de ZERO seances. On exige un vrai nombre — et 0 reste
+     une consigne valable (semaine de repos), ce qui est le sens inverse du meme piege. */
+  goalSessions = (opts && typeof opts.cibleSeances === 'number' && Number.isFinite(opts.cibleSeances)) ? Math.max(0, Math.round(Number(opts.cibleSeances))) : Math.round(Number(goals.sessions) || 0);
   if (goalSessions > 0) {
     if (cur.sessions >= goalSessions) out.push({ emoji: '✅', tone: 'good', text: `${cur.sessions}/${goalSessions} séance${goalSessions > 1 ? 's' : ''} — objectif atteint, bravo !` });
     else {

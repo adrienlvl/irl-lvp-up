@@ -14108,6 +14108,40 @@ test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTA
   assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
 });
 
+test('weeklyInsights : la cible hebdo peut être imposée par l’appelant', () => {
+  /* Mesuré à l'itération 104 : sur une même semaine (2 muscu + 1 course, 135 min, 8 km), l'app
+     annonçait DEUX cibles selon le sous-onglet — « Ta semaine, face au plan 3/3 … c'est jouable »
+     sur Aujourd'hui, et « 3/4 séances — 1 séance à caser » ailleurs. Cinq voix énonçaient un
+     compte hebdo ; quatre le comparaient à `state.goals.sessions` (le réglage manuel), une au
+     PLAN. Ce n'était pas une redite mais une contradiction : l'un disait terminé, l'autre pas.
+     `weeklyInsights` dérivait sa cible en interne, donc elle ne pouvait pas s'aligner. */
+  const st = { goals: { sessions: 4 }, workouts: [] };
+  const lundi = '2026-07-27', jeudi = '2026-07-30';
+  const texte = r => (r || []).map(x => x.text).join(' | ');
+
+  // Sans opts : la dérivation historique, donc aucune régression pour un appelant qui l'ignore.
+  const sans = texte(L.weeklyInsights(st, lundi, jeudi));
+  assert.match(sans, /0\/4 séances/, 'par défaut, la cible reste le réglage : ' + sans);
+
+  // Avec opts : la cible imposée gagne. C'est le cas qui DISCRIMINE — 3 au lieu de 4.
+  const avec = texte(L.weeklyInsights(st, lundi, jeudi, { cibleSeances: 3 }));
+  assert.match(avec, /0\/3 séances/, 'la cible imposée doit gagner : ' + avec);
+  assert.ok(sans !== avec, 'sans ce désaccord semé, le test ne prouverait rien');
+
+  /* ZÉRO N'EST PAS ABSENT : une cible de 0 est une vraie consigne (semaine de repos), elle ne doit
+     pas retomber sur le réglage. */
+  const zero = texte(L.weeklyInsights(st, lundi, jeudi, { cibleSeances: 0 }));
+  assert.ok(zero.indexOf('/4 séances') === -1, 'une cible à 0 ne doit pas redevenir 4 : ' + zero);
+
+  // Une valeur inexploitable est IGNORÉE, pas prise pour 0 : on retombe sur la dérivation.
+  ['', null, undefined, 'trois', NaN].forEach(v => {
+    const r = texte(L.weeklyInsights(st, lundi, jeudi, { cibleSeances: v }));
+    assert.match(r, /0\/4 séances/, 'cible ' + JSON.stringify(v) + ' inexploitable → réglage');
+  });
+  // Et un opts sans le champ du tout se comporte comme aucun opts.
+  assert.equal(texte(L.weeklyInsights(st, lundi, jeudi, {})), sans);
+});
+
 test('pourquoiSeanceMuscu : la phrase ne contredit jamais les chiffres', () => {
   /* Défaut trouvé par la revue 100 dans un texte que je venais d'écrire à l'itération 99. Une
      table figée par focus affirmait, pour « upper », « tirage et poussée ÉQUILIBRÉS » et « peu
