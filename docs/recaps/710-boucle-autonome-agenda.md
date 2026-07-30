@@ -3967,3 +3967,68 @@ sur un 529 : son angle — idempotence de `reorganiserPlanDeBataille`, état ouv
 re-rendu, index `data-op-start` après un remplacement — **reste à instruire**.
 
 693 tests · SMOKE OK. Rien publié depuis v2.16.0. **A2 (un seul check-in) reste la prochaine étape.**
+
+## Itération 102 — A2 : le check-in demandé deux fois, rempli dans un troisième endroit
+
+Rang 2 de la [roadmap 714](714-audit-athlete-roadmap.md). Sonde en 390 px, **sans check-in du
+jour** — ce que voit Adrien le matin :
+
+```
+Compagnon        462 px, ZÉRO champ  « Renseigne sommeil, fatigue et courbatures »
+                                     + bouton « Faire mon check-in »
+                                     -> goToSection('athlete', '.recovery-panel')
+écart                                572 px
+Récupération     806 px, 8 champs    le formulaire
+#recoveryAdvice  sous le formulaire  « Fais un check-in »   <- troisième demande
+```
+
+Le geste était **demandé à deux endroits et rempli dans un troisième**, et le bouton n'existait que
+pour compenser la séparation.
+
+### Ce qui a été fait
+
+Les quatre champs et leur bouton montent dans le panneau qui décide, entre le verdict et les
+actions. **Ils gardent leurs id**, donc `renderRoadmapFeatures` et `#saveRecovery` fonctionnent sans
+une ligne de changement — c'est tout l'intérêt de déplacer du markup plutôt que de le réécrire.
+
+Trois conséquences traitées, parce qu'elles seraient devenues des mensonges : le bouton de renvoi
+(masqué, il pointerait vers un panneau sans formulaire), le texte (« juste en dessous » au lieu de
+« renseigne » comme si c'était ailleurs), et la troisième demande (qui explique désormais son silence).
+Le panneau qui reste ne s'appelle plus « Check-in du jour » : il n'en contient plus.
+
+**Décision écrite, contre la lettre de ma propre roadmap :** A2 fusionne le **sujet**, pas les
+panneaux. Le second garde score, conseil de charge, séances manquées, plan de sommeil — de
+l'**analyse**. Les mélanger ferait un panneau de 1 300 px mêlant action et analyse, soit le mur que
+l'itération 98 a défait.
+
+| | avant | après |
+|---|---|---|
+| Compagnon | 462 px, 0 champ | **796 px, 4 champs** |
+| Récupération | 806 px, 8 champs | **485 px** |
+| total | 1 268 px | 1 281 px |
+| onglet Athlète | 15 304 px / 22 panneaux *(audit 30/07)* | **11 879 px / 21 panneaux** (−22 % après A1+A2) |
+
+**Le gain de A2 est la cohérence, pas les pixels** — et il faut le dire ainsi : la roadmap demandait
+que chaque fusion rende des pixels, celle-ci rend un scroll de 572 px entre la consigne et son
+formulaire, et deux demandes sur trois.
+
+### Ce que cette itération a appris
+
+**Un bouton peut n'exister que pour compenser un défaut de structure.** « Faire mon check-in » ne
+faisait rien d'autre que scroller vers le formulaire. En rapprochant les deux, il devient non
+seulement inutile mais faux — il emmènerait ailleurs. *Quand on supprime la distance, on doit
+supprimer ce qui servait à la franchir.*
+
+**Déplacer du markup par id ne coûte rien au code, et c'est précisément ce qui rend le risque
+invisible.** Aucune ligne de JS n'a changé, donc rien n'aurait signalé un câblage cassé. C'est le
+check qui doit le dire : il remplit, enregistre, et exige que le verdict CHANGE.
+
+**Ma cinquième mutation ne prouvait rien, et je l'ai refaite.** En remplaçant l'id dans
+`$('#saveRecovery')`, `null.onclick` jetait au chargement : le smoke tombait avant d'atteindre mon
+check. Refaite en neutralisant la seule écriture d'état — bouton présent, cliquable,
+`enregistre=false`. *Une mutation qui casse l'app trop tôt ne teste pas le check qu'on visait.*
+
+**Mutations.** 5 posées, 5 détectées, deux harnais (lint statique + smoke) précédés de leurs témoins.
+
+694 tests · SMOKE OK. Rien publié depuis v2.16.0. **A3 (une seule voix hebdo) est la prochaine
+étape** — et l'audit y annonce quatre écrans qui disent « 0 séance cette semaine ».
