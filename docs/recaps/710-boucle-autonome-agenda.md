@@ -5137,3 +5137,55 @@ même demande (180 min), aucune séance trop longue — et pourtant [100, 100, 4
 que [120, 120] range. Un test sur les totaux les aurait confondus. Le check bloquant fait deux
 passes : capacité contrainte → bloc peint citant les durées calculées ; capacité par défaut, même
 agenda → bloc muet. 704 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 123 — revue adversariale : je comparais deux semaines fantômes
+
+Trois itérations depuis la dernière revue, et la cible était toute trouvée : mon arbitrage de la
+122, écrit la veille. Il confrontait un plan **en forme de semaine** à un budget **en forme de
+semaine** — alors qu'on vit *au milieu* de la semaine. Deux défauts, une seule racine.
+
+| défaut | mesure |
+|---|---|
+| le budget sommait les jours **écoulés** | 780 min annoncées dont **540 déjà passées (69 %)**, et un verdict « ok » alors qu'aucune journée restante de 60 min ne pouvait accueillir la sortie longue de 70 |
+| la demande ignorait le **déjà-fait** | un jeudi avec 1 muscu et 1 course faites : « il manque 1 h » pour 3 h de libres et 2 h 40 réellement restantes |
+
+Le second était le plus laid : les deux séances que l'app déclarait non plaçables — « Haut du
+corps », « Course facile » — étaient **exactement celles déjà courues lundi et mardi**. Elle
+disait à Adrien de couper son plan alors qu'il était à jour.
+
+`budgetSemaine` prend désormais `aPartirDe` (les jours passés restent listés mais ne pèsent ni
+dans le total ni dans le rangement) et `dejaFait`. Le retrait ôte les séances les plus **courtes**
+de chaque type : ce qui subsiste est le plus dur à placer, donc la fonction ne peut jamais
+conclure « ça rentre » sur un rangement plus facile qu'en vrai. L'écran nomme sa fenêtre —
+« d'ici dimanche » — et annonce « Il te reste 3 séances sur 5 (2 h 40) ».
+
+### Ce que cette itération a appris
+
+**Une fonction pure ne doit pas deviner « aujourd'hui », mais l'appelant doit le lui dire.**
+J'avais bien gardé `budgetSemaine` pure — et c'est justement pour ça qu'elle raisonnait sur une
+semaine abstraite que personne ne vit. *La pureté protège du hasard, pas du hors-sujet.*
+
+**Un check qui RECALCULE au lieu d'OBSERVER ne teste que lui-même.** L'helper du check de la 122
+rappelait `budgetSemaine` avec d'autres options que le rendu : il mesurait une valeur que
+l'écran n'affichait pas. L'aligner ne suffisait pas — un helper aligné masquerait un rendu qui
+oublierait l'option. Il a fallu un **témoin observable** : enregistre une séance, le texte du
+panneau doit changer. Aucun helper ne peut fabriquer ça.
+
+**Un trou de couverture qu'on documente reste un trou.** Ma mutation « le rendu ne transmet plus
+la fenêtre » survivait parce que le jeu d'essai chargeait lundi–mercredi : les jours écoulés
+étaient déjà à zéro. Le check le *disait* (`discrimine=false`), ce qui valait mieux que le
+silence — mais dire un trou ne le bouche pas. La charge est maintenant ancrée sur **aujourd'hui**,
+et la mutation tombe. *Un jeu d'essai relatif à la date doit être pensé pour le jour où le harnais
+tourne, pas pour celui où on l'écrit.*
+
+**J'ai violé ma propre règle dans le garde-fou censé la faire respecter.** Mes deux assertions
+cherchaient une durée n'importe où dans le texte — or l'écran affiche « Ton plan demande **4 h** ·
+**1 h** de libres » et la demande valait 4 h elle aussi. « Ne jamais asserter une chaîne sur un
+conteneur qui la contient déjà », écrit depuis la 121, appliqué partout sauf là. Les motifs sont
+ancrés sur « de libres ».
+
+**Backticks : 13ᵉ prise, mais par l'audit.** Un ``aPartirDe`` dans un commentaire du gabarit,
+attrapé avant d'avoir rien cassé. L'outil vaut mieux que ma vigilance.
+
+**Mutations.** 6 posées, 6 détectées — la dernière seulement après avoir rendu le jeu d'essai
+discriminant. 705 tests · SMOKE OK. Rien publié depuis v2.17.0.

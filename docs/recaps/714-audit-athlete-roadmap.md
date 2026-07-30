@@ -145,6 +145,10 @@ mesuré 4,5 h libres sur une semaine de démonstration. ~~**Rien n'agrège encor
   le plus grand jour libre — de ce qu'elle **constate** : un rangement raté se dit « en les rangeant
   au mieux », jamais « impossible ». Mesuré : capacité réglée à 1 h en semaine / 2 h le week-end,
   plan à 4 h contre 3 h libres, aucun écran ne le disait. Le bloc se tait quand rien ne mord.
+  **Revu à la 123** : la première version comparait un plan en forme de semaine à un budget en
+  forme de semaine, un jeudi — 69 % du temps libre annoncé était déjà écoulé, et le plan entier
+  était réclamé alors que deux séances étaient faites. La fenêtre part d'aujourd'hui, la demande
+  est nette du déjà-fait, et l'écran nomme sa fenêtre (« d'ici dimanche »).
 - C2. **Le conflit nommé** — deux objectifs qui se contredisent, dit chiffres à l'appui. (8)
 - C3. **Le coût annoncé étendu** — objectif physique, jours, zones. (7)
 - C4. **La replanification à l'échelle de la SEMAINE** — le rattrapage sport (76) et études (93)
