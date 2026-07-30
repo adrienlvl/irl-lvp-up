@@ -13381,7 +13381,7 @@ function computeAchievements(state) {
    ZÉRO N'EST PAS ABSENT. Sans pesée dans la fenêtre, la différence vaudrait 0 et se lirait
    « poids stable » : on rendrait « recomposition » sur une balance muette. Il faut DEUX points de
    chaque côté, sinon `null` — se taire vaut mieux qu'un chiffre tiré d'un calcul vide. */
-function fenetreRecomposition(weights, measurements, field) {
+function fenetreRecomposition(weights, measurements, field, todayKey) {
   const isKey = k => /^\d{4}-\d{2}-\d{2}$/.test(String(k || ''));
   const champ = typeof field === 'string' && field ? field : 'waist';
   const mes = (Array.isArray(measurements) ? measurements : [])
@@ -13394,18 +13394,32 @@ function fenetreRecomposition(weights, measurements, field) {
     .sort((a, b) => a.date.localeCompare(b.date));
   if (mes.length < 2 || pes.length < 2) return null;
 
-  /* Le départ commun est le plus TARDIF des deux premiers points : avant lui, l'une des deux
-     séries n'existe pas, et comparer reviendrait à prêter au ruban une histoire qu'il n'a pas. */
+  /* LA FENÊTRE COMMUNE EST FERMÉE AUX DEUX BOUTS : [le plus tardif des deux premiers points,
+     le plus précoce des deux derniers]. Avant le premier, l'une des séries n'existe pas ; après
+     le second, l'une des deux s'est tue. La version de la 124 ne fermait que le départ, et la
+     revue 126 a mesuré ce que ça coûtait : pesées quotidiennes sur 6 mois, dernière mensuration
+     il y a 60 jours → « Sur les 6 derniers mois : −2 cm de tour de taille », alors que les −2 cm
+     s'étaient faits entre janvier et mai. Le même défaut, à l'autre extrémité de l'intervalle. */
   const depuis = mes[0].date > pes[0].date ? mes[0].date : pes[0].date;
-  const mFen = mes.filter(m => m.date >= depuis);
-  const pFen = pes.filter(w => w.date >= depuis);
+  const finMes = mes[mes.length - 1].date, finPes = pes[pes.length - 1].date;
+  const jusqua = finMes < finPes ? finMes : finPes;
+  const dansLaFenetre = x => x.date >= depuis && x.date <= jusqua;
+  const mFen = mes.filter(dansLaFenetre);
+  const pFen = pes.filter(dansLaFenetre);
+  /* Ce seul contrôle couvre AUSSI le non-recouvrement : si les deux séries ne se croisent
+     jamais, `jusqua` tombe avant `depuis`, le filtre vide les deux listes, et on sort ici.
+     Un garde séparé sur `jusqua < depuis` a été écrit puis retiré à la revue 126 — aucune
+     mutation ne pouvait le faire tomber, preuve qu'il ne portait rien. */
   if (mFen.length < 2 || pFen.length < 2) return null;
 
-  const dernier = mFen[mFen.length - 1].date > pFen[pFen.length - 1].date
-    ? mFen[mFen.length - 1].date : pFen[pFen.length - 1].date;
-  const jours = Math.round((new Date(dernier + 'T12:00:00') - new Date(depuis + 'T12:00:00')) / 86400000);
+  const jours = Math.round((new Date(jusqua + 'T12:00:00') - new Date(depuis + 'T12:00:00')) / 86400000);
+  /* LA FRAÎCHEUR EST UNE DONNÉE, pas un détail : une fenêtre qui s'arrête il y a deux mois ne se
+     raconte pas comme « les derniers mois ». On rend le retard, l'écran choisit ses mots. */
+  const retardJours = isKey(todayKey)
+    ? Math.max(0, Math.round((new Date(todayKey + 'T12:00:00') - new Date(jusqua + 'T12:00:00')) / 86400000))
+    : null;
   return {
-    depuis, jusqua: dernier, jours,
+    depuis, jusqua, jours, retardJours,
     poidsDelta: Math.round((pFen[pFen.length - 1].value - pFen[0].value) * 10) / 10,
     tailleDelta: Math.round((mFen[mFen.length - 1].value - mFen[0].value) * 10) / 10,
     tailleActuelle: mFen[mFen.length - 1].value,

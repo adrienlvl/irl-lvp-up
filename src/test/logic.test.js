@@ -7443,8 +7443,12 @@ test('fenetreRecomposition : le poids et le ruban se comparent sur la MÊME pér
   const jourAvant = n => { const d = new Date(2026, 6, 30); d.setDate(d.getDate() - n);
     return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
   const pesees = [], mesures = [];
-  for (let k = 730; k >= 0; k -= 7) {
-    const t = Math.min(1, ((730 - k) / 730) * 1.15);
+  /* 728 et non 730 : multiple de 7, donc la serie se termine bien a J-0 comme les
+     mensurations. Avec 730 elle s arretait a J-2, et depuis la 126 la fenetre commune se
+     ferme au plus PRECOCE des deux derniers points — le test tombait sur un desalignement
+     de jeu d essai, pas sur son sujet. */
+  for (let k = 728; k >= 0; k -= 7) {
+    const t = Math.min(1, ((728 - k) / 728) * 1.15);
     pesees.push({ date: jourAvant(k), value: Math.round((90 - 12 * t) * 10) / 10 });
   }
   for (let k = 90; k >= 0; k -= 15) {
@@ -7488,6 +7492,66 @@ test('fenetreRecomposition : le poids et le ruban se comparent sur la MÊME pér
   const trouee = [{ date: '2026-01-01', waist: 0 }].concat(mesures);
   assert.equal(L.fenetreRecomposition(pesees, trouee, 'waist').depuis, mesures[0].date,
     'une mesure à 0 n\'est pas une mesure');
+});
+
+test('fenetreRecomposition : la fenêtre se ferme aussi au bout où le ruban se tait', () => {
+  /* REVUE 126, sur mon propre code de la 124 : j'avais fermé le DÉPART de la fenêtre commune et
+     laissé l'autre bout ouvert. Mesuré — pesées tous les 3 jours sur 6 mois, dernière
+     mensuration il y a 60 jours : l'app annonçait « Sur les 6 derniers mois : −2 cm de tour de
+     taille », alors que ces −2 cm s'étaient faits entre janvier et mai et que le ruban était
+     muet depuis. Le même défaut que la 124 corrigeait, à l'autre extrémité de l'intervalle. */
+  const p2 = n => String(n).padStart(2, '0');
+  const jourAvant = n => { const d = new Date(2026, 6, 30); d.setDate(d.getDate() - n);
+    return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
+  const AUJ = jourAvant(0);
+
+  /* Le poids doit VARIER APRÈS la fin de la fenêtre, sinon borner les séries en haut ou
+     non donne le même delta et le jeu d'essai ne discrimine rien : mutation survivante à la
+     revue 126. Ici il est stable jusqu'à J-60, puis chute de 4 kg — un delta que la fenêtre
+     commune ne doit PAS ramasser, faute de mensuration en face. */
+  const pesees = [];
+  for (let k = 180; k >= 0; k -= 3) pesees.push({ date: jourAvant(k),
+    value: k >= 60 ? 82 : Math.round((82 - 4 * (60 - k) / 60) * 10) / 10 });
+  const perimees = [];
+  for (let k = 180; k >= 60; k -= 15) perimees.push({ date: jourAvant(k),
+    waist: Math.round((86 - 2 * (180 - k) / 120) * 10) / 10 });
+
+  const f = L.fenetreRecomposition(pesees, perimees, 'waist', AUJ);
+  assert.equal(f.jusqua, perimees[perimees.length - 1].date,
+    'la fenêtre s\'arrête à la dernière mensuration, pas à la dernière pesée');
+  assert.equal(f.jours, 120, 'quatre mois couverts, pas six');
+  assert.equal(f.retardJours, 60, 'et le retard du ruban est exposé');
+  assert.equal(f.poidsDelta, 0, 'le poids est lu DANS la fenêtre : les 4 kg d\'après n\'y sont pas');
+  /* TÉMOIN : ces 4 kg existent bel et bien, hors fenêtre. Sans lui, l'assertion ci-dessus
+     serait vraie même si la série était vide. */
+  const surTout = Math.round((pesees[pesees.length - 1].value - pesees[0].value) * 10) / 10;
+  assert.equal(surTout, -4, 'témoin : la balance a bien bougé, mais après la dernière mesure');
+  assert.equal(f.pesees, pesees.filter(w => w.date <= f.jusqua).length,
+    'et seules les pesées de la fenêtre sont comptées');
+  /* TÉMOIN : sans la correction, la fenêtre aurait couru jusqu'à aujourd'hui. Sans lui, on ne
+     verrait pas que le jeu d'essai discrimine vraiment. */
+  assert.equal(pesees[pesees.length - 1].date, AUJ, 'témoin : les pesées, elles, vont jusqu\'à ce jour');
+  assert.ok(f.jours < 180, 'témoin : la fenêtre est bien plus courte que l\'écart total');
+
+  /* DEUXIÈME BRANCHE — fenêtre FRAÎCHE. Deux branches d'un même `si` demandent deux jeux
+     d'essai : sans celui-ci, un code qui rendrait TOUJOURS un retard passerait. */
+  const fraiches = [];
+  for (let k = 90; k >= 0; k -= 15) fraiches.push({ date: jourAvant(k),
+    waist: Math.round((84 - 1.5 * (90 - k) / 90) * 10) / 10 });
+  const g = L.fenetreRecomposition(pesees, fraiches, 'waist', AUJ);
+  assert.equal(g.retardJours, 0, 'un ruban à jour n\'a aucun retard');
+  assert.equal(g.jusqua, AUJ);
+  assert.equal(g.jours, 90);
+
+  /* Sans date du jour, on ne PRÉTEND PAS connaître le retard : null, pas 0. NULL N'EST PAS
+     ZÉRO — un 0 se lirait « à jour » alors qu'on n'en sait rien. */
+  assert.equal(L.fenetreRecomposition(pesees, perimees, 'waist').retardJours, null);
+
+  /* Deux séries qui ne se recouvrent pas ne donnent pas une fenêtre à l'envers. */
+  const vieillesPesees = pesees.filter(w => w.date < jourAvant(150));
+  assert.ok(vieillesPesees.length >= 2, 'témoin : il y a bien deux pesées');
+  assert.equal(L.fenetreRecomposition(vieillesPesees, fraiches, 'waist', AUJ), null,
+    'aucun recouvrement → null, jamais une durée négative');
 });
 
 test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => {

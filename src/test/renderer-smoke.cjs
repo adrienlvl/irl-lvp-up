@@ -4246,15 +4246,43 @@ app.whenReady().then(async () => {
           const ditPerte = !!vuBaisse && vuBaisse.texte.indexOf("perte de gras est bien engag") !== -1
             && vuBaisse.texte.indexOf("recomposition en cours") === -1;
 
+          /* --- PASSE 3 : le ruban s est TU il y a deux mois, la balance non. --- */
+          const perimees = [];
+          for (let k = 180; k >= 60; k -= 15) perimees.push({ date: ilYA(k),
+            waist: Math.round((86 - 2 * (180 - k) / 120) * 10) / 10 });
+          state.measurements = perimees;
+          const longuePesee = [];
+          for (let k = 180; k >= 0; k -= 3) longuePesee.push({ date: ilYA(k), value: 82 });
+          state.weights = longuePesee;
+          const fVieux = fenetreRecomposition(state.weights, state.measurements,
+            "waist", localDate());
+          const vuVieux = lire();
+          /* TEMOIN : la fenetre doit VRAIMENT etre en retard, sinon la passe ne teste rien. */
+          const vraimentPerime = !!fVieux && fVieux.retardJours >= 30 && fVieux.jours > 0;
+          /* « les N derniers mois » affirmerait que la mesure court jusqu a aujourd hui. */
+          const nePretendPasEtreAJour = !!vuVieux
+            && vuVieux.texte.indexOf("derniers mois") === -1
+            && vuVieux.texte.indexOf("derni\u00e8re mensuration il y a") !== -1;
+          /* Et le nombre de mois annonce est celui de la fenetre, DERIVE, jamais ecrit en dur. */
+          const moisFenetre = fVieux ? Math.round(fVieux.jours / 30) : -1;
+          const diLaBonneDuree = !!vuVieux
+            && vuVieux.texte.indexOf("Sur " + moisFenetre + " mois") !== -1;
+
           checks.__ruban = "stable[poids=" + (fStable ? fStable.poidsDelta : "?")
             + " taille=" + (fStable ? fStable.tailleDelta : "?") + " j=" + (fStable ? fStable.jours : "?")
             + " recompo=" + ditRecompo + " periode=" + nommeLaPeriode
             + "] surTout=" + surTout + " piege=" + piegeReel
             + " | baisse[poids=" + (fBaisse ? fBaisse.poidsDelta : "?") + " perte=" + ditPerte
-            + " distinctes=" + passesDistinctes + "] t1[" + (vuStable ? vuStable.texte.slice(0, 96) : "") + "]";
+            + " distinctes=" + passesDistinctes
+            + "] perime[retard=" + (fVieux ? fVieux.retardJours : "?")
+            + " jours=" + (fVieux ? fVieux.jours : "?") + " vrai=" + vraimentPerime
+            + " honnete=" + nePretendPasEtreAJour + " duree=" + diLaBonneDuree
+            + "] t1[" + (vuStable ? vuStable.texte.slice(0, 96) : "")
+            + "] t3[" + (vuVieux ? vuVieux.texte.slice(0, 108) : "") + "]";
 
           _rendre();
-          return piegeReel && passesDistinctes && ditRecompo && nommeLaPeriode && ditPerte;
+          return piegeReel && passesDistinctes && ditRecompo && nommeLaPeriode && ditPerte
+            && vraimentPerime && nePretendPasEtreAJour && diLaBonneDuree;
         } catch (e) { _rendre(); checks.__errRuban = String(e && e.message); return false; }
       })();
 
@@ -8539,7 +8567,7 @@ app.whenReady().then(async () => {
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte. Il NOMME aussi sa fenêtre (« d’ici dimanche ») et déduit le déjà-fait — revue 123 : le total sommait les jours écoulés (780 min annoncées dont 540 passées, 69 %) et réclamait le plan entier un jeudi où deux séances étaient déjà faites, si bien qu’il annonçait « il manque 1 h » sans que rien ne manque (voir __budgetSemaine)');
     if (!checks.coupeDitSaCause) errors.push('Le Plan de bataille retire du volume sans dire pourquoi. Mesuré à l’itération 125 sur un état atteignable — objectif physique « Prise de muscle », objectif de poids « perte », programme nutrition « agressif » : déficit de 885 kcal/jour soit 28 % de la dépense, `trainingPolicy` passe volumeFactor à 0,70, et le plan annonçait « Volume réduit : 4 exercices par séance au lieu de 5 » sans sa cause. Celle-ci n’était lisible que sur la page Poids, dans un <details> « Ma semaine type » fermé, sur un panneau en display:none. Attendu : la phrase de coupe est PEINTE sur le Plan de bataille (checkVisibility, hauteur > 0), elle cite le déficit et la part que la politique a réellement retenus, et elle ne nomme un conflit que quand il existe — « prise de muscle » sur un objectif muscle, rien de tel sur une sèche où la coupe va dans le sens visé (voir __cause)');
-    if (!checks.rubanSurLaMemeFenetre) errors.push('Le Coach Poids compare une variation de poids et une variation de tour de taille prises sur DEUX périodes différentes. Mesuré à l’itération 124 : deux ans de pesées (90 → 78 kg) face à trois mois de mensurations (−1,5 cm) donnaient « Poids et tour de taille en baisse : la perte de gras est bien engagée », alors que sur la fenêtre commune la balance n’avait pas bougé — la réponse juste était « recomposition en cours », c’est-à-dire la MEILLEURE nouvelle : l’app sous-créditait un vrai progrès en le nommant mal. Attendu : les deux deltas sont bornés au départ commun des deux séries, la période est ÉCRITE à l’écran, et le verdict suit ce qui se passe DANS la fenêtre — mêmes mensurations, une balance stable dit « recomposition » et une balance qui chute dit « perte de gras » (voir __ruban)');
+    if (!checks.rubanSurLaMemeFenetre) errors.push('Le Coach Poids compare une variation de poids et une variation de tour de taille prises sur DEUX périodes différentes. Mesuré à l’itération 124 : deux ans de pesées (90 → 78 kg) face à trois mois de mensurations (−1,5 cm) donnaient « Poids et tour de taille en baisse : la perte de gras est bien engagée », alors que sur la fenêtre commune la balance n’avait pas bougé — la réponse juste était « recomposition en cours », c’est-à-dire la MEILLEURE nouvelle : l’app sous-créditait un vrai progrès en le nommant mal. Attendu : les deux deltas sont bornés au départ commun des deux séries, la période est ÉCRITE à l’écran, la fenêtre se ferme AUX DEUX BOUTS — revue 126 : elle ne se fermait qu’au départ, si bien qu’un ruban muet depuis 60 jours donnait « Sur les 6 derniers mois : −2 cm » pour des centimètres perdus entre janvier et mai ; quand la dernière mensuration est ancienne, l’écran dit jusqu’où il a regardé. Et le verdict suit ce qui se passe DANS la fenêtre — mêmes mensurations, une balance stable dit « recomposition » et une balance qui chute dit « perte de gras » (voir __ruban)');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
     if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE, en DURÉE : le panneau Poids dit « Sur N jours » — mesuré à l’itération 121, « 6 pesées » ne distinguait pas 41 jours de 5, alors que le même profil sort −0,30 ou −0,84 kg/sem selon la durée — et il ne projette PAS d’échéance sous deux semaines de recul (deux pesées à 24 h donnaient « −3,5 kg/sem → ~2 sem. »). Le panneau d’analyse, lui, compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
     if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');
