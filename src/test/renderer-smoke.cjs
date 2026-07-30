@@ -4066,6 +4066,100 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* SAUVEGARDER SES OBJECTIFS N EFFACE RIEN, ET REPEINT TOUT (BLOQUANT, iteration 114).
+         Mesure avant, en cliquant « Sauvegarder » dans « Objectifs hebdomadaires » :
+           state.goals { sessions:4, distance:20, targetWeight:73, runs:2, progSessions:.., weeklyKm:25 }
+           devenait  { sessions:9, distance:20, targetWeight:73 }
+         — le nombre de courses par semaine et le volume hebdo de course, qui sert a prescrire
+         les KILOMETRES, disparaissaient en silence : le gestionnaire reconstruisait l objet au
+         lieu de le fusionner. Et il n appelait que renderAthlete(), donc le sous-onglet Progres
+         affichait « 3 / 6 seances » pendant que Corps et Aujourd hui restaient a « 3/5 ».
+         Le check DERIVE les cles a preserver de l etat lui-meme : une cle ajoutee demain sera
+         gardee sans qu on touche a ce test.
+         CE QUI EST GARDE ET CE QUI NE L EST PAS. Le desaccord « 3 / 6 » contre « 3/5 » venait
+         de l EFFACEMENT (le plan recalculait sans le nombre de courses), pas du rendu partiel :
+         une fois la fusion en place, aucun champ de ce formulaire ne fait bouger la cible, donc
+         un rendu partiel n a plus de consequence observable et la mutation renderAthlete()
+         SURVIT. Le rendu complet reste la bonne correction — sauvegarder un objectif doit
+         repeindre tout ce qui en depend, y compris hors de l onglet Athlete — mais il n est PAS
+         garde ici, et le dire vaut mieux que de laisser croire le contraire. */
+      checks.objectifsSauvesSansDegat = (() => {
+        const _goals = JSON.parse(JSON.stringify(state.goals || {}));
+        const _wk = state.workouts;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.goals = _goals; state.workouts = _wk;
+          try { render(); } catch (_) {} try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          const bouton = document.getElementById("saveGoals");
+          const champ = document.getElementById("sessionsGoal");
+          if (!bouton || !champ) { _rendre(); return false; }
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const ilYA = n => { const d = new Date(auj); d.setDate(d.getDate() - n); return cle(d); };
+          /* Un etat REALISTE : des reglages de Plan qui n ont rien a voir avec les deux champs
+             du formulaire, et de quoi faire parler les trois voix hebdo. */
+          state.goals = Object.assign({}, state.goals, { sessions: 4, distance: 20,
+            targetWeight: 73, runs: 2, weeklyKm: 25 });
+          const w = [];
+          for (let k = 0; k < 3; k++) w.push({ id: 114100 + k, date: ilYA(k + 1), type: "strength",
+            duration: 45, distance: 0, effort: 2,
+            exercises: [{ name: "Tractions", sets: 3, reps: 8,
+              setLogs: [{ reps: 8, load: 0 }, { reps: 8, load: 0 }, { reps: 7, load: 0 }] }] });
+          state.workouts = w;
+          render(); showPage("athlete");
+
+          const clesAvant = Object.keys(state.goals);
+          const valeursAvant = JSON.parse(JSON.stringify(state.goals));
+          // TEMOIN : l etat porte bien des reglages ETRANGERS au formulaire, sinon rien a perdre.
+          const aDesReglagesDePlan = clesAvant.indexOf("runs") !== -1
+            && clesAvant.indexOf("weeklyKm") !== -1;
+
+          showAthleteTab("programme");
+          champ.value = String((Number(valeursAvant.sessions) || 4) + 3);
+          bouton.click();
+
+          // 1. RIEN D EFFACE. On derive les cles : aucune de celles d avant ne doit manquer.
+          const perdues = clesAvant.filter(function (k) {
+            return !(k in state.goals) || state.goals[k] === undefined;
+          });
+          // Et les valeurs etrangeres au formulaire n ont pas bouge non plus.
+          const abimees = clesAvant.filter(function (k) {
+            if (k === "sessions" || k === "distance") return false;
+            return JSON.stringify(state.goals[k]) !== JSON.stringify(valeursAvant[k]);
+          });
+
+          /* 2. TOUT L ECRAN SUIT. On lit les trois voix SANS re-rendre : showAthleteTab ne fait
+             que basculer la visibilite, donc les textes sont ceux du dernier rendu. Un rendu
+             partiel se voit immediatement. */
+          const lire = id => { const e = document.getElementById(id);
+            return e ? String(e.textContent || "").trim() : ""; };
+          const cible = (typeof cibleHebdo === "function") ? cibleHebdo() : null;
+          const attendu = cible ? String(cible.prevu) : null;
+          const voix = [];
+          showAthleteTab("progres"); voix.push(["progres", lire("sessionsProgressText")]);
+          showAthleteTab("corps"); voix.push(["corps", lire("weeklyInsights")]);
+          showAthleteTab("aujourdhui"); voix.push(["aujourdhui", lire("avancementSemaine")]);
+          const muettes = voix.filter(function (v) { return !v[1]; }).map(function (v) { return v[0]; });
+          const desaccord = attendu === null ? [] : voix.filter(function (v) {
+            return v[1] && v[1].indexOf("/" + attendu) === -1
+              && v[1].indexOf("/ " + attendu) === -1;
+          }).map(function (v) { return v[0] + "[" + v[1].slice(0, 26) + "]"; });
+
+          checks.__objectifsSauves = "reglagesDePlan=" + aDesReglagesDePlan
+            + " perdues=" + JSON.stringify(perdues) + " abimees=" + JSON.stringify(abimees)
+            + " cible=" + attendu + " voix=" + voix.length
+            + " muettes=" + JSON.stringify(muettes)
+            + " desaccord=" + JSON.stringify(desaccord);
+          _rendre();
+          return aDesReglagesDePlan && perdues.length === 0 && abimees.length === 0
+            && voix.length === 3 && muettes.length === 0 && desaccord.length === 0;
+        } catch (e) {
+          _rendre();
+          checks.__errObjectifsSauves = String(e && e.message); return false;
+        }
+      })();
+
       /* UN BOUTON QUI A DEMENAGE MENE ENCORE QUELQUE PART (BLOQUANT, revue 112).
          « 🔄 Generer un nouveau bloc » vit dans blockStatus, qui est passe de « Aujourd hui » a
          « Progres » a l iteration 111. Quand aucun objectif n est choisi, son gestionnaire
@@ -7739,6 +7833,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.objectifsSauvesSansDegat) errors.push('Sauvegarder ses objectifs hebdo casse quelque chose. Mesuré à l’itération 114 : le gestionnaire de « Sauvegarder » RECONSTRUISAIT `state.goals` au lieu de le fusionner, donc { sessions, distance, targetWeight, runs, progSessions, weeklyKm } devenait { sessions, distance, targetWeight } — le nombre de courses par semaine et le volume hebdo de course (qui sert à prescrire les kilomètres) disparaissaient en silence. Et il n’appelait que `renderAthlete()`, donc le sous-onglet Progrès affichait « 3 / 6 séances » pendant que Corps et Aujourd’hui restaient à « 3/5 » — deux cibles pour la même semaine. Attendu : aucune clé de `state.goals` perdue ni modifiée hors des deux champs du formulaire, et les trois voix hebdo d’accord après le clic. (Le rendu complet, lui, n’est pas gardé : une fois la fusion en place, aucun champ de ce formulaire ne fait bouger la cible, donc un rendu partiel n’a plus de conséquence observable — c’est écrit dans le commentaire du check plutôt que promis ici. Voir __objectifsSauves)');
     if (!checks.boutonNouveauBlocMene) errors.push('Le bouton « 🔄 Générer un nouveau bloc » ne mène nulle part. Il vit dans #blockStatus, qui est passé du sous-onglet « Aujourd’hui » à « Progrès » à l’itération 111. Sans objectif choisi, son gestionnaire faisait `showPage("athlete")` et s’arrêtait là — un geste qui supposait la PROXIMITÉ du sélecteur d’objectif, vraie tant que le bouton vivait dans le même panneau que lui. Mesuré après le déménagement : le bouton se voit sur « Progrès », showPage rappelle le sous-onglet courant (donc « Progrès »), et le clic ne produit RIEN. Attendu : le clic emmène devant le sélecteur d’objectif, qui n’était pas visible avant (voir __boutonBloc)');
     if (!checks.analyseHorsEcranDaction) errors.push('L’écran d’action porte de l’analyse du passé. Mesuré à l’itération 111 puis RECTIFIÉ à la 112, plan réellement généré : le Plan de bataille faisait 3 020 px, dont ~1 100 px de blocs tournés vers l’arrière — blockStatus 434, tonnageTrend 252, trainingByWeekday 136, trainingConsistency 98, trainingWeekBalance 84 — et placés AVANT le plan lui-même, pendant que le panneau « Analyse » n’en montrait que 630. Le premier « ▶️ Démarrer cette séance » tombait à 2 258 px du haut du panneau, soit 2,7 écrans. Après déplacement : Plan 1 919 px, Analyse 1 728 px, premier départ à 1 157 px — rien supprimé. Attendu : aucun enfant du Plan n’annonce une fenêtre passée (« derniers jours », « N semaines », « 28 j »), l’Analyse en accueille au moins trois, et le pilotage de la semaine reste dans le Plan (voir __analyseDeplacee)');
     if (!checks.deuxEcransDeuxElements) errors.push('Deux écrans écrivent au même endroit. Mesuré à l’itération 110 : `id="weekBalance"` existait DEUX fois — dans le Plan de bataille (onglet Athlète) et dans la page « Ma semaine » — or `$("#x")` rend toujours le PREMIER élément du document. Conséquences constatées : la page « Ma semaine » n’affichait jamais ses chips ; `renderWeekPage()` écrasait l’équilibre course/muscu du Plan par « 1 Sport · 1 Focus · 1 Vie » ; et basculer l’agenda en vue « jour » posait `hidden` sur le bloc de l’onglet Athlète, qui tombait à 0 px. Attendu : aucun id en double dans le document vivant, et le bloc de l’Athlète INTACT après un rendu de la page semaine (voir __croisementEcrans)');

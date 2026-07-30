@@ -1363,7 +1363,18 @@ $('#saveMorningRitual').onclick=()=>{const energy=Number($('#morningEnergy').val
 $('#saveReflection').onclick=()=>{const win=$('#reflectionWin').value.trim(),lesson=$('#reflectionLesson').value.trim(),tomorrow=$('#reflectionTomorrow').value.trim();if(!win&&!lesson&&!tomorrow){$('#reflectionStatus').textContent='Ajoute au moins une ligne pour enregistrer ce rituel.';return;}state.reflections=state.reflections.filter(r=>r.date!==localDate());state.reflections.push({id:Date.now(),date:localDate(),win,lesson,tomorrow});state.reflections=state.reflections.slice(-180);save();renderFocusRitual();};
 // La cible de poids n'est plus ici (foyer unique = panneau « Mon plan ») : on préserve la valeur
 // déjà en state plutôt que de la lire d'un champ qui n'existe plus.
-$('#saveGoals').onclick = () => { state.goals = { sessions: Math.max(1,Number($('#sessionsGoal').value)||4), distance: Math.max(0,Number($('#distanceGoal').value)||0), targetWeight: state.goals.targetWeight }; save(); renderAthlete(); };
+/* FUSION, PAS REMPLACEMENT — et un rendu COMPLET. Deux defauts mesures a l iteration 114 :
+   1) ce gestionnaire reconstruisait state.goals de zero, donc cliquer « Sauvegarder » sur les
+      objectifs hebdo EFFACAIT les reglages du Plan de bataille absents de la liste. Mesure :
+      { sessions:4, distance:20, targetWeight:73, runs:2, progSessions:'', weeklyKm:25 } devenait
+      { sessions:9, distance:20, targetWeight:73 } — le nombre de courses par semaine et le volume
+      hebdo de course, qui sert a prescrire les KILOMETRES, partaient en silence. Le report a la
+      main de targetWeight montre que le probleme avait deja ete rencontre, et rustine sur un seul
+      champ ; l etalement en fusion le regle pour tous, y compris ceux qu on ajoutera demain.
+   2) renderAthlete() ne repeint que l onglet Athlete courant : apres le clic, le sous-onglet
+      Progres affichait « 3 / 6 seances » pendant que Corps et Aujourd hui restaient a « 3/5 » —
+      deux cibles pour la meme semaine, le defaut que les iterations 104 a 108 ont traque. */
+$('#saveGoals').onclick = () => { state.goals = { ...state.goals, sessions: Math.max(1,Number($('#sessionsGoal').value)||4), distance: Math.max(0,Number($('#distanceGoal').value)||0) }; save(); render(); };
 $('#saveProfile').onclick=()=>{state.profile={...state.profile,goal:$('#profileGoal').value,level:$('#profileLevel').value,equipment:{handles:$('#equipmentHandles').checked,vest:$('#equipmentVest').checked,kettlebell:$('#equipmentKettlebell').checked,pullup:$('#equipmentPullup').checked}};save();renderProfile();};
 $('#saveTrail').onclick=()=>{const elevation=Number($('#elevationInput').value)||0,longRun=Number($('#longRunInput').value)||0;state.trail=state.trail.filter(x=>x.date!==localDate());state.trail.push({date:localDate(),elevation,longRun});save();renderAthlete();};
 let lastRunPlan=null;
