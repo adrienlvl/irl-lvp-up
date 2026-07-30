@@ -15051,6 +15051,57 @@ test('rescheduleOptions : un bloc du passé se repose à partir d’AUJOURD’HU
   assert.equal(futur[0].time, '08:00', 'la matinée d’un jour futur n’est pas perdue');
 });
 
+test('budgetSemaine : le total qui tient ne prouve pas que le plan se range', () => {
+  /* Semaine vide d'agenda : le temps libre de chaque jour EST sa capacité, ce qui rend le
+     jeu d'essai lisible. La grille est indexée dimanche→samedi (cf. DAY_CAPACITY_DEFAULT). */
+  const state = { agenda: [], workouts: [], recurring: [], habits: [], todos: [], plans: [] };
+  const LUNDI = '2026-07-27';
+  const trois = [{ kind: 'muscu', title: 'A', minutes: 60 },
+    { kind: 'muscu', title: 'B', minutes: 60 }, { kind: 'muscu', title: 'C', minutes: 60 }];
+
+  /* LE COUPLE QUI DISCRIMINE. Même temps libre (240 min), même demande (180 min), aucune
+     séance plus longue que le plus grand jour : seul le RANGEMENT les sépare. */
+  const emiette = L.budgetSemaine(state, LUNDI, trois, { capacity: [0, 100, 100, 40, 0, 0, 0] });
+  const groupe = L.budgetSemaine(state, LUNDI, trois, { capacity: [0, 120, 120, 0, 0, 0, 0] });
+  assert.equal(emiette.libreMin, groupe.libreMin, 'témoin : le même temps libre des deux côtés');
+  assert.equal(emiette.demandeMin, groupe.demandeMin, 'témoin : la même demande des deux côtés');
+  assert.equal(emiette.troplongues.length, 0, 'témoin : aucune séance plus longue qu\'un jour libre');
+  assert.equal(groupe.troplongues.length, 0, 'témoin : idem en face');
+  assert.equal(groupe.nonPlacees.length, 0, '120 + 120 accueille 60 + 60 + 60');
+  assert.equal(groupe.verdict, 'ok', 'et rien à signaler');
+  assert.equal(emiette.nonPlacees.length, 1, '100 + 100 + 40 n\'accueille que deux séances de 60');
+  assert.equal(emiette.verdict, 'court', 'le plan ne se range pas, même si le total tient');
+
+  /* CE QUI EST PROUVÉ N'EST PAS CE QUI EST SUPPOSÉ. Ci-dessus le rangement a échoué, sans
+     démontrer qu'aucun autre n'existe. Ci-dessous une séance dépasse le plus grand jour
+     libre : aucun ordre n'y change quoi que ce soit. L'écran doit pouvoir dire lequel. */
+  assert.equal(emiette.prouve, false, 'un rangement raté ne prouve pas l\'impossible');
+  const trop = L.budgetSemaine(state, LUNDI, [{ kind: 'course', title: 'Sortie longue', minutes: 150 }],
+    { capacity: [0, 100, 100, 40, 0, 0, 0] });
+  assert.equal(trop.troplongues.length, 1, '150 min ne tient dans aucun jour de 100 min');
+  assert.equal(trop.prouve, true, 'ça, c\'est démontré');
+  const somme = L.budgetSemaine(state, LUNDI, trois.concat(trois),
+    { capacity: [0, 120, 120, 0, 0, 0, 0] });
+  assert.equal(somme.manqueMin, 120, '360 min demandées pour 240 libres');
+  assert.equal(somme.prouve, true, 'la somme qui dépasse est une preuve aussi');
+
+  /* UN LUNDI QUI DÉBORDE NE PRÊTE PAS SES MINUTES AU DIMANCHE. On somme des max(0, libre),
+     jamais capacité totale − pris total, qui inventerait du temps là où il n'y en a pas. */
+  /* Le champ des minutes est `durationMin` : `duration` est un libellé, et
+     normalizeAgendaItem retombe alors sur 60 min par défaut — piège vérifié à la 122, où mes
+     600 min annoncées en valaient 60. */
+  const charge = { ...state, agenda: [{ id: 1, kind: 'study', title: 'Cours', date: LUNDI,
+    time: '08:00', durationMin: 600, priority: 'high' }] };
+  const deborde = L.budgetSemaine(charge, LUNDI, [], { capacity: [0, 120, 120, 0, 0, 0, 0] });
+  assert.equal(deborde.jours[0].libreMin, 0, 'le lundi surchargé rend zéro, pas un négatif');
+  assert.equal(deborde.libreMin, 120, 'et le mardi garde ses 120 min, sans compensation');
+
+  assert.equal(L.budgetSemaine(state, 'pas-une-date', trois, {}), null, 'date invalide → null');
+  const sansPlan = L.budgetSemaine(state, LUNDI, [], { capacity: [0, 120, 120, 0, 0, 0, 0] });
+  assert.equal(sansPlan.verdict, 'ok', 'sans plan construit, aucune alarme');
+  assert.equal(sansPlan.nbSeances, 0);
+});
+
 test('capacityFromHours / capacityToHours : le décalage lundi↔dimanche ne doit jamais glisser', () => {
   // La grille interne est indexée DIMANCHE→SAMEDI (Date.getDay()), le formulaire commence
   // le lundi. Une erreur d'un cran ici ferait juger le samedi avec la capacité du dimanche,

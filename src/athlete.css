@@ -399,6 +399,22 @@
 .avancement-semaine.av-fini .av-barre i{background:#4ade80}
 .avancement-semaine.av-neutre{border-left-color:var(--line)}
 
+/* L ARBITRAGE SOUS BUDGET DE TEMPS (122). Même gabarit que le bloc au-dessus : c’est la même
+   famille de message — « voilà où tu en es face au plan ». Deux tons seulement, parce que la
+   fonction ne rend que deux verdicts parlants ; le troisième (`ok`) reste muet. */
+.budget-semaine{display:grid;gap:var(--sp-2);margin:var(--sp-4) 0;padding:var(--sp-4) var(--sp-5);
+  border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:var(--r-md);
+  background:var(--surface-2)}
+.budget-semaine[hidden]{display:none}
+.bs-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3)}
+.bs-head b{font-size:var(--fs-md)}
+.bs-cadre,.bs-phrase,.bs-leviers{margin:0;font-size:var(--fs-xs);line-height:1.45}
+.bs-cadre{color:var(--text);font-variant-numeric:tabular-nums}
+.bs-phrase{color:var(--text)}
+.bs-leviers{color:var(--muted)}
+.budget-semaine.bs-court{border-left-color:var(--danger);background:rgba(251,113,133,.08)}
+.budget-semaine.bs-serre{border-left-color:var(--warn)}
+
 /* CE QUE TES BLOCS T'ONT APPRIS. Une ligne par cadence réellement tenue, la meilleure mise en
    avant — et la phrase en dessous, qui est ce qu'on vient chercher : le conseil pour le bloc
    suivant. Teinte neutre quand il n'y a qu'une cadence : il n'y a alors rien à recommander. */

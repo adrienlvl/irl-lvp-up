@@ -7509,6 +7509,118 @@ app.whenReady().then(async () => {
         } catch (e) { checks.__errArbitrage = String(e && e.message); return false; }
       })();
 
+      /* C1 — LE PLAN FACE AU TEMPS QUI RESTE. Mesure de la 122 : sur une semaine d alternant
+         avec la capacite reglee a 1 h en semaine et 2 h le week-end, le Plan de bataille
+         reclamait 4 h quand la semaine n en avait que 3 de libres, sans qu aucun ecran le dise. */
+      checks.budgetSemaineParle = (() => {
+        const _ag = state.agenda, _cap = state.dayCapacity, _wk = state.workouts;
+        const _g = JSON.parse(JSON.stringify(state.goals || {}));
+        const _p = JSON.parse(JSON.stringify(state.profile || {}));
+        const _obj = state.fitnessObjective;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.agenda = _ag; state.dayCapacity = _cap; state.workouts = _wk;
+          state.goals = _g; state.profile = _p; state.fitnessObjective = _obj;
+          try { render(); } catch (_) {}
+          try { showPage("athlete"); showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof budgetSemaine !== "function" || typeof capacityFromHours !== "function"
+            || typeof formatDuration !== "function" || typeof mondayOf !== "function") {
+            _rendre(); return false; }
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const lundi = new Date(auj); lundi.setDate(lundi.getDate() - ((auj.getDay() + 6) % 7));
+          const jour = k => { const d = new Date(lundi); d.setDate(d.getDate() + k); return cle(d); };
+
+          state.profile = Object.assign({}, state.profile, { weight: 78, height: 178, age: 29,
+            sex: "homme", activityLevel: "actif", goal: "perte",
+            level: "intermediaire", availableDays: [1, 2, 3, 4, 5, 6, 0] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73, sessions: 4, runs: 2,
+            distance: 20, weeklyKm: 25 });
+          state.fitnessObjective = "athletique";
+          state.workouts = [];
+          /* Le champ des minutes est durationMin : duration est un libelle, et
+             normalizeAgendaItem retombe alors sur 60 min par defaut — mes 240 min annoncees
+             en valaient 60, et la semaine paraissait deux fois plus vide qu elle ne l etait. */
+          state.agenda = [
+            { id: 9201, kind: "study", title: "Cours BTS", date: jour(0), time: "09:00", durationMin: 240 },
+            { id: 9202, kind: "study", title: "Cours BTS", date: jour(1), time: "09:00", durationMin: 240 },
+            { id: 9203, kind: "study", title: "Revision compta", date: jour(1), time: "19:00", durationMin: 90 },
+            { id: 9204, kind: "life", title: "Courses", date: jour(2), time: "18:00", durationMin: 60 },
+            { id: 9205, kind: "study", title: "Cours BTS", date: jour(3), time: "09:00", durationMin: 240 },
+            { id: 9206, kind: "study", title: "Revision droit", date: jour(3), time: "19:30", durationMin: 120 },
+            { id: 9207, kind: "life", title: "Famille", date: jour(5), time: "12:00", durationMin: 180 }
+          ];
+
+          /* On MESURE LA OU LE BLOC EST VISIBLE, et par le display CALCULE : el.hidden seul
+             ne dit rien de ce que l ecran montre. */
+          const lire = () => { render(); showPage("athlete"); showAthleteTab("aujourdhui");
+            const el = document.getElementById("budgetSemaine");
+            if (!el) return null;
+            return { display: getComputedStyle(el).display,
+              hauteur: Math.round(el.getBoundingClientRect().height),
+              texte: String(el.textContent || "") };
+          };
+          const calculer = () => {
+            const p = trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises);
+            return budgetSemaine(state, dateKey(mondayOf(localDate())),
+              (p && p.semaineType) || [], { capacity: state.dayCapacity });
+          };
+
+          /* --- PASSE 1 : capacite REGLEE basse. Le bloc doit parler. --- */
+          state.dayCapacity = capacityFromHours([1, 1, 1, 1, 1, 2, 2]);
+          const bSerre = calculer();
+          const vuSerre = lire();
+          if (!vuSerre || !bSerre) { _rendre();
+            checks.__budgetSemaine = "bloc ou budget absent"; return false; }
+          /* TEMOIN : le jeu d essai doit VRAIMENT saturer, sinon le check est vacant. */
+          const mordVraiment = bSerre.verdict !== "ok" && bSerre.demandeMin > 0;
+          const demandeTxt = formatDuration(Math.round(bSerre.demandeMin));
+          const libreTxt = formatDuration(Math.round(bSerre.libreMin));
+          /* TEMOIN : deux chiffres IDENTIQUES rendraient la double assertion creuse. */
+          const chiffresDistincts = demandeTxt !== libreTxt;
+          const peint = vuSerre.display !== "none" && vuSerre.hauteur > 20;
+          const citeLesChiffres = vuSerre.texte.indexOf(demandeTxt) !== -1
+            && vuSerre.texte.indexOf(libreTxt) !== -1;
+          /* Ce que l ecran affirme doit etre ce que la fonction a etabli : un manque prouve se
+             dit « il manque N », un rangement rate se dit « en les rangeant au mieux ». */
+          let ditVrai = false;
+          if (bSerre.manqueMin > 0) {
+            ditVrai = vuSerre.texte.indexOf(formatDuration(Math.round(bSerre.manqueMin))) !== -1
+              && vuSerre.texte.indexOf("Il manque") !== -1;
+          } else if (bSerre.troplongues.length) {
+            ditVrai = vuSerre.texte.indexOf(bSerre.troplongues[0].titre) !== -1
+              && vuSerre.texte.indexOf("aucune journée") !== -1;
+          } else if (bSerre.nonPlacees.length) {
+            ditVrai = vuSerre.texte.indexOf("en les rangeant au mieux") !== -1
+              && vuSerre.texte.indexOf(bSerre.nonPlacees[0].titre) !== -1;
+          } else {
+            ditVrai = vuSerre.texte.indexOf("marge") !== -1
+              || vuSerre.texte.indexOf("tout ton temps libre") !== -1;
+          }
+
+          /* --- PASSE 2 : capacite au DEFAUT, meme agenda, meme plan. Le bloc doit se taire. --- */
+          state.dayCapacity = null;
+          const bLarge = calculer();
+          const vuLarge = lire();
+          const seTait = !!vuLarge && vuLarge.display === "none" && vuLarge.hauteur === 0;
+          /* TEMOIN : la seconde passe doit vraiment etre a l aise, sinon elle ne discrimine rien. */
+          const largeVraiment = !!bLarge && bLarge.verdict === "ok";
+
+          checks.__budgetSemaine = "serre[" + bSerre.verdict + " demande=" + demandeTxt
+            + " libre=" + libreTxt + " manque=" + bSerre.manqueMin
+            + " trop=" + bSerre.troplongues.length + " nonPlacees=" + bSerre.nonPlacees.length
+            + " h=" + vuSerre.hauteur + " peint=" + peint + " cite=" + citeLesChiffres
+            + " vrai=" + ditVrai + "] large[" + (bLarge ? bLarge.verdict : "nul")
+            + " display=" + (vuLarge ? vuLarge.display : "?") + "] temoins[mord=" + mordVraiment
+            + " distincts=" + chiffresDistincts + " large=" + largeVraiment + "]";
+
+          _rendre();
+          return mordVraiment && chiffresDistincts && largeVraiment
+            && peint && citeLesChiffres && ditVrai && seTait;
+        } catch (e) { _rendre(); checks.__errBudgetSemaine = String(e && e.message); return false; }
+      })();
+
       checks.bilanDeFinDeBloc = (() => {
         try {
           if (typeof renderBlockStatus !== 'function' || typeof bilanDeBloc !== 'function') return false;
@@ -8192,6 +8304,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte (voir __budgetSemaine)');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
     if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE, en DURÉE : le panneau Poids dit « Sur N jours » — mesuré à l’itération 121, « 6 pesées » ne distinguait pas 41 jours de 5, alors que le même profil sort −0,30 ou −0,84 kg/sem selon la durée — et il ne projette PAS d’échéance sous deux semaines de recul (deux pesées à 24 h donnaient « −3,5 kg/sem → ~2 sem. »). Le panneau d’analyse, lui, compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
     if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');

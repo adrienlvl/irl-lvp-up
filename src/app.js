@@ -1338,6 +1338,59 @@ function renderAvancementSemaine(){const el=$('#avancementSemaine');if(!el)retur
   el.innerHTML='<div class="av-head"><b>📋 Ta semaine, face au plan</b><span class="av-pct">'
     +a.fait.total+'/'+a.prevu.total+'</span></div>'+barre
     +'<p class="av-phrase">'+escapeHtml(a.phrase)+'</p>';}
+/* C1 — L ARBITRAGE SOUS BUDGET DE TEMPS. Le Plan de bataille annonçait un nombre de séances
+   sans jamais demander à l’agenda s’il restait du temps pour elles : mesuré à la 122, une
+   capacité réglée à 1 h en semaine laissait 2 h libres pour un plan qui en réclamait 4.
+   CE BLOC NE PARLE QUE QUAND LE BUDGET MORD. La jauge du jour porte déjà l’avis « cette
+   journée déborde » (un seul avis par sujet), et le fichier le dit lui-même plus bas : une
+   alerte permanente n’est plus une alerte. Verdict `ok` ⇒ rien à l’écran. */
+function renderBudgetSemaine(){
+  const el=$('#budgetSemaine');if(!el)return;
+  if(typeof budgetSemaine!=='function'||typeof mondayOf!=='function'){el.hidden=true;el.innerHTML='';return;}
+  /* On confronte le PLAN GÉNÉRÉ, pas le réglage : c’est lui qui pose les durées réelles. */
+  const _plan=(typeof trainingWeekPlan==='function'&&typeof trainingPlanInputs==='function')
+    ?trainingWeekPlan(trainingPlanInputs(state,localDate()),exercises):null;
+  const _se=(_plan&&Array.isArray(_plan.semaineType))?_plan.semaineType:[];
+  const b=budgetSemaine(state,dateKey(mondayOf(localDate())),_se,{capacity:state.dayCapacity});
+  if(!b||b.verdict==='ok'){el.hidden=true;el.className='budget-semaine';el.innerHTML='';return;}
+  const d=m=>escapeHtml(formatDuration(Math.round(m)));
+  el.hidden=false;el.className='budget-semaine bs-'+b.verdict;
+  const cadre='<p class="bs-cadre">Ton plan demande <b>'+d(b.demandeMin)+'</b> · ta semaine a '
+    +'<b>'+d(b.libreMin)+'</b> de libres.</p>';
+  let corps;
+  if(b.verdict==='court'){
+    /* CE QU ON SAIT ET CE QU ON SUPPOSE NE SE DISENT PAS PAREIL. `prouve` = la somme dépasse,
+       ou une séance est plus longue que le plus grand jour libre : aucun ordre n’y change rien.
+       Sinon, c’est le rangement qui a échoué — un autre existe peut-être — et la phrase le dit
+       en nommant la méthode plutôt qu’en décrétant l’impossible. */
+    const bouts=[];
+    if(b.prouve){
+      /* DÉMONTRÉ : la somme dépasse, ou une séance est plus longue que le plus grand jour
+         libre. Aucun ordre n’y change rien, donc on l’affirme sans réserve. */
+      if(b.manqueMin>0)bouts.push('il manque <b>'+d(b.manqueMin)+'</b>');
+      if(b.troplongues.length){const t=b.troplongues[0];
+        bouts.push('<b>'+escapeHtml(t.titre)+'</b> ('+d(t.minutes)+') ne tient dans aucune journée '
+          +'— ton plus grand jour libre fait '+d(b.plusGrandJourMin));}
+    }else if(b.nonPlacees.length){
+      /* SEULEMENT CONSTATÉ : c’est le rangement qui a échoué, un autre existe peut-être. La
+         phrase nomme donc la méthode au lieu de décréter l’impossible. */
+      const n=b.nonPlacees[0],reste=b.nonPlacees.length-1;
+      bouts.push('en les rangeant au mieux, <b>'+escapeHtml(n.titre)+'</b> ('+d(n.minutes)+')'
+        +(reste?' et '+reste+' autre'+(reste>1?'s':''):'')+' ne trouve'+(reste?'nt':'')+' pas de place');}
+    /* Majuscule en tête : la phrase commence par « il manque » ou « en les rangeant », jamais
+       par un mot déjà capitalisé. Quand elle démarre par une balise, le passage est sans effet. */
+    const _ph=bouts.join('. Et ');
+    corps='<p class="bs-phrase">'+_ph.charAt(0).toUpperCase()+_ph.slice(1)+'.</p>'
+      +'<p class="bs-leviers">Deux leviers : baisse « Séances/sem. » juste au-dessus, ou allège '
+      +'ta semaine depuis le <b>Calendrier</b>.</p>';
+  }else{
+    /* `serre` veut dire que TOUT se range : le reproche porte sur la marge, pas sur le rangement. */
+    corps='<p class="bs-phrase">'+(b.resteMin>0
+      ?'Il ne te reste que <b>'+d(b.resteMin)+'</b> de marge : un imprévu et une séance saute.'
+      :'Ton plan occupe <b>tout</b> ton temps libre : le moindre imprévu fait sauter une séance.')
+      +'</p>';
+  }
+  el.innerHTML='<div class="bs-head"><b>⏳ Ton plan face à ton temps</b></div>'+cadre+corps;}
 function renderTrainingByWeekday(){const el=$('#trainingByWeekday');if(!el||typeof trainingByWeekday!=='function')return;const r=trainingByWeekday(state.workouts,localDate(),56);if(!r||r.total<3){el.hidden=true;el.innerHTML='';return;}el.hidden=false;const days=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],max=Math.max.apply(null,r.counts.concat(1));const bars=r.counts.map((c,i)=>{const h=c>0?Math.max(10,Math.round(c/max*100)):3,best=i===r.bestDay;return `<div class="tw-col"><i class="tw-bar${best?' tw-best':''}${c===0?' tw-empty':''}" style="height:${h}%" title="${days[i]} · ${c} séance${c>1?'s':''}"></i><small${best?' class="tw-best-lbl"':''}>${days[i][0]}</small></div>`;}).join('');el.innerHTML=`<div class="tw-head"><b>📅 Mes jours · 8 semaines</b><span>Jour fort : <b>${days[r.bestDay]}</b> (${r.bestCount})</span></div><div class="tw-chart">${bars}</div>`;}
 // Coaching : régularité d'entraînement (cadence des séances sur 28 j) + jauge de régularité.
 function renderTrainingConsistency(){const el=$('#trainingConsistency');if(!el||typeof trainingConsistency!=='function')return;const c=trainingConsistency(state.workouts,localDate(),28);if(!c){el.hidden=true;el.innerHTML='';return;}el.hidden=false;const tone=c.regularity>=75?'tc-good':c.regularity>=50?'tc-ok':'tc-low';el.className='training-consistency '+tone;const gap=String(c.avgGapDays).replace('.',',');el.innerHTML=`<div class="tc-head"><b>📏 Régularité · 28 j</b><span>${escapeHtml(c.label)}</span></div><div class="tc-bar"><i style="width:${c.regularity}%"></i></div><small>${c.sessions} séances · 1 tous les <b>${gap} j</b> en moyenne · plus longue pause ${c.maxGapDays} j.</small>`;}
@@ -1353,7 +1406,7 @@ function renderWellnessHeatmap(){const el=$('#wellnessHeatmap');if(!el||typeof w
 function renderWellnessStreak(){const el=$('#wellnessStreak');if(!el||typeof wellnessStreak!=='function')return;const total=Array.isArray(state.wellnessDone)?state.wellnessDone.length:0;const shb=$('#wellnessShareBtn');if(shb)shb.hidden=total===0;if(!total){el.hidden=true;el.innerHTML='';return;}const st=wellnessStreak(state.wellnessDone,localDate()),best=(typeof wellnessBestStreak==='function')?wellnessBestStreak(state.wellnessDone):0,wk=wellnessCountInWindow(state.wellnessDone,dateKey(mondayOf(new Date())),localDate()),min=(typeof wellnessMinutesInWindow==='function')?wellnessMinutesInWindow(state.wellnessDone,dateKey(mondayOf(new Date())),localDate()):0,recWk=(typeof bestWellnessWeek==='function')?bestWellnessWeek(state.wellnessDone,localDate()):null,bd=(typeof wellnessBadges==='function')?wellnessBadges(state.wellnessDone,localDate()):null;el.hidden=false;let html=`${st>0?`<span class="wst-streak">🔥 ${st} jour${st>1?'s':''} de suite</span>`:''}${best>=2&&best>st?`<span class="wst-record">🏅 record ${best} j</span>`:''}<span class="wst-week">🧘 ${wk} cette semaine</span>${min>0?`<span class="wst-min">⏱️ ${min} min mobilité</span>`:''}${recWk&&recWk.count>=3?`<span class="wst-recweek${recWk.isCurrent?' wst-rw-now':''}">🗓️ record sem. ${recWk.count}${recWk.isCurrent?' 🔥':''}</span>`:''}<span class="wst-total">${total} au total</span>`;if(bd){bd.badges.forEach(b=>{html+=`<span class="wst-badge">${b.emoji} ${escapeHtml(b.label)}</span>`;});let nx=null;if(st>0&&bd.nextStreak)nx=`plus que ${bd.nextStreak.days-st} j pour ${bd.nextStreak.emoji} ${bd.nextStreak.label}`;else if(bd.nextTotal)nx=`plus que ${bd.nextTotal.count-total} pour ${bd.nextTotal.emoji} ${bd.nextTotal.label}`;if(nx)html+=`<span class="wst-next">🎯 ${escapeHtml(nx)}</span>`;}el.innerHTML=html;}
 function renderStarterChecklist(){const el=$('#starterCard');if(!el)return;const sc=starterChecklist(state,localDate()),show=!state.starterDismissed&&!sc.complete&&state.workouts.length<8;if(!show){el.hidden=true;return;}el.hidden=false;el.innerHTML=`<div class="panel-heading"><div><p class="eyebrow">POUR BIEN DÉMARRER</p><h2>Tes premiers pas · ${sc.done}/${sc.total}</h2></div><button id="starterDismiss" class="collapse-toggle" title="Masquer" aria-label="Masquer">✕</button></div><ul class="starter-list">${sc.items.map(i=>`<li class="${i.done?'done':''}">${i.done?'✅':'⬜'} ${escapeHtml(i.label)}</li>`).join('')}</ul>`;const d=$('#starterDismiss');if(d)d.onclick=()=>{state.starterDismissed=true;save();el.hidden=true;};}
 function render() {
-  renderDashboardCore();renderStarterChecklist();renderInstallCard();renderMembership();renderAvancementSemaine();renderLimitationsNote();renderBlockStatus();renderBlocksByObjective();renderMemoireBlocs();renderTonnageTrend();renderTrainingConsistency();renderTrainingByWeekday();renderWeekBalance();renderRunWeekGoal();renderWellnessSuggest();renderWellnessZone();renderWellnessNudge();renderWellnessGoal();renderWellnessStreak();renderWellnessHeatmap();renderWellnessFamilies();
+  renderDashboardCore();renderStarterChecklist();renderInstallCard();renderMembership();renderAvancementSemaine();renderLimitationsNote();renderBudgetSemaine();renderBlockStatus();renderBlocksByObjective();renderMemoireBlocs();renderTonnageTrend();renderTrainingConsistency();renderTrainingByWeekday();renderWeekBalance();renderRunWeekGoal();renderWellnessSuggest();renderWellnessZone();renderWellnessNudge();renderWellnessGoal();renderWellnessStreak();renderWellnessHeatmap();renderWellnessFamilies();
   renderAthlete(); renderWeeklySleep(); renderProfile(); renderTargetAdvice(); renderGuidedResume(); renderTrainingCompanion(); renderTrainingHistory(); renderExerciseProgression(); renderStrengthRecords(); renderStrengthStandards(); renderVestProgression(); renderSkillTree(); renderIsoHolds(); renderSkillRoadmap(); renderRoadmapFeatures(); renderWeeklyReview(); renderFocusRitual(); renderGrowth(); renderCommandCenter(); renderAttention(); renderCoachFocus(); renderPersonalTrends(); renderCharts(); renderSupplements(); renderFoods(); renderPantry(); renderMealIdeas(); renderBirthdays(); renderRecurring(); renderExerciseLibrary(); renderUltraPage(); renderExamCountdown(); renderExamList(); renderAlternance(); updateAppBadge();
 }
 // PWA : pastille sur l'icône installée = actions en attente aujourd'hui (quêtes non faites + séances du jour).
