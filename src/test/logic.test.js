@@ -14108,45 +14108,85 @@ test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTA
   assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
 });
 
-test('objectiveProgram : chaque séance de muscu explique son placement', () => {
-  /* Absorbé du panneau « Ta prochaine séance » (itération 99). Mesuré avant : les séances de
-     COURSE du Plan de bataille portaient toutes un `why` rendu à l'écran, les séances de MUSCU
-     aucun — le gabarit ne lisait `why` que dans la branche 'course'. Les seuls textes qui
-     expliquaient le placement d'une séance de force vivaient dans le catalogue du panneau masqué. */
+test('pourquoiSeanceMuscu : la phrase ne contredit jamais les chiffres', () => {
+  /* Défaut trouvé par la revue 100 dans un texte que je venais d'écrire à l'itération 99. Une
+     table figée par focus affirmait, pour « upper », « tirage et poussée ÉQUILIBRÉS » et « peu
+     coûteux pour les JAMBES ». Mesuré sur la configuration par défaut : muscleBalance rendait
+     zone 'push-heavy' ratio 3, pushPullAdvice « Trop de poussée », et la séance contenait un Good
+     morning [back, glutes] — un hip-hinge, donc précisément ce qui sert à courir. Deux
+     affirmations que les fonctions de l'app contredisaient dans la même phrase.
+     Le test n'asserte donc PAS une égalité avec un texte : il confronte la phrase aux nombres,
+     sur TOUS les objectifs. C'est la seule forme qui reste valable quand la composition change. */
   const cat = require('../lib/exercises-data.js').exercises;
+  const jambesDe = exos => exos.filter(e => {
+    const z = L.exerciseZones(e.name);
+    return z.indexOf('legs') !== -1 || z.indexOf('glutes') !== -1;
+  }).length;
 
-  /* La liste des focus se DÉRIVE des objectifs, elle ne se déclare pas : ajouter un objectif avec
-     un nouveau focus sans son texte fera tomber ce test, ce qui est exactement le but. */
-  const focusUtilises = [...new Set(L.FITNESS_OBJECTIVES.flatMap(o => o.split || []))];
-  assert.ok(focusUtilises.length >= 5, 'jeu d’essai suffisant : ' + focusUtilises.join(','));
-  focusUtilises.forEach(f => {
-    assert.ok(L.FOCUS_POURQUOI[f] && L.FOCUS_POURQUOI[f].length > 40,
-      'le focus « ' + f + ' » est utilisé par un objectif mais n’explique pas son placement');
-  });
-
-  /* Des textes DIFFÉRENTS par focus : un seul texte générique recopié partout passerait le test
-     ci-dessus sans rien apporter. C'est le cas qui discrimine. */
-  const textes = new Set(focusUtilises.map(f => L.FOCUS_POURQUOI[f]));
-  assert.equal(textes.size, focusUtilises.length, 'un texte propre à chaque focus, pas un passe-partout');
-
-  // Et le programme POSE bien ces textes sur ses séances de muscu, pour chaque objectif.
+  let vues = 0, equilibres = 0, dominantes = 0, plateauVide = 0;
   L.FITNESS_OBJECTIVES.forEach(o => {
     const p = L.objectiveProgram(o.key, cat, { perSession: 5, seed: 0 });
     assert.ok(p && Array.isArray(p.week), 'programme généré pour ' + o.key);
     const muscu = p.week.filter(s => s.kind === 'muscu');
     assert.ok(muscu.length > 0, o.key + ' doit poser au moins une séance de muscu');
     muscu.forEach(s => {
-      assert.ok(s.why && s.why.length > 40,
-        o.key + ' : la séance « ' + s.title + ' » (focus ' + s.focus + ') n’explique pas son placement');
-      assert.equal(s.why, L.FOCUS_POURQUOI[s.focus], 'le texte posé est celui du focus, pas un autre');
-    });
-    // Les courses gardaient déjà leur why : on vérifie qu'on ne l'a pas écrasé au passage.
-    p.week.filter(s => s.kind === 'course').forEach(s => {
-      assert.ok(s.why && s.why.length > 5, o.key + ' : une course a perdu son why');
+      vues++;
+      const mb = L.muscleBalance([{ date: '2000-01-01', exercises: s.exercises }], '2000-01-01', 1);
+      const jambes = jambesDe(s.exercises);
+      const dit = String(s.why || '');
+      const ou = o.key + '/' + s.focus + ' (push=' + mb.push + ' pull=' + mb.pull + ' jambes=' + jambes + ') : ';
+
+      assert.ok(dit.length > 40, ou + 'la séance doit expliquer son placement');
+      // 1. Jamais « équilibrés » si un plateau est à ZÉRO. C'est le défaut que ma propre
+      //    correction reproduisait avant d'être mesurée (zone 'no-push' versée dans « équilibrés »).
+      if (mb.push === 0 || mb.pull === 0) {
+        assert.ok(dit.indexOf('équilibrés') === -1, ou + 'un plateau à zéro n’est pas un équilibre');
+        /* Et il ne suffit pas de NE PAS mentir : le plateau vide doit être DIT. Sans cette
+           assertion, supprimer les deux branches faisait simplement disparaître l'information et
+           le test restait vert (mutation survivante au premier essai). */
+        const attendu = mb.push === 0 ? 'aucune poussée' : 'aucun tirage';
+        assert.ok(dit.indexOf(attendu) !== -1,
+          ou + 'le plateau à zéro doit être nommé (« ' + attendu + ' »), pas passé sous silence');
+        plateauVide++;
+      }
+      // 2. La consigne de placement doit suivre la COMPOSITION, pas l'étiquette du focus.
+      if (jambes > 0) {
+        assert.ok(dit.indexOf('sollicite tes jambes') !== -1,
+          ou + 'elle charge les jambes : elle ne peut pas prétendre les épargner');
+        assert.ok(dit.indexOf('épargne tes jambes') === -1, ou + 'affirmation contraire aux zones');
+        assert.ok(dit.indexOf('distance d’une sortie') !== -1, ou + 'le placement doit en découler');
+      } else {
+        assert.ok(dit.indexOf('épargne tes jambes') !== -1, ou + 'aucune zone jambe : elle les épargne');
+        assert.ok(dit.indexOf('sollicite tes jambes') === -1, ou + 'affirmation contraire aux zones');
+      }
+      // 3. Le qualificatif d'équilibre doit correspondre à la zone rendue par muscleBalance.
+      if (mb.zone === 'balanced') { assert.ok(dit.indexOf('équilibrés') !== -1, ou + 'zone balanced'); equilibres++; }
+      if (mb.zone === 'push-heavy') { assert.ok(dit.indexOf('dominante poussée') !== -1, ou + 'zone push-heavy'); dominantes++; }
+      if (mb.zone === 'pull-heavy') { assert.ok(dit.indexOf('dominante tirage') !== -1, ou + 'zone pull-heavy'); dominantes++; }
     });
   });
-});
 
+  /* JEU D'ESSAI DISCRIMINANT : il faut que les trois cas aient été RENCONTRÉS, sinon le test
+     n'aurait vérifié qu'une branche et se croirait complet. */
+  assert.ok(vues >= 10, 'assez de séances observées : ' + vues);
+  assert.ok(equilibres >= 1, 'au moins une séance équilibrée dans le jeu d’essai');
+  assert.ok(dominantes >= 1, 'au moins une séance à dominante');
+  assert.ok(plateauVide >= 1, 'au moins une séance avec un plateau à zéro — le cas qui a menti');
+
+  // Sans exercice, on ne dit RIEN de la composition : l'intention seule reste vraie.
+  const nu = L.pourquoiSeanceMuscu([], 'upper');
+  assert.equal(nu, L.FOCUS_INTENTION.upper);
+  assert.ok(nu.indexOf('jambes') === -1 && nu.indexOf('équilibr') === -1,
+    'aucune affirmation de composition sur une séance vide');
+  assert.equal(L.pourquoiSeanceMuscu(null, 'inconnu'), 'Séance de musculation.');
+
+  /* Un exercice de jambes SEUL doit basculer la consigne : c'est le cas qui prouve que la phrase
+     lit vraiment les zones et ne recopie pas une table. */
+  const surJambes = L.pourquoiSeanceMuscu([{ name: 'Fentes arrière', sets: 3, reps: 10 }], 'upper');
+  assert.ok(surJambes.indexOf('sollicite tes jambes sur 1 exercice') !== -1, surJambes);
+  const sansJambes = L.pourquoiSeanceMuscu([{ name: 'Pompes classiques', sets: 3, reps: 10 }], 'upper');
+  assert.ok(sansJambes.indexOf('épargne tes jambes') !== -1, sansJambes);
+});
 test('seanceAMettreEnAvant : celle du jour, sinon la PROCHAINE', () => {
   /* Le Plan de bataille dépliait ses cinq séances d'un bloc (1 009 px) et repoussait le premier
      « ▶️ Démarrer » à 1 772 px du haut. On n'en déplie qu'une — encore faut-il choisir la bonne.
@@ -14289,6 +14329,30 @@ test('etapesDeLaSeance : l’état vient des séries, pas de la position', () =>
   assert.equal(s.restants, 1, 'C est fini : il ne reste que D');
   assert.equal(s.minutesApres, 7);
   assert.match(s.phrase, /Ensuite : D · ≈ 7 min/);
+
+  /* LE RETOUR EN ARRIÈRE — le cas que le test précédent ne pouvait pas voir, parce qu'il
+     n'appelait « dernier » qu'avec index = dernier. On saute le 1er exercice, on fait le 2e et le
+     3e, puis on revient au 1er (« Précédent », ou un clic sur l'étape dans la carte de séance —
+     deux gestes que l'app offre). `restants` ne gardait que ce qui vient APRÈS l'index, ce qui
+     confond « rien après moi » et « je suis le dernier » : la phrase annonçait « Dernier exercice
+     de la séance » alors qu'il restait trois séries à faire ici même. La fonction se protège
+     pourtant de ce scénario pour calculer `statut` — son commentaire dit qu'on peut revenir en
+     arrière — et l'oubliait pour la phrase (revue 100). */
+  const revenu = L.etapesDeLaSeance([ex('Développé', 3, 0), ex('Rowing', 3, 3), ex('Curl', 3, 3)], 0,
+    { minutesParExercice: [12, 10, 8] });
+  assert.equal(revenu.restants, 0, 'les deux autres sont finis : il ne reste que celui-ci');
+  assert.match(revenu.phrase, /Dernier exercice qui te reste/,
+    'et on le dit ainsi : « de la séance » serait faux, deux exercices sont derrière');
+  assert.ok(!/Dernier exercice de la séance/.test(revenu.phrase));
+
+  /* ET LE CAS SYMÉTRIQUE : on est au dernier de la liste, mais le PREMIER a été sauté. Il reste
+     donc quelque chose — devant nous dans la séance, derrière nous dans la liste. « Ensuite »
+     serait une affirmation d'ordre fausse. */
+  const sauteDevant = L.etapesDeLaSeance([ex('Sauté', 3, 0), ex('Fait', 3, 3), ex('Courant', 3, 1)], 2,
+    { minutesParExercice: [12, 10, 8] });
+  assert.equal(sauteDevant.restants, 1, 'l’exercice sauté compte encore, même en amont');
+  assert.match(sauteDevant.phrase, /Il te reste aussi : Sauté/);
+  assert.ok(!/Ensuite/.test(sauteDevant.phrase), 'il n’est pas « ensuite » : il est derrière');
 
   const dernier = L.etapesDeLaSeance([ex('A', 2, 2), ex('B', 2, 0)], 1, { minutesParExercice: [5, 5] });
   assert.match(dernier.phrase, /Dernier exercice/);

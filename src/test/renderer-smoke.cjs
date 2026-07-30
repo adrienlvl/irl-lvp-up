@@ -4131,6 +4131,33 @@ app.whenReady().then(async () => {
             return !!p && String(p.textContent || '').trim().length > 40;
           }).length;
 
+          /* ET CE POURQUOI DOIT DIRE VRAI (revue 100). Le texte etait une table figee par focus :
+             pour « upper » il affirmait « tirage et poussee EQUILIBRES » et « peu couteux pour les
+             JAMBES », alors que muscleBalance rendait push-heavy ratio 3 sur cette meme seance et
+             qu elle contenait un Good morning [back, glutes] — un hip-hinge, donc precisement ce
+             qui sert a courir. On confronte la phrase RENDUE aux zones de ses propres exercices :
+             c est la seule assertion qui reste valable quand la composition change. */
+          const incoherents = [];
+          joursMuscu.forEach(function (d) {
+            const p = d.querySelector('.op-run');
+            const dit = String((p || {}).textContent || '');
+            if (!dit) return;
+            const noms = Array.prototype.slice.call(d.querySelectorAll('.op-ex li span'))
+              .map(function (x) { return String(x.textContent || '').trim(); });
+            const jambes = noms.filter(function (n) {
+              const z = (typeof exerciseZones === 'function') ? exerciseZones(n) : [];
+              return z.indexOf('legs') !== -1 || z.indexOf('glutes') !== -1;
+            }).length;
+            if (jambes > 0 && dit.indexOf('épargne tes jambes') !== -1) incoherents.push('epargne+' + jambes);
+            if (jambes === 0 && dit.indexOf('sollicite tes jambes') !== -1) incoherents.push('sollicite+0');
+            const mb = (typeof muscleBalance === 'function')
+              ? muscleBalance([{ date: '2000-01-01', exercises: noms.map(function (n) { return { name: n, sets: 3 }; }) }], '2000-01-01', 1)
+              : null;
+            if (mb && (mb.push === 0 || mb.pull === 0) && dit.indexOf('équilibrés') !== -1) {
+              incoherents.push('equilibre+plateauVide(' + mb.push + '/' + mb.pull + ')');
+            }
+          });
+
           /* LE GESTE « PREPARER » DOIT AGIR. On mesure APRES l effet : un bouton qui n ouvrirait
              rien serait exactement ce qu on croit avoir absorbe. */
           const prep = document.querySelectorAll('#objectiveResult [data-op-prep]');
@@ -4149,11 +4176,12 @@ app.whenReady().then(async () => {
           checks.__uniteGestes = 'lignes=' + formats.length + ' nues=' + nues.length
             + ' nonReps=' + nonReps.length + '[' + nonReps.slice(0, 3).join(' ') + ']'
             + ' muscu=' + joursMuscu.length + ' avecPourquoi=' + avecPourquoi
+            + ' incoherents=' + incoherents.length + '[' + incoherents.slice(0, 3).join(',') + ']'
             + ' start=' + start.length + ' prep=' + prep.length
             + ' prepareAgit=' + prepareAgit + ' note[' + notePrefixee + ']';
           _rendre();
           return formats.length >= 8 && nues.length === 0 && nonReps.length >= 1
-            && joursMuscu.length >= 2 && avecPourquoi === joursMuscu.length
+            && joursMuscu.length >= 2 && avecPourquoi === joursMuscu.length && incoherents.length === 0
             && prep.length === start.length && prep.length >= 2 && prepareAgit;
         } catch (e) {
           _rendre();
@@ -6668,7 +6696,7 @@ app.whenReady().then(async () => {
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
-    if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister (voir __uniteGestes)');
+    if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister. Et le pourquoi doit DIRE VRAI : il est dérivé des zones réelles des exercices depuis la revue 100, parce qu’une table figée affirmait « tirage et poussée équilibrés » et « peu coûteux pour les jambes » sur une séance que muscleBalance classait push-heavy et qui contenait un hip-hinge (voir __uniteGestes)');
     if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout (voir __planAction)');
     if (!checks.hiddenCacheVraiment) errors.push('L’attribut hidden ne cache pas : un élément marqué hidden occupe encore de la place à l’écran. 14 classes posaient display:flex ou grid sans leur règle [hidden]{display:none}, qui bat l’attribut — mesuré, ~300 px de bandes vides sur les sept pages, dont 118 px au milieu du Plan de bataille et 50 px sur chaque page pour la carte d’installation. Ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle fautive (voir __hiddenFantomes pour le coupable)');
     if (!checks.hierarchieGuidee) errors.push('Séance guidée : la hiérarchie était inversée — mesuré en 390 px, le nom de l’exercice sortait à 18 px, SOUS le titre de séance (24 px) et sous l’horloge de repos (31 px), et les labels « kg »/« reps » à 9,3 px. Le nom doit dominer son écran (≥ 26 px et plus gros que le titre), les labels rester lisibles (≥ 12 px), les boutons −/+ faire 44 px. Et l’en-tête doit MESURER : « ≈ 28 min » était calculé sur tous les exercices, donc figé du début à la fin, et la barre valait (index+1)/total, soit 25 % avant la première série. Valider des séries doit faire baisser le temps et avancer la barre. La carte de la séance doit lister les étapes, marquer celle en cours, et y sauter au clic');
