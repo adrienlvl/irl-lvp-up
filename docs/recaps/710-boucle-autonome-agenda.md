@@ -5189,3 +5189,56 @@ attrapé avant d'avoir rien cassé. L'outil vaut mieux que ma vigilance.
 
 **Mutations.** 6 posées, 6 détectées — la dernière seulement après avoir rendu le jeu d'essai
 discriminant. 705 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 124 — B3 : deux chiffres, deux périodes, une conclusion fausse
+
+La feuille de route demandait « mensurations lues, pas seulement saisies ». Sondé : elles le sont
+déjà — tendance, delta récent, courbe, historique, tout est peint. Mais en lisant le site d'appel
+de `recompositionInsight` j'ai vu qu'il comparait un delta de poids pris sur **tout** l'historique
+des pesées à un delta de taille pris sur **tout** l'historique des mensurations. Deux fenêtres,
+jamais nommées, jamais rapprochées.
+
+| série | fenêtre | variation |
+|---|---|---|
+| pesées | 2024-07-30 → 2026-07-28 (105 pesées) | **−12 kg** |
+| mensurations | 2026-05-01 → 2026-07-30 (7 mesures) | **−1,5 cm** |
+
+Verdict rendu : « Poids et tour de taille en baisse : la perte de gras est bien engagée. » Une
+perte vieille de deux ans attribuée à un ruban mesuré depuis mai. Sur la fenêtre commune la
+balance n'avait pas bougé — la réponse juste était « **recomposition en cours** ».
+
+Et c'est le sens de l'erreur qui pique : la recomposition est la **meilleure** nouvelle des deux.
+L'app ne se contentait pas de se tromper, elle **sous-créditait un vrai progrès en le nommant
+mal**. L'écran dit maintenant « Sur les 3 derniers mois : −1,5 cm de tour de taille et 0 kg sur la
+balance », puis le verdict.
+
+### Ce que cette itération a appris
+
+**Deux chiffres côte à côte affirment qu'ils sont comparables.** C'est la cinquième fois en sept
+itérations qu'un défaut se réduit à une fenêtre non dite : la cible hebdo (110), le nombre de
+pesées (121), le budget de temps (123), et ici. *Mettre deux nombres dans la même phrase est une
+affirmation sur leur commensurabilité — il faut la vérifier comme n'importe quelle autre.*
+
+**ZÉRO N'EST PAS ABSENT, et le piège était tendu.** Sans pesée dans la fenêtre commune, la
+différence vaut 0 et se lit « poids stable » : l'app aurait annoncé une recomposition sur une
+balance muette. Il faut deux points de chaque côté, sinon `null`.
+
+**Une ligne de feuille de route peut être satisfaite ET cacher un défaut.** B3 disait « mensurations
+lues » — elles l'étaient. Le défaut n'était pas dans ce que la ligne demandait, mais dans le code
+voisin que la lecture a fait passer sous les yeux. *Aller vérifier une ligne vaut souvent moins
+pour la ligne que pour ce qu'on croise en chemin.*
+
+**B2 est livrée sans que je la touche.** `memoireForceParCadence` rend déjà l'exemple exact de la
+feuille de route : « Ta force progresse le plus à 3,5 séances/semaine : +17,5 kg de 1RM estimé en
+moyenne par exercice suivi, contre +9 kg à 2,5. **Squat y a pris le plus (+22,5 kg).** Observation
+sur 3 blocs à toi, pas une règle. » Le détail par exercice × cadence existe dans le retour
+(`parCadence`) mais n'est pas voisé au-delà de l'exercice de tête — et c'est bien ainsi : avec
+**2 mesures par cadence**, nommer « +12 kg au développé couché à 3,5/sem » serait exactement
+l'over-claim que la 121 a appris à taire.
+
+**Sondes.** Deux artefacts évités en vérifiant les signatures : `recompositionInsight` prend des
+DELTAS et non des tableaux (je lui passais des tableaux → NaN → null, et j'ai failli crier au
+défaut) ; `memoireForceParCadence` prend `(history, workouts)` avec des exercices en forme
+`{sets: 4, reps: 8, load}`, pas un tableau de séries.
+
+**Mutations.** 5 posées, 5 détectées. 706 tests · SMOKE OK.
