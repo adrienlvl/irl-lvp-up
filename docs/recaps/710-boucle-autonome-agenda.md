@@ -4517,3 +4517,52 @@ emaine ». Même piège que le `\/` de l'itération 108, repayé. Dans ce gabari
 
 **Mutations.** 2 posées, 2 détectées (l'une sur le smoke ET le test node). 698 tests · SMOKE OK.
 Rien publié depuis v2.17.0.
+
+## Itération 111 — B1 : l'analyse du passé quitte l'écran d'action
+
+La roadmap prescrivait d'**ajouter** e1RM, plateau, prévision et poussée/tirage au panneau Analyse.
+La 110 a mesuré que ces voix existaient déjà, **toutes dans le Plan de bataille**. Les ajouter aurait
+créé quatre doublons. On déplace.
+
+| | avant | après |
+|---|---|---|
+| Plan de bataille (Aujourd'hui) | **1 784 px** | **724 px** (−59 %) |
+| Analyse (Progrès) | 701 px | 1 808 px |
+
+Les 1 004 px déplacés — `blockStatus` 434, `tonnageTrend` 252, `trainingByWeekday` 136,
+`trainingConsistency` 98, `trainingWeekBalance` 84, plus l'historique des blocs — étaient placés
+**avant le plan lui-même** : on traversait huit semaines de rétrospective pour arriver à la séance
+du jour. Rien supprimé, rien dupliqué : mêmes ids, donc pas une ligne de rendu à changer, et aucun
+CSS ne ciblait ces blocs par leur parent (vérifié avant de couper).
+
+Restent dans le Plan les trois voix qui **pilotent** la semaine en cours : `avancementSemaine`,
+`limitationsNote`, `runWeekGoal`. Le panneau d'accueil de l'Analyse s'appelle maintenant « Ce que ton
+entraînement raconte » — il ne porte plus seulement la force et l'endurance.
+
+Au passage, un défaut de la famille de l'itération 106 : le bloc d'équilibre annonçait « Équilibre
+**semaine** » en comptant **sept jours glissants**, juste à côté d'un « Ta semaine, face au plan »
+qui compte depuis lundi. Il se nomme désormais « Équilibre · 7 derniers jours ».
+
+### Ce que cette itération a appris
+
+**Un contrat de garde-fou peut devenir périmé sans être faux.** Le check de l'itération 83 mesurait
+« le bloc *face au plan* ouvre le panneau » en le comparant à `block-status`, décrit dans son propre
+commentaire comme « le premier contenu du plan ». Ce repère vient de déménager : le check rendait
+`false` **faute de voisin, pas faute de contrat**. Décidé et écrit sur place plutôt qu'assoupli en
+silence : il exige maintenant d'être le PREMIER bloc rendu du panneau — formulation plus forte, qui
+implique l'ancienne, et qui ne dépend plus d'un voisin susceptible de bouger.
+
+**Un seuil peut absorber une régression.** La mutation « la fenêtre glissante redevient anonyme » a
+**survécu** au premier tour : `fenetreSemaineNommee` ne couvre que les voix de *course*, et mon
+compteur d'« accueillis » passait de 6 à 5 — au-dessus du seuil de 3. Un check à seuil ne garde que
+ce qui fait passer le seuil ; ce qui varie en dessous est invisible. Assertion dédiée ajoutée.
+
+**Déplacer coûte moins cher qu'ajouter, et rend plus.** Neuf blocs, zéro ligne de rendu modifiée,
+1 060 px rendus à l'écran d'atterrissage. *La roadmap voulait de la profondeur ; la profondeur était
+déjà écrite, elle était juste au mauvais endroit.*
+
+**Backticks : 13ᵉ fois.** Deux backticks autour de `.block-status` dans un commentaire ont terminé le
+gabarit — l'erreur remontée était « status is not defined ». L'audit les a attrapés avant le commit.
+
+**Mutations.** 4 posées, 4 détectées. La troisième reproduit l'état d'avant : plan 2 062 px, analyse
+595 px, 5 fautifs. 698 tests · SMOKE OK. Rien publié depuis v2.17.0.
