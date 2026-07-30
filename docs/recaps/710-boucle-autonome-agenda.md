@@ -4681,3 +4681,54 @@ qui restent connus et non gardés : les quatre blocs d'historique ne contiennent
 `#objectiveResult` est exempté — à raison, il porte le plan et contient déjà le mot « semaines ».
 
 **Mutations.** 4 posées, 4 détectées. 700 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 114 — A5 commence par un bug : sauvegarder ses objectifs effaçait les réglages du Plan
+
+Sondé avant de juger, comme le protocole l'exige. Mesuré en cliquant « Sauvegarder » dans
+« Objectifs hebdomadaires » (sous-onglet *Programme*) :
+
+| `state.goals` | avant | après |
+|---|---|---|
+| `sessions` | 4 | 9 |
+| `distance` | 20 | 20 |
+| `targetWeight` | 73 | 73 |
+| `runs` | **2** | **disparu** |
+| `weeklyKm` | **25** | **disparu** |
+| `progSessions` | `''` | **disparu** |
+
+Le nombre de courses par semaine et le volume hebdo de course — celui qui sert à prescrire les
+**kilomètres** des séances — partaient en silence : le gestionnaire **reconstruisait** `state.goals`
+au lieu de le fusionner. Le report à la main de `targetWeight` dans ce même code montre que le
+problème avait déjà été rencontré, et rustiné sur un seul champ.
+
+### Ce que cette itération a appris
+
+**Une rustine sur un champ signale un défaut sur tous les autres.** `targetWeight: state.goals.targetWeight`
+était la trace visible du bug ; personne n'avait généralisé. *Quand on voit un champ recopié à la
+main pour « ne pas le perdre », c'est que la structure entière est reconstruite.*
+
+**Un formulaire n'écrit pas forcément au `change`.** Ma première sonde dispatchait `change` et
+`input`, ne voyait rien bouger, et concluait « réglage mort ». Le panneau a un bouton
+« Sauvegarder ». *Quatrième artefact de sonde de la session, évité en lisant le markup avant de
+conclure.*
+
+**Je n'ai pas su prouver le second défaut, et je l'ai écrit.** Le désaccord mesuré (« 3 / 6 » sur
+Progrès contre « 3/5 » sur Corps et Aujourd'hui) venait de l'**effacement** — le plan recalculait
+sans le nombre de courses — et non du `renderAthlete()` partiel. Une fois la fusion en place, aucun
+champ de ce formulaire ne fait bouger la cible : la mutation `renderAthlete()` **survit**, y compris
+avec la branche sans objectif où la cible devrait pourtant suivre le réglage (mesuré : 5 → 5). J'ai
+gardé la correction — sauvegarder un objectif doit repeindre tout ce qui en dépend — mais le check
+dit noir sur blanc qu'il ne la garde pas. *Un garde-fou qui ne peut pas prouver une promesse ne doit
+pas la faire.*
+
+### Ce que la mesure dit pour la suite d'A5
+
+**« Séances / semaine » ne pilote plus rien tant qu'un objectif est choisi.** Mesuré : passer de 4 à
+9 laisse la cible à 5, parce que la forme de l'objectif l'emporte sur le réglage brut (comportement
+établi à l'itération 85, et c'est pour ça que la cible se lit dans le plan depuis la 107). Le panneau
+propose donc de régler une chose que l'app ne suit pas — deux dials pour le même sujet, dont un
+inerte : `#sessionsGoal` (panneau *Objectifs hebdomadaires*) et `#progSessions` (Plan de bataille).
+C'est exactement ce qu'A5 demande de réunir, et c'est le sujet de la prochaine itération.
+
+**Mutations.** 3 posées, 2 détectées, 1 non gardée et documentée. 700 tests · SMOKE OK. Rien publié
+depuis v2.17.0.
