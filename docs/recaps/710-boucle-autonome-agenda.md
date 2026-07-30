@@ -4732,3 +4732,53 @@ C'est exactement ce qu'A5 demande de réunir, et c'est le sujet de la prochaine 
 
 **Mutations.** 3 posées, 2 détectées, 1 non gardée et documentée. 700 tests · SMOKE OK. Rien publié
 depuis v2.17.0.
+
+## Itération 115 — A5 : un seul réglage pour le nombre de séances, et il pilote vraiment
+
+Suite de la 114, qui avait mesuré que le champ « Séances / semaine » n'avait aucun effet. Mesure
+complète des deux dials :
+
+| geste | `goals.sessions` | `goals.progSessions` | cible | plan |
+|---|---|---|---|---|
+| départ | 4 | `''` | 5 | 3 muscu + 2 courses |
+| « Objectifs hebdo » → **8** + Sauvegarder | 8 | `''` | **5** | **inchangé** |
+| Plan → **6** | 4 | 6 | **6** | 4 muscu + 2 courses |
+
+Un champ, un bouton « Sauvegarder », une étiquette « Séances / semaine » — et **zéro effet**.
+
+**On ne déplace rien** (la revue 112 a appris ce que coûte un déménagement) : on fait **converger**.
+« Sauvegarder » écrit les deux clés — `progSessions` pilote le plan, `sessions` reste le repli quand
+aucun plan n'est générable. Mesuré après : régler 8 donne cible 8 et 6 muscu + 2 courses.
+
+Et les deux champs s'affichent l'un l'autre. Celui du Plan n'était peuplé que par
+`runObjectiveProgram()`, qui ne tourne qu'à la génération : régler depuis « Objectifs » mettait la
+cible à 8 pendant que « Séances/sem. » restait **vide**. La synchronisation vit maintenant dans
+`renderAthlete`, à côté de son jumeau, avec la même garde (ne pas toucher un champ en cours de
+saisie).
+
+### Ce que cette itération a appris
+
+**Un réglage qui écrit dans l'état n'est pas un réglage qui pilote.** Le champ écrivait bien
+`goals.sessions` — la valeur partait en base, le bouton répondait, rien ne trahissait la panne. Ce
+qui l'a révélée, c'est d'avoir mesuré la CONSÉQUENCE (la cible, la composition du plan) et pas
+l'écriture. *Un test qui vérifie « le champ écrit » aurait été vert sur le code cassé.*
+
+**Deux sens de synchronisation demandent deux jeux d'essai.** La mutation « afficher l'ancienne clé »
+survivait, parce qu'après un clic sur Sauvegarder les deux clés valent la même chose : il fallait le
+sens inverse, régler depuis le Plan, où seul `progSessions` bouge. *Septième fois que la couverture
+tient à un scénario manquant.*
+
+**Contrat élargi sciemment.** Le check de la 114 exigeait qu'aucune clé étrangère aux deux champs du
+formulaire ne bouge ; le formulaire en règle maintenant trois. Écrit dans le check avec sa raison,
+plutôt qu'assoupli en silence — ce qu'il ne règle pas (`runs`, `weeklyKm`, `targetWeight`) reste
+intouchable, et c'est ce que ce test garde.
+
+**Backticks : 7ᵉ fois payée.** Un `node -e` avec des backticks dans un commentaire, et bash a mangé
+deux mots (« progSessions: command not found »). Réparé avec un `.cjs`, comme le protocole le dit
+depuis sept itérations.
+
+**Mutations.** 3 posées, 3 détectées ; la première reproduit le défaut mot pour mot (cible 5→5, plan
+3m+2c→3m+2c). 700 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+**Reste d'A5 et A4, non fait :** le poids se saisit toujours à DEUX endroits (`#weightInput` sur
+Athlète/Corps, `#coachWeightToday` sur la page Poids) — c'est A4, et c'est la prochaine étape.
