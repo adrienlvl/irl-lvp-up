@@ -323,3 +323,52 @@ test('chaque bloc du panneau d’analyse est réellement peint : sa fonction de 
   }
   assert.deepEqual(muets, [], 'blocs du panneau d’analyse que rien ne peint : ' + muets.join(', '));
 });
+
+test('les deux champs du nombre de séances valident pareil', () => {
+  /* REVUE 116. Depuis l'itération 115, `#sessionsGoal` (panneau « Objectifs hebdomadaires ») et
+     `#progSessions` (Plan de bataille) pilotent le MÊME réglage — c'est écrit sous le premier.
+     Deux asymétries mesurées :
+       — les plafonds différaient (14 contre 10) et `normalizeState` clampe progSessions à 1..10 :
+         saisir 12 était accepté, pilotait un plan à 8 séances, puis progSessions REDEVENAIT 10 au
+         redémarrage pendant que sessions restait 12 — la valeur changeait toute seule ;
+       — le champ du Plan refuse de s'écraser pendant une saisie (`document.activeElement`), pas
+         l'autre, alors qu'il ne se valide qu'au bouton : une saisie effacée par un rendu aurait été
+         remplacée par l'ancienne valeur au clic suivant.
+     Le plafond attendu se DÉRIVE du markup : changer l'un sans l'autre fait tomber ce test. */
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(dir, 'app.js'), 'utf8');
+
+  const attribut = (id, nom) => {
+    const balise = new RegExp('<input[^>]*id="' + id + '"[^>]*>').exec(html);
+    assert.ok(balise, 'champ #' + id + ' absent du markup');
+    const m = new RegExp(nom + '="([^"]*)"').exec(balise[0]);
+    return m ? m[1] : null;
+  };
+
+  const maxObjectifs = attribut('sessionsGoal', 'max');
+  const maxPlan = attribut('progSessions', 'max');
+  assert.equal(maxObjectifs, maxPlan,
+    'deux champs pour un seul réglage doivent avoir le même plafond (' + maxObjectifs + ' vs ' + maxPlan + ')');
+  assert.equal(attribut('sessionsGoal', 'min'), attribut('progSessions', 'min'),
+    'même plancher des deux côtés');
+  assert.equal(attribut('sessionsGoal', 'placeholder'), 'auto',
+    'le champ doit annoncer que le vide vaut « auto », comme son jumeau');
+
+  // Le code clampe au plafond du markup — dérivé, donc solidaire.
+  assert.ok(app.indexOf('Math.min(' + maxPlan + ',Number(_brut)||4)') !== -1,
+    'le gestionnaire « Sauvegarder » doit clamper au plafond du markup (' + maxPlan + ')');
+
+  /* Et la garde de saisie existe des DEUX côtés : sans elle, un rendu efface ce que l'utilisateur
+     est en train de taper. On vérifie que l'écriture de chaque champ est précédée du test
+     d'activeElement sur la même ligne. */
+  const ligneQuiEcrit = id => {
+    const i = app.indexOf("$('#" + id + "')");
+    assert.ok(i > 0, 'aucune écriture de #' + id + ' trouvée');
+    const debut = app.lastIndexOf('\n', i), fin = app.indexOf('\n', i);
+    return app.slice(debut === -1 ? 0 : debut, fin === -1 ? app.length : fin);
+  };
+  for (const id of ['sessionsGoal', 'progSessions']) {
+    assert.ok(/activeElement/.test(ligneQuiEcrit(id)),
+      'le rendu de #' + id + ' doit respecter une saisie en cours (document.activeElement)');
+  }
+});
