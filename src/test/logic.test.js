@@ -17992,4 +17992,19 @@ test('weightTrend : la fenêtre de calcul est exposée, et c’est la vraie', ()
   // Et la fenêtre reste cohérente avec le rythme annoncé : deux mesures suffisent, pas moins.
   assert.equal(L.weightTrend(neuf.slice(-2), 73).mesures, 2);
   assert.equal(L.weightTrend(neuf.slice(-1), 73), null, 'une seule pesée ne fait pas une tendance');
+
+  /* ET LA DURÉE, qui est la dimension qui INFORME (itération 121). « 6 pesées » ne distingue pas
+     41 jours de 5, alors que le rythme passe de −0,30 à −0,84 kg/sem sur le même profil, et que
+     l'échéance passe de 17 à 8 semaines. Le cas qui DISCRIMINE : deux fenêtres de MÊME compte et
+     de durées différentes — un test sur le seul compte les confondrait. */
+  const hebdo = [{ date: '2026-06-01', value: 81 }, { date: '2026-06-08', value: 80.6 },
+    { date: '2026-06-15', value: 80.2 }, { date: '2026-06-22', value: 79.8 }];
+  const serre = [{ date: '2026-06-19', value: 81 }, { date: '2026-06-20', value: 80.6 },
+    { date: '2026-06-21', value: 80.2 }, { date: '2026-06-22', value: 79.8 }];
+  const tHebdo = L.weightTrend(hebdo, 73), tSerre = L.weightTrend(serre, 73);
+  assert.equal(tHebdo.mesures, tSerre.mesures, 'témoin : MÊME nombre de pesées des deux côtés');
+  assert.equal(tHebdo.jours, 21, 'trois semaines entre la première et la dernière');
+  assert.equal(tSerre.jours, 3, 'trois jours — même compte, autre fenêtre');
+  assert.notEqual(tHebdo.ratePerWeek, tSerre.ratePerWeek,
+    'et le rythme diffère : la durée porte le sens, pas le compte');
 });

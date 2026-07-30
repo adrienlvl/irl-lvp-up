@@ -13075,7 +13075,13 @@ function weightTrend(weights, target) {
       onTrack = true;
     } else onTrack = false;
   }
-  return { ratePerWeek, direction, toTarget, weeksToTarget, onTrack, current: b.value, mesures: recent.length };
+  /* On expose la DUREE en plus du compte : c est elle qui donne son sens au rythme. Mesure :
+     six pesees peuvent couvrir 41 jours (-0,30 kg/sem) ou 5 jours (-0,84) — meme compte, meme
+     libelle avant l iteration 121, et une echeance qui passe de 17 a 8 semaines. `mesures` reste
+     expose pour qui veut le nombre de points, mais il ne doit plus servir a NOMMER la fenetre :
+     ce calcul est une pente a DEUX points, les mesures du milieu ne pesent rien. */
+  return { ratePerWeek, direction, toTarget, weeksToTarget, onTrack, current: b.value,
+    mesures: recent.length, jours: Math.round(days) };
 }
 
 // Recommandation de PAUSE DIÈTE (diet break) sur un déficit calorique PROLONGÉ — le pendant nutrition du

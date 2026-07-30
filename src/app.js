@@ -636,7 +636,17 @@ function renderWeight() {
    quoi : a cote, le panneau d analyse compare la PREMIERE pesee a la derniere et annonce
    « -2,8 kg en 8 semaines ». Deux chiffres proches, deux questions differentes, une seule
    fenetre nommee (iteration 118, meme remede que la 106). */
-let msg=`${arrow} Sur tes ${tr.mesures} dernières pesées : ${rateTxt}`;if(tr.toTarget!=null){if(Math.abs(tr.toTarget)<0.1)msg+=` · 🎯 cible atteinte !`;else if(tr.onTrack&&tr.weeksToTarget)msg+=` · reste ${tr.toTarget>0?'+':''}${tr.toTarget} kg → ~${tr.weeksToTarget} sem. À CE rythme`;else msg+=` · reste ${tr.toTarget>0?'+':''}${tr.toTarget} kg (rythme actuel n’y va pas encore)`;}te.textContent=msg;te.classList.toggle('off-track',tr.onTrack===false);te.hidden=false;}}
+/* LA DUREE, PAS LE COMPTE. « 6 pesees » ne distingue pas 41 jours de 5, alors que le
+   rythme, lui, passe de -0,30 a -0,84 kg/sem. Et le compte laisse croire a une moyenne sur N
+   mesures : ce calcul est une pente entre la premiere et la derniere de la fenetre. */
+const _j=Number(tr.jours)||0;
+let msg=`${arrow} Sur ${_j} jour${_j>1?'s':''} : ${rateTxt}`;if(tr.toTarget!=null){if(Math.abs(tr.toTarget)<0.1)msg+=` · 🎯 cible atteinte !`;/* PAS D ECHEANCE SUR UNE FENETRE TROP COURTE. Mesure : deux pesees a 24 h d intervalle
+   donnent -3,5 kg/sem, et l app promettait « → ~2 sem. » pendant que la page Poids disait 11.
+   On extrapole un rythme HEBDOMADAIRE : sous deux semaines de recul, le meme profil sort -0,84
+   sur 5 jours contre -0,30 sur 41. On affiche donc le rythme — il est vrai — mais on ne projette
+   pas une date dessus, et on dit pourquoi. */
+else if(_j<14)msg+=` · reste ${tr.toTarget>0?'+':''}${tr.toTarget} kg — trop peu de recul pour projeter une échéance`;
+else if(tr.onTrack&&tr.weeksToTarget)msg+=` · reste ${tr.toTarget>0?'+':''}${tr.toTarget} kg → ~${tr.weeksToTarget} sem. À CE rythme`;else msg+=` · reste ${tr.toTarget>0?'+':''}${tr.toTarget} kg (rythme actuel n’y va pas encore)`;}te.textContent=msg;te.classList.toggle('off-track',tr.onTrack===false);te.hidden=false;}}
   const recent = weights.slice(-14); if (recent.length < 2) { $('#weightChart').innerHTML = '<div class="empty-state">Ajoute au moins deux mesures pour voir ta courbe.</div>'; return; }
   const vals = recent.map(w=>w.value), min = Math.min(...vals) - .3, max = Math.max(...vals) + .3, range = max-min || 1;
   const points = vals.map((v,i) => `${i/(vals.length-1)*100},${100-(v-min)/range*88-6}`).join(' '); const area = `0,100 ${points} 100,100`;

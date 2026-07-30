@@ -4227,28 +4227,49 @@ app.whenReady().then(async () => {
           const tPanneauPoids = lire("weightTrend");
           showAthleteTab("progres");
           const tAnalyse = lire("performanceAnalysis");
-          const nMesures = (typeof weightTrend === "function")
-            ? (weightTrend(state.weights, Number(state.goals.targetWeight)) || {}).mesures : null;
-          const fenetrePesees = nMesures !== null
-            && tPanneauPoids.indexOf("dernières pesées") !== -1
-            && tPanneauPoids.indexOf(String(nMesures)) !== -1;
+          /* LA DUREE, ET SOUS SA FORME EXACTE. L assertion precedente cherchait le nombre de
+             pesees N IMPORTE OU dans le libelle : sur ce jeu d essai, « 6 » etait deja fourni par
+             « -0.36 », donc elle passait meme quand le libelle annoncait un autre compte. Ici on
+             exige le motif entier « Sur N jour », avec le N que la fonction expose. */
+          const _tr = (typeof weightTrend === "function")
+            ? weightTrend(state.weights, Number(state.goals.targetWeight)) : null;
+          const nJours = _tr ? _tr.jours : null;
+          const motifDuree = nJours === null ? null
+            : ("Sur " + nJours + " jour");
+          const fenetrePesees = motifDuree !== null
+            && tPanneauPoids.indexOf(motifDuree) !== -1
+            && tPanneauPoids.indexOf("dernières pesées") === -1;
           // La voix de l analyse, elle, nomme sa periode en semaines.
           const fenetreAnalyse = tAnalyse.indexOf("tendance de poids") === -1
             || /en [0-9]+ semaine/.test(tAnalyse);
           // TEMOIN : les deux fenetres doivent VRAIMENT differer, sinon rien a distinguer.
-          const fenetresDifferentes = nMesures !== null && state.weights.length > nMesures;
+          /* TEMOIN : la fenetre du panneau Poids (en JOURS) et celle de l analyse (tout
+             l historique) doivent VRAIMENT differer, sinon il n y a rien a distinguer. */
+          const fenetresDifferentes = nJours !== null && nJours > 0
+            && state.weights.length > (_tr ? _tr.mesures : 0);
 
           /* SECONDE PASSE — HISTORIQUE COURT. Avec neuf pesees la fenetre vaut six, donc un
              libelle qui annoncerait « six » EN DUR passerait : le scenario ne discrimine pas.
              On reduit a TROIS pesees et on exige que le compte affiche suive. Deux branches d un
              meme si demandent deux jeux d essai — huitieme fois. */
-          state.weights = w.slice(-3);
+          /* SECONDE PASSE — FENETRE COURTE. Deux pesees a 24 h d intervalle donnaient
+             « -3,5 kg/sem → ~2 sem. À CE rythme » : un rythme vrai, une echeance absurde. On
+             extrapole en kg/SEMAINE, et le meme profil sort -0,84 sur 5 jours contre -0,30 sur
+             41. Sous deux semaines de recul, l app affiche le rythme et se tait sur la date. */
+          state.weights = [
+            { date: ilYA(1), value: 80.5 },
+            { date: ilYA(0), value: 80.0 }
+          ];
           render(); showPage("athlete"); showAthleteTab("corps");
-          const nCourt = (typeof weightTrend === "function")
-            ? (weightTrend(state.weights, Number(state.goals.targetWeight)) || {}).mesures : null;
+          const _trCourt = (typeof weightTrend === "function")
+            ? weightTrend(state.weights, Number(state.goals.targetWeight)) : null;
           const tCourt = lire("weightTrend");
-          const fenetreCourteVraie = nCourt === 3 && tCourt.indexOf("tes 3 derni") !== -1
-            && tCourt.indexOf("tes 6 derni") === -1;
+          // TEMOIN : la fenetre est bien courte, et le rythme bien absurde — sinon rien a garder.
+          const courtSeme = !!_trCourt && _trCourt.jours < 14 && Math.abs(_trCourt.ratePerWeek) > 1;
+          const fenetreCourteVraie = courtSeme
+            && tCourt.indexOf("Sur " + _trCourt.jours + " jour") !== -1
+            && tCourt.indexOf("trop peu de recul") !== -1
+            && tCourt.indexOf("À CE rythme") === -1;
 
           checks.__deuxRythmes = "semaines=" + semAthlete + "/" + semPoids
             + " desaccordSeme=" + desaccordSeme
@@ -4256,11 +4277,12 @@ app.whenReady().then(async () => {
             + " pasDeConfusion=" + pasDeConfusion
             + " ath[" + tAthlete.slice(0, 52) + "]"
             + " poids[" + tPoids.slice(0, 56) + "]"
-            + " | fenetres mesures=" + nMesures + "/" + state.weights.length
+            + " | fenetre jours=" + nJours + " mesures=" + (_tr ? _tr.mesures : null) + "/" + state.weights.length
             + " pesees=" + fenetrePesees + " analyse=" + fenetreAnalyse
             + " differentes=" + fenetresDifferentes
             + " tendance[" + tPanneauPoids.slice(0, 40) + "]"
-            + " | court n=" + nCourt + " vrai=" + fenetreCourteVraie + " [" + tCourt.slice(0, 30) + "]";
+            + " | court j=" + (_trCourt ? _trCourt.jours : null) + "/" + (_trCourt ? _trCourt.ratePerWeek : null)
+            + " seme=" + courtSeme + " vrai=" + fenetreCourteVraie + " [" + tCourt.slice(0, 46) + "]";
           _rendre();
           return desaccordSeme && athleteNomme && poidsNomme && pasDeConfusion
             && fenetresDifferentes && fenetrePesees && fenetreAnalyse && fenetreCourteVraie;
@@ -8171,7 +8193,7 @@ app.whenReady().then(async () => {
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
-    if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE : le panneau Poids compte sur les N dernières pesées (N réel, pas six en dur), le panneau d’analyse compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
+    if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE, en DURÉE : le panneau Poids dit « Sur N jours » — mesuré à l’itération 121, « 6 pesées » ne distinguait pas 41 jours de 5, alors que le même profil sort −0,30 ou −0,84 kg/sem selon la durée — et il ne projette PAS d’échéance sous deux semaines de recul (deux pesées à 24 h donnaient « −3,5 kg/sem → ~2 sem. »). Le panneau d’analyse, lui, compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
     if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');
     if (!checks.objectifsSauvesSansDegat) errors.push('Sauvegarder ses objectifs hebdo casse quelque chose. Mesuré à l’itération 114 : le gestionnaire de « Sauvegarder » RECONSTRUISAIT `state.goals` au lieu de le fusionner, donc { sessions, distance, targetWeight, runs, progSessions, weeklyKm } devenait { sessions, distance, targetWeight } — le nombre de courses par semaine et le volume hebdo de course (qui sert à prescrire les kilomètres) disparaissaient en silence. Et il n’appelait que `renderAthlete()`, donc le sous-onglet Progrès affichait « 3 / 6 séances » pendant que Corps et Aujourd’hui restaient à « 3/5 » — deux cibles pour la même semaine. Attendu : aucune clé de `state.goals` perdue ni modifiée hors des deux champs du formulaire, et les trois voix hebdo d’accord après le clic. (Le rendu complet, lui, n’est pas gardé : une fois la fusion en place, aucun champ de ce formulaire ne fait bouger la cible, donc un rendu partiel n’a plus de conséquence observable — c’est écrit dans le commentaire du check plutôt que promis ici. Voir __objectifsSauves)');
     if (!checks.boutonNouveauBlocMene) errors.push('Le bouton « 🔄 Générer un nouveau bloc » ne mène nulle part. Il vit dans #blockStatus, qui est passé du sous-onglet « Aujourd’hui » à « Progrès » à l’itération 111. Sans objectif choisi, son gestionnaire faisait `showPage("athlete")` et s’arrêtait là — un geste qui supposait la PROXIMITÉ du sélecteur d’objectif, vraie tant que le bouton vivait dans le même panneau que lui. Mesuré après le déménagement : le bouton se voit sur « Progrès », showPage rappelle le sous-onglet courant (donc « Progrès »), et le clic ne produit RIEN. Attendu : le clic emmène devant le sélecteur d’objectif, qui n’était pas visible avant (voir __boutonBloc)');
