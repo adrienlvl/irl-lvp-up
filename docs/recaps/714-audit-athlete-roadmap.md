@@ -136,10 +136,15 @@ perdre un contenu.** Chaque étape se sonde avant/après.
 
 Le cœur de la thèse. Une avancée depuis la 713 : la sonde du 30/07 a montré que les briques de
 capacité (`dayLoad`, `capacityFromHours`) donnent déjà, jour par jour, « cap / pris / libre » —
-mesuré 4,5 h libres sur une semaine de démonstration. **Rien n'agrège encore à la semaine.**
+mesuré 4,5 h libres sur une semaine de démonstration. ~~**Rien n'agrège encore à la semaine.**~~
+**`budgetSemaine` agrège depuis la 122**, et confronte le total au plan de bataille.
 
-- C1. **L'arbitrage sous budget de temps** — « 5 h dispo, examen jeudi, déficit en cours → on
-  garde les deux forces, on sacrifie la sortie longue. » (chantier 5)
+- C1. ~~**L'arbitrage sous budget de temps**~~ — **FAIT (122)**. `budgetSemaine` agrège le budget
+  jour par jour (`max(0, libre)` : un lundi qui déborde ne prête rien au dimanche) et le confronte
+  au plan. Elle distingue ce qu'elle **démontre** — la somme qui dépasse, la séance plus longue que
+  le plus grand jour libre — de ce qu'elle **constate** : un rangement raté se dit « en les rangeant
+  au mieux », jamais « impossible ». Mesuré : capacité réglée à 1 h en semaine / 2 h le week-end,
+  plan à 4 h contre 3 h libres, aucun écran ne le disait. Le bloc se tait quand rien ne mord.
 - C2. **Le conflit nommé** — deux objectifs qui se contredisent, dit chiffres à l'appui. (8)
 - C3. **Le coût annoncé étendu** — objectif physique, jours, zones. (7)
 - C4. **La replanification à l'échelle de la SEMAINE** — le rattrapage sport (76) et études (93)
@@ -168,7 +173,7 @@ distribution (décision d'Adrien) · les **refus** de la 713 §12 restent tous e
 | 4 | **B1** Progrès étoffé | le mandat (A) au meilleur endroit : les briques dorment déjà |
 | 5 | **A4+A5** poids et objectifs à leur place | petites surfaces, grande clarté |
 | 6 | **B4** hiérarchie de l'onglet | après les fusions — inutile de hiérarchiser des doublons |
-| 7 | **C1** arbitrage sous budget | le saut qualitatif, une fois l'onglet assaini |
+| 7 | ~~**C1** arbitrage sous budget~~ | **fait (122)** — le plan se confronte au temps qui reste |
 | 8 | **B2, B3** mémoire par exercice, mensurations | demandent des données réelles accumulées |
 
 **La méthode ne change pas** : sonder avant, mesurer après, mutation avec témoin, revue

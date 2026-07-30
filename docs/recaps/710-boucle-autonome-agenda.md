@@ -5073,3 +5073,67 @@ fichier de tests. Restauré par `git checkout`, réécrit avec un `.cjs`.
 
 **Mutations.** 4 posées, 4 détectées — dont celle qui survivait au check de la 118. 703 tests ·
 SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 122 — le plan ne demandait jamais s'il restait du temps pour lui
+
+C1 était la seule ligne de la feuille de route dont je doutais qu'elle décrive un vrai défaut :
+sur la capacité par défaut, une semaine d'alternant laisse 20 h libres pour un plan qui en
+réclame 4. J'ai failli la refuser. Puis j'ai vérifié que `state.dayCapacity` est un réglage
+**réellement atteignable** (`ouvrirCapacite()`, `capacityFromHours`) — et à 1 h en semaine, 2 h le
+week-end, le Plan de bataille réclamait 4 h quand la semaine n'en avait que 3 de libres. Aucun
+écran ne le disait : `dayLoad` mesurait un JOUR, `lightenSuggestions` allégeait un JOUR.
+
+### Ce que la sonde a pris en flagrant délit — dans MON code, pas dans l'app
+
+Ma première version de `budgetSemaine` se contentait de deux preuves : la somme qui dépasse, et
+la séance plus longue que le plus grand jour libre. Le rendu affichait alors, en toutes lettres :
+
+> Ton plan demande 4 h · ta semaine a 4 h de libres. Il ne te reste que **0 min** de marge.
+
+Or 45+35+45+70+45 = 240 min dans deux journées de 120 min ne se rangent pas : 70+45 = 115, puis
+45+45+35 = 125 > 120. **Le total qui tient ne dit rien du rangement.** L'app annonçait une marge
+nulle là où le plan était infaisable — l'écart dire/faire, dans le code même que j'écrivais pour
+le traquer. Je ne l'ai vu que parce que j'ai regardé le panneau peint au lieu de relire ma
+fonction.
+
+### Ce que la fonction affirme, elle le prouve
+
+| constat | nature | ce que l'écran dit |
+|---|---|---|
+| la somme dépasse le libre | preuve, quel que soit l'ordre | « il manque 1 h » |
+| une séance > le plus grand jour libre | preuve, on ne coupe pas une séance | « ne tient dans aucune journée » |
+| le rangement échoue sans preuve | constat de méthode | « **en les rangeant au mieux**, X ne trouve pas de place » |
+
+Le rangement va de la plus longue à la plus courte. S'il aboutit, c'est une preuve *constructive*
+que ça rentre. S'il échoue, un autre rangement existe peut-être : l'app nomme sa méthode au lieu
+de décréter l'impossible.
+
+Le temps libre se somme jour par jour, en `max(0, libre)` : un lundi qui déborde ne prête pas ses
+minutes au dimanche, alors que « capacité totale − pris total » inventerait du temps.
+
+### Ce que cette itération a appris
+
+**Le doute sur une ligne de feuille de route se tranche par une mesure, pas par un pari.** Cinq
+lignes ont été refusées depuis la 106, et j'allais refuser celle-ci sur le seul cas par défaut.
+La question juste n'était pas « est-ce que ça mord ? » mais « **l'utilisateur peut-il atteindre
+l'état où ça mord ?** ». Un `grep` de trente secondes sur `dayCapacity` a répondu oui.
+
+**Une mutation qui survit à un harnais peut être visée sur le mauvais.** `prouve = true` a
+survécu au smoke : le rendu ne lisait jamais ce champ, il *redérivait* la distinction par l'ordre
+de ses branches. Redondance, donc — la troisième des trois causes. Le remède n'était pas de
+durcir le check mais de faire porter la décision par `prouve` : *deux endroits qui décident la
+même chose finissent toujours par diverger.* 5 mutations, 5 détectées après correction.
+
+**Le champ des minutes d'un bloc d'agenda est `durationMin`, pas `duration`.** Mes jeux d'essai
+annonçaient 240 min ; `normalizeAgendaItem` retombait sur 60 par défaut. Toutes mes semaines
+« chargées » étaient quatre fois plus vides que je ne le croyais — ce qui **sous-estimait** le
+défaut, sans quoi j'aurais publié des chiffres faux comme à la 111.
+
+**Backticks et `node -e` : 9ᵉ fois.** Deux mots d'un commentaire mangés comme substitutions de
+commande. Réparé par un `.cjs`. La règle est écrite depuis huit itérations et je la paie encore.
+
+**Garde-fous.** Le test node est bâti sur le couple qui discrimine : même temps libre (240 min),
+même demande (180 min), aucune séance trop longue — et pourtant [100, 100, 40] ne range pas ce
+que [120, 120] range. Un test sur les totaux les aurait confondus. Le check bloquant fait deux
+passes : capacité contrainte → bloc peint citant les durées calculées ; capacité par défaut, même
+agenda → bloc muet. 704 tests · SMOKE OK. Rien publié depuis v2.17.0.
