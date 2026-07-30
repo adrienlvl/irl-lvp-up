@@ -4313,3 +4313,81 @@ l'état exact d'avant la 107 et ressort le défaut mot pour mot : `3 / 3 · 100 
 - Réfutés par la revue, mesures à l'appui : la borne haute de `thisWeekWorkouts` (arithmétique
   calendaire, changement d'heure inclus), les dates invalides, les valeurs absurdes de `cibleSeances`,
   le coût du recalcul (0,4 ms × 7 par rendu).
+
+## Itération 108 — A3 : une seule règle pour compter une séance
+
+La 107 avait unifié la **cible**. Le **numérateur**, lui, se comptait encore de deux façons.
+Mesuré dans le renderer, un seul état (1 muscu + 3 sorties vélo), un seul rendu :
+
+| voix | ce qu'elle affichait |
+|---|---|
+| Progrès · `goal-panel` | **1 / 6 séances** · 17 % + « il reste 5 séances » |
+| Corps · `weeklyInsights` | **4/6 séances** — « 2 séances à caser : tu es dans les temps » |
+| Corps · `weeklyReviewSummary` | **4 séances réalisées** |
+| Corps · `weeklyReviewNext` | « Bloque **2** créneaux » |
+
+**Facteur 4 sur le numérateur, et deux conseils opposés** : l'un dit qu'il reste cinq séances,
+l'autre que tu es dans les temps. Une seule cause partout : `workouts.length` compte TOUTE activité
+(vélo, marche, mobilité) et se comparait à une cible qui ne compte que muscu et courses.
+
+La règle vit désormais dans **`seancesDeLaSemaine(workouts, todayKey)`** — celle de
+`weekTrainingBalance`, à la lettre, sur la semaine **calendaire** — et nulle part ailleurs.
+`avancementSemaine` la délègue au lieu de la recopier. `weeklyInsights` et `weeklyAdherence`
+acceptent le compte de l'app en option, comme la cible depuis la 104. Le badge « Séances (N/M) » du
+coach poids lisait une **troisième** source (`wk.sessions.length`) : il s'y branche aussi.
+
+Les activités hors plan ne sont pas perdues — elles vivent dans le grand chiffre, qui dit
+« séances, **toute activité** ». Ce libellé était **inerte** dans le repli sans plan : il comparait
+deux fois le même appel, donc le qualificatif ne pouvait jamais s'afficher, précisément quand le
+chiffre comptait du vélo. Il lit maintenant `faitBrut`, le compte non plafonné.
+
+### Ce que cette itération a appris
+
+**Le message d'un garde-fou est une affirmation, et il faut la vérifier comme le reste.**
+`uneSeuleCibleHebdo` écrivait dans son erreur « Et le NUMÉRATEUR compte autant » — et ne relevait
+que la partie droite du slash. La promesse était dans le texte depuis quatre itérations ; le code ne
+l'a jamais tenue. *Relire ses propres messages d'erreur comme des tests à écrire.*
+
+**Chercher un panneau par sa classe n'est pas le mesurer.** `document.querySelector('.coach-panel')`
+rend le PREMIER élément du document portant la classe — et `.coach-panel` est **dupliqué** dans
+index.html : un `#coachFocusPanel` masqué (hauteur 0) et l'article visible du bilan. Le relevé
+sortait donc sur le test de hauteur, et le panneau visible — celui qui porte `#coachSummary`, une
+voix hebdo — n'était **jamais lu**. On passe désormais le texte du nœud qu'on vient de voir visible :
+le détournement devient impossible plutôt que gardé.
+
+**Deux branches d'un même `si` demandent deux mesures — cinquième fois de suite.** « Objectif de N
+séances atteint » et « N séances réalisées » ne peuvent pas coexister. Un seul jeu d'essai n'en
+couvre qu'une, et la mutation qui touche l'autre survit. Le check balaye maintenant DEUX états
+(semaine complète + deux muscu de trop, puis la même semaine privée de ses courses) et exige que
+chaque passe soit d'accord **avec elle-même** — les mélanger rendrait le test faux.
+
+**Un jeu d'essai qui ne déborde pas ne discrimine pas un plafond.** Sans les deux muscu en trop,
+`fait` et `faitBrut` sont égaux : remettre l'ancien code passait le test. Le semis se dérive
+maintenant du plan lui-même.
+
+**Mutations.** 5 posées, 5 détectées (3 smoke, 2 node). Les deux premières sortent
+`passe2 num=2[3,5]` — deux numérateurs dans le même rendu, le défaut mot pour mot. 697 tests ·
+SMOKE OK. Rien publié depuis v2.16.0.
+
+### DÉFAUT DE MON HARNAIS, trouvé en chemin — à traiter en priorité
+
+**`planActionDabord` est INSTABLE.** Même code, deux passages consécutifs : `ouverts=1` puis
+`ouverts=0` puis `ouverts=1`. Il mesure le DOM laissé par les checks précédents sans re-rendre, donc
+son verdict dépend de l'ordre **et de l'état persisté**. Mesuré : le smoke tourne sur le profil
+Electron de développement et y **lit et écrit le vrai `localStorage`** (`irl-level-up`, 3 384
+caractères) — `availableDays` valait `[0]` (dimanche) pendant le run rouge et `[1,3,5]` au run
+suivant, ce qui change le jour cible du plan, donc le `<details>` ouvert. **Un garde-fou bloquant qui
+tombe au hasard est pire que pas de garde-fou : il apprend à ignorer le rouge.** (L'app installée
+d'Adrien n'est pas touchée : le binaire de dev a son propre dossier de profil.)
+
+### Autres constats notés, non corrigés
+
+- **« Bloque N créneaux » n'est gardé par personne** : la phrase n'a pas de slash et ne contient pas
+  « séance », donc le relevé ne la voit pas. Je l'ai corrigée (elle lit `reste`), sans garde-fou —
+  je le dis plutôt que de laisser croire à une couverture.
+- **`thisWeekWorkouts` inclut les jours À VENIR de la semaine, `seancesDeLaSemaine` s'arrête à
+  aujourd'hui.** Une séance pré-enregistrée demain compte donc pour le grand chiffre et pas pour le
+  plan → le libellé dirait « toute activité » pour une vraie séance. Cohérent mais discutable.
+- Le commentaire « QUATRE séances, pas trois » du jeu d'essai était **périmé depuis la 107** (la
+  cible ne rétrécit plus, donc quatre sur six ne l'atteignent plus) et la voix « Objectif de N »
+  avait disparu du relevé en silence. Réparé par le semis dérivé.
