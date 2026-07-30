@@ -4087,3 +4087,58 @@ voit l'homonyme écraser le jour ouvert.
 étape.** Restent aussi, non corrigés et notés : `.op-week`/`.op-day` posent `display:` sans garde
 `[hidden]` et échappent au lint statique (markup généré, latent), et le focus clavier après un rendu,
 à instruire avec une sonde qui sache poser le focus.
+
+## Itération 104 — A3 : l'app se contredisait d'un sous-onglet à l'autre
+
+Rang 3 de la [roadmap 714](714-audit-athlete-roadmap.md). L'audit annonçait une **redite** (« quatre
+écrans qui disent 0 séance cette semaine »). La sonde a trouvé une **contradiction**. Mesuré sur une
+semaine réelle — 2 muscu + 1 course, 135 min, 8 km :
+
+| voix | sous-onglet | dit | cible |
+|---|---|---|---|
+| `#avancementSemaine` | Aujourd'hui | « **3/3** … c'est jouable » | le **PLAN** |
+| `#todayCoachSignals` | Aujourd'hui | « **3/4** séances » | le **RÉGLAGE** |
+| `.week-panel` | Progrès | « 1 séance pour boucler … » | le RÉGLAGE |
+| `.weekly-review-panel` | Corps | « 3/4 — 1 à caser » | le RÉGLAGE |
+| `#coachSummary` | Corps | « 3/4 … reste 1 » | le RÉGLAGE |
+
+**Les deux premières vivent sur le même sous-onglet, à quelques centaines de pixels** : l'une dit que
+la semaine est bouclée, l'autre qu'il en reste une.
+
+`avancementSemaine` lit ce que le plan POSE (itération 83, avec repli documenté sur `goals` faute de
+plan) ; les quatre autres recalculaient la leur sur `state.goals.sessions`. Un seul point de vérité
+désormais : `cibleHebdo()`. Et `weeklyInsights`, qui dérivait sa cible **en interne**, accepte une
+cible imposée — comportement par défaut inchangé.
+
+**On unifie la CIBLE, pas les panneaux** : sur les 18 usages de `goals.sessions`, la plupart sont
+légitimes (formulaires, entrées nutrition, onboarding). Seuls ceux qui **énoncent** un compte à
+l'utilisateur ont été alignés.
+
+### Ce que cette itération a appris
+
+**Une redite peut cacher une contradiction, et seule la mesure fait la différence.** L'audit avait
+compté les voix ; il n'avait pas comparé leurs chiffres. Quatre écrans qui disent la même chose sont
+un défaut de mise en page — deux qui disent l'inverse sur le même écran sont un défaut de fond.
+*Compter les voix ne suffit pas : il faut les faire parler côte à côte.*
+
+**Mon propre correctif contenait le piège que le protocole nomme en premier.** Ma garde
+`Number.isFinite(Number(opts.cibleSeances))` acceptait `''`, `null` et `false` — `Number('')` vaut 0,
+et 0 est fini — donc ces valeurs devenaient une cible de **zéro séance**. « NULL N'EST PAS ZÉRO »,
+mais l'autre moitié compte autant : **0 reste une consigne valable** (semaine de repos), donc la garde
+ne pouvait pas simplement exiger une valeur non nulle. Elle exige un vrai nombre.
+
+**Une mutation survivante n'est pas toujours un check creux — ici c'était le scénario.** La phrase
+« Objectif de N séances atteint » ne sort qu'une fois la cible **atteinte** : avec 3 séances sur 4,
+remettre la cible à 4 ne produisait aucune affirmation contradictoire à capturer. Jeu d'essai porté à
+4 séances, et le relevé sait lire les **deux** formes de cible. *Vérifier lequel des trois cas c'est,
+avant de conclure.*
+
+**Mutations.** 4 posées, 4 détectées après renforcement du jeu d'essai.
+
+695 tests · SMOKE OK. Rien publié depuis v2.16.0.
+
+**Reste, dit franchement :** le mode « Construire » du tableau de bord et le `sessionTarget` de
+`weeklyAdherence` lisent encore le réglage. Ni l'un ni l'autre n'énonce le compte qui créait la
+contradiction, mais ils devront suivre. Et A3 n'a PAS fusionné les panneaux — `week-panel` reste sur
+*Progrès*, `weekly-review-panel` sur *Corps* : la fusion de surface est à faire, probablement en
+déplaçant la revue hebdo vers *Progrès*, ce qui servirait aussi B1.
