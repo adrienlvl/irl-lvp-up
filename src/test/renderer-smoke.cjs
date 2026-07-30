@@ -7542,15 +7542,28 @@ app.whenReady().then(async () => {
           /* Le champ des minutes est durationMin : duration est un libelle, et
              normalizeAgendaItem retombe alors sur 60 min par defaut — mes 240 min annoncees
              en valaient 60, et la semaine paraissait deux fois plus vide qu elle ne l etait. */
-          state.agenda = [
-            { id: 9201, kind: "study", title: "Cours BTS", date: jour(0), time: "09:00", durationMin: 240 },
-            { id: 9202, kind: "study", title: "Cours BTS", date: jour(1), time: "09:00", durationMin: 240 },
-            { id: 9203, kind: "study", title: "Revision compta", date: jour(1), time: "19:00", durationMin: 90 },
-            { id: 9204, kind: "life", title: "Courses", date: jour(2), time: "18:00", durationMin: 60 },
-            { id: 9205, kind: "study", title: "Cours BTS", date: jour(3), time: "09:00", durationMin: 240 },
-            { id: 9206, kind: "study", title: "Revision droit", date: jour(3), time: "19:30", durationMin: 120 },
-            { id: 9207, kind: "life", title: "Famille", date: jour(5), time: "12:00", durationMin: 180 }
+          /* LA CHARGE EST ANCREE SUR AUJOURD HUI, pas sur lundi : les jours deja ecoules
+             gardent ainsi du temps libre, ce qui rend la FENETRE observable — sans quoi
+             retirer aPartirDe du rendu ne changerait aucun chiffre et la mutation
+             survivrait (constate a la revue 123). Un lundi il n y a aucun jour ecoule :
+             le diagnostic le dira via discrimine=false. */
+          const idxAuj = (auj.getDay() + 6) % 7;
+          const charges = [
+            ["study", "Cours BTS", "09:00", 240],
+            ["study", "Revision compta", "19:00", 90],
+            ["life", "Courses", "18:00", 60],
+            ["study", "Cours BTS", "09:00", 240],
+            ["study", "Revision droit", "19:30", 120],
+            ["life", "Famille", "12:00", 180],
+            ["study", "Revision eco", "10:00", 150]
           ];
+          state.agenda = [];
+          for (let k = idxAuj; k <= 6; k++) {
+            const c = charges[k - idxAuj];
+            if (!c) break;
+            state.agenda.push({ id: 9200 + k, kind: c[0], title: c[1], date: jour(k),
+              time: c[2], durationMin: c[3] });
+          }
 
           /* On MESURE LA OU LE BLOC EST VISIBLE, et par le display CALCULE : el.hidden seul
              ne dit rien de ce que l ecran montre. */
@@ -7561,10 +7574,14 @@ app.whenReady().then(async () => {
               hauteur: Math.round(el.getBoundingClientRect().height),
               texte: String(el.textContent || "") };
           };
+          /* Les MEMES options que renderBudgetSemaine : un helper qui rappellerait la fonction
+             autrement mesurerait autre chose que l ecran (piege paye a la revue 123). */
           const calculer = () => {
             const p = trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises);
-            return budgetSemaine(state, dateKey(mondayOf(localDate())),
-              (p && p.semaineType) || [], { capacity: state.dayCapacity });
+            const f = (typeof seancesDeLaSemaine === "function")
+              ? seancesDeLaSemaine(state.workouts, localDate()) : null;
+            return budgetSemaine(state, dateKey(mondayOf(localDate())), (p && p.semaineType) || [],
+              { capacity: state.dayCapacity, aPartirDe: localDate(), dejaFait: f });
           };
 
           /* --- PASSE 1 : capacite REGLEE basse. Le bloc doit parler. --- */
@@ -7581,7 +7598,22 @@ app.whenReady().then(async () => {
           const chiffresDistincts = demandeTxt !== libreTxt;
           const peint = vuSerre.display !== "none" && vuSerre.hauteur > 20;
           const citeLesChiffres = vuSerre.texte.indexOf(demandeTxt) !== -1
-            && vuSerre.texte.indexOf(libreTxt) !== -1;
+            && vuSerre.texte.indexOf(libreTxt + " de libres") !== -1;
+          /* UN CHIFFRE SANS SA FENETRE MENT PAR OMISSION. Le total ne couvre que les jours
+             restants : la revue 123 a mesure 780 min annoncees dont 540 deja ecoulees. */
+          const nommeLaFenetre = vuSerre.texte.indexOf("d’ici dimanche") !== -1;
+          /* Et le CHIFFRE lui-meme doit etre celui qui exclut le passe. On calcule le meme
+             budget sans fenetre : quand les deux different, l ecran doit citer le premier et
+             surtout PAS le second. Quand ils ne different pas (jeu d essai dont les jours
+             ecoules sont satures, ou harnais lance un lundi), la comparaison ne discrimine
+             rien et le diagnostic le dit — une couverture supposee n est pas une couverture. */
+          const _pSansF = trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises);
+          const bSansFenetre = budgetSemaine(state, dateKey(mondayOf(localDate())),
+            (_pSansF && _pSansF.semaineType) || [], { capacity: state.dayCapacity });
+          const fenetreDiscrimine = !!bSansFenetre && bSansFenetre.libreMin !== bSerre.libreMin;
+          const chiffreFenetre = !fenetreDiscrimine
+            || vuSerre.texte.indexOf(formatDuration(Math.round(bSansFenetre.libreMin))
+              + " de libres") === -1;
           /* Ce que l ecran affirme doit etre ce que la fonction a etabli : un manque prouve se
              dit « il manque N », un rangement rate se dit « en les rangeant au mieux ». */
           let ditVrai = false;
@@ -7607,17 +7639,38 @@ app.whenReady().then(async () => {
           /* TEMOIN : la seconde passe doit vraiment etre a l aise, sinon elle ne discrimine rien. */
           const largeVraiment = !!bLarge && bLarge.verdict === "ok";
 
+          /* --- PASSE 3 : une seance DEJA FAITE cette semaine. Le compte doit la deduire. --- */
+          state.dayCapacity = capacityFromHours([1, 1, 1, 1, 1, 2, 2]);
+          state.workouts = [{ id: 9301, date: jour(0), type: "strength", duration: 45,
+            effort: 3, exercises: [{ name: "Pompes", sets: [{ reps: 12, weight: 0 }] }] }];
+          const bFait = calculer();
+          const vuFait = lire();
+          /* TEMOIN : l app doit VRAIMENT compter cette seance, sinon la passe ne teste rien. */
+          const seanceComptee = !!bFait && bFait.nbSeances < bFait.nbSeancesPlan
+            && bFait.demandeMin < bSerre.demandeMin;
+          const ditLeReste = !!vuFait && vuFait.texte.indexOf("sur " + bFait.nbSeancesPlan) !== -1
+            && vuFait.texte.indexOf(formatDuration(Math.round(bFait.demandeMin))) !== -1;
+          /* TEMOIN OBSERVABLE : meme capacite, meme agenda, une seance en plus — si le rendu
+             ne transmettait pas le deja-fait, le texte serait identique a celui de la passe 1. */
+          const texteChange = !!vuFait && vuFait.texte !== vuSerre.texte;
+
           checks.__budgetSemaine = "serre[" + bSerre.verdict + " demande=" + demandeTxt
             + " libre=" + libreTxt + " manque=" + bSerre.manqueMin
             + " trop=" + bSerre.troplongues.length + " nonPlacees=" + bSerre.nonPlacees.length
             + " h=" + vuSerre.hauteur + " peint=" + peint + " cite=" + citeLesChiffres
             + " vrai=" + ditVrai + "] large[" + (bLarge ? bLarge.verdict : "nul")
             + " display=" + (vuLarge ? vuLarge.display : "?") + "] temoins[mord=" + mordVraiment
-            + " distincts=" + chiffresDistincts + " large=" + largeVraiment + "]";
+            + " distincts=" + chiffresDistincts + " large=" + largeVraiment
+            + " fenetre=" + nommeLaFenetre + " discrimine=" + fenetreDiscrimine
+            + " chiffre=" + chiffreFenetre + "] fait[" + (bFait ? bFait.nbSeances : "?")
+            + "/" + (bFait ? bFait.nbSeancesPlan : "?") + " demande=" + (bFait ? bFait.demandeMin : "?")
+            + " comptee=" + seanceComptee + " dit=" + ditLeReste
+            + " change=" + texteChange + "]";
 
           _rendre();
-          return mordVraiment && chiffresDistincts && largeVraiment
-            && peint && citeLesChiffres && ditVrai && seTait;
+          return mordVraiment && chiffresDistincts && largeVraiment && seanceComptee
+            && peint && citeLesChiffres && nommeLaFenetre && ditVrai && seTait && ditLeReste
+            && texteChange && chiffreFenetre;
         } catch (e) { _rendre(); checks.__errBudgetSemaine = String(e && e.message); return false; }
       })();
 
@@ -8304,7 +8357,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
-    if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte (voir __budgetSemaine)');
+    if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte. Il NOMME aussi sa fenêtre (« d’ici dimanche ») et déduit le déjà-fait — revue 123 : le total sommait les jours écoulés (780 min annoncées dont 540 passées, 69 %) et réclamait le plan entier un jeudi où deux séances étaient déjà faites, si bien qu’il annonçait « il manque 1 h » sans que rien ne manque (voir __budgetSemaine)');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
     if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE, en DURÉE : le panneau Poids dit « Sur N jours » — mesuré à l’itération 121, « 6 pesées » ne distinguait pas 41 jours de 5, alors que le même profil sort −0,30 ou −0,84 kg/sem selon la durée — et il ne projette PAS d’échéance sous deux semaines de recul (deux pesées à 24 h donnaient « −3,5 kg/sem → ~2 sem. »). Le panneau d’analyse, lui, compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
     if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');

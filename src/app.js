@@ -1351,12 +1351,25 @@ function renderBudgetSemaine(){
   const _plan=(typeof trainingWeekPlan==='function'&&typeof trainingPlanInputs==='function')
     ?trainingWeekPlan(trainingPlanInputs(state,localDate()),exercises):null;
   const _se=(_plan&&Array.isArray(_plan.semaineType))?_plan.semaineType:[];
-  const b=budgetSemaine(state,dateKey(mondayOf(localDate())),_se,{capacity:state.dayCapacity});
+  /* ON PART D AUJOURD HUI, PAS DE LUNDI, et on ne réclame que ce qui reste à faire : la revue
+     123 a mesuré 780 min annoncées dont 540 déjà écoulées (69 %), et « il manque 1 h » un jeudi
+     où les deux séances déclarées non plaçables étaient justement celles déjà courues. */
+  const _fait=(typeof seancesDeLaSemaine==='function')
+    ?seancesDeLaSemaine(state.workouts,localDate()):null;
+  const b=budgetSemaine(state,dateKey(mondayOf(localDate())),_se,
+    {capacity:state.dayCapacity,aPartirDe:localDate(),dejaFait:_fait});
   if(!b||b.verdict==='ok'){el.hidden=true;el.className='budget-semaine';el.innerHTML='';return;}
   const d=m=>escapeHtml(formatDuration(Math.round(m)));
   el.hidden=false;el.className='budget-semaine bs-'+b.verdict;
-  const cadre='<p class="bs-cadre">Ton plan demande <b>'+d(b.demandeMin)+'</b> · ta semaine a '
-    +'<b>'+d(b.libreMin)+'</b> de libres.</p>';
+  /* La fenêtre est DITE : « d’ici dimanche » et non « ta semaine », parce que le chiffre ne
+     couvre plus que les jours restants. Et quand des séances sont déjà faites, on annonce ce
+     qui RESTE à caser, pas le plan entier — sinon le compte accuse un retard inexistant. */
+  const _partiel=b.nbSeances<b.nbSeancesPlan;
+  const cadre='<p class="bs-cadre">'+(_partiel
+    ?'Il te reste <b>'+b.nbSeances+' séance'+(b.nbSeances>1?'s':'')+'</b> sur '+b.nbSeancesPlan
+      +' (<b>'+d(b.demandeMin)+'</b>)'
+    :'Ton plan demande <b>'+d(b.demandeMin)+'</b>')
+    +' · <b>'+d(b.libreMin)+'</b> de libres d’ici dimanche.</p>';
   let corps;
   if(b.verdict==='court'){
     /* CE QU ON SAIT ET CE QU ON SUPPOSE NE SE DISENT PAS PAREIL. `prouve` = la somme dépasse,

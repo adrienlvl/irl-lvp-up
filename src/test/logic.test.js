@@ -15102,6 +15102,60 @@ test('budgetSemaine : le total qui tient ne prouve pas que le plan se range', ()
   assert.equal(sansPlan.nbSeances, 0);
 });
 
+test('budgetSemaine : le temps d\'hier n\'est plus disponible, et le déjà-fait n\'est plus à faire', () => {
+  const state = { agenda: [], workouts: [], recurring: [], habits: [], todos: [], plans: [] };
+  const LUNDI = '2026-07-27', JEUDI = '2026-07-30';
+  /* Semaine légère en début, chargée en fin : c'est le cas où les jours ÉCOULÉS portent du
+     temps libre, donc celui qui DISCRIMINE. Sur une semaine plate, la fenêtre ne changerait
+     presque rien et le test serait vacant. */
+  const cap = L.capacityFromHours([3, 3, 3, 1, 1, 1, 1]);
+  const plan = [{ kind: 'muscu', title: 'A', minutes: 45 }, { kind: 'course', title: 'B', minutes: 35 },
+    { kind: 'muscu', title: 'C', minutes: 45 }, { kind: 'course', title: 'D', minutes: 70 },
+    { kind: 'muscu', title: 'E', minutes: 45 }];
+
+  /* LA FENÊTRE. Même état, même plan : seul le jour de départ change. */
+  const semaine = L.budgetSemaine(state, LUNDI, plan, { capacity: cap });
+  const depuisJeudi = L.budgetSemaine(state, LUNDI, plan, { capacity: cap, aPartirDe: JEUDI });
+  assert.equal(semaine.libreMin, 780, 'témoin : la semaine entière offre 780 min');
+  assert.equal(depuisJeudi.libreMin, 240, 'depuis jeudi il n\'en reste que 240 — 69 % étaient écoulées');
+  assert.deepEqual(depuisJeudi.jours.filter(j => j.passe).map(j => j.key),
+    ['2026-07-27', '2026-07-28', '2026-07-29'], 'les jours passés restent listés, à zéro');
+  assert.equal(depuisJeudi.jours[0].libreMin, 0, 'lundi ne prête plus rien');
+  assert.ok(depuisJeudi.jours[0].capaciteMin > 0, 'témoin : lundi avait pourtant de la capacité');
+
+  /* ET LE VERDICT BASCULE, ce qui est tout l'intérêt : la sortie longue de 70 min ne tient
+     dans aucune des journées de 60 min restantes. L'app annonçait « ok ». */
+  assert.equal(semaine.verdict, 'ok', 'témoin : l\'ancienne fenêtre ne voyait aucun problème');
+  assert.equal(depuisJeudi.verdict, 'court');
+  assert.equal(depuisJeudi.troplongues.length, 1, 'la sortie longue ne tient nulle part');
+  assert.equal(depuisJeudi.troplongues[0].titre, 'D');
+  assert.equal(depuisJeudi.prouve, true, 'et c\'est démontré, pas supposé');
+
+  /* LE DÉJÀ-FAIT. On retire les plus COURTES de chaque type : ce qui subsiste est le plus dur
+     à placer, donc la fonction ne peut pas conclure « ça rentre » sur un rangement plus facile
+     qu'en vrai. Le cas qui DISCRIMINE : une muscu faite ne doit pas retirer une course. */
+  const net = L.budgetSemaine(state, LUNDI, plan, { capacity: cap, aPartirDe: JEUDI,
+    dejaFait: { muscu: 1, course: 1 } });
+  assert.equal(net.nbSeancesPlan, 5, 'le plan en compte toujours cinq');
+  assert.equal(net.nbSeances, 3, 'mais trois restent à caser');
+  assert.equal(net.demandeMin, 160, '45 + 70 + 45 : les plus courtes de chaque type sont parties');
+  assert.equal(depuisJeudi.demandeMin, 240, 'témoin : sans déjà-fait, la demande reste entière');
+  const queMuscu = L.budgetSemaine(state, LUNDI, plan, { capacity: cap, dejaFait: { muscu: 1 } });
+  assert.equal(queMuscu.demandeMin, 195, 'une muscu faite retire 45 min, pas les 35 de la course');
+  assert.equal(queMuscu.nbSeances, 4);
+
+  /* Un déjà-fait plus grand que le plan ne doit pas rendre une demande négative. */
+  const trop = L.budgetSemaine(state, LUNDI, plan, { capacity: cap, dejaFait: { muscu: 9, course: 9 } });
+  assert.equal(trop.nbSeances, 0);
+  assert.equal(trop.demandeMin, 0);
+  assert.equal(trop.verdict, 'ok', 'semaine bouclée : plus rien à arbitrer');
+
+  /* Sans `aPartirDe`, on retombe sur la semaine entière : la fonction ne devine pas le jour. */
+  assert.equal(L.budgetSemaine(state, LUNDI, plan, { capacity: cap }).libreMin, 780);
+  assert.equal(L.budgetSemaine(state, LUNDI, plan, { capacity: cap, aPartirDe: 'nawak' }).libreMin, 780,
+    'une date invalide ne rétrécit pas la fenêtre en douce');
+});
+
 test('capacityFromHours / capacityToHours : le décalage lundi↔dimanche ne doit jamais glisser', () => {
   // La grille interne est indexée DIMANCHE→SAMEDI (Date.getDay()), le formulaire commence
   // le lundi. Une erreur d'un cran ici ferait juger le samedi avec la capacité du dimanche,

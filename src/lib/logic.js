@@ -8945,23 +8945,45 @@ function budgetSemaine(state, mondayKey, seances, opts) {
   const o = opts && typeof opts === 'object' ? opts : {};
   if (!isRealDateKey(mondayKey)) return null;
   const grille = Array.isArray(o.capacity) && o.capacity.length === 7 ? o.capacity : null;
+  /* LE TEMPS D HIER N EST PLUS DISPONIBLE. Sans `aPartirDe`, la fonction sommait les sept
+     jours, y compris ceux deja vecus : mesure de la revue 123 sur une semaine legere en debut
+     et chargee en fin, un jeudi — 780 min annoncees dont 540 ecoulees, soit 69 % d un chiffre
+     presente comme disponible, et un verdict « ok » alors qu aucune journee restante ne
+     pouvait accueillir la sortie longue. Les jours passes restent LISTES (l ecran peut vouloir
+     les montrer) mais ne pesent ni dans le total libre, ni dans le rangement. */
+  const depuis = isRealDateKey(o.aPartirDe) ? o.aPartirDe : mondayKey;
   const jours = [];
   let capaciteMin = 0, prisMin = 0, libreMin = 0, plusGrandJourMin = 0;
   for (let i = 0; i < 7; i++) {
     const key = dateAfterDays(mondayKey, i);
     const l = dayLoad(state, key, { capacity: grille });
-    const libre = Math.max(0, l.capacityMin - l.totalMin);
+    const passe = key < depuis;
+    const libre = passe ? 0 : Math.max(0, l.capacityMin - l.totalMin);
     capaciteMin += l.capacityMin;
     prisMin += l.totalMin;
     libreMin += libre;
     if (libre > plusGrandJourMin) plusGrandJourMin = libre;
     jours.push({ key, capaciteMin: l.capacityMin, prisMin: l.totalMin, libreMin: libre,
-      deborde: l.overflowMin > 0 });
+      deborde: l.overflowMin > 0, passe });
   }
-  const liste = (Array.isArray(seances) ? seances : [])
+  const toutes = (Array.isArray(seances) ? seances : [])
     .map(x => ({ titre: String((x && x.title) || 'Séance'), kind: String((x && x.kind) || ''),
       minutes: Math.max(0, Math.round(Number(x && x.minutes) || 0)) }))
     .filter(x => x.minutes > 0);
+  /* CE QUI EST DÉJÀ FAIT NE RESTE PAS À CASER. Sans `dejaFait`, la fonction réclamait la
+     semaine entière : mesuré un jeudi où une muscu et une course étaient faites, l'écran
+     annonçait « il manque 1 h » pour 3 h de libres et 2 h 40 réellement restantes — et les deux
+     séances déclarées non plaçables étaient précisément celles déjà courues.
+     On retire les plus COURTES de chaque type : ce qui subsiste est le plus dur à placer, donc
+     la fonction ne peut pas conclure « ça rentre » sur un rangement plus facile qu'en vrai. */
+  const aRetirer = { muscu: 0, course: 0 };
+  if (o.dejaFait && typeof o.dejaFait === 'object') {
+    aRetirer.muscu = Math.max(0, Math.round(Number(o.dejaFait.muscu) || 0));
+    aRetirer.course = Math.max(0, Math.round(Number(o.dejaFait.course) || 0));
+  }
+  const liste = toutes.slice().sort((a, b) => a.minutes - b.minutes)
+    .filter(x => { const k = x.kind === 'course' ? 'course' : 'muscu';
+      if (aRetirer[k] > 0) { aRetirer[k] -= 1; return false; } return true; });
   const demandeMin = liste.reduce((a, x) => a + x.minutes, 0);
   const manqueMin = Math.max(0, demandeMin - libreMin);
   const troplongues = liste.filter(x => x.minutes > plusGrandJourMin)
@@ -8999,8 +9021,9 @@ function budgetSemaine(state, mondayKey, seances, opts) {
      le plus grand jour libre : aucun ordre n’y change rien) de ce que le rangement a seulement
      échoué à faire. L’écran doit dire l’un ou l’autre, jamais l’un pour l’autre. */
   const prouve = manqueMin > 0 || troplongues.length > 0;
-  return { jours, capaciteMin, prisMin, libreMin, plusGrandJourMin,
-    demandeMin, nbSeances: liste.length, resteMin: Math.max(0, libreMin - demandeMin),
+  return { jours, capaciteMin, prisMin, libreMin, plusGrandJourMin, depuis,
+    demandeMin, nbSeances: liste.length, nbSeancesPlan: toutes.length,
+    resteMin: Math.max(0, libreMin - demandeMin),
     manqueMin, troplongues, nonPlacees, prouve, verdict };
 }
 
