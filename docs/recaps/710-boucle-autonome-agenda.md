@@ -4637,3 +4637,47 @@ publiée dans un commit, un journal et une roadmap.
   à 15 (`extras.css` ne traite que `section.panel`).
 
 **Mutations.** 3 posées, 3 détectées. 699 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 113 — mes garde-fous tiennent enfin leurs promesses
+
+Suite directe de la revue 112, qui avait prouvé par **mutations restées vertes** que mes deux checks
+vérifiaient moins que ce que leur message affirmait. Quatre trous fermés, chacun re-prouvé par sa
+mutation.
+
+**1. Fuite d'état dans le harnais.** `weekScheduleCurrent` écrivait `state.workouts = []` et
+`state.blockStart = ''` et ne restaurait que `state.agenda`. Tous les checks suivants mesuraient donc
+une app **sans bloc** alors que le socle de la 109 prétend en poser un (mesuré : analysis-panel
+310 → 194 px). **Et en corrigeant, j'ai trouvé la même faute dans mon propre check de la 111** : il
+écrivait `blockStart` sans le restaurer, à trois lignes du commentaire où je m'en plaignais.
+
+**2. Mon commentaire accusait le mauvais coupable.** Il disait « un check remplace l'état par une
+version normalisée » : faux deux fois — aucun check ne remplace `state`, et `normalizeState` conserve
+`blockStart`. Un lecteur serait allé durcir un endroit sain.
+
+**3. Le check de la 110 comparait le texte, jamais la géométrie.** `hidden` ne change pas
+`textContent` : un bloc mis à 0 px passait. Il mesure maintenant la hauteur et **joue la vraie
+bascule d'agenda** — le geste qui posait `hidden`, qu'il ne rejouait pas. Découvert en chemin : il
+visait « aujourdhui » en dur alors que le bloc a déménagé sur « progrès » à la 111, donc il mesurait
+`h=0` sans s'en apercevoir. **C'est le test par le texte qui l'avait rendu aveugle au déménagement.**
+
+**4. Le seuil `accueillis >= 3` laissait supprimer 479 px en silence.** Le garde contre la
+suppression est maintenant un **test node** qui dérive la liste des blocs du markup, retrouve la
+fonction qui écrit chacun, et exige qu'elle soit appelée.
+
+### Ce que cette itération a appris
+
+**J'ai reproduit le défaut que j'étais en train de corriger, dans le même fichier, le même jour.**
+La fuite de `blockStart` que je colmatais dans `weekScheduleCurrent`, je l'avais écrite deux
+itérations plus tôt dans mon propre check. *Connaître une règle ne la fait pas appliquer : ce qui la
+fait appliquer, c'est un garde-fou qui la mesure.* D'où la ré-assertion de `blockStart` dans le socle
+— maintenant, la prochaine fuite tombe toute seule.
+
+**Un test qui compare du texte est aveugle à la mise en page.** Le check de la 110 a survécu à un
+déménagement d'onglet sans broncher : le texte était là, l'élément invisible. La géométrie l'a vu
+immédiatement (`h=84/0/0` sur la mutation).
+
+**Un seuil ne garde que ce qui le franchit.** Écrit dans le commentaire du check, avec les deux trous
+qui restent connus et non gardés : les quatre blocs d'historique ne contiennent aucun marqueur, et
+`#objectiveResult` est exempté — à raison, il porte le plan et contient déjà le mot « semaines ».
+
+**Mutations.** 4 posées, 4 détectées. 700 tests · SMOKE OK. Rien publié depuis v2.17.0.
