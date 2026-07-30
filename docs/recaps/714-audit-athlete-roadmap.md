@@ -149,7 +149,14 @@ mesuré 4,5 h libres sur une semaine de démonstration. ~~**Rien n'agrège encor
   forme de semaine, un jeudi — 69 % du temps libre annoncé était déjà écoulé, et le plan entier
   était réclamé alors que deux séances étaient faites. La fenêtre part d'aujourd'hui, la demande
   est nette du déjà-fait, et l'écran nomme sa fenêtre (« d'ici dimanche »).
-- C2. **Le conflit nommé** — deux objectifs qui se contredisent, dit chiffres à l'appui. (8)
+- C2. ~~**Le conflit nommé**~~ — **FAIT (125)**. Mesuré sur « Prise de muscle » + « perte » +
+  programme « agressif » : déficit de 885 kcal/jour (28 % de la dépense), `volumeFactor` à 0,70,
+  zéro séance dure — et le Plan de bataille annonçait « Volume réduit : 4 exercices au lieu de 5 »
+  **sans sa cause**, celle-ci n'étant lisible que sur la page Poids, dans un `<details>` fermé sur
+  un panneau `display:none`. `causeDeLaCoupe` fait porter la cause par la phrase qui annonce la
+  coupe, avec les chiffres que l'app calcule déjà, et ne nomme un conflit **que lorsqu'il existe** :
+  rien sur une sèche, où la coupe va dans le sens visé. Aucune physiologie affirmée — on ne dit que
+  ce que l'app fait.
 - C3. **Le coût annoncé étendu** — objectif physique, jours, zones. (7)
 - C4. **La replanification à l'échelle de la SEMAINE** — le rattrapage sport (76) et études (93)
   existent à l'échelle de la séance ; il manque l'étage au-dessus. (6)

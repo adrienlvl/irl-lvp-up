@@ -5242,3 +5242,53 @@ défaut) ; `memoireForceParCadence` prend `(history, workouts)` avec des exercic
 `{sets: 4, reps: 8, load}`, pas un tableau de séries.
 
 **Mutations.** 5 posées, 5 détectées. 706 tests · SMOKE OK.
+
+## Itération 125 — C2 : l'app coupait le volume sans dire pourquoi
+
+État atteignable en trois réglages : objectif physique « Prise de muscle », objectif de poids
+« perte », programme nutrition « agressif ». Ce que l'app décide alors :
+
+| grandeur | valeur |
+|---|---|
+| déficit appliqué | **−885 kcal/jour** |
+| part de la dépense | **28 %** |
+| `volumeFactor` | **0,70** |
+| séances dures autorisées | **0** |
+
+Et ce que l'écran en disait : « Volume réduit : 4 exercices par séance au lieu de 5 — les charges
+et le nombre de séances, eux, ne bougent pas. » Point. **La conséquence sans la cause.**
+
+La cause existait pourtant, rédigée, dans `politique.resume`. J'ai remonté la chaîne des
+ancêtres pour savoir où : bloc `cw-ajust` → `cw-train` → `<details>` « 🏋️ Ma semaine type »
+**fermé** → `#coachWeightBody` → panneau en `display:none`. Sur une autre page, repliée.
+
+`causeDeLaCoupe` fait porter la cause par la phrase qui annonce la coupe, et ne nomme un conflit
+que lorsqu'il existe : sur un objectif muscle, « à ce déficit, l'app garde tes charges et tes
+séances, et c'est le volume qui paie » ; sur une sèche, la coupe **va dans le sens visé** — cause
+seule, aucune tension inventée.
+
+### Ce que cette itération a appris
+
+**Trois fois je me suis trompé sur ce que l'écran montrait, et trois fois la sonde m'a corrigé.**
+J'ai d'abord cru la coupe *silencieuse* — elle avait un `resume`. Puis j'ai écrit que le titre
+« Prise de muscle », le conseil « le nombre de séries » et la coupe cohabitaient **sur le même
+écran** — mesure : le conseil n'y est pas peint du tout, et la phrase que je lisais venait de
+l'objet plan, pas du rendu. *Lire une valeur dans une structure n'est pas la voir à l'écran ;
+entre les deux il y a une page masquée et un `<details>` fermé.*
+
+**Un check doit passer par le chemin de l'utilisateur.** Mes deux passes rendaient le même texte :
+`runObjectiveProgram` lit le `<select>` et **écrase** `state.fitnessObjective` avec sa valeur
+(défaut « athlétique »). Poser l'état ne suffisait pas. Le check pilote maintenant le sélecteur,
+et un témoin vérifie que le clic a bien retenu l'objectif demandé — sans lui, tout le reste était
+vain sans le dire.
+
+**Nommer un conflit oblige à savoir ce qu'on a le droit d'affirmer.** J'ai failli écrire
+« difficile de prendre du muscle et de fondre en même temps ». C'est une affirmation de
+physiologie, et la règle est claire : pas de référence non vérifiée. La phrase ne dit donc que ce
+que **l'app** fait — le déficit que le plan poids applique, la coupe que la politique a décidée.
+*Deux chiffres vérifiables à l'écran valent mieux qu'une vérité générale invérifiable.*
+
+**Pas d'effet, pas de message.** Sous 10 % de la dépense la politique ne coupe rien : annoncer une
+cause là serait exactement l'écart dire/faire traqué depuis la 106, à l'envers.
+
+**Mutations.** 5 posées, 5 détectées. 708 tests · SMOKE OK. Publié en v2.18.0 (itérations 110–124).
