@@ -4855,3 +4855,43 @@ SMOKE OK.
 **Reste des trouvailles, noté :** `normalizeState` transforme `progSessions: 0` ou `'  '` en 4, alors
 que `''` et `null` donnent bien « auto » — le tri-état n'est préservé que pour deux des quatre
 formes du vide. Cosmétique tant qu'aucun chemin d'écriture ne produit 0.
+
+## Itération 117 — A4 : la lettre visait un défaut qui n'existe pas, la mesure en a trouvé un vrai
+
+**Ce que la roadmap prescrivait** : « une seule saisie de poids dans l'app ». Sondé d'abord : les
+deux champs (`#weightInput` sur Athlète/Corps, `#coachWeightToday` sur la page Poids) écrivent la
+**même chose**, au même endroit, avec le même dédoublonnage par date — saisir 78,5 d'un côté puis
+77,9 de l'autre laisse **une seule** pesée du jour, à 77,9. La duplication n'est pas nuisible.
+
+**Le vrai défaut**, mesuré sur un historique régulier de 9 pesées à −0,35 kg/semaine, au même
+instant :
+
+| voix | rythme | échéance |
+|---|---|---|
+| Athlète · `weightTrend` | −0,36 kg/sem (ce que tu FAIS) | **~14 semaines** |
+| Poids · coach | 0,55 kg/sem (ce que ton plan VISE) | **≈ 10 semaines** |
+
+Deux échéances pour un seul objectif, à un facteur 1,4. Les deux sont honnêtes — et **aucune ne
+disait de quelle règle elle sortait**. Même défaut qu'à la 106, même remède : nommer la règle sans
+toucher aux nombres. « → ~14 sem. **À CE rythme** » et « ≈ 10 semaines **si tu tiens le rythme
+VISÉ** · (0,55 kg/sem. **visés par ton plan**) ».
+
+### Ce que cette itération a appris
+
+**Une roadmap peut prescrire un remède contre un symptôme absent.** « Une seule saisie » supposait
+que deux saisies divergent ; mesurées, elles convergent parfaitement. Trois fois maintenant que la
+lettre visait les pixels ou la structure quand le défaut était dans le CONTENU (A1, A3, A4). *Sonder
+avant de juger n'est pas une formalité : c'est ce qui empêche de réparer ce qui marche.*
+
+**Deux artefacts de sonde évités dans la même itération.** Mon premier clic est tombé sur le bouton
+de repli `[▾]` ajouté par `setupCollapsibles` au lieu de `#addWeightButton` — d'où un « la saisie
+n'écrit rien » entièrement faux. *Dans cette app, `querySelector('.panel button')` attrape presque
+toujours le mauvais bouton.*
+
+**Mutations.** 4 posées, 4 détectées, dont l'état exact d'avant. 701 tests · SMOKE OK. Rien publié
+depuis v2.17.0.
+
+**Reste d'A4, noté et non fait :** quatre panneaux parlent du poids sur l'onglet Athlète
+(`progression-hub`, `analysis-panel`, `weight-panel`, `coach-panel`) plus la page Poids. La lettre
+demande que `analysis-panel` se taise ; sa ligne « Ta tendance de poids » n'a pas encore été
+confrontée aux autres — à mesurer avant de la retirer, exactement comme ici.
