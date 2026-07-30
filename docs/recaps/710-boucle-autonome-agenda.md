@@ -5032,3 +5032,44 @@ agressives ». Je la transmets par symétrie, **sans prétendre que c'est gardé
   `${weights.length}` passe les huit prédicats, y compris la passe courte.
 
 Ces trois-là sont le sujet de la prochaine itération.
+
+## Itération 121 — je nommais la dimension qui n'informe pas
+
+Les trois trouvailles laissées ouvertes par la réfutation n'en font qu'une : mon libellé de la 118
+annonçait un **nombre de pesées** là où seule la **durée** a un sens.
+
+| historique | ce que l'app disait | la réalité |
+|---|---|---|
+| 9 pesées hebdomadaires | « sur tes **6** dernières pesées » | fenêtre **41 j**, −0,30 kg/sem |
+| 6 pesées en 5 jours | « sur tes **6** dernières pesées » | fenêtre **5 j**, −0,84 kg/sem |
+| 2 pesées à 24 h | « sur tes **2** dernières pesées → **~2 sem.** » | fenêtre **1 j**, −3,5 kg/sem |
+
+Même compte, rythme du simple au triple, échéance de 17 à 8 semaines. Et le compte ment aussi sur
+la base du calcul : `weightTrend` est une pente à **deux points**, donc une pesée aberrante au
+milieu est comptée dans le libellé sans changer le chiffre.
+
+Le libellé dit maintenant « Sur N jours », et **ne projette plus d'échéance sous deux semaines de
+recul** : deux pesées à 24 h affichent « Sur 1 jour : −3,5 kg/sem · reste −7 kg — trop peu de recul
+pour projeter une échéance ».
+
+### Ce que cette itération a appris
+
+**Nommer une fenêtre ne suffit pas : encore faut-il nommer la bonne grandeur.** Depuis la 106 je
+répète « chaque voix nomme sa règle ». J'ai nommé une règle — le nombre de pesées — qui ne portait
+aucune information. *Le remède devient un rite quand on cesse de se demander ce que le mot
+apprend au lecteur.*
+
+**Un check qui cherche une sous-chaîne peut être satisfait par le hasard.** Le mien exigeait
+« 6 » quelque part dans le libellé : « −0.36 » le fournissait. Il vérifiait donc que le rythme
+contient un 6, pas que le compte est juste. *Une assertion doit porter sur un motif entier, jamais
+sur un fragment qui peut apparaître ailleurs.*
+
+**Se taire est parfois la bonne réponse.** L'app savait calculer une échéance sur un jour de
+données ; elle l'affichait parce qu'elle le pouvait. Ne pas répondre quand la question n'a pas de
+sens vaut mieux qu'un chiffre exact tiré d'un calcul absurde.
+
+**Backticks et node -e : 8ᵉ fois.** Une apostrophe échappée dans un `node -e` a cassé le
+fichier de tests. Restauré par `git checkout`, réécrit avec un `.cjs`.
+
+**Mutations.** 4 posées, 4 détectées — dont celle qui survivait au check de la 118. 703 tests ·
+SMOKE OK. Rien publié depuis v2.17.0.
