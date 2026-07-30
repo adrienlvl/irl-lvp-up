@@ -4979,3 +4979,56 @@ décision sans la lire. La mutation « un panneau majeur obtient un cran à lui 
 lui-même — est maintenant détectée.
 
 **Mutations.** 3 posées, 3 détectées. 703 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+## Itération 120 — la page Poids annonçait un plan que tu n'as pas choisi
+
+Trouvé par la réfutation déléguée de **mon propre code de la veille**, puis re-mesuré. C'est la
+trouvaille la plus grave de la session — et je l'avais aggravée.
+
+| programme choisi | appliqué par le Plan | annoncé par la page Poids |
+|---|---|---|
+| prudent | 0,28 kg/sem · 19 sem | **0,55 · 10** |
+| équilibré | 0,55 · 10 | 0,55 · 10 *(coïncidence)* |
+| agressif | 0,77 · 7 | **0,55 · 10** |
+| très agressif | **0,96 · 6 · 1968 kcal** | **0,55 · 10 · 2425 kcal** |
+
+La page Poids construisait son plan avec `energyPlan` et s'arrêtait là, sans passer par
+`appliquerProgrammeNutrition`. Le commentaire de `logic.js` l'avait pourtant écrit :
+« Le choix nutritionnel doit changer le PLAN, pas seulement un texte […] sinon l'app promettrait
+une date de fin qui ne correspond à rien. »
+
+### Ce que cette itération a appris
+
+**Nommer une règle suppose d'avoir vérifié que c'est la bonne.** À l'itération 117 j'ai renommé ce
+chiffre en « 0,55 kg/sem. **visés par ton plan** », convaincu de corriger un défaut de nommage. J'ai
+transformé un chiffre anonyme en **attribution fausse**, avec un facteur 1,7 — pire que le 1,4 que
+je corrigeais. *Le remède de la 106 (nommer la règle) n'est valable que si on a d'abord vérifié
+d'où sort le chiffre. Je l'ai appliqué comme une recette.*
+
+**Une coïncidence suffit à masquer un défaut systématique.** Sur cinq programmes, « équilibré »
+tombait juste — et c'est celui que j'avais mesuré à la 117. Le check dérive désormais TOUT le
+catalogue.
+
+**Une mutation qui survit mérite une enquête, pas un maquillage.** « La garde de sécurité n'est
+plus transmise » survit : ce paramètre est **inerte** dans `appliquerProgrammeNutrition` —
+mesuré, même sur une cible d'IMC 17,4, avec ou sans garde : 0,97 kg/sem et 1988 kcal. La garde agit
+ailleurs, dans `programmesNutrition`, où elle change 5 entrées sur 7 et porte
+l'avertissement — conforme à la règle « avertir explicitement, ne pas retirer les options
+agressives ». Je la transmets par symétrie, **sans prétendre que c'est gardé**.
+
+**Mutations.** 3 posées, 2 détectées, 1 expliquée. 703 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+### Ce que la réfutation a trouvé et que je n'ai PAS encore corrigé
+
+- **« Sur tes N dernières pesées » promet une base de N mesures ; le calcul n'en utilise que 2.**
+  `weightTrend` est une pente entre la première et la dernière de la fenêtre : les N−2 du
+  milieu ne pèsent rien. Une pesée aberrante au milieu est comptée dans le libellé et ne change pas
+  le chiffre.
+- **Le libellé nomme le NOMBRE, pas la DURÉE** — et c'est la durée qui informe. Deux pesées à 24 h
+  d'intervalle donnent « −3,5 kg/sem → ~2 sem. À CE rythme », pendant que la page Poids dit 11
+  semaines. *J'ai nommé la seule dimension qui n'informe pas.*
+- **Mon check de la 118 est creux** : il cherche `String(nMesures)` n'importe où dans le
+  libellé, et « 6 » est déjà contenu dans « −0.36 ». La mutation `${tr.mesures}` →
+  `${weights.length}` passe les huit prédicats, y compris la passe courte.
+
+Ces trois-là sont le sujet de la prochaine itération.
