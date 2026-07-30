@@ -3994,6 +3994,90 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* LE PLAN DE BATAILLE A ABSORBE « TA PROCHAINE SEANCE » (BLOQUANT, iteration 99).
+         program-panel (2 159 px) etait le QUATRIEME generateur de seances, reste visible quand les
+         trois autres ont ete masques a l iteration 53. Avant de le masquer a son tour, le Plan a
+         absorbe ce qu il faisait MIEUX. Trois choses, et la premiere est une CORRECTION :
+
+         1. L UNITE DES SERIES. Le Plan ecrivait sets×reps brut : mesure a l appui, « Equilibre
+            unipodal 3×30 » pour 30 SECONDES de tenue, « Bear crawl 3×20 » pour 20 PAS. Trente
+            repetitions d equilibre unipodal n existent pas — la consigne etait infaisable. Le
+            panneau masque, lui, passait par formatFor, qui suffixe l unite.
+         2. LE POURQUOI DES SEANCES DE MUSCU. Les courses portaient toutes leur why, les muscu
+            aucun : le gabarit ne lisait why que dans la branche course.
+         3. LE GESTE « PREPARER » : noter une seance a la main, sans mode guide. Il n existait que
+            dans le panneau masque.
+
+         Le fixture est FORCE (objectif athletique, seed 0) : sans lui, le check ne verrait des
+         unites non-reps que les jours ou le plan du moment en contient — « une valeur vraie ce
+         jour-la » au lieu de son sujet. */
+      checks.uniteEtGestesDuPlan = (() => {
+        const _objAvant = state.fitnessObjective, _seedAvant = state.objectiveSeed;
+        const _tabAvant = (typeof athleteTab === 'string') ? athleteTab : 'aujourdhui';
+        const _rendre = () => {
+          state.fitnessObjective = _objAvant; state.objectiveSeed = _seedAvant;
+          try { if (typeof runObjectiveProgram === 'function') runObjectiveProgram(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {}
+        };
+        try {
+          if (typeof showPage !== 'function' || typeof showAthleteTab !== 'function') return false;
+          showPage('athlete'); showAthleteTab('aujourdhui');
+          const sel = document.getElementById('objectiveSelect');
+          const gen = document.getElementById('objectiveGenerate');
+          if (!sel || !gen) { _rendre(); return false; }
+          state.objectiveSeed = 0;
+          sel.value = 'athletique';
+          gen.click();
+
+          const lignes = Array.prototype.slice.call(
+            document.querySelectorAll('#objectiveResult .op-ex li'));
+          const formats = lignes.map(function (li) {
+            const em = li.querySelector('em');
+            return String((em || {}).textContent || '').trim();
+          });
+          // Toute ligne doit porter une unite connue. Une ligne « 3×30 » nue est le defaut exact.
+          const unites = ['reps', 'sec', 'pas'];
+          const nues = formats.filter(f => !unites.some(u => f.indexOf(u) !== -1));
+          const nonReps = formats.filter(f => f.indexOf('sec') !== -1 || f.indexOf('pas') !== -1);
+
+          // Chaque jour de muscu explique son placement dans la semaine.
+          const joursMuscu = Array.prototype.slice.call(
+            document.querySelectorAll('#objectiveResult .op-day.op-muscu'));
+          const avecPourquoi = joursMuscu.filter(function (d) {
+            const p = d.querySelector('.op-run');
+            return !!p && String(p.textContent || '').trim().length > 40;
+          }).length;
+
+          /* LE GESTE « PREPARER » DOIT AGIR. On mesure APRES l effet : un bouton qui n ouvrirait
+             rien serait exactement ce qu on croit avoir absorbe. */
+          const prep = document.querySelectorAll('#objectiveResult [data-op-prep]');
+          const start = document.querySelectorAll('#objectiveResult [data-op-start]');
+          let dialogueOuvert = false, notePrefixee = '';
+          const dlg = document.getElementById('workoutDialog');
+          if (prep[0] && dlg) {
+            prep[0].click();
+            dialogueOuvert = dlg.open === true;
+            const notes = document.getElementById('workoutNotes');
+            notePrefixee = String((notes || {}).value || '').slice(0, 60);
+            try { dlg.close(); } catch (_) {}
+          }
+          const prepareAgit = dialogueOuvert && notePrefixee.indexOf('Séance guidée') !== -1;
+
+          checks.__uniteGestes = 'lignes=' + formats.length + ' nues=' + nues.length
+            + ' nonReps=' + nonReps.length + '[' + nonReps.slice(0, 3).join(' ') + ']'
+            + ' muscu=' + joursMuscu.length + ' avecPourquoi=' + avecPourquoi
+            + ' start=' + start.length + ' prep=' + prep.length
+            + ' prepareAgit=' + prepareAgit + ' note[' + notePrefixee + ']';
+          _rendre();
+          return formats.length >= 8 && nues.length === 0 && nonReps.length >= 1
+            && joursMuscu.length >= 2 && avecPourquoi === joursMuscu.length
+            && prep.length === start.length && prep.length >= 2 && prepareAgit;
+        } catch (e) {
+          _rendre();
+          checks.__errUniteGestes = String(e && e.message); return false;
+        }
+      })();
+
       /* LE PLAN DE BATAILLE OUVRE SUR L ACTION (BLOQUANT).
          Mesure avant l iteration 98, en 390 px : le panneau faisait 3 664 px (4,3 ecrans) et son
          premier « Demarrer cette seance » tombait a 1 772 px du haut — le troisieme ecran — parce
@@ -5070,6 +5154,11 @@ app.whenReady().then(async () => {
           showPage('athlete');
           if (typeof showAthleteTab === 'function') showAthleteTab('aujourdhui');
           const cibles = [
+            /* AJOUTE A L ITERATION 99 : le panneau « Ta prochaine seance » etait le QUATRIEME
+               generateur de seances, resté visible quand les trois autres ont ete masques (53). Son
+               contenu utile est desormais dans le Plan de bataille — unite des series, pourquoi par
+               seance de muscu, geste « Preparer ». Present dans le DOM, masque a l ecran. */
+            ['.program-panel', document.querySelector('.program-panel')],
             ['.weekly-planner', document.querySelector('.weekly-planner')],
             ['#runPlanBar', document.getElementById('runPlanBar')],
             ['#runPlanResult', document.getElementById('runPlanResult')]
@@ -6490,6 +6579,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister (voir __uniteGestes)');
     if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout (voir __planAction)');
     if (!checks.hiddenCacheVraiment) errors.push('L’attribut hidden ne cache pas : un élément marqué hidden occupe encore de la place à l’écran. 14 classes posaient display:flex ou grid sans leur règle [hidden]{display:none}, qui bat l’attribut — mesuré, ~300 px de bandes vides sur les sept pages, dont 118 px au milieu du Plan de bataille et 50 px sur chaque page pour la carte d’installation. Ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle fautive (voir __hiddenFantomes pour le coupable)');
     if (!checks.hierarchieGuidee) errors.push('Séance guidée : la hiérarchie était inversée — mesuré en 390 px, le nom de l’exercice sortait à 18 px, SOUS le titre de séance (24 px) et sous l’horloge de repos (31 px), et les labels « kg »/« reps » à 9,3 px. Le nom doit dominer son écran (≥ 26 px et plus gros que le titre), les labels rester lisibles (≥ 12 px), les boutons −/+ faire 44 px. Et l’en-tête doit MESURER : « ≈ 28 min » était calculé sur tous les exercices, donc figé du début à la fin, et la barre valait (index+1)/total, soit 25 % avant la première série. Valider des séries doit faire baisser le temps et avancer la barre. La carte de la séance doit lister les étapes, marquer celle en cours, et y sauter au clic');

@@ -465,3 +465,9 @@
 .op-analyse[open]>summary::after{transform:rotate(180deg)}
 .op-analyse>summary:hover{color:var(--accent)}
 .op-analyse[open]{padding-bottom:var(--sp-5)}
+/* Les deux gestes d'une séance côte à côte (itération 99) : « Démarrer » lance le mode guidé,
+   « Préparer » préremplit la saisie manuelle — le geste absorbé du panneau « Ta prochaine séance ».
+   En ligne plutôt qu'empilés : le panneau vient d'être dégonflé de 42 %, on n'y remet pas 48 px. */
+.op-day-actions{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:var(--sp-2)}
+.op-day-actions[hidden]{display:none}
+.op-day-actions>button{flex:1 1 auto;min-width:0;min-height:44px}

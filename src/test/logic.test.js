@@ -14108,6 +14108,45 @@ test('attentionDigest : un plafond d’AFFICHAGE ne doit pas fuir dans un COMPTA
   assert.ok(L.attentionDigest(state, today).length <= 4, 'le plafond du digest reste un plafond');
 });
 
+test('objectiveProgram : chaque séance de muscu explique son placement', () => {
+  /* Absorbé du panneau « Ta prochaine séance » (itération 99). Mesuré avant : les séances de
+     COURSE du Plan de bataille portaient toutes un `why` rendu à l'écran, les séances de MUSCU
+     aucun — le gabarit ne lisait `why` que dans la branche 'course'. Les seuls textes qui
+     expliquaient le placement d'une séance de force vivaient dans le catalogue du panneau masqué. */
+  const cat = require('../lib/exercises-data.js').exercises;
+
+  /* La liste des focus se DÉRIVE des objectifs, elle ne se déclare pas : ajouter un objectif avec
+     un nouveau focus sans son texte fera tomber ce test, ce qui est exactement le but. */
+  const focusUtilises = [...new Set(L.FITNESS_OBJECTIVES.flatMap(o => o.split || []))];
+  assert.ok(focusUtilises.length >= 5, 'jeu d’essai suffisant : ' + focusUtilises.join(','));
+  focusUtilises.forEach(f => {
+    assert.ok(L.FOCUS_POURQUOI[f] && L.FOCUS_POURQUOI[f].length > 40,
+      'le focus « ' + f + ' » est utilisé par un objectif mais n’explique pas son placement');
+  });
+
+  /* Des textes DIFFÉRENTS par focus : un seul texte générique recopié partout passerait le test
+     ci-dessus sans rien apporter. C'est le cas qui discrimine. */
+  const textes = new Set(focusUtilises.map(f => L.FOCUS_POURQUOI[f]));
+  assert.equal(textes.size, focusUtilises.length, 'un texte propre à chaque focus, pas un passe-partout');
+
+  // Et le programme POSE bien ces textes sur ses séances de muscu, pour chaque objectif.
+  L.FITNESS_OBJECTIVES.forEach(o => {
+    const p = L.objectiveProgram(o.key, cat, { perSession: 5, seed: 0 });
+    assert.ok(p && Array.isArray(p.week), 'programme généré pour ' + o.key);
+    const muscu = p.week.filter(s => s.kind === 'muscu');
+    assert.ok(muscu.length > 0, o.key + ' doit poser au moins une séance de muscu');
+    muscu.forEach(s => {
+      assert.ok(s.why && s.why.length > 40,
+        o.key + ' : la séance « ' + s.title + ' » (focus ' + s.focus + ') n’explique pas son placement');
+      assert.equal(s.why, L.FOCUS_POURQUOI[s.focus], 'le texte posé est celui du focus, pas un autre');
+    });
+    // Les courses gardaient déjà leur why : on vérifie qu'on ne l'a pas écrasé au passage.
+    p.week.filter(s => s.kind === 'course').forEach(s => {
+      assert.ok(s.why && s.why.length > 5, o.key + ' : une course a perdu son why');
+    });
+  });
+});
+
 test('seanceAMettreEnAvant : celle du jour, sinon la PROCHAINE', () => {
   /* Le Plan de bataille dépliait ses cinq séances d'un bloc (1 009 px) et repoussait le premier
      « ▶️ Démarrer » à 1 772 px du haut. On n'en déplie qu'une — encore faut-il choisir la bonne.
