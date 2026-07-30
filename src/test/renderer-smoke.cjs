@@ -4348,6 +4348,83 @@ app.whenReady().then(async () => {
           const s0 = res.querySelector('.op-day>summary');
           const tactileJour = !!s0 && Math.round(s0.getBoundingClientRect().height) >= 44;
 
+          /* L ETAT D OUVERTURE SURVIT A UN RENDU (revue 103). Trois defauts mesures, tous nes de
+             l iteration 98 : le pli « Comprendre ce programme » se refermait a chaque rendu, un jour
+             deplie a la main se repliait, et le jour cible referme se rouvrait d office — l attribut
+             l attribut open ne venait que de _miseEnAvant.index === i, sans lire l etat courant.
+             On ouvre un second jour, on referme la cible, on relance un rendu, et on exige que les
+             deux gestes tiennent. Les titres n etant PAS uniques (mesure : « Course facile · 3 km »
+             deux fois sur six jours), la restauration se cle sur titre + rang d occurrence : ce
+             check le verifie en exigeant que l HOMONYME du jour ouvert reste ferme. */
+          let etatSurvit = null, detailSurvit = '';
+          {
+            const tousJours = Array.prototype.slice.call(res.querySelectorAll('.op-day'));
+            const cible0 = tousJours.filter(d => d.classList.contains('op-jour-cible'))[0] || null;
+            const titreDe = d => {
+              const b = d.querySelector('.op-day-h b');
+              return String((b || {}).textContent || '').trim();
+            };
+            // On cherche un titre EN DOUBLE : c est le cas qui a fait tomber ma premiere cle.
+            const compte = {};
+            tousJours.forEach(d => { const t = titreDe(d); compte[t] = (compte[t] || 0) + 1; });
+            const double = tousJours.filter(d => compte[titreDe(d)] > 1 && d !== cible0);
+            const aOuvrir = double[0] || tousJours.filter(d => d !== cible0)[0] || null;
+            const homonyme = aOuvrir ? double.filter(d => d !== aOuvrir && titreDe(d) === titreDe(aOuvrir))[0] : null;
+            const pli0 = res.querySelector('.op-analyse');
+            if (aOuvrir && cible0 && pli0) {
+              aOuvrir.open = true; cible0.open = false; pli0.open = true;
+              if (typeof runObjectiveProgram === 'function') runObjectiveProgram();
+              const apres = Array.prototype.slice.call(res.querySelectorAll('.op-day'));
+              const memeTitre = t => apres.filter(d => titreDe(d) === t);
+              const rang = double.indexOf(aOuvrir) >= 0 ? double.indexOf(aOuvrir) : 0;
+              const rouvert = memeTitre(titreDe(aOuvrir))[compte[titreDe(aOuvrir)] > 1 ? rang : 0];
+              const cible1 = apres.filter(d => d.classList.contains('op-jour-cible'))[0] || null;
+              const pli1 = res.querySelector('.op-analyse');
+              const homo1 = homonyme ? memeTitre(titreDe(homonyme)).filter(d => d !== rouvert)[0] : null;
+              const gardeOuvert = !!rouvert && rouvert.open === true;
+              const gardeFerme = !!cible1 && cible1.open === false;
+              const gardePli = !!pli1 && pli1.open === true;
+              const homoFerme = homo1 ? homo1.open === false : true;
+              etatSurvit = gardeOuvert && gardeFerme && gardePli && homoFerme;
+              detailSurvit = 'ouvert=' + gardeOuvert + ' cibleFermee=' + gardeFerme
+                + ' pli=' + gardePli + ' homonymeFerme=' + homoFerme
+                + ' double=' + double.length;
+              // On remet le defaut pour ne pas polluer les checks suivants.
+              if (typeof runObjectiveProgram === 'function') { pli1.open = false; runObjectiveProgram(); }
+            }
+          }
+
+          /* LA PHRASE DE DEPART NE DOIT PAS PROMETTRE UNE DIRECTION FAUSSE. Elle disait
+             « Modifiable juste au-dessus » alors que l iteration 98 a descendu le reglage : mesure,
+             433 px EN DESSOUS, et dernier element du panneau. */
+          let departHonnete = null, phraseVue = '';
+          {
+            /* ON FORCE L ETAT : la phrase n apparait que si le depart est a deux jours ou plus
+               (premiereSeanceInfo().explique). Sans ce forcage l assertion serait vacante — elle
+               sortait a null, donc elle ne gardait rien. */
+            const _profAvant = state.profile;
+            const auj = new Date(localDate() + 'T12:00:00').getDay();
+            state.profile = Object.assign({}, state.profile, { availableDays: [(auj + 3) % 7] });
+            if (typeof runObjectiveProgram === 'function') runObjectiveProgram();
+            const dep = res.querySelector('.op-depart');
+            const reg = panneau.querySelector('.op-reglages');
+            phraseVue = String((dep || {}).textContent || '').trim().slice(0, 70);
+            /* On teste le texte COMPLET, pas la tranche de 70 caracteres gardee pour le
+               diagnostic : ma premiere version cherchait « Modifiable » dans la tranche, qui le
+               coupait — l assertion sortait donc a null alors que la phrase etait bien la. */
+            const txtDep = String((dep || {}).textContent || '');
+            if (dep && reg && txtDep.indexOf('Modifiable') !== -1) {
+              const enDessous = reg.getBoundingClientRect().top > dep.getBoundingClientRect().bottom;
+              const ditAuDessus = txtDep.indexOf('au-dessus') !== -1;
+              // Le defaut exact : promettre « au-dessus » ce qui est en dessous.
+              departHonnete = !(enDessous && ditAuDessus);
+            }
+            state.profile = _profAvant;
+            if (typeof runObjectiveProgram === 'function') runObjectiveProgram();
+          }
+
+          checks.__etatSurvit = 'survit=' + etatSurvit + ' [' + detailSurvit + '] departHonnete=' + departHonnete
+            + ' phrase[' + phraseVue + ']';
           checks.__planAction = 'existants=' + existants + ' jours=' + jours.length + ' details=' + tousDetails
             + ' ouverts=' + ouverts + ' cibles=' + cibles + ' exCaches=' + exCaches
             + ' exOuvertVu=' + exOuvertVu + ' actionAvantAnalyse=' + actionAvantAnalyse
@@ -4357,6 +4434,7 @@ app.whenReady().then(async () => {
           return tousDetails && ouverts === 1 && cibles === 1 && exCaches && exOuvertVu
             && actionAvantAnalyse && reglagesEnBas && pliFerme
             && existants >= 2 && dedans === existants
+            && etatSurvit === true && departHonnete === true
             && attendus >= 2 && revele === attendus && tactile && tactileJour;
         } catch (e) {
           try { showAthleteTab(_tabAvant); } catch (_) {}
@@ -6779,7 +6857,7 @@ app.whenReady().then(async () => {
     if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
     if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister. Et le pourquoi doit DIRE VRAI : il est dérivé des zones réelles des exercices depuis la revue 100, parce qu’une table figée affirmait « tirage et poussée équilibrés » et « peu coûteux pour les jambes » sur une séance que muscleBalance classait push-heavy et qui contenait un hip-hinge (voir __uniteGestes)');
-    if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout (voir __planAction)');
+    if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout. Et un rendu ne doit pas EFFACER ce que tu viens d’ouvrir : le pli « Comprendre ce programme » se refermait à chaque rendu, un jour déplié à la main se repliait, et le jour cible refermé se rouvrait d’office (revue 103). Enfin la phrase de départ ne doit pas promettre « juste au-dessus » un réglage que l’itération 98 a descendu de 433 px (voir __planAction et __etatSurvit)');
     if (!checks.hiddenCacheVraiment) errors.push('L’attribut hidden ne cache pas : un élément marqué hidden occupe encore de la place à l’écran. 14 classes posaient display:flex ou grid sans leur règle [hidden]{display:none}, qui bat l’attribut — mesuré, ~300 px de bandes vides sur les sept pages, dont 118 px au milieu du Plan de bataille et 50 px sur chaque page pour la carte d’installation. Ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle fautive (voir __hiddenFantomes pour le coupable)');
     if (!checks.hierarchieGuidee) errors.push('Séance guidée : la hiérarchie était inversée — mesuré en 390 px, le nom de l’exercice sortait à 18 px, SOUS le titre de séance (24 px) et sous l’horloge de repos (31 px), et les labels « kg »/« reps » à 9,3 px. Le nom doit dominer son écran (≥ 26 px et plus gros que le titre), les labels rester lisibles (≥ 12 px), les boutons −/+ faire 44 px. Et l’en-tête doit MESURER : « ≈ 28 min » était calculé sur tous les exercices, donc figé du début à la fin, et la barre valait (index+1)/total, soit 25 % avant la première série. Valider des séries doit faire baisser le temps et avancer la barre. La carte de la séance doit lister les étapes, marquer celle en cours, et y sauter au clic');
     if (!checks.revisionPossessif) errors.push('Rattrapage des révisions : la phrase affichait « Son épreuve (X) » même quand aucun libellé ne correspondait — un possessif qui affirme un lien que le champ `appariee` niait dans le même objet. Le repli sur l’épreuve la plus proche est légitime, il doit juste se dire pour ce qu’il est (« Ta prochaine épreuve »). Et un libellé vide ou d’une lettre ne doit apparier aucune matière : une chaîne vide est sous-chaîne de tout, et « compta » contient « a »');
