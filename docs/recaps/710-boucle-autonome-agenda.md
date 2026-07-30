@@ -4391,3 +4391,62 @@ d'Adrien n'est pas touchée : le binaire de dev a son propre dossier de profil.)
 - Le commentaire « QUATRE séances, pas trois » du jeu d'essai était **périmé depuis la 107** (la
   cible ne rétrécit plus, donc quatre sur six ne l'atteignent plus) et la voix « Objectif de N »
   avait disparu du relevé en silence. Réparé par le semis dérivé.
+
+## Itération 109 — revue : le harnais partait de l'histoire des runs, pas d'un état connu
+
+Revue adversariale (les précédentes aux 94, 97, 100, 103, 106), visant **mon propre harnais**, sur le
+constat laissé par la 108 : `planActionDabord` rendait `ouverts=1`, puis `0`, puis `1` **sur le même
+code**.
+
+Deux profils Electron chargés côte à côte, mesure directe :
+
+| profil | ce que l'app rend |
+|---|---|
+| développement | `fitnessObjective: 'athletique'` · **6 jours de plan** · 4 154 px |
+| **VIERGE** | `fitnessObjective: null` · **0 jour de plan** · 2 507 px |
+
+Le smoke tournait sur le profil de développement et y **lisait et écrivait le vrai localStorage**.
+Trois conséquences, toutes mesurées :
+
+1. **Une dizaine de checks parlent du Plan de bataille.** Sur un profil neuf, il n'y a aucun plan :
+   ils ne passaient que grâce à un objectif laissé par un run précédent. **Le smoke n'était pas
+   reproductible depuis zéro.**
+2. `availableDays` valait `[0]` pendant un run et `[1,3,5]` au suivant → autre jour cible → autre
+   `<details>` ouvert → autre verdict.
+3. Le smoke polluait le profil pour le run suivant.
+
+### Les trois gestes
+
+- **Profil jetable** : `app.setPath('userData')` sur un dossier temporaire effacé à chaque run, avant
+  `whenReady()`.
+- **Socle de référence** posé par le harnais et vérifié par le check bloquant `socleDeReference`, qui
+  exige en plus qu'un plan de 3 séances au moins soit **réellement généré**.
+- **`planActionDabord` repart d'un panneau vidé** : il referme volontairement les jours, vide le
+  conteneur, re-rend. L'état ouvert/fermé survit aux rendus depuis la 103 (à raison) — donc un voisin
+  qui refermait le jour cible faisait tomber ce check.
+
+### Ce que cette itération a appris
+
+**Une mutation trop étroite ne teste pas son sujet.** Ma première mutation ne retirait que la ligne
+`state.fitnessObjective = …` — et elle a **survécu**, parce qu'un AUTRE check repose l'objectif au
+passage. Le diagnostic le disait : `auDepart[/78/4/…]` (objectif vide au départ) puis
+`objectif=athletique` à l'arrivée. Ce n'était ni un check creux ni un harnais mort : c'était une
+**redondance qui masquait la couverture**, le troisième cas de la règle. Élargie au bloc entier, elle
+est détectée.
+
+**Une assertion datée ne discrimine pas le jour où elle est écrite.** Pour prouver l'isolation du
+profil, j'avais choisi la date d'installation : sur un profil de dev créé le même jour, elle vaut
+aussi aujourd'hui, donc la mutation survivait. On asserte maintenant **le chemin que le processus
+utilise vraiment** (`app.getPath('userData')`, injecté dans la page) — pas une conséquence datée.
+*Miroir exact de la leçon « un test doit asserter son sujet, pas une valeur vraie ce jour-là ».*
+
+**Un garde-fou instable est une dette, pas une protection.** Trois passages du même code donnaient
+trois verdicts. Je l'ai traité avant de reprendre la roadmap, et c'était le bon ordre : toutes les
+itérations suivantes s'appuient dessus.
+
+**Note écrite sur place :** `blockStart` est posé par le socle et **ne survit pas** jusqu'aux checks
+(un check intermédiaire remplace l'état par une version normalisée qui ne le garde pas). Aucun check
+vert n'en dépend, et dans l'app ce champ n'est écrit que par « Programmer 8 semaines » — je ne
+l'assert donc pas, et je le trace dans `__socle` (`auDepart`) plutôt que de le retirer en silence.
+
+**Mutations.** 3 posées, 3 détectées. 697 tests · SMOKE OK.
