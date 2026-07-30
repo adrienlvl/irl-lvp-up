@@ -287,3 +287,39 @@ test('deux panneaux ne partagent pas leur eyebrow : c’est la clé de leur éta
   const partages = [...compte.entries()].filter(([, n]) => n > 1).map(([k, n]) => k + ' ×' + n);
   assert.deepEqual(partages, [], 'eyebrows partagés (donc état replié partagé) : ' + partages.join(', '));
 });
+
+test('chaque bloc du panneau d’analyse est réellement peint : sa fonction de rendu est appelée', () => {
+  /* REVUE 112, prouvé par mutation restée VERTE : en retirant
+     `renderTonnageTrend();renderTrainingConsistency();renderTrainingByWeekday();` de `render()`,
+     les trois blocs restent dans le DOM mais ne sont plus jamais peints — l'utilisateur perd le
+     tonnage sur 8 semaines, la régularité sur 28 jours et le graphe des jours forts, soit 479 px
+     mesurés — et le smoke restait au vert. Le check bloquant ne comptait que « au moins trois
+     blocs accueillis » : il restait trois suppressions gratuites sous le seuil, alors que son
+     message promet « rien supprimé, tout déplacé ». Un seuil ne garde que ce qui le franchit.
+
+     Ce test DÉRIVE sa liste du markup du panneau, puis, pour chaque bloc, retrouve la fonction qui
+     l'écrit (la déclaration `function` qui précède la première mention de son id dans app.js) et
+     exige qu'elle soit appelée ailleurs que sur sa propre définition. */
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(dir, 'app.js'), 'utf8');
+
+  const debut = html.indexOf('class="panel analysis-panel"');
+  assert.ok(debut > 0, 'témoin : le panneau d’analyse existe dans le markup');
+  const fin = html.indexOf('</article>', debut);
+  const ids = Array.from(html.slice(debut, fin).matchAll(/ id="([A-Za-z0-9_-]+)"/g)).map(m => m[1]);
+  assert.ok(ids.length >= 8, 'témoin : le panneau porte bien tous ses blocs (' + ids.length + ')');
+
+  const echappe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const muets = [];
+  for (const id of ids) {
+    const trouve = new RegExp("['\"]#?" + echappe(id) + "['\"]").exec(app);
+    if (!trouve) { muets.push(id + ' (aucune écriture dans app.js)'); continue; }
+    const k = app.lastIndexOf('function ', trouve.index);
+    const nom = k >= 0 ? (/^function ([A-Za-z0-9_]+)/.exec(app.slice(k)) || [])[1] : null;
+    if (!nom) { muets.push(id + ' (fonction englobante introuvable)'); continue; }
+    const appels = (app.match(new RegExp('\\b' + echappe(nom) + '\\s*\\(', 'g')) || []).length;
+    // 1 occurrence = la définition seule : la fonction existe mais personne ne l'appelle.
+    if (appels < 2) muets.push(id + ' → ' + nom + ' définie mais jamais appelée');
+  }
+  assert.deepEqual(muets, [], 'blocs du panneau d’analyse que rien ne peint : ' + muets.join(', '));
+});

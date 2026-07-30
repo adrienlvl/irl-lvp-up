@@ -914,7 +914,15 @@ app.whenReady().then(async () => {
           return distinct && progresses && sourced && wraps && iso && wired;
         })(),
         weekScheduleCurrent: typeof scheduleWeekProgram === 'function' && typeof weekProgramSchedule === 'function' && typeof buildTrainingWeek === 'function' && (() => {
+          /* ON SAUVE TOUT CE QU ON ECRIT. Ce check ecrivait state.workouts = [] et
+             state.blockStart = '' et ne restaurait que state.agenda : la fuite courait donc sur
+             TOUS les checks suivants. Mesure (revue 112) : avec le blockStart du socle,
+             #blockStatus est rendu et .analysis-panel fait 310 px ; avec blockStart vide, le bloc
+             est masque et le panneau tombe a 194 px. Des dizaines de checks de rendu mesuraient
+             donc une app SANS bloc, alors que le socle de l iteration 109 pretend en poser un —
+             exactement la premisse invisible que ce socle devait supprimer. */
           const savedAgenda = state.agenda, savedProg = (typeof lastWeekProgram !== 'undefined') ? lastWeekProgram : null;
+          const savedWorkouts = state.workouts, savedBlockStart = state.blockStart;
           let ok = true;
           try {
             const prog = buildTrainingWeek(['chest', 'back', 'legs'], 3, 2, false);
@@ -931,6 +939,7 @@ app.whenReady().then(async () => {
             ok = ok && expected.size === got.size && [...got].every(d => expected.has(d));
           } catch (e) { ok = false; }
           state.agenda = savedAgenda;
+          state.workouts = savedWorkouts; state.blockStart = savedBlockStart;
           return ok;
         })(),
         weekProgramTaper: typeof buildTrainingWeek === 'function' && typeof taperPlan === 'function' && (() => {
@@ -4137,9 +4146,14 @@ app.whenReady().then(async () => {
          (« derniers jours », « N semaines », « 28 j ») n a pas sa place dans l ecran d action.
          Une liste ecrite a la main raterait le bloc qu on ajoutera demain. */
       checks.analyseHorsEcranDaction = (() => {
-        const _wk = state.workouts;
+        /* ON RESTAURE AUSSI blockStart. Ce check l ecrit plus bas pour rendre #blockStatus,
+           et ma premiere version ne le remettait pas — la MEME faute que celle que je venais de
+           corriger dix lignes plus haut dans weekScheduleCurrent, ecrite le meme jour. Mesure :
+           le socle voyait bloc=2026-07-02 (mon ilYA(28)) au lieu du lundi qu il avait pose. */
+        const _wk = state.workouts, _bsAn = state.blockStart;
         const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
-        const _rendre = () => { state.workouts = _wk; try { render(); } catch (_) {}
+        const _rendre = () => { state.workouts = _wk; state.blockStart = _bsAn;
+          try { render(); } catch (_) {}
           try { showAthleteTab(_tabAvant); } catch (_) {} };
         try {
           if (typeof showPage !== "function") return false;
@@ -4226,7 +4240,15 @@ app.whenReady().then(async () => {
             + " seances=" + w.length;
           _rendre();
           /* Aucun bloc retrospectif dans l ecran d action, au moins TROIS accueillis par
-             l analyse (sinon on aurait supprime au lieu de deplacer), et le pilotage reste. */
+             l analyse, et le pilotage reste.
+             CE QUE CE SEUIL NE GARDE PAS, dit ici plutot que laisse croire (revue 112) : sous
+             trois, il reste des suppressions gratuites — retirer trois appels de render() faisait
+             perdre 479 px d analyse sans le franchir. Le garde contre la SUPPRESSION est donc un
+             test node statique (« chaque bloc du panneau d analyse est reellement peint »), qui
+             derive la liste du markup et exige que la fonction qui ecrit chaque bloc soit appelee.
+             Restent connus et non gardes : les quatre blocs d historique de bloc ne contiennent
+             aucun des trois marqueurs, et #objectiveResult est exempte — a raison, il porte le
+             plan et contient deja le mot « semaines ». */
           return fautifs.length === 0 && accueillis >= 3 && pilotageReste && eqNomme;
         } catch (e) {
           _rendre();
@@ -4272,7 +4294,17 @@ app.whenReady().then(async () => {
             { id: 110901, kind: "sport", title: "Séance muscu", date: localDate(), time: "18:00" },
             { id: 110902, kind: "focus", title: "Bloc de révision", date: localDate(), time: "20:00" }
           ];
-          render(); showPage("athlete"); showAthleteTab("aujourdhui");
+          render(); showPage("athlete");
+          /* ON SE PLACE LA OU LE BLOC VIT, et on le DERIVE. Ce check visait « aujourdhui » en dur ;
+             or le bloc a demenage sur « progres » a l iteration 111, et le check a continue de
+             passer parce qu il ne comparait que du TEXTE — or textContent existe meme sur un
+             element masque. Mesure au moment de la correction : h=0/0/0. Le test par le texte
+             l avait rendu aveugle au demenagement. */
+          ["aujourdhui", "programme", "progres", "corps"].some(function (t) {
+            showAthleteTab(t);
+            const e = document.getElementById("trainingWeekBalance");
+            return !!e && e.getBoundingClientRect().height >= 8;
+          });
 
           const lire = id => { const e = document.getElementById(id);
             /* PAS de normalisation par expression reguliere ici : ce bloc voyage dans un gabarit,
@@ -4280,7 +4312,10 @@ app.whenReady().then(async () => {
                tous les s manges. Meme piege que le \/ de l iteration 108. Le texte brut suffit :
                on ne fait qu une comparaison d egalite et deux indexOf. */
             return e ? String(e.textContent || "").trim() : null; };
+          const haut = id => { const e = document.getElementById(id);
+            return e ? Math.round(e.getBoundingClientRect().height) : -1; };
           const athleteAvant = lire("trainingWeekBalance");
+          const hAvant = haut("trainingWeekBalance");
           // TEMOIN : sans contenu au depart, « intact » ne voudrait rien dire.
           const athleteParle = !!athleteAvant && athleteAvant.indexOf("quilibre") !== -1;
 
@@ -4288,7 +4323,27 @@ app.whenReady().then(async () => {
           try { renderWeekPage(); } catch (_) { /* la page semaine peut refuser : voir agendaParle */ }
           const athleteApres = lire("trainingWeekBalance");
           const agendaApres = lire("weekBalance");
-          const intact = athleteParle && athleteApres === athleteAvant;
+
+          /* LE GESTE REELLEMENT FAUTIF. La ligne qui posait hidden ne vit pas dans
+             renderWeekPage mais dans renderAgenda, branche « vue jour » — celle que la bascule
+             semaine/jour declenche. Ma premiere version appelait renderWeekPage et croyait donc
+             rejouer le croisement : elle ne rejouait que la moitie sans consequence. On bascule
+             pour de vrai, et on revient. */
+          let hApresBascule = hAvant, basculeJouee = false;
+          if (typeof renderAgenda === "function" && typeof agendaView !== "undefined") {
+            const _vue = agendaView;
+            try {
+              agendaView = "day"; renderAgenda();
+              hApresBascule = haut("trainingWeekBalance");
+              basculeJouee = true;
+            } catch (_) { basculeJouee = false; }
+            try { agendaView = _vue; renderAgenda(); } catch (_) {}
+          }
+          const hApres = haut("trainingWeekBalance");
+          /* INTACT VEUT DIRE : meme texte ET meme hauteur. Un bloc mis a display:none garde son
+             textContent — c est precisement par la que le defaut d origine reviendrait. */
+          const intact = athleteParle && athleteApres === athleteAvant
+            && hAvant > 0 && hApres === hAvant && hApresBascule === hAvant;
           // TEMOIN INVERSE : l agenda doit avoir ECRIT quelque part, sinon le test est vacant.
           const agendaParle = !!agendaApres && agendaApres.length > 0;
           // Et il a ecrit CHEZ LUI : le bloc de l Athlete ne contient pas les chips de l agenda.
@@ -4305,12 +4360,16 @@ app.whenReady().then(async () => {
           });
 
           checks.__croisementEcrans = "athleteParle=" + athleteParle + " intact=" + intact
+            + " h=" + hAvant + "/" + hApres + "/" + hApresBascule + " bascule=" + basculeJouee
             + " agendaParle=" + agendaParle + " pasDeChips=" + pasDeChipsChezAthlete
             + " doubles=" + doubles.length + "[" + doubles.slice(0, 4).join(",") + "]"
             + " athlete[" + String(athleteApres).slice(0, 44) + "]"
             + " agenda[" + String(agendaApres).slice(0, 34) + "]";
           _rendre();
-          return athleteParle && intact && agendaParle && pasDeChipsChezAthlete && doubles.length === 0;
+          /* Et la bascule doit avoir ete JOUEE : sans elle, hApresBascule vaut hAvant par
+             defaut et l assertion serait vraie sans rien mesurer — une garde qui rend vacant. */
+          return athleteParle && intact && agendaParle && pasDeChipsChezAthlete
+            && doubles.length === 0 && basculeJouee === true;
         } catch (e) {
           _rendre();
           checks.__errCroisement = String(e && e.message); return false;
@@ -4328,16 +4387,19 @@ app.whenReady().then(async () => {
       checks.socleDeReference = (() => {
         try {
           const p = state.profile || {}, g = state.goals || {};
-          /* blockStart est POSE par le socle et NE SURVIT PAS jusqu ici (mesure : bloc=""/lundi
-             attendu) : un des checks intermediaires remplace l etat par une version normalisee qui
-             ne le conserve pas. Dans l app, ce champ n est ecrit que par « Programmer 8 semaines »
-             (scheduleObjectiveProgram), et aucun check vert n en depend. On ne l assert donc PAS —
-             ecrit ici plutot que retire en silence — et on garde la trace de la valeur de depart
-             dans __socleAuDepart pour ne pas oublier la question. */
+          /* blockStart : COUPABLE IDENTIFIE A LA REVUE 112, et ce n etait pas celui que j avais
+             ecrit ici. Mon commentaire accusait « un check qui remplace l etat par une version
+             normalisee » — faux deux fois : aucun check ne remplace state, et normalizeState
+             CONSERVE blockStart (mesure : normalizeState({blockStart:'2026-07-27'}).blockStart
+             rend bien 2026-07-27). Un lecteur serait alle durcir un endroit sain.
+             La vraie cause etait une fuite d ecriture non restauree dans weekScheduleCurrent,
+             corrigee ci-dessus. On assert donc de nouveau le champ : il doit survivre.
+             Lecon : un commentaire de garde-fou est une affirmation comme une autre. */
           const socleVu = state.fitnessObjective === SOCLE.fitnessObjective
             && Number(p.weight) === SOCLE.profil.weight
             && Number(g.sessions) === SOCLE.objectifs.sessions
-            && JSON.stringify(p.availableDays || null) === JSON.stringify(SOCLE.profil.availableDays);
+            && JSON.stringify(p.availableDays || null) === JSON.stringify(SOCLE.profil.availableDays)
+            && String(state.blockStart || "") === _socleLundi;
           /* ET LE SOCLE PRODUIT UN PLAN. C est la consequence qui compte : un objectif pose sans
              plan rendu laisserait tous les checks du Plan de bataille sans sujet. */
           const plan = (function () { try { return trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises); }
