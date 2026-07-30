@@ -13075,7 +13075,7 @@ function weightTrend(weights, target) {
       onTrack = true;
     } else onTrack = false;
   }
-  return { ratePerWeek, direction, toTarget, weeksToTarget, onTrack, current: b.value };
+  return { ratePerWeek, direction, toTarget, weeksToTarget, onTrack, current: b.value, mesures: recent.length };
 }
 
 // Recommandation de PAUSE DIÈTE (diet break) sur un déficit calorique PROLONGÉ — le pendant nutrition du

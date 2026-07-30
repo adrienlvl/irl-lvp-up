@@ -17968,3 +17968,28 @@ test('conseils par objectif : du fond, avec des sources vérifiées', () => {
   assert.doesNotThrow(() => L.conseilObjectif('muscle', null));
   assert.doesNotThrow(() => L.conseilObjectif('muscle', { focus: 'pas-un-tableau' }));
 });
+
+test('weightTrend : la fenêtre de calcul est exposée, et c’est la vraie', () => {
+  /* ITÉRATION 118. L'écran disait « Tendance récente » sans dire sur quoi, alors que le panneau
+     d'analyse, à côté, compare la PREMIÈRE pesée à la dernière et annonce « −2,8 kg en 8 semaines ».
+     Mesuré sur le même état : −0,36 kg/sem d'un côté, −0,35 de l'autre — deux questions
+     différentes, une seule fenêtre nommée. Pour que l'écran puisse citer la sienne, la fonction
+     doit la DIRE : elle garde au plus six mesures, moins si l'historique est court, et un libellé
+     qui annoncerait « six » sur trois pesées mentirait. */
+  const pesee = (j, v) => ({ date: '2026-0' + (j < 10 ? '7-0' + j : '7-' + j), value: v });
+  const neuf = [];
+  for (let k = 0; k < 9; k++) neuf.push(pesee(k + 1, 81 - k * 0.35));
+
+  const long = L.weightTrend(neuf, 73);
+  assert.equal(long.mesures, 6, 'six mesures au plus, même avec neuf pesées');
+  assert.ok(neuf.length > 6, 'témoin : l’historique en contient bien davantage');
+
+  // LE CAS QUI DISCRIMINE : un historique plus court que la fenêtre.
+  const court = L.weightTrend(neuf.slice(-3), 73);
+  assert.equal(court.mesures, 3, 'avec trois pesées, la fenêtre vaut trois — pas six');
+  assert.notEqual(court.mesures, long.mesures, 'sinon le test ne distinguerait rien');
+
+  // Et la fenêtre reste cohérente avec le rythme annoncé : deux mesures suffisent, pas moins.
+  assert.equal(L.weightTrend(neuf.slice(-2), 73).mesures, 2);
+  assert.equal(L.weightTrend(neuf.slice(-1), 73), null, 'une seule pesée ne fait pas une tendance');
+});
