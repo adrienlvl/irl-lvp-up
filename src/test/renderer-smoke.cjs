@@ -4082,6 +4082,104 @@ app.whenReady().then(async () => {
          ans de pesees (-12 kg) face a trois mois de mensurations (-1,5 cm) donnaient « la perte
          de gras est bien engagee », alors que sur la fenetre commune le poids n avait pas bouge
          — donc une recomposition, la MEILLEURE nouvelle. L app sous-creditait un vrai progres. */
+      /* C2 — LA COUPE DIT SA CAUSE. Mesure de la 125 : objectif « Prise de muscle » avec un plan
+         poids a -885 kcal/jour (28 % de la depense), la politique passe volumeFactor a 0,70 et
+         le plan annonçait « Volume reduit : 4 exercices par seance au lieu de 5 » sans jamais
+         dire d ou ça venait — la cause n etait lisible que sur la page Poids, dans une section
+         repliee (mesure de la chaine : details « Ma semaine type » ferme, panneau display:none). */
+      checks.coupeDitSaCause = (() => {
+        const _p = JSON.parse(JSON.stringify(state.profile || {}));
+        const _g = JSON.parse(JSON.stringify(state.goals || {}));
+        const _o = state.fitnessObjective, _w = state.workouts, _a = state.agenda;
+        const _we = state.weights, _seed = state.objectiveSeed;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.profile = _p; state.goals = _g; state.fitnessObjective = _o;
+          state.workouts = _w; state.agenda = _a; state.weights = _we; state.objectiveSeed = _seed;
+          try { render(); } catch (_) {}
+          try { showPage("athlete"); showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof causeDeLaCoupe !== "function"
+            || typeof trainingWeekPlan !== "function") { _rendre(); return false; }
+          state.profile = Object.assign({}, state.profile, { weight: 86, height: 178, age: 29,
+            sex: "homme", activityLevel: "actif", goal: "perte",
+            level: "intermediaire", availableDays: [1, 2, 3, 4, 5, 6, 0] });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 78, sessions: 4, runs: 1,
+            distance: 10, weeklyKm: 12, nutritionPlan: "agressif" });
+          state.workouts = []; state.agenda = []; state.weights = [];
+
+          /* On MESURE LA OU C EST VISIBLE : le plan se construit au clic, comme pour Adrien,
+             et on ne retient que les occurrences dont la page n est pas masquee. */
+          const lire = (objectif) => {
+            render(); showPage("athlete"); showAthleteTab("aujourdhui");
+            /* Le <select> fait FOI : runObjectiveProgram lit sa valeur et ecrase l etat avec.
+               Poser seulement state.fitnessObjective laissait les deux passes generer le meme
+               plan « athletique » — mesure de la 125. */
+            const sel = document.getElementById("objectiveSelect");
+            if (sel) sel.value = objectif;
+            const b = document.getElementById("objectiveGenerate");
+            if (b) b.click();
+            showPage("athlete"); showAthleteTab("aujourdhui");
+            let trouve = null;
+            Array.from(document.querySelectorAll("main.app-shell *")).forEach(function (el) {
+              if (trouve || el.children.length) return;
+              const t = String(el.textContent || "");
+              if (t.indexOf("Volume r\u00e9duit") === -1) return;
+              let p = el, pageOk = true;
+              while (p && p !== document.body) {
+                if (String(p.className || "").indexOf("app-page-hidden") !== -1) { pageOk = false; break; }
+                p = p.parentElement;
+              }
+              if (!pageOk) return;
+              trouve = { h: Math.round(el.getBoundingClientRect().height),
+                visible: (typeof el.checkVisibility === "function") ? el.checkVisibility() : true,
+                texte: t };
+            });
+            return trouve;
+          };
+          const calculer = () => trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises);
+
+          /* --- PASSE 1 : objectif MUSCLE. La tension doit etre nommee. --- */
+          state.fitnessObjective = "muscle";
+          const planM = calculer();
+          const vuM = lire("muscle");
+          /* TEMOIN : le clic a bien retenu l objectif demande, sinon tout ce qui suit est vain. */
+          const objetTenuM = state.fitnessObjective === "muscle";
+          /* TEMOIN : sans coupe reelle, la passe ne teste rien. */
+          const coupeVraie = !!planM && !!planM.politique && planM.politique.volumeFactor < 1
+            && planM.politique.deficitPart >= 10;
+          const peint = !!vuM && vuM.visible && vuM.h > 0;
+          /* Le chiffre est DERIVE de ce que la politique a retenu, jamais ecrit en dur. */
+          const part = planM && planM.politique ? String(planM.politique.deficitPart) : "x";
+          const citeLaCause = !!vuM && vuM.texte.indexOf(part + " %") !== -1
+            && vuM.texte.indexOf("kcal/jour") !== -1;
+          const nommeLaTension = !!vuM && vuM.texte.indexOf("prise de muscle") !== -1;
+
+          /* --- PASSE 2 : objectif SECHE. La coupe va dans le sens voulu : cause seule. --- */
+          state.fitnessObjective = "seche";
+          const planS = calculer();
+          const vuS = lire("seche");
+          const objetTenuS = state.fitnessObjective === "seche";
+          const causeAussi = !!vuS && vuS.texte.indexOf("kcal/jour") !== -1;
+          const sansTension = !!vuS && vuS.texte.indexOf("prise de muscle") === -1;
+          /* TEMOIN : les deux passes doivent VRAIMENT differer, sinon la branche ne discrimine rien. */
+          const passesDistinctes = !!vuM && !!vuS && vuM.texte !== vuS.texte
+            && !!planS && planS.politique.volumeFactor < 1;
+
+          checks.__cause = "muscle[part=" + part + " vf="
+            + (planM && planM.politique ? planM.politique.volumeFactor : "?")
+            + " h=" + (vuM ? vuM.h : "?") + " peint=" + peint
+            + " cause=" + citeLaCause + " tension=" + nommeLaTension
+            + "] seche[cause=" + causeAussi + " sansTension=" + sansTension
+            + "] temoins[coupe=" + coupeVraie + " distinctes=" + passesDistinctes
+            + " objTenu=" + objetTenuM + "/" + objetTenuS
+            + "] t1[" + (vuM ? vuM.texte.slice(0, 118) : "") + "]";
+
+          _rendre();
+          return coupeVraie && passesDistinctes && objetTenuM && objetTenuS
+            && peint && citeLaCause && nommeLaTension && causeAussi && sansTension;
+        } catch (e) { _rendre(); checks.__errCause = String(e && e.message); return false; }
+      })();
+
       checks.rubanSurLaMemeFenetre = (() => {
         const _w = state.weights, _m = state.measurements;
         const _p = JSON.parse(JSON.stringify(state.profile || {}));
@@ -8440,6 +8538,7 @@ app.whenReady().then(async () => {
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte. Il NOMME aussi sa fenêtre (« d’ici dimanche ») et déduit le déjà-fait — revue 123 : le total sommait les jours écoulés (780 min annoncées dont 540 passées, 69 %) et réclamait le plan entier un jeudi où deux séances étaient déjà faites, si bien qu’il annonçait « il manque 1 h » sans que rien ne manque (voir __budgetSemaine)');
+    if (!checks.coupeDitSaCause) errors.push('Le Plan de bataille retire du volume sans dire pourquoi. Mesuré à l’itération 125 sur un état atteignable — objectif physique « Prise de muscle », objectif de poids « perte », programme nutrition « agressif » : déficit de 885 kcal/jour soit 28 % de la dépense, `trainingPolicy` passe volumeFactor à 0,70, et le plan annonçait « Volume réduit : 4 exercices par séance au lieu de 5 » sans sa cause. Celle-ci n’était lisible que sur la page Poids, dans un <details> « Ma semaine type » fermé, sur un panneau en display:none. Attendu : la phrase de coupe est PEINTE sur le Plan de bataille (checkVisibility, hauteur > 0), elle cite le déficit et la part que la politique a réellement retenus, et elle ne nomme un conflit que quand il existe — « prise de muscle » sur un objectif muscle, rien de tel sur une sèche où la coupe va dans le sens visé (voir __cause)');
     if (!checks.rubanSurLaMemeFenetre) errors.push('Le Coach Poids compare une variation de poids et une variation de tour de taille prises sur DEUX périodes différentes. Mesuré à l’itération 124 : deux ans de pesées (90 → 78 kg) face à trois mois de mensurations (−1,5 cm) donnaient « Poids et tour de taille en baisse : la perte de gras est bien engagée », alors que sur la fenêtre commune la balance n’avait pas bougé — la réponse juste était « recomposition en cours », c’est-à-dire la MEILLEURE nouvelle : l’app sous-créditait un vrai progrès en le nommant mal. Attendu : les deux deltas sont bornés au départ commun des deux séries, la période est ÉCRITE à l’écran, et le verdict suit ce qui se passe DANS la fenêtre — mêmes mensurations, une balance stable dit « recomposition » et une balance qui chute dit « perte de gras » (voir __ruban)');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
     if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE, en DURÉE : le panneau Poids dit « Sur N jours » — mesuré à l’itération 121, « 6 pesées » ne distinguait pas 41 jours de 5, alors que le même profil sort −0,30 ou −0,84 kg/sem selon la durée — et il ne projette PAS d’échéance sous deux semaines de recul (deux pesées à 24 h donnaient « −3,5 kg/sem → ~2 sem. »). Le panneau d’analyse, lui, compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');

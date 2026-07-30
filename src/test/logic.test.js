@@ -15704,6 +15704,63 @@ test('coachFormeCause : ne parle pas de « ta forme du jour » avec des données
   assert.ok(f(nuit('2026-07-04')), 'sans todayKey, pas de test de fraîcheur');
 });
 
+test('causeDeLaCoupe : la coupe dit sa cause, et ne nomme un conflit que s\'il existe', () => {
+  /* Les deux branches du `si` demandent DEUX jeux d'essai : viser le muscle pendant que le plan
+     retire de l'énergie est une tension ; sur une sèche, la coupe VA dans le sens de l'objectif
+     et il n'y a qu'une cause à donner. Un seul jeu d'essai ne distinguerait pas les deux. */
+  const pol = { deficitPart: 28, volumeFactor: 0.7 };
+  const ener = { deficit: 885, tdee: 3158 };
+
+  const muscle = L.causeDeLaCoupe(pol, ener, 'muscle');
+  const seche = L.causeDeLaCoupe(pol, ener, 'seche');
+  assert.ok(muscle.indexOf('885 kcal/jour') !== -1, 'le déficit réel est cité');
+  assert.ok(muscle.indexOf('28 %') !== -1, 'et sa part dans la dépense');
+  assert.ok(muscle.indexOf('prise de muscle') !== -1, 'la tension est nommée quand on vise le muscle');
+  assert.ok(seche.indexOf('885 kcal/jour') !== -1, 'témoin : la cause est donnée des deux côtés');
+  assert.equal(seche.indexOf('prise de muscle'), -1, 'mais aucune tension sur une sèche');
+  assert.ok(seche.length < muscle.length, 'témoin : les deux phrases diffèrent bien');
+
+  /* Pas d'effet, pas de message : annoncer une cause là où la politique ne coupe rien serait
+     l'écart dire/faire qu'on traque. Et ZÉRO N'EST PAS ABSENT — un déficit nul ne doit pas
+     produire « −0 kcal/jour ». */
+  assert.equal(L.causeDeLaCoupe({ deficitPart: 9 }, ener, 'muscle'), null, 'sous 10 %, on se tait');
+  assert.equal(L.causeDeLaCoupe(pol, { deficit: 0 }, 'muscle'), null, 'déficit nul → rien');
+  assert.equal(L.causeDeLaCoupe(pol, null, 'muscle'), null);
+  assert.equal(L.causeDeLaCoupe(null, ener, 'muscle'), null);
+  assert.equal(L.causeDeLaCoupe({ deficitPart: null }, ener, 'muscle'), null,
+    'une part absente n\'est pas une part de 0');
+});
+
+test('trainingWeekPlan : la phrase qui annonce la coupe porte sa cause', () => {
+  /* Le test précédent porte sur la fonction ; celui-ci vérifie qu'elle est BRANCHÉE — une
+     fonction pure parfaite que personne n'appelle ne change rien à l'écran. */
+  const etat = objectif => ({
+    profile: { weight: 86, height: 178, age: 29, sex: 'homme', activityLevel: 'actif',
+      goal: 'perte', level: 'intermediaire', availableDays: [1, 2, 3, 4, 5, 6, 0], equipment: {} },
+    goals: { targetWeight: 78, sessions: 4, runs: 1, distance: 10, weeklyKm: 12,
+      nutritionPlan: 'agressif' },
+    fitnessObjective: objectif, workouts: [], agenda: [], weights: [], recovery: [],
+    blockStart: '', blockHistory: [], plans: []
+  });
+  const { exercises } = require('../lib/exercises-data.js');
+  const plan = o => L.trainingWeekPlan(L.trainingPlanInputs(etat(o), '2026-07-30'), exercises);
+  const coupe = p => (p.ajustements || []).find(a => a.indexOf('Volume réduit') === 0) || '';
+
+  const pm = plan('muscle');
+  assert.equal(pm.politique.niveau, 'marque', 'témoin : la politique coupe bien sur cet état');
+  const cm = coupe(pm);
+  assert.ok(cm, 'témoin : la coupe est bien annoncée');
+  /* On DÉRIVE le chiffre attendu de ce que la politique a calculé — l'écrire en dur ferait
+     passer le test pour un jour donné, pas pour son sujet. */
+  assert.ok(cm.indexOf(String(pm.politique.deficitPart) + ' %') !== -1,
+    'la phrase cite la part réellement retenue');
+  assert.ok(cm.indexOf('prise de muscle') !== -1, 'et nomme la tension avec l\'objectif visé');
+
+  const cs = coupe(plan('seche'));
+  assert.ok(cs.indexOf('kcal/jour') !== -1, 'la sèche reçoit la cause');
+  assert.equal(cs.indexOf('prise de muscle'), -1, 'sans tension inventée');
+});
+
 test('trainingPolicy : en déficit on retire du volume, jamais des charges', () => {
   const f = L.trainingPolicy;
 
