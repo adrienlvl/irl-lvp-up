@@ -3763,7 +3763,12 @@ app.whenReady().then(async () => {
             + " visiblesOuvert=" + visiblesOuvert + "/" + attendus.length + " (6 au total)";
           if (typeof showPage === "function") showPage(_pageAvant);
           return trouves.length === 6 && dedans.length === 6 && ferme && invisibles === 6
-            && tactile && attendus.length >= 4 && visiblesOuvert === attendus.length && gagne > 300;
+            /* CORRIGE A LA REVUE 100 : « >= 4 analyses peuplees » et « > 300 px gagnes » etaient
+               calibres sur un DOM laisse riche par les fixtures des checks precedents. Le sujet est
+               que le pli CACHE un mur et le REVELE : on le mesure par rapport a sa propre hauteur
+               fermee, ce qui reste vrai quelles que soient les donnees du moment. */
+            && tactile && attendus.length >= 2 && visiblesOuvert === attendus.length
+            && gagne > hautFerme * 2;
         } catch (e) {
           try { if (typeof showPage === "function") showPage(_pageAvant); } catch (_) {}
           checks.__errFocusPli = String(e && e.message); return false;
@@ -3994,6 +3999,84 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* UN REGLAGE INVALIDE NE DOIT PAS EMPORTER LE RENDU (BLOQUANT, revue 100).
+         Trouve en revisant ma propre iteration 99. state.activeProgram etait dereference SANS
+         garde a trois endroits : en tete de renderTrainingCompanion, dans son gestionnaire de clic,
+         et en tete de renderRoadmapFeatures. Le chargement ne rattrapait que le VIDE
+         (activeProgram ||= fullbody), donc toute chaine non vide invalide passait — un etat
+         laisse par une version anterieure, ou une sauvegarde importee. Mesure : avec
+         activeProgram = hybride-2024, le render() GLOBAL jetait « Cannot read properties of
+         undefined », et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de
+         charge, les seances manquees, les mensurations et le bilan coach, tout ce contenu vivant
+         mourait avec lui : ecran fige sur la peinture precedente, sans message.
+         C est l iteration 99 qui a rendu ce chemin critique : en masquant les trois cartes du
+         panneau, j ai supprime le seul controle qui posait une valeur VALIDE.
+
+         On vide #coachSummary AVANT de rendre : c est la derniere chose qu ecrit la fonction, donc
+         un texte non vide apres coup PROUVE qu elle est allee au bout. Sans ce vidage, le texte
+         perime de la peinture precedente ferait passer le check pour de mauvaises raisons. */
+      checks.etatInvalideNeCassePas = (() => {
+        const _apAvant = state.activeProgram;
+        const _tabAvant = (typeof athleteTab === 'string') ? athleteTab : 'aujourdhui';
+        try {
+          if (typeof render !== 'function' || typeof showPage !== 'function') return false;
+          showPage('athlete'); showAthleteTab('aujourdhui');
+          const resume = document.getElementById('coachSummary');
+          if (!resume) return false;
+
+          state.activeProgram = 'hybride-2024';
+          resume.textContent = '';
+          let jete = null;
+          try { render(); } catch (e) { jete = String(e && e.message); }
+          const alleAuBout = String(resume.textContent || '').length > 20;
+
+          // Le Compagnon doit avoir survecu lui aussi, et dire quelque chose.
+          const compagnon = document.getElementById('todayCoachTitle');
+          const titreVu = String((compagnon || {}).textContent || '').trim().length > 3;
+
+          /* « VOIR MON PLAN » DOIT MONTRER LE PLAN. Defaut preexistant trouve par la meme revue :
+             cette action ouvrait le sous-onglet « Programme », qui contient les objectifs, le profil
+             et l historique — mais PAS le Plan de bataille, assigne a « Aujourd hui » dans
+             ATHLETE_TABS. On teste le GESTIONNAIRE, pas la branche qui le choisit : on pose l action
+             et on mesure APRES le clic. */
+          /* LA CURE A LA RACINE, couverte elle aussi : normalizeState doit ramener une valeur
+             invalide sur une clef REELLE du catalogue. Sans cette assertion, remettre le vieux
+             activeProgram ||= fullbody passerait inapercu — le reste du check pose la valeur a
+             l execution et n exerce donc jamais le chargement. */
+          let normalise = null, errNorm = null;
+          try {
+            if (typeof normalizeState === 'function') {
+              const n = normalizeState({ activeProgram: 'hybride-2024' });
+              normalise = !!(n && programs && programs[n.activeProgram]);
+            }
+          } catch (e2) { errNorm = String(e2 && e2.message); }
+
+          const bouton = document.getElementById('todayCoachAction');
+          let planApres = null;
+          if (bouton) {
+            showAthleteTab('programme');
+            bouton.dataset.action = 'voirProgramme';
+            bouton.click();
+            const pan = document.querySelector('.objective-program-panel');
+            planApres = !!pan && pan.getBoundingClientRect().height > 100;
+          }
+
+          state.activeProgram = _apAvant;
+          try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {}
+
+          checks.__etatInvalide = 'jete=' + jete + ' alleAuBout=' + alleAuBout
+            + ' titreVu=' + titreVu + ' planApresClic=' + planApres
+            + ' normalise=' + normalise + (errNorm ? ' errNorm[' + errNorm + ']' : '')
+            + ' resume[' + String(resume.textContent || '').slice(0, 38) + ']';
+          return jete === null && alleAuBout && titreVu && planApres === true && normalise === true;
+        } catch (e) {
+          state.activeProgram = _apAvant;
+          try { render(); showAthleteTab(_tabAvant); } catch (_) {}
+          checks.__errEtatInvalide = String(e && e.message); return false;
+        }
+      })();
+
       /* LE PLAN DE BATAILLE A ABSORBE « TA PROCHAINE SEANCE » (BLOQUANT, iteration 99).
          program-panel (2 159 px) etait le QUATRIEME generateur de seances, reste visible quand les
          trois autres ont ete masques a l iteration 53. Avant de le masquer a son tour, le Plan a
@@ -4132,10 +4215,14 @@ app.whenReady().then(async () => {
 
           /* 4. Le pli est ferme et contient bien les cinq blocs d explication ; le deplier doit
                 TOUT reveler, sinon c est une trappe. */
-          const dedans = pli
-            ? ['.op-equip', '.op-why', '.op-trail', '.op-ramp', '.op-nutri']
-              .filter(s => !!pli.querySelector(s)).length
-            : 0;
+          /* CORRIGE A LA REVUE 100 : ce compte exigeait les CINQ blocs, un chiffre calibre a un
+             moment ou le DOM etait laisse riche par les fixtures des checks precedents. Un bloc
+             absent des DONNEES (aucun denivele regle, nutrition non calculable) n est pas un bloc
+             hors du pli : c est un bloc qui n existe pas. On derive donc les deux nombres du DOM et
+             on exige que tous ceux qui EXISTENT soient dans le pli. */
+          const CANDIDATS = ['.op-equip', '.op-why', '.op-trail', '.op-ramp', '.op-nutri'];
+          const existants = CANDIDATS.filter(s => !!res.querySelector(s)).length;
+          const dedans = pli ? CANDIDATS.filter(s => !!pli.querySelector(s)).length : 0;
           const pliFerme = !!pli && pli.open === false;
           const tete = pli ? pli.querySelector('summary') : null;
           const tactile = !!tete && Math.round(tete.getBoundingClientRect().height) >= 44;
@@ -4152,15 +4239,16 @@ app.whenReady().then(async () => {
           const s0 = res.querySelector('.op-day>summary');
           const tactileJour = !!s0 && Math.round(s0.getBoundingClientRect().height) >= 44;
 
-          checks.__planAction = 'jours=' + jours.length + ' details=' + tousDetails
+          checks.__planAction = 'existants=' + existants + ' jours=' + jours.length + ' details=' + tousDetails
             + ' ouverts=' + ouverts + ' cibles=' + cibles + ' exCaches=' + exCaches
             + ' exOuvertVu=' + exOuvertVu + ' actionAvantAnalyse=' + actionAvantAnalyse
             + ' reglagesEnBas=' + reglagesEnBas + ' pliFerme=' + pliFerme + ' dedans=' + dedans
             + ' revele=' + revele + '/' + attendus + ' tactile=' + tactile + '/' + tactileJour;
           showAthleteTab(_tabAvant);
           return tousDetails && ouverts === 1 && cibles === 1 && exCaches && exOuvertVu
-            && actionAvantAnalyse && reglagesEnBas && pliFerme && dedans === 5
-            && attendus >= 3 && revele === attendus && tactile && tactileJour;
+            && actionAvantAnalyse && reglagesEnBas && pliFerme
+            && existants >= 2 && dedans === existants
+            && attendus >= 2 && revele === attendus && tactile && tactileJour;
         } catch (e) {
           try { showAthleteTab(_tabAvant); } catch (_) {}
           checks.__errPlanAction = String(e && e.message); return false;
@@ -6579,6 +6667,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
     if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister (voir __uniteGestes)');
     if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout (voir __planAction)');
     if (!checks.hiddenCacheVraiment) errors.push('L’attribut hidden ne cache pas : un élément marqué hidden occupe encore de la place à l’écran. 14 classes posaient display:flex ou grid sans leur règle [hidden]{display:none}, qui bat l’attribut — mesuré, ~300 px de bandes vides sur les sept pages, dont 118 px au milieu du Plan de bataille et 50 px sur chaque page pour la carte d’installation. Ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle fautive (voir __hiddenFantomes pour le coupable)');
