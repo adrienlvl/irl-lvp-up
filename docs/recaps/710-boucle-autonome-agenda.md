@@ -3900,3 +3900,70 @@ partis en morceaux avant que je les rétablisse.
 **Mutations.** 5 posées, 5 détectées, témoin non muté d'abord.
 
 693 tests · SMOKE OK. Rien publié depuis v2.16.0. **A2 (un seul check-in) reste la prochaine étape.**
+
+## Itération 101 — deux phrases de mon cru contredisaient les chiffres de l'app
+
+Suite de la revue 100 : ses lentilles adversariales déléguées ont rendu quatre alertes après la
+clôture de l'itération. Trois vérifiées, une réfutée.
+
+### Ce que la table figée affirmait
+
+Sur la configuration **par défaut**, le focus « upper » du Plan de bataille disait « tirage et
+poussée **équilibrés** » et « **peu coûteux pour les jambes** ». Les fonctions de l'app, sur cette
+même séance :
+
+```
+exos : Floor press [chest,arms] · Good morning [back,glutes]
+       · Développé militaire [shoulders,arms] · Pompes diamants [arms,chest]
+muscleBalance  -> { push: 9, pull: 3, ratio: 3, zone: 'push-heavy' }
+pushPullAdvice -> « Trop de poussée », ok = false
+```
+
+Deux affirmations contredites dans la même phrase — et un Good morning est un hip-hinge
+[back, glutes], donc précisément ce qui sert à courir. La consigne « plaçable près d'une sortie
+course » était un **mauvais conseil**, pas seulement une imprécision.
+
+**La cause n'était pas le choix des mots, c'était leur nature.** Une séance est composée à
+l'exécution ; une promesse figée sur sa composition finit forcément fausse. `pourquoiSeanceMuscu`
+la dérive : l'équilibre vient de `muscleBalance` (la même implémentation que le panneau qui en juge
+ailleurs — un seul avis par sujet), la sollicitation des jambes des zones réelles, et la consigne de
+placement en découle. Vérifié sur les **14 séances de muscu des 5 objectifs** : plus une seule
+phrase ne contredit les nombres.
+
+### « Dernier exercice de la séance » sur l'exercice 1 sur 3
+
+Il suffit de sauter le premier, faire les deux autres, puis y revenir — par « Précédent » ou par la
+carte de séance que j'ai construite à l'itération 95. Mesuré, avec la contradiction **visible à
+l'écran** : l'en-tête disait « Exercice 1/3 · 6/9 séries · ≈ 12 min restantes » quand la ligne du
+dessous annonçait la dernière. `restants` filtrait `rang > i + 1`, ce qui confond « rien après moi »
+et « je suis le dernier » — alors que le commentaire de la fonction dit lui-même qu'on peut revenir
+en arrière. Elle s'en protégeait pour calculer `statut` et l'oubliait pour la phrase.
+
+### Ce que cette itération a appris
+
+**Ma correction reproduisait le défaut qu'elle corrigeait.** `muscleBalance` rend CINQ zones ; ma
+ternaire n'en traitait que deux et versait `no-push` dans « équilibrés ». Mesuré sur le focus
+« lower » : push=0, pull=3, et j'écrivais « Poussée et tirage équilibrés ». *Corriger une
+affirmation fausse par une autre affirmation non mesurée, c'est déplacer le défaut.* La phrase se
+fonde désormais sur les NOMBRES, pas sur le nom de la zone : elle reste vraie si les zones sont
+renommées.
+
+**Une phrase figée sur une donnée calculée est une dette à retardement.** Le texte était juste le
+jour où je l'ai écrit pour le focus que j'avais en tête ; il est devenu faux dès que le générateur a
+composé autrement. *Si l'app peut calculer ce qu'une phrase affirme, la phrase doit le lire.*
+
+**Un test qui n'exige rien de positif laisse le contenu disparaître.** Une mutation a survécu : en
+supprimant les branches « plateau à zéro », la phrase se contentait de **taire** l'information — mon
+test n'assertait que l'absence du mensonge, jamais la présence de l'information. Assertion positive
+ajoutée. *« Ne pas mentir » et « dire » sont deux contrats distincts.*
+
+**Une alerte sur quatre réfutée, et c'est dit :** « tout est validé avec 3 séries sur 12 » supposait
+des minutes par exercice à 0 ; `prescriptionFor` borne à `Math.max(1, …)` et le minimum réel mesuré
+est 4. Latent, pas atteignable. Idem pour `weekday: null` traité comme dimanche — contrat faux, aucun
+producteur actuel ne l'émet ; noté, pas corrigé.
+
+**Mutations.** 7 posées, 7 détectées (dont une au rendu). La lentille « rendu » de la revue est morte
+sur un 529 : son angle — idempotence de `reorganiserPlanDeBataille`, état ouvert/fermé après un
+re-rendu, index `data-op-start` après un remplacement — **reste à instruire**.
+
+693 tests · SMOKE OK. Rien publié depuis v2.16.0. **A2 (un seul check-in) reste la prochaine étape.**
