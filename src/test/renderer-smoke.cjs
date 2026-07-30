@@ -4066,6 +4066,97 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* UN SEUL REGLAGE POUR LE NOMBRE DE SEANCES (BLOQUANT, iteration 115 — etape A5).
+         Mesure avant : deux champs proposaient de le regler.
+           #sessionsGoal (panneau « Objectifs hebdomadaires », sous-onglet Programme)
+             -> ecrivait goals.sessions. Le passer de 4 a 8 : cible 5 -> 5, plan 3 muscu + 2
+                courses -> inchange. Un dial qui promet et ne fait RIEN.
+           #progSessions (Plan de bataille, sous-onglet Aujourd hui)
+             -> ecrit goals.progSessions, que le plan lit vraiment : 6 donne cible 6 et 4 muscu.
+         Les deux ecrivent maintenant le meme reglage, et le champ affiche ce qui pilote.
+         Le check regle depuis le panneau « Objectifs » et exige que la cible ET la composition
+         du plan bougent : verifier que le champ ECRIT ne prouverait rien, c est justement ce
+         que l ancien code faisait. */
+      checks.unSeulReglageDeSeances = (() => {
+        const _goals = JSON.parse(JSON.stringify(state.goals || {}));
+        const _wk = state.workouts, _obj = state.fitnessObjective;
+        const _prof = JSON.parse(JSON.stringify(state.profile || {}));
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.goals = _goals; state.workouts = _wk;
+          state.fitnessObjective = _obj; state.profile = _prof;
+          try { render(); } catch (_) {} try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          const champ = document.getElementById("sessionsGoal");
+          const bouton = document.getElementById("saveGoals");
+          const dialPlan = document.getElementById("progSessions");
+          if (!champ || !bouton || !dialPlan) { _rendre(); return false; }
+          /* Tous les jours disponibles : sinon le plan est bride par le budget de jours et la
+             composition ne suit pas le reglage — le scenario ne discriminerait plus. */
+          state.profile = Object.assign({}, state.profile, { availableDays: [1, 2, 3, 4, 5, 6, 0],
+            level: "intermediaire" });
+          state.goals = Object.assign({}, state.goals, { sessions: 4, progSessions: "",
+            runs: 2, distance: 20 });
+          state.fitnessObjective = "athletique";
+          state.workouts = [];
+          render(); showPage("athlete");
+
+          const compo = () => { try {
+            const p = trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises);
+            if (!p || !Array.isArray(p.semaineType)) return null;
+            const n = k => p.semaineType.filter(x => x && x.kind === k).length;
+            return n("muscu") + "m+" + n("course") + "c";
+          } catch (_) { return null; } };
+          const cibleDe = () => (typeof cibleHebdo === "function") ? cibleHebdo().prevu : null;
+
+          const cible0 = cibleDe(), compo0 = compo();
+          // On vise une valeur FRANCHEMENT differente pour que la composition doive bouger.
+          const vise = (Number(cible0) || 5) + 3;
+          showAthleteTab("programme");
+          champ.value = String(vise);
+          bouton.click();
+          const cible1 = cibleDe(), compo1 = compo();
+
+          // TEMOINS : il y avait bien quelque chose a bouger, et on a demande autre chose.
+          const departLisible = cible0 !== null && compo0 !== null && Number(cible0) !== vise;
+          const cibleSuit = cible1 !== null && Number(cible1) === vise;
+          const planSuit = compo1 !== null && compo1 !== compo0;
+
+          /* Et les DEUX champs montrent le meme reglage : sinon l app propose deux nombres pour
+             un seul sujet, ce qui est le defaut d origine sous une autre forme. */
+          render();
+          showAthleteTab("programme");
+          const vuObjectifs = String(document.getElementById("sessionsGoal").value);
+          showAthleteTab("aujourdhui");
+          const vuPlan = String(document.getElementById("progSessions").value);
+          const memeAffichage = vuObjectifs === String(vise) && vuPlan === String(vise);
+
+          /* SENS INVERSE. On regle depuis le PLAN : seul progSessions bouge, sessions reste a sa
+             valeur. Le panneau « Objectifs » doit alors montrer le reglage QUI PILOTE, pas
+             l autre. Sans cette seconde mesure, afficher g.sessions passait le test — les deux
+             cles valant la meme chose apres un clic sur Sauvegarder. */
+          state.goals = Object.assign({}, state.goals, { sessions: 4, progSessions: 7 });
+          render();
+          showAthleteTab("programme");
+          const vuObjectifsInverse = String(document.getElementById("sessionsGoal").value);
+          // TEMOIN : les deux cles DIFFERENT, sinon le sens de lecture ne se voit pas.
+          const clesDifferent = String(state.goals.sessions) !== String(state.goals.progSessions);
+          const litLeBonReglage = clesDifferent && vuObjectifsInverse === "7";
+
+          checks.__unSeulDial = "vise=" + vise + " cible=" + cible0 + "->" + cible1
+            + " plan=" + compo0 + "->" + compo1
+            + " depart=" + departLisible + " cibleSuit=" + cibleSuit
+            + " planSuit=" + planSuit
+            + " champs=" + vuObjectifs + "/" + vuPlan + " meme=" + memeAffichage
+            + " | inverse plan=7 objectifs=" + vuObjectifsInverse + " different=" + clesDifferent
+            + " litLeBon=" + litLeBonReglage;
+          _rendre();
+          return departLisible && cibleSuit && planSuit && memeAffichage && litLeBonReglage;
+        } catch (e) {
+          _rendre();
+          checks.__errUnSeulDial = String(e && e.message); return false;
+        }
+      })();
+
       /* SAUVEGARDER SES OBJECTIFS N EFFACE RIEN, ET REPEINT TOUT (BLOQUANT, iteration 114).
          Mesure avant, en cliquant « Sauvegarder » dans « Objectifs hebdomadaires » :
            state.goals { sessions:4, distance:20, targetWeight:73, runs:2, progSessions:.., weeklyKm:25 }
@@ -4124,8 +4215,16 @@ app.whenReady().then(async () => {
             return !(k in state.goals) || state.goals[k] === undefined;
           });
           // Et les valeurs etrangeres au formulaire n ont pas bouge non plus.
+          /* CONTRAT ELARGI SCIEMMENT A L ITERATION 115, ecrit ici et pas assoupli en silence.
+             Ce check exigeait qu aucune cle ETRANGERE AUX DEUX CHAMPS du formulaire ne bouge. Or
+             la 115 a fait converger les deux dials du nombre de seances : « Sauvegarder » ecrit
+             desormais progSessions EXPRES, parce que c est ce reglage-la que le plan lit —
+             ecrire seulement sessions etait precisement le dial mort qu on a corrige. La liste
+             des champs que le formulaire REGLE passe donc de deux a trois. Ce qu il ne regle pas
+             (runs, weeklyKm, targetWeight...) reste intouchable, et c est ce que ce test garde. */
+          const REGLES_PAR_LE_FORMULAIRE = ["sessions", "distance", "progSessions"];
           const abimees = clesAvant.filter(function (k) {
-            if (k === "sessions" || k === "distance") return false;
+            if (REGLES_PAR_LE_FORMULAIRE.indexOf(k) !== -1) return false;
             return JSON.stringify(state.goals[k]) !== JSON.stringify(valeursAvant[k]);
           });
 
@@ -7833,6 +7932,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur (voir __unSeulDial)');
     if (!checks.objectifsSauvesSansDegat) errors.push('Sauvegarder ses objectifs hebdo casse quelque chose. Mesuré à l’itération 114 : le gestionnaire de « Sauvegarder » RECONSTRUISAIT `state.goals` au lieu de le fusionner, donc { sessions, distance, targetWeight, runs, progSessions, weeklyKm } devenait { sessions, distance, targetWeight } — le nombre de courses par semaine et le volume hebdo de course (qui sert à prescrire les kilomètres) disparaissaient en silence. Et il n’appelait que `renderAthlete()`, donc le sous-onglet Progrès affichait « 3 / 6 séances » pendant que Corps et Aujourd’hui restaient à « 3/5 » — deux cibles pour la même semaine. Attendu : aucune clé de `state.goals` perdue ni modifiée hors des deux champs du formulaire, et les trois voix hebdo d’accord après le clic. (Le rendu complet, lui, n’est pas gardé : une fois la fusion en place, aucun champ de ce formulaire ne fait bouger la cible, donc un rendu partiel n’a plus de conséquence observable — c’est écrit dans le commentaire du check plutôt que promis ici. Voir __objectifsSauves)');
     if (!checks.boutonNouveauBlocMene) errors.push('Le bouton « 🔄 Générer un nouveau bloc » ne mène nulle part. Il vit dans #blockStatus, qui est passé du sous-onglet « Aujourd’hui » à « Progrès » à l’itération 111. Sans objectif choisi, son gestionnaire faisait `showPage("athlete")` et s’arrêtait là — un geste qui supposait la PROXIMITÉ du sélecteur d’objectif, vraie tant que le bouton vivait dans le même panneau que lui. Mesuré après le déménagement : le bouton se voit sur « Progrès », showPage rappelle le sous-onglet courant (donc « Progrès »), et le clic ne produit RIEN. Attendu : le clic emmène devant le sélecteur d’objectif, qui n’était pas visible avant (voir __boutonBloc)');
     if (!checks.analyseHorsEcranDaction) errors.push('L’écran d’action porte de l’analyse du passé. Mesuré à l’itération 111 puis RECTIFIÉ à la 112, plan réellement généré : le Plan de bataille faisait 3 020 px, dont ~1 100 px de blocs tournés vers l’arrière — blockStatus 434, tonnageTrend 252, trainingByWeekday 136, trainingConsistency 98, trainingWeekBalance 84 — et placés AVANT le plan lui-même, pendant que le panneau « Analyse » n’en montrait que 630. Le premier « ▶️ Démarrer cette séance » tombait à 2 258 px du haut du panneau, soit 2,7 écrans. Après déplacement : Plan 1 919 px, Analyse 1 728 px, premier départ à 1 157 px — rien supprimé. Attendu : aucun enfant du Plan n’annonce une fenêtre passée (« derniers jours », « N semaines », « 28 j »), l’Analyse en accueille au moins trois, et le pilotage de la semaine reste dans le Plan (voir __analyseDeplacee)');

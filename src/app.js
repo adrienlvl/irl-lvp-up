@@ -182,7 +182,12 @@ function renderAthlete() {
   const trailPanel=document.querySelector('.trail-panel');
   if(trailPanel&&typeof showsEnduranceBase==='function'){const endurance=showsEnduranceBase({goal:state.profile.goal,fitnessObjective:state.fitnessObjective,raceGoalDate:state.raceGoal&&state.raceGoal.date});trailPanel.classList.toggle('endurance-hidden',!endurance);}
   const week = thisWeekWorkouts(), sessions = week.length, minutes = week.reduce((a,w) => a + w.duration, 0), distance = week.filter(w => w.type === 'run').reduce((a,w) => a + w.distance, 0), g = state.goals;
-  $('#sessionsGoal').value = g.sessions; $('#distanceGoal').value = g.distance;
+  /* Le champ montre le reglage QUI PILOTE. Sans ca, regler 6 dans le Plan laissait ce champ-ci afficher 4 : deux nombres pour un seul sujet, sur deux sous-onglets. `progSessions` vide veut dire « auto » — on retombe alors sur le reglage de repli. */$('#sessionsGoal').value = (g.progSessions === '' || g.progSessions == null) ? g.sessions : g.progSessions; {/* ET LE CHAMP DU PLAN SUIT, au meme endroit que son jumeau. Il n etait peuple que par
+     runObjectiveProgram(), qui ne tourne qu a la generation : regler 8 depuis « Objectifs
+     hebdomadaires » mettait bien la cible a 8, mais le champ « Seances/sem. » du Plan restait
+     VIDE jusqu a la prochaine generation — deux nombres pour un seul reglage, encore. Meme garde
+     que la-bas : on ne touche pas un champ que l utilisateur est en train de remplir. */
+   const _ps=$('#progSessions'); if(_ps&&document.activeElement!==_ps) _ps.value=(g.progSessions===''||g.progSessions==null)?'':String(g.progSessions);} $('#distanceGoal').value = g.distance;
   $('#weekSessions').textContent = sessions;/* Le grand chiffre compte TOUTE activité ; il doit donc le DIRE dès qu'il compte autre chose
    qu'une séance au sens du plan. On compare au compte BRUT et non à `fait` : `fait` est plafonné
    par la cible (it. 107), donc cinq muscu pour trois prévues auraient fait dire « toute activité »
@@ -1374,7 +1379,7 @@ $('#saveReflection').onclick=()=>{const win=$('#reflectionWin').value.trim(),les
    2) renderAthlete() ne repeint que l onglet Athlete courant : apres le clic, le sous-onglet
       Progres affichait « 3 / 6 seances » pendant que Corps et Aujourd hui restaient a « 3/5 » —
       deux cibles pour la meme semaine, le defaut que les iterations 104 a 108 ont traque. */
-$('#saveGoals').onclick = () => { state.goals = { ...state.goals, sessions: Math.max(1,Number($('#sessionsGoal').value)||4), distance: Math.max(0,Number($('#distanceGoal').value)||0) }; save(); render(); };
+$('#saveGoals').onclick = () => { const _n = Math.max(1,Number($('#sessionsGoal').value)||4); /* On ecrit les DEUX : `progSessions` est le reglage que le plan lit vraiment (mesure it. 115 : le passer a 6 fait passer la cible de 5 a 6 et le plan de 3 a 4 muscu), `sessions` reste le repli quand aucun plan n est generable. Avant, ce champ n ecrivait que `sessions` : regler 8 laissait la cible a 5 et le plan inchange — un dial qui promet et ne fait rien. */ state.goals = { ...state.goals, sessions: _n, progSessions: _n, distance: Math.max(0,Number($('#distanceGoal').value)||0) }; save(); render(); };
 $('#saveProfile').onclick=()=>{state.profile={...state.profile,goal:$('#profileGoal').value,level:$('#profileLevel').value,equipment:{handles:$('#equipmentHandles').checked,vest:$('#equipmentVest').checked,kettlebell:$('#equipmentKettlebell').checked,pullup:$('#equipmentPullup').checked}};save();renderProfile();};
 $('#saveTrail').onclick=()=>{const elevation=Number($('#elevationInput').value)||0,longRun=Number($('#longRunInput').value)||0;state.trail=state.trail.filter(x=>x.date!==localDate());state.trail.push({date:localDate(),elevation,longRun});save();renderAthlete();};
 let lastRunPlan=null;
