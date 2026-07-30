@@ -1,5 +1,9 @@
 # Audit & roadmap long terme — IRL LVP UP
 
+> **Mise à jour du 2026-07-30 :** l'audit dédié à l'onglet Athlète et l'ordre de marche révisé
+> vivent dans [714-audit-athlete-roadmap.md](714-audit-athlete-roadmap.md). Ce document-ci reste
+> la référence pour les horizons lointains (3 à 5) et les refus (§12).
+
 *Écrit le 2026-07-29, après 60 itérations de boucle autonome et la release v2.13.0.*
 *Tout ce qui est chiffré ici vient d'une mesure sur le dépôt ou d'une sonde de l'app en 390×844.*
 
