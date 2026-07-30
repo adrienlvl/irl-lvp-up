@@ -4450,3 +4450,70 @@ vert n'en dépend, et dans l'app ce champ n'est écrit que par « Programmer 8 s
 l'assert donc pas, et je le trace dans `__socle` (`auDepart`) plutôt que de le retirer en silence.
 
 **Mutations.** 3 posées, 3 détectées. 697 tests · SMOKE OK.
+
+## Itération 110 — la prémisse de B1 était fausse, et un bug attendait derrière
+
+### D'abord : B1 reposait sur un artefact de mesure
+
+La roadmap dit « `analysis-panel` : **108 caractères** aujourd'hui ». Mesuré sur deux états :
+
+| état | ce que rend le panneau |
+|---|---|
+| profil neuf, 0 séance | **79 caractères** — « Ajoute des séances… » |
+| 8 semaines réalistes (40 séances) | **826 caractères, 5 lignes, 701 px** |
+
+Le panneau n'est pas pauvre : **il était vide parce que le profil était vide**. L'audit du 30/07 a
+mesuré le profil de développement, qui contient zéro séance — exactement ce que l'itération 109 a
+diagnostiqué pour le smoke. *Mon propre audit a été victime du défaut que l'itération d'avant venait
+de corriger ailleurs.*
+
+Au passage, ma première sonde semait « Squat », « Développé couché » et « Rowing barre » : **absents
+du catalogue** (47 exercices, orienté kettlebell/poids du corps), donc `exerciseZones` rendait `[]` et
+`muscleBalance` annonçait « aucune poussée ». J'ai failli déclarer un défaut qui n'existait pas —
+troisième artefact de sonde de la session. Re-semée avec des noms réels, la fonction dit
+« 28 poussées / 46 tirages, ratio 0,61 », ce qui est juste.
+
+### Ce que la mesure dit vraiment sur B1
+
+Sur 8 semaines de données réelles, **1 004 px d'analyse rétrospective vivent dans l'écran d'action** :
+
+| bloc | px | panneau | sous-onglet |
+|---|---|---|---|
+| `blockStatus` | 434 | objective-program-panel | **Aujourd'hui** |
+| `tonnageTrend` | 252 | objective-program-panel | **Aujourd'hui** |
+| `trainingByWeekday` | 136 | objective-program-panel | **Aujourd'hui** |
+| `trainingConsistency` | 98 | objective-program-panel | **Aujourd'hui** |
+| `weekBalance` | 84 | objective-program-panel | **Aujourd'hui** |
+
+Un inventaire délégué (8 agents, lecture seule) l'a confirmé : dix fonctions force/endurance rendent
+toutes dans le Plan de bataille. **B1 ne doit donc pas AJOUTER des voix — il doit DÉPLACER celles qui
+sont au mauvais endroit.** Ajouter e1RM, plateau, prévision et poussée/tirage à `analysis-panel`,
+comme la roadmap le prescrit, créerait quatre doublons. C'est le sujet de la prochaine itération, avec
+sa mesure de départ (Plan 1 784 px, Analyse 701 px).
+
+### Le bug trouvé en chemin, et corrigé
+
+`id="weekBalance"` existait **deux fois** — Plan de bataille et page « Ma semaine ». `$('#x')` rend
+toujours le premier du document, d'où trois conséquences mesurées : la page « Ma semaine »
+n'affichait **jamais** ses chips ; `renderWeekPage()` **écrasait** l'équilibre course/muscu du Plan ;
+et basculer l'agenda en vue « jour » posait `hidden` sur un bloc de l'onglet **Athlète** (0 px).
+
+Corrigé côté Athlète (`trainingWeekBalance`), donc dans le périmètre de la boucle, et la page
+« Ma semaine » redevient seule propriétaire de son id.
+
+### Ce que cette itération a appris
+
+**Un audit se mesure sur des données, pas sur un profil vide.** Les « 108 caractères » ont failli
+faire construire une fonctionnalité déjà écrite. *Avant de croire un chiffre d'audit, redemander à
+l'app ce qu'elle rend — avec de la donnée dedans.*
+
+**Un jeu d'essai irréaliste fabrique des défauts imaginaires.** Trois noms d'exercices inventés, et
+l'app « mentait ». Le protocole dit « jeu d'essai réaliste » : ici, réaliste voulait dire *présent
+dans le catalogue*.
+
+**`\s` dans le gabarit du smoke est lu comme un simple « s »** — le diagnostic sortait « Équilibre
+emaine ». Même piège que le `\/` de l'itération 108, repayé. Dans ce gabarit, éviter les
+échappements : le texte brut suffisait.
+
+**Mutations.** 2 posées, 2 détectées (l'une sur le smoke ET le test node). 698 tests · SMOKE OK.
+Rien publié depuis v2.17.0.
