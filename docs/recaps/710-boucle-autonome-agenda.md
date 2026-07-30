@@ -4826,3 +4826,32 @@ relevant la valeur juste avant le geste.
 **En cours :** une réfutation déléguée sur trois angles (le mode auto, la fusion de `state.goals`, les
 garde-fous durcis de la 113) tournait encore à la clôture. Ses trouvailles seront traitées à
 l'itération suivante, avant A4.
+
+### Itération 116 (suite) — ce que la réfutation déléguée a ajouté
+
+Elle a confirmé ma trouvaille par une mesure indépendante, et trouvé **deux asymétries de plus** sur
+le code que je venais de corriger. Les deux champs que je présentais comme « un seul réglage » ne
+validaient pas pareil :
+
+| | plafond | garde de saisie |
+|---|---|---|
+| `#sessionsGoal` (Objectifs) | **14** | **absente** |
+| `#progSessions` (Plan) | **10** | présente |
+
+Saisir 12 : accepté, pilote un plan à 8 séances, puis `progSessions` **redevient 10 au redémarrage**
+pendant que `sessions` reste 12. La valeur change toute seule et les deux cadrans re-divergent.
+
+**Ce que ça apprend.** *Réunir deux réglages, ce n'est pas seulement leur faire écrire la même clé :
+c'est leur donner le même domaine, la même validation et les mêmes protections.* J'avais fait
+converger les valeurs et laissé diverger tout le reste — plafond, placeholder, garde de saisie.
+
+**Et une limite assumée** : je n'ai pas su reproduire la perte de saisie chez moi (`focusReel: false`
+— fenêtre sans focus système, les deux champs se comportaient pareil). Je corrige sur la foi de
+l'asymétrie de code, qui est factuelle, pas d'une mesure du rendu. C'est écrit dans le commit.
+
+**Mutations.** 4 posées, 4 détectées, sur un test node qui dérive le plafond du markup. 701 tests ·
+SMOKE OK.
+
+**Reste des trouvailles, noté :** `normalizeState` transforme `progSessions: 0` ou `'  '` en 4, alors
+que `''` et `null` donnent bien « auto » — le tri-état n'est préservé que pour deux des quatre
+formes du vide. Cosmétique tant qu'aucun chemin d'écriture ne produit 0.
