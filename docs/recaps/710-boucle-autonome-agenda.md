@@ -4199,3 +4199,45 @@ fenêtre **glissante de 7 jours** alors que `#weekDistance` et `runWeekGoal` com
 « X km cette semaine » diverge donc tous les jours sauf le dimanche. Et la charge en points est
 calculée **deux fois par la même formule recopiée** (`#weekLoad` et le chip du Compagnon), sans
 fonction partagée.
+
+## Itération 106 — revue : « cette semaine » désignait deux fenêtres
+
+Revue adversariale (les précédentes aux 94, 97, 100, 103), sur le dernier constat du balayage de
+l'app. Mesuré un jeudi, avec 10 km le dimanche précédent et 5 km aujourd'hui — **désaccord semé**,
+pas espéré :
+
+| voix | affiche | fenêtre |
+|---|---|---|
+| `#weekDistance` | **5** km | depuis lundi |
+| `#runWeekGoal` | « Course **cette semaine** 5 / 10 km » | depuis lundi |
+| `#trailRunSummary` | « **15 km** · Cette sem. » | 7 jours **glissants** |
+| `#trailRamp` | « **15 km cette semaine** » | 7 jours **glissants** |
+
+**5 et 15 km « cette semaine », mêmes mots, facteur 3.**
+
+La fenêtre glissante n'est pas le défaut — pour juger une charge de course elle vaut mieux qu'un
+compteur qui repart à zéro le lundi. **Le défaut est le mot.** Chaque fenêtre se nomme désormais :
+« 7 derniers j. », « sur 7 jours », « les 7 d'avant » ; la voix calendaire garde « cette semaine ».
+
+### Ce que cette itération a appris
+
+**Deux branches mutuellement exclusives demandent deux jeux d'essai.** La rampe compare deux périodes
+quand il y a un précédent, et annonce « première période » sinon. Un seul fixture n'en couvre qu'une,
+donc **la mutation qui dérange l'autre survit — ce qui est arrivé dans les deux sens, à tour de
+rôle** : d'abord la comparaison n'était pas rendue, puis c'est la première période qui ne l'était
+plus. Le check mesure maintenant les **deux** états.
+
+C'est la troisième fois en trois itérations qu'une mutation survit **faute de scénario** et non par
+creux (104 : « Objectif de N » ne sort qu'une fois la cible atteinte ; 105 : le sous-onglet
+*Programme* n'était pas visité ; 106 : les deux branches de la rampe). *Le réflexe « une mutation qui
+survit = un check creux » est faux une fois sur deux : il faut vérifier lequel des trois cas, et le
+plus fréquent chez moi est le scénario manquant.*
+
+**Mutations.** 3 posées, 3 détectées après élargissement du jeu d'essai.
+
+695 tests · SMOKE OK. Rien publié depuis v2.16.0.
+
+**Reste du balayage, noté :** la charge en points est calculée **deux fois par la même formule
+recopiée** (`#weekLoad` de renderAthlete et le chip du Compagnon), sans fonction partagée — même
+résultat aujourd'hui, deux endroits à corriger le jour où la formule change. Et l'angle « cas limites
+de `cibleHebdo` » délégué en parallèle n'est pas encore revenu.
