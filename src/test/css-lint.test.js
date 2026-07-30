@@ -372,3 +372,49 @@ test('les deux champs du nombre de séances valident pareil', () => {
       'le rendu de #' + id + ' doit respecter une saisie en cours (document.activeElement)');
   }
 });
+
+test('un seul cran typographique pour les titres de panneau', () => {
+  /* ITÉRATION 119 — étape B4 de la roadmap, REFUSÉE par la mesure et remplacée par ce garde-fou.
+
+     B4 demandait de casser l'uniformité : « 30 panneaux au même poids : titre 18px/700 ». Mesuré
+     dans le renderer sur les 4 sous-onglets : 21 panneaux visibles, UNE seule taille de titre
+     (18,4 px), UNE seule graisse (700). Le constat est exact.
+
+     Mais cette uniformité est un CHOIX, pris par l'audit typographique du 2026-07-27 et écrit dans
+     pages.css : « 62 <h2> pour 8 <h3>, et un titre de panneau à 1.5rem contre 2rem pour le titre de
+     page. Deux niveaux si proches, répétés sur 47 panneaux, se lisent comme une liste de blocs
+     équivalents. » Ajouter un cran intermédiaire recréerait exactement ce qui avait été corrigé.
+
+     Et le symptôme que B4 suppose n'a pas été retrouvé : le premier geste est à 540 px sur les
+     QUATRE sous-onglets (le bouton d'en-tête), et trois d'entre eux n'ont aucune action propre —
+     ce sont des écrans de lecture, où hiérarchiser des titres ne rapproche aucune action.
+
+     Ce test protège donc la décision : une seule règle a le droit de fixer la taille d'un titre de
+     panneau. Les titres de PAGE, de MODALE et d'en-tête d'onglet gardent la leur — ce sont d'autres
+     niveaux, et c'est justement la hiérarchie qu'on veut préserver. */
+  const SRC = dir;
+  const fichiers = fs.readdirSync(SRC).filter(f => f.endsWith('.css'));
+  const regles = [];
+  for (const f of fichiers) {
+    const css = fs.readFileSync(path.join(SRC, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const re = /([^{}]+)\{([^{}]*)\}/g;
+    let m;
+    while ((m = re.exec(css))) {
+      const selecteur = m[1].replace(/\s+/g, ' ').trim();
+      const corps = m[2];
+      if (!/font-size/.test(corps)) continue;
+      // On ne retient que les sélecteurs qui visent un h2 DANS un panneau.
+      if (!/h2/.test(selecteur)) continue;
+      if (!/\.panel\b|panel h2|-panel /.test(selecteur)) continue;
+      const taille = (corps.match(/font-size:\s*([^;]+)/) || [])[1];
+      regles.push(f + ' → ' + selecteur.slice(-70) + ' : ' + String(taille).trim());
+    }
+  }
+
+  assert.ok(regles.length >= 1, 'témoin : au moins une règle fixe la taille des titres de panneau');
+  assert.equal(regles.length, 1,
+    'un seul cran pour les titres de panneau — l’uniformité est un choix de l’audit du 27/07, pas un oubli. '
+    + 'Règles trouvées : ' + regles.join(' | '));
+  assert.match(regles[0], /var\(--fs-/,
+    'la taille doit venir d’un token, jamais d’une valeur en dur (règle de la maison)');
+});
