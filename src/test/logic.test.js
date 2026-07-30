@@ -13060,6 +13060,76 @@ test('avancementSemaine : le plan se compare enfin à lui-même', () => {
   assert.equal(avant.fait.total, 0, 'le dimanche 26 appartient à la semaine d’avant');
 });
 
+test('avancementSemaine : la cible de la semaine ne rétrécit pas quand on s’entraîne', () => {
+  /* REVUE DE L'ITÉRATION 107, mesurée sur le plan RÉEL. `plan.week` est amputé de ce qui est déjà
+     fait — utile pour AFFICHER un programme à placer, faux pour dire « X/Y séances ». Sur une
+     seule semaine à 4 muscu + 2 courses, la cible annoncée valait 6 le lundi, 5 après une séance,
+     4 après deux, puis disparaissait une fois la semaine bouclée (repli sur le réglage) : l'app
+     félicitait « 2/2 · 100 % » de ce qu'elle appelait 6 trois jours plus tôt.
+     Le jeu d'essai emprunte le chemin de l'app : trainingPlanInputs → trainingWeekPlan. */
+  const mercredi = '2026-07-29';
+  const catalogue = require('../lib/exercises-data.js');
+  const exos = Array.isArray(catalogue) ? catalogue : (catalogue.exercises || Object.values(catalogue)[0]);
+  const muscu = (d, i) => ({ id: i, date: d, type: 'strength', duration: 60, effort: 7,
+    exercises: [{ name: 'Squat', sets: 4, reps: 8, load: 100 }] });
+  const course = (d, i) => ({ id: i, date: d, type: 'run', duration: 40, effort: 6, distance: 8 });
+  const mesure = w => {
+    const e = { profile: { weight: 80, height: 180, age: 29, sex: 'homme', activityLevel: 'actif',
+        goal: 'perte', availableDays: [1, 3, 5, 6], level: 'intermediaire' },
+      goals: { targetWeight: 75, sessions: 6, runs: 2, weeklyKm: 25 },
+      fitnessObjective: 'muscle', workouts: w, recovery: [], weights: [], nutrition: [], trail: {} };
+    const p = L.trainingWeekPlan(L.trainingPlanInputs(e, mercredi), exos);
+    return { plan: p, av: L.avancementSemaine(e, mercredi, { plan: p }) };
+  };
+  const nb = a => (Array.isArray(a) ? a : []).filter(x => x && (x.kind === 'muscu' || x.kind === 'course')).length;
+
+  const vide = mesure([]);
+  const deux = mesure([muscu('2026-07-27', 1), muscu('2026-07-28', 2)]);
+  const bouclee = mesure([muscu('2026-07-27', 1), muscu('2026-07-28', 2), muscu('2026-07-29', 3),
+    muscu('2026-07-29', 4), course('2026-07-28', 5), course('2026-07-29', 6)]);
+
+  /* TÉMOINS DU DÉFAUT. Sans eux le test ne discriminerait rien : c'est bien la semaine À PLACER
+     qui rétrécit, et elle tombe à zéro quand tout est fait — l'ancien code lisait celle-là. */
+  assert.ok(nb(vide.plan.week) > nb(deux.plan.week), 'témoin : le programme à placer, lui, rétrécit');
+  assert.equal(nb(bouclee.plan.week), 0, 'témoin : plus rien à placer une fois la semaine bouclée');
+  assert.equal(deux.av.fait.total, 2, 'témoin : les deux séances du jeu d’essai sont bien comptées');
+
+  // LA CIBLE, ELLE, NE BOUGE PAS DE TOUTE LA SEMAINE.
+  assert.equal(vide.av.prevu.total, nb(vide.plan.semaineType), 'la cible est la semaine ENTIÈRE');
+  assert.equal(deux.av.prevu.total, vide.av.prevu.total, 'deux séances faites ne rabotent pas la cible');
+  assert.equal(bouclee.av.prevu.total, vide.av.prevu.total, 'une semaine bouclée garde sa cible');
+  assert.equal(bouclee.av.source, 'plan',
+    'boucler son plan ne doit pas faire retomber sur le réglage : la règle de comptage changerait en pleine semaine');
+  assert.equal(bouclee.av.pct, 100);
+  assert.equal(bouclee.av.fini, true);
+
+  /* L'INVARIANT : fait + reste === cible. Le cas qui DISCRIMINE est l'excédent dans une seule
+     catégorie — quatre muscu et zéro course. En plafonnant sur le TOTAL, l'excédent de muscu
+     comblait le manque de course : `fait=2 reste=2` pour une cible de 2, donc 100 % affiché avec
+     « il reste 2 séances » juste en dessous. */
+  const excedent = mesure([muscu('2026-07-27', 1), muscu('2026-07-27', 2),
+    muscu('2026-07-28', 3), muscu('2026-07-29', 4)]);
+  assert.ok(excedent.av.fait.seances >= excedent.av.prevu.seances, 'témoin : la muscu est au complet');
+  assert.equal(excedent.av.fait.courses, 0, 'témoin : aucune course, donc il reste du travail');
+  assert.equal(excedent.av.fait.total + excedent.av.reste.total, excedent.av.prevu.total,
+    'fait + reste doit valoir la cible, sinon le panneau se contredit d’une ligne à l’autre');
+  assert.ok(excedent.av.pct < 100, 'on ne félicite pas à 100 % une semaine où les courses manquent');
+  assert.equal(excedent.av.fini, false);
+  assert.ok(excedent.av.reste.courses > 0);
+
+  // L'invariant vaut pour TOUS les états mesurés, pas seulement celui qui l'a révélé.
+  [vide, deux, bouclee, excedent].forEach((m, k) => {
+    assert.equal(m.av.fait.total + m.av.reste.total, m.av.prevu.total, 'invariant, état ' + k);
+  });
+
+  /* Et les DEUX semaines vides continuent de dire « le plan prescrit zéro » : c'est la seule
+     absence qui doit encore nous faire taire. */
+  const etatNu = { goals: { sessions: 6, runs: 2 }, profile: {}, workouts: [] };
+  assert.equal(L.avancementSemaine(etatNu, mercredi, { plan: { week: [], semaineType: [] } }), null);
+  assert.equal(L.avancementSemaine(etatNu, mercredi, { plan: { week: [] } }), null,
+    'un plan sans `semaineType` du tout garde l’ancien contrat');
+});
+
 test('exerciceSansCharge : un nom suffit, le catalogue tranche', () => {
   /* Signalé par Adrien : « y'a encore la charge qui est mise sur des exercices au poids du
      corps ». Mesuré : le détecteur exigeait un objet PORTANT son `kind`, alors qu'une séance

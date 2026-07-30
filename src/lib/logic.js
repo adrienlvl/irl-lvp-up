@@ -6196,6 +6196,15 @@ function trainingByWeekday(workouts, todayKey, windowDays) {
    courses, elles, suivent le réglage. Comparer à `goals.sessions` faisait donc annoncer
    « 6 muscu » sur un écran qui en affichait 4, juste au-dessus. Deux vérités, un seul écran.
    Le repli sur `goals` ne sert que quand aucun plan n'a encore été généré.
+
+   ET LA CIBLE EST LA SEMAINE ENTIÈRE, PAS CE QU'IL EN RESTE (revue de l'itération 107).
+   `plan.week` est amputé de ce qui est déjà fait — c'est ce qu'il faut pour AFFICHER un programme
+   à placer, jamais pour dire « X/Y séances ». Mesuré sur une même semaine à 4 muscu + 2 courses,
+   la cible annoncée valait 6 le lundi, 5 après une séance, 4 après deux, puis plus rien du tout
+   une fois la semaine bouclée (repli sur le réglage) : l'app félicitait « 2/2 · 100 % » d'une
+   semaine qui en demandait six. On lit donc `semaineType`, la semaine COMPLÈTE que le plan expose
+   déjà — elle vaut exactement `week` tant que rien n'est fait (mesuré sur les cinq objectifs),
+   donc le début de semaine ne change pas et la cible cesse de rétrécir dès qu'on s'entraîne.
    opts : { jours = 7, plan } — `plan` = sortie de `trainingWeekPlan`.
    `null` si rien n'est prescrit. Pur + testé. */
 function avancementSemaine(state, todayKey, opts) {
@@ -6203,7 +6212,13 @@ function avancementSemaine(state, todayKey, opts) {
   if (!isRealDateKey(todayKey)) return null;
   const o0 = opts && typeof opts === 'object' ? opts : {};
   const g = s.goals && typeof s.goals === 'object' ? s.goals : {};
-  const semainePlan = (o0.plan && Array.isArray(o0.plan.week)) ? o0.plan.week : null;
+  const p0 = o0.plan && typeof o0.plan === 'object' ? o0.plan : null;
+  const entiere = (p0 && Array.isArray(p0.semaineType) && p0.semaineType.length) ? p0.semaineType : null;
+  /* DEUX SEMAINES VIDES NE DISENT PAS LA MÊME CHOSE QU'UNE SEULE. `week` vide avec une
+     `semaineType` pleine signifie « tout est fait » : on garde la cible et on annonce 100 %.
+     Les DEUX vides signifient que le plan prescrit vraiment zéro (repos, décharge) : on se
+     tait plus bas, comme avant. */
+  const semainePlan = entiere || ((p0 && Array.isArray(p0.week)) ? p0.week : null);
   const source = semainePlan ? 'plan' : 'reglage';
   const prevuSeances = semainePlan
     ? semainePlan.filter(x => x && x.kind === 'muscu').length
@@ -6239,7 +6254,12 @@ function avancementSemaine(state, todayKey, opts) {
   const budgetConnu = dispos.length > 0;
 
   const total = prevuSeances + prevuCourses;
-  const fait = Math.min(total, faitSeances + faitCourses);
+  /* PLAFOND PAR CATÉGORIE, et non sur le total : autrement un excédent de muscu comble le manque
+     de course et le panneau affiche « 4/4 · 100 % » en gardant « il reste 2 séances » juste en
+     dessous. Mesuré (revue 107) : 4 muscu et 0 course sur une semaine qui demandait 4 muscu +
+     2 courses donnaient `fait=2 reste=2 pct=100`. Avec le plafond par catégorie,
+     `fait + reste === total` TOUJOURS — c'est l'invariant que le test verrouille. */
+  const fait = Math.min(prevuSeances, faitSeances) + Math.min(prevuCourses, faitCourses);
   const pct = Math.round((fait / total) * 100);
   const fini = reste === 0;
   // Tenable seulement si on SAIT combien de jours d'entraînement restent : sans le profil,

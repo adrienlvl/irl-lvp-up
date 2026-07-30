@@ -3999,6 +3999,114 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* LA CIBLE HEBDO NE RETRECIT PAS QUAND ON S ENTRAINE (BLOQUANT, iteration 107).
+         Mesure avant, sur UNE seule semaine a 4 muscu + 2 courses (objectif « muscle ») :
+           lundi, rien de fait      « 0 / 6 seances »
+           apres 2 muscu            « 2 / 4 seances »   <- la cible a RETRECI de 6 a 4
+           4 muscu, 0 course        « 2 / 2 seances · 100 % » + « il reste 2 seances »
+           semaine bouclee          « 4 / 4 seances » (repli sur le reglage, qui compte le velo)
+         Cause : plan.week est ampute de ce qui est deja fait. C est ce qu il faut pour AFFICHER
+         un programme a placer, jamais pour dire « X/Y seances ». avancementSemaine lit
+         maintenant semaineType, la semaine ENTIERE, et plafonne le fait PAR CATEGORIE.
+         Le check reproduit la semaine qui passe : il seme des seances FAITES et exige que le
+         denominateur AFFICHE ne bouge pas, que fait + reste vaille la cible, et qu un 100 %
+         ne cohabite jamais avec un « il reste des seances ». */
+      checks.cibleHebdoNeRetrecitPas = (() => {
+        const _wk = state.workouts;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.workouts = _wk; try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof showPage !== "function" || typeof cibleHebdo !== "function" || typeof trainingWeekPlan !== "function") return false;
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const passes = (auj.getDay() + 6) % 7;   // jours ecoules depuis lundi, aujourd hui exclu
+          /* Les seances semees doivent tomber DANS la semaine et pas dans le futur : on les etale
+             sur les jours deja passes, en repartant a lundi quand il en manque. */
+          const jourPasse = k => { const d = new Date(auj); d.setDate(d.getDate() - (passes ? (k % (passes + 1)) : 0)); return cle(d); };
+          const muscu = (i, k) => ({ id: 107000 + i, date: jourPasse(k), type: "strength",
+            duration: 45, distance: 0, effort: 3, exercises: [{ name: "Squat", sets: 3, reps: 8, load: 60 }] });
+          const course = (i, k) => ({ id: 107500 + i, date: jourPasse(k), type: "run",
+            duration: 35, distance: 6, effort: 2 });
+
+          const planNu = () => { try { return trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises); }
+            catch (_) { return null; } };
+          const compte = (arr, k) => (Array.isArray(arr) ? arr : []).filter(x => x && x.kind === k).length;
+          /* Le nombre de seances a semer se DERIVE du plan, il ne se declare pas : selon
+             l objectif regle, la semaine ne pose pas le meme nombre de muscu ni de courses. */
+          state.workouts = []; render();
+          const p0 = planNu();
+          const nMuscu = p0 ? compte(p0.semaineType, "muscu") : 0;
+          const nCourse = p0 ? compte(p0.semaineType, "course") : 0;
+          if (nMuscu + nCourse < 3) { _rendre(); checks.__cibleStable = "plan trop maigre pour discriminer"; return false; }
+
+          /* PAS de litteral d expression reguliere ici : ce bloc voyage dans un gabarit, donc Node
+             mange l antislash de \\/ avant que le renderer ne voie le motif, et la regex se termine
+             sur le premier slash — « Unexpected token ) ». On coupe la chaine, c est plus sobre. */
+          const denom = t => { const p = String(t || "").split(" / "); if (p.length < 2) return null;
+            const n = Number(String(p[1]).replace(/[^0-9]+.*$/, "")); return Number.isFinite(n) ? n : null; };
+          const lire = id => { const e = document.getElementById(id); return e ? String(e.textContent || "").trim() : ""; };
+          const mesurer = () => {
+            render(); showPage("athlete"); showAthleteTab("progres");
+            const c = cibleHebdo();
+            const barre = lire("sessionsProgressText");
+            const p = planNu();
+            return { prevu: c.prevu, fait: c.fait, reste: c.reste, source: c.source,
+              affiche: denom(barre), barre: barre, pct: lire("sessionsPercent"),
+              insight: lire("weekInsight"),
+              aPlacer: p ? compte(p.week, "muscu") + compte(p.week, "course") : null };
+          };
+
+          state.workouts = []; const A = mesurer();
+          state.workouts = [muscu(1, 0), muscu(2, 1)]; const B = mesurer();
+          /* TOUTES les muscu, AUCUNE course : le cas ou l excedent d une categorie comblait le
+             manque de l autre, donc 100 % affiche avec des seances encore dues. */
+          const tout = []; for (let k = 0; k < nMuscu; k++) tout.push(muscu(10 + k, k));
+          state.workouts = tout.slice(); const C = mesurer();
+          // Semaine BOUCLEE : c est la qu on retombait sur le reglage, qui compte toute activite.
+          for (let k = 0; k < nCourse; k++) tout.push(course(20 + k, k));
+          state.workouts = tout.slice(); const D = mesurer();
+          /* EXCEDENT DANS UNE SEULE CATEGORIE : deux muscu de plus que prevu, et toujours aucune
+             course. C est LE scenario qui discrimine le plafond par categorie — plafonner sur le
+             total laissait l excedent de muscu combler le manque de course, donc « fait + reste »
+             valait plus que la cible et l ecran affichait 100 % en reclamant des seances. Sans cet
+             etat, une regression du plafond passerait inapercue : les autres etats ne debordent
+             jamais d une categorie. */
+          const trop = [];
+          for (let k = 0; k < nMuscu + 2; k++) trop.push(muscu(30 + k, k));
+          state.workouts = trop; const E = mesurer();
+
+          const etats = [A, B, C, D, E];
+          // TEMOINS : sans eux le check ne discriminerait rien.
+          const planRetrecit = A.aPlacer !== null && D.aPlacer !== null && A.aPlacer > B.aPlacer && D.aPlacer === 0;
+          const faitAvance = B.fait > A.fait && D.fait > B.fait;
+          const debordeVraiment = E.fait > 0 && E.reste > 0;
+          const cibleVue = A.affiche !== null && A.affiche >= 3;
+          // LE CONTRAT.
+          const stable = etats.every(e => e.prevu === A.prevu && e.affiche === A.affiche);
+          const coherent = etats.every(e => (e.fait + e.reste) === e.prevu);
+          const sansCentPourCentMenteur = etats.every(e => e.pct !== "100%" || e.insight.indexOf("pour boucler") === -1);
+          const planJusquAuBout = etats.every(e => e.source === "plan");
+          const bouclee = D.pct === "100%" && D.reste === 0;
+
+          checks.__cibleStable = "A[" + A.barre + "/" + A.pct + "] B[" + B.barre + "/" + B.pct
+            + "] C[" + C.barre + "/" + C.pct + "] D[" + D.barre + "/" + D.pct
+            + "] E[" + E.barre + "/" + E.pct + " fait=" + E.fait + " reste=" + E.reste + "]"
+            + " semees=" + nMuscu + "m/" + nCourse + "c aPlacer=" + A.aPlacer + ">" + B.aPlacer + ">" + D.aPlacer
+            + " planRetrecit=" + planRetrecit + " faitAvance=" + faitAvance + " deborde=" + debordeVraiment
+            + " stable=" + stable + " coherent=" + coherent
+            + " sansMenteur=" + sansCentPourCentMenteur + " source=" + planJusquAuBout
+            + " insightE[" + E.insight.slice(0, 46) + "]";
+          _rendre();
+          return planRetrecit && faitAvance && debordeVraiment && cibleVue && stable && coherent
+            && sansCentPourCentMenteur && planJusquAuBout && bouclee;
+        } catch (e) {
+          _rendre();
+          checks.__errCibleStable = String(e && e.message); return false;
+        }
+      })();
+
       /* « CETTE SEMAINE » NE DESIGNE QU UNE SEULE FENETRE (BLOQUANT, iteration 106).
          Mesure avant, un jeudi, avec 10 km le dimanche precedent et 5 km aujourd hui :
            #weekDistance     5 km    depuis lundi
@@ -7092,6 +7200,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.cibleHebdoNeRetrecitPas) errors.push('La cible hebdo rétrécit quand tu t’entraînes, ou le panneau se contredit d’une ligne à l’autre. Mesuré sur UNE semaine à 4 muscu + 2 courses : « 0 / 6 séances » le lundi, « 2 / 4 » après deux séances, « 2 / 2 · 100 % » avec « il reste 2 séances » juste en dessous, puis « 4 / 4 » une fois la semaine bouclée (repli sur le réglage, qui compte le vélo). Cause : `plan.week` est amputé de ce qui est déjà fait — bon pour afficher un programme à placer, faux pour dire « X/Y séances ». Attendu : le dénominateur AFFICHÉ ne bouge pas de toute la semaine, fait + reste === cible, aucun 100 % au-dessus d’un « pour boucler », et `source` reste « plan » jusqu’au bout (voir __cibleStable)');
     if (!checks.fenetreSemaineNommee) errors.push('« Cette semaine » désigne deux fenêtres différentes. Mesuré un jeudi avec 10 km le dimanche précédent et 5 km aujourd’hui : #weekDistance et #runWeekGoal disaient « 5 km cette semaine » (depuis lundi) pendant que #trailRunSummary et #trailRamp disaient « 15 km cette semaine » (7 jours glissants) — un facteur 3 avec les mêmes mots. La fenêtre glissante est le bon outil pour juger une charge de course ; c’est le MOT qui était faux. Attendu : les voix glissantes ne disent pas « cette semaine » ET nomment leur fenêtre (« 7 derniers j. », « sur 7 jours »), la voix calendaire garde son mot et son chiffre (voir __fenetreSemaine)');
     if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible. Et le NUMÉRATEUR compte autant : `thisWeekWorkouts` ne bornait que le début de la semaine, donc une séance datée après dimanche entrait dans le compte (mesuré : 5 annoncées pour 4 réellement dans la semaine) ; et le grand chiffre du panneau Volume, qui compte toute activité, doit DIRE ce qu’il compte quand il diverge du compte du plan (voir __voixHebdo)');
     if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');

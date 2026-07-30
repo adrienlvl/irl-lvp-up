@@ -658,8 +658,12 @@ function cibleHebdo(){
  const _av=(typeof avancementSemaine==='function')
   ?avancementSemaine(state,localDate(),_plan?{plan:_plan}:{}):null;
  if(_av)return {prevu:_av.prevu.total,fait:_av.fait.total,reste:_av.reste.total,source:_av.source};
- /* Repli : aucun plan ET aucun réglage exploitable. On rend le réglage brut plutôt que rien —
-    mais on le DIT, pour qu un appelant puisse nuancer sa phrase. */
+ /* Repli : aucun plan générable, ou un plan qui prescrit VRAIMENT zéro séance (repos, décharge).
+    La revue 107 a montré que ce repli se déclenchait aussi dès que la semaine était BOUCLÉE : la
+    règle de comptage changeait alors en pleine semaine — le plan compte muscu + courses, le réglage
+    compte TOUTE activité — et la cible sautait de 2 à 4. `avancementSemaine` lit désormais la
+    semaine ENTIÈRE, donc boucler son plan ne fait plus tomber ici. On rend le réglage brut plutôt
+    que rien, mais on le DIT dans `source` pour qu un appelant puisse nuancer sa phrase. */
  const g=state.goals||{};const n=Math.max(0,Math.round(Number(g.sessions)||0));
  const fait=(typeof thisWeekWorkouts==='function')?thisWeekWorkouts().length:0;
  return {prevu:n,fait:fait,reste:Math.max(0,n-fait),source:'reglage'};
