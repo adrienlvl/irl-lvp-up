@@ -4060,29 +4060,82 @@ app.whenReady().then(async () => {
             let i = -1;
             while ((i = txt.indexOf("/", i + 1)) > 0) {
               // On lit les chiffres de part et d autre du slash, puis on exige le mot « séance ».
+              /* On tolère les ESPACES autour du slash : la barre du goal-panel écrit « 2 / 2
+                 séances », et un analyseur qui exige des chiffres collés la manquait — la voix que
+                 je venais de corriger échappait donc à son propre garde-fou. */
               let a = i - 1, b = i + 1;
+              while (a >= 0 && txt.charAt(a) === " ") a--;
+              while (b < txt.length && txt.charAt(b) === " ") b++;
+              const finGauche = a + 1, debutDroite = b;
               while (a >= 0 && txt.charAt(a) >= "0" && txt.charAt(a) <= "9") a--;
               while (b < txt.length && txt.charAt(b) >= "0" && txt.charAt(b) <= "9") b++;
-              const gauche = txt.slice(a + 1, i), droite = txt.slice(i + 1, b);
+              const gauche = txt.slice(a + 1, finGauche), droite = txt.slice(debutDroite, b);
               if (!gauche.length || !droite.length) continue;
               if (txt.slice(b, b + 12).indexOf("séance") === -1) continue;
               cibles.push(Number(droite));
               details.push(ou + ":" + gauche + "/" + droite);
             }
           };
-          showAthleteTab("aujourdhui");
-          releve("#avancementSemaine", "plan");
-          releve("#todayCoachSignals", "compagnon");
-          showAthleteTab("progres"); releve(".week-panel", "volume");
-          showAthleteTab("corps"); releve(".weekly-review-panel", "revue");
+          /* On DERIVE : tous les panneaux visibles des quatre sous-onglets. Ma premiere version
+             listait quatre selecteurs a la main et ratait la barre du goal-panel, sur le
+             sous-onglet « Programme » — mutation survivante au premier essai. */
+          ["aujourdhui", "programme", "progres", "corps"].forEach(function (tab) {
+            showAthleteTab(tab);
+            document.querySelectorAll("main.app-shell section.panel, main.app-shell article.panel")
+              .forEach(function (pan) {
+                if (pan.getBoundingClientRect().height < 8) return;
+                const cle = (typeof pan.className === "string" ? pan.className : "")
+                  .split(" ").filter(function (c) { return c !== "panel"; })[0] || "panel";
+                releve("." + cle, tab + "/" + cle);
+              });
+          });
+
+          /* LA BORNE HAUTE. On ajoute une seance datee LUNDI PROCHAIN : elle ne doit pas entrer
+             dans le compte de cette semaine. thisWeekWorkouts ne bornait que le debut, donc un
+             creneau avance ou une saisie au mauvais mois gonflait le grand chiffre, la charge en
+             points, la barre d objectifs et le mode du tableau de bord (iteration 105). */
+          let borneHaute = null, detailBorne = '';
+          {
+            const avant = (typeof thisWeekWorkouts === 'function') ? thisWeekWorkouts().length : null;
+            state.workouts = state.workouts.concat([{ id: 105999, date: j(7), type: 'strength',
+              duration: 45, effort: 2, exercises: [{ name: 'Dips', sets: 3, reps: 10, completedSets: 3 }] }]);
+            const apres = (typeof thisWeekWorkouts === 'function') ? thisWeekWorkouts().length : null;
+            borneHaute = (avant !== null && apres === avant);
+            detailBorne = avant + '->' + apres;
+            state.workouts = state.workouts.filter(function (w) { return w.id !== 105999; });
+            render();
+          }
+
+          /* LE LIBELLE DU GRAND CHIFFRE. Le panneau Volume compte TOUTE activite (velo, mobilite),
+             ce qui est son sujet — mais place au-dessus d un verdict sur le plan, il se lit comme le
+             compte du plan. Deux nombres differents sont honnetes s ils annoncent chacun leur regle. */
+          let libelleQualifie = null, detailLibelle = '';
+          {
+            showAthleteTab('progres');
+            const gros = document.getElementById('weekSessions');
+            const lbl = document.querySelector('[data-week-sessions-label]');
+            const c = (typeof cibleHebdo === 'function') ? cibleHebdo() : null;
+            if (gros && lbl && c) {
+              const n = Number(String(gros.textContent || '').trim());
+              const texte = String(lbl.textContent || '').trim();
+              detailLibelle = n + ' vs plan ' + c.fait + ' -> [' + texte + ']';
+              // Si les deux comptes divergent, le libelle doit le DIRE ; sinon il reste sobre.
+              libelleQualifie = (n === c.fait)
+                ? texte.indexOf('toute activité') === -1
+                : texte.indexOf('toute activité') !== -1;
+            }
+          }
 
           const distinctes = [];
           cibles.forEach(function (c) { if (distinctes.indexOf(c) === -1) distinctes.push(c); });
-          checks.__voixHebdo = "voix=" + cibles.length + " cibles distinctes=" + distinctes.length
+          checks.__voixHebdo = 'borneHaute=' + borneHaute + '[' + detailBorne + ']'
+            + ' libelle=' + libelleQualifie + '[' + detailLibelle + '] '
+            + "voix=" + cibles.length + " cibles distinctes=" + distinctes.length
             + " [" + distinctes.join(",") + "] detail[" + details.join(" ") + "]";
           _rendre();
           /* Au moins DEUX voix relevees, sinon le check ne compare rien — et une seule cible. */
-          return cibles.length >= 2 && distinctes.length === 1;
+          return cibles.length >= 2 && distinctes.length === 1
+            && borneHaute === true && libelleQualifie === true;
         } catch (e) {
           _rendre();
           checks.__errVoixHebdo = String(e && e.message); return false;
@@ -6944,7 +6997,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
-    if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible (voir __voixHebdo)');
+    if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible. Et le NUMÉRATEUR compte autant : `thisWeekWorkouts` ne bornait que le début de la semaine, donc une séance datée après dimanche entrait dans le compte (mesuré : 5 annoncées pour 4 réellement dans la semaine) ; et le grand chiffre du panneau Volume, qui compte toute activité, doit DIRE ce qu’il compte quand il diverge du compte du plan (voir __voixHebdo)');
     if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
     if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister. Et le pourquoi doit DIRE VRAI : il est dérivé des zones réelles des exercices depuis la revue 100, parce qu’une table figée affirmait « tirage et poussée équilibrés » et « peu coûteux pour les jambes » sur une séance que muscleBalance classait push-heavy et qui contenait un hip-hinge (voir __uniteGestes)');

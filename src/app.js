@@ -163,7 +163,19 @@ function showFlashToast(msg,ms){let el=document.getElementById('undoToast');if(!
 function celebrateQuestsIfPerfect(){if(!Array.isArray(state.quests)||state.quests.length<1||!state.quests.every(x=>x&&x.done))return false;let strk='';if(typeof questPerfectStreak==='function'){const qs=questPerfectStreak(state.questLog,localDate(),state.quests.length,state.quests.length);if(qs&&qs.streak>0)strk=` · 🔥 ${qs.streak} jour${qs.streak>1?'s':''} d’affilée`;}showFlashToast(`🎉 Journée parfaite ! Toutes tes quêtes validées${strk}`,4500);return true;}
 function updateStreak() { const d = localDate(); if (state.lastActive === d) return; state.streak = computeStreak(state.lastActive, d, dateKey(new Date(Date.now() - 864e5)), state.streak); state.lastActive = d; }
 /* weekStart → src/lib/logic.js */
-function thisWeekWorkouts() { const start = weekStart(); return state.workouts.filter(w => new Date(`${w.date}T12:00:00`) >= start); }
+/* UNE SEMAINE A DEUX BOUTS. Cette fonction ne bornait que le DÉBUT : `date >= weekStart()`. Une
+   séance datée après dimanche — un créneau qu on avance, une saisie au mauvais mois — comptait donc
+   dans « cette semaine », et gonflait tout ce qui en dépend : le grand chiffre du panneau Volume,
+   la charge en points, la barre d objectifs, le mode du tableau de bord. Mesuré à l itération 105 :
+   5 séances annoncées pour 4 réellement dans la semaine. */
+function thisWeekWorkouts() {
+  const start = weekStart();
+  const fin = new Date(start); fin.setDate(fin.getDate() + 7); // lundi suivant, exclu
+  return state.workouts.filter(w => {
+    const d = new Date(`${w.date}T12:00:00`);
+    return d >= start && d < fin;
+  });
+}
 /* pct → src/lib/logic.js */
 function renderAthlete() {
   // « Base d'endurance » n'apparaît que pour un profil endurance/trail (sinon c'est du bruit).
@@ -171,9 +183,9 @@ function renderAthlete() {
   if(trailPanel&&typeof showsEnduranceBase==='function'){const endurance=showsEnduranceBase({goal:state.profile.goal,fitnessObjective:state.fitnessObjective,raceGoalDate:state.raceGoal&&state.raceGoal.date});trailPanel.classList.toggle('endurance-hidden',!endurance);}
   const week = thisWeekWorkouts(), sessions = week.length, minutes = week.reduce((a,w) => a + w.duration, 0), distance = week.filter(w => w.type === 'run').reduce((a,w) => a + w.distance, 0), g = state.goals;
   $('#sessionsGoal').value = g.sessions; $('#distanceGoal').value = g.distance;
-  $('#weekSessions').textContent = sessions; $('#weekMinutes').textContent = minutes; $('#weekDistance').textContent = distance.toFixed(1).replace('.0',''); const load=week.reduce((sum,w)=>sum+(Number(w.duration)||0)*(Number(w.effort)||2),0),fragile=(typeof etatFragile==='function')&&etatFragile(state.recovery,localDate());$('#weekLoad').textContent=load?`${load} pts`:'—';const acwr=acuteChronicRatio(state.workouts,localDate());$('#weekLoadAdvice').textContent=weekLoadNote(fragile,load,acwr);$('#weekLoadAdvice').classList.toggle('acwr-high',!!acwr&&acwr.zone==='high');
-  const sessionP = pct(sessions, g.sessions), distanceP = pct(distance, g.distance); $('#sessionsProgress').style.width = `${sessionP}%`; $('#distanceProgress').style.width = `${distanceP}%`;
-  $('#sessionsProgressText').textContent = `${sessions} / ${g.sessions} séances`; $('#distanceProgressText').textContent = `${distance.toFixed(1)} / ${g.distance} km`; $('#sessionsPercent').textContent = `${sessionP}%`; $('#distancePercent').textContent = `${distanceP}%`;
+  $('#weekSessions').textContent = sessions;{const _lbl=document.querySelector('[data-week-sessions-label]');if(_lbl)_lbl.textContent=sessions===cibleHebdo().fait?'séances':'séances, toute activité';} $('#weekMinutes').textContent = minutes; $('#weekDistance').textContent = distance.toFixed(1).replace('.0',''); const load=week.reduce((sum,w)=>sum+(Number(w.duration)||0)*(Number(w.effort)||2),0),fragile=(typeof etatFragile==='function')&&etatFragile(state.recovery,localDate());$('#weekLoad').textContent=load?`${load} pts`:'—';const acwr=acuteChronicRatio(state.workouts,localDate());$('#weekLoadAdvice').textContent=weekLoadNote(fragile,load,acwr);$('#weekLoadAdvice').classList.toggle('acwr-high',!!acwr&&acwr.zone==='high');
+  const _cg = cibleHebdo(); const sessionP = pct(_cg.fait, _cg.prevu), distanceP = pct(distance, g.distance); $('#sessionsProgress').style.width = `${sessionP}%`; $('#distanceProgress').style.width = `${distanceP}%`;
+  $('#sessionsProgressText').textContent = `${_cg.fait} / ${_cg.prevu} séances`; $('#distanceProgressText').textContent = `${distance.toFixed(1)} / ${g.distance} km`; $('#sessionsPercent').textContent = `${sessionP}%`; $('#distancePercent').textContent = `${distanceP}%`;
   {const _c=cibleHebdo();$('#weekInsight').textContent = _c.reste <= 0 ? 'Objectif séances atteint. Garde du jus pour récupérer et recommencer.' : `${_c.reste} séance${_c.reste > 1 ? 's' : ''} pour boucler ${_c.source === 'plan' ? 'la semaine que ton plan pose' : 'ton objectif de la semaine'}.`;}
   const streak=weeklyWorkoutStreak(state.workouts,localDate()),sb=$('#weekStreakBadge');if(sb){sb.textContent=streak>=2?`🔥 ${streak} sem.`:'📈';sb.classList.toggle('on',streak>=2);}
   const hm=trainingHeatmap(state.workouts,localDate(),8),hmEl=$('#trainingHeatmap');if(hmEl)hmEl.innerHTML=`<span class="hm-label">Régularité · 8 dernières semaines</span><div class="hm-grid">${hm.map(c=>`<i class="hm-cell${c.count>=2?' hm-2':c.count?' hm-1':''}${c.future?' hm-future':''}" title="${c.date.split('-').reverse().join('/')} : ${c.count} séance${c.count>1?'s':''}"></i>`).join('')}</div>`;
