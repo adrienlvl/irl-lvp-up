@@ -3999,6 +3999,101 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* « CETTE SEMAINE » NE DESIGNE QU UNE SEULE FENETRE (BLOQUANT, iteration 106).
+         Mesure avant, un jeudi, avec 10 km le dimanche precedent et 5 km aujourd hui :
+           #weekDistance     5 km    depuis lundi
+           #runWeekGoal      « Course cette semaine 5 / 10 km »   depuis lundi
+           #trailRunSummary  « 15 km · Cette sem. »               7 jours GLISSANTS
+           #trailRamp        « 15 km cette semaine »              7 jours GLISSANTS
+         L app annoncait 5 ET 15 km « cette semaine » — un facteur 3, memes mots, deux
+         sous-onglets. La fenetre glissante n est pas le defaut : pour juger une charge de course
+         elle vaut mieux qu un compteur qui repart a zero le lundi. Le defaut est le MOT.
+         Le jeu d essai SEME le desaccord (une sortie avant lundi, dans les 7 derniers jours) et le
+         check exige qu il existe — sinon il ne prouverait rien. */
+      checks.fenetreSemaineNommee = (() => {
+        const _wk = state.workouts;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.workouts = _wk; try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof showPage !== "function" || typeof trailReadiness !== "function") return false;
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const lundi = new Date(auj); lundi.setDate(lundi.getDate() - ((auj.getDay() + 6) % 7));
+          const veilleLundi = new Date(lundi); veilleLundi.setDate(veilleLundi.getDate() - 1);
+          state.workouts = [
+            { id: 106001, date: cle(veilleLundi), type: "run", duration: 60, distance: 10, effort: 2 },
+            { id: 106002, date: localDate(), type: "run", duration: 30, distance: 5, effort: 2 },
+            /* Il y a 8 jours : HORS de la fenetre glissante de 7 jours (le desaccord seme reste
+               donc entier) mais dans la periode PRECEDENTE, ce qui fait sortir la rampe de sa
+               branche « premiere periode » et rend sa phrase de comparaison. Sans cette sortie la
+               phrase n existait pas, et la mutation qui l anonymise survivait. */
+            { id: 106003, date: (function () { const d = new Date(auj); d.setDate(d.getDate() - 8);
+              return cle(d); })(), type: "run", duration: 50, distance: 7, effort: 2 }
+          ];
+          showPage("athlete"); render();
+
+          /* LE DESACCORD DOIT EXISTER : la fenetre glissante voit 15 km, le calendrier 5. Sans ce
+             desaccord le check serait vacant — n importe quel libelle passerait. */
+          const glissant = (function () { const t = trailReadiness(state.workouts, localDate());
+            return t ? t.weekKm : null; })();
+          const calendaire = state.workouts.filter(function (w) { return w.date >= cle(lundi); })
+            .reduce(function (s2, w) { return s2 + w.distance; }, 0);
+          const desaccordSeme = glissant !== null && glissant !== calendaire;
+
+          /* Les voix GLISSANTES ne doivent pas dire « cette semaine », et doivent NOMMER leur
+             fenetre. On les repere par leur id, mais on verifie les deux faces : ne pas mentir ET
+             dire — « ne pas mentir » seul laisserait disparaitre l information (lecon 101). */
+          showAthleteTab("programme");
+          const lire = id => { const e = document.getElementById(id);
+            return e ? String(e.textContent || "") : ""; };
+          const tSum = lire("trailRunSummary"), tRamp = lire("trailRamp");
+          const sansMensonge = tSum.indexOf("ette sem") === -1 && tRamp.indexOf("cette semaine") === -1;
+          const nomment = (tSum.indexOf("7 derniers j") !== -1 || tSum.length === 0)
+            && (tRamp.indexOf("sur 7 jours") !== -1 || tRamp.length === 0);
+          const vues = (tSum.length > 0 ? 1 : 0) + (tRamp.length > 0 ? 1 : 0);
+          /* La phrase de COMPARAISON juxtapose deux fenetres glissantes : chacune doit se nommer,
+             sinon « X km vs Y km » laisse croire a deux semaines calendaires. */
+          const compare = tRamp.indexOf(" vs ") !== -1;
+          /* L AUTRE BRANCHE. On retire la sortie de la periode precedente : la rampe repasse en
+             « premiere periode », et cette phrase-la doit aussi nommer sa fenetre. Sans cette
+             seconde mesure, la moitie des libelles n etait pas gardee — chaque mutation survivait
+             a tour de role selon le jeu d essai. */
+          state.workouts = state.workouts.filter(function (w) { return w.id !== 106003; });
+          render();
+          showAthleteTab("programme");
+          const tRamp2 = lire("trailRamp");
+          const premierePeriode = tRamp2.indexOf(" vs ") === -1 && tRamp2.length > 0;
+          const premiereNommee = !premierePeriode
+            || (tRamp2.indexOf("sur 7 jours") !== -1
+              && tRamp2.indexOf("cette semaine") === -1);
+          const comparaisonNommee = !compare
+            || (tRamp.indexOf("sur 7 jours") !== -1 && tRamp.indexOf("les 7 d") !== -1);
+
+          // Et la voix CALENDAIRE garde son mot, avec le chiffre du calendrier.
+          showAthleteTab("progres");
+          const gros = lire("weekDistance").trim();
+          const calendaireVu = Number(gros.replace(",", ".")) === calendaire;
+
+          checks.__fenetreSemaine = "glissant=" + glissant + " calendaire=" + calendaire
+            + " desaccordSeme=" + desaccordSeme + " vues=" + vues
+            + " sansMensonge=" + sansMensonge + " nomment=" + nomment
+            + " calendaireVu=" + calendaireVu
+            + " compare=" + compare + "/" + comparaisonNommee
+            + " premiere=" + premierePeriode + "/" + premiereNommee
+            + " ramp2[" + tRamp2.slice(0, 44) + "]"
+            + " sum[" + tSum.slice(0, 40) + "] ramp[" + tRamp.slice(0, 58) + "]";
+          _rendre();
+          return desaccordSeme && vues === 2 && sansMensonge && nomment && calendaireVu
+            && compare === true && comparaisonNommee === true
+            && premierePeriode === true && premiereNommee === true;
+        } catch (e) {
+          _rendre();
+          checks.__errFenetreSemaine = String(e && e.message); return false;
+        }
+      })();
+
       /* UNE SEULE CIBLE HEBDO (BLOQUANT, iteration 104 — etape A3).
          Mesure avant : sur une meme semaine (2 muscu + 1 course), cinq voix annoncaient un compte
          hebdo et QUATRE le comparaient au reglage manuel state.goals.sessions tandis que
@@ -6997,6 +7092,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.fenetreSemaineNommee) errors.push('« Cette semaine » désigne deux fenêtres différentes. Mesuré un jeudi avec 10 km le dimanche précédent et 5 km aujourd’hui : #weekDistance et #runWeekGoal disaient « 5 km cette semaine » (depuis lundi) pendant que #trailRunSummary et #trailRamp disaient « 15 km cette semaine » (7 jours glissants) — un facteur 3 avec les mêmes mots. La fenêtre glissante est le bon outil pour juger une charge de course ; c’est le MOT qui était faux. Attendu : les voix glissantes ne disent pas « cette semaine » ET nomment leur fenêtre (« 7 derniers j. », « sur 7 jours »), la voix calendaire garde son mot et son chiffre (voir __fenetreSemaine)');
     if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible. Et le NUMÉRATEUR compte autant : `thisWeekWorkouts` ne bornait que le début de la semaine, donc une séance datée après dimanche entrait dans le compte (mesuré : 5 annoncées pour 4 réellement dans la semaine) ; et le grand chiffre du panneau Volume, qui compte toute activité, doit DIRE ce qu’il compte quand il diverge du compte du plan (voir __voixHebdo)');
     if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
