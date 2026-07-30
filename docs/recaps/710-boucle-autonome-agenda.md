@@ -4241,3 +4241,75 @@ plus fréquent chez moi est le scénario manquant.*
 recopiée** (`#weekLoad` de renderAthlete et le chip du Compagnon), sans fonction partagée — même
 résultat aujourd'hui, deux endroits à corriger le jour où la formule change. Et l'angle « cas limites
 de `cibleHebdo` » délégué en parallèle n'est pas encore revenu.
+
+## Itération 107 — la cible hebdo rétrécissait à mesure que la semaine avançait
+
+Revue **déléguée** sur mon code des itérations 104-105 (« réfute `cibleHebdo`, la borne de semaine,
+le libellé conditionnel »), puis **re-mesurée moi-même** dans le renderer avant d'écrire une ligne.
+L'itération 104 avait unifié la cible hebdo — un seul avis par sujet. Cet avis unique **rétrécissait**.
+
+Une seule semaine, objectif « prise de muscle », 4 muscu + 2 courses au plan :
+
+| état | ce que la barre affichait |
+|---|---|
+| lundi, rien de fait | `0 / 6 séances` |
+| après 1 séance | `1 / 5` |
+| après 2 séances | `2 / 4` ← la cible a changé, pas le plan |
+| 4 muscu, 0 course | `2 / 2 · 100 %` **+ « il reste 2 séances »** juste en dessous |
+| semaine bouclée | `4 / 4` ← le réglage manuel reprend la main |
+
+### Deux causes, toutes deux dans `avancementSemaine`
+
+**1. La cible se lisait dans `plan.week`, amputé de ce qui est déjà fait.** Parfait pour afficher un
+programme *à placer*, faux pour dire « X/Y séances » : **la cible était remplacée par le reste à
+faire**. Elle se lit maintenant dans `semaineType`, la semaine complète que le plan expose déjà.
+Mesuré sur les cinq objectifs : `semaineType` vaut *exactement* `week` tant que rien n'est fait —
+donc le début de semaine ne change pas, et seul le rétrécissement disparaît.
+
+Réparé du même geste : une semaine bouclée donnait `week: []` → `null` → **repli sur
+`state.goals.sessions`**, qui compte toute activité (vélo, marche) et jusqu'à dimanche. La règle de
+comptage changeait en pleine semaine. `source` reste « plan » jusqu'au bout ; deux semaines vides
+disent toujours « le plan prescrit zéro ».
+
+**2. Le fait était plafonné sur le TOTAL**, donc un excédent de muscu comblait le manque de course —
+d'où le 100 % au-dessus d'un « il reste 2 séances ». Plafond **par catégorie** :
+`fait + reste === cible`, toujours. C'est l'invariant que le test verrouille.
+
+### Ce que cette itération a appris
+
+**Une bonne fonction lue au mauvais endroit produit un mensonge.** `plan.week` n'a aucun défaut : il
+répond à « que me reste-t-il à placer ? ». Le défaut est de lui avoir posé une AUTRE question — « que
+demande ma semaine ? ». Trois itérations de suite (105 le libellé, 106 le mot « semaine », 107 la
+source de la cible), le défaut n'était **pas** dans le calcul mais dans ce qu'on faisait dire au
+chiffre. *Chercher le bug dans la fonction est un réflexe ; ici il était dans la lecture.*
+
+**Un invariant vaut mieux que trois assertions.** `fait + reste === cible` tient en une ligne, se
+vérifie sur tous les états, et aurait attrapé le défaut n°2 le jour où il est né. Les assertions
+ponctuelles (« 100 % seulement si fini ») en sont des conséquences.
+
+**Le scénario qui discrimine n'est pas le scénario naturel.** Le plafond par catégorie ne se voit que
+s'**une** catégorie déborde pendant qu'une autre manque : sans l'état « 2 muscu de trop, 0 course »,
+la mutation survivait (les quatre autres états ne débordent jamais). Ajouté explicitement, avec le
+témoin `deborde` qui refuse de valider un état qui ne déborde pas. **Quatrième itération de suite où
+la couverture tenait à un scénario manquant** — le réflexe « mutation survivante = check creux » est
+décidément faux plus d'une fois sur deux.
+
+**Mutations.** 4 posées, 4 détectées (3 sur le smoke, 1 sur les tests node). La troisième remet
+l'état exact d'avant la 107 et ressort le défaut mot pour mot : `3 / 3 · 100 %` avec `fait=3 reste=3`.
+
+696 tests · SMOKE OK. Rien publié depuis v2.16.0.
+
+### Ce que la revue a trouvé et que je n'ai PAS encore corrigé
+
+- **Le NUMÉRATEUR n'est pas unifié**, lui. Le sous-onglet Progrès dit « 1 / 5 séances » quand Corps
+  dit « 4/5 séances — tu es dans les temps » au même rendu : `weeklyInsights` reçoit bien la cible
+  unique mais garde son propre compteur (`workouts.length`, toute activité). **C'est l'étape suivante.**
+- **Le libellé conditionnel du grand chiffre est tautologique dans le repli** :
+  `sessions === cibleHebdo().fait` compare deux fois le même appel, donc « toute activité » ne peut
+  jamais s'afficher par ce chemin. Le correctif de la 107 rend ce chemin rare, pas mort.
+- **`uneSeuleCibleHebdo` ne relève que le dénominateur** — deux panneaux à « 2/2 » et « 4/2 » passent.
+  Et `releve('.coach-panel')` mesure le premier élément du document portant la classe, qui est
+  masqué : la classe est **dupliquée** dans index.html, donc le panneau visible n'est jamais lu.
+- Réfutés par la revue, mesures à l'appui : la borne haute de `thisWeekWorkouts` (arithmétique
+  calendaire, changement d'heure inclus), les dates invalides, les valeurs absurdes de `cibleSeances`,
+  le coût du recalcul (0,4 ms × 7 par rendu).
