@@ -165,9 +165,14 @@ mesuré 4,5 h libres sur une semaine de démonstration. ~~**Rien n'agrège encor
     jeudi avec lundi/mercredi/vendredi cochés il annonçait « 5 séances réparties sur 1 jour :
     jusqu'à 5 le même jour ». `joursDentrainementRestants` fait porter la cause à la phrase, et
     la tait quand tous les jours cochés sont encore devant.
-  - **zones : reste à faire.** Mesuré à la 127 : le réglage change 4 exercices sur 20 sur
-    l'objectif « muscle », et **rien du tout** sur « athlétique » et « forme » — à examiner avant
-    d'annoncer un coût qui pourrait être nul.
+  - **zones : FAIT (128)**, et le défaut était plus grave qu'un coût manquant. Le réglage ne
+    servait qu'à réordonner les archétypes de séance : sur athlétique, endurance et forme —
+    trois objectifs sur cinq — cocher ne changeait **rigoureusement rien**. La préférence mord
+    désormais à l'intérieur de ce que la séance couvre : les séances qui s'ouvrent sur une zone
+    demandée passent de 1/3 à 3/3 (athlétique, sèche) et de 0/2 à 2/2 (endurance, forme). On
+    privilégie par l'ORDRE et non par le nombre de créneaux — déséquilibrer une séance que l'app
+    équilibre par ailleurs serait un autre défaut — et on n'invente pas une zone absente de
+    l'archétype.
 - C4. **La replanification à l'échelle de la SEMAINE** — le rattrapage sport (76) et études (93)
   existent à l'échelle de la séance ; il manque l'étage au-dessus. (6)
 

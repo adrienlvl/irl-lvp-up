@@ -5398,3 +5398,52 @@ exigent qu'une partie de la semaine soit passée : un lundi, impossible. Le diag
 un trou vaut mieux que le taire, mais il faut aussi le boucher là où c'est possible.*
 
 **Mutations.** 5 posées, 5 détectées. 711 tests · SMOKE OK. Rien publié depuis v2.18.0.
+
+## Itération 128 — « zones à privilégier » ne privilégiait rien sur 3 objectifs sur 5
+
+J'avais laissé cette question ouverte à la 127 : pourquoi les zones ne mordent-elles que sur
+« muscle » ? Réponse mesurée : elles ne servaient qu'à **réordonner les archétypes de séance**.
+Un objectif dont le split répète le même archétype n'a rien à réordonner.
+
+| objectif | split | effet du choix |
+|---|---|---|
+| athlétique | upper, lower, fullbody | **0/15** |
+| muscle | push, pull, legs, upper | 10/20 |
+| sèche | fullbody, fullbody, upper | 8/15 |
+| endurance | lower, fullbody | **0/10** |
+| forme | fullbody, fullbody | **0/10** |
+
+L'écran annonce « ZONES À PRIVILÉGIER ». Sur trois objectifs sur cinq, cocher ne faisait
+**rigoureusement rien**.
+
+### Ce que cette itération a appris
+
+**« Ça bouge » n'est pas « ça sert ».** Ma première version a fait changer 14 exercices sur 15 —
+et n'a gagné qu'**un seul** exercice touchant les zones demandées. J'ai failli m'en contenter :
+le chiffre du diff était spectaculaire. C'est en cherchant la *bonne* mesure que la vraie
+propriété est apparue : les séances qui **s'ouvrent** sur une zone demandée passent de 1/3 à 3/3,
+de 0/2 à 2/2. *Un changement massif peut cacher un effet nul ; il faut mesurer ce que l'utilisateur
+obtient, pas ce que le code remue.*
+
+**Refuser d'en faire trop fait partie du travail.** Privilégier vraiment aurait pu vouloir dire
+donner plus de créneaux aux zones cochées — trois exercices d'abdos sur cinq. L'app équilibre les
+séances par ailleurs ; les déséquilibrer sur demande aurait été un autre défaut. On privilégie
+donc par l'**ordre**, pas par le nombre. Et on n'invente pas : demander les bras sur un full body
+(jambes, dos, pectoraux, abdos, épaules) n'y ajoute pas de bras — `muscle` reste à 3/4 pour
+cette raison, et le test l'exige.
+
+**Le fichier m'a averti et j'ai écouté.** Un commentaire de `trainingWeekPlan` disait : « mon
+premier patch n'en avait modifié qu'un, et les zones n'agissaient que sur la semaine invisible ».
+Il y a bien DEUX appels à `objectiveProgram`, et le patch vérifie leur nombre avant d'écrire.
+
+**Garde-fou node seulement, et dit.** Le changement est entièrement dans la composition du plan,
+sans nouvelle surface de rendu, et le smoke existant peint déjà ce plan. Pas de check ajouté —
+écrit ici plutôt que tu.
+
+**Mutations.** 4 posées, 4 détectées. 713 tests · SMOKE OK.
+
+---
+
+## Fin de la boucle autonome (128 itérations)
+
+Adrien a demandé l'arrêt après publication. La v2.19.0 clôt la série 125–128.
