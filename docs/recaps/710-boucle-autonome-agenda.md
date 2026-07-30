@@ -4032,3 +4032,58 @@ check. Refaite en neutralisant la seule écriture d'état — bouton présent, c
 
 694 tests · SMOKE OK. Rien publié depuis v2.16.0. **A3 (une seule voix hebdo) est la prochaine
 étape** — et l'audit y annonce quatre écrans qui disent « 0 séance cette semaine ».
+
+## Itération 103 — revue : un rendu effaçait ce qu'on venait d'ouvrir
+
+Revue adversariale des itérations 98-102, sur l'angle « stabilité du rendu » que la revue 100
+n'avait pas pu instruire (sa lentille était morte sur un 529). Six alertes reçues ; **j'ai remesuré
+chacune** avant d'agir.
+
+### Confirmé — trois défauts nés de mon itération 98
+
+| défaut | mesure |
+|---|---|
+| le pli « Comprendre ce programme » se referme à chaque rendu | même nœud=false, **ouvert après=false** |
+| le jour cible refermé à la main se rouvre d'office | **cible rouverte=true** |
+| « Modifiable juste au-dessus » | le réglage est **433 px en dessous**, dernier élément du panneau |
+
+Les deux premiers ont la même cause — `el.innerHTML=` écrase l'état d'ouverture — donc le même
+correctif : **capturer avant, restaurer après**. Le troisième est une phrase antérieure que mon
+propre déplacement (« les réglages à la fin ») a rendue fausse.
+
+### Nuancé, et dit comme tel
+
+La **perte de focus clavier** à chaque rendu n'a **pas été reproduite** : mon `focus()` n'a pas pris
+dans la sonde (`acquis=false`). Et les deux `appendChild` par rendu de `.op-bar`/`.op-reglages` sont
+réels, mais les **positions finales sont stables** (15→15, 16→16) : aucune conséquence de mise en
+page mesurable. Noté, **pas corrigé sur la foi d'un rapport**.
+
+### Ce que cette itération a appris
+
+**Deux bugs dans mon propre correctif, tous deux attrapés en mesurant :**
+
+1. **Une clé de restauration doit être unique, et les titres ne le sont pas.** « Ven · 🏃 Course
+   facile · 3 km » apparaît **deux fois** sur six jours (5 titres uniques sur 6). Ma carte gardait
+   l'état de la dernière occurrence et l'appliquait aux deux : le jour qu'on venait d'ouvrir se
+   refermait **à cause de son homonyme**. Clé corrigée en titre + rang d'occurrence.
+2. **Une ligne trop dense m'a coûté une précédence.** `n+'#'+(vus[n]=(vus[n]||0)+1)-1` concatène
+   d'abord et soustrait ensuite **sur une chaîne** : toutes les clés valaient `NaN`, donc un seul
+   état s'appliquait aux six jours. Réécrite en trois temps.
+
+**Une assertion inobservable est vacante — deux fois de suite.** `departHonnete` sortait à `null`
+parce que l'état du smoke ne produit pas la phrase (état forcé désormais), puis **parce que je
+cherchais « Modifiable » dans la tranche de 70 caractères gardée pour le diagnostic**, qui le
+coupait. Un check qui rend `null` ne garde rien : le retour exige maintenant `true`.
+
+**Un contrat qui verrouille une remise à zéro empêche de la corriger.** `ouverts === 1` — c'est la
+**quatrième fois** en dix itérations qu'un de mes garde-fous défend le défaut plutôt que la solution
+(96 `pliAnalyseFocus`, 98 `planEnTete`, 100 les seuils calibrés, 103 celui-ci). Le check garde ce
+qu'il protégeait vraiment et gagne le contrat neuf.
+
+**Mutations.** 4 posées, 4 détectées — dont celle qui remet ma clé bugguée, pour prouver que le check
+voit l'homonyme écraser le jour ouvert.
+
+694 tests · SMOKE OK. Rien publié depuis v2.16.0. **A3 (une seule voix hebdo) reste la prochaine
+étape.** Restent aussi, non corrigés et notés : `.op-week`/`.op-day` posent `display:` sans garde
+`[hidden]` et échappent au lint statique (markup généré, latent), et le focus clavier après un rendu,
+à instruire avec une sonde qui sache poser le focus.
