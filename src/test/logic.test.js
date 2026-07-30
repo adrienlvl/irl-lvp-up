@@ -7432,6 +7432,64 @@ test('computeAchievements : badges débloqués selon l’état', () => {
   assert.equal(L.computeAchievements(null).unlocked, 0);
 });
 
+test('fenetreRecomposition : le poids et le ruban se comparent sur la MÊME période', () => {
+  /* LE CAS QUI PIÉGEAIT L'APP (mesuré à l'itération 124) : deux ans de pesées et trois mois de
+     mensurations. L'ancien calcul prenait −12 kg (tout l'historique) face à −1,5 cm (trois mois)
+     et concluait « perte de gras bien engagée », alors que sur la fenêtre commune le poids
+     n'avait pas bougé — donc une recomposition, la meilleure nouvelle. */
+  /* Dates ANCRÉES sur une date fixe, jamais sur aujourd'hui : `fenetreRecomposition` déduit
+     tout de ses données, donc rien n'oblige ce test à changer de résultat selon le jour. */
+  const p2 = n => String(n).padStart(2, '0');
+  const jourAvant = n => { const d = new Date(2026, 6, 30); d.setDate(d.getDate() - n);
+    return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
+  const pesees = [], mesures = [];
+  for (let k = 730; k >= 0; k -= 7) {
+    const t = Math.min(1, ((730 - k) / 730) * 1.15);
+    pesees.push({ date: jourAvant(k), value: Math.round((90 - 12 * t) * 10) / 10 });
+  }
+  for (let k = 90; k >= 0; k -= 15) {
+    const t = (90 - k) / 90;
+    mesures.push({ date: jourAvant(k), waist: Math.round((84 - 1.5 * t) * 10) / 10 });
+  }
+  const f = L.fenetreRecomposition(pesees, mesures, 'waist');
+  assert.equal(f.depuis, mesures[0].date, 'le départ commun est le plus TARDIF des deux premiers');
+  assert.equal(f.tailleDelta, -1.5);
+  assert.equal(f.poidsDelta, 0, 'sur ces trois mois, la balance n\'a pas bougé');
+  assert.ok(f.pesees >= 2 && f.mesures >= 2);
+
+  /* TÉMOIN : sur TOUT l'historique le poids a bel et bien chuté — c'est ce chiffre-là que
+     l'app utilisait, et c'est lui qui produisait la mauvaise branche. Sans ce témoin, le test
+     ne montrerait pas ce qu'il protège. */
+  const surTout = Math.round((pesees[pesees.length - 1].value - pesees[0].value) * 10) / 10;
+  assert.ok(surTout <= -10, 'témoin : −12 kg sur deux ans');
+  assert.equal(L.recompositionInsight(surTout, f.tailleDelta, 'perte').key, 'fatloss',
+    'témoin : l\'ancienne fenêtre donnait bien « perte de gras »');
+  assert.equal(L.recompositionInsight(f.poidsDelta, f.tailleDelta, 'perte').key, 'recomp',
+    'la fenêtre commune donne « recomposition » — deux verdicts, même données');
+
+  /* ZÉRO N'EST PAS ABSENT. Sans pesée dans la fenêtre, la différence vaudrait 0 et se lirait
+     « poids stable » : on annoncerait une recomposition sur une balance muette. */
+  const avant = pesees.filter(w => w.date < mesures[0].date);
+  assert.ok(avant.length >= 2, 'témoin : il y a bien des pesées, mais toutes AVANT la fenêtre');
+  assert.equal(L.fenetreRecomposition(avant, mesures, 'waist'), null,
+    'aucune pesée dans la fenêtre → null, pas un delta de 0');
+  assert.equal(L.fenetreRecomposition(pesees, mesures.slice(-1), 'waist'), null,
+    'une seule mensuration ne fait pas une tendance');
+  assert.equal(L.fenetreRecomposition([], mesures, 'waist'), null);
+  assert.equal(L.fenetreRecomposition(pesees, [], 'waist'), null);
+
+  /* Et quand c'est le RUBAN qui a la plus longue histoire, c'est la balance qui borne. */
+  const pesRecentes = pesees.filter(w => w.date >= jourAvant(30));
+  const g = L.fenetreRecomposition(pesRecentes, mesures, 'waist');
+  assert.equal(g.depuis, pesRecentes[0].date, 'le départ suit la série qui commence le plus tard');
+  assert.ok(g.jours <= 31, 'et la période annoncée rétrécit avec elle');
+
+  /* Une valeur nulle ou absente ne doit pas ouvrir la fenêtre plus tôt qu'elle ne commence. */
+  const trouee = [{ date: '2026-01-01', waist: 0 }].concat(mesures);
+  assert.equal(L.fenetreRecomposition(pesees, trouee, 'waist').depuis, mesures[0].date,
+    'une mesure à 0 n\'est pas une mesure');
+});
+
 test('measurementDelta : première vs dernière valeur > 0 d’un champ', () => {
   const m = [
     { date: '2026-06-01', waist: 88, arm: 34 },

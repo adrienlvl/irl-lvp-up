@@ -4078,6 +4078,88 @@ app.whenReady().then(async () => {
          Le check balaye les cinq programmes : avec un seul, la coincidence suffirait.
          logic.js le disait deja : « Le choix nutritionnel doit changer le PLAN, pas seulement un
          texte, sinon l app promettrait une date de fin qui ne correspond a rien ». */
+      /* B3 — LE RUBAN ET LA BALANCE SE COMPARENT SUR LA MEME PERIODE. Mesure de la 124 : deux
+         ans de pesees (-12 kg) face a trois mois de mensurations (-1,5 cm) donnaient « la perte
+         de gras est bien engagee », alors que sur la fenetre commune le poids n avait pas bouge
+         — donc une recomposition, la MEILLEURE nouvelle. L app sous-creditait un vrai progres. */
+      checks.rubanSurLaMemeFenetre = (() => {
+        const _w = state.weights, _m = state.measurements;
+        const _p = JSON.parse(JSON.stringify(state.profile || {}));
+        const _g = JSON.parse(JSON.stringify(state.goals || {}));
+        const _rendre = () => { state.weights = _w; state.measurements = _m;
+          state.profile = _p; state.goals = _g;
+          try { render(); } catch (_) {} };
+        try {
+          if (typeof fenetreRecomposition !== "function"
+            || typeof recompositionInsight !== "function") { _rendre(); return false; }
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const base = new Date(localDate() + "T12:00:00");
+          const ilYA = n => { const d = new Date(base); d.setDate(d.getDate() - n); return cle(d); };
+
+          state.profile = Object.assign({}, state.profile, { weight: 78, height: 178, age: 29,
+            sex: "homme", activityLevel: "actif", goal: "perte" });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 75 });
+          /* Le ruban est IDENTIQUE dans les deux passes : -1,5 cm sur trois mois. */
+          const rubans = [];
+          for (let k = 90; k >= 0; k -= 15) { const t = (90 - k) / 90;
+            rubans.push({ date: ilYA(k), waist: Math.round((84 - 1.5 * t) * 10) / 10 }); }
+          state.measurements = rubans;
+
+          const lire = () => { render(); showPage("poids");
+            const el = document.querySelector(".cw-measure");
+            if (!el) return null;
+            return { display: getComputedStyle(el).display,
+              hauteur: Math.round(el.getBoundingClientRect().height),
+              texte: String(el.textContent || "") }; };
+
+          /* --- PASSE 1 : deux ans de balance, mais RIEN ne bouge sur les trois mois. --- */
+          const longue = [];
+          for (let k = 730; k >= 91; k -= 7) {
+            const t = Math.min(1, ((730 - k) / 639));
+            longue.push({ date: ilYA(k), value: Math.round((90 - 12 * t) * 10) / 10 }); }
+          for (let k = 90; k >= 0; k -= 7) longue.push({ date: ilYA(k), value: 78 });
+          state.weights = longue;
+          const fStable = fenetreRecomposition(state.weights, state.measurements, "waist");
+          const vuStable = lire();
+          /* TEMOIN : sur TOUT l historique la balance a bien chute — c est ce chiffre-la que
+             l ancienne version utilisait. Sans lui, la passe ne montre pas ce qu elle protege. */
+          const surTout = Math.round((longue[longue.length - 1].value - longue[0].value) * 10) / 10;
+          const ancienVerdict = recompositionInsight(surTout, fStable ? fStable.tailleDelta : 0, "perte");
+          const piegeReel = surTout <= -10 && !!ancienVerdict && ancienVerdict.key === "fatloss"
+            && !!fStable && fStable.poidsDelta === 0;
+          const ditRecompo = !!vuStable && vuStable.texte.indexOf("recomposition en cours") !== -1
+            && vuStable.texte.indexOf("perte de gras est bien engag") === -1;
+          /* La fenetre est NOMMEE : un chiffre sans sa periode ment par omission (leçon 121). */
+          const nommeLaPeriode = !!vuStable && vuStable.texte.indexOf("derniers mois") !== -1;
+
+          /* --- PASSE 2 : memes mensurations, mais la balance chute DANS la fenetre. --- */
+          const dedans = [];
+          for (let k = 730; k >= 91; k -= 7) dedans.push({ date: ilYA(k), value: 81 });
+          for (let k = 90; k >= 0; k -= 7) {
+            const t = (90 - k) / 90;
+            dedans.push({ date: ilYA(k), value: Math.round((81 - 3 * t) * 10) / 10 }); }
+          state.weights = dedans;
+          const fBaisse = fenetreRecomposition(state.weights, state.measurements, "waist");
+          const vuBaisse = lire();
+          /* TEMOIN : les deux passes doivent VRAIMENT differer par le poids de la fenetre. */
+          const passesDistinctes = !!fBaisse && !!fStable && fBaisse.poidsDelta <= -1
+            && fStable.poidsDelta === 0 && fBaisse.tailleDelta === fStable.tailleDelta;
+          const ditPerte = !!vuBaisse && vuBaisse.texte.indexOf("perte de gras est bien engag") !== -1
+            && vuBaisse.texte.indexOf("recomposition en cours") === -1;
+
+          checks.__ruban = "stable[poids=" + (fStable ? fStable.poidsDelta : "?")
+            + " taille=" + (fStable ? fStable.tailleDelta : "?") + " j=" + (fStable ? fStable.jours : "?")
+            + " recompo=" + ditRecompo + " periode=" + nommeLaPeriode
+            + "] surTout=" + surTout + " piege=" + piegeReel
+            + " | baisse[poids=" + (fBaisse ? fBaisse.poidsDelta : "?") + " perte=" + ditPerte
+            + " distinctes=" + passesDistinctes + "] t1[" + (vuStable ? vuStable.texte.slice(0, 96) : "") + "]";
+
+          _rendre();
+          return piegeReel && passesDistinctes && ditRecompo && nommeLaPeriode && ditPerte;
+        } catch (e) { _rendre(); checks.__errRuban = String(e && e.message); return false; }
+      })();
+
       checks.programmeNutritionSuivi = (() => {
         const _g = JSON.parse(JSON.stringify(state.goals || {}));
         const _p = JSON.parse(JSON.stringify(state.profile || {}));
@@ -8358,6 +8440,7 @@ app.whenReady().then(async () => {
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte. Il NOMME aussi sa fenêtre (« d’ici dimanche ») et déduit le déjà-fait — revue 123 : le total sommait les jours écoulés (780 min annoncées dont 540 passées, 69 %) et réclamait le plan entier un jeudi où deux séances étaient déjà faites, si bien qu’il annonçait « il manque 1 h » sans que rien ne manque (voir __budgetSemaine)');
+    if (!checks.rubanSurLaMemeFenetre) errors.push('Le Coach Poids compare une variation de poids et une variation de tour de taille prises sur DEUX périodes différentes. Mesuré à l’itération 124 : deux ans de pesées (90 → 78 kg) face à trois mois de mensurations (−1,5 cm) donnaient « Poids et tour de taille en baisse : la perte de gras est bien engagée », alors que sur la fenêtre commune la balance n’avait pas bougé — la réponse juste était « recomposition en cours », c’est-à-dire la MEILLEURE nouvelle : l’app sous-créditait un vrai progrès en le nommant mal. Attendu : les deux deltas sont bornés au départ commun des deux séries, la période est ÉCRITE à l’écran, et le verdict suit ce qui se passe DANS la fenêtre — mêmes mensurations, une balance stable dit « recomposition » et une balance qui chute dit « perte de gras » (voir __ruban)');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
     if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE, en DURÉE : le panneau Poids dit « Sur N jours » — mesuré à l’itération 121, « 6 pesées » ne distinguait pas 41 jours de 5, alors que le même profil sort −0,30 ou −0,84 kg/sem selon la durée — et il ne projette PAS d’échéance sous deux semaines de recul (deux pesées à 24 h donnaient « −3,5 kg/sem → ~2 sem. »). Le panneau d’analyse, lui, compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
     if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');
