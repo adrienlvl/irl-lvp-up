@@ -4049,6 +4049,89 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* DEUX ECRANS N ECRIVENT PAS AU MEME ENDROIT (BLOQUANT, iteration 110).
+         Mesure avant : id="weekBalance" existait DEUX fois — dans le Plan de bataille (onglet
+         Athlete) et dans la page « Ma semaine ». Comme $(...) rend le PREMIER element du
+         document, trois consequences constatees dans le renderer :
+           1. la page « Ma semaine » n affichait jamais ses chips (element vide) ;
+           2. renderWeekPage ecrasait l equilibre course/muscu du Plan par
+              « 1 Sport · 1 Focus · 1 Vie · 0 Revision » ;
+           3. basculer l agenda en vue jour posait hidden sur le bloc de l onglet ATHLETE,
+              qui tombait a 0 px (display:none).
+         Le bloc de l Athlete s appelle desormais trainingWeekBalance. Le check rejoue le
+         croisement : on seme de quoi alimenter LES DEUX voix, on rend, puis on fait rendre
+         l agenda et on exige que le bloc de l Athlete soit INTACT. Sans ce second rendu, le
+         check ne prouverait rien — les deux blocs coexistent tres bien tant que personne
+         n ecrit. */
+      checks.deuxEcransDeuxElements = (() => {
+        const _wk = state.workouts, _ag = state.agenda;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.workouts = _wk; state.agenda = _ag;
+          try { render(); } catch (_) {} try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof showPage !== "function" || typeof renderWeekBalance !== "function") return false;
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const ilYA = n => { const d = new Date(auj); d.setDate(d.getDate() - n); return cle(d); };
+          /* Il faut au moins deux seances ET les deux types pour que renderWeekBalance parle
+             (il se tait sous 2 seances), et de l agenda pour que renderWeekPage parle. */
+          const w = [];
+          for (let k = 0; k < 6; k++) w.push({ id: 110900 + k, date: ilYA(k),
+            type: k % 3 === 0 ? "run" : "strength", duration: 45,
+            distance: k % 3 === 0 ? 8 : 0, effort: 2,
+            exercises: k % 3 === 0 ? [] : [{ name: "Tractions", sets: 3, reps: 8,
+              setLogs: [{ reps: 8, load: 0 }, { reps: 8, load: 0 }, { reps: 7, load: 0 }] }] });
+          state.workouts = w;
+          state.agenda = [
+            { id: 110901, kind: "sport", title: "Séance muscu", date: localDate(), time: "18:00" },
+            { id: 110902, kind: "focus", title: "Bloc de révision", date: localDate(), time: "20:00" }
+          ];
+          render(); showPage("athlete"); showAthleteTab("aujourdhui");
+
+          const lire = id => { const e = document.getElementById(id);
+            /* PAS de normalisation par expression reguliere ici : ce bloc voyage dans un gabarit,
+               et Node y lit \s comme un simple « s » — le diagnostic sortait « Équilibre emaine »,
+               tous les s manges. Meme piege que le \/ de l iteration 108. Le texte brut suffit :
+               on ne fait qu une comparaison d egalite et deux indexOf. */
+            return e ? String(e.textContent || "").trim() : null; };
+          const athleteAvant = lire("trainingWeekBalance");
+          // TEMOIN : sans contenu au depart, « intact » ne voudrait rien dire.
+          const athleteParle = !!athleteAvant && athleteAvant.indexOf("quilibre") !== -1;
+
+          // L AGENDA REND. C est le geste qui revelait le croisement.
+          try { renderWeekPage(); } catch (_) { /* la page semaine peut refuser : voir agendaParle */ }
+          const athleteApres = lire("trainingWeekBalance");
+          const agendaApres = lire("weekBalance");
+          const intact = athleteParle && athleteApres === athleteAvant;
+          // TEMOIN INVERSE : l agenda doit avoir ECRIT quelque part, sinon le test est vacant.
+          const agendaParle = !!agendaApres && agendaApres.length > 0;
+          // Et il a ecrit CHEZ LUI : le bloc de l Athlete ne contient pas les chips de l agenda.
+          const pasDeChipsChezAthlete = !!athleteApres && athleteApres.indexOf("termin") === -1;
+
+          /* Enfin : un seul element par id. On le verifie ICI aussi, dans le DOM VIVANT — le test
+             node lit le fichier, mais c est le document qui tranche. */
+          const doubles = [];
+          const vus = {};
+          Array.prototype.slice.call(document.querySelectorAll("[id]")).forEach(function (e) {
+            const k = e.id; if (!k) return;
+            vus[k] = (vus[k] || 0) + 1;
+            if (vus[k] === 2) doubles.push(k);
+          });
+
+          checks.__croisementEcrans = "athleteParle=" + athleteParle + " intact=" + intact
+            + " agendaParle=" + agendaParle + " pasDeChips=" + pasDeChipsChezAthlete
+            + " doubles=" + doubles.length + "[" + doubles.slice(0, 4).join(",") + "]"
+            + " athlete[" + String(athleteApres).slice(0, 44) + "]"
+            + " agenda[" + String(agendaApres).slice(0, 34) + "]";
+          _rendre();
+          return athleteParle && intact && agendaParle && pasDeChipsChezAthlete && doubles.length === 0;
+        } catch (e) {
+          _rendre();
+          checks.__errCroisement = String(e && e.message); return false;
+        }
+      })();
+
       /* LE HARNAIS PART D UN ETAT CONNU (BLOQUANT, iteration 109).
          Mesure : profil vierge -> fitnessObjective null, 0 jour de plan, 2 507 px ; profil de
          developpement -> athletique, 6 jours, 4 154 px. Ce harnais lisait ET ECRIVAIT le vrai
@@ -7409,6 +7492,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.deuxEcransDeuxElements) errors.push('Deux écrans écrivent au même endroit. Mesuré à l’itération 110 : `id="weekBalance"` existait DEUX fois — dans le Plan de bataille (onglet Athlète) et dans la page « Ma semaine » — or `$("#x")` rend toujours le PREMIER élément du document. Conséquences constatées : la page « Ma semaine » n’affichait jamais ses chips ; `renderWeekPage()` écrasait l’équilibre course/muscu du Plan par « 1 Sport · 1 Focus · 1 Vie » ; et basculer l’agenda en vue « jour » posait `hidden` sur le bloc de l’onglet Athlète, qui tombait à 0 px. Attendu : aucun id en double dans le document vivant, et le bloc de l’Athlète INTACT après un rendu de la page semaine (voir __croisementEcrans)');
     if (!checks.socleDeReference) errors.push('Le harnais ne part pas de l’état de référence. Mesuré à l’itération 109 : sur un profil Electron VIERGE, l’app rend `fitnessObjective: null`, AUCUN plan (0 jour) et 2 507 px ; sur le profil de développement, « athletique », 6 jours et 4 154 px. Ce harnais lisait et ÉCRIVAIT le vrai localStorage de ce profil, donc une dizaine de checks sur le Plan de bataille ne passaient que grâce à un objectif laissé par un run précédent, et planActionDabord tombait au hasard (ouverts=1, puis 0, puis 1 sur le même code). Le profil est désormais effacé à chaque run et le socle est posé par le harnais lui-même. Attendu : objectif, poids, cible de séances et début de bloc conformes au socle, un plan d’au moins 3 séances réellement généré, et aucune séance héritée d’un run précédent (voir __socle)');
     if (!checks.cibleHebdoNeRetrecitPas) errors.push('La cible hebdo rétrécit quand tu t’entraînes, ou le panneau se contredit d’une ligne à l’autre. Mesuré sur UNE semaine à 4 muscu + 2 courses : « 0 / 6 séances » le lundi, « 2 / 4 » après deux séances, « 2 / 2 · 100 % » avec « il reste 2 séances » juste en dessous, puis « 4 / 4 » une fois la semaine bouclée (repli sur le réglage, qui compte le vélo). Cause : `plan.week` est amputé de ce qui est déjà fait — bon pour afficher un programme à placer, faux pour dire « X/Y séances ». Attendu : le dénominateur AFFICHÉ ne bouge pas de toute la semaine, fait + reste === cible, aucun 100 % au-dessus d’un « pour boucler », et `source` reste « plan » jusqu’au bout (voir __cibleStable)');
     if (!checks.fenetreSemaineNommee) errors.push('« Cette semaine » désigne deux fenêtres différentes. Mesuré un jeudi avec 10 km le dimanche précédent et 5 km aujourd’hui : #weekDistance et #runWeekGoal disaient « 5 km cette semaine » (depuis lundi) pendant que #trailRunSummary et #trailRamp disaient « 15 km cette semaine » (7 jours glissants) — un facteur 3 avec les mêmes mots. La fenêtre glissante est le bon outil pour juger une charge de course ; c’est le MOT qui était faux. Attendu : les voix glissantes ne disent pas « cette semaine » ET nomment leur fenêtre (« 7 derniers j. », « sur 7 jours »), la voix calendaire garde son mot et son chiffre (voir __fenetreSemaine)');

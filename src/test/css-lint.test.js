@@ -230,3 +230,34 @@ test('markup : le check-in vit dans le panneau qui décide, et nulle part ailleu
   assert.ok(titreRecup.indexOf('Check-in du jour') === -1,
     'recovery-panel ne contient plus de check-in : son titre ne doit plus l’annoncer');
 });
+
+test('un id ne vit qu’une fois : deux écrans ne peuvent pas écrire au même endroit', () => {
+  /* ITÉRATION 110, mesuré dans le renderer. `id="weekBalance"` existait DEUX fois — dans le Plan de
+     bataille (onglet Athlète) et dans la page « Ma semaine ». Or `$('#x')` rend TOUJOURS le premier
+     élément du document, d'où trois conséquences constatées :
+       1. la page « Ma semaine » n'affichait jamais ses chips — son élément restait vide ;
+       2. `renderWeekPage()` écrasait l'équilibre course/muscu du Plan par « 1 Sport · 1 Focus ·
+          1 Vie · 0 Révision » ;
+       3. basculer l'agenda en vue « jour » posait `hidden` sur le bloc de l'onglet ATHLÈTE, qui
+          tombait à 0 px (display:none).
+     Même mécanisme que la classe `.coach-panel` dupliquée de l'itération 108, en pire : un id en
+     double est en plus du HTML invalide.
+     Le test DÉRIVE sa liste du markup — une liste écrite à la main raterait le doublon suivant. */
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const compte = new Map();
+  const re = /\sid="([A-Za-z0-9_-]+)"/g;
+  let m;
+  while ((m = re.exec(html))) compte.set(m[1], (compte.get(m[1]) || 0) + 1);
+
+  assert.ok(compte.size > 300, 'témoin : le markup porte bien des centaines d’ids (' + compte.size + ')');
+  const doubles = [...compte.entries()].filter(([, n]) => n > 1).map(([id, n]) => id + ' ×' + n);
+  assert.deepEqual(doubles, [], 'ids présents plusieurs fois dans index.html : ' + doubles.join(', '));
+
+  /* Et le bloc de l'onglet Athlète porte bien son id PROPRE, celui que `renderWeekBalance` vise.
+     Sans cette seconde assertion, renommer l'élément côté Athlète sans corriger le rendu passerait
+     le test ci-dessus tout en laissant le bloc vide. */
+  assert.ok(compte.has('trainingWeekBalance'), 'le bloc équilibre du Plan de bataille garde son id propre');
+  const app = fs.readFileSync(path.join(dir, 'app.js'), 'utf8');
+  assert.ok(app.indexOf("renderWeekBalance(){const el=$('#trainingWeekBalance')") !== -1,
+    'renderWeekBalance doit viser l’élément de l’onglet Athlète, pas celui de la page « Ma semaine »');
+});
