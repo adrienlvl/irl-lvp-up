@@ -5292,3 +5292,56 @@ que **l'app** fait — le déficit que le plan poids applique, la coupe que la p
 cause là serait exactement l'écart dire/faire traqué depuis la 106, à l'envers.
 
 **Mutations.** 5 posées, 5 détectées. 708 tests · SMOKE OK. Publié en v2.18.0 (itérations 110–124).
+
+## Itération 126 — revue adversariale : j'avais fermé la fenêtre d'un seul côté
+
+Deux hypothèses mises à l'épreuve sur mon code des 123–125. **Une confirmée, une réfutée** — c'est
+ce que doit produire une revue honnête.
+
+### Réfutée
+
+La cause de la coupe (125) cite-t-elle le déficit *réellement* appliqué, ou celui d'avant le
+programme nutrition ? Mesuré sur les quatre programmes : **316 / 632 / 885 / 1107 kcal**. Elle suit
+le programme choisi. Rien à corriger.
+
+### Confirmée
+
+À la 124 j'ai fermé le **départ** de la fenêtre commune poids/ruban et laissé l'autre bout ouvert.
+
+| série | fin | ce que l'app annonçait |
+|---|---|---|
+| pesées (tous les 3 jours) | aujourd'hui | — |
+| mensurations | **il y a 60 jours** | — |
+| phrase rendue | | « **Sur les 6 derniers mois** : −2 cm de tour de taille » |
+
+Or ces −2 cm s'étaient faits entre janvier et mai. **Le défaut que la 124 corrigeait, à l'autre
+extrémité du même intervalle.** La fenêtre est maintenant `[le plus tardif des premiers, le plus
+précoce des derniers]`, les deux séries y sont bornées, et l'écran dit « Sur 4 mois, jusqu'à ta
+dernière mensuration il y a 2 mois ».
+
+### Ce que cette itération a appris
+
+**Un intervalle a deux bouts, et j'en avais corrigé un.** J'ai écrit à la 124 « les deux séries
+sont bornées à leur départ commun » et je me suis arrêté là, satisfait d'avoir nommé le problème.
+*Corriger la moitié d'une symétrie est plus dangereux que de ne rien corriger : le code a l'air
+traité, et le commentaire jure qu'il l'est.*
+
+**Deux mutations survivantes, deux causes différentes — et il faut les distinguer.**
+- *Trou de couverture* : mon jeu d'essai périmé avait un poids **constant**, donc borner les séries
+  en haut ou non donnait le même delta. Le poids varie maintenant après la fenêtre, et la mutation
+  tombe. Un jeu d'essai dont la grandeur testée ne bouge pas ne teste rien.
+- *Redondance* : le garde `jusqua < depuis` était couvert par le contrôle de longueur qui suit —
+  fenêtre à l'envers ⇒ filtre vide ⇒ `< 2` ⇒ `null`. Aucune mutation ne pouvait le faire tomber,
+  preuve qu'il ne portait rien. Retiré, avec la raison écrite sur place.
+
+**Un test qui tombe demande une décision, pas un ajustement.** Le test de la 124 est passé de −1,5
+à −1,2 : sa boucle de pesées s'arrêtait à J−2 (730 n'est pas multiple de 7) quand les mensurations
+allaient à J−0, donc la nouvelle borne excluait la dernière mesure. Contrat changé **sciemment et
+par écrit** : la valeur *courante* du tour de taille reste la plus fraîche, seule la *comparaison*
+est bornée à la fenêtre commune. Le jeu d'essai est aligné sur 728.
+
+**NULL N'EST PAS ZÉRO, encore.** Sans date du jour, `retardJours` vaut `null` et non 0 : un 0 se
+lirait « ruban à jour » alors qu'on n'en sait rien.
+
+**Mutations.** 4 posées, 4 détectées après traitement des deux survivantes. 709 tests · SMOKE OK.
+Rien publié depuis v2.18.0.
