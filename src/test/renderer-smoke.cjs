@@ -4066,6 +4066,96 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* QUAND L APP DIT « TON PLAN », C EST LE PLAN CHOISI (BLOQUANT, iteration 120).
+         Mesure avant, meme etat, en changeant seulement le programme nutrition :
+           choisi          applique par le Plan        annonce par la page Poids
+           prudent         0,28 kg/sem · 19 semaines   0,55 · 10
+           agressif        0,77 · 7                    0,55 · 10
+           tres-agressif   0,96 · 6 · 1968 kcal        0,55 · 10 · 2425 kcal
+         La page Poids construisait son plan sans appliquer le programme retenu — un facteur 1,7
+         sur « tres agressif » — et depuis l iteration 117 elle attribuait ce chiffre fige a
+         « ton plan » : un chiffre anonyme etait devenu une attribution FAUSSE.
+         Le check balaye les cinq programmes : avec un seul, la coincidence suffirait.
+         logic.js le disait deja : « Le choix nutritionnel doit changer le PLAN, pas seulement un
+         texte, sinon l app promettrait une date de fin qui ne correspond a rien ». */
+      checks.programmeNutritionSuivi = (() => {
+        const _g = JSON.parse(JSON.stringify(state.goals || {}));
+        const _p = JSON.parse(JSON.stringify(state.profile || {}));
+        const _w = state.weights;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.goals = _g; state.profile = _p; state.weights = _w;
+          try { render(); } catch (_) {}
+          try { showPage("athlete"); showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof energyPlan !== "function"
+            || typeof appliquerProgrammeNutrition !== "function") { _rendre(); return false; }
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const ilYA = n => { const d = new Date(auj); d.setDate(d.getDate() - n); return cle(d); };
+          state.profile = Object.assign({}, state.profile, { weight: 80, height: 178, age: 29,
+            sex: "homme", activityLevel: "actif", goal: "perte" });
+          state.goals = Object.assign({}, state.goals, { targetWeight: 73 });
+          const wg = [];
+          for (let k = 8; k >= 0; k--) wg.push({ date: ilYA(k * 7),
+            value: Math.round((81 - (8 - k) * 0.35) * 10) / 10 });
+          state.weights = wg;
+
+          /* On DERIVE la liste des programmes du catalogue de l app : une liste ecrite a la main
+             raterait celui qu on ajoutera demain. */
+          /* programmesNutrition prend le PLAN d energie, pas un nombre de calories : ma premiere
+             version lui passait (2400, 80) et recevait une liste vide — le check echouait sur son
+             propre appel, pas sur l app. On derive donc le catalogue du plan reellement calcule. */
+          const _e0 = energyPlan({ weight: 80, height: 178, age: 29, sex: "homme",
+            activityLevel: "actif", sessionsPerWeek: 4, targetWeight: 73, todayKey: localDate() });
+          const cles = (typeof programmesNutrition === "function" && _e0)
+            ? (programmesNutrition(_e0, 80, null) || []).map(function (x) { return x.cle; })
+            : [];
+          if (cles.length < 3) { _rendre();
+            checks.__programmeSuivi = "catalogue trop court : " + cles.length; return false; }
+
+          const lignes = [], ecarts = [];
+          cles.forEach(function (k) {
+            state.goals = Object.assign({}, state.goals, { nutritionPlan: k });
+            render();
+            showPage("poids");
+            const e = document.getElementById("coachWeightBody");
+            const txt = e ? String(e.textContent || "") : "";
+            let applique = null;
+            try { const inp = trainingPlanInputs(state, localDate());
+              applique = inp && inp.energie ? inp.energie : null; } catch (_) { applique = null; }
+            if (!applique) { ecarts.push(k + ":plan absent"); return; }
+            /* Les programmes « maintien » et « prise » n ont pas de date d atteinte sur un profil
+               qui vise une PERTE : weeks vaut null et il n y a rien a confronter. On les ecarte —
+               le temoin plus bas exige que trois durees REELLES et distinctes subsistent, sinon
+               un bug qui mettrait weeks a null partout rendrait ce check vacant. */
+            if (applique.weeks === null || applique.weeks === undefined) {
+              lignes.push(k + ":sans echeance"); return; }
+            const sem = String(applique.weeks);
+            const vu = txt.indexOf(sem + " semaine") !== -1;
+            lignes.push(k + ":" + applique.ratePerWeek + "/" + sem + (vu ? "ok" : "NON"));
+            if (!vu) ecarts.push(k + " attend " + sem + " sem");
+          });
+
+          /* TEMOIN : les programmes doivent VRAIMENT donner des durees differentes, sinon
+             n importe quel affichage fige passerait. */
+          const durees = [];
+          lignes.forEach(function (l) { const d = l.split("/")[1];
+            if (d && d.indexOf("null") === -1 && durees.indexOf(d) === -1) durees.push(d); });
+          const programmesDistincts = durees.length >= 3;
+
+          checks.__programmeSuivi = "programmes=" + cles.length
+            + " distincts=" + programmesDistincts + "[" + durees.join(",") + "]"
+            + " ecarts=" + ecarts.length + "[" + ecarts.slice(0, 3).join(" ") + "]"
+            + " detail[" + lignes.join(" ") + "]";
+          _rendre();
+          return programmesDistincts && ecarts.length === 0;
+        } catch (e) {
+          _rendre();
+          checks.__errProgrammeSuivi = String(e && e.message); return false;
+        }
+      })();
+
       /* DEUX ECHEANCES DE POIDS, DEUX REGLES, CHACUNE NOMMEE (BLOQUANT, iteration 117 — A4).
          Mesure avant, sur un historique REGULIER de 9 pesees a -0,35 kg/semaine, meme instant :
            Athlete > Corps : « Tendance recente : -0.36 kg/sem · reste -5.2 kg → cap vers ~14 sem. »
@@ -8080,6 +8170,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
     if (!checks.deuxRythmesDeuxRegles) errors.push('Deux échéances de poids pour un seul objectif, sans dire de quelle règle chacune sort. Mesuré à l’itération 117 sur un historique régulier de 9 pesées à −0,35 kg/semaine : l’onglet Athlète disait « Tendance récente : −0,36 kg/sem → cap vers ~14 sem. » pendant que la page Poids disait « ≈ 10 semaines (au rythme de 0,55 kg/sem.) ». Les deux sont honnêtes — la première mesure ce que tu FAIS, la seconde annonce ce que ton plan calorique VISE — mais aucune ne le disait, et le lecteur voit deux échéances à un facteur 1,4. Attendu : la voix Athlète dit « à CE rythme », la voix Poids dit « rythme VISÉ » et « par ton plan », et aucune ne se fait passer pour l’autre. Et chacune nomme sa FENÊTRE : le panneau Poids compte sur les N dernières pesées (N réel, pas six en dur), le panneau d’analyse compare la première pesée à la dernière et dit sa période en semaines — deux questions différentes, mesurées à −0,36 et −0,35 kg/sem sur le même état (voir __deuxRythmes)');
     if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');
     if (!checks.objectifsSauvesSansDegat) errors.push('Sauvegarder ses objectifs hebdo casse quelque chose. Mesuré à l’itération 114 : le gestionnaire de « Sauvegarder » RECONSTRUISAIT `state.goals` au lieu de le fusionner, donc { sessions, distance, targetWeight, runs, progSessions, weeklyKm } devenait { sessions, distance, targetWeight } — le nombre de courses par semaine et le volume hebdo de course (qui sert à prescrire les kilomètres) disparaissaient en silence. Et il n’appelait que `renderAthlete()`, donc le sous-onglet Progrès affichait « 3 / 6 séances » pendant que Corps et Aujourd’hui restaient à « 3/5 » — deux cibles pour la même semaine. Attendu : aucune clé de `state.goals` perdue ni modifiée hors des deux champs du formulaire, et les trois voix hebdo d’accord après le clic. (Le rendu complet, lui, n’est pas gardé : une fois la fusion en place, aucun champ de ce formulaire ne fait bouger la cible, donc un rendu partiel n’a plus de conséquence observable — c’est écrit dans le commentaire du check plutôt que promis ici. Voir __objectifsSauves)');
