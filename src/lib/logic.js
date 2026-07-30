@@ -3551,9 +3551,24 @@ function bodyGoalWorkout(key, exercises, opts) {
 // Choisit ~n exercices couvrant une liste de zones, en tournant (round-robin) : une par zone,
 // meilleures d'abord, sans doublon. `offset` fait tourner le choix dans chaque zone (variété /
 // bouton régénérer) tout en restant pertinent. Renvoie [{name,sets,reps,unit}]. Pur + testé.
-function pickExercisesForZones(zones, exercises, n, offset) {
+function pickExercisesForZones(zones, exercises, n, offset, zonesVoulues) {
   const list = Array.isArray(exercises) ? exercises : [];
-  const zs = Array.isArray(zones) ? zones : [];
+  const zsBase = Array.isArray(zones) ? zones : [];
+  /* LES ZONES DEMANDÉES PASSENT DEVANT, à l'intérieur de ce que la séance couvre déjà.
+     Mesuré à l'itération 128 : le réglage « zones à privilégier » ne servait qu'à réordonner
+     les archétypes de séance, si bien qu'il ne changeait STRICTEMENT RIEN sur athlétique,
+     endurance et forme — trois objectifs sur cinq — dont les splits répètent le même
+     archétype. La sélection tire en rond sur les zones de la séance : il suffit de servir
+     d'abord celles qu'Adrien a cochées.
+     ON NE PROMET PAS PLUS QUE L'ARCHÉTYPE NE CONTIENT : demander les bras sur un full body
+     (jambes, dos, pectoraux, abdos, épaules) n'y ajoute pas de bras. Le tri est STABLE, donc
+     l'ordre d'origine subsiste entre zones de même rang. */
+  const veut = Array.isArray(zonesVoulues) ? zonesVoulues.filter(function (z) { return z; }) : [];
+  const zs = veut.length
+    ? zsBase.slice().sort(function (a, b) {
+        return (veut.indexOf(a) === -1 ? 1 : 0) - (veut.indexOf(b) === -1 ? 1 : 0);
+      })
+    : zsBase;
   const num = Math.max(1, Math.round(Number(n) || 5));
   const off = Math.max(0, Math.round(Number(offset) || 0));
   const byZone = zs.map(z => {
@@ -4861,6 +4876,8 @@ function trainingWeekPlan(input, exercises) {
     // Le volume hebdo, pour prescrire des KILOMETRES et pas seulement des minutes.
     weeklyKm: i.weeklyKm,
     prioriteZones: prioriteComposee,
+    // Ce qu'Adrien a coché lui-même : sert la préférence DANS chaque séance (128).
+    zonesVoulues: Array.isArray(i.zones) ? i.zones : [],
     semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
   });
   /* Zéro séance restante doit donner zéro séance. objectiveWeekShape borne le total à 1
@@ -4895,6 +4912,8 @@ function trainingWeekPlan(input, exercises) {
     /* La semaine suivante tient compte de la précédente : sans ça le plan reproposait
        éternellement la même chose, quoi qu'Adrien ait fait ou sauté. */
     prioriteZones: prioriteComposee,
+    // Ce qu'Adrien a coché lui-même : sert la préférence DANS chaque séance (128).
+    zonesVoulues: Array.isArray(i.zones) ? i.zones : [],
     /* La semaine du bloc fait tourner le protocole : sans elle, la meme seance dure
        reviendrait a l identique pendant tout le cycle. */
     semaine: (typeof isoWeekNumber === 'function' && isRealDateKey(i.todayKey)) ? isoWeekNumber(i.todayKey) : 1
@@ -5117,7 +5136,8 @@ function objectiveProgram(key, exercises, opts) {
      la correction de la revue 100. Une table figée par focus affirmait une composition que la
      séance n avait pas. */
   const muscu = focus.map((f, fi) => {
-    const exos = pickExercisesForZones(FOCUS_ZONES[f], pool, per, seed ? seed + fi : fi);
+    const exos = pickExercisesForZones(FOCUS_ZONES[f], pool, per, seed ? seed + fi : fi,
+      opts && opts.zonesVoulues);
     return { kind: 'muscu', focus: f, title: FOCUS_TITLE[f] || 'Musculation', minutes: 45,
       why: pourquoiSeanceMuscu(exos, f), exercises: exos };
   });

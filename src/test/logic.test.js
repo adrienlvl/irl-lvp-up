@@ -15880,6 +15880,76 @@ test('trainingWeekPlan : l\'empilement des séances dit quand c\'est le calendri
   assert.ok(lundi !== jeudi && jeudi !== samedi && lundi !== samedi);
 });
 
+test('pickExercisesForZones : les zones demandées passent devant, sans en inventer', () => {
+  const { exercises } = require('../lib/exercises-data.js');
+  /* Le cas qui DISCRIMINE : même séance, même catalogue, seule la préférence change. */
+  const sans = L.pickExercisesForZones(['legs', 'abs'], exercises, 4, 0);
+  const avec = L.pickExercisesForZones(['legs', 'abs'], exercises, 4, 0, ['abs']);
+  assert.ok(sans.length && avec.length, 'témoin : les deux sélections sont non vides');
+  assert.ok(L.exerciseZones(sans[0].name).indexOf('legs') !== -1,
+    'témoin : sans préférence, la séance s\'ouvre sur sa première zone déclarée');
+  assert.ok(L.exerciseZones(avec[0].name).indexOf('abs') !== -1,
+    'avec préférence, elle s\'ouvre sur la zone demandée');
+
+  /* ON N'INVENTE PAS UNE ZONE QUE LA SÉANCE NE COUVRE PAS : demander les bras sur une séance
+     jambes + abdos ne fait pas apparaître de bras. */
+  const bras = L.pickExercisesForZones(['legs', 'abs'], exercises, 4, 0, ['arms']);
+  assert.equal(bras.length, sans.length, 'la sélection garde sa taille');
+  bras.forEach(function (x) {
+    const z = L.exerciseZones(x.name);
+    assert.ok(z.indexOf('legs') !== -1 || z.indexOf('abs') !== -1,
+      x.name + ' : la séance ne sort pas de ses zones');
+  });
+  /* Une préférence vide ou absurde ne doit rien changer. */
+  assert.deepEqual(L.pickExercisesForZones(['legs', 'abs'], exercises, 4, 0, []).map(x => x.name),
+    sans.map(x => x.name), 'aucune préférence → aucun changement');
+  assert.deepEqual(L.pickExercisesForZones(['legs', 'abs'], exercises, 4, 0, ['zzz']).map(x => x.name),
+    sans.map(x => x.name), 'une zone hors séance → aucun changement');
+});
+
+test('trainingWeekPlan : cocher des zones change la semaine sur TOUS les objectifs', () => {
+  /* Mesuré à l'itération 128 : le réglage « zones à privilégier » ne servait qu'à réordonner
+     les archétypes de séance, donc il ne changeait STRICTEMENT RIEN sur athlétique, endurance
+     et forme — trois objectifs sur cinq, dont les splits répètent le même archétype. */
+  const { exercises } = require('../lib/exercises-data.js');
+  const VOULU = ['arms', 'abs'];
+  const etat = (objectif, zones) => ({
+    profile: { weight: 82, height: 178, age: 29, sex: 'homme', activityLevel: 'actif',
+      goal: 'maintien', level: 'intermediaire', availableDays: [1, 2, 3, 4, 5, 6, 0],
+      zonesVoulues: zones,
+      equipment: { handles: true, vest: true, kettlebell: true, pullup: true } },
+    goals: { targetWeight: '', sessions: null, runs: null, distance: 10, weeklyKm: 12 },
+    fitnessObjective: objectif, objectiveSeed: 0, workouts: [], agenda: [], weights: [],
+    recovery: [], blockStart: '', blockHistory: [], plans: []
+  });
+  /* On compte les séances qui S'OUVRENT sur une zone demandée : c'est ce que le réglage peut
+     honnêtement produire sans déséquilibrer la séance — pas trois exercices d'abdos sur cinq. */
+  const ouvrent = (objectif, zones) => {
+    const p = L.trainingWeekPlan(L.trainingPlanInputs(etat(objectif, zones), '2026-07-27'), exercises);
+    const muscu = (p.week || []).filter(s => s.kind === 'muscu');
+    const n = muscu.filter(s => {
+      const e = (s.exercises || [])[0];
+      return e && L.exerciseZones(e.name).some(z => VOULU.indexOf(z) !== -1);
+    }).length;
+    return { n, total: muscu.length };
+  };
+
+  let sansTotal = 0, avecTotal = 0, seancesTotal = 0, jamaisInvente = 0;
+  L.FITNESS_OBJECTIVES.forEach(function (o) {
+    const a = ouvrent(o.key, []), b = ouvrent(o.key, VOULU);
+    assert.ok(b.n >= a.n, o.key + ' : cocher des zones ne doit jamais en retirer');
+    assert.equal(b.total, a.total, o.key + ' : le nombre de séances ne bouge pas');
+    sansTotal += a.n; avecTotal += b.n; seancesTotal += b.total;
+    if (b.n < b.total) jamaisInvente += 1;
+  });
+  assert.ok(avecTotal > sansTotal,
+    'le réglage a un effet mesurable, tous objectifs confondus (' + sansTotal + ' → ' + avecTotal + ')');
+  assert.ok(sansTotal < seancesTotal,
+    'témoin : sans choix, toutes les séances ne s\'ouvraient pas déjà sur ces zones');
+  assert.ok(jamaisInvente > 0,
+    'et au moins un objectif garde une séance qui ne couvre pas ces zones : on n\'invente pas');
+});
+
 test('trainingPolicy : en déficit on retire du volume, jamais des charges', () => {
   const f = L.trainingPolicy;
 
