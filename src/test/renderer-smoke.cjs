@@ -4223,29 +4223,55 @@ app.whenReady().then(async () => {
             return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); })();
           const j = function (n) { const d = new Date(lun + "T12:00:00"); d.setDate(d.getDate() + n);
             return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
-          state.workouts = [
-            { id: 104001, date: j(0), type: "strength", duration: 50, effort: 2,
-              exercises: [{ name: "Squat", sets: 4, reps: 8, load: 80, completedSets: 4 }] },
-            { id: 104002, date: j(1), type: "run", duration: 45, distance: 8, effort: 2 },
-            /* QUATRE seances, pas trois : la phrase « Objectif de N seances atteint » ne sort que
-               lorsque la cible est ATTEINTE. Avec trois, remettre la cible a 4 ne produisait aucune
-               affirmation contradictoire a capturer — la mutation survivait faute de scenario, pas
-               faute de check. */
-            { id: 104004, date: j(3), type: "strength", duration: 35, effort: 2,
-              exercises: [{ name: "Pompes classiques", sets: 3, reps: 12, completedSets: 3 }] },
-            { id: 104003, date: j(2), type: "strength", duration: 40, effort: 3,
-              exercises: [{ name: "Tractions", sets: 3, reps: 8, completedSets: 3 }] }
-          ];
+          /* LE SEMIS SE DERIVE DU PLAN, il ne se declare pas. Deux raisons, toutes deux
+             apprises en mutant ce check :
+             — la cible doit etre ATTEINTE pour que la voix « Objectif de N seances atteint »
+               existe ; depuis la 107 la cible ne retrecit plus, donc quatre seances sur six ne
+               l atteignaient plus et cette voix avait disparu du releve en silence ;
+             — une categorie doit DEBORDER pour que le compte plafonne (fait) differe du compte
+               brut (faitBrut) ; sans ce debordement, le libelle du grand chiffre passait le test
+               avec l ancien code comme avec le nouveau.
+             Les dates restent dans le PASSE (ou aujourd hui) quel que soit le jour de la semaine :
+             une seance datee demain serait comptee par thisWeekWorkouts et pas par le plan, ce qui
+             ferait dependre le check du jour ou il tourne. */
+          state.workouts = []; render();
+          const _pl0 = (function () { try { return trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises); }
+            catch (_) { return null; } })();
+          const _cnt = (arr, k) => (Array.isArray(arr) ? arr : []).filter(x => x && x.kind === k).length;
+          const _nM = _pl0 ? _cnt(_pl0.semaineType, "muscu") : 0;
+          const _nC = _pl0 ? _cnt(_pl0.semaineType, "course") : 0;
+          if (_nM + _nC < 3) { _rendre(); checks.__errVoixHebdo = "plan trop maigre pour discriminer"; return false; }
+          const _auj = new Date(localDate() + "T12:00:00");
+          const _passes = (_auj.getDay() + 6) % 7;
+          const _jPasse = k => { const d = new Date(_auj); d.setDate(d.getDate() - (_passes ? (k % (_passes + 1)) : 0));
+            return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); };
+          const _semis = [];
+          for (let k = 0; k < _nM + 2; k++) _semis.push({ id: 104100 + k, date: _jPasse(k),
+            type: "strength", duration: 45, effort: 2,
+            exercises: [{ name: k % 2 ? "Tractions" : "Squat", sets: 3, reps: 8, load: 60, completedSets: 3 }] });
+          for (let k = 0; k < _nC; k++) _semis.push({ id: 104200 + k, date: _jPasse(k),
+            type: "run", duration: 40, distance: 7, effort: 2 });
+          state.workouts = _semis;
           showPage("athlete");
           render();
 
           /* On DERIVE les cibles du texte rendu : tout motif « N/M seance ». Une liste ecrite a la
              main manquerait la voix qu on ajoutera demain. */
-          const cibles = [], details = [];
-          const releve = function (sel, ou) {
-            const el = document.querySelector(sel);
-            if (!el || el.getBoundingClientRect().height < 8) return;
-            const txt = String(el.textContent || "");
+          /* DEUX PASSES, DEUX SACS. La voix « Objectif de N seances atteint » et la voix
+             « N seances realisees » ne peuvent pas coexister : elles sont les deux branches du
+             meme si. Chaque sac doit etre coherent avec lui-meme. */
+          const sacs = [{ c: [], n: [], d: [] }, { c: [], n: [], d: [] }];
+          let sac = sacs[0];
+          /* LE TEXTE, PAS LA CLASSE. Ma premiere version faisait
+             document.querySelector("." + classeDuPanneau), qui rend le PREMIER element du
+             document portant cette classe : .coach-panel est duplique dans index.html (un
+             #coachFocusPanel masque, hauteur 0, et l article visible du bilan hebdo), donc le
+             releve sortait sur le test de hauteur et le panneau VISIBLE n etait jamais lu —
+             precisement celui qui porte #coachSummary, une voix hebdo. On passe desormais le
+             texte du noeud qu on vient de voir visible : le detournement devient impossible,
+             pas seulement garde. */
+          const releve = function (txt0, ou) {
+            const txt = String(txt0 || "");
             /* Deuxieme forme de cible : « Objectif de N seances ». Sans elle, une voix qui annonce
                sa cible ainsi echappait au releve — mutation survivante au premier essai. */
             {
@@ -4256,8 +4282,28 @@ app.whenReady().then(async () => {
                 let n = '';
                 while (b < txt.length && txt.charAt(b) >= '0' && txt.charAt(b) <= '9') { n += txt.charAt(b); b++; }
                 if (n.length && txt.slice(b, b + 10).indexOf('séance') !== -1) {
-                  cibles.push(Number(n)); details.push(ou + ':objectif=' + n);
+                  sac.c.push(Number(n)); sac.d.push(ou + ':objectif=' + n);
                 }
+              }
+            }
+            /* TROISIEME FORME : « N seance(s) realisee(s) », sans slash. Le bilan hebdo annonce
+               son numerateur ainsi, et il echappait donc entierement au releve — c est justement
+               la voix qui comptait TOUTE activite (« 4 seances realisees » face a « 1 / 6 »). Un
+               releve qui ne connait qu une seule tournure ne garde qu une seule voix. */
+            {
+              const marque = " seance";
+              const txtSansAccent = txt.replace(/[éè]/g, "e");
+              let k = -1;
+              while ((k = txtSansAccent.indexOf(marque, k + 1)) > 0) {
+                const suite = txtSansAccent.slice(k, k + 24);
+                if (suite.indexOf("realise") === -1) continue;
+                let a = k - 1;
+                while (a >= 0 && txtSansAccent.charAt(a) === " ") a--;
+                const fin = a + 1;
+                while (a >= 0 && txtSansAccent.charAt(a) >= "0" && txtSansAccent.charAt(a) <= "9") a--;
+                const n = txtSansAccent.slice(a + 1, fin);
+                if (!n.length) continue;
+                sac.n.push(Number(n)); sac.d.push(ou + ":realisees=" + n);
               }
             }
             let i = -1;
@@ -4275,28 +4321,47 @@ app.whenReady().then(async () => {
               const gauche = txt.slice(a + 1, finGauche), droite = txt.slice(debutDroite, b);
               if (!gauche.length || !droite.length) continue;
               if (txt.slice(b, b + 12).indexOf("séance") === -1) continue;
-              cibles.push(Number(droite));
-              details.push(ou + ":" + gauche + "/" + droite);
+              sac.c.push(Number(droite));
+              /* ET LE NUMERATEUR. Le message d erreur de ce check promettait deja « le
+                 NUMERATEUR compte autant » ; le code, lui, ne relevait que la partie droite du
+                 slash. Mesure : « 1 / 6 seances » sur Progres et « 4/6 seances — tu es dans les
+                 temps » sur Corps passaient le check, cibles identiques. */
+              sac.n.push(Number(gauche));
+              sac.d.push(ou + ":" + gauche + "/" + droite);
             }
           };
           /* On DERIVE : tous les panneaux visibles des quatre sous-onglets. Ma premiere version
              listait quatre selecteurs a la main et ratait la barre du goal-panel, sur le
              sous-onglet « Programme » — mutation survivante au premier essai. */
-          ["aujourdhui", "programme", "progres", "corps"].forEach(function (tab) {
-            showAthleteTab(tab);
-            document.querySelectorAll("main.app-shell section.panel, main.app-shell article.panel")
-              .forEach(function (pan) {
-                if (pan.getBoundingClientRect().height < 8) return;
-                const cle = (typeof pan.className === "string" ? pan.className : "")
-                  .split(" ").filter(function (c) { return c !== "panel"; })[0] || "panel";
-                releve("." + cle, tab + "/" + cle);
-              });
-          });
+          const balayer = function () {
+            ["aujourdhui", "programme", "progres", "corps"].forEach(function (tab) {
+              showAthleteTab(tab);
+              document.querySelectorAll("main.app-shell section.panel, main.app-shell article.panel")
+                .forEach(function (pan) {
+                  if (pan.getBoundingClientRect().height < 8) return;
+                  const cle = (typeof pan.className === "string" ? pan.className : "")
+                    .split(" ").filter(function (c) { return c !== "panel"; })[0] || "panel";
+                  releve(pan.textContent, tab + "/" + cle);
+                });
+            });
+          };
+          balayer();
+
+          /* SECONDE PASSE — L AUTRE BRANCHE. On retire les courses : la cible n est plus atteinte,
+             donc le bilan hebdo cesse de dire « Objectif de N seances atteint » et annonce
+             « N seances realisees ». Sans cette passe, cette phrase-la n etait jamais rendue et
+             son numerateur n etait garde par personne (mutation survivante au premier essai). */
+          sac = sacs[1];
+          state.workouts = _semis.filter(function (w) { return w.type !== "run"; });
+          render();
+          balayer();
 
           /* LA BORNE HAUTE. On ajoute une seance datee LUNDI PROCHAIN : elle ne doit pas entrer
              dans le compte de cette semaine. thisWeekWorkouts ne bornait que le debut, donc un
              creneau avance ou une saisie au mauvais mois gonflait le grand chiffre, la charge en
              points, la barre d objectifs et le mode du tableau de bord (iteration 105). */
+          // On revient a la semaine complete pour les deux mesures qui suivent.
+          state.workouts = _semis; render();
           let borneHaute = null, detailBorne = '';
           {
             const avant = (typeof thisWeekWorkouts === 'function') ? thisWeekWorkouts().length : null;
@@ -4321,23 +4386,50 @@ app.whenReady().then(async () => {
             if (gros && lbl && c) {
               const n = Number(String(gros.textContent || '').trim());
               const texte = String(lbl.textContent || '').trim();
-              detailLibelle = n + ' vs plan ' + c.fait + ' -> [' + texte + ']';
+              /* On compare au compte BRUT, pas au plafonne : « fait » est borne par la cible
+                 (it. 107), donc cinq muscu pour trois prevues auraient fait dire « toute activite »
+                 la ou il n y avait que des muscu. Et dans le repli sans plan, ce compte plafonne et
+                 le grand chiffre sortent du
+                 MEME appel : l egalite etait vraie par construction, le qualificatif ne pouvait
+                 jamais s afficher, et ce test ne testait rien (revue 107). */
+              const compte = (typeof c.faitBrut === 'number') ? c.faitBrut : c.fait;
+              detailLibelle = n + ' vs seances ' + compte + ' (plan ' + c.fait + ') -> [' + texte + ']';
               // Si les deux comptes divergent, le libelle doit le DIRE ; sinon il reste sobre.
-              libelleQualifie = (n === c.fait)
+              libelleQualifie = (n === compte)
                 ? texte.indexOf('toute activité') === -1
                 : texte.indexOf('toute activité') !== -1;
             }
           }
 
-          const distinctes = [];
-          cibles.forEach(function (c) { if (distinctes.indexOf(c) === -1) distinctes.push(c); });
+          const uniques = arr => { const o = []; arr.forEach(function (v) { if (o.indexOf(v) === -1) o.push(v); }); return o; };
+          const distinctes = uniques(sacs[0].c), numDistincts = uniques(sacs[0].n);
+          const distinctes2 = uniques(sacs[1].c), numDistincts2 = uniques(sacs[1].n);
+          const cibles = sacs[0].c, numerateurs = sacs[0].n;
+          const details = sacs[0].d.concat(["|| sans courses ||"]).concat(sacs[1].d);
+          // La seconde passe doit AVOIR rendu la phrase, sinon elle ne garde rien.
+          const realiseesVue = sacs[1].d.filter(function (x) { return x.indexOf(":realisees=") !== -1; }).length > 0;
+          const objectifVu = sacs[0].d.filter(function (x) { return x.indexOf(":objectif=") !== -1; }).length > 0;
           checks.__voixHebdo = 'borneHaute=' + borneHaute + '[' + detailBorne + ']'
+            + ' num distincts=' + numDistincts.length + '[' + numDistincts.join(',') + ']'
+            + ' passe2 num=' + numDistincts2.length + '[' + numDistincts2.join(',') + ']'
+            + ' cibles2=' + distinctes2.length + '[' + distinctes2.join(',') + ']'
+            + ' realiseesVue=' + realiseesVue + ' objectifVu=' + objectifVu
             + ' libelle=' + libelleQualifie + '[' + detailLibelle + '] '
             + "voix=" + cibles.length + " cibles distinctes=" + distinctes.length
             + " [" + distinctes.join(",") + "] detail[" + details.join(" ") + "]";
           _rendre();
           /* Au moins DEUX voix relevees, sinon le check ne compare rien — et une seule cible. */
-          return cibles.length >= 2 && distinctes.length === 1
+          /* Au moins DEUX voix relevees, sinon le check ne compare rien — une seule cible, et
+             un seul numerateur. Le semis garantit que le numerateur n est pas zero partout : sans
+             seances faites, tous les compteurs vaudraient 0 et l accord serait vacant. */
+          /* Au moins DEUX voix par passe, sinon le check ne compare rien. Un seul numerateur et
+             une seule cible DANS CHAQUE PASSE — les deux passes n ont pas le meme etat, donc pas
+             le meme chiffre : les melanger rendrait le test faux. Et le numerateur de la premiere
+             passe n est pas zero, sinon l accord serait vacant. */
+          const passeOk = (p, minNum) => p.c.length >= 2 && uniques(p.c).length === 1
+            && p.n.length >= minNum && uniques(p.n).length === 1;
+          return passeOk(sacs[0], 2) && numDistincts[0] > 0 && objectifVu
+            && passeOk(sacs[1], 2) && realiseesVue
             && borneHaute === true && libelleQualifie === true;
         } catch (e) {
           _rendre();
@@ -7202,7 +7294,7 @@ app.whenReady().then(async () => {
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.cibleHebdoNeRetrecitPas) errors.push('La cible hebdo rétrécit quand tu t’entraînes, ou le panneau se contredit d’une ligne à l’autre. Mesuré sur UNE semaine à 4 muscu + 2 courses : « 0 / 6 séances » le lundi, « 2 / 4 » après deux séances, « 2 / 2 · 100 % » avec « il reste 2 séances » juste en dessous, puis « 4 / 4 » une fois la semaine bouclée (repli sur le réglage, qui compte le vélo). Cause : `plan.week` est amputé de ce qui est déjà fait — bon pour afficher un programme à placer, faux pour dire « X/Y séances ». Attendu : le dénominateur AFFICHÉ ne bouge pas de toute la semaine, fait + reste === cible, aucun 100 % au-dessus d’un « pour boucler », et `source` reste « plan » jusqu’au bout (voir __cibleStable)');
     if (!checks.fenetreSemaineNommee) errors.push('« Cette semaine » désigne deux fenêtres différentes. Mesuré un jeudi avec 10 km le dimanche précédent et 5 km aujourd’hui : #weekDistance et #runWeekGoal disaient « 5 km cette semaine » (depuis lundi) pendant que #trailRunSummary et #trailRamp disaient « 15 km cette semaine » (7 jours glissants) — un facteur 3 avec les mêmes mots. La fenêtre glissante est le bon outil pour juger une charge de course ; c’est le MOT qui était faux. Attendu : les voix glissantes ne disent pas « cette semaine » ET nomment leur fenêtre (« 7 derniers j. », « sur 7 jours »), la voix calendaire garde son mot et son chiffre (voir __fenetreSemaine)');
-    if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible. Et le NUMÉRATEUR compte autant : `thisWeekWorkouts` ne bornait que le début de la semaine, donc une séance datée après dimanche entrait dans le compte (mesuré : 5 annoncées pour 4 réellement dans la semaine) ; et le grand chiffre du panneau Volume, qui compte toute activité, doit DIRE ce qu’il compte quand il diverge du compte du plan (voir __voixHebdo)');
+    if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible. Et le NUMÉRATEUR est vérifié depuis l’itération 108 — il ne l’était pas, alors que ce message le promettait : mesuré sur 1 muscu + 3 sorties vélo, « 1 / 6 séances · il reste 5 séances » sur Progrès et « 4/6 séances — 2 séances à caser : tu es dans les temps » sur Corps passaient ce check côte à côte, cibles identiques. Toutes les voix comptent désormais une séance de la même façon (seancesDeLaSemaine). Par ailleurs : `thisWeekWorkouts` ne bornait que le début de la semaine, donc une séance datée après dimanche entrait dans le compte (mesuré : 5 annoncées pour 4 réellement dans la semaine) ; et le grand chiffre du panneau Volume, qui compte toute activité, doit DIRE ce qu’il compte quand il diverge du compte du plan (voir __voixHebdo)');
     if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
     if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister. Et le pourquoi doit DIRE VRAI : il est dérivé des zones réelles des exercices depuis la revue 100, parce qu’une table figée affirmait « tirage et poussée équilibrés » et « peu coûteux pour les jambes » sur une séance que muscleBalance classait push-heavy et qui contenait un hip-hinge (voir __uniteGestes)');

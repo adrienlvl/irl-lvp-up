@@ -13130,6 +13130,68 @@ test('avancementSemaine : la cible de la semaine ne rétrécit pas quand on s’
     'un plan sans `semaineType` du tout garde l’ancien contrat');
 });
 
+test('seancesDeLaSemaine : une seule règle pour compter une séance, et le numérateur la suit', () => {
+  /* ITÉRATION 108, mesuré dans le renderer sur 1 muscu + 3 sorties vélo : le sous-onglet Progrès
+     disait « 1 / 6 séances · il reste 5 séances » quand Corps disait, AU MÊME RENDU, « 4/6 séances
+     — 2 séances à caser : tu es dans les temps » et « 4 séances réalisées ». Un facteur 4 sur le
+     numérateur et deux conseils opposés, parce que `weeklyInsights` comparait `workouts.length`
+     (toute activité) à une cible qui ne compte que muscu et courses. */
+  const mercredi = '2026-07-29';
+  const lundi = '2026-07-27';
+  const muscu = (d, i) => ({ id: i, date: d, type: 'strength', duration: 50, effort: 3,
+    exercises: [{ name: 'Squat', sets: 3, reps: 8, load: 70 }] });
+  const velo = (d, i) => ({ id: i, date: d, type: 'sport', duration: 60, effort: 2, distance: 0 });
+  const course = (d, i) => ({ id: i, date: d, type: 'run', duration: 30, effort: 2, distance: 5 });
+
+  // LA RÈGLE : muscu et course comptent, le reste non — et la fenêtre est CALENDAIRE.
+  const w = [muscu(lundi, 1), velo(lundi, 2), velo('2026-07-28', 3), course(mercredi, 4)];
+  const s = L.seancesDeLaSemaine(w, mercredi);
+  assert.deepEqual(s, { muscu: 1, course: 1, total: 2 }, 'deux sorties vélo ne sont pas des séances du plan');
+  assert.equal(w.length, 4, 'témoin : l’état contient bien 4 activités — c’est le nombre qui trompait');
+
+  // Une séance de la semaine d’avant est dehors ; une du futur aussi (la fenêtre s’arrête à today).
+  assert.equal(L.seancesDeLaSemaine([muscu('2026-07-26', 5)], mercredi).total, 0, 'le dimanche 26 est la semaine d’avant');
+  assert.equal(L.seancesDeLaSemaine([muscu('2026-07-31', 6)], mercredi).total, 0, 'vendredi n’a pas encore eu lieu');
+  assert.equal(L.seancesDeLaSemaine(w, 'pas-une-date'), null, 'une date inexploitable rend null, pas zéro');
+  assert.deepEqual(L.seancesDeLaSemaine(null, mercredi), { muscu: 0, course: 0, total: 0 },
+    'aucune séance rend ZÉRO, ce qui n’est pas la même chose que null');
+
+  /* ET `avancementSemaine` COMPTE PAREIL : c'est la même règle, pas une copie. Le témoin est que
+     l'état contient des activités hors plan — sinon les deux comptes coïncideraient par hasard. */
+  const etat = { goals: { sessions: 3, runs: 1 }, profile: { availableDays: [1, 2, 3, 4, 5] }, workouts: w };
+  const av = L.avancementSemaine(etat, mercredi);
+  assert.equal(av.fait.seances, s.muscu);
+  assert.equal(av.fait.courses, s.course);
+  assert.equal(av.fait.total, s.total, 'le vélo ne doit pas gonfler l’avancement du plan');
+
+  /* LE NUMÉRATEUR DE `weeklyInsights` EST INJECTABLE, comme la cible depuis la 104. Le cas qui
+     DISCRIMINE : le compte injecté doit changer le verdict, pas seulement le chiffre. */
+  const sansRien = L.weeklyInsights(etat, lundi, mercredi, { cibleSeances: 4 });
+  const avecCompte = L.weeklyInsights(etat, lundi, mercredi, { cibleSeances: 4, faitSeances: s.total });
+  const ligne = ins => (ins.filter(i => /séance/.test(i.text))[0] || {}).text || '';
+  assert.match(ligne(sansRien), /^4\/4 séances/, 'témoin : sans injection il compte les 4 activités et se croit à jour');
+  assert.match(ligne(sansRien), /objectif atteint/, 'témoin : et il félicite');
+  assert.match(ligne(avecCompte), /^2\/4 séances/, 'avec le compte de l’app, il annonce 2 sur 4');
+  assert.ok(!/objectif atteint/.test(ligne(avecCompte)), 'et il ne félicite plus une semaine inachevée');
+
+  // Le garde : NULL N'EST PAS ZÉRO, et zéro reste une valeur (aucune séance du plan).
+  assert.match(ligne(L.weeklyInsights(etat, lundi, mercredi, { cibleSeances: 4, faitSeances: 0 })), /^0\/4 séances/);
+  ['', null, false, '2', NaN, Infinity].forEach(v => {
+    assert.match(ligne(L.weeklyInsights(etat, lundi, mercredi, { cibleSeances: 4, faitSeances: v })), /^4\/4 séances/,
+      'une valeur qui n’est pas un nombre retombe sur le décompte historique : ' + String(v));
+  });
+
+  /* MÊME INJECTION POUR LE BADGE D'ADHÉRENCE, qui annonçait « Séances (4/3) ✓ » en comptant du
+     vélo face à une cible d'entraînement. */
+  const lbl = (o) => (L.weeklyAdherence(etat, lundi, mercredi, o).items.filter(i => i.key === 'sessions')[0] || {});
+  assert.equal(lbl({ sessionTarget: 3 }).label, 'Séances (4/3)', 'témoin : le badge comptait tout');
+  assert.equal(lbl({ sessionTarget: 3 }).done, true, 'témoin : et il se validait tout seul');
+  assert.equal(lbl({ sessionTarget: 3, faitSeances: s.total }).label, 'Séances (2/3)');
+  assert.equal(lbl({ sessionTarget: 3, faitSeances: s.total }).done, false);
+  assert.equal(lbl({ sessionTarget: 3, faitSeances: 0 }).label, 'Séances (0/3)', 'zéro est une valeur');
+  assert.equal(lbl({ sessionTarget: 3, faitSeances: '2' }).label, 'Séances (4/3)', 'une chaîne n’est pas un nombre');
+});
+
 test('exerciceSansCharge : un nom suffit, le catalogue tranche', () => {
   /* Signalé par Adrien : « y'a encore la charge qui est mise sur des exercices au poids du
      corps ». Mesuré : le détecteur exigeait un objet PORTANT son `kind`, alors qu'une séance
