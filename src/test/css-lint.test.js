@@ -189,3 +189,44 @@ test('CSS : un élément hidden ne doit pas garder un display d’auteur', () =>
   assert.deepEqual(fautifs, [],
     'ces éléments portent hidden mais une règle d’auteur leur impose un display : ajoute SÉLECTEUR[hidden]{display:none} juste sous la règle');
 });
+
+/* UN SEUL CHECK-IN, VÉRIFIÉ DANS LE MARKUP (itération 102, étape A2 de la roadmap 714).
+   Mesuré avant : le Compagnon (« Check-in avant de décider », 462 px, ZÉRO champ) disait
+   « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller
+   572 px plus bas, jusqu'au formulaire — lequel vivait dans `recovery-panel`. Et sous ce
+   formulaire, `#recoveryAdvice` réclamait une TROISIÈME fois « Fais un check-in ». Le geste était
+   demandé à deux endroits et rempli dans un troisième.
+   Les quatre champs vivent désormais là où la décision se prend. Ce test statique attrape un
+   déplacement accidentel à l'écriture ; le check du smoke (`unSeulCheckIn`) vérifie en plus que le
+   formulaire FONCTIONNE depuis sa nouvelle place — deux portées, comme la leçon de l'itération 96. */
+test('markup : le check-in vit dans le panneau qui décide, et nulle part ailleurs', () => {
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const CHAMPS = ['sleepInput', 'bedtimeInput', 'fatigueInput', 'sorenessInput', 'saveRecovery'];
+
+  // On DÉRIVE les bornes des deux panneaux du markup, on ne les déclare pas.
+  const bornes = cls => {
+    const debut = html.indexOf('class="panel ' + cls + '"');
+    assert.ok(debut > 0, 'panneau ' + cls + ' introuvable');
+    const fin = html.indexOf('</article>', debut);
+    assert.ok(fin > debut, 'fin du panneau ' + cls + ' introuvable');
+    return { debut, fin };
+  };
+  const compagnon = bornes('athlete-companion');
+  const recup = bornes('recovery-panel');
+
+  CHAMPS.forEach(id => {
+    const at = html.indexOf('id="' + id + '"');
+    assert.ok(at > 0, 'champ ' + id + ' absent du markup');
+    assert.ok(at > compagnon.debut && at < compagnon.fin,
+      id + ' doit vivre dans le panneau qui décide (athlete-companion), pas ailleurs');
+    assert.ok(!(at > recup.debut && at < recup.fin),
+      id + ' ne doit plus vivre dans recovery-panel : le check-in ne se demande qu’une fois');
+  });
+
+  /* Et le panneau qui reste ne doit plus se PRÉSENTER comme un check-in : il porte la lecture
+     (score, conseil de charge, séances manquées, sommeil). Garder l'ancien titre serait exactement
+     l'écart entre ce que l'app dit et ce qu'elle fait. */
+  const titreRecup = html.slice(recup.debut, recup.debut + 260);
+  assert.ok(titreRecup.indexOf('Check-in du jour') === -1,
+    'recovery-panel ne contient plus de check-in : son titre ne doit plus l’annoncer');
+});

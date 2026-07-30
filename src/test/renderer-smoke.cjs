@@ -3999,6 +3999,87 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* UN SEUL CHECK-IN (BLOQUANT, iteration 102 — etape A2).
+         Mesure avant, en 390 px et sans check-in du jour : le Compagnon (462 px, ZERO champ)
+         disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton « Faire mon
+         check-in » qui ne faisait que goToSection vers .recovery-panel, 572 px plus bas — la ou
+         vivait le formulaire. Et SOUS ce formulaire, #recoveryAdvice reclamait une TROISIEME fois
+         « Fais un check-in ». Le geste etait demande a deux endroits et rempli dans un troisieme,
+         et le bouton n existait que pour compenser la separation.
+         Les quatre champs vivent maintenant dans le panneau qui decide. Ce check verifie que le
+         formulaire AGIT depuis sa nouvelle place — on remplit, on enregistre, et le verdict doit
+         changer — et que personne ne redemande le meme geste ailleurs. */
+      checks.unSeulCheckIn = (() => {
+        const _rec = state.recovery;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => {
+          state.recovery = _rec;
+          try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {}
+        };
+        try {
+          if (typeof showPage !== "function" || typeof showAthleteTab !== "function") return false;
+          showPage("athlete"); showAthleteTab("aujourdhui");
+          const comp = document.querySelector(".athlete-companion");
+          const recup = document.querySelector(".recovery-panel");
+          if (!comp || !recup) { _rendre(); return false; }
+
+          /* 1. OU VIT LE FORMULAIRE. On derive du DOM : chaque champ doit avoir le panneau qui
+                decide pour ancetre, et aucun ne doit rester dans le panneau d analyse. */
+          const CHAMPS = ["sleepInput", "bedtimeInput", "fatigueInput", "sorenessInput", "saveRecovery"];
+          const dansComp = CHAMPS.filter(function (id) {
+            const el = document.getElementById(id);
+            return !!el && comp.contains(el);
+          }).length;
+          const dansRecup = CHAMPS.filter(function (id) {
+            const el = document.getElementById(id);
+            return !!el && recup.contains(el);
+          }).length;
+
+          // 2. SANS CHECK-IN : personne ne doit reclamer le geste deux fois.
+          state.recovery = (_rec || []).filter(r => r && r.date !== localDate());
+          render();
+          const txtComp = String(comp.textContent || "");
+          const txtRecup = String(recup.textContent || "");
+          const primaire = document.getElementById("todayCoachAction");
+          /* Le bouton principal doit etre CACHE : le geste attendu est le bouton du formulaire,
+             juste en dessous. On mesure le rendu, pas l attribut. */
+          const primaireCache = !!primaire && (getComputedStyle(primaire).display === "none"
+            || primaire.getBoundingClientRect().height < 1);
+          const plusDeRenvoi = txtComp.indexOf("Faire mon check-in") === -1;
+          const plusDeTroisieme = txtRecup.indexOf("Fais un check-in") === -1;
+          const designeLeSien = txtComp.indexOf("juste en dessous") !== -1;
+          const verdictAvant = String((document.getElementById("todayCoachTitle") || {}).textContent || "").trim();
+
+          /* 3. LE FORMULAIRE AGIT DEPUIS SA NOUVELLE PLACE. C est le point : deplacer du markup
+                peut casser un cablage sans que rien ne le dise. On remplit, on enregistre, et on
+                exige que l etat ET le verdict aient bouge. */
+          const sl = document.getElementById("sleepInput");
+          const fa = document.getElementById("fatigueInput");
+          const so = document.getElementById("sorenessInput");
+          if (sl) sl.value = "8";
+          if (fa) fa.value = "1";
+          if (so) so.value = "1";
+          const btn = document.getElementById("saveRecovery");
+          if (btn) btn.click();
+          const enregistre = (state.recovery || []).filter(r => r && r.date === localDate()).length === 1;
+          const verdictApres = String((document.getElementById("todayCoachTitle") || {}).textContent || "").trim();
+          const verdictBouge = verdictApres.length > 3 && verdictApres !== verdictAvant;
+
+          checks.__unCheckIn = "dansComp=" + dansComp + "/5 dansRecup=" + dansRecup
+            + " primaireCache=" + primaireCache + " plusDeRenvoi=" + plusDeRenvoi
+            + " plusDeTroisieme=" + plusDeTroisieme + " designeLeSien=" + designeLeSien
+            + " enregistre=" + enregistre + " verdict[" + verdictAvant.slice(0, 24)
+            + " -> " + verdictApres.slice(0, 24) + "]";
+          _rendre();
+          return dansComp === 5 && dansRecup === 0 && primaireCache && plusDeRenvoi
+            && plusDeTroisieme && designeLeSien && enregistre && verdictBouge;
+        } catch (e) {
+          _rendre();
+          checks.__errUnCheckIn = String(e && e.message); return false;
+        }
+      })();
+
       /* UN REGLAGE INVALIDE NE DOIT PAS EMPORTER LE RENDU (BLOQUANT, revue 100).
          Trouve en revisant ma propre iteration 99. state.activeProgram etait dereference SANS
          garde a trois endroits : en tete de renderTrainingCompanion, dans son gestionnaire de clic,
@@ -6695,6 +6776,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.unSeulCheckIn) errors.push('Le check-in doit se demander UNE fois, là où la décision se prend. Mesuré avant l’itération 102, sans check-in du jour : le Compagnon (462 px, zéro champ) disait « Renseigne sommeil, fatigue et courbatures » et offrait un bouton qui ne faisait que scroller 572 px plus bas jusqu’au formulaire — et sous ce formulaire, #recoveryAdvice réclamait une TROISIÈME fois « Fais un check-in ». Attendu : les cinq éléments du formulaire dans .athlete-companion et aucun dans .recovery-panel, le bouton principal caché puisque le geste est le bouton du formulaire juste en dessous, aucune seconde demande ailleurs — et le formulaire doit AGIR depuis sa nouvelle place : remplir puis enregistrer doit changer le verdict affiché (voir __unCheckIn)');
     if (!checks.etatInvalideNeCassePas) errors.push('Un réglage invalide emporte tout le rendu. Mesuré à la revue 100 : avec state.activeProgram="hybride-2024", render() jetait « Cannot read properties of undefined (reading name) » — et comme renderRoadmapFeatures rend AUSSI le score de forme, le conseil de charge, les séances manquées, les mensurations et le bilan coach, tout ce contenu vivant mourait avec lui : écran figé sur la peinture précédente, sans message. Le chargement ne rattrapait que le vide, pas une valeur invalide non vide (état d’une version antérieure, sauvegarde importée) — et l’itération 99 a rendu ce chemin critique en masquant le seul contrôle qui posait une valeur valide. Attendu aussi : « Voir mon plan » doit ouvrir le sous-onglet qui CONTIENT le Plan de bataille (voir __etatInvalide)');
     if (!checks.uniteEtGestesDuPlan) errors.push('Plan de bataille : il doit dire l’UNITÉ de chaque série, expliquer chaque séance de muscu, et offrir le geste « Préparer ». Mesuré avant l’itération 99 : le gabarit écrivait sets×reps brut, donc « Équilibre unipodal 3×30 » pour 30 SECONDES de tenue et « Bear crawl 3×20 » pour 20 PAS — une consigne infaisable, sur le panneau qui ouvre l’onglet. Le panneau « Ta prochaine séance » (masqué à cette itération) passait lui par formatFor. Les séances de muscu n’avaient aucun pourquoi là où les courses en avaient toutes, et noter une séance à la main n’existait que dans le panneau masqué. Le bouton Préparer doit OUVRIR le formulaire prérempli, pas seulement exister. Et le pourquoi doit DIRE VRAI : il est dérivé des zones réelles des exercices depuis la revue 100, parce qu’une table figée affirmait « tirage et poussée équilibrés » et « peu coûteux pour les jambes » sur une séance que muscleBalance classait push-heavy et qui contenait un hip-hinge (voir __uniteGestes)');
     if (!checks.planActionDabord) errors.push('Plan de bataille : l’action doit venir avant l’explication. Mesuré en 390 px avant l’itération 98 — le panneau faisait 3 664 px (4,3 écrans) et le premier « ▶️ Démarrer cette séance » tombait à 1 772 px du haut, derrière 1 371 px de préambule et cinq séances dépliées d’un bloc. Attendu : les jours sont des <details> dont UN SEUL est ouvert (celui du jour, marqué op-jour-cible), un jour replié cache réellement ses exercices, la semaine précède le pli « Comprendre ce programme » qui contient les cinq blocs d’explication, les réglages passent sous le résultat, et déplier révèle tout (voir __planAction)');
