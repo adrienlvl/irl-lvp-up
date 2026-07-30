@@ -4057,13 +4057,82 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* UN BOUTON QUI A DEMENAGE MENE ENCORE QUELQUE PART (BLOQUANT, revue 112).
+         « 🔄 Generer un nouveau bloc » vit dans blockStatus, qui est passe de « Aujourd hui » a
+         « Progres » a l iteration 111. Quand aucun objectif n est choisi, son gestionnaire
+         faisait showPage(athlete) et s arretait la — geste qui supposait la PROXIMITE du
+         selecteur d objectif, vrai tant que le bouton vivait dans le meme panneau que lui.
+         Mesure apres le demenagement : le bouton est visible sur « Progres », showPage rappelle
+         le sous-onglet COURANT — donc « Progres » — et le clic ne produit RIEN. Pas de bascule,
+         pas de defilement, pas de message : un bouton mort.
+         Le check JOUE LE CLIC et exige d atterrir devant le selecteur. Verifier que le bouton
+         existe ne prouverait rien : c est le geste qui etait casse, pas le balisage. */
+      checks.boutonNouveauBlocMene = (() => {
+        const _wk = state.workouts, _obj = state.fitnessObjective, _bs = state.blockStart;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.workouts = _wk; state.fitnessObjective = _obj;
+          state.blockStart = _bs; try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof showPage !== "function" || typeof showAthleteTab !== "function") return false;
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const ilYA = n => { const d = new Date(auj); d.setDate(d.getDate() - n); return cle(d); };
+          /* LE SCENARIO QUI DISCRIMINE : bloc TERMINE (le bouton n apparait que la) et AUCUN
+             objectif choisi (la branche qui etait morte). Avec un objectif, le clic genere un
+             plan et ne teste pas la branche fautive. */
+          state.fitnessObjective = "";
+          state.blockStart = ilYA(70);
+          const w = [];
+          for (let k = 0; k < 6; k++) w.push({ id: 112800 + k, date: ilYA(60 + k), type: "strength",
+            duration: 45, distance: 0, effort: 2,
+            exercises: [{ name: "Tractions", sets: 3, reps: 8,
+              setLogs: [{ reps: 8, load: 0 }, { reps: 8, load: 0 }, { reps: 7, load: 0 }] }] });
+          state.workouts = w;
+          render(); showPage("athlete");
+
+          // On DERIVE l onglet ou le bouton se voit : il a deja demenage une fois.
+          let ou = null;
+          ["aujourdhui", "programme", "progres", "corps"].forEach(function (t) {
+            if (ou) return;
+            showAthleteTab(t);
+            const b = document.getElementById("newBlockBtn");
+            if (b && b.getBoundingClientRect().height >= 8) ou = t;
+          });
+          if (!ou) { _rendre(); checks.__boutonBloc = "bouton jamais visible : scenario rate"; return false; }
+          showAthleteTab(ou);
+          const selAvant = document.getElementById("objectiveSelect");
+          const vuAvant = !!selAvant && selAvant.getBoundingClientRect().height >= 8;
+          document.getElementById("newBlockBtn").click();
+          const selApres = document.getElementById("objectiveSelect");
+          const vuApres = !!selApres && selApres.getBoundingClientRect().height >= 8;
+          const onglet = (typeof athleteTab === "string") ? athleteTab : "?";
+          /* TEMOIN : le selecteur ne devait PAS etre deja visible, sinon le clic n a rien a
+             prouver et le check passerait meme avec un bouton mort. */
+          const mene = vuAvant === false && vuApres === true;
+          checks.__boutonBloc = "visibleSur=" + ou + " selAvant=" + vuAvant
+            + " selApres=" + vuApres + " ongletApres=" + onglet
+            + " mene=" + mene;
+          _rendre();
+          return mene;
+        } catch (e) {
+          _rendre();
+          checks.__errBoutonBloc = String(e && e.message); return false;
+        }
+      })();
+
       /* L ECRAN D ACTION NE PORTE PAS L ANALYSE DU PASSE (BLOQUANT, iteration 111 — etape B1).
-         Mesure avant, sur 8 semaines reelles : le Plan de bataille faisait 1 784 px, dont
-         1 004 px de blocs qui regardent en ARRIERE — et places AVANT le plan lui-meme :
+         Mesure avant, sur 8 semaines reelles et PLAN GENERE (la premiere mesure, iteration 111,
+         avait ete prise sans appeler runObjectiveProgram : elle decrivait un panneau ampute de
+         son contenu principal, et annoncait 1 784 -> 724 px. Rectifie a la 112) : le Plan de
+         bataille faisait 3 020 px, dont ~1 100 px de blocs qui regardent en ARRIERE — places
+         AVANT le plan lui-meme :
            blockStatus 434 px · tonnageTrend 252 px · trainingByWeekday 136 px
            trainingConsistency 98 px · trainingWeekBalance 84 px
-         pendant que le panneau « Analyse » n en montrait que 701. Apres deplacement :
-         Plan 724 px, Analyse 1 808 px — rien supprime, tout deplace.
+         pendant que le panneau « Analyse » n en montrait que 630. Apres deplacement :
+         Plan 1 919 px, Analyse 1 728 px — et surtout le premier « Demarrer cette seance »
+         remonte de 2 258 a 1 157 px du haut du panneau, de 2,7 ecrans a 1,4.
          Le check DERIVE les fautifs du TEXTE rendu : un bloc qui annonce une fenetre passee
          (« derniers jours », « N semaines », « 28 j ») n a pas sa place dans l ecran d action.
          Une liste ecrite a la main raterait le bloc qu on ajoutera demain. */
@@ -7608,7 +7677,8 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
-    if (!checks.analyseHorsEcranDaction) errors.push('L’écran d’action porte de l’analyse du passé. Mesuré à l’itération 111 sur 8 semaines réelles : le Plan de bataille faisait 1 784 px, dont 1 004 px de blocs tournés vers l’arrière — blockStatus 434, tonnageTrend 252, trainingByWeekday 136, trainingConsistency 98, trainingWeekBalance 84 — et placés AVANT le plan lui-même, pendant que le panneau « Analyse » n’en montrait que 701. Après déplacement : Plan 724 px, Analyse 1 808 px, rien supprimé. Attendu : aucun enfant du Plan n’annonce une fenêtre passée (« derniers jours », « N semaines », « 28 j »), l’Analyse en accueille au moins trois, et le pilotage de la semaine reste dans le Plan (voir __analyseDeplacee)');
+    if (!checks.boutonNouveauBlocMene) errors.push('Le bouton « 🔄 Générer un nouveau bloc » ne mène nulle part. Il vit dans #blockStatus, qui est passé du sous-onglet « Aujourd’hui » à « Progrès » à l’itération 111. Sans objectif choisi, son gestionnaire faisait `showPage("athlete")` et s’arrêtait là — un geste qui supposait la PROXIMITÉ du sélecteur d’objectif, vraie tant que le bouton vivait dans le même panneau que lui. Mesuré après le déménagement : le bouton se voit sur « Progrès », showPage rappelle le sous-onglet courant (donc « Progrès »), et le clic ne produit RIEN. Attendu : le clic emmène devant le sélecteur d’objectif, qui n’était pas visible avant (voir __boutonBloc)');
+    if (!checks.analyseHorsEcranDaction) errors.push('L’écran d’action porte de l’analyse du passé. Mesuré à l’itération 111 puis RECTIFIÉ à la 112, plan réellement généré : le Plan de bataille faisait 3 020 px, dont ~1 100 px de blocs tournés vers l’arrière — blockStatus 434, tonnageTrend 252, trainingByWeekday 136, trainingConsistency 98, trainingWeekBalance 84 — et placés AVANT le plan lui-même, pendant que le panneau « Analyse » n’en montrait que 630. Le premier « ▶️ Démarrer cette séance » tombait à 2 258 px du haut du panneau, soit 2,7 écrans. Après déplacement : Plan 1 919 px, Analyse 1 728 px, premier départ à 1 157 px — rien supprimé. Attendu : aucun enfant du Plan n’annonce une fenêtre passée (« derniers jours », « N semaines », « 28 j »), l’Analyse en accueille au moins trois, et le pilotage de la semaine reste dans le Plan (voir __analyseDeplacee)');
     if (!checks.deuxEcransDeuxElements) errors.push('Deux écrans écrivent au même endroit. Mesuré à l’itération 110 : `id="weekBalance"` existait DEUX fois — dans le Plan de bataille (onglet Athlète) et dans la page « Ma semaine » — or `$("#x")` rend toujours le PREMIER élément du document. Conséquences constatées : la page « Ma semaine » n’affichait jamais ses chips ; `renderWeekPage()` écrasait l’équilibre course/muscu du Plan par « 1 Sport · 1 Focus · 1 Vie » ; et basculer l’agenda en vue « jour » posait `hidden` sur le bloc de l’onglet Athlète, qui tombait à 0 px. Attendu : aucun id en double dans le document vivant, et le bloc de l’Athlète INTACT après un rendu de la page semaine (voir __croisementEcrans)');
     if (!checks.socleDeReference) errors.push('Le harnais ne part pas de l’état de référence. Mesuré à l’itération 109 : sur un profil Electron VIERGE, l’app rend `fitnessObjective: null`, AUCUN plan (0 jour) et 2 507 px ; sur le profil de développement, « athletique », 6 jours et 4 154 px. Ce harnais lisait et ÉCRIVAIT le vrai localStorage de ce profil, donc une dizaine de checks sur le Plan de bataille ne passaient que grâce à un objectif laissé par un run précédent, et planActionDabord tombait au hasard (ouverts=1, puis 0, puis 1 sur le même code). Le profil est désormais effacé à chaque run et le socle est posé par le harnais lui-même. Attendu : objectif, poids, cible de séances et début de bloc conformes au socle, un plan d’au moins 3 séances réellement généré, et aucune séance héritée d’un run précédent (voir __socle)');
     if (!checks.cibleHebdoNeRetrecitPas) errors.push('La cible hebdo rétrécit quand tu t’entraînes, ou le panneau se contredit d’une ligne à l’autre. Mesuré sur UNE semaine à 4 muscu + 2 courses : « 0 / 6 séances » le lundi, « 2 / 4 » après deux séances, « 2 / 2 · 100 % » avec « il reste 2 séances » juste en dessous, puis « 4 / 4 » une fois la semaine bouclée (repli sur le réglage, qui compte le vélo). Cause : `plan.week` est amputé de ce qui est déjà fait — bon pour afficher un programme à placer, faux pour dire « X/Y séances ». Attendu : le dénominateur AFFICHÉ ne bouge pas de toute la semaine, fait + reste === cible, aucun 100 % au-dessus d’un « pour boucler », et `source` reste « plan » jusqu’au bout (voir __cibleStable)');

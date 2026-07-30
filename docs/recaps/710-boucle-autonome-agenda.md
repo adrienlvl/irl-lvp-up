@@ -4526,8 +4526,11 @@ créé quatre doublons. On déplace.
 
 | | avant | après |
 |---|---|---|
-| Plan de bataille (Aujourd'hui) | **1 784 px** | **724 px** (−59 %) |
-| Analyse (Progrès) | 701 px | 1 808 px |
+| Plan de bataille (Aujourd'hui) | **3 020 px** | **1 919 px** (−36 %) |
+| Analyse (Progrès) | 630 px | 1 728 px |
+| Premier « ▶️ Démarrer cette séance » | **à 2 258 px** (2,7 écrans) | **à 1 157 px** (1,4 écran) |
+
+> *Chiffres RECTIFIÉS à l'itération 112 : la première mesure (1 784 → 724 px) avait été prise sans que le plan soit généré — elle décrivait un panneau amputé de son contenu principal, et ne mesurait pas du tout la distance jusqu'au premier geste, qui est pourtant le sujet.*
 
 Les 1 004 px déplacés — `blockStatus` 434, `tonnageTrend` 252, `trainingByWeekday` 136,
 `trainingConsistency` 98, `trainingWeekBalance` 84, plus l'historique des blocs — étaient placés
