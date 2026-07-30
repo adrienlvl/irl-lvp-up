@@ -4142,15 +4142,49 @@ app.whenReady().then(async () => {
           const clesDifferent = String(state.goals.sessions) !== String(state.goals.progSessions);
           const litLeBonReglage = clesDifferent && vuObjectifsInverse === "7";
 
+          /* LA BRANCHE « AUTO », cassee puis reparee a la revue 116. Un champ VIDE veut dire
+             « le plan choisit seul » — c est le sens du placeholder « auto » de son jumeau.
+             Mesure du defaut : vider le champ et sauvegarder ecrivait 4 (Math.max(1, 0)), donc
+             la cible tombait de 5 a 4 ; et comme le champ AFFICHAIT la valeur de repli, changer
+             seulement la distance suffisait a figer ce 4. Un affichage de repli dans un champ
+             editable devient une ecriture des qu on sauvegarde. */
+          showAthleteTab("programme");
+          // On releve le repli JUSTE AVANT : les passes precedentes l ont deja fait bouger, donc
+          // le comparer a une constante testait l ordre du check, pas son sujet.
+          const repliAvant = state.goals.sessions;
+          champ.value = "";
+          bouton.click();
+          const autoRendu = state.goals.progSessions === "";
+          /* ET LE REPLI SURVIT. sessions sert quand aucun plan n est generable ; revenir a
+             « auto » ne doit pas effacer la derniere intention explicite. On assert ici l ETAT et
+             non le rendu, parce que la consequence n est visible que dans un cas qu on ne sait pas
+             produire dans ce harnais (aucun plan generable) — dit plutot que tu. */
+          const repliPreserve = String(state.goals.sessions) === String(repliAvant) && state.goals.sessions !== "";
+          const cibleAuto = cibleDe();
+          // TEMOIN : rendre la main au plan doit RAMENER la cible libre, differente de la visee.
+          const cibleRevient = cibleAuto !== null && Number(cibleAuto) !== vise;
+
+          /* ET LE GESTE BANAL : on ne touche PAS au nombre de seances, on change la distance.
+             Rien ne doit se figer. */
+          const champDist = document.getElementById("distanceGoal");
+          if (champDist) { champDist.value = "25"; bouton.click(); }
+          const autoTient = state.goals.progSessions === "";
+          const cibleTient = cibleDe();
+          const distanceEcrite = Number(state.goals.distance) === 25;
+
           checks.__unSeulDial = "vise=" + vise + " cible=" + cible0 + "->" + cible1
             + " plan=" + compo0 + "->" + compo1
             + " depart=" + departLisible + " cibleSuit=" + cibleSuit
             + " planSuit=" + planSuit
             + " champs=" + vuObjectifs + "/" + vuPlan + " meme=" + memeAffichage
             + " | inverse plan=7 objectifs=" + vuObjectifsInverse + " different=" + clesDifferent
-            + " litLeBon=" + litLeBonReglage;
+            + " litLeBon=" + litLeBonReglage
+            + " | auto rendu=" + autoRendu + " cible=" + cibleAuto + " revient=" + cibleRevient + " repli=" + repliPreserve
+            + " tientApresDistance=" + autoTient + "/" + cibleTient + " dist=" + distanceEcrite;
           _rendre();
-          return departLisible && cibleSuit && planSuit && memeAffichage && litLeBonReglage;
+          return departLisible && cibleSuit && planSuit && memeAffichage && litLeBonReglage
+            && autoRendu && cibleRevient && autoTient && distanceEcrite && repliPreserve
+            && String(cibleTient) === String(cibleAuto);
         } catch (e) {
           _rendre();
           checks.__errUnSeulDial = String(e && e.message); return false;
@@ -7932,7 +7966,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
-    if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur (voir __unSeulDial)');
+    if (!checks.unSeulReglageDeSeances) errors.push('Deux réglages pour le nombre de séances par semaine, dont un inerte. Mesuré à l’itération 115 : le champ « Séances / semaine » du panneau « Objectifs hebdomadaires » écrivait `goals.sessions`, que le plan n’utilise pas — le passer de 4 à 8 laissait la cible à 5 et le plan à 3 muscu + 2 courses, inchangés. Le champ qui pilote est celui du Plan de bataille (`#progSessions` → `goals.progSessions`) : le passer à 6 donne une cible de 6 et 4 muscu. Attendu : régler depuis le panneau « Objectifs » fait bouger la cible ET la composition du plan, et les deux champs affichent la même valeur. Et le VIDE reste « auto » : vider le champ rend la main au plan, et sauvegarder un autre champ (la distance) ne fige pas le nombre de séances — mesuré à la revue 116, où changer ses kilomètres imposait 4 séances parce que le champ affichait la valeur de repli et que le bouton la figeait (voir __unSeulDial)');
     if (!checks.objectifsSauvesSansDegat) errors.push('Sauvegarder ses objectifs hebdo casse quelque chose. Mesuré à l’itération 114 : le gestionnaire de « Sauvegarder » RECONSTRUISAIT `state.goals` au lieu de le fusionner, donc { sessions, distance, targetWeight, runs, progSessions, weeklyKm } devenait { sessions, distance, targetWeight } — le nombre de courses par semaine et le volume hebdo de course (qui sert à prescrire les kilomètres) disparaissaient en silence. Et il n’appelait que `renderAthlete()`, donc le sous-onglet Progrès affichait « 3 / 6 séances » pendant que Corps et Aujourd’hui restaient à « 3/5 » — deux cibles pour la même semaine. Attendu : aucune clé de `state.goals` perdue ni modifiée hors des deux champs du formulaire, et les trois voix hebdo d’accord après le clic. (Le rendu complet, lui, n’est pas gardé : une fois la fusion en place, aucun champ de ce formulaire ne fait bouger la cible, donc un rendu partiel n’a plus de conséquence observable — c’est écrit dans le commentaire du check plutôt que promis ici. Voir __objectifsSauves)');
     if (!checks.boutonNouveauBlocMene) errors.push('Le bouton « 🔄 Générer un nouveau bloc » ne mène nulle part. Il vit dans #blockStatus, qui est passé du sous-onglet « Aujourd’hui » à « Progrès » à l’itération 111. Sans objectif choisi, son gestionnaire faisait `showPage("athlete")` et s’arrêtait là — un geste qui supposait la PROXIMITÉ du sélecteur d’objectif, vraie tant que le bouton vivait dans le même panneau que lui. Mesuré après le déménagement : le bouton se voit sur « Progrès », showPage rappelle le sous-onglet courant (donc « Progrès »), et le clic ne produit RIEN. Attendu : le clic emmène devant le sélecteur d’objectif, qui n’était pas visible avant (voir __boutonBloc)');
     if (!checks.analyseHorsEcranDaction) errors.push('L’écran d’action porte de l’analyse du passé. Mesuré à l’itération 111 puis RECTIFIÉ à la 112, plan réellement généré : le Plan de bataille faisait 3 020 px, dont ~1 100 px de blocs tournés vers l’arrière — blockStatus 434, tonnageTrend 252, trainingByWeekday 136, trainingConsistency 98, trainingWeekBalance 84 — et placés AVANT le plan lui-même, pendant que le panneau « Analyse » n’en montrait que 630. Le premier « ▶️ Démarrer cette séance » tombait à 2 258 px du haut du panneau, soit 2,7 écrans. Après déplacement : Plan 1 919 px, Analyse 1 728 px, premier départ à 1 157 px — rien supprimé. Attendu : aucun enfant du Plan n’annonce une fenêtre passée (« derniers jours », « N semaines », « 28 j »), l’Analyse en accueille au moins trois, et le pilotage de la semaine reste dans le Plan (voir __analyseDeplacee)');
