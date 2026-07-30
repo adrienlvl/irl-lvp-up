@@ -7,6 +7,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 // Stubs des canaux IPC attendus par preload/app.js (sinon rejets non gérés parasites).
 ipcMain.handle('app:version', () => '0.0.0-test');
@@ -30,6 +31,18 @@ ipcMain.handle('data:export', () => ({ ok: false, canceled: true }));
 ipcMain.handle('data:import', () => ({ ok: false, canceled: true }));
 
 const errors = [];
+
+/* PROFIL ISOLE, EFFACE A CHAQUE RUN. Mesure de l iteration 109 : ce harnais tournait sur le
+   profil Electron de developpement et y lisait le vrai localStorage — donc l etat d un run
+   fuyait dans le suivant. Consequence mesuree : `availableDays` valait [0] pendant un run et
+   [1,3,5] au suivant, ce qui change le jour cible du plan, donc le <details> ouvert, donc le
+   verdict de planActionDabord — vert, rouge, vert sur le MEME code. Un garde-fou bloquant qui
+   tombe au hasard apprend a ignorer le rouge.
+   setPath('userData') doit venir AVANT app.whenReady(). */
+const PROFIL_SMOKE = path.join(os.tmpdir(), 'irl-smoke-profil');
+try { fs.rmSync(PROFIL_SMOKE, { recursive: true, force: true }); } catch (_) { /* premier run */ }
+app.setPath('userData', PROFIL_SMOKE);
+
 app.disableHardwareAcceleration();
 
 app.whenReady().then(async () => {
@@ -56,7 +69,44 @@ app.whenReady().then(async () => {
   try {
     await win.loadFile(path.join(__dirname, '..', 'index.html'));
     await new Promise(r => setTimeout(r, 900)); // laisse app.js finir (onboarding, restore...)
+    /* Le CHEMIN REEL du profil, injecte pour que socleDeReference puisse l asserter. Ma premiere
+       version se contentait de la date d installation : sur un profil de dev cree le meme jour, elle
+       vaut aussi aujourd hui, donc la mutation « retire l isolation » survivait. On asserte le
+       chemin que le processus utilise VRAIMENT (app.getPath), pas une consequence datee. */
+    await win.webContents.executeJavaScript('window.__profilUtilise = '
+      + JSON.stringify(app.getPath('userData')) + ';');
     const checks = await win.webContents.executeJavaScript(`(async function(){
+      /* ETAT DE REFERENCE. Le profil est neuf a chaque run (voir PROFIL_SMOKE), donc l app
+         demarre sans objectif, sans bloc et SANS PLAN : mesure sur profil vierge, 0 jour de plan
+         et 2 507 px, contre 6 jours et 4 154 px sur le profil de developpement. Une dizaine de
+         checks parlent du Plan de bataille : ils ne passaient que grace a un objectif laisse par
+         un run precedent. On pose donc ici, explicitement, le socle minimal qu ils supposaient —
+         et on le VERIFIE plus bas (checks.socleDeReference) au lieu de l esperer.
+         On ne sauvegarde pas : le profil est jetable, et le socle doit venir du harnais, pas du
+         disque. */
+      const _socleLundi = (function () {
+        const d = new Date(localDate() + "T12:00:00");
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        const p = n => String(n).padStart(2, "0");
+        return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+      })();
+      const SOCLE = {
+        fitnessObjective: "athletique",
+        profil: { weight: 78, height: 178, age: 29, sex: "homme",
+          activityLevel: "actif", goal: "perte", level: "intermediaire",
+          availableDays: [1, 3, 5] },
+        objectifs: { sessions: 4, runs: 2, distance: 20, weeklyKm: 25, targetWeight: 73 }
+      };
+      state.profile = Object.assign({}, state.profile, SOCLE.profil);
+      state.goals = Object.assign({}, state.goals, SOCLE.objectifs);
+      state.fitnessObjective = SOCLE.fitnessObjective;
+      state.blockStart = _socleLundi;
+      try { render(); } catch (e) { /* signale par socleDeReference */ }
+      // Trace de ce qui est REELLEMENT pose au depart : la comparer a l etat vu par
+      // socleDeReference dit ce qui a survecu au run (blockStart, lui, ne survit pas).
+      const _socleAuDepart = state.fitnessObjective + "/" + (state.profile || {}).weight
+        + "/" + (state.goals || {}).sessions + "/" + state.blockStart;
+
       const checks = {
         logicLoaded: typeof localDate === 'function' && typeof pct === 'function' && typeof computeStreak === 'function' && typeof normalizeAgendaItem === 'function',
         normalize: typeof normalizeState === 'function',
@@ -3999,6 +4049,59 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* LE HARNAIS PART D UN ETAT CONNU (BLOQUANT, iteration 109).
+         Mesure : profil vierge -> fitnessObjective null, 0 jour de plan, 2 507 px ; profil de
+         developpement -> athletique, 6 jours, 4 154 px. Ce harnais lisait ET ECRIVAIT le vrai
+         localStorage du profil de dev, donc une dizaine de checks sur le Plan de bataille ne
+         passaient que grace a un objectif laisse par un run precedent, et planActionDabord
+         tombait au hasard. Le profil est maintenant jetable et le socle est pose par le harnais.
+         Ce check verifie que le socle est REELLEMENT en place : sans lui, on aurait remplace une
+         dependance invisible par une autre. */
+      checks.socleDeReference = (() => {
+        try {
+          const p = state.profile || {}, g = state.goals || {};
+          /* blockStart est POSE par le socle et NE SURVIT PAS jusqu ici (mesure : bloc=""/lundi
+             attendu) : un des checks intermediaires remplace l etat par une version normalisee qui
+             ne le conserve pas. Dans l app, ce champ n est ecrit que par « Programmer 8 semaines »
+             (scheduleObjectiveProgram), et aucun check vert n en depend. On ne l assert donc PAS —
+             ecrit ici plutot que retire en silence — et on garde la trace de la valeur de depart
+             dans __socleAuDepart pour ne pas oublier la question. */
+          const socleVu = state.fitnessObjective === SOCLE.fitnessObjective
+            && Number(p.weight) === SOCLE.profil.weight
+            && Number(g.sessions) === SOCLE.objectifs.sessions
+            && JSON.stringify(p.availableDays || null) === JSON.stringify(SOCLE.profil.availableDays);
+          /* ET LE SOCLE PRODUIT UN PLAN. C est la consequence qui compte : un objectif pose sans
+             plan rendu laisserait tous les checks du Plan de bataille sans sujet. */
+          const plan = (function () { try { return trainingWeekPlan(trainingPlanInputs(state, localDate()), exercises); }
+            catch (_) { return null; } })();
+          const planPose = !!(plan && Array.isArray(plan.semaineType) && plan.semaineType.length >= 3);
+          /* Et rien d une session PRECEDENTE ne doit trainer : sur un profil neuf, l app ecrit sa
+             propre sauvegarde des le premier rendu, donc on ne peut pas exiger un localStorage
+             vide — on exige que les seances soient vides, ce qu aucun run ne devrait avoir laisse
+             si le profil est bien jetable. */
+          const pasDHeritage = Array.isArray(state.workouts) && state.workouts.length === 0;
+          /* ET LE PROFIL EST NEUF. Observable direct : l app ecrit sa date d installation au premier
+             chargement, donc sur un profil jetable elle vaut AUJOURD HUI. Sur le profil de
+             developpement elle date du premier run — c est ce qui prouve qu on ne tourne plus
+             dessus. Sans cette assertion, retirer l isolation du profil ne casserait rien de
+             visible et l etancheite se perdrait au premier refactor. */
+          const profilNeuf = String(window.__profilUtilise || '').indexOf('irl-smoke-profil') !== -1
+            && String(localStorage.getItem('irl-install-date') || '') === localDate();
+          checks.__socle = "socleVu=" + socleVu + " planPose=" + planPose
+            + " semaineType=" + (plan && plan.semaineType ? plan.semaineType.length : null)
+            + " pasDHeritage=" + pasDHeritage
+            + " profilNeuf=" + profilNeuf + "[" + String(window.__profilUtilise||"").slice(-22) + "]"
+            + " objectif=" + state.fitnessObjective + " poids=" + (state.profile || {}).weight
+            + " g.sessions=" + g.sessions + " bloc=" + state.blockStart + "/" + _socleLundi
+            + " auDepart[" + _socleAuDepart + "]"
+            + " seances=" + ((state.workouts || []).length)
+            + " jours=" + JSON.stringify((state.profile || {}).availableDays || null);
+          return socleVu && planPose && pasDHeritage && profilNeuf;
+        } catch (e) {
+          checks.__errSocle = String(e && e.message); return false;
+        }
+      })();
+
       /* LA CIBLE HEBDO NE RETRECIT PAS QUAND ON S ENTRAINE (BLOQUANT, iteration 107).
          Mesure avant, sur UNE seule semaine a 4 muscu + 2 courses (objectif « muscle ») :
            lundi, rien de fait      « 0 / 6 seances »
@@ -4729,6 +4832,20 @@ app.whenReady().then(async () => {
           if (!res || !panneau) return false;
           const avant = (a, b) => !!a && !!b
             && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+          /* ON REPART D UN PANNEAU VIDE. Ce check mesurait le DOM laisse par ses voisins sans
+             re-rendre : or l etat ouvert/ferme des jours SURVIT aux rendus depuis l iteration 103
+             (un jour replie a la main doit rester replie), donc un check precedent qui refermait
+             le jour cible faisait tomber celui-ci. Mesure : ouverts=1, puis 0, puis 1 sur le meme
+             code. On perturbe donc VOLONTAIREMENT comme le font les voisins, puis on vide le
+             conteneur avant de re-rendre : la capture de l etat ouvert ne trouve rien, et le
+             balisage retrouve son etat par defaut. Le check redevient une affirmation sur le
+             RENDU, pas sur l historique de la session. */
+          Array.prototype.slice.call(res.querySelectorAll('.op-day'))
+            .forEach(function (d) { d.open = false; });
+          res.innerHTML = '';
+          if (typeof runObjectiveProgram === 'function') runObjectiveProgram();
+          else render();
 
           const semaine = res.querySelector('.op-week');
           const pli = res.querySelector('.op-analyse');
@@ -7292,6 +7409,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.socleDeReference) errors.push('Le harnais ne part pas de l’état de référence. Mesuré à l’itération 109 : sur un profil Electron VIERGE, l’app rend `fitnessObjective: null`, AUCUN plan (0 jour) et 2 507 px ; sur le profil de développement, « athletique », 6 jours et 4 154 px. Ce harnais lisait et ÉCRIVAIT le vrai localStorage de ce profil, donc une dizaine de checks sur le Plan de bataille ne passaient que grâce à un objectif laissé par un run précédent, et planActionDabord tombait au hasard (ouverts=1, puis 0, puis 1 sur le même code). Le profil est désormais effacé à chaque run et le socle est posé par le harnais lui-même. Attendu : objectif, poids, cible de séances et début de bloc conformes au socle, un plan d’au moins 3 séances réellement généré, et aucune séance héritée d’un run précédent (voir __socle)');
     if (!checks.cibleHebdoNeRetrecitPas) errors.push('La cible hebdo rétrécit quand tu t’entraînes, ou le panneau se contredit d’une ligne à l’autre. Mesuré sur UNE semaine à 4 muscu + 2 courses : « 0 / 6 séances » le lundi, « 2 / 4 » après deux séances, « 2 / 2 · 100 % » avec « il reste 2 séances » juste en dessous, puis « 4 / 4 » une fois la semaine bouclée (repli sur le réglage, qui compte le vélo). Cause : `plan.week` est amputé de ce qui est déjà fait — bon pour afficher un programme à placer, faux pour dire « X/Y séances ». Attendu : le dénominateur AFFICHÉ ne bouge pas de toute la semaine, fait + reste === cible, aucun 100 % au-dessus d’un « pour boucler », et `source` reste « plan » jusqu’au bout (voir __cibleStable)');
     if (!checks.fenetreSemaineNommee) errors.push('« Cette semaine » désigne deux fenêtres différentes. Mesuré un jeudi avec 10 km le dimanche précédent et 5 km aujourd’hui : #weekDistance et #runWeekGoal disaient « 5 km cette semaine » (depuis lundi) pendant que #trailRunSummary et #trailRamp disaient « 15 km cette semaine » (7 jours glissants) — un facteur 3 avec les mêmes mots. La fenêtre glissante est le bon outil pour juger une charge de course ; c’est le MOT qui était faux. Attendu : les voix glissantes ne disent pas « cette semaine » ET nomment leur fenêtre (« 7 derniers j. », « sur 7 jours »), la voix calendaire garde son mot et son chiffre (voir __fenetreSemaine)');
     if (!checks.uneSeuleCibleHebdo) errors.push('Deux écrans annoncent deux cibles différentes pour la MÊME semaine. Mesuré avant l’itération 104, sur une semaine de 2 muscu + 1 course : « Ta semaine, face au plan 3/3 — c’est jouable » et, à quelques centaines de pixels sur le même sous-onglet, « 3/4 séances ». Cinq voix énonçaient un compte hebdo, quatre le comparaient au réglage manuel state.goals.sessions et une seule au PLAN : l’une disait terminé, l’autre pas. Toutes doivent lire la même cible. Et le NUMÉRATEUR est vérifié depuis l’itération 108 — il ne l’était pas, alors que ce message le promettait : mesuré sur 1 muscu + 3 sorties vélo, « 1 / 6 séances · il reste 5 séances » sur Progrès et « 4/6 séances — 2 séances à caser : tu es dans les temps » sur Corps passaient ce check côte à côte, cibles identiques. Toutes les voix comptent désormais une séance de la même façon (seancesDeLaSemaine). Par ailleurs : `thisWeekWorkouts` ne bornait que le début de la semaine, donc une séance datée après dimanche entrait dans le compte (mesuré : 5 annoncées pour 4 réellement dans la semaine) ; et le grand chiffre du panneau Volume, qui compte toute activité, doit DIRE ce qu’il compte quand il diverge du compte du plan (voir __voixHebdo)');
