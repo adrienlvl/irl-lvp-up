@@ -3553,12 +3553,20 @@ app.whenReady().then(async () => {
           const memeCompte = !!attendu && t1.indexOf(attendu.fait.total + "/" + attendu.prevu.total) !== -1;
           const memePhrase = !!attendu && t1.indexOf(attendu.phrase) !== -1;
 
-          /* IL OUVRE LE PANNEAU : c est la question qu on vient y chercher. On le compare au
-             bloc de bloc-status, qui etait jusqu ici le premier contenu du plan. */
+          /* IL OUVRE LE PANNEAU : c est la question qu on vient y chercher.
+             CONTRAT INCHANGE, MESURE REQUALIFIEE (iteration 111, decide ici et pas en silence).
+             Cette comparaison prenait le bloc block-status pour repere — « le premier contenu du
+             plan ». Ce repere est devenu FAUX : la 111 a sorti toute l analyse retrospective du
+             panneau (1 784 -> 724 px), donc ce bloc n y est plus et la comparaison rendait false
+             faute de voisin, pas faute de contrat. On exige desormais qu il soit le PREMIER bloc
+             RENDU du panneau — plus fort que l ancienne formulation, qu il implique, et qui ne
+             depend plus d un voisin susceptible de demenager. On compte les enfants PORTEURS D UN
+             ID (les blocs que app.js remplit), sans filtrer sur la hauteur : ce check ne garantit
+             pas d etre sur la page Athlete, et une hauteur nulle rendrait le test vacant. */
           const plan = document.querySelector(".objective-program-panel");
-          const statut = plan ? plan.querySelector(".block-status") : null;
-          const avant = !!plan && !!statut
-            && (el.compareDocumentPosition(statut) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          const premierBloc = plan ? Array.prototype.slice.call(plan.children)
+            .filter(function (n) { return n.id; })[0] : null;
+          const avant = !!premierBloc && premierBloc === el;
 
           /* 2) SEMAINE BOUCLEE : le ton doit basculer et CESSER DE RECLAMER. Sans ce second cas,
              un bloc fige sur « serre » passerait pour un succes.
@@ -4049,6 +4057,114 @@ app.whenReady().then(async () => {
          « Son epreuve » meme dans le cas de repli, ou l epreuve citee n est pas la sienne mais
          seulement la plus proche. On compare donc les DEUX libelles sur la MEME epreuve : sans
          cette paire, un rendu qui ecrirait le meme mot partout passerait. */
+      /* L ECRAN D ACTION NE PORTE PAS L ANALYSE DU PASSE (BLOQUANT, iteration 111 — etape B1).
+         Mesure avant, sur 8 semaines reelles : le Plan de bataille faisait 1 784 px, dont
+         1 004 px de blocs qui regardent en ARRIERE — et places AVANT le plan lui-meme :
+           blockStatus 434 px · tonnageTrend 252 px · trainingByWeekday 136 px
+           trainingConsistency 98 px · trainingWeekBalance 84 px
+         pendant que le panneau « Analyse » n en montrait que 701. Apres deplacement :
+         Plan 724 px, Analyse 1 808 px — rien supprime, tout deplace.
+         Le check DERIVE les fautifs du TEXTE rendu : un bloc qui annonce une fenetre passee
+         (« derniers jours », « N semaines », « 28 j ») n a pas sa place dans l ecran d action.
+         Une liste ecrite a la main raterait le bloc qu on ajoutera demain. */
+      checks.analyseHorsEcranDaction = (() => {
+        const _wk = state.workouts;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.workouts = _wk; try { render(); } catch (_) {}
+          try { showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof showPage !== "function") return false;
+          const pad = n => String(n).padStart(2, "0");
+          const cle = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+          const auj = new Date(localDate() + "T12:00:00");
+          const ilYA = n => { const d = new Date(auj); d.setDate(d.getDate() - n); return cle(d); };
+          /* HUIT SEMAINES, sinon aucun de ces blocs ne se montre et le check serait vacant.
+             Noms pris dans le CATALOGUE : un nom invente sort des zones vides et fausse tout
+             (artefact paye a l iteration 110). */
+          const noms = ["Goblet squat kettlebell", "Pompes classiques",
+            "Tractions", "Rowing kettlebell un bras"];
+          const w = [];
+          for (let sem = 7; sem >= 0; sem--) {
+            for (let k = 0; k < 3; k++) {
+              const jour = sem * 7 + k * 2;
+              if (jour > 55) continue;
+              const nom = noms[(sem + k) % noms.length];
+              const charge = 20 + (7 - sem) * 2;
+              w.push({ id: 111000 + w.length, date: ilYA(jour), type: "strength",
+                duration: 50, distance: 0, effort: 3,
+                exercises: [{ name: nom, sets: 4, reps: 6, load: charge,
+                  setLogs: [{ reps: 6, load: charge }, { reps: 6, load: charge },
+                    { reps: 5, load: charge }, { reps: 5, load: charge }] }] });
+            }
+            const jc = sem * 7 + 1;
+            if (jc <= 55) w.push({ id: 111500 + w.length, date: ilYA(jc), type: "run",
+              duration: 45, distance: 9, effort: 2 });
+          }
+          state.workouts = w;
+          state.blockStart = ilYA(28);
+          render();
+
+          /* Les marqueurs d une fenetre PASSEE. On les cherche en clair : pas de motif a
+             echappement, ce gabarit les mange. */
+          const RETRO = ["derniers jours", " semaines", "28 j"];
+          const retro = txt => RETRO.filter(function (m) { return String(txt || "").indexOf(m) !== -1; });
+          const IGNORE = ["panel-heading", "op-bar", "op-reglages"];
+
+          showPage("athlete"); showAthleteTab("aujourdhui");
+          const plan = document.querySelector(".objective-program-panel");
+          if (!plan) { _rendre(); return false; }
+          const fautifs = [];
+          Array.prototype.slice.call(plan.children).forEach(function (n) {
+            const cls = String(n.className || "");
+            if (IGNORE.some(function (x) { return cls.indexOf(x) !== -1; })) return;
+            if (n.id === "objectiveResult") return;
+            if (n.getBoundingClientRect().height < 8) return;
+            const m = retro(n.textContent);
+            if (m.length) fautifs.push((n.id || cls || n.tagName) + "[" + m.join("|") + "]");
+          });
+          const hPlan = Math.round(plan.getBoundingClientRect().height);
+          // TEMOIN : le plan doit VIVRE (il garde son pilotage), sinon on aurait tout vide.
+          const pilotageReste = !!document.getElementById("avancementSemaine")
+            && document.getElementById("avancementSemaine").getBoundingClientRect().height >= 8;
+
+          showAthleteTab("progres");
+          const an = document.querySelector(".analysis-panel");
+          if (!an) { _rendre(); return false; }
+          let accueillis = 0;
+          Array.prototype.slice.call(an.children).forEach(function (n) {
+            if (n.getBoundingClientRect().height < 8) return;
+            if (retro(n.textContent).length) accueillis++;
+          });
+          const hAn = Math.round(an.getBoundingClientRect().height);
+
+          /* ET LA FENETRE GLISSANTE SE NOMME. Ce bloc disait « Équilibre semaine » en comptant
+             SEPT JOURS GLISSANTS, a cote d un « Ta semaine, face au plan » qui compte depuis lundi
+             — deux nombres, un seul mot, le defaut de l iteration 106 a nouveau. Il se nomme
+             maintenant « 7 derniers jours ». Mesure ajoutee parce que la mutation qui le
+             re-anonymise SURVIVAIT : fenetreSemaineNommee ne couvre que les voix de COURSE, et le
+             compte d accueillis passait simplement de 6 a 5, au-dessus du seuil. */
+          const eq = document.getElementById("trainingWeekBalance");
+          const eqVisible = !!eq && eq.getBoundingClientRect().height >= 8;
+          const tEq = eqVisible ? String(eq.textContent || "") : "";
+          const eqNomme = eqVisible && tEq.indexOf("7 derniers jours") !== -1
+            && tEq.indexOf("quilibre semaine") === -1;
+
+          checks.__analyseDeplacee = "plan=" + hPlan + "px analyse=" + hAn
+            + "px fautifs=" + fautifs.length + "[" + fautifs.slice(0, 3).join(" ") + "]"
+            + " accueillis=" + accueillis + " pilotage=" + pilotageReste
+            + " eqVisible=" + eqVisible + " eqNomme=" + eqNomme
+            + " eq[" + tEq.slice(0, 40) + "]"
+            + " seances=" + w.length;
+          _rendre();
+          /* Aucun bloc retrospectif dans l ecran d action, au moins TROIS accueillis par
+             l analyse (sinon on aurait supprime au lieu de deplacer), et le pilotage reste. */
+          return fautifs.length === 0 && accueillis >= 3 && pilotageReste && eqNomme;
+        } catch (e) {
+          _rendre();
+          checks.__errAnalyseDeplacee = String(e && e.message); return false;
+        }
+      })();
+
       /* DEUX ECRANS N ECRIVENT PAS AU MEME ENDROIT (BLOQUANT, iteration 110).
          Mesure avant : id="weekBalance" existait DEUX fois — dans le Plan de bataille (onglet
          Athlete) et dans la page « Ma semaine ». Comme $(...) rend le PREMIER element du
@@ -7492,6 +7608,7 @@ app.whenReady().then(async () => {
     if (!checks.cibleFocusVue) errors.push('Focus : l’app fixe une cible de 120 min/semaine, rapporte la semaine EN COURS et la compare à la précédente — mais ne disait jamais combien de fois cette cible est TENUE. Le bloc « Ta cible, semaine après semaine » doit venir APRÈS l’objectif de la semaine, montrer une pastille par semaine mesurée (allumée exactement pour les semaines tenues), citer les chiffres mesurés, et quand la cible n’est JAMAIS atteinte proposer une cible atteignable au lieu de répéter celle qui ne l’est pas');
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
+    if (!checks.analyseHorsEcranDaction) errors.push('L’écran d’action porte de l’analyse du passé. Mesuré à l’itération 111 sur 8 semaines réelles : le Plan de bataille faisait 1 784 px, dont 1 004 px de blocs tournés vers l’arrière — blockStatus 434, tonnageTrend 252, trainingByWeekday 136, trainingConsistency 98, trainingWeekBalance 84 — et placés AVANT le plan lui-même, pendant que le panneau « Analyse » n’en montrait que 701. Après déplacement : Plan 724 px, Analyse 1 808 px, rien supprimé. Attendu : aucun enfant du Plan n’annonce une fenêtre passée (« derniers jours », « N semaines », « 28 j »), l’Analyse en accueille au moins trois, et le pilotage de la semaine reste dans le Plan (voir __analyseDeplacee)');
     if (!checks.deuxEcransDeuxElements) errors.push('Deux écrans écrivent au même endroit. Mesuré à l’itération 110 : `id="weekBalance"` existait DEUX fois — dans le Plan de bataille (onglet Athlète) et dans la page « Ma semaine » — or `$("#x")` rend toujours le PREMIER élément du document. Conséquences constatées : la page « Ma semaine » n’affichait jamais ses chips ; `renderWeekPage()` écrasait l’équilibre course/muscu du Plan par « 1 Sport · 1 Focus · 1 Vie » ; et basculer l’agenda en vue « jour » posait `hidden` sur le bloc de l’onglet Athlète, qui tombait à 0 px. Attendu : aucun id en double dans le document vivant, et le bloc de l’Athlète INTACT après un rendu de la page semaine (voir __croisementEcrans)');
     if (!checks.socleDeReference) errors.push('Le harnais ne part pas de l’état de référence. Mesuré à l’itération 109 : sur un profil Electron VIERGE, l’app rend `fitnessObjective: null`, AUCUN plan (0 jour) et 2 507 px ; sur le profil de développement, « athletique », 6 jours et 4 154 px. Ce harnais lisait et ÉCRIVAIT le vrai localStorage de ce profil, donc une dizaine de checks sur le Plan de bataille ne passaient que grâce à un objectif laissé par un run précédent, et planActionDabord tombait au hasard (ouverts=1, puis 0, puis 1 sur le même code). Le profil est désormais effacé à chaque run et le socle est posé par le harnais lui-même. Attendu : objectif, poids, cible de séances et début de bloc conformes au socle, un plan d’au moins 3 séances réellement généré, et aucune séance héritée d’un run précédent (voir __socle)');
     if (!checks.cibleHebdoNeRetrecitPas) errors.push('La cible hebdo rétrécit quand tu t’entraînes, ou le panneau se contredit d’une ligne à l’autre. Mesuré sur UNE semaine à 4 muscu + 2 courses : « 0 / 6 séances » le lundi, « 2 / 4 » après deux séances, « 2 / 2 · 100 % » avec « il reste 2 séances » juste en dessous, puis « 4 / 4 » une fois la semaine bouclée (repli sur le réglage, qui compte le vélo). Cause : `plan.week` est amputé de ce qui est déjà fait — bon pour afficher un programme à placer, faux pour dire « X/Y séances ». Attendu : le dénominateur AFFICHÉ ne bouge pas de toute la semaine, fait + reste === cible, aucun 100 % au-dessus d’un « pour boucler », et `source` reste « plan » jusqu’au bout (voir __cibleStable)');
