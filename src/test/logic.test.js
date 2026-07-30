@@ -15825,6 +15825,61 @@ test('trainingWeekPlan : la phrase qui annonce la coupe porte sa cause', () => {
   assert.equal(cs.indexOf('prise de muscle'), -1, 'sans tension inventée');
 });
 
+test('joursDentrainementRestants : combien de tes jours tombent encore cette semaine', () => {
+  /* Semaine du lundi 2026-07-27 au dimanche 2026-08-02. Jours cochés : lundi, mercredi,
+     vendredi. Le jour COURANT compte — on peut encore s'entraîner aujourd'hui. */
+  const f = (j, d) => L.joursDentrainementRestants(j, d);
+  assert.equal(f([1, 3, 5], '2026-07-27').restants, 3, 'un lundi, les trois sont devant');
+  assert.equal(f([1, 3, 5], '2026-07-29').restants, 2, 'un mercredi : mercredi (aujourd\'hui) et vendredi');
+  assert.equal(f([1, 3, 5], '2026-07-30').restants, 1, 'un jeudi, il ne reste que vendredi');
+  assert.equal(f([1, 3, 5], '2026-08-01').restants, 0, 'un samedi, plus aucun');
+  assert.equal(f([1, 3, 5], '2026-08-02').restants, 0, 'un dimanche non plus');
+  assert.equal(f([0], '2026-08-02').restants, 1, 'mais dimanche coché, un dimanche, compte');
+  assert.equal(f([1, 3, 5], '2026-07-27').choisis, 3, 'le total coché ne bouge pas avec le jour');
+  assert.deepEqual(f([1, 3, 5], '2026-07-29').jours, [3, 5], 'et la liste est dans l\'ordre du calendrier');
+
+  assert.equal(f([], '2026-07-30'), null, 'aucun jour coché → rien à dire');
+  assert.equal(f([1, 3, 5], 'pas-une-date'), null);
+  assert.equal(f(null, '2026-07-30'), null);
+  assert.equal(f([9, -1, 'lundi', 3], '2026-07-27').choisis, 1, 'les valeurs aberrantes sont filtrées');
+});
+
+test('trainingWeekPlan : l\'empilement des séances dit quand c\'est le calendrier qui l\'impose', () => {
+  /* TROIS branches, TROIS jeux d'essai : tous les jours devant soi (on se tait, l'empilement
+     vient du nombre de séances), une partie seulement, plus aucun. Un seul jeu d'essai ne
+     distinguerait pas ce que la phrase doit dire de ce qu'elle doit taire. */
+  const { exercises } = require('../lib/exercises-data.js');
+  const etat = {
+    profile: { weight: 82, height: 178, age: 29, sex: 'homme', activityLevel: 'actif',
+      goal: 'maintien', level: 'intermediaire', availableDays: [1, 3, 5], zonesVoulues: [],
+      equipment: { handles: true, vest: true, kettlebell: true, pullup: true } },
+    goals: { targetWeight: '', sessions: 4, runs: 1, distance: 10, weeklyKm: 12 },
+    fitnessObjective: 'muscle', objectiveSeed: 0, workouts: [], agenda: [], weights: [],
+    recovery: [], blockStart: '', blockHistory: [], plans: []
+  };
+  const phrase = d => {
+    const p = L.trainingWeekPlan(L.trainingPlanInputs(etat, d), exercises);
+    return (p.ajustements || []).find(a => a.indexOf('réparties sur') !== -1) || '';
+  };
+
+  const lundi = phrase('2026-07-27');
+  assert.ok(lundi, 'témoin : la phrase de répartition sort bien un lundi aussi');
+  assert.equal(lundi.indexOf('d’ici dimanche'), -1,
+    'un lundi tous les jours cochés sont devant : l\'empilement vient du nombre de séances, on se tait');
+
+  const jeudi = phrase('2026-07-30');
+  assert.ok(jeudi.indexOf('qu’un seul de tes 3 jours') !== -1,
+    'un jeudi, la cause est nommée avec les deux comptes');
+  assert.ok(jeudi.indexOf('d’ici dimanche') !== -1);
+
+  const samedi = phrase('2026-08-01');
+  assert.ok(samedi.indexOf('Aucun de tes 3 jours') !== -1,
+    'un samedi, plus aucun jour choisi ne tombe : on le dit, et on dit ce que l\'app fait à la place');
+  assert.ok(samedi.indexOf('les jours qui restent') !== -1);
+  /* TÉMOIN : les trois phrases diffèrent vraiment — sinon la branche ne discrimine rien. */
+  assert.ok(lundi !== jeudi && jeudi !== samedi && lundi !== samedi);
+});
+
 test('trainingPolicy : en déficit on retire du volume, jamais des charges', () => {
   const f = L.trainingPolicy;
 

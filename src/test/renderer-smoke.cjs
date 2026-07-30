@@ -4087,6 +4087,104 @@ app.whenReady().then(async () => {
          le plan annonçait « Volume reduit : 4 exercices par seance au lieu de 5 » sans jamais
          dire d ou ça venait — la cause n etait lisible que sur la page Poids, dans une section
          repliee (mesure de la chaine : details « Ma semaine type » ferme, panneau display:none). */
+      /* C3 — L EMPILEMENT DIT QUAND C EST LE CALENDRIER. Mesure de la 127 : jours coches
+         lundi/mercredi/vendredi, plan calcule un jeudi — les cinq seances tombent le vendredi et
+         l app annonçait « 5 seances reparties sur 1 jour : jusqu a 5 le meme jour », sans dire
+         qu il ne restait qu un seul jour d entrainement d ici dimanche. */
+      checks.empilementDitSaCause = (() => {
+        const _p = JSON.parse(JSON.stringify(state.profile || {}));
+        const _g = JSON.parse(JSON.stringify(state.goals || {}));
+        const _o = state.fitnessObjective, _w = state.workouts, _a = state.agenda;
+        const _seed = state.objectiveSeed;
+        const _tabAvant = (typeof athleteTab === "string") ? athleteTab : "aujourdhui";
+        const _rendre = () => { state.profile = _p; state.goals = _g; state.fitnessObjective = _o;
+          state.workouts = _w; state.agenda = _a; state.objectiveSeed = _seed;
+          try { render(); } catch (_) {}
+          try { showPage("athlete"); showAthleteTab(_tabAvant); } catch (_) {} };
+        try {
+          if (typeof joursDentrainementRestants !== "function") { _rendre(); return false; }
+          state.profile = Object.assign({}, state.profile, { weight: 82, height: 178, age: 29,
+            sex: "homme", activityLevel: "actif", goal: "maintien",
+            level: "intermediaire", zonesVoulues: [] });
+          state.goals = Object.assign({}, state.goals, { sessions: 4, runs: 1, distance: 10,
+            weeklyKm: 12, targetWeight: "" });
+          state.fitnessObjective = "muscle"; state.workouts = []; state.agenda = [];
+
+          /* Les ensembles de jours sont derives d AUJOURD HUI, jamais ecrits en dur : le harnais
+             tourne un jour different a chaque lancement. */
+          const jAuj = new Date(localDate() + "T12:00:00").getDay();
+          const idx = (jAuj + 6) % 7;            // 0 = lundi
+          const dowDeIdx = k => (k + 1) % 7;     // index lundi-first -> getDay()
+          const restants = [], passes = [], tous = [0, 1, 2, 3, 4, 5, 6];
+          for (let k = 0; k < 7; k++) {
+            if (k >= idx) restants.push(dowDeIdx(k)); else passes.push(dowDeIdx(k));
+          }
+          const lire = jours => {
+            state.profile = Object.assign({}, state.profile, { availableDays: jours });
+            render(); showPage("athlete"); showAthleteTab("aujourdhui");
+            /* Le <select> fait FOI : runObjectiveProgram lit sa valeur et ecrase l etat.
+               Piege deja paye a la 125, retendu a la 127. */
+            const sel = document.getElementById("objectiveSelect");
+            if (sel) sel.value = "muscle";
+            const b = document.getElementById("objectiveGenerate");
+            if (b) b.click();
+            showPage("athlete"); showAthleteTab("aujourdhui");
+            let vu = null;
+            Array.from(document.querySelectorAll("main.app-shell *")).forEach(function (el) {
+              if (vu || el.children.length) return;
+              const t = String(el.textContent || "");
+              if (t.indexOf("r\u00e9parties sur") === -1) return;
+              let p = el, ok = true;
+              while (p && p !== document.body) {
+                if (String(p.className || "").indexOf("app-page-hidden") !== -1) { ok = false; break; }
+                p = p.parentElement;
+              }
+              if (!ok) return;
+              vu = { h: Math.round(el.getBoundingClientRect().height),
+                visible: (typeof el.checkVisibility === "function") ? el.checkVisibility() : true,
+                texte: t };
+            });
+            return vu;
+          };
+
+          /* --- PASSE A : seuls les jours RESTANTS sont coches. L app doit se TAIRE sur le
+                 calendrier : l empilement vient du nombre de seances. Discrimine tous les jours. --- */
+          const vuA = lire(restants);
+          const rA = joursDentrainementRestants(restants, localDate());
+          const temoinA = !!rA && rA.restants === rA.choisis;
+          const seTait = !!vuA && vuA.visible && vuA.h > 0
+            && vuA.texte.indexOf("d\u2019ici dimanche") === -1;
+
+          /* --- PASSES B et C : elles supposent qu une partie de la semaine est DEJA PASSEE.
+                 Un lundi il n y en a pas : le diagnostic le dira plutot que de faire semblant. --- */
+          const calendrierMord = passes.length > 0;
+          let ditPartiel = true, ditAucun = true, rB = null, rC = null;
+          if (calendrierMord) {
+            const vuB = lire(tous);
+            rB = joursDentrainementRestants(tous, localDate());
+            ditPartiel = !!vuB && !!rB && rB.restants < rB.choisis
+              && vuB.texte.indexOf("de tes " + rB.choisis + " jours") !== -1
+              && vuB.texte.indexOf("d\u2019ici dimanche") !== -1
+              && vuB.texte.indexOf("Aucun de tes") === -1;
+            const vuC = lire(passes);
+            rC = joursDentrainementRestants(passes, localDate());
+            ditAucun = !!vuC && !!rC && rC.restants === 0
+              && vuC.texte.indexOf("Aucun de tes " + rC.choisis + " jours") !== -1
+              && vuC.texte.indexOf("les jours qui restent") !== -1;
+          }
+
+          checks.__jours = "A[coches=" + restants.length + " restants="
+            + (rA ? rA.restants : "?") + " temoin=" + temoinA + " muet=" + seTait
+            + " h=" + (vuA ? vuA.h : "?") + "] mord=" + calendrierMord
+            + " B[" + (rB ? rB.restants + "/" + rB.choisis : "non joue") + " ok=" + ditPartiel
+            + "] C[" + (rC ? rC.restants + "/" + rC.choisis : "non joue") + " ok=" + ditAucun
+            + "] t[" + (vuA ? vuA.texte.slice(0, 96) : "") + "]";
+
+          _rendre();
+          return temoinA && seTait && ditPartiel && ditAucun;
+        } catch (e) { _rendre(); checks.__errJours = String(e && e.message); return false; }
+      })();
+
       checks.coupeDitSaCause = (() => {
         const _p = JSON.parse(JSON.stringify(state.profile || {}));
         const _g = JSON.parse(JSON.stringify(state.goals || {}));
@@ -8566,6 +8664,7 @@ app.whenReady().then(async () => {
     if (!checks.creneauPerime) errors.push('Focus : la frise horaire décrit un comportement sur 60 jours, sans exiger d’activité récente. Au-delà de 14 jours sans bloc, elle doit passer au PASSÉ (« Plus aucun bloc depuis N jours… quand tu en lançais »), perdre son conseil d’action, prendre la classe fc-ancien et changer de teinte. Vérifié : elle annonçait « Ton créneau, c’est 9 h–12 h — mets là ce qui demande le plus de tête » avec zéro bloc depuis 35 jours');
     if (!checks.memeNombreDeuxEcrans) errors.push('Deux écrans parlent des mêmes séances manquées — « À rattraper » sur le tableau de bord et le panneau Athlète — et doivent annoncer LE MÊME nombre, qui doit être le VRAI. Le plafond d’affichage de missedSessions/overdueStudy (5 par défaut) ne doit jamais fuir dans un comptage : mesuré, 7 séances manquées s’affichaient « 7 » d’un côté et « 5 » de l’autre');
     if (!checks.budgetSemaineParle) errors.push('Le Plan de bataille compose une semaine sans jamais demander s’il reste du temps pour elle. Mesuré à l’itération 122 sur une semaine d’alternant (cours, révisions, famille) avec la capacité réglée à 1 h en semaine et 2 h le week-end : le plan réclamait 4 h quand la semaine n’avait que 3 h de libres, et AUCUN écran ne le disait — dayLoad mesurait un JOUR, lightenSuggestions allégeait un JOUR, rien n’agrégeait à la semaine. Attendu : sous capacité contrainte, le bloc est PEINT (display calculé, pas el.hidden) et cite les durées que budgetSemaine calcule ; et il dit ce qu’il SAIT — « il manque N » quand la somme ou une durée le prouve, « en les rangeant au mieux » quand seul le rangement a échoué. Sous capacité par défaut, même agenda, il se TAIT : une alerte permanente n’est plus une alerte. Il NOMME aussi sa fenêtre (« d’ici dimanche ») et déduit le déjà-fait — revue 123 : le total sommait les jours écoulés (780 min annoncées dont 540 passées, 69 %) et réclamait le plan entier un jeudi où deux séances étaient déjà faites, si bien qu’il annonçait « il manque 1 h » sans que rien ne manque (voir __budgetSemaine)');
+    if (!checks.empilementDitSaCause) errors.push('Le plan empile les séances sans dire que c’est le calendrier qui l’impose. Mesuré à l’itération 127 avec lundi/mercredi/vendredi cochés : calculé un lundi le plan répartit sur 3 jours, un mercredi sur 2, un jeudi il met les CINQ séances le vendredi et annonce « 5 séances réparties sur 1 jour : jusqu’à 5 le même jour » — vrai, mais lu tel quel ça passe pour un défaut de l’app. Attendu : quand une partie seulement de tes jours reste d’ici dimanche la phrase le dit avec les deux comptes, quand aucun ne reste elle le dit ET dit ce que l’app fait à la place, et quand ils sont tous devant toi elle se TAIT — l’empilement vient alors du nombre de séances, pas de la semaine (voir __jours)');
     if (!checks.coupeDitSaCause) errors.push('Le Plan de bataille retire du volume sans dire pourquoi. Mesuré à l’itération 125 sur un état atteignable — objectif physique « Prise de muscle », objectif de poids « perte », programme nutrition « agressif » : déficit de 885 kcal/jour soit 28 % de la dépense, `trainingPolicy` passe volumeFactor à 0,70, et le plan annonçait « Volume réduit : 4 exercices par séance au lieu de 5 » sans sa cause. Celle-ci n’était lisible que sur la page Poids, dans un <details> « Ma semaine type » fermé, sur un panneau en display:none. Attendu : la phrase de coupe est PEINTE sur le Plan de bataille (checkVisibility, hauteur > 0), elle cite le déficit et la part que la politique a réellement retenus, et elle ne nomme un conflit que quand il existe — « prise de muscle » sur un objectif muscle, rien de tel sur une sèche où la coupe va dans le sens visé (voir __cause)');
     if (!checks.rubanSurLaMemeFenetre) errors.push('Le Coach Poids compare une variation de poids et une variation de tour de taille prises sur DEUX périodes différentes. Mesuré à l’itération 124 : deux ans de pesées (90 → 78 kg) face à trois mois de mensurations (−1,5 cm) donnaient « Poids et tour de taille en baisse : la perte de gras est bien engagée », alors que sur la fenêtre commune la balance n’avait pas bougé — la réponse juste était « recomposition en cours », c’est-à-dire la MEILLEURE nouvelle : l’app sous-créditait un vrai progrès en le nommant mal. Attendu : les deux deltas sont bornés au départ commun des deux séries, la période est ÉCRITE à l’écran, la fenêtre se ferme AUX DEUX BOUTS — revue 126 : elle ne se fermait qu’au départ, si bien qu’un ruban muet depuis 60 jours donnait « Sur les 6 derniers mois : −2 cm » pour des centimètres perdus entre janvier et mai ; quand la dernière mensuration est ancienne, l’écran dit jusqu’où il a regardé. Et le verdict suit ce qui se passe DANS la fenêtre — mêmes mensurations, une balance stable dit « recomposition » et une balance qui chute dit « perte de gras » (voir __ruban)');
     if (!checks.programmeNutritionSuivi) errors.push('La page Poids annonce un plan que tu n’as pas choisi. Mesuré à l’itération 120, même état, en changeant seulement le programme nutrition : « prudent » applique 0,28 kg/sem sur 19 semaines, « agressif » 0,77 sur 7, « très agressif » 0,96 sur 6 avec 1968 kcal — et la page Poids annonçait 0,55 kg/sem, 10 semaines et 2425 kcal DANS LES TROIS CAS, parce qu’elle construisait son plan sans appliquer le programme retenu. Aggravant : depuis l’itération 117 elle attribue ce chiffre à « ton plan ». Attendu : la durée annoncée par la page Poids est celle que le plan applique, pour CHAQUE programme du catalogue (voir __programmeSuivi)');
