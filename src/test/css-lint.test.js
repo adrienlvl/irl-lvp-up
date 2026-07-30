@@ -261,3 +261,29 @@ test('un id ne vit qu’une fois : deux écrans ne peuvent pas écrire au même 
   assert.ok(app.indexOf("renderWeekBalance(){const el=$('#trainingWeekBalance')") !== -1,
     'renderWeekBalance doit viser l’élément de l’onglet Athlète, pas celui de la page « Ma semaine »');
 });
+
+test('deux panneaux ne partagent pas leur eyebrow : c’est la clé de leur état replié', () => {
+  /* REVUE 112. `setupCollapsibles` mémorise les panneaux repliés dans localStorage sous
+     `'c:' + eyebrow.textContent.slice(0,40)`, et `polish.css` applique
+     `panel.collapsed > *:not(.panel-heading){display:none!important}` — replier avale donc TOUT
+     le contenu. Deux panneaux qui partagent leur eyebrow partageraient leur état replié : replier
+     l'un ferait disparaître l'autre. Même famille que l'id dupliqué de l'itération 110.
+     La liste se DÉRIVE du markup.
+
+     À NOTER, et non testable ici : la clé survit aussi à un CHANGEMENT DE SENS du panneau. À
+     l'itération 111, `analysis-panel` est passé de 3 lignes de résumé à 1 800 px d'analyse en
+     gardant l'eyebrow « ANALYSE » : tout utilisateur qui l'avait replié parce qu'il ne montrait
+     rien perdait la totalité de l'analyse, sans signal. Corrigé en changeant l'eyebrow — la règle
+     est donc : un panneau qui change de sens change d'eyebrow. */
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const compte = new Map();
+  const re = /<p class="eyebrow">([^<]*)<\/p>/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const cle = m[1].trim().slice(0, 40);
+    compte.set(cle, (compte.get(cle) || 0) + 1);
+  }
+  assert.ok(compte.size > 50, 'témoin : le markup porte bien des dizaines d’eyebrows (' + compte.size + ')');
+  const partages = [...compte.entries()].filter(([, n]) => n > 1).map(([k, n]) => k + ' ×' + n);
+  assert.deepEqual(partages, [], 'eyebrows partagés (donc état replié partagé) : ' + partages.join(', '));
+});
