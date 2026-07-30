@@ -4931,3 +4931,51 @@ tombe.
 
 **Mutations.** 4 posées, 4 détectées après ajout de la passe courte. 702 tests · SMOKE OK. Rien
 publié depuis v2.17.0.
+
+## Itération 119 — B4 refusé par la mesure, et un défaut trouvé par le garde-fou qui le remplace
+
+B4 demandait de casser l'uniformité : « 30 panneaux au même poids : titre 18px/700 ». Mesuré sur
+les quatre sous-onglets :
+
+| | valeur |
+|---|---|
+| panneaux visibles | **21** |
+| tailles de titre distinctes | **1** (18,4 px) |
+| graisses distinctes | **1** (700) |
+| hauteur par sous-onglet | 3 834 à 4 501 px |
+
+**Le constat est exact.** Mais cette uniformité est un CHOIX, argumenté dans `pages.css` par
+l'audit typographique du 27/07 : « deux niveaux si proches, répétés sur 47 panneaux, se lisent
+comme une liste de blocs équivalents ». Ajouter un cran recréerait ce qui venait d'être corrigé.
+Et le symptôme supposé n'est pas là : le premier geste est à **540 px sur les quatre**
+sous-onglets, et **trois n'ont aucune action propre** — hiérarchiser des titres n'y rapprocherait
+aucune action.
+
+### Le garde-fou a trouvé un défaut en s'exécutant
+
+| fichier | sélecteur | taille |
+|---|---|---|
+| `pages.css` | `.section-heading h2,.panel h2` | `var(--fs-xl)` — en vigueur |
+| `style.css` | idem + `.dialog-heading h2` | **1.5rem EN DUR** — morte mais présente |
+
+Le commentaire de l'audit affirmait « aucune taille en dur ». C'était **faux** : la déclaration
+d'origine subsistait, simplement écrasée par l'ordre des feuilles. Si demain quelqu'un renomme ou
+réordonne les CSS, les titres repassent à 1,5 rem sans que personne ne l'ait décidé.
+
+### Ce que cette itération a appris
+
+**Écrire un garde-fou est une façon de vérifier une affirmation.** Je n'ai pas cherché ce défaut :
+le test l'a trouvé en s'exécutant, parce qu'il DÉRIVE la liste des règles au lieu de la déclarer.
+*Un test qui énumère lui-même voit ce que le lecteur ne voit pas.*
+
+**Cinquième refus sur six étapes de phase A+B.** A1, A3, A4 (deux fois), B4. À chaque fois la
+lettre visait la structure et la mesure a trouvé autre chose — ou rien. *Ce n'est pas la roadmap
+qui est mauvaise : c'est qu'elle a été écrite sur un profil sans données, et qu'aucune de ses
+lignes n'avait été mesurée avant d'être écrite.*
+
+**Refuser n'est pas ne rien faire.** Le refus vaut mieux que l'obéissance quand il est mesuré,
+mais il doit laisser une trace exécutable : ici, un test qui empêche un futur moi de défaire la
+décision sans la lire. La mutation « un panneau majeur obtient un cran à lui » — c'est-à-dire B4
+lui-même — est maintenant détectée.
+
+**Mutations.** 3 posées, 3 détectées. 703 tests · SMOKE OK. Rien publié depuis v2.17.0.
