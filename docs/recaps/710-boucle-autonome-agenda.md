@@ -3823,3 +3823,80 @@ cassé. *Une sonde est un instrument : son biais se mesure comme le reste.*
 le check la voit, donc il mesure l'effet et non l'existence.
 
 693 tests · SMOKE OK. Rien publié depuis v2.16.0.
+
+## Itération 100 — revue adversariale : ce que l'itération 99 avait rendu critique
+
+Revue des itérations 98-99 (les précédentes : 94, 97). Visée annoncée : mon code d'hier soir.
+
+### Le défaut que j'ai créé
+
+`state.activeProgram` était déréférencé **sans garde à trois endroits** : en tête de
+`renderTrainingCompanion`, dans son gestionnaire de clic, et en tête de `renderRoadmapFeatures`. Le
+chargement ne rattrapait que le **vide** (`activeProgram ||= 'fullbody'`), donc toute chaîne non
+vide invalide passait. Mesuré :
+
+```
+activeProgram = 'fullbody'      -> render() : erreur=null
+activeProgram = 'hybride-2024'  -> render() : Cannot read properties of undefined (reading 'name')
+```
+
+Et `renderRoadmapFeatures` est une fonction fourre-tout de 9 000 caractères : elle rend les trois
+blocs du panneau masqué **mais aussi** le score de forme, le conseil de charge, les séances
+manquées, la tendance de forme, les mensurations et le bilan coach. Le crash emportait donc tout ce
+contenu vivant — **écran figé sur la peinture précédente, sans message d'erreur**.
+
+**Ce que l'itération 99 y a changé :** en masquant les trois cartes du panneau, j'ai supprimé le
+seul contrôle qui posait une valeur valide (mesuré : `visible=false` pour les trois). La valeur ne
+peut désormais venir que d'un état laissé par une version antérieure ou d'une sauvegarde importée —
+**le seul chemin non validé**. Un défaut latent est devenu le chemin normal.
+
+Cure à la racine dans `normalizeState` : la liste des valeurs valides se **dérive des clés** de
+`programs`. Plus les trois sites rendus défensifs. Un `return` anticipé sur « le panneau est
+masqué » aurait été le mauvais correctif — il aurait tué le même contenu vivant.
+
+### Deux défauts révélés, pas créés
+
+**« Voir mon plan » ne montrait pas le plan.** L'action `voirProgramme` ouvrait le sous-onglet
+« Programme » — objectifs, profil, routines, historique — alors que le Plan de bataille est assigné
+à « Aujourd'hui » depuis l'itération 82.
+
+**Deux de mes checks mesuraient un DOM gonflé par l'ordre des tests.** Mon nouveau check appelle un
+`render()` **complet** ; le DOM reflète alors l'état réel, et les comptes sont tombés :
+
+| check | avant (DOM enrichi par les fixtures voisines) | état réel |
+|---|---|---|
+| `pliAnalyseFocus` | 5 analyses peuplées, 574 px gagnés | **2** peuplées, 225 px |
+| `planActionDabord` | 5 blocs d'explication dans le pli | **4** |
+
+Mes seuils `attendus >= 4`, `dedans === 5` et `gagne > 300` étaient donc trois chiffres vrais
+uniquement à cause de l'ordre d'exécution. **Je n'ai pas baissé les seuils** : les assertions
+portent maintenant sur leur sujet — « tout ce qui EXISTE est dans le pli » se dérive du DOM, « le pli
+cache un mur » se mesure par rapport à sa propre hauteur fermée. La cinquième mutation remet
+`dedans === 5` et **tombe** : le recalibrage n'était pas cosmétique.
+
+### Ce que cette itération a appris
+
+**Retirer une commande peut promouvoir un défaut latent en chemin normal.** Le crash existait avant
+l'itération 99 ; il dormait parce que l'interface ne posait que des valeurs valides. En masquant le
+panneau, j'ai laissé l'état et l'import comme seules sources — et ce sont les deux qui ne valident
+rien. *Avant de retirer un contrôle, demander qui d'autre écrit la valeur qu'il posait.*
+
+**Un check qui repeint tout révèle les checks qui ne repeignent rien.** Aucun autre check n'appelait
+`render()` : ils mesuraient donc, sans le savoir, un DOM laissé riche par leurs voisins. *Une suite
+de checks partage un état ; un seuil calibré dans cette suite mesure aussi l'ordre d'exécution.*
+
+**Une garde ne se met pas là où c'est commode.** Le réflexe était d'écrire un `return` anticipé
+« si le panneau est masqué » — il aurait supprimé le score de forme, le conseil de charge et les
+mensurations avec le bug.
+
+**NON PROUVÉ, et je le dis :** je n'ai pas réussi à atteindre le repli du Compagnon depuis
+l'interface (`trainingWeekPlan` rend toujours un plan dans les états essayés). Le check couvre donc
+le crash, pas le texte du repli.
+
+**Et pour la deuxième fois ce soir, `node -e` a mangé mes backticks** dans un patch — la règle du
+protocole dit « patcher avec un .cjs écrit via Write, jamais node -e ». Deux commentaires sont
+partis en morceaux avant que je les rétablisse.
+
+**Mutations.** 5 posées, 5 détectées, témoin non muté d'abord.
+
+693 tests · SMOKE OK. Rien publié depuis v2.16.0. **A2 (un seul check-in) reste la prochaine étape.**
