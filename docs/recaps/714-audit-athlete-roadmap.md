@@ -176,3 +176,38 @@ réels trouvés dans mon propre code récent).
 
 - **2026-09-01** — si aucune alternance : module Alternance mis de côté, jamais supprimé.
 - **Octobre** — sort du markup masqué (3 générateurs) → **avancé par A1**, qui en tranche le gros.
+
+---
+
+## Point d'étape — PHASE A TERMINÉE, publiée en v2.17.0 (30/07/2026)
+
+**A1, A2, A3 sont faits** (itérations 99, 102, 107-108). L'objectif chiffré de la phase A était
+« 22 → ~16 panneaux, ~15 300 → ~11 000 px ». Mesuré : **21 panneaux, 11 879 px** — la moitié du
+chemin en panneaux, l'essentiel en pixels, sans perdre un contenu. Les deux fusions qui manquent pour
+atteindre 16 sont des fusions de SURFACE (A3 côté écrans, A4/A5), et elles ne rendront des pixels
+qu'après B4 : hiérarchiser d'abord, déplacer ensuite.
+
+**Ce que la phase A a appris sur la roadmap elle-même.** Les trois étapes ont été menées, mais aucune
+exactement comme elle était écrite ici :
+
+- **A1** prescrivait de faire des séances suggérées « des variantes du générateur » : la variation
+  existait déjà. Ce qui manquait vraiment, c'était une CORRECTION que le panneau perdant portait seul.
+- **A2** prescrivait de fusionner deux panneaux : on a fusionné le SUJET (le check-in) et gardé le
+  second panneau pour ce qu'il fait d'autre — de l'analyse, pas une redite.
+- **A3** prescrivait de faire absorber `coach-panel` et `week-panel` par le bilan hebdo. Le vrai défaut
+  n'était pas le nombre de panneaux : c'est qu'ils annonçaient **des nombres différents pour la même
+  semaine**. La fusion utile était celle des CHIFFRES.
+
+*Trois fois sur trois, la lettre visait les pixels et le défaut était dans le contenu. Deux voix qui
+disent le même nombre peuvent rester deux panneaux ; deux panneaux qui disent deux nombres ne sont pas
+une redite, c'est une contradiction.*
+
+**Itération 109, hors roadmap et assumée :** le harnais de rendu tournait sur le profil Electron de
+développement et lisait le vrai `localStorage`, donc une dizaine de checks ne passaient que grâce à
+l'état laissé par un run précédent, et l'un d'eux tombait au hasard. Profil jetable + socle de
+référence explicite. Un garde-fou instable est une dette, pas une protection — et tout ce qui suit
+s'appuie dessus.
+
+**Prochaine étape à la reprise : B1** — `analysis-panel` (108 caractères) devient la vraie analyse
+force & endurance. Les briques (`bestE1rmByExercise`, `strengthPlateau`, `strengthForecast`,
+`muscleBalance`, `pushPullAdvice`) existent déjà et ne sont racontées nulle part.
