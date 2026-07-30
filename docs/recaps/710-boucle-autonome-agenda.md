@@ -3757,3 +3757,69 @@ cyclique ÉGAL au bon jour, où il gagnerait par ordre de liste s'il était acce
 Le panneau qui dépasse maintenant le Plan de bataille est **`program-panel` (« Ta prochaine
 séance », 2 174 px)** — et il parle du MÊME sujet que la semaine du plan. Deux voix sur une seule
 question : c'est le chantier (B) « un seul avis par sujet », sur le plus gros panneau restant.
+
+## Itération 99 — A1 : le double programme, absorbé puis masqué
+
+Rang 1 de la [roadmap 714](714-audit-athlete-roadmap.md). Première itération après l'audit dédié.
+
+**Méthode inhabituelle, et son échec partiel.** J'ai lancé une cartographie parallèle du code en
+lecture seule (4 agents) avant de toucher une ligne. **Les quatre ont échoué sur des erreurs 529**,
+et l'agent de synthèse a donc travaillé sur quatre `null` — il est allé lire le code lui-même et a
+rendu des affirmations très précises, citées ligne par ligne. Je les ai **toutes vérifiées à la
+main** avant d'agir : c'était justifié, elles étaient exactes, mais un rapport d'agent construit sur
+des entrées vides n'a aucune valeur avant recoupement.
+
+### Ce que la vérification a trouvé — un défaut, pas seulement une redite
+
+Le gabarit du Plan écrivait `${e.sets}×${e.reps}` **brut**, alors que `pickExercisesForZones`
+préserve `unit`. Mesuré en exécutant le générateur :
+
+```
+Équilibre unipodal  3x30  unit=sec  -> affiche "3×30"
+Bear crawl          3x20  unit=pas  -> affiche "3×20"
+```
+
+**Trente répétitions d'équilibre unipodal n'existent pas.** Le panneau qui ouvre l'onglet Athlète
+donnait une consigne infaisable — et le panneau qu'on s'apprêtait à masquer, lui, passait par
+`formatFor` qui suffixe l'unité. C'est le fil rouge du dépôt sous sa forme la plus pure : la voix
+qu'on allait supprimer était la seule à dire vrai.
+
+### Absorbé, refusé, mesuré
+
+| absorbé | pourquoi |
+|---|---|
+| l'unité (`exerciseFormat`) | correction d'une consigne fausse — 15 lignes rendues, 0 nue |
+| le pourquoi par séance de muscu (`FOCUS_POURQUOI`, 6 focus) | les courses en avaient toutes, les muscu aucun |
+| le geste « Préparer » | noter une séance à la main n'existait que là |
+
+| refusé | preuve |
+|---|---|
+| les 3 archétypes | `onboardingSetup` rend `activeProgram: objective === 'endurance' ? 'run' : 'fullbody'` — un réglage à 3 valeurs **dérivé** de celui à 5. Pas un second avis : un résumé périmé du premier |
+| vignettes + repos par exercice | décoration et redite (l'écran guidé possède le repos), et les deux re-gonflent le panneau |
+| « en faire des variantes du générateur » — ma propre roadmap | la variation existe déjà (`#objectiveVary` → seed → `pickExercisesForZones`, compteur « Variante N ») |
+
+**Aujourd'hui : 6 440 → 4 430 px (−31 %), 6 → 5 panneaux.** Le Plan grossit de 148 px (le contenu
+absorbé) et **redevient le plus grand panneau sans avoir gonflé** : son concurrent de 2 174 px a
+disparu.
+
+### Ce que cette itération a appris
+
+**Une roadmap que j'écris peut se tromper, et il faut le dire au lieu de l'exécuter.** La 714
+prescrivait de transformer les séances du panneau perdant en « variantes du générateur unifié ». La
+variation existait déjà de bout en bout ; obéir aurait fait entrer une seconde source de séances
+dans le panneau dont tout le contrat dit qu'il est le seul générateur restant. *Un plan est une
+hypothèse, pas une consigne.*
+
+**La voix qu'on s'apprête à faire taire peut être celle qui a raison.** J'ai failli masquer
+`program-panel` en croyant n'y perdre que des redites : il était le seul à afficher l'unité des
+séries. *Avant de fusionner, chercher ce que le perdant fait MIEUX, pas seulement ce qu'il répète.*
+
+**Ma propre sonde a fabriqué un faux défaut.** Elle affichait « ⏱️ ≈ /semaine » et « 📆 Première
+séance . » — deux valeurs qui semblaient manquer. Elles vivaient dans des `<b>`, et ma sonde
+privilégiait les nœuds de texte DIRECTS. Vérifié avant d'écrire quoi que ce soit : rien n'était
+cassé. *Une sonde est un instrument : son biais se mesure comme le reste.*
+
+**Mutations.** 6 posées, 6 détectées. La plus utile rend « Préparer » **inerte sans le retirer** —
+le check la voit, donc il mesure l'effet et non l'existence.
+
+693 tests · SMOKE OK. Rien publié depuis v2.16.0.
