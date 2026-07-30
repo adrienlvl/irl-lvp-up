@@ -4782,3 +4782,47 @@ depuis sept itérations.
 
 **Reste d'A5 et A4, non fait :** le poids se saisit toujours à DEUX endroits (`#weightInput` sur
 Athlète/Corps, `#coachWeightToday` sur la page Poids) — c'est A4, et c'est la prochaine étape.
+
+## Itération 116 — revue : ma convergence des dials tuait le mode « auto »
+
+Revue adversariale (les précédentes aux 94, 97, 100, 103, 106, 109, 112), visant **mon code des
+113-115**. Mon propre angle a trouvé une régression introduite la veille, et elle se déclenche sur le
+geste le plus banal.
+
+`progSessions` **vide** veut dire « auto » : le plan choisit seul le nombre de séances — c'est le sens
+du placeholder du champ jumeau. Mesuré après la 115 :
+
+| geste | `progSessions` | cible |
+|---|---|---|
+| départ (auto) | `''` | 5 |
+| « Sauvegarder » 6 | 6 | 6 ✓ |
+| **vider le champ + Sauvegarder** | **4** | **4** ✗ |
+| vider le champ du Plan | `''` | 5 ✓ |
+| **changer JUSTE la distance** | **4** | **4** ✗ |
+
+Deux causes, toutes deux miennes : `Math.max(1, Number('')||4)` transformait le vide en 4 ; et
+surtout **j'affichais la valeur de repli dans un champ éditable**. Le champ montrait 4 « à titre
+indicatif », et le bouton la figeait.
+
+### Ce que cette itération a appris
+
+**Un affichage de repli dans un champ éditable devient une écriture.** C'est le cœur du défaut : rien
+ne distingue, à l'écran, un nombre *indicatif* d'un nombre *choisi*. Dès qu'un bouton « Sauvegarder »
+lit le champ, l'indicatif devient une décision — prise par l'app, au nom de l'utilisateur, sur un
+geste qui ne parlait même pas du sujet. *Un champ vide n'est pas un champ à remplir : c'est une
+valeur.*
+
+**J'ai cassé « auto » en croyant réunir deux réglages.** L'itération 115 visait « un seul avis par
+sujet » et l'a obtenu — en supprimant une option que personne n'avait vue dans le tableau : le mode
+où l'app décide. *Réunir deux voix, c'est aussi hériter de ce que chacune savait faire.*
+
+**Un témoin peut tester l'ordre du check au lieu de son sujet.** Ma première assertion sur le repli
+comparait à une constante, alors que les passes précédentes du check l'avaient déjà fait bouger. Elle
+tombait — pas parce que le code était faux, mais parce que le témoin regardait ailleurs. Corrigé en
+relevant la valeur juste avant le geste.
+
+**Mutations.** 3 posées, 3 détectées. 700 tests · SMOKE OK. Rien publié depuis v2.17.0.
+
+**En cours :** une réfutation déléguée sur trois angles (le mode auto, la fusion de `state.goals`, les
+garde-fous durcis de la 113) tournait encore à la clôture. Ses trouvailles seront traitées à
+l'itération suivante, avant A4.
