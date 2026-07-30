@@ -4895,3 +4895,39 @@ depuis v2.17.0.
 (`progression-hub`, `analysis-panel`, `weight-panel`, `coach-panel`) plus la page Poids. La lettre
 demande que `analysis-panel` se taise ; sa ligne « Ta tendance de poids » n'a pas encore été
 confrontée aux autres — à mesurer avant de la retirer, exactement comme ici.
+
+## Itération 118 — A4 (fin) : deux voix sur le poids, deux questions, et un refus argumenté
+
+La roadmap demandait que `analysis-panel` « cesse de parler de poids ». Mesuré avant d'obéir, sur
+neuf pesées hebdomadaires :
+
+| voix | ce qu'elle dit | ce qu'elle calcule VRAIMENT |
+|---|---|---|
+| `weight-panel` (Corps) | « Tendance récente : −0,36 kg/sem » | les **six dernières mesures** (`slice(-6)`) |
+| `analysis-panel` (Progrès) | « −2,8 kg en 8 semaines · −0,35 kg/sem » | la **première** pesée contre la dernière |
+
+Deux chiffres proches, mais **pas deux calculs de la même chose** : tendance récente contre bilan
+depuis le début. **Refus argumenté**, comme pour A1 et A3 — on ne fait pas taire l'analyse.
+
+Ce qui manquait : l'une des deux ne nommait pas sa fenêtre. Elle dit maintenant « Sur tes
+**6 dernières pesées** », et le compte est le **vrai** — `weightTrend` expose `mesures`, parce
+qu'avec trois pesées la fenêtre vaut trois.
+
+### Ce que cette itération a appris
+
+**Deux nombres proches trompent plus que deux nombres éloignés.** −0,35 et −0,36 : l'écart est si
+petit qu'on conclut « c'est la même chose, mal arrondie » et qu'on supprime un doublon qui n'en est
+pas un. Ce sont les fenêtres, lues dans le code, qui ont tranché. *La proximité de deux chiffres ne
+dit rien de la proximité des questions.*
+
+**Quatre refus sur cinq étapes de la phase A.** A1 (les archétypes), A3 (la fusion de surface), A4
+deux fois — la saisie unique à la 117, le silence de l'analyse ici. À chaque fois la lettre visait
+la structure et la mesure a trouvé le contenu. *Une roadmap écrite sans données est une hypothèse,
+pas un plan.*
+
+**Huitième scénario manquant.** Le libellé « six en dur » passait le check : avec neuf pesées, la
+fenêtre vaut six de toute façon. Il a fallu une seconde passe à trois pesées pour que la mutation
+tombe.
+
+**Mutations.** 4 posées, 4 détectées après ajout de la passe courte. 702 tests · SMOKE OK. Rien
+publié depuis v2.17.0.
